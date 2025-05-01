@@ -23,7 +23,7 @@ export default function PricingBanner({ adultPrice, childPrice, minimumTotal }: 
           <div className="text-center">
             <p className="text-sm uppercase tracking-wide">Minimum</p>
             <p className="text-3xl font-bold">${minimumTotal}</p>
-            <p className="text-sm">all parties</p>
+            <p className="text-sm">some parties</p>
           </div>
         </div>
       </div>

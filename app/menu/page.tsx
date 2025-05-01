@@ -100,7 +100,7 @@ export default function MenuPage() {
   // Base prices
   const adultPrice = 60
   const childPrice = 30
-  const minimumTotal = 600
+  const minimumTotal = 500
 
   // 升级项价格
   const upgradesPricing = {

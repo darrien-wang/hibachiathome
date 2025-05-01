@@ -13,6 +13,27 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertCircle } from "lucide-react"
 import { regularProteins, premiumProteins, sides, packageOptions, getPackageById } from "@/config/menu-items"
+import PackageComparisonTable from "./PackageComparisonTable"
+
+// 拆分：将初始化蛋白质和配菜选择的函数提到组件外部
+function initialProteinSelections() {
+  const selections: Record<string, { selected: boolean; quantity: number }> = {}
+  regularProteins.forEach((protein) => {
+    selections[protein.id] = { selected: false, quantity: 0 }
+  })
+  premiumProteins.forEach((protein) => {
+    selections[protein.id] = { selected: false, quantity: 0 }
+  })
+  return selections
+}
+
+function initialSideSelections() {
+  const selections: Record<string, { selected: boolean; quantity: number }> = {}
+  sides.forEach((side) => {
+    selections[side.id] = { selected: false, quantity: 0 }
+  })
+  return selections
+}
 
 interface PackageSelectionProps {
   packages: any[]
@@ -27,6 +48,20 @@ interface PackageSelectionProps {
   calculatePackagePrice: (headcount: number, childCount: number, upgrades: any) => number
 }
 
+// 拆分：将套餐包含的默认选项状态和额外费用状态的初始值对象提到组件外部
+const initialPackageInclusions = {
+  proteins: 0,
+  premiumProteins: 0,
+  sides: 0,
+}
+
+const initialExtraCharges = {
+  proteins: 0,
+  premiumProteins: 0,
+  sides: 0,
+  total: 0,
+}
+
 export default function PackageSelection({
   packages,
   selectedPackage,
@@ -39,61 +74,8 @@ export default function PackageSelection({
   setIsComparisonTableExpanded,
   calculatePackagePrice,
 }: PackageSelectionProps) {
-  // 初始化蛋白质选择状态
-  const initialProteinSelections = () => {
-    const selections: Record<string, { selected: boolean; quantity: number }> = {}
-
-    // 初始化常规蛋白质
-    regularProteins.forEach((protein) => {
-      selections[protein.id] = { selected: false, quantity: 0 }
-    })
-
-    // 初始化高级蛋白质
-    premiumProteins.forEach((protein) => {
-      selections[protein.id] = { selected: false, quantity: 0 }
-    })
-
-    return selections
-  }
-
-  // 初始化配菜选择状态
-  const initialSideSelections = () => {
-    const selections: Record<string, { selected: boolean; quantity: number }> = {}
-
-    sides.forEach((side) => {
-      selections[side.id] = { selected: false, quantity: 0 }
-    })
-
-    return selections
-  }
-
   // 添加participants状态
-  const [participants, setParticipants] = useState([
-    {
-      id: 1,
-      name: "John Smith",
-      status: "submitted",
-      isSelected: true,
-      proteinSelections: initialProteinSelections(),
-      sideSelections: initialSideSelections(),
-    },
-    {
-      id: 2,
-      name: "Jane Doe",
-      status: "submitted",
-      isSelected: false,
-      proteinSelections: initialProteinSelections(),
-      sideSelections: initialSideSelections(),
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      status: "in-progress",
-      isSelected: false,
-      proteinSelections: initialProteinSelections(),
-      sideSelections: initialSideSelections(),
-    },
-  ])
+  const [participants, setParticipants] = useState([])
 
   // 添加新的状态变量
   const [showAddForm, setShowAddForm] = useState(false)
@@ -121,24 +103,10 @@ export default function PackageSelection({
   const [sideSelections, setSideSelections] = useState(initialSideSelections())
 
   // 添加套餐包含的默认选项状态
-  const [packageInclusions, setPackageInclusions] = useState({
-    proteins: 0,
-    premiumProteins: 0,
-    sides: 0,
-  })
+  const [packageInclusions, setPackageInclusions] = useState(initialPackageInclusions)
 
   // 添加额外费用状态
-  const [extraCharges, setExtraCharges] = useState<{
-    proteins: number
-    premiumProteins: number
-    sides: number
-    total: number
-  }>({
-    proteins: 0,
-    premiumProteins: 0,
-    sides: 0,
-    total: 0,
-  })
+  const [extraCharges, setExtraCharges] = useState(initialExtraCharges)
 
   // 添加编辑名称相关状态
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null)
@@ -572,10 +540,12 @@ export default function PackageSelection({
   }, [])
 
   return (
-    <Card className="mb-10">
-      <CardHeader>
-        <CardTitle>Choose a Package</CardTitle>
-        <CardDescription>Select one of our popular packages or customize your own experience below</CardDescription>
+    <Card className="mb-10 border-amber-100 bg-gradient-to-b from-white to-amber-50/30">
+      <CardHeader className="border-b border-amber-100 pb-4">
+        <CardTitle className="text-2xl text-amber-800">Choose a Package</CardTitle>
+        <CardDescription className="text-amber-700/80">
+          Select one of our popular packages or customize your own experience below
+        </CardDescription>
       </CardHeader>
 
       {/* 步骤条 */}
@@ -585,19 +555,21 @@ export default function PackageSelection({
           <div className="flex flex-col items-center">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium mb-2 ${
-                currentStep >= 1 ? "bg-[#C33]" : "bg-gray-300"
+                currentStep >= 1 ? "bg-amber-500" : "bg-gray-300"
               }`}
               onClick={() => currentStep > 1 && setCurrentStep(1)}
             >
               1
             </div>
-            <span className={`text-xs ${currentStep === 1 ? "font-medium" : "text-gray-500"}`}>Select Package</span>
+            <span className={`text-xs ${currentStep === 1 ? "font-medium text-amber-700" : "text-gray-500"}`}>
+              Select Package
+            </span>
           </div>
 
           {/* 连接线1 */}
           <div className="flex-1 h-0.5 mx-2 bg-gray-200 relative">
             <div
-              className="absolute top-0 left-0 h-full bg-[#C33] transition-all duration-300"
+              className="absolute top-0 left-0 h-full bg-amber-500 transition-all duration-300"
               style={{ width: currentStep > 1 ? "100%" : "0%" }}
             ></div>
           </div>
@@ -606,19 +578,21 @@ export default function PackageSelection({
           <div className="flex flex-col items-center">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium mb-2 ${
-                currentStep >= 2 ? "bg-[#C33]" : "bg-gray-300"
+                currentStep >= 2 ? "bg-amber-500" : "bg-gray-300"
               }`}
               onClick={() => currentStep > 2 && setCurrentStep(2)}
             >
               2
             </div>
-            <span className={`text-xs ${currentStep === 2 ? "font-medium" : "text-gray-500"}`}>Customize Meal</span>
+            <span className={`text-xs ${currentStep === 2 ? "font-medium text-amber-700" : "text-gray-500"}`}>
+              Customize Meal
+            </span>
           </div>
 
           {/* 连接线2 */}
           <div className="flex-1 h-0.5 mx-2 bg-gray-200 relative">
             <div
-              className="absolute top-0 left-0 h-full bg-[#C33] transition-all duration-300"
+              className="absolute top-0 left-0 h-full bg-amber-500 transition-all duration-300"
               style={{ width: currentStep > 2 ? "100%" : "0%" }}
             ></div>
           </div>
@@ -627,12 +601,14 @@ export default function PackageSelection({
           <div className="flex flex-col items-center">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium mb-2 ${
-                currentStep === 3 ? "bg-[#C33]" : "bg-gray-300"
+                currentStep === 3 ? "bg-amber-500" : "bg-gray-300"
               }`}
             >
               3
             </div>
-            <span className={`text-xs ${currentStep === 3 ? "font-medium" : "text-gray-500"}`}>Review & Pay</span>
+            <span className={`text-xs ${currentStep === 3 ? "font-medium text-amber-700" : "text-gray-500"}`}>
+              Review & Pay
+            </span>
           </div>
         </div>
         <p className="text-center text-xs text-gray-500 mt-2">
@@ -669,16 +645,15 @@ export default function PackageSelection({
                 <div
                   key={pkg.id}
                   className={`border rounded-lg overflow-hidden transition-all relative ${
-                    !isAvailable
-                      ? "opacity-60 grayscale"
-                      : selectedPackage === pkg.id
-                        ? "border-primary bg-primary/5 shadow-md"
-                        : isRecommended
-                          ? "border-secondary/50 hover:border-secondary hover:shadow-md"
-                          : "hover:border-gray-400 hover:shadow-md"
+                    selectedPackage === pkg.id
+                      ? "border-amber-500 bg-amber-50 shadow-md"
+                      : isRecommended
+                        ? "border-amber-300/50 hover:border-amber-300 hover:shadow-md"
+                        : "hover:border-gray-400 hover:shadow-md"
                   }`}
                   style={{
-                    boxShadow: selectedPackage === pkg.id ? "0 4px 12px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.1)",
+                    boxShadow:
+                      selectedPackage === pkg.id ? "0 4px 12px rgba(245, 158, 11, 0.15)" : "0 2px 8px rgba(0,0,0,0.1)",
                   }}
                   onClick={() => {
                     if (isAvailable) {
@@ -731,7 +706,7 @@ export default function PackageSelection({
 
                     {/* Price and capacity */}
                     <div className="mb-4">
-                      <p className="text-lg font-semibold text-[#C33]">
+                      <p className="text-lg font-semibold text-amber-600">
                         {pkg.id === "buffet" ? (
                           <>
                             <span className="text-gray-500 text-sm line-through mr-2">${pkg.originalPrice}</span>$
@@ -780,19 +755,19 @@ export default function PackageSelection({
                             {pkg.id === "buffet" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Self-service buffet style</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Fixed menu (no customization)</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Chicken, shrimp, beef</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Fried rice & vegetables</span>
                                 </li>
                                 <li className="flex items-start ">
@@ -803,38 +778,38 @@ export default function PackageSelection({
                             ) : pkg.id === "basic" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>2 proteins of your choice</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Fried rice & vegetables</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Gyoza & edamame included</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Chef performance included</span>
                                 </li>
                               </>
                             ) : (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>3 proteins of your choice</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Miso soup, gyoza, edamame</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Premium fried rice with upgrade options</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Premium Chef performance</span>
                                 </li>
                               </>
@@ -848,7 +823,7 @@ export default function PackageSelection({
                             {pkg.id === "buffet" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Fixed proteins only:</span>
                                 </li>
                                 <li className="flex items-start ml-4">
@@ -868,7 +843,7 @@ export default function PackageSelection({
                             ) : pkg.id === "basic" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Choose 2 basic proteins:</span>
                                 </li>
                                 <li className="flex items-start ml-4">
@@ -878,7 +853,7 @@ export default function PackageSelection({
                                   <span>- Salmon, Scallops, Tofu</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Premium upgrades available:</span>
                                 </li>
                                 <li className="flex items-start ml-4">
@@ -891,7 +866,7 @@ export default function PackageSelection({
                             ) : (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Choose 2 premium proteins only:</span>
                                 </li>
                                 <li className="flex items-start ml-4">
@@ -901,7 +876,7 @@ export default function PackageSelection({
                                   <span>- Filet Mignon, Lobster</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Premium quality proteins only</span>
                                 </li>
                                 <li className="flex items-start ml-4">
@@ -918,19 +893,19 @@ export default function PackageSelection({
                             {pkg.id === "buffet" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Fried rice</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Mixed vegetables</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Gyoza (available as add-on)</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Edamame (available as add-on)</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
@@ -941,19 +916,19 @@ export default function PackageSelection({
                             ) : pkg.id === "basic" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Fried rice</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Mixed vegetables</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Gyoza (available as add-on)</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Edamame (available as add-on)</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
@@ -964,7 +939,7 @@ export default function PackageSelection({
                             ) : (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Premium fried rice with upgrades available:</span>
                                 </li>
                                 <li className="flex items-start ml-4">
@@ -974,19 +949,19 @@ export default function PackageSelection({
                                   <span>- Dried scallops (+$12)</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Mixed vegetables</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Gyoza</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Edamame</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Miso soup</span>
                                 </li>
                                 <li className="flex items-start text-gray-400">
@@ -1004,45 +979,45 @@ export default function PackageSelection({
                             {pkg.id === "buffet" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Chef performance</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Serving equipment</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Setup & cleanup</span>
                                 </li>
                               </>
                             ) : pkg.id === "basic" ? (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Chef performance</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Serving equipment</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Setup & cleanup</span>
                                 </li>
                               </>
                             ) : (
                               <>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Premium Chef performance</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Serving equipment</span>
                                 </li>
                                 <li className="flex items-start">
-                                  <span className="text-primary mr-2">•</span>
+                                  <span className="text-amber-500 mr-2">•</span>
                                   <span>Setup & cleanup</span>
                                 </li>
                               </>
@@ -1058,7 +1033,9 @@ export default function PackageSelection({
                     {/* CTA button - 修改按钮行为，点击后进入下一步 */}
                     <Button
                       className={`w-full ${
-                        selectedPackage === pkg.id ? "bg-green-600 hover:bg-green-700" : "bg-[#C33] hover:bg-[#B22]"
+                        selectedPackage === pkg.id
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "bg-amber-500 hover:bg-amber-600"
                       }`}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -1076,738 +1053,727 @@ export default function PackageSelection({
             })}
           </div>
 
-          {/* 添加对比表格按钮 */}
-          <div className="mt-8 mb-4 flex justify-center">
-            <Button
-              variant="outline"
-              onClick={() => setIsComparisonTableExpanded(!isComparisonTableExpanded)}
-              className="w-full max-w-md flex items-center justify-center gap-2"
-            >
-              {isComparisonTableExpanded ? "Hide Comparison Table" : "Show Package Comparison Table"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform ${isComparisonTableExpanded ? "rotate-180" : ""}`}
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </Button>
-          </div>
-
-          {/* 对比表格 */}
-          {isComparisonTableExpanded && (
-            <div className="overflow-x-auto">
-              <div className="border rounded-lg overflow-hidden shadow-sm">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="py-3 px-4 text-left font-medium border-b">Package Features</th>
-                      <th className="py-3 px-4 text-center font-medium border-b">Basic Package</th>
-                      <th className="py-3 px-4 text-center font-medium border-b">Premium Package</th>
-                      <th className="py-3 px-4 text-center font-medium border-b">Buffet Package</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Price</td>
-                      <td className="py-2 px-4 text-center border-b">$50/person</td>
-                      <td className="py-2 px-4 text-center border-b">$80/person</td>
-                      <td className="py-2 px-4 text-center border-b">$40/person</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Protein Options</td>
-                      <td className="py-2 px-4 text-center border-b">2 regular proteins</td>
-                      <td className="py-2 px-4 text-center border-b">3 premium proteins</td>
-                      <td className="py-2 px-4 text-center border-b">Fixed menu</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Side Dishes</td>
-                      <td className="py-2 px-4 text-center border-b">Fried rice & vegetables</td>
-                      <td className="py-2 px-4 text-center border-b">
-                        Premium fried rice with upgrades (Wagyu, Dried Scallops) & vegetables
-                      </td>
-                      <td className="py-2 px-4 text-center border-b">Fried rice & vegetables</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Appetizers</td>
-                      <td className="py-2 px-4 text-center border-b">Gyoza & edamame</td>
-                      <td className="py-2 px-4 text-center border-b">Miso soup, gyoza & edamame</td>
-                      <td className="py-2 px-4 text-center border-b">Available as add-ons</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Chef Performance</td>
-                      <td className="py-2 px-4 text-center border-b">Standard performance</td>
-                      <td className="py-2 px-4 text-center border-b">Premium performance</td>
-                      <td className="py-2 px-4 text-center border-b">Standard performance</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Minimum Guests</td>
-                      <td className="py-2 px-4 text-center border-b">10 people</td>
-                      <td className="py-2 px-4 text-center border-b">10 people</td>
-                      <td className="py-2 px-4 text-center border-b">20 people</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4 border-b">Service Style</td>
-                      <td className="py-2 px-4 text-center border-b">Live cooking</td>
-                      <td className="py-2 px-4 text-center border-b">Live cooking</td>
-                      <td className="py-2 px-4 text-center border-b">Buffet style</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-4">Customization</td>
-                      <td className="py-2 px-4 text-center">Customizable</td>
-                      <td className="py-2 px-4 text-center">Customizable</td>
-                      <td className="py-2 px-4 text-center">Fixed menu</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {/* 添加对比表格按钮和表格 */}
+          <PackageComparisonTable
+            isExpanded={isComparisonTableExpanded}
+            setIsExpanded={setIsComparisonTableExpanded}
+            packageOptions={packageOptions}
+          />
         </div>
       )}
 
       {/* 步骤2: 定制餐品 */}
       {currentStep === 2 && (
         <div className="p-6 pt-0">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-2">
-              {selectedPackage === "buffet"
-                ? "Buffet Package"
-                : selectedPackage === "basic"
-                  ? "Basic Package"
-                  : "Premium Package"}{" "}
-              Customization
-            </h3>
-            <p className="text-sm text-gray-600">Customize your meal according to your preferences</p>
-          </div>
+          {selectedPackage === "buffet" ? (
+            // Buffet 套餐简化界面 - 只需确认人数
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4">Buffet Package Confirmation</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                The buffet package includes a fixed menu with chicken, premium steak, and shrimp. No customization is
+                needed.
+              </p>
 
-          {/* Group Order Management Section */}
-          <div className="border rounded-lg mb-6">
-            {/* Order Info Header */}
-            <div className="p-4 border-b">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center">
-                  <span className="text-sm font-medium mr-1">Event Name:</span>
-                  <input
-                    type="text"
-                    className="border-b border-dashed border-gray-300 bg-transparent px-1 text-sm focus:outline-none focus:border-primary"
-                    defaultValue="Weekend Gathering"
-                    placeholder="Enter event name"
-                  />
-                </div>
-                <div className="text-sm text-gray-600 hidden sm:block">•</div>
-                <div className="flex items-center">
-                  <span className="text-sm font-medium mr-1">Party Size:</span>
-                  <input
-                    type="number"
-                    className="border-b border-dashed border-gray-300 bg-transparent w-12 px-1 text-sm focus:outline-none focus:border-primary"
-                    defaultValue={getPackageById(selectedPackage || "")?.headcount || 0}
-                    min="1"
-                    placeholder="Guests"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Share Link Section */}
-            <div className="p-4 border-b bg-gray-50">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center flex-1">
-                  <span className="text-sm font-medium mr-2">Share Link:</span>
-                  <div className="relative flex-1 max-w-lg">
-                    <input
-                      type="text"
-                      className="w-full border rounded-md py-1 px-3 text-sm pr-24 bg-white"
-                      value={`https://yoursite.com/group/${Math.random().toString(36).substring(2, 8).toUpperCase()}`}
-                      readOnly
-                    />
-                    <button className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-100 hover:bg-gray-200 text-xs py-0.5 px-2 rounded border transition-colors">
-                      Copy Link
+              <div className="border rounded-lg p-6 bg-amber-50/50 mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h4 className="font-medium mb-1">Number of Guests</h4>
+                    <p className="text-sm text-gray-600">Minimum 20 guests required</p>
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      className="w-10 h-10 rounded-full border border-amber-300 flex items-center justify-center text-amber-700"
+                      onClick={() => {
+                        const pkg = getPackageById("buffet")
+                        if (pkg && pkg.headcount > 20) {
+                          pkg.headcount -= 1
+                        }
+                      }}
+                    >
+                      -
+                    </button>
+                    <span className="mx-4 w-12 text-center text-lg font-medium">
+                      {getPackageById("buffet")?.headcount || 20}
+                    </span>
+                    <button
+                      className="w-10 h-10 rounded-full border border-amber-300 flex items-center justify-center text-amber-700"
+                      onClick={() => {
+                        const pkg = getPackageById("buffet")
+                        if (pkg) {
+                          pkg.headcount += 1
+                        }
+                      }}
+                    >
+                      +
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <span className="text-sm mr-2">
-                    Orders Received: <strong>3</strong> / {getPackageById(selectedPackage || "")?.headcount || 0}
-                  </span>
-                  <button className="text-xs py-1 px-2 border rounded hover:bg-gray-100 transition-colors">
-                    Refresh
-                  </button>
+
+                <div className="border-t border-amber-100 pt-4 mt-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">Total Price:</p>
+                      <p className="text-sm text-gray-600">$39.9 per person</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-amber-600">
+                        ${(getPackageById("buffet")?.headcount || 20) * 39.9}
+                      </p>
+                      <p className="text-xs text-gray-500">($798 minimum)</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Two-column Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-              {/* Left Column: Participants List */}
-              <div className="border-r">
-                <div className="p-4">
-                  <h4 className="font-medium mb-3">Participants ({participants.length})</h4>
-                  {showAddForm ? (
-                    <div className="mb-4 border rounded-md p-3">
-                      <h5 className="text-sm font-medium mb-2">Add New Participant</h5>
-                      <div className="flex flex-wrap items-center gap-2">
+              <div className="flex justify-between mt-8">
+                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                  ◀ Back
+                </Button>
+                <Button className="bg-amber-500 hover:bg-amber-600" onClick={() => setCurrentStep(3)}>
+                  Continue to Checkout ▶
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // 原有的定制餐品界面 - 对于非 buffet 套餐
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-2">
+                {selectedPackage === "basic" ? "Basic Package" : "Premium Package"} Customization
+              </h3>
+              <p className="text-sm text-gray-600">Customize your meal according to your preferences</p>
+            </div>
+          )}
+
+          {selectedPackage !== "buffet" && (
+            <>
+              {/* Group Order Management Section */}
+              <div className="border rounded-lg mb-6">
+                {/* Order Info Header */}
+                <div className="p-4 border-b">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center">
+                      <span className="text-sm font-medium mr-1">Event Name:</span>
+                      <input
+                        type="text"
+                        className="border-b border-dashed border-gray-300 bg-transparent px-1 text-sm focus:outline-none focus:border-primary"
+                        defaultValue="Weekend Gathering"
+                        placeholder="Enter event name"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-600 hidden sm:block">•</div>
+                    <div className="flex items-center">
+                      <span className="text-sm font-medium mr-1">Party Size:</span>
+                      <input
+                        type="number"
+                        className="border-b border-dashed border-gray-300 bg-transparent w-12 px-1 text-sm focus:outline-none focus:border-primary"
+                        defaultValue={getPackageById(selectedPackage || "")?.headcount || 0}
+                        min="1"
+                        placeholder="Guests"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Share Link Section */}
+                <div className="p-4 border-b bg-gray-50">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center flex-1">
+                      <span className="text-sm font-medium mr-2">Share Link:</span>
+                      <div className="relative flex-1 max-w-lg">
                         <input
                           type="text"
-                          className="flex-1 p-2 border rounded-md text-sm min-w-[200px]"
-                          placeholder="Enter participant name"
-                          value={newParticipantName}
-                          onChange={(e) => setNewParticipantName(e.target.value)}
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleAddParticipant()
-                            } else if (e.key === "Escape") {
-                              setShowAddForm(false)
-                            }
-                          }}
+                          className="w-full border rounded-md py-1 px-3 text-sm pr-24 bg-white"
+                          value={`https://yoursite.com/group/${Math.random().toString(36).substring(2, 8).toUpperCase()}`}
+                          readOnly
                         />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleAddParticipant}
-                            className="py-2 px-3 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
-                          >
-                            Add
-                          </button>
-                          <button
-                            onClick={() => setShowAddForm(false)}
-                            className="py-2 px-3 border rounded-md text-sm hover:bg-gray-50 bg-white"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <button className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-100 hover:bg-gray-200 text-xs py-0.5 px-2 rounded border transition-colors">
+                          Copy Link
+                        </button>
                       </div>
                     </div>
-                  ) : (
-                    <button
-                      onClick={handleAddOrder}
-                      className="w-full py-2 px-3 border border-dashed rounded-md text-sm flex items-center justify-center hover:bg-gray-50 mb-4 cursor-pointer active:bg-gray-100"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-1"
-                      >
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      Add Order
-                    </button>
-                  )}
+                    <div className="flex items-center">
+                      <span className="text-sm mr-2">
+                        Orders Received: <strong>3</strong> / {getPackageById(selectedPackage || "")?.headcount || 0}
+                      </span>
+                      <button className="text-xs py-1 px-2 border rounded hover:bg-gray-100 transition-colors">
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Participants List */}
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 relative">
-                    {participants.map((participant) => (
-                      <div
-                        key={participant.id}
-                        className={`border rounded-md p-3 transition-all duration-200 ${
-                          participant.isSelected
-                            ? "bg-primary/10 border-primary shadow-sm"
-                            : "hover:border-gray-400 hover:bg-gray-50"
-                        } cursor-pointer`}
-                        onClick={() => handleSelectParticipant(participant.id)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center min-w-0 flex-grow">
-                            {editingParticipantId === participant.id ? (
-                              <div className="flex items-center gap-1 mr-2 w-full">
-                                <input
-                                  type="text"
-                                  className="border rounded px-1 py-0.5 text-sm flex-grow"
-                                  value={editingName}
-                                  onChange={(e) => setEditingName(e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      handleSaveName(participant.id, e)
-                                    } else if (e.key === "Escape") {
-                                      handleCancelEdit(e as any)
-                                    }
-                                  }}
-                                />
-                                <button
-                                  className="text-xs py-0.5 px-1 border rounded bg-green-50 hover:bg-green-100"
-                                  onClick={(e) => handleSaveName(participant.id, e)}
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  className="text-xs py-0.5 px-1 border rounded bg-gray-50 hover:bg-gray-100"
-                                  onClick={handleCancelEdit}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <span className="font-medium truncate mr-2">{participant.name}</span>
-                                <span
-                                  className={`flex-shrink-0 text-xs whitespace-nowrap ${
-                                    participant.status === "submitted"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-yellow-100 text-yellow-800"
-                                  } py-0.5 px-1.5 rounded-full`}
-                                >
-                                  {participant.status === "submitted" ? "Submitted" : "In Progress"}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          {editingParticipantId === participant.id ? (
-                            // 编辑模式下不显示其他按钮
-                            <div></div>
-                          ) : (
-                            // 非编辑模式下显示操作按钮
-                            <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                {/* Two-column Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                  {/* Left Column: Participants List */}
+                  <div className="border-r">
+                    <div className="p-4">
+                      <h4 className="font-medium mb-3">Participants ({participants.length})</h4>
+                      {showAddForm ? (
+                        <div className="mb-4 border rounded-md p-3">
+                          <h5 className="text-sm font-medium mb-2">Add New Participant</h5>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              type="text"
+                              className="flex-1 p-2 border rounded-md text-sm min-w-[200px]"
+                              placeholder="Enter participant name"
+                              value={newParticipantName}
+                              onChange={(e) => setNewParticipantName(e.target.value)}
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleAddParticipant()
+                                } else if (e.key === "Escape") {
+                                  setShowAddForm(false)
+                                }
+                              }}
+                            />
+                            <div className="flex gap-2">
                               <button
-                                className="text-xs py-0.5 px-1.5 border rounded hover:bg-gray-100 hidden sm:block"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleSelectParticipant(participant.id)
-                                  handleStartEditName(participant.id, participant.name, e)
-                                }}
+                                onClick={handleAddParticipant}
+                                className="py-2 px-3 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
                               >
-                                Edit
+                                Add
                               </button>
-                              <div className="relative inline-block">
-                                <button
-                                  className="text-xs py-0.5 px-1 border rounded hover:bg-gray-100 flex items-center"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleSelectParticipant(participant.id)
-                                    const menu = document.getElementById(`menu-${participant.id}`)
-                                    if (menu) {
-                                      menu.classList.toggle("hidden")
-                                    }
-                                  }}
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="12"
-                                    height="12"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  >
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="12" cy="5" r="1"></circle>
-                                    <circle cx="12" cy="19" r="1"></circle>
-                                  </svg>
-                                  <span className="sm:hidden ml-1">Edit</span>
-                                </button>
-                                <div
-                                  id={`menu-${participant.id}`}
-                                  className="absolute right-0 mt-1 w-32 bg-white border rounded-md shadow-lg z-10 hidden"
-                                  style={{ maxHeight: "150px", overflowY: "auto" }}
-                                >
+                              <button
+                                onClick={() => setShowAddForm(false)}
+                                className="py-2 px-3 border rounded-md text-sm hover:bg-gray-50 bg-white"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleAddOrder}
+                          className="w-full py-2 px-3 border border-dashed rounded-md text-sm flex items-center justify-center hover:bg-gray-50 mb-4 cursor-pointer active:bg-gray-100"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mr-1"
+                          >
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                          Add Order
+                        </button>
+                      )}
+
+                      {/* Participants List */}
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 relative">
+                        {participants.map((participant) => (
+                          <div
+                            key={participant.id}
+                            className={`border rounded-md p-3 transition-all duration-200 ${
+                              participant.isSelected
+                                ? "bg-primary/10 border-primary shadow-sm"
+                                : "hover:border-gray-400 hover:bg-gray-50"
+                            } cursor-pointer`}
+                            onClick={() => handleSelectParticipant(participant.id)}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center min-w-0 flex-grow">
+                                {editingParticipantId === participant.id ? (
+                                  <div className="flex items-center gap-1 mr-2 w-full">
+                                    <input
+                                      type="text"
+                                      className="border rounded px-1 py-0.5 text-sm flex-grow"
+                                      value={editingName}
+                                      onChange={(e) => setEditingName(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          handleSaveName(participant.id, e)
+                                        } else if (e.key === "Escape") {
+                                          handleCancelEdit(e as any)
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      className="text-xs py-0.5 px-1 border rounded bg-green-50 hover:bg-green-100"
+                                      onClick={(e) => handleSaveName(participant.id, e)}
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      className="text-xs py-0.5 px-1 border rounded bg-gray-50 hover:bg-gray-100"
+                                      onClick={handleCancelEdit}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span className="font-medium truncate mr-2">{participant.name}</span>
+                                    <span
+                                      className={`flex-shrink-0 text-xs whitespace-nowrap ${
+                                        participant.status === "submitted"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-yellow-100 text-yellow-800"
+                                      } py-0.5 px-1.5 rounded-full`}
+                                    >
+                                      {participant.status === "submitted" ? "Submitted" : "In Progress"}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              {editingParticipantId === participant.id ? (
+                                // 编辑模式下不显示其他按钮
+                                <div></div>
+                              ) : (
+                                // 非编辑模式下显示操作按钮
+                                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                                   <button
-                                    className="w-full text-left text-xs py-1.5 px-2 hover:bg-gray-100 block sm:hidden"
+                                    className="text-xs py-0.5 px-1.5 border rounded hover:bg-gray-100 hidden sm:block"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleSelectParticipant(participant.id)
                                       handleStartEditName(participant.id, participant.name, e)
-                                      document.getElementById(`menu-${participant.id}`).classList.add("hidden")
                                     }}
                                   >
                                     Edit
                                   </button>
-                                  <button
-                                    className="w-full text-left text-xs py-1.5 px-2 hover:bg-gray-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleSelectParticipant(participant.id)
-                                      // 复制当前参与者的选择到新参与者
-                                      const selectedParticipant = participants.find((p) => p.id === participant.id)
-                                      if (selectedParticipant) {
-                                        const newId =
-                                          participants.length > 0 ? Math.max(...participants.map((p) => p.id)) + 1 : 1
-                                        const newParticipant = {
-                                          id: newId,
-                                          name: `${selectedParticipant.name} (Copy)`,
-                                          status: "in-progress",
-                                          isSelected: false,
-                                          proteinSelections: { ...selectedParticipant.proteinSelections },
-                                          sideSelections: { ...selectedParticipant.sideSelections },
+                                  <div className="relative inline-block">
+                                    <button
+                                      className="text-xs py-0.5 px-1 border rounded hover:bg-gray-100 flex items-center"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleSelectParticipant(participant.id)
+                                        const menu = document.getElementById(`menu-${participant.id}`)
+                                        if (menu) {
+                                          menu.classList.toggle("hidden")
                                         }
-                                        setParticipants([...participants, newParticipant])
-                                        // 复制后立即开始编辑新参与者的名称
-                                        setTimeout(() => {
-                                          setEditingParticipantId(newId)
-                                          setEditingName(newParticipant.name)
-                                        }, 100)
-                                      }
-                                      document.getElementById(`menu-${participant.id}`).classList.add("hidden")
-                                    }}
-                                  >
-                                    Copy
-                                  </button>
-                                  <button
-                                    className="w-full text-left text-xs py-1.5 px-2 hover:bg-gray-100 text-red-600"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      // 删除当前参与者
-                                      setParticipants(participants.filter((p) => p.id !== participant.id))
-                                      document.getElementById(`menu-${participant.id}`).classList.add("hidden")
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
+                                      }}
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <circle cx="12" cy="12" r="1"></circle>
+                                        <circle cx="12" cy="5" r="1"></circle>
+                                        <circle cx="12" cy="19" r="1"></circle>
+                                      </svg>
+                                      <span className="sm:hidden ml-1">Edit</span>
+                                    </button>
+                                    <div
+                                      id={`menu-${participant.id}`}
+                                      className="absolute right-0 mt-1 w-32 bg-white border rounded-md shadow-lg z-10 hidden"
+                                      style={{ maxHeight: "150px", overflowY: "auto" }}
+                                    >
+                                      <button
+                                        className="w-full text-left text-xs py-1.5 px-2 hover:bg-gray-100 block sm:hidden"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleSelectParticipant(participant.id)
+                                          handleStartEditName(participant.id, participant.name, e)
+                                          document.getElementById(`menu-${participant.id}`).classList.add("hidden")
+                                        }}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        className="w-full text-left text-xs py-1.5 px-2 hover:bg-gray-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleSelectParticipant(participant.id)
+                                          // 复制当前参与者的选择到新参与者
+                                          const selectedParticipant = participants.find((p) => p.id === participant.id)
+                                          if (selectedParticipant) {
+                                            const newId =
+                                              participants.length > 0
+                                                ? Math.max(...participants.map((p) => p.id)) + 1
+                                                : 1
+                                            const newParticipant = {
+                                              id: newId,
+                                              name: `${selectedParticipant.name} (Copy)`,
+                                              status: "in-progress",
+                                              isSelected: false,
+                                              proteinSelections: { ...selectedParticipant.proteinSelections },
+                                              sideSelections: { ...selectedParticipant.sideSelections },
+                                            }
+                                            setParticipants([...participants, newParticipant])
+                                            // 复制后立即开始编辑新参与者的名称
+                                            setTimeout(() => {
+                                              setEditingParticipantId(newId)
+                                              setEditingName(newParticipant.name)
+                                            }, 100)
+                                          }
+                                          document.getElementById(`menu-${participant.id}`).classList.add("hidden")
+                                        }}
+                                      >
+                                        Copy
+                                      </button>
+                                      <button
+                                        className="w-full text-left text-xs py-1.5 px-2 hover:bg-gray-100 text-red-600"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          // 删除当前参与者
+                                          setParticipants(participants.filter((p) => p.id !== participant.id))
+                                          document.getElementById(`menu-${participant.id}`).classList.add("hidden")
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Current Order Panel */}
-              <div>
-                <div className="p-4">
-                  {/* 显示当前套餐 */}
-                  <div className="mb-3 p-2 bg-gray-50 rounded-md border">
-                    <h5 className="text-sm font-medium">
-                      Selected Package:{" "}
-                      <span className="text-[#C33]">
-                        {selectedPackage === "buffet"
-                          ? "Buffet Package"
-                          : selectedPackage === "basic"
-                            ? "Basic Package"
-                            : "Premium Package"}
-                      </span>
-                    </h5>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {selectedPackage === "basic"
-                        ? "Includes 2 regular proteins ($20 credit)"
-                        : selectedPackage === "premium"
-                          ? "Includes 3 premium proteins ($70 credit)"
-                          : "Fixed menu with chicken, premium steak, and shrimp"}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-medium">
-                      Current Order:{" "}
-                      <span className="text-primary">
-                        {participants.find((p) => p.isSelected)?.name || "No selection"}
-                      </span>
-                    </h4>
-                    <span className="text-xs bg-green-100 text-green-800 py-0.5 px-1.5 rounded-full">
-                      {participants.find((p) => p.isSelected)?.status === "submitted" ? "Submitted" : "In Progress"}
-                    </span>
-                  </div>
-
-                  {/* Regular Proteins Selection - 仅在非Premium套餐时显示 */}
-                  {selectedPackage !== "premium" && (
-                    <div className="mb-4">
-                      <h5 className="text-sm font-medium mb-2">
-                        Regular Proteins <span className="text-xs text-gray-500">($10 each)</span>
-                      </h5>
-                      <div className="space-y-2">
-                        {regularProteins.map((protein) => (
-                          <div key={protein.id} className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <input
-                                type="checkbox"
-                                id={`protein-${protein.id}`}
-                                className="mr-2"
-                                checked={proteinSelections[protein.id]?.selected || false}
-                                onChange={(e) => handleProteinChange(protein.id, e.target.checked)}
-                              />
-                              <label htmlFor={`protein-${protein.id}`} className="flex items-center">
-                                <span>{protein.name}</span>
-                                <span className="text-xs text-gray-500 ml-1">${protein.price}</span>
-                                {protein.allergens && protein.allergens.some((a) => a !== "none") && (
-                                  <span
-                                    className="ml-1 text-xs text-amber-600"
-                                    title={`Contains: ${protein.allergens.filter((a) => a !== "none").join(", ")}`}
-                                  >
-                                    ⚠️
-                                  </span>
-                                )}
-                              </label>
-                            </div>
-                            <div className="flex items-center">
-                              <button
-                                className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                onClick={() => handleProteinQuantityChange(protein.id, -1)}
-                                disabled={!proteinSelections[protein.id]?.quantity}
-                              >
-                                -
-                              </button>
-                              <span className="mx-2 w-6 text-center">
-                                {proteinSelections[protein.id]?.quantity || 0}
-                              </span>
-                              <button
-                                className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                onClick={() => handleProteinQuantityChange(protein.id, 1)}
-                              >
-                                +
-                              </button>
+                              )}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  {/* Premium Proteins */}
-                  <div className="mb-4">
-                    <h5 className="text-sm font-medium mb-2">
-                      Premium Proteins <span className="text-xs text-gray-500">($20 each)</span>
-                    </h5>
-                    <div className="space-y-2">
-                      {premiumProteins.map((protein) => (
-                        <div key={protein.id} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id={`premium-${protein.id}`}
-                              className="mr-2"
-                              checked={proteinSelections[protein.id]?.selected || false}
-                              onChange={(e) => handleProteinChange(protein.id, e.target.checked)}
-                            />
-                            <label htmlFor={`premium-${protein.id}`} className="flex items-center">
-                              <span>{protein.name}</span>
-                              <span className="text-xs text-gray-500 ml-1">${protein.price}</span>
-                              {protein.allergens && protein.allergens.some((a) => a !== "none") && (
-                                <span
-                                  className="ml-1 text-xs text-amber-600"
-                                  title={`Contains: ${protein.allergens.filter((a) => a !== "none").join(", ")}`}
-                                >
-                                  ⚠️
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                          <div className="flex items-center">
-                            <button
-                              className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                              onClick={() => handleProteinQuantityChange(protein.id, -1)}
-                              disabled={!proteinSelections[protein.id]?.quantity}
-                            >
-                              -
-                            </button>
-                            <span className="mx-2 w-6 text-center">{proteinSelections[protein.id]?.quantity || 0}</span>
-                            <button
-                              className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                              onClick={() => handleProteinQuantityChange(protein.id, 1)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
-                  {/* Sides Selection */}
-                  <div className="mb-4">
-                    <h5 className="text-sm font-medium mb-2">
-                      Sides <span className="text-xs text-gray-500">($5 each)</span>
-                    </h5>
-                    <div className="space-y-2">
-                      {sides.map((side) => (
-                        <div key={side.id} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id={`side-${side.id}`}
-                              className="mr-2"
-                              checked={sideSelections[side.id]?.selected || false}
-                              onChange={(e) => handleSideChange(side.id, e.target.checked)}
-                            />
-                            <label htmlFor={`side-${side.id}`} className="flex items-center">
-                              <span>{side.name}</span>
-                              <span className="text-xs text-gray-500 ml-1">${side.price}</span>
-                              {side.allergens && side.allergens.some((a) => a !== "none") && (
-                                <span
-                                  className="ml-1 text-xs text-amber-600"
-                                  title={`Contains: ${side.allergens.filter((a) => a !== "none").join(", ")}`}
-                                >
-                                  ⚠️
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                          <div className="flex items-center">
-                            <button
-                              className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                              onClick={() => handleSideQuantityChange(side.id, -1)}
-                              disabled={!sideSelections[side.id]?.quantity}
-                            >
-                              -
-                            </button>
-                            <span className="mx-2 w-6 text-center">{sideSelections[side.id]?.quantity || 0}</span>
-                            <button
-                              className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                              onClick={() => handleSideQuantityChange(side.id, 1)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 套餐限制提示 */}
-                  <div className="mt-4 text-xs text-gray-500">
-                    {selectedPackage === "basic" ? (
-                      <p>
-                        Basic Package includes 2 regular proteins ($20 credit). Additional items will be charged at
-                        their individual prices.
-                      </p>
-                    ) : selectedPackage === "premium" ? (
-                      <div className="space-y-2">
-                        <details className="group">
-                          <summary className="flex cursor-pointer items-center justify-between text-xs font-medium">
-                            Premium Package Details
-                            <span className="text-xs text-gray-500 group-open:rotate-180 transition-transform">▼</span>
-                          </summary>
-                          <div className="pt-2 pl-2 text-xs">
-                            <p className="font-medium">Premium Package includes:</p>
-                            <ul className="ml-2 space-y-1 mt-1">
-                              <li className="flex items-start">
-                                <span className="text-primary mr-2">•</span>
-                                <span>3× Premium proteins ($70)</span>
-                              </li>
-                              <li className="flex items-start">
-                                <span className="text-primary mr-2">•</span>
-                                <span>Total package credit: $70</span>
-                              </li>
-                            </ul>
-
-                            <p className="font-medium mt-2">Pricing logic:</p>
-                            <ul className="ml-2 space-y-1 mt-1">
-                              <li className="flex items-start">
-                                <span className="text-[#C33] mr-2">•</span>
-                                <span>Add up all selected items at their individual prices</span>
-                              </li>
-                              <li className="flex items-start">
-                                <span className="text-[#C33] mr-2">•</span>
-                                <span>Subtract the package credit ($70)</span>
-                              </li>
-                              <li className="flex items-start">
-                                <span className="text-[#C33] mr-2">•</span>
-                                <span>The difference is your extra charge</span>
-                              </li>
-                            </ul>
-                          </div>
-                        </details>
+                  {/* Right Column: Current Order Panel */}
+                  <div>
+                    <div className="p-4">
+                      {/* 显示当前套餐 */}
+                      <div className="mb-3 p-2 bg-gray-50 rounded-md border">
+                        <h5 className="text-sm font-medium">
+                          Selected Package:{" "}
+                          <span className="text-[#C33]">
+                            {selectedPackage === "buffet"
+                              ? "Buffet Package"
+                              : selectedPackage === "basic"
+                                ? "Basic Package"
+                                : "Premium Package"}
+                          </span>
+                        </h5>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {selectedPackage === "basic"
+                            ? "Includes 2 regular proteins ($20 credit)"
+                            : selectedPackage === "premium"
+                              ? "Includes 3 premium proteins ($70 credit)"
+                              : "Fixed menu with chicken, premium steak, and shrimp"}
+                        </p>
                       </div>
-                    ) : (
-                      <p>
-                        Buffet Package includes fixed menu items (chicken, premium steak, shrimp). Customization
-                        available for additional charges.
-                      </p>
-                    )}
-                  </div>
 
-                  {/* 显示价格计算 */}
-                  <div className="mt-4 mb-2 border-t pt-3">
-                    <h5 className="text-sm font-medium mb-2">Price Calculation</h5>
-                    <div className="space-y-1 text-xs">
-                      {/* 计算所有选中的常规蛋白质价格 */}
-                      {(() => {
-                        if (!selectedPackage) return null
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium">
+                          Current Order:{" "}
+                          <span className="text-primary">
+                            {participants.find((p) => p.isSelected)?.name || "No selection"}
+                          </span>
+                        </h4>
+                        <span className="text-xs bg-green-100 text-green-800 py-0.5 px-1.5 rounded-full">
+                          {participants.find((p) => p.isSelected)?.status === "submitted" ? "Submitted" : "In Progress"}
+                        </span>
+                      </div>
 
-                        const pkg = getPackageById(selectedPackage)
-                        if (!pkg) return null
+                      {/* Regular Proteins Selection - 仅在非Premium套餐时显示 */}
+                      {selectedPackage !== "premium" && (
+                        <div className="mb-4">
+                          <h5 className="text-sm font-medium mb-2">
+                            Regular Proteins <span className="text-xs text-gray-500">($10 each)</span>
+                          </h5>
+                          <div className="space-y-2">
+                            {regularProteins.map((protein) => (
+                              <div key={protein.id} className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    id={`protein-${protein.id}`}
+                                    className="mr-2"
+                                    checked={proteinSelections[protein.id]?.selected || false}
+                                    onChange={(e) => handleProteinChange(protein.id, e.target.checked)}
+                                  />
+                                  <label htmlFor={`protein-${protein.id}`} className="flex items-center">
+                                    <span>{protein.name}</span>
+                                    <span className="text-xs text-gray-500 ml-1">${protein.price}</span>
+                                    {protein.allergens && protein.allergens.some((a) => a !== "none") && (
+                                      <span
+                                        className="ml-1 text-xs text-amber-600"
+                                        title={`Contains: ${protein.allergens.filter((a) => a !== "none").join(", ")}`}
+                                      >
+                                        ⚠️
+                                      </span>
+                                    )}
+                                  </label>
+                                </div>
+                                <div className="flex items-center">
+                                  <button
+                                    className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
+                                    onClick={() => handleProteinQuantityChange(protein.id, -1)}
+                                    disabled={!proteinSelections[protein.id]?.quantity}
+                                  >
+                                    -
+                                  </button>
+                                  <span className="mx-2 w-6 text-center">
+                                    {proteinSelections[protein.id]?.quantity || 0}
+                                  </span>
+                                  <button
+                                    className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
+                                    onClick={() => handleProteinQuantityChange(protein.id, 1)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                        // 计算常规蛋白质总价
-                        const regularProteinsTotal = regularProteins.reduce((sum, protein) => {
-                          const selection = proteinSelections[protein.id]
-                          return sum + (selection?.selected ? selection.quantity * protein.price : 0)
-                        }, 0)
-
-                        // 计算高级蛋白质总价
-                        const premiumProteinsTotal = premiumProteins.reduce((sum, protein) => {
-                          const selection = proteinSelections[protein.id]
-                          return sum + (selection?.selected ? selection.quantity * protein.price : 0)
-                        }, 0)
-
-                        // 计算配菜总价
-                        const sidesTotal = sides.reduce((sum, side) => {
-                          const selection = sideSelections[side.id]
-                          return sum + (selection?.selected ? selection.quantity * side.price : 0)
-                        }, 0)
-
-                        // 计算套餐抵扣额度
-                        const packageCredit = pkg.packageCredit
-
-                        // 计算总价和额外费用
-                        const subtotal = regularProteinsTotal + premiumProteinsTotal + sidesTotal
-                        const extraCharge = Math.max(0, subtotal - packageCredit)
-
-                        return (
-                          <>
-                            <div className="flex justify-between">
-                              <span>Regular Proteins:</span>
-                              <span>${regularProteinsTotal}</span>
+                      {/* Premium Proteins */}
+                      <div className="mb-4">
+                        <h5 className="text-sm font-medium mb-2">
+                          Premium Proteins <span className="text-xs text-gray-500">($20 each)</span>
+                        </h5>
+                        <div className="space-y-2">
+                          {premiumProteins.map((protein) => (
+                            <div key={protein.id} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  id={`premium-${protein.id}`}
+                                  className="mr-2"
+                                  checked={proteinSelections[protein.id]?.selected || false}
+                                  onChange={(e) => handleProteinChange(protein.id, e.target.checked)}
+                                />
+                                <label htmlFor={`premium-${protein.id}`} className="flex items-center">
+                                  <span>{protein.name}</span>
+                                  <span className="text-xs text-gray-500 ml-1">${protein.price}</span>
+                                  {protein.allergens && protein.allergens.some((a) => a !== "none") && (
+                                    <span
+                                      className="ml-1 text-xs text-amber-600"
+                                      title={`Contains: ${protein.allergens.filter((a) => a !== "none").join(", ")}`}
+                                    >
+                                      ⚠️
+                                    </span>
+                                  )}
+                                </label>
+                              </div>
+                              <div className="flex items-center">
+                                <button
+                                  className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
+                                  onClick={() => handleProteinQuantityChange(protein.id, -1)}
+                                  disabled={!proteinSelections[protein.id]?.quantity}
+                                >
+                                  -
+                                </button>
+                                <span className="mx-2 w-6 text-center">
+                                  {proteinSelections[protein.id]?.quantity || 0}
+                                </span>
+                                <button
+                                  className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
+                                  onClick={() => handleProteinQuantityChange(protein.id, 1)}
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Premium Proteins:</span>
-                              <span>${premiumProteinsTotal}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Sides Selection */}
+                      <div className="mb-4">
+                        <h5 className="text-sm font-medium mb-2">
+                          Sides <span className="text-xs text-gray-500">($5 each)</span>
+                        </h5>
+                        <div className="space-y-2">
+                          {sides.map((side) => (
+                            <div key={side.id} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  id={`side-${side.id}`}
+                                  className="mr-2"
+                                  checked={sideSelections[side.id]?.selected || false}
+                                  onChange={(e) => handleSideChange(side.id, e.target.checked)}
+                                />
+                                <label htmlFor={`side-${side.id}`} className="flex items-center">
+                                  <span>{side.name}</span>
+                                  <span className="text-xs text-gray-500 ml-1">${side.price}</span>
+                                  {side.allergens && side.allergens.some((a) => a !== "none") && (
+                                    <span
+                                      className="ml-1 text-xs text-amber-600"
+                                      title={`Contains: ${side.allergens.filter((a) => a !== "none").join(", ")}`}
+                                    >
+                                      ⚠️
+                                    </span>
+                                  )}
+                                </label>
+                              </div>
+                              <div className="flex items-center">
+                                <button
+                                  className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
+                                  onClick={() => handleSideQuantityChange(side.id, -1)}
+                                  disabled={!sideSelections[side.id]?.quantity}
+                                >
+                                  -
+                                </button>
+                                <span className="mx-2 w-6 text-center">{sideSelections[side.id]?.quantity || 0}</span>
+                                <button
+                                  className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
+                                  onClick={() => handleSideQuantityChange(side.id, 1)}
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Sides:</span>
-                              <span>${sidesTotal}</span>
-                            </div>
-                            <div className="flex justify-between font-medium">
-                              <span>Subtotal:</span>
-                              <span>${subtotal}</span>
-                            </div>
-                            <div className="flex justify-between text-green-600">
-                              <span>Package Credit:</span>
-                              <span>-${packageCredit}</span>
-                            </div>
-                            <div className="flex justify-between font-medium text-sm text-[#C33] border-t pt-1 mt-1">
-                              <span>Extra Charge:</span>
-                              <span>${extraCharge}</span>
-                            </div>
-                          </>
-                        )
-                      })()}
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 套餐限制提示 */}
+                      <div className="mt-4 text-xs text-gray-500">
+                        {selectedPackage === "basic" ? (
+                          <p>
+                            Basic Package includes 2 regular proteins ($20 credit). Additional items will be charged at
+                            their individual prices.
+                          </p>
+                        ) : selectedPackage === "premium" ? (
+                          <div className="space-y-2">
+                            <details className="group">
+                              <summary className="flex cursor-pointer items-center justify-between text-xs font-medium">
+                                Premium Package Details
+                                <span className="text-xs text-gray-500 group-open:rotate-180 transition-transform">
+                                  ▼
+                                </span>
+                              </summary>
+                              <div className="pt-2 pl-2 text-xs">
+                                <p className="font-medium">Premium Package includes:</p>
+                                <ul className="ml-2 space-y-1 mt-1">
+                                  <li className="flex items-start">
+                                    <span className="text-primary mr-2">•</span>
+                                    <span>3× Premium proteins ($70)</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <span className="text-primary mr-2">•</span>
+                                    <span>Total package credit: $70</span>
+                                  </li>
+                                </ul>
+
+                                <p className="font-medium mt-2">Pricing logic:</p>
+                                <ul className="ml-2 space-y-1 mt-1">
+                                  <li className="flex items-start">
+                                    <span className="text-[#C33] mr-2">•</span>
+                                    <span>Add up all selected items at their individual prices</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <span className="text-[#C33] mr-2">•</span>
+                                    <span>Subtract the package credit ($70)</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <span className="text-[#C33] mr-2">•</span>
+                                    <span>The difference is your extra charge</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </details>
+                          </div>
+                        ) : (
+                          <p>
+                            Buffet Package includes fixed menu items (chicken, premium steak, shrimp). Customization
+                            available for additional charges.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 显示价格计算 */}
+                      <div className="mt-4 mb-2 border-t pt-3">
+                        <h5 className="text-sm font-medium mb-2">Price Calculation</h5>
+                        <div className="space-y-1 text-xs">
+                          {/* 计算所有选中的常规蛋白质价格 */}
+                          {(() => {
+                            if (!selectedPackage) return null
+
+                            const pkg = getPackageById(selectedPackage)
+                            if (!pkg) return null
+
+                            // 计算常规蛋白质总价
+                            const regularProteinsTotal = regularProteins.reduce((sum, protein) => {
+                              const selection = proteinSelections[protein.id]
+                              return sum + (selection?.selected ? selection.quantity * protein.price : 0)
+                            }, 0)
+
+                            // 计算高级蛋白质总价
+                            const premiumProteinsTotal = premiumProteins.reduce((sum, protein) => {
+                              const selection = proteinSelections[protein.id]
+                              return sum + (selection?.selected ? selection.quantity * protein.price : 0)
+                            }, 0)
+
+                            // 计算配菜总价
+                            const sidesTotal = sides.reduce((sum, side) => {
+                              const selection = sideSelections[side.id]
+                              return sum + (selection?.selected ? selection.quantity * side.price : 0)
+                            }, 0)
+
+                            // 计算套餐抵扣额度
+                            const packageCredit = pkg.packageCredit
+
+                            // 计算总价和额外费用
+                            const subtotal = regularProteinsTotal + premiumProteinsTotal + sidesTotal
+                            const extraCharge = Math.max(0, subtotal - packageCredit)
+
+                            return (
+                              <>
+                                <div className="flex justify-between">
+                                  <span>Regular Proteins:</span>
+                                  <span>${regularProteinsTotal}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Premium Proteins:</span>
+                                  <span>${premiumProteinsTotal}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Sides:</span>
+                                  <span>${sidesTotal}</span>
+                                </div>
+                                <div className="flex justify-between font-medium">
+                                  <span>Subtotal:</span>
+                                  <span>${subtotal}</span>
+                                </div>
+                                <div className="flex justify-between text-green-600">
+                                  <span>Package Credit:</span>
+                                  <span>-${packageCredit}</span>
+                                </div>
+                                <div className="flex justify-between font-medium text-sm text-[#C33] border-t pt-1 mt-1">
+                                  <span>Extra Charge:</span>
+                                  <span>${extraCharge}</span>
+                                </div>
+                              </>
+                            )
+                          })()}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Bottom Action Button */}
+                <div className="p-4 border-t bg-gray-50 flex justify-center">
+                  <Button onClick={() => setCurrentStep(3)} className="px-8 bg-amber-500 hover:bg-amber-600">
+                    Continue to Checkout ▶
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* Bottom Action Button */}
-            <div className="p-4 border-t bg-gray-50 flex justify-center">
-              <Button onClick={() => setCurrentStep(3)} className="px-8">
-                Continue to Checkout ▶
-              </Button>
-            </div>
-          </div>
-
-          {/* Bottom Navigation */}
-          <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(1)}>
-              ◀ Back
-            </Button>
-          </div>
+              {/* Bottom Navigation */}
+              <div className="flex justify-between mt-6">
+                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                  ◀ Back
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
