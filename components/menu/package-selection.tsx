@@ -93,6 +93,26 @@ export default function PackageSelection({
   // 添加 buffet 人数状态
   const [buffetHeadcount, setBuffetHeadcount] = useState(20)
 
+  // 处理 buffet 人数输入变化
+  const handleBuffetHeadcountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number.parseInt(e.target.value)
+    if (!isNaN(value) && value >= 20) {
+      setBuffetHeadcount(value)
+      // 同时更新 package 对象
+      const pkg = getPackageById("buffet")
+      if (pkg) {
+        pkg.headcount = value
+      }
+    } else if (!isNaN(value) && value < 20) {
+      setBuffetHeadcount(20)
+      // 同时更新 package 对象
+      const pkg = getPackageById("buffet")
+      if (pkg) {
+        pkg.headcount = 20
+      }
+    }
+  }
+
   // 添加handleAddOrder函数
   const handleAddOrder = () => {
     setShowAddForm(true)
@@ -433,7 +453,13 @@ export default function PackageSelection({
                     >
                       -
                     </button>
-                    <span className="mx-4 w-12 text-center text-lg font-medium">{buffetHeadcount}</span>
+                    <input
+                      type="number"
+                      min="20"
+                      className="mx-4 w-16 text-center text-lg font-medium border-b border-amber-200 bg-transparent focus:outline-none focus:border-amber-500"
+                      value={buffetHeadcount}
+                      onChange={handleBuffetHeadcountChange}
+                    />
                     <button
                       className="w-10 h-10 rounded-full border border-amber-300 flex items-center justify-center text-amber-700"
                       onClick={() => {
@@ -1047,32 +1073,58 @@ export default function PackageSelection({
                 </div>
               </div>
 
+              {/* 修改 "Selected Items" 部分的代码 */}
               <div>
                 <h5 className="text-sm font-medium mb-2">Selected Items</h5>
                 <div className="space-y-1 text-sm">
-                  {Object.entries(proteinSelections)
-                    .filter(([_, value]) => value.selected && value.quantity > 0)
-                    .map(([key, value]) => {
-                      const protein = [...regularProteins, ...premiumProteins].find((p) => p.id === key)
-                      return protein ? (
-                        <div key={key} className="flex justify-between">
-                          <span>{protein.name}:</span>
-                          <span>× {value.quantity}</span>
-                        </div>
-                      ) : null
-                    })}
+                  {selectedPackage === "buffet" ? (
+                    // Buffet 套餐显示固定菜单项，数量与人数相匹配
+                    <>
+                      <div className="flex justify-between">
+                        <span>Chicken:</span>
+                        <span>× {buffetHeadcount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Premium Steak:</span>
+                        <span>× {buffetHeadcount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Shrimp:</span>
+                        <span>× {buffetHeadcount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Fried Rice:</span>
+                        <span>× {buffetHeadcount}</span>
+                      </div>
+                    </>
+                  ) : (
+                    // 非 Buffet 套餐显示用户选择的项目
+                    <>
+                      {Object.entries(proteinSelections)
+                        .filter(([_, value]) => value.selected && value.quantity > 0)
+                        .map(([key, value]) => {
+                          const protein = [...regularProteins, ...premiumProteins].find((p) => p.id === key)
+                          return protein ? (
+                            <div key={key} className="flex justify-between">
+                              <span>{protein.name}:</span>
+                              <span>× {value.quantity}</span>
+                            </div>
+                          ) : null
+                        })}
 
-                  {Object.entries(sideSelections)
-                    .filter(([_, value]) => value.selected && value.quantity > 0)
-                    .map(([key, value]) => {
-                      const side = sides.find((s) => s.id === key)
-                      return side ? (
-                        <div key={key} className="flex justify-between">
-                          <span>{side.name}:</span>
-                          <span>× {value.quantity}</span>
-                        </div>
-                      ) : null
-                    })}
+                      {Object.entries(sideSelections)
+                        .filter(([_, value]) => value.selected && value.quantity > 0)
+                        .map(([key, value]) => {
+                          const side = sides.find((s) => s.id === key)
+                          return side ? (
+                            <div key={key} className="flex justify-between">
+                              <span>{side.name}:</span>
+                              <span>× {value.quantity}</span>
+                            </div>
+                          ) : null
+                        })}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1151,6 +1203,8 @@ export default function PackageSelection({
                   type="time"
                   className="w-full p-2 border rounded-md"
                   required
+                  min="13:00"
+                  max="23:00"
                   value={customerInfo.eventTime}
                   onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
