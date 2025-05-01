@@ -1101,7 +1101,7 @@ export default function PackageSelection({
                   className="w-full p-2 border rounded-md"
                   required
                   value={customerInfo.name}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
               <div className="space-y-2">
@@ -1114,7 +1114,7 @@ export default function PackageSelection({
                   className="w-full p-2 border rounded-md"
                   required
                   value={customerInfo.phone}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
               <div className="space-y-2">
@@ -1126,7 +1126,7 @@ export default function PackageSelection({
                   type="email"
                   className="w-full p-2 border rounded-md"
                   value={customerInfo.email}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
               <div className="space-y-2">
@@ -1139,7 +1139,7 @@ export default function PackageSelection({
                   className="w-full p-2 border rounded-md"
                   required
                   value={customerInfo.eventDate}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
               <div className="space-y-2">
@@ -1152,7 +1152,7 @@ export default function PackageSelection({
                   className="w-full p-2 border rounded-md"
                   required
                   value={customerInfo.eventTime}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
@@ -1165,7 +1165,7 @@ export default function PackageSelection({
                   className="w-full p-2 border rounded-md"
                   required
                   value={customerInfo.address}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
@@ -1178,7 +1178,7 @@ export default function PackageSelection({
                   className="w-full p-2 border rounded-md"
                   placeholder="Any dietary restrictions, allergies, or special requests"
                   value={customerInfo.specialRequests}
-                  onChange={handleInputChange}
+                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
                 />
               </div>
             </div>

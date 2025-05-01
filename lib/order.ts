@@ -39,7 +39,13 @@ export async function handleSubmitOrder({
     alert("Please select a package first")
     return
   }
-  if (!customerInfo.name || !customerInfo.phone || !customerInfo.eventDate || !customerInfo.eventTime || !customerInfo.address) {
+  if (
+    !customerInfo.name ||
+    !customerInfo.phone ||
+    !customerInfo.eventDate ||
+    !customerInfo.eventTime ||
+    !customerInfo.address
+  ) {
     alert("Please fill in all required fields")
     return
   }
@@ -105,4 +111,4 @@ export async function handleSubmitOrder({
   } finally {
     setIsSubmitting(false)
   }
-} 
+}
