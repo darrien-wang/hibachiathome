@@ -1,13 +1,21 @@
-import React from "react"
+"use client"
+
+import type React from "react"
 import { Button } from "@/components/ui/button"
 
 interface PackageComparisonTableProps {
   isExpanded: boolean
   setIsExpanded: (expanded: boolean) => void
   packageOptions: any[]
+  pricing: any
 }
 
-const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({ isExpanded, setIsExpanded, packageOptions }) => {
+const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({
+  isExpanded,
+  setIsExpanded,
+  packageOptions,
+  pricing,
+}) => {
   return (
     <>
       <div className="mt-8 mb-4 flex justify-center">
@@ -48,9 +56,24 @@ const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({ isExpan
               <tbody>
                 <tr>
                   <td className="py-2 px-4 border-b">Price</td>
-                  <td className="py-2 px-4 text-center border-b">$50/person</td>
-                  <td className="py-2 px-4 text-center border-b">$80/person</td>
-                  <td className="py-2 px-4 text-center border-b">$40/person</td>
+                  <td className="py-2 px-4 text-center border-b">
+                    <span className="text-gray-500 text-xs line-through mr-1">
+                      ${pricing.packages.basic.originalPrice}
+                    </span>
+                    ${pricing.packages.basic.perPerson}/person
+                  </td>
+                  <td className="py-2 px-4 text-center border-b">
+                    <span className="text-gray-500 text-xs line-through mr-1">
+                      ${pricing.packages.premium.originalPrice}
+                    </span>
+                    ${pricing.packages.premium.perPerson}/person
+                  </td>
+                  <td className="py-2 px-4 text-center border-b">
+                    <span className="text-gray-500 text-xs line-through mr-1">
+                      ${pricing.packages.buffet.originalPrice}
+                    </span>
+                    ${pricing.packages.buffet.perPerson}/person
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Protein Options</td>
@@ -61,12 +84,14 @@ const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({ isExpan
                 <tr>
                   <td className="py-2 px-4 border-b">Side Dishes</td>
                   <td className="py-2 px-4 text-center border-b">Fried rice & vegetables</td>
-                  <td className="py-2 px-4 text-center border-b">Premium fried rice with upgrades (Wagyu, Dried Scallops) & vegetables</td>
+                  <td className="py-2 px-4 text-center border-b">
+                    Premium fried rice with upgrades (Wagyu, Dried Scallops) & vegetables
+                  </td>
                   <td className="py-2 px-4 text-center border-b">Fried rice & vegetables</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Appetizers</td>
-                  <td className="py-2 px-4 text-center border-b">Gyoza & edamame</td>
+                  <td className="py-2 px-4 text-center border-b">Available as add-ons</td>
                   <td className="py-2 px-4 text-center border-b">Miso soup, gyoza & edamame</td>
                   <td className="py-2 px-4 text-center border-b">Available as add-ons</td>
                 </tr>
@@ -77,10 +102,10 @@ const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({ isExpan
                   <td className="py-2 px-4 text-center border-b">Standard performance</td>
                 </tr>
                 <tr>
-                  <td className="py-2 px-4 border-b">Minimum Guests</td>
-                  <td className="py-2 px-4 text-center border-b">10 people</td>
-                  <td className="py-2 px-4 text-center border-b">10 people</td>
-                  <td className="py-2 px-4 text-center border-b">20 people</td>
+                  <td className="py-2 px-4 border-b">Minimum Price</td>
+                  <td className="py-2 px-4 text-center border-b">${pricing.packages.basic.minimum}</td>
+                  <td className="py-2 px-4 text-center border-b">${pricing.packages.premium.minimum}</td>
+                  <td className="py-2 px-4 text-center border-b">${pricing.packages.buffet.minimum}</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Service Style</td>

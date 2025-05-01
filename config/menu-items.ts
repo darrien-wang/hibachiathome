@@ -183,7 +183,7 @@ export const sides: MenuItem[] = [
     allergens: ["gluten", "soy"],
     isVegetarian: true,
   },
-    {
+  {
     id: "soup",
     name: "Miso soup",
     description: "Miso soup with tofu and kelp",
@@ -226,7 +226,7 @@ export const packageOptions: PackageOption[] = [
     description: "Self-service buffet mode",
     headcount: 20,
     childCount: 0,
-    flatRate: 798,
+    flatRate: 398,
     originalPrice: 50,
     currentPrice: 39.9,
     includedItems: {
@@ -246,7 +246,9 @@ export const packageOptions: PackageOption[] = [
     description: "Perfect for intimate gatherings",
     headcount: 10,
     childCount: 0,
-    flatRate: 500,
+    flatRate: 499,
+    originalPrice: 60,
+    currentPrice: 49.9,
     includedItems: {
       regularProteins: 2,
       premiumProteins: 0,
@@ -262,9 +264,11 @@ export const packageOptions: PackageOption[] = [
     id: "premium",
     name: "Premium Package",
     description: "Our most luxurious offering for special occasions",
-    headcount: 20,
+    headcount: 10,
     childCount: 0,
-    flatRate: 1600,
+    flatRate: 799,
+    originalPrice: 80,
+    currentPrice: 69.9,
     includedItems: {
       regularProteins: 0,
       premiumProteins: 3,

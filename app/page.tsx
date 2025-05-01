@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Flame, Camera, ThumbsUp, Package } from "lucide-react"
 import { useState, useEffect } from "react"
-import Footer from "@/components/footer"
 
 // Testimonial data
 const testimonials = [
@@ -67,8 +66,7 @@ export default function Home() {
             <span className="inline-block animate-slideUp"> in Your Backyard</span>
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-8 font-sans tracking-wide">
-            Delicious food + entertaining show + perfect photo moments, for an unforgettable gathering with family and
-            friends
+            Restaurant-quality food and service with transparent pricing. only $500 minimum
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6">
             <Button
