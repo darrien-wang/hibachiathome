@@ -14,26 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertCircle } from "lucide-react"
 import { regularProteins, premiumProteins, sides, packageOptions, getPackageById } from "@/config/menu-items"
 import PackageComparisonTable from "./PackageComparisonTable"
-
-// 拆分：将初始化蛋白质和配菜选择的函数提到组件外部
-function initialProteinSelections() {
-  const selections: Record<string, { selected: boolean; quantity: number }> = {}
-  regularProteins.forEach((protein) => {
-    selections[protein.id] = { selected: false, quantity: 0 }
-  })
-  premiumProteins.forEach((protein) => {
-    selections[protein.id] = { selected: false, quantity: 0 }
-  })
-  return selections
-}
-
-function initialSideSelections() {
-  const selections: Record<string, { selected: boolean; quantity: number }> = {}
-  sides.forEach((side) => {
-    selections[side.id] = { selected: false, quantity: 0 }
-  })
-  return selections
-}
+import { initialProteinSelections, initialSideSelections, initialPackageInclusions, initialExtraCharges } from "@/lib/menuSelections"
+import { handleAddOrder, handleAddParticipant, handleSelectParticipant, handleStartEditName, handleSaveName, handleCancelEdit } from "@/lib/participants"
 
 interface PackageSelectionProps {
   packages: any[]
@@ -46,20 +28,6 @@ interface PackageSelectionProps {
   isComparisonTableExpanded: boolean
   setIsComparisonTableExpanded: (expanded: boolean) => void
   calculatePackagePrice: (headcount: number, childCount: number, upgrades: any) => number
-}
-
-// 拆分：将套餐包含的默认选项状态和额外费用状态的初始值对象提到组件外部
-const initialPackageInclusions = {
-  proteins: 0,
-  premiumProteins: 0,
-  sides: 0,
-}
-
-const initialExtraCharges = {
-  proteins: 0,
-  premiumProteins: 0,
-  sides: 0,
-  total: 0,
 }
 
 export default function PackageSelection({
@@ -112,7 +80,7 @@ export default function PackageSelection({
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null)
   const [editingName, setEditingName] = useState("")
 
-  // 修改handleAddOrder函数
+  // 添加handleAddOrder函数
   const handleAddOrder = () => {
     setShowAddForm(true)
     setNewParticipantName("")
