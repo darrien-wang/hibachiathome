@@ -92,7 +92,14 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
                 <span>
                   {selectedPackage === "buffet"
                     ? buffetHeadcount
-                    : getPackageById(selectedPackage || "")?.headcount || 0} {selectedPackage === "buffet" ? (buffetHeadcount !== 1 ? "people" : "person") : (getPackageById(selectedPackage || "")?.headcount !== 1 ? "people" : "person")}
+                    : getPackageById(selectedPackage || "")?.headcount || 0}{" "}
+                  {selectedPackage === "buffet"
+                    ? buffetHeadcount !== 1
+                      ? "people"
+                      : "person"
+                    : getPackageById(selectedPackage || "")?.headcount !== 1
+                      ? "people"
+                      : "person"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -229,16 +236,33 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
             <Label htmlFor="eventTime" className="text-sm font-medium">
               Event Time*
             </Label>
-            <Input
+            <select
               id="eventTime"
-              type="time"
               className="w-full p-2 border rounded-md"
               required
-              min="13:00"
-              max="23:00"
               value={customerInfo.eventTime}
               onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-            />
+            >
+              <option value="" disabled>
+                Select a time
+              </option>
+              <option value="13:00">1:00 PM</option>
+              <option value="16:00">4:00 PM</option>
+              <option value="16:30">4:30 PM</option>
+              <option value="17:00">5:00 PM</option>
+              <option value="17:30">5:30 PM</option>
+              <option value="18:00">6:00 PM</option>
+              <option value="18:30">6:30 PM</option>
+              <option value="19:00">7:00 PM</option>
+              <option value="19:30">7:30 PM</option>
+              <option value="20:00">8:00 PM</option>
+              <option value="20:30">8:30 PM</option>
+              <option value="21:00">9:00 PM</option>
+              <option value="21:30">9:30 PM</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Available booking times: 1:00 PM, 4:00 PM, 7:00 PM, and 9:00 PM (±30 minutes)
+            </p>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="address" className="text-sm font-medium">
