@@ -10,12 +10,12 @@ export const pricing = {
     premium: {
       originalPrice: 80,
       perPerson: 69.9,
-      minimum: 799,
+      minimum: 499,
     },
     buffet: {
       originalPrice: 50,
       perPerson: 39.9,
-      minimum: 398,
+      minimum: 798,
     },
   },
 
@@ -37,8 +37,8 @@ export const pricing = {
   // Pricing banner display values
   pricingBanner: {
     adultPrice: 39.9,
-    childPrice: 25,
-    minimumTotal: 398,
+    childPrice: 19.9,
+    minimumTotal: 499,
   },
 }
 

@@ -4,71 +4,153 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
 
-// Gallery data (placeholder)
+// Gallery data with actual blob images
 const galleryImages = [
   {
     id: "img1",
-    src: "/hibachi-flames.png",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg",
     alt: "Hibachi chef cooking with flames",
   },
   {
     id: "img2",
-    src: "/sizzling-hibachi.png",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg",
     alt: "Fresh hibachi food being prepared",
   },
   {
     id: "img3",
-    src: "/placeholder.svg?key=j64w5",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg",
     alt: "Family enjoying hibachi at home",
   },
   {
     id: "img4",
-    src: "/fiery-onion-volcano.png",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/4-SfqZqyg2PR4QVtatCRbequgR4WEoED.jpg",
     alt: "Chef performing tricks",
   },
   {
     id: "img5",
-    src: "/placeholder.svg?key=va32w",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg",
     alt: "Seafood hibachi",
   },
   {
     id: "img6",
-    src: "/placeholder.svg?height=600&width=800&query=elegant backyard party with hibachi chef",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/7-TDZQrw5MJ7F6E1PmyHBDTtVPfNotpU.jpg",
     alt: "Backyard party with hibachi",
   },
   {
     id: "img7",
-    src: "/placeholder.svg?height=600&width=800&query=hibachi chef preparing food for guests",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/9-qHeyNSeSAqYXM7I48CSkphbX7otGg4.jpg",
     alt: "Chef preparing food for guests",
   },
   {
     id: "img8",
-    src: "/placeholder.svg?height=600&width=800&query=indoor hibachi catering setup",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/10-J7UoyKbxWTbhf21D1MIAUmZDztkwuY.jpg",
     alt: "Indoor hibachi setup",
+  },
+  {
+    id: "img9",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/12-iIr42kDF4rQun91qqi0fabY58OlvAa.jpg",
+    alt: "Hibachi chef in action",
+  },
+  {
+    id: "img10",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/13-DOajRn24VwHuGDHsSSquxCmhKZqwwz.jpg",
+    alt: "Hibachi cooking demonstration",
+  },
+  {
+    id: "img11",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/15-YiS8DnJX7ucNCKnwemQ63i2HLwp8FH.jpg",
+    alt: "Hibachi dinner party",
+  },
+  {
+    id: "img12",
+    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/21-0VdJxRFuoOsjk8mAAP0E1uKNupLa1E.jpg",
+    alt: "Hibachi chef preparing meal",
   },
 ]
 
-// Video data (placeholder)
+// Video data with YouTube embeds
 const galleryVideos = [
   {
+    id: "vid0",
+    youtubeId: "zI9av1pmEFk",
+    title: "Learn How to Breathe Fire - Tutorial",
+    description:
+      "A professional tutorial on fire breathing techniques. Note: This is for educational purposes only - fire breathing should only be attempted under the supervision of trained professionals and with proper safety precautions.",
+  },
+  {
     id: "vid1",
-    poster: "/placeholder.svg?height=600&width=800&query=chef performing onion volcano thumbnail",
-    title: "Chef's Onion Volcano Performance",
+    youtubeId: "5ZH43ej3wys",
+    title: "Benihana Fried Rice Secrets Revealed",
+    description:
+      "A comprehensive guide to making Benihana's famous fried rice at home. Learn all the tips, tricks and techniques to make restaurant-quality hibachi fried rice.",
+  },
+  {
+    id: "vid10",
+    youtubeId: "3Ha8hMsF0t0",
+    title: "Hibachi Restaurant Chef Live",
+    description:
+      "Experience the excitement of a live hibachi restaurant chef performance. Watch as the chef demonstrates impressive cooking skills and entertaining tricks right at the table.",
+  },
+  {
+    id: "vid11",
+    youtubeId: "ENTCDF8du_A",
+    title: "How to Make Hibachi at Home | Steak and Shrimp Hibachi on Blackstone Griddle",
+    description:
+      "A detailed tutorial on how to make restaurant-quality steak and shrimp hibachi at home using a Blackstone griddle. Learn professional techniques and tips for creating the perfect hibachi meal in your own backyard.",
   },
   {
     id: "vid2",
-    poster: "/placeholder.svg?height=600&width=800&query=egg tricks on hibachi grill thumbnail",
-    title: "Amazing Egg Cooking Tricks",
+    youtubeId: "SdRL0xprY24",
+    title: "Hibachi Chicken At Home Better Than Benihana",
+    description:
+      "Learn how to make hibachi chicken at home that's even better than Benihana or any Japanese steakhouse, for a fraction of the cost. This Japanese-inspired hibachi teppanyaki recipe is super easy to make.",
   },
   {
     id: "vid3",
-    poster: "/placeholder.svg?height=600&width=800&query=shrimp cooking demonstration thumbnail",
-    title: "Shrimp Cooking Demonstration",
+    youtubeId: "cnjPsZP0Uj8",
+    title: "Hibachi Steak At Home Better Than Benihana",
+    description:
+      "Make restaurant-quality hibachi steak at home with this easy-to-follow recipe. Perfect for a special dinner that's more affordable than dining out.",
   },
   {
     id: "vid4",
-    poster: "/placeholder.svg?height=600&width=800&query=customer testimonial hibachi at home thumbnail",
-    title: "Customer Testimonial - Birthday Party",
+    youtubeId: "ZnzRmM1KE48",
+    title: "Benihana Hibachi Ginger Salad Dressing Recipe",
+    description:
+      "Learn how to make Benihana's famous ginger salad dressing at home. This tangy, sweet, and slightly spicy dressing perfectly complements any hibachi meal.",
+  },
+  {
+    id: "vid5",
+    youtubeId: "Lj_OqXwh-Ks",
+    title: "Benihana Hibachi Vegetables Recipe",
+    description:
+      "Create restaurant-quality hibachi vegetables at home with this authentic recipe. Perfect as a side dish for your hibachi-style meal.",
+  },
+  {
+    id: "vid6",
+    youtubeId: "dW0c4t1RUW0",
+    title: "Hibachi Chef's Amazing Skills - Onion Volcano",
+    description:
+      "Watch a professional hibachi chef create the famous onion volcano and showcase impressive cooking skills.",
+  },
+  {
+    id: "vid7",
+    youtubeId: "gy4PMoAkNc0",
+    title: "Hibachi Cooking Techniques",
+    description: "Learn the techniques and skills behind authentic hibachi cooking from master chefs.",
+  },
+  {
+    id: "vid8",
+    youtubeId: "Hc6_CpJQrpg",
+    title: "Hibachi Steak and Shrimp - Professional Cooking",
+    description: "See how professional hibachi chefs prepare delicious steak and shrimp with flair and entertainment.",
+  },
+  {
+    id: "vid9",
+    youtubeId: "Yk7_c8G8ZT8",
+    title: "Hibachi Chef Performance",
+    description:
+      "Enjoy the full hibachi chef performance with all the tricks and entertainment you can expect at your event.",
   },
 ]
 
@@ -102,20 +184,22 @@ export default function GalleryPage() {
 
           {/* Photos Tab */}
           <TabsContent value="photos">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {galleryImages.map((image) => (
                 <div
                   key={image.id}
-                  className="relative aspect-video overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-shadow"
+                  className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
                   onClick={() => openLightbox(image.id)}
                 >
                   <Image
                     src={image.src || "/placeholder.svg"}
                     alt={image.alt}
                     fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                     className="object-cover"
+                    priority={image.id === "img1" || image.id === "img2"}
                   />
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-300"></div>
                 </div>
               ))}
             </div>
@@ -123,31 +207,30 @@ export default function GalleryPage() {
 
           {/* Videos Tab */}
           <TabsContent value="videos">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {galleryVideos.map((video) => (
-                <div key={video.id} className="rounded-lg overflow-hidden border shadow-sm">
+                <div key={video.id} className="rounded-lg overflow-hidden border shadow-md">
                   <div className="relative aspect-video bg-gray-100">
-                    <Image
-                      src={video.poster || "/placeholder.svg"}
-                      alt={video.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="h-16 w-16 rounded-full bg-primary/90 flex items-center justify-center">
-                        <div className="w-0 h-0 border-y-8 border-y-transparent border-l-12 border-l-white ml-1"></div>
-                      </div>
-                    </div>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${video.youtubeId}`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                    ></iframe>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-medium">{video.title}</h3>
+                    <h3 className="font-medium text-lg mb-1">{video.title}</h3>
+                    <p className="text-sm text-gray-600">{video.description}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="text-center mt-6 text-gray-500 text-sm">
-              <p>Note: Video content will be added once the service is live. These are placeholder thumbnails.</p>
+            <div className="text-center mt-8 text-gray-500 text-sm">
+              <p>
+                These videos showcase professional hibachi cooking techniques and performances similar to what our chefs
+                provide.
+              </p>
             </div>
           </TabsContent>
         </Tabs>

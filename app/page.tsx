@@ -66,7 +66,7 @@ export default function Home() {
             <span className="inline-block animate-slideUp"> in Your Backyard</span>
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-8 font-sans tracking-wide">
-            Restaurant-quality food and service with transparent pricing. only $500 minimum
+            Top-tier food & service. No hidden fees. From $499.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6">
             <Button
@@ -152,7 +152,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold text-center mb-2 font-serif">All-Inclusive Service</h3>
                 <p className="text-center text-foreground/80 font-sans tracking-wide">
-                  We provide everything: cooking equipment, utensils, ingredients, and professional chefs. You just
+                  We provide everything: cooking equipment, ingredients, and professional chefs. You just
                   enjoy the experience.
                 </p>
               </CardContent>

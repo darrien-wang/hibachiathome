@@ -226,7 +226,7 @@ export const packageOptions: PackageOption[] = [
     description: "Self-service buffet mode",
     headcount: 20,
     childCount: 0,
-    flatRate: 398,
+    flatRate: 798,
     originalPrice: 50,
     currentPrice: 39.9,
     includedItems: {
@@ -266,7 +266,7 @@ export const packageOptions: PackageOption[] = [
     description: "Our most luxurious offering for special occasions",
     headcount: 10,
     childCount: 0,
-    flatRate: 799,
+    flatRate: 499,
     originalPrice: 80,
     currentPrice: 69.9,
     includedItems: {
