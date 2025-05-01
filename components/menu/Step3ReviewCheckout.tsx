@@ -90,8 +90,9 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
               <div className="flex justify-between">
                 <span>Guests:</span>
                 <span>
-                  {getPackageById(selectedPackage || "")?.headcount || 0}{" "}
-                  {getPackageById(selectedPackage || "")?.headcount !== 1 ? "people" : "person"}
+                  {selectedPackage === "buffet"
+                    ? buffetHeadcount
+                    : getPackageById(selectedPackage || "")?.headcount || 0} {selectedPackage === "buffet" ? (buffetHeadcount !== 1 ? "people" : "person") : (getPackageById(selectedPackage || "")?.headcount !== 1 ? "people" : "person")}
                 </span>
               </div>
               <div className="flex justify-between">
