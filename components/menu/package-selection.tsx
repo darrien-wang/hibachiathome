@@ -17,6 +17,7 @@ import PackageComparisonTable from "./PackageComparisonTable"
 import { initialProteinSelections, initialSideSelections, initialPackageInclusions, initialExtraCharges } from "@/lib/menuSelections"
 import { handleAddOrder, handleAddParticipant, handleSelectParticipant, handleStartEditName, handleSaveName, handleCancelEdit } from "@/lib/participants"
 import { handleProteinChange, handleProteinQuantityChange, handleSideChange, handleSideQuantityChange } from "@/lib/mealSelections"
+import { handleInputChange, handleSubmitOrder } from "@/lib/order"
 
 interface PackageSelectionProps {
   packages: any[]
@@ -132,109 +133,6 @@ export default function PackageSelection({
         isSelected: p.id === id,
       })),
     )
-  }
-
-  // 添加处理表单输入变化的函数
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target
-    setCustomerInfo((prev) => ({
-      ...prev,
-      [id]: value,
-    }))
-  }
-
-  // 添加提交订单的函数
-  const handleSubmitOrder = async () => {
-    if (!selectedPackage) {
-      alert("Please select a package first")
-      return
-    }
-
-    // 验证必填字段
-    if (
-      !customerInfo.name ||
-      !customerInfo.phone ||
-      !customerInfo.eventDate ||
-      !customerInfo.eventTime ||
-      !customerInfo.address
-    ) {
-      alert("Please fill in all required fields")
-      return
-    }
-
-    setIsSubmitting(true)
-    setSubmitResult(null)
-
-    try {
-      const selectedPkg = packages.find((pkg) => pkg.id === selectedPackage)
-
-      // 准备预订数据
-      const reservationData: Reservation = {
-        name: customerInfo.name,
-        email: customerInfo.email || undefined,
-        phone: customerInfo.phone,
-        headcount: selectedPkg.headcount,
-        event_date: customerInfo.eventDate,
-        event_time: customerInfo.eventTime,
-        address: customerInfo.address,
-        special_requests: customerInfo.specialRequests || undefined,
-        status: "pending",
-      }
-
-      // 准备订单数据
-      const orderData = {
-        package_id: selectedPackage,
-        total_price: selectedPkg.flatRate,
-        items: [
-          {
-            item_type: "package",
-            item_id: selectedPackage,
-            quantity: 1,
-            price: selectedPkg.flatRate,
-          },
-        ],
-        participants: participants.map((participant) => ({
-          name: participant.name,
-          is_host: participant.id === participants.find((p) => p.isSelected)?.id,
-          selections: [],
-        })),
-      }
-
-      // 调用服务器操作创建预订和订单
-      const result = await createBookingWithOrder(reservationData, orderData)
-
-      if (result.success && result.data) {
-        setSubmitResult({
-          success: true,
-          message: "Your order has been successfully submitted! We'll contact you shortly to confirm details.",
-          reservationId: result.data.reservation.id,
-        })
-
-        // 重置表单
-        setCustomerInfo({
-          name: "",
-          email: "",
-          phone: "",
-          eventDate: "",
-          eventTime: "",
-          address: "",
-          specialRequests: "",
-        })
-      } else {
-        setSubmitResult({
-          success: false,
-          message: result.error || "There was an error submitting your order. Please try again.",
-        })
-      }
-    } catch (error: any) {
-      console.error("Error submitting order:", error)
-      setSubmitResult({
-        success: false,
-        message: error.message || "There was an error submitting your order. Please try again.",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
   }
 
   // 根据套餐类型设置默认选择
