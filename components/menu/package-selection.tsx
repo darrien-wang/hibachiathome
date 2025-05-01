@@ -26,6 +26,7 @@ import {
 import { handleInputChange, handleSubmitOrder } from "@/lib/order"
 import PackageCard from "./PackageCard"
 import ParticipantsList from "./ParticipantsList"
+import Step3ReviewCheckout from "./Step3ReviewCheckout"
 
 interface PackageSelectionProps {
   packages: any[]
@@ -1019,235 +1020,24 @@ export default function PackageSelection({
 
       {/* 步骤3: 确认 & 支付 */}
       {currentStep === 3 && (
-        <div className="p-6 pt-0">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-2">Review & Checkout</h3>
-            <p className="text-sm text-gray-600">Review your order and provide contact information</p>
-          </div>
-
-          {submitResult && (
-            <Alert
-              className={`mb-6 ${submitResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
-            >
-              {submitResult.success ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              )}
-              <AlertTitle>{submitResult.success ? "Success!" : "Error"}</AlertTitle>
-              <AlertDescription>{submitResult.message}</AlertDescription>
-              {submitResult.success && submitResult.reservationId && (
-                <p className="mt-2 text-sm">Reservation ID: {submitResult.reservationId}</p>
-              )}
-            </Alert>
-          )}
-
-          {/* 订单摘要 */}
-          <div className="border rounded-lg p-4 mb-6">
-            <h4 className="font-medium mb-3">Order Summary</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h5 className="text-sm font-medium mb-2">Package Details</h5>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Package:</span>
-                    <span>
-                      {selectedPackage === "buffet"
-                        ? "Buffet Package"
-                        : selectedPackage === "basic"
-                          ? "Basic Package"
-                          : "Premium Package"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Guests:</span>
-                    <span>
-                      {getPackageById(selectedPackage || "")?.headcount || 0}{" "}
-                      {getPackageById(selectedPackage || "")?.headcount !== 1 ? "people" : "person"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Base Price:</span>
-                    <span>${getPackageById(selectedPackage || "")?.flatRate || 0}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 修改 "Selected Items" 部分的代码 */}
-              <div>
-                <h5 className="text-sm font-medium mb-2">Selected Items</h5>
-                <div className="space-y-1 text-sm">
-                  {selectedPackage === "buffet" ? (
-                    // Buffet 套餐显示固定菜单项，数量与人数相匹配
-                    <>
-                      <div className="flex justify-between">
-                        <span>Chicken:</span>
-                        <span>× {buffetHeadcount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Premium Steak:</span>
-                        <span>× {buffetHeadcount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Shrimp:</span>
-                        <span>× {buffetHeadcount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Fried Rice:</span>
-                        <span>× {buffetHeadcount}</span>
-                      </div>
-                    </>
-                  ) : (
-                    // 非 Buffet 套餐显示用户选择的项目
-                    <>
-                      {Object.entries(proteinSelections)
-                        .filter(([_, value]) => value.selected && value.quantity > 0)
-                        .map(([key, value]) => {
-                          const protein = [...regularProteins, ...premiumProteins].find((p) => p.id === key)
-                          return protein ? (
-                            <div key={key} className="flex justify-between">
-                              <span>{protein.name}:</span>
-                              <span>× {value.quantity}</span>
-                            </div>
-                          ) : null
-                        })}
-
-                      {Object.entries(sideSelections)
-                        .filter(([_, value]) => value.selected && value.quantity > 0)
-                        .map(([key, value]) => {
-                          const side = sides.find((s) => s.id === key)
-                          return side ? (
-                            <div key={key} className="flex justify-between">
-                              <span>{side.name}:</span>
-                              <span>× {value.quantity}</span>
-                            </div>
-                          ) : null
-                        })}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t mt-4 pt-3">
-              <div className="flex justify-between font-medium">
-                <span>Total:</span>
-                <span className="text-[#C33]">
-                  ${selectedPackage ? (getPackageById(selectedPackage)?.flatRate || 0) + extraCharges.total : 0}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 联系信息表单 */}
-          <div className="border rounded-lg p-4 mb-6">
-            <h4 className="font-medium mb-3">Contact Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
-                  Full Name*
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  className="w-full p-2 border rounded-md"
-                  required
-                  value={customerInfo.name}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">
-                  Phone Number*
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  className="w-full p-2 border rounded-md"
-                  required
-                  value={customerInfo.phone}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  className="w-full p-2 border rounded-md"
-                  value={customerInfo.email}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="eventDate" className="text-sm font-medium">
-                  Event Date*
-                </Label>
-                <Input
-                  id="eventDate"
-                  type="date"
-                  className="w-full p-2 border rounded-md"
-                  required
-                  value={customerInfo.eventDate}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="eventTime" className="text-sm font-medium">
-                  Event Time*
-                </Label>
-                <Input
-                  id="eventTime"
-                  type="time"
-                  className="w-full p-2 border rounded-md"
-                  required
-                  min="13:00"
-                  max="23:00"
-                  value={customerInfo.eventTime}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="address" className="text-sm font-medium">
-                  Service Address*
-                </Label>
-                <Textarea
-                  id="address"
-                  rows={2}
-                  className="w-full p-2 border rounded-md"
-                  required
-                  value={customerInfo.address}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="specialRequests" className="text-sm font-medium">
-                  Special Requests (Optional)
-                </Label>
-                <Textarea
-                  id="specialRequests"
-                  rows={3}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="Any dietary restrictions, allergies, or special requests"
-                  value={customerInfo.specialRequests}
-                  onChange={(e) => handleInputChange({ e, setCustomerInfo })}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 底部按钮 */}
-          <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
-              ◀ Back
-            </Button>
-            <Button onClick={handleSubmitOrder} disabled={isSubmitting}>
-              {isSubmitting ? "Processing..." : "Submit Order"}
-            </Button>
-          </div>
-        </div>
+        <Step3ReviewCheckout
+          selectedPackage={selectedPackage}
+          getPackageById={getPackageById}
+          buffetHeadcount={buffetHeadcount}
+          proteinSelections={proteinSelections}
+          sideSelections={sideSelections}
+          regularProteins={regularProteins}
+          premiumProteins={premiumProteins}
+          sides={sides}
+          extraCharges={extraCharges}
+          customerInfo={customerInfo}
+          setCustomerInfo={setCustomerInfo}
+          isSubmitting={isSubmitting}
+          setCurrentStep={setCurrentStep}
+          submitResult={submitResult}
+          handleInputChange={handleInputChange}
+          handleSubmitOrder={handleSubmitOrder}
+        />
       )}
     </Card>
   )
