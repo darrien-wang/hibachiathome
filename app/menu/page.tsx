@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import * as React from "react"
 
 // Import our new components
 import Testimonials from "@/components/menu/testimonials"
@@ -67,23 +68,6 @@ export default function MenuPage() {
     edamame: 0,
     noodles: 0,
   })
-
-  // Group order modal state
-  const [showGroupOrderModal, setShowGroupOrderModal] = useState(false)
-  const [maxParticipants, setMaxParticipants] = useState(12)
-  const [groupOrderParticipants, setGroupOrderParticipants] = useState([
-    { id: 1, name: "Alice", status: "completed", isHost: true },
-    { id: 2, name: "Bob", status: "pending" },
-    { id: 3, name: "Carol", status: "completed" },
-    { id: 4, name: "妈妈", status: "pending", isProxySelection: true },
-    { id: 5, name: "小明", status: "pending", isProxySelection: true },
-  ])
-  const [groupOrderChat, setGroupOrderChat] = useState([
-    { id: 1, name: "Alice", message: "我不吃牛肉，谢谢！", time: "12:30" },
-    { id: 2, name: "Carol", message: "多放点酱料", time: "12:35" },
-  ])
-  const [newChatMessage, setNewChatMessage] = useState("")
-  const [hostPaysAll, setHostPaysAll] = useState(false)
 
   // 管理参与者列表的状态
   const [participants, setParticipants] = useState([
@@ -316,7 +300,7 @@ export default function MenuPage() {
 
   // 调整数量的辅助函数
   const adjustQuantity = (item: string, increment: number) => {
-    setUpgrades((prev) => {
+    setUpgrades((prev: any) => {
       const newValue = Math.max(0, prev[item as keyof typeof prev] + increment)
       return { ...prev, [item]: newValue }
     })
@@ -326,7 +310,7 @@ export default function MenuPage() {
 
   // Function to handle second protein selection
   const adjustSecondProtein = (proteinId: string, increment: number | null, directValue?: number) => {
-    setSecondProteinSelections((prev) => {
+    setSecondProteinSelections((prev: any) => {
       // 如果提供了直接值，则使用它
       if (directValue !== undefined) {
         const validValue = Math.max(0, directValue)
@@ -341,7 +325,7 @@ export default function MenuPage() {
 
   // Calculate total second protein selections
   const getTotalSecondProteinSelections = () => {
-    return Object.values(secondProteinSelections).reduce((sum, count) => sum + count, 0)
+    return Object.values(secondProteinSelections as Record<string, number>).reduce((sum: number, count: number) => sum + count, 0)
   }
 
   // 计算基础价格
@@ -384,7 +368,7 @@ export default function MenuPage() {
   // 获取所有第三种蛋白质的总数
   const getThirdProteinTotal = () => {
     return (
-      standardProteins.reduce((total, protein) => {
+      standardProteins.reduce((total: number, protein: any) => {
         return total + upgrades[protein.stateKey as keyof typeof upgrades]
       }, 0) +
       upgrades.filetMignon +
@@ -408,25 +392,9 @@ export default function MenuPage() {
     }
   }, [selectedPackage, isRecommendedDefaultSelected])
 
-  // Handle chat message sending
-  const handleSendChatMessage = () => {
-    if (newChatMessage.trim()) {
-      setGroupOrderChat([
-        ...groupOrderChat,
-        {
-          id: groupOrderChat.length + 1,
-          name: "Alice",
-          message: newChatMessage,
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ])
-      setNewChatMessage("")
-    }
-  }
-
   // 处理添加新订单
   const handleAddOrder = () => {
-    const newId = participants.length > 0 ? Math.max(...participants.map((p) => p.id)) + 1 : 1
+    const newId = participants.length > 0 ? Math.max(...participants.map((p: any) => p.id)) + 1 : 1
     const newParticipant = {
       id: newId,
       name: `Guest ${newId}`,
@@ -435,7 +403,7 @@ export default function MenuPage() {
     }
 
     // 取消选择所有其他参与者
-    const updatedParticipants = participants.map((p) => ({
+    const updatedParticipants = participants.map((p: any) => ({
       ...p,
       isSelected: false,
     }))
@@ -447,7 +415,7 @@ export default function MenuPage() {
   // 处理选择参与者
   const handleSelectParticipant = (id: number) => {
     setParticipants(
-      participants.map((p) => ({
+      participants.map((p: any) => ({
         ...p,
         isSelected: p.id === id,
       })),
