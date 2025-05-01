@@ -3,10 +3,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
-import { createBookingWithOrder } from "@/app/actions/booking"
-import type { Reservation } from "@/types/booking"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,9 +11,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertCircle } from "lucide-react"
 import { regularProteins, premiumProteins, sides, packageOptions, getPackageById } from "@/config/menu-items"
 import PackageComparisonTable from "./PackageComparisonTable"
-import { initialProteinSelections, initialSideSelections, initialPackageInclusions, initialExtraCharges } from "@/lib/menuSelections"
-import { handleAddOrder, handleAddParticipant, handleSelectParticipant, handleStartEditName, handleSaveName, handleCancelEdit } from "@/lib/participants"
-import { handleProteinChange, handleProteinQuantityChange, handleSideChange, handleSideQuantityChange } from "@/lib/mealSelections"
+import {
+  initialProteinSelections,
+  initialSideSelections,
+  initialPackageInclusions,
+  initialExtraCharges,
+} from "@/lib/menuSelections"
+import {
+  handleProteinChange,
+  handleProteinQuantityChange,
+  handleSideChange,
+  handleSideQuantityChange,
+} from "@/lib/mealSelections"
 import { handleInputChange, handleSubmitOrder } from "@/lib/order"
 import PackageCard from "./PackageCard"
 
@@ -82,6 +88,9 @@ export default function PackageSelection({
   // 添加编辑名称相关状态
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null)
   const [editingName, setEditingName] = useState("")
+
+  // 添加 buffet 人数状态
+  const [buffetHeadcount, setBuffetHeadcount] = useState(20)
 
   // 添加handleAddOrder函数
   const handleAddOrder = () => {
@@ -415,22 +424,22 @@ export default function PackageSelection({
                       className="w-10 h-10 rounded-full border border-amber-300 flex items-center justify-center text-amber-700"
                       onClick={() => {
                         const pkg = getPackageById("buffet")
-                        if (pkg && pkg.headcount > 20) {
-                          pkg.headcount -= 1
+                        if (pkg && buffetHeadcount > 20) {
+                          pkg.headcount = buffetHeadcount - 1
+                          setBuffetHeadcount(buffetHeadcount - 1)
                         }
                       }}
                     >
                       -
                     </button>
-                    <span className="mx-4 w-12 text-center text-lg font-medium">
-                      {getPackageById("buffet")?.headcount || 20}
-                    </span>
+                    <span className="mx-4 w-12 text-center text-lg font-medium">{buffetHeadcount}</span>
                     <button
                       className="w-10 h-10 rounded-full border border-amber-300 flex items-center justify-center text-amber-700"
                       onClick={() => {
                         const pkg = getPackageById("buffet")
                         if (pkg) {
-                          pkg.headcount += 1
+                          pkg.headcount = buffetHeadcount + 1
+                          setBuffetHeadcount(buffetHeadcount + 1)
                         }
                       }}
                     >
@@ -446,9 +455,7 @@ export default function PackageSelection({
                       <p className="text-sm text-gray-600">$39.9 per person</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold text-amber-600">
-                        ${(getPackageById("buffet")?.headcount || 20) * 39.9}
-                      </p>
+                      <p className="text-xl font-bold text-amber-600">${(buffetHeadcount * 39.9).toFixed(2)}</p>
                       <p className="text-xs text-gray-500">($798 minimum)</p>
                     </div>
                   </div>
@@ -821,15 +828,17 @@ export default function PackageSelection({
                                     id={`protein-${protein.id}`}
                                     className="mr-2"
                                     checked={proteinSelections[protein.id]?.selected || false}
-                                    onChange={(e) => handleProteinChange({
-                                      protein: protein.id,
-                                      isChecked: e.target.checked,
-                                      proteinSelections,
-                                      setProteinSelections,
-                                      participants,
-                                      setParticipants,
-                                      sideSelections,
-                                    })}
+                                    onChange={(e) =>
+                                      handleProteinChange({
+                                        protein: protein.id,
+                                        isChecked: e.target.checked,
+                                        proteinSelections,
+                                        setProteinSelections,
+                                        participants,
+                                        setParticipants,
+                                        sideSelections,
+                                      })
+                                    }
                                   />
                                   <label htmlFor={`protein-${protein.id}`} className="flex items-center">
                                     <span>{protein.name}</span>
@@ -847,15 +856,17 @@ export default function PackageSelection({
                                 <div className="flex items-center">
                                   <button
                                     className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                    onClick={(e) => handleProteinQuantityChange({
-                                      protein: protein.id,
-                                      delta: -1,
-                                      proteinSelections,
-                                      setProteinSelections,
-                                      participants,
-                                      setParticipants,
-                                      sideSelections,
-                                    })}
+                                    onClick={(e) =>
+                                      handleProteinQuantityChange({
+                                        protein: protein.id,
+                                        delta: -1,
+                                        proteinSelections,
+                                        setProteinSelections,
+                                        participants,
+                                        setParticipants,
+                                        sideSelections,
+                                      })
+                                    }
                                     disabled={!proteinSelections[protein.id]?.quantity}
                                   >
                                     -
@@ -865,15 +876,17 @@ export default function PackageSelection({
                                   </span>
                                   <button
                                     className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                    onClick={(e) => handleProteinQuantityChange({
-                                      protein: protein.id,
-                                      delta: 1,
-                                      proteinSelections,
-                                      setProteinSelections,
-                                      participants,
-                                      setParticipants,
-                                      sideSelections,
-                                    })}
+                                    onClick={(e) =>
+                                      handleProteinQuantityChange({
+                                        protein: protein.id,
+                                        delta: 1,
+                                        proteinSelections,
+                                        setProteinSelections,
+                                        participants,
+                                        setParticipants,
+                                        sideSelections,
+                                      })
+                                    }
                                   >
                                     +
                                   </button>
@@ -898,15 +911,17 @@ export default function PackageSelection({
                                   id={`premium-${protein.id}`}
                                   className="mr-2"
                                   checked={proteinSelections[protein.id]?.selected || false}
-                                  onChange={(e) => handleProteinChange({
-                                    protein: protein.id,
-                                    isChecked: e.target.checked,
-                                    proteinSelections,
-                                    setProteinSelections,
-                                    participants,
-                                    setParticipants,
-                                    sideSelections,
-                                  })}
+                                  onChange={(e) =>
+                                    handleProteinChange({
+                                      protein: protein.id,
+                                      isChecked: e.target.checked,
+                                      proteinSelections,
+                                      setProteinSelections,
+                                      participants,
+                                      setParticipants,
+                                      sideSelections,
+                                    })
+                                  }
                                 />
                                 <label htmlFor={`premium-${protein.id}`} className="flex items-center">
                                   <span>{protein.name}</span>
@@ -924,15 +939,17 @@ export default function PackageSelection({
                               <div className="flex items-center">
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={(e) => handleProteinQuantityChange({
-                                    protein: protein.id,
-                                    delta: -1,
-                                    proteinSelections,
-                                    setProteinSelections,
-                                    participants,
-                                    setParticipants,
-                                    sideSelections,
-                                  })}
+                                  onClick={(e) =>
+                                    handleProteinQuantityChange({
+                                      protein: protein.id,
+                                      delta: -1,
+                                      proteinSelections,
+                                      setProteinSelections,
+                                      participants,
+                                      setParticipants,
+                                      sideSelections,
+                                    })
+                                  }
                                   disabled={!proteinSelections[protein.id]?.quantity}
                                 >
                                   -
@@ -942,15 +959,17 @@ export default function PackageSelection({
                                 </span>
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={(e) => handleProteinQuantityChange({
-                                    protein: protein.id,
-                                    delta: 1,
-                                    proteinSelections,
-                                    setProteinSelections,
-                                    participants,
-                                    setParticipants,
-                                    sideSelections,
-                                  })}
+                                  onClick={(e) =>
+                                    handleProteinQuantityChange({
+                                      protein: protein.id,
+                                      delta: 1,
+                                      proteinSelections,
+                                      setProteinSelections,
+                                      participants,
+                                      setParticipants,
+                                      sideSelections,
+                                    })
+                                  }
                                 >
                                   +
                                 </button>
@@ -974,15 +993,17 @@ export default function PackageSelection({
                                   id={`side-${side.id}`}
                                   className="mr-2"
                                   checked={sideSelections[side.id]?.selected || false}
-                                  onChange={(e) => handleSideChange({
-                                    side: side.id,
-                                    isChecked: e.target.checked,
-                                    sideSelections,
-                                    setSideSelections,
-                                    participants,
-                                    setParticipants,
-                                    proteinSelections,
-                                  })}
+                                  onChange={(e) =>
+                                    handleSideChange({
+                                      side: side.id,
+                                      isChecked: e.target.checked,
+                                      sideSelections,
+                                      setSideSelections,
+                                      participants,
+                                      setParticipants,
+                                      proteinSelections,
+                                    })
+                                  }
                                 />
                                 <label htmlFor={`side-${side.id}`} className="flex items-center">
                                   <span>{side.name}</span>
@@ -1000,15 +1021,17 @@ export default function PackageSelection({
                               <div className="flex items-center">
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={(e) => handleSideQuantityChange({
-                                    side: side.id,
-                                    delta: -1,
-                                    sideSelections,
-                                    setSideSelections,
-                                    participants,
-                                    setParticipants,
-                                    proteinSelections,
-                                  })}
+                                  onClick={(e) =>
+                                    handleSideQuantityChange({
+                                      side: side.id,
+                                      delta: -1,
+                                      sideSelections,
+                                      setSideSelections,
+                                      participants,
+                                      setParticipants,
+                                      proteinSelections,
+                                    })
+                                  }
                                   disabled={!sideSelections[side.id]?.quantity}
                                 >
                                   -
@@ -1016,15 +1039,17 @@ export default function PackageSelection({
                                 <span className="mx-2 w-6 text-center">{sideSelections[side.id]?.quantity || 0}</span>
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={(e) => handleSideQuantityChange({
-                                    side: side.id,
-                                    delta: 1,
-                                    sideSelections,
-                                    setSideSelections,
-                                    participants,
-                                    setParticipants,
-                                    proteinSelections,
-                                  })}
+                                  onClick={(e) =>
+                                    handleSideQuantityChange({
+                                      side: side.id,
+                                      delta: 1,
+                                      sideSelections,
+                                      setSideSelections,
+                                      participants,
+                                      setParticipants,
+                                      proteinSelections,
+                                    })
+                                  }
                                 >
                                   +
                                 </button>
