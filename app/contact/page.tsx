@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from "lucide-react"
+import { contactInfo } from "@/config/contact"
 
 const contactReasons = [
   "General Inquiry",
@@ -31,7 +32,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
@@ -51,7 +52,7 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-2">Quick question or ready to book?</p>
-              <p className="font-medium">562-713-4832</p>
+              <p className="font-medium">{contactInfo.phone}</p>
               <p className="text-sm text-gray-500 mt-2">Available 9am-7pm, 7 days</p>
             </CardContent>
           </Card>
@@ -65,7 +66,7 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-2">Detailed questions or inquiries?</p>
-              <p className="font-medium">info@hibachi-at-home.com</p>
+              <p className="font-medium">{contactInfo.email}</p>
               <p className="text-sm text-gray-500 mt-2">We'll respond within 24 hours</p>
             </CardContent>
           </Card>
@@ -79,9 +80,11 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-2">Serving:</p>
-              <p className="font-medium">Chicago, IL</p>
-              <p className="font-medium">Los Angeles, Palm Springs, San Diego, CA</p>
-              <p className="font-medium">Panama City, Destin, 30A, FL</p>
+              {contactInfo.locations.map((location, index) => (
+                <p key={index} className="font-medium">
+                  {location}
+                </p>
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -163,10 +166,20 @@ export default function ContactPage() {
 
           {/* Map and Social */}
           <div className="space-y-8">
-            {/* Map Placeholder */}
+            {/* Google Maps Integration */}
             <Card>
-              <div className="rounded-t-lg h-64 bg-gray-100 flex items-center justify-center">
-                <p className="text-gray-500">Map placeholder - Interactive map will be displayed here</p>
+              <div className="rounded-t-lg h-64 overflow-hidden">
+                <iframe
+                  src="https://www.google.com/maps/d/embed?mid=1Ck_5hM9wHRvw5-2vQFoSCEGKkxA9UXU&ehbc=2E312F"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen={true}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Our Service Locations"
+                  className="w-full h-full"
+                ></iframe>
               </div>
               <CardContent className="pt-6">
                 <h3 className="font-bold mb-2">Our Service Areas</h3>
@@ -174,6 +187,17 @@ export default function ContactPage() {
                   We currently serve Chicago (Illinois), Los Angeles, Palm Springs, San Diego (California), and Panama
                   City, Destin, 30A (Florida).
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {contactInfo.locations.map((location, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                    >
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {location}
+                    </span>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -187,15 +211,24 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-4">
-                  <a href="#" className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                  <a
+                    href={contactInfo.social.facebook}
+                    className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
                     <Facebook className="h-8 w-8 text-blue-600 mb-2" />
                     <span className="text-sm font-medium">Facebook</span>
                   </a>
-                  <a href="#" className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                  <a
+                    href={contactInfo.social.instagram}
+                    className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
                     <Instagram className="h-8 w-8 text-pink-600 mb-2" />
                     <span className="text-sm font-medium">Instagram</span>
                   </a>
-                  <a href="#" className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                  <a
+                    href={contactInfo.social.twitter}
+                    className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
                     <Twitter className="h-8 w-8 text-blue-400 mb-2" />
                     <span className="text-sm font-medium">Twitter</span>
                   </a>

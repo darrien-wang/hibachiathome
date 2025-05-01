@@ -40,6 +40,7 @@ const timeSlots = [
 // Calculate tomorrow's date for minimum booking date
 const tomorrow = new Date()
 tomorrow.setDate(tomorrow.getDate() + 1)
+tomorrow.setHours(0, 0, 0, 0) // Set to beginning of the day to avoid time issues
 
 export default function BookingPage() {
   const [date, setDate] = useState<Date | undefined>(undefined)
@@ -290,11 +291,22 @@ export default function BookingPage() {
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : "Select a date"}
+                        {date ? format(date, "PPP") : "Select a date (min. 1 day in advance)"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus minDate={tomorrow} />
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                        disabled={(date) => {
+                          const now = new Date()
+                          now.setHours(0, 0, 0, 0) // Set to beginning of the day
+                          // Disable today and past dates
+                          return date < tomorrow
+                        }}
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>

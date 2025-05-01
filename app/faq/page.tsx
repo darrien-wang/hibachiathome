@@ -3,13 +3,13 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { pricing } from "@/config/pricing"
 
 // FAQ data
 const faqItems = [
   {
     question: "How much does your hibachi experience cost?",
-    answer:
-      "Base rate: $60 per guest (minimum $600 total)\n\nGratuity: We recommend 20% of the final bill\n\nTravel fee: May apply depending on your location; exact amount disclosed during booking\n\nPayment: Cash or credit card (4% processing fee).\n\nIf using credit card, payment must be settled at least 72 hours before your event.",
+    answer: `Base rate: $${pricing.packages.basic.perPerson} per guest (minimum $${pricing.packages.basic.minimum} total)\n\nGratuity: We recommend 20% of the final bill\n\nTravel fee: May apply depending on your location; exact amount disclosed during booking\n\nPayment: Cash or credit card (4% processing fee).\n\nIf using credit card, payment must be settled at least 72 hours before your event.`,
   },
   {
     question: "Can you provide tables and chairs?",
@@ -48,7 +48,7 @@ const faqItems = [
   {
     question: "How do I make a reservation?",
     answer:
-      "Book directly on our website: www.hibachi2u.com\n\n30 or more guests? Please place two reservations for the same date/time so we can send an additional chef—at no extra charge.",
+      "Book directly on our website: www.hibachibirthday.party\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
   },
   {
     question: "What is your cancellation policy?",
@@ -59,7 +59,7 @@ const faqItems = [
 
 export default function FAQPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Frequently Asked Questions</h1>

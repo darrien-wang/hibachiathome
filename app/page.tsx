@@ -152,8 +152,8 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold text-center mb-2 font-serif">All-Inclusive Service</h3>
                 <p className="text-center text-foreground/80 font-sans tracking-wide">
-                  We provide everything: cooking equipment, ingredients, and professional chefs. You just
-                  enjoy the experience.
+                  We provide everything: cooking equipment, ingredients, and professional chefs. You just enjoy the
+                  experience.
                 </p>
               </CardContent>
             </Card>
@@ -227,41 +227,79 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Gallery */}
+      {/* Featured Gallery - Auto Scrolling */}
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
             Moments to <span className="text-primary">Remember</span>
           </h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="aspect-square overflow-hidden rounded-2xl">
-              <img
-                src="/hibachi-chef-family.png"
-                alt="Hibachi chef cooking"
-                className="w-full h-full object-cover hover:scale-105 transition-transform"
-              />
-            </div>
-            <div className="aspect-square overflow-hidden rounded-2xl">
-              <img
-                src="/hibachi-family-dinner.png"
-                alt="Family enjoying hibachi"
-                className="w-full h-full object-cover hover:scale-105 transition-transform"
-              />
-            </div>
-            <div className="aspect-square overflow-hidden rounded-2xl">
-              <img
-                src="/hibachi-onion-volcano.png"
-                alt="Onion volcano"
-                className="w-full h-full object-cover hover:scale-105 transition-transform"
-              />
-            </div>
-            <div className="aspect-square overflow-hidden rounded-2xl">
-              <img
-                src="/placeholder.svg?key=nwf6b"
-                alt="Chef entertaining guests"
-                className="w-full h-full object-cover hover:scale-105 transition-transform"
-              />
+          <div className="relative overflow-hidden">
+            {/* Auto-scrolling gallery */}
+            <div className="flex animate-scroll">
+              {/* First set of images */}
+              <div className="flex flex-nowrap min-w-full">
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg"
+                    alt="Hibachi chef cooking with flames"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg"
+                    alt="Fresh hibachi food being prepared"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg"
+                    alt="Family enjoying hibachi at home"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/4-SfqZqyg2PR4QVtatCRbequgR4WEoED.jpg"
+                    alt="Chef performing tricks"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+              </div>
+
+              {/* Duplicate set for seamless scrolling */}
+              <div className="flex flex-nowrap min-w-full">
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg"
+                    alt="Seafood hibachi"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/7-TDZQrw5MJ7F6E1PmyHBDTtVPfNotpU.jpg"
+                    alt="Backyard party with hibachi"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/9-qHeyNSeSAqYXM7I48CSkphbX7otGg4.jpg"
+                    alt="Chef preparing food for guests"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/10-J7UoyKbxWTbhf21D1MIAUmZDztkwuY.jpg"
+                    alt="Indoor hibachi setup"
+                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

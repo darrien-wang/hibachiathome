@@ -149,3 +149,22 @@
 .animate-fireUnderline {
   animation: fireUnderline 1s ease-in-out 1.5s forwards;
 }
+
+/* Auto-scrolling gallery animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 30s linear infinite;
+}
+
+/* Pause animation on hover */
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
