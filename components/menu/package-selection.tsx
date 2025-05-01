@@ -16,6 +16,7 @@ import { regularProteins, premiumProteins, sides, packageOptions, getPackageById
 import PackageComparisonTable from "./PackageComparisonTable"
 import { initialProteinSelections, initialSideSelections, initialPackageInclusions, initialExtraCharges } from "@/lib/menuSelections"
 import { handleAddOrder, handleAddParticipant, handleSelectParticipant, handleStartEditName, handleSaveName, handleCancelEdit } from "@/lib/participants"
+import { handleProteinChange, handleProteinQuantityChange, handleSideChange, handleSideQuantityChange } from "@/lib/mealSelections"
 
 interface PackageSelectionProps {
   packages: any[]
@@ -321,128 +322,6 @@ export default function PackageSelection({
       })
     }
   }, [selectedPackage, proteinSelections, sideSelections])
-
-  // 处理蛋白质选择变化
-  const handleProteinChange = (protein, isChecked) => {
-    const newProteinSelections = {
-      ...proteinSelections,
-      [protein]: { ...proteinSelections[protein], selected: isChecked, quantity: isChecked ? 1 : 0 },
-    }
-
-    setProteinSelections(newProteinSelections)
-
-    // 自动保存到当前选中的参与者
-    const selectedParticipant = participants.find((p) => p.isSelected)
-    if (selectedParticipant) {
-      setParticipants(
-        participants.map((p) => {
-          if (p.id === selectedParticipant.id) {
-            return {
-              ...p,
-              status: "submitted",
-              proteinSelections: newProteinSelections,
-              sideSelections: sideSelections,
-            }
-          }
-          return p
-        }),
-      )
-    }
-  }
-
-  // 处理蛋白质数量变化
-  const handleProteinQuantityChange = (protein, delta) => {
-    const newQuantity = Math.max(0, proteinSelections[protein].quantity + delta)
-    const newProteinSelections = {
-      ...proteinSelections,
-      [protein]: {
-        ...proteinSelections[protein],
-        selected: newQuantity > 0,
-        quantity: newQuantity,
-      },
-    }
-
-    setProteinSelections(newProteinSelections)
-
-    // 自动保存到当前选中的参与者
-    const selectedParticipant = participants.find((p) => p.isSelected)
-    if (selectedParticipant) {
-      setParticipants(
-        participants.map((p) => {
-          if (p.id === selectedParticipant.id) {
-            return {
-              ...p,
-              status: "submitted",
-              proteinSelections: newProteinSelections,
-              sideSelections: sideSelections,
-            }
-          }
-          return p
-        }),
-      )
-    }
-  }
-
-  // 处理配菜选择变化
-  const handleSideChange = (side, isChecked) => {
-    const newSideSelections = {
-      ...sideSelections,
-      [side]: { ...sideSelections[side], selected: isChecked, quantity: isChecked ? 1 : 0 },
-    }
-
-    setSideSelections(newSideSelections)
-
-    // 自动保存到当前选中的参与者
-    const selectedParticipant = participants.find((p) => p.isSelected)
-    if (selectedParticipant) {
-      setParticipants(
-        participants.map((p) => {
-          if (p.id === selectedParticipant.id) {
-            return {
-              ...p,
-              status: "submitted",
-              proteinSelections: proteinSelections,
-              sideSelections: newSideSelections,
-            }
-          }
-          return p
-        }),
-      )
-    }
-  }
-
-  // 处理配菜数量变化
-  const handleSideQuantityChange = (side, delta) => {
-    const newQuantity = Math.max(0, sideSelections[side].quantity + delta)
-    const newSideSelections = {
-      ...sideSelections,
-      [side]: {
-        ...sideSelections[side],
-        selected: newQuantity > 0,
-        quantity: newQuantity,
-      },
-    }
-
-    setSideSelections(newSideSelections)
-
-    // 自动保存到当前选中的参与者
-    const selectedParticipant = participants.find((p) => p.isSelected)
-    if (selectedParticipant) {
-      setParticipants(
-        participants.map((p) => {
-          if (p.id === selectedParticipant.id) {
-            return {
-              ...p,
-              status: "submitted",
-              proteinSelections: proteinSelections,
-              sideSelections: newSideSelections,
-            }
-          }
-          return p
-        }),
-      )
-    }
-  }
 
   // 处理开始编辑参与者名称
   const handleStartEditName = (id: number, name: string, e: React.MouseEvent) => {
@@ -1459,7 +1338,15 @@ export default function PackageSelection({
                                     id={`protein-${protein.id}`}
                                     className="mr-2"
                                     checked={proteinSelections[protein.id]?.selected || false}
-                                    onChange={(e) => handleProteinChange(protein.id, e.target.checked)}
+                                    onChange={(e) => handleProteinChange({
+                                      protein: protein.id,
+                                      isChecked: e.target.checked,
+                                      proteinSelections,
+                                      setProteinSelections,
+                                      participants,
+                                      setParticipants,
+                                      sideSelections,
+                                    })}
                                   />
                                   <label htmlFor={`protein-${protein.id}`} className="flex items-center">
                                     <span>{protein.name}</span>
@@ -1477,7 +1364,15 @@ export default function PackageSelection({
                                 <div className="flex items-center">
                                   <button
                                     className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                    onClick={() => handleProteinQuantityChange(protein.id, -1)}
+                                    onClick={(e) => handleProteinQuantityChange({
+                                      protein: protein.id,
+                                      delta: -1,
+                                      proteinSelections,
+                                      setProteinSelections,
+                                      participants,
+                                      setParticipants,
+                                      sideSelections,
+                                    })}
                                     disabled={!proteinSelections[protein.id]?.quantity}
                                   >
                                     -
@@ -1487,7 +1382,15 @@ export default function PackageSelection({
                                   </span>
                                   <button
                                     className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                    onClick={() => handleProteinQuantityChange(protein.id, 1)}
+                                    onClick={(e) => handleProteinQuantityChange({
+                                      protein: protein.id,
+                                      delta: 1,
+                                      proteinSelections,
+                                      setProteinSelections,
+                                      participants,
+                                      setParticipants,
+                                      sideSelections,
+                                    })}
                                   >
                                     +
                                   </button>
@@ -1512,7 +1415,15 @@ export default function PackageSelection({
                                   id={`premium-${protein.id}`}
                                   className="mr-2"
                                   checked={proteinSelections[protein.id]?.selected || false}
-                                  onChange={(e) => handleProteinChange(protein.id, e.target.checked)}
+                                  onChange={(e) => handleProteinChange({
+                                    protein: protein.id,
+                                    isChecked: e.target.checked,
+                                    proteinSelections,
+                                    setProteinSelections,
+                                    participants,
+                                    setParticipants,
+                                    sideSelections,
+                                  })}
                                 />
                                 <label htmlFor={`premium-${protein.id}`} className="flex items-center">
                                   <span>{protein.name}</span>
@@ -1530,7 +1441,15 @@ export default function PackageSelection({
                               <div className="flex items-center">
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={() => handleProteinQuantityChange(protein.id, -1)}
+                                  onClick={(e) => handleProteinQuantityChange({
+                                    protein: protein.id,
+                                    delta: -1,
+                                    proteinSelections,
+                                    setProteinSelections,
+                                    participants,
+                                    setParticipants,
+                                    sideSelections,
+                                  })}
                                   disabled={!proteinSelections[protein.id]?.quantity}
                                 >
                                   -
@@ -1540,7 +1459,15 @@ export default function PackageSelection({
                                 </span>
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={() => handleProteinQuantityChange(protein.id, 1)}
+                                  onClick={(e) => handleProteinQuantityChange({
+                                    protein: protein.id,
+                                    delta: 1,
+                                    proteinSelections,
+                                    setProteinSelections,
+                                    participants,
+                                    setParticipants,
+                                    sideSelections,
+                                  })}
                                 >
                                   +
                                 </button>
@@ -1564,7 +1491,15 @@ export default function PackageSelection({
                                   id={`side-${side.id}`}
                                   className="mr-2"
                                   checked={sideSelections[side.id]?.selected || false}
-                                  onChange={(e) => handleSideChange(side.id, e.target.checked)}
+                                  onChange={(e) => handleSideChange({
+                                    side: side.id,
+                                    isChecked: e.target.checked,
+                                    sideSelections,
+                                    setSideSelections,
+                                    participants,
+                                    setParticipants,
+                                    proteinSelections,
+                                  })}
                                 />
                                 <label htmlFor={`side-${side.id}`} className="flex items-center">
                                   <span>{side.name}</span>
@@ -1582,7 +1517,15 @@ export default function PackageSelection({
                               <div className="flex items-center">
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={() => handleSideQuantityChange(side.id, -1)}
+                                  onClick={(e) => handleSideQuantityChange({
+                                    side: side.id,
+                                    delta: -1,
+                                    sideSelections,
+                                    setSideSelections,
+                                    participants,
+                                    setParticipants,
+                                    proteinSelections,
+                                  })}
                                   disabled={!sideSelections[side.id]?.quantity}
                                 >
                                   -
@@ -1590,7 +1533,15 @@ export default function PackageSelection({
                                 <span className="mx-2 w-6 text-center">{sideSelections[side.id]?.quantity || 0}</span>
                                 <button
                                   className="w-6 h-6 rounded-full border flex items-center justify-center text-gray-500"
-                                  onClick={() => handleSideQuantityChange(side.id, 1)}
+                                  onClick={(e) => handleSideQuantityChange({
+                                    side: side.id,
+                                    delta: 1,
+                                    sideSelections,
+                                    setSideSelections,
+                                    participants,
+                                    setParticipants,
+                                    proteinSelections,
+                                  })}
                                 >
                                   +
                                 </button>
