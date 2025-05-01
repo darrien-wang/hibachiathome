@@ -18,10 +18,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 // Time slots available for booking
 const timeSlots = [
-  "11:00 AM",
-  "11:30 AM",
-  "12:00 PM",
-  "12:30 PM",
   "1:00 PM",
   "1:30 PM",
   "2:00 PM",
@@ -37,7 +33,13 @@ const timeSlots = [
   "7:00 PM",
   "7:30 PM",
   "8:00 PM",
+  "8:30 PM",
+  "9:00 PM",
 ]
+
+// Calculate tomorrow's date for minimum booking date
+const tomorrow = new Date()
+tomorrow.setDate(tomorrow.getDate() + 1)
 
 export default function BookingPage() {
   const [date, setDate] = useState<Date | undefined>(undefined)
@@ -183,9 +185,15 @@ export default function BookingPage() {
               <CardDescription>Fastest response time</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Message via WhatsApp
+              <Button className="w-full" variant="outline" asChild>
+                <a
+                  href="https://wa.me/15627134832?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Message via WhatsApp
+                </a>
               </Button>
             </CardContent>
           </Card>
@@ -196,9 +204,11 @@ export default function BookingPage() {
               <CardDescription>Text us directly</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Send SMS
+              <Button className="w-full" variant="outline" asChild>
+                <a href="sms:15627134832?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Send SMS
+                </a>
               </Button>
             </CardContent>
           </Card>
@@ -252,7 +262,7 @@ export default function BookingPage() {
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
-                    placeholder="562-713-4832"
+                    placeholder="123-456-789"
                     required
                     value={formData.phone}
                     onChange={handleInputChange}
@@ -260,13 +270,13 @@ export default function BookingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="headcount">Number of Guests (8-28)</Label>
+                  <Label htmlFor="headcount">Number of Guests </Label>
                   <div className="flex items-center">
                     <Input
                       id="headcount"
                       type="number"
-                      min={8}
-                      max={28}
+                      min={1}
+                      max={120}
                       value={headcount}
                       onChange={(e) => setHeadcount(Number.parseInt(e.target.value))}
                       required
@@ -284,7 +294,7 @@ export default function BookingPage() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus minDate={tomorrow} />
                     </PopoverContent>
                   </Popover>
                 </div>
