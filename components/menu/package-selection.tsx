@@ -4,11 +4,6 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CheckCircle, AlertCircle } from "lucide-react"
 import { regularProteins, premiumProteins, sides, packageOptions, getPackageById } from "@/config/menu-items"
 import PackageComparisonTable from "./PackageComparisonTable"
 import {
@@ -94,25 +89,54 @@ export default function PackageSelection({
   // 添加 buffet 人数状态
   const [buffetHeadcount, setBuffetHeadcount] = useState(20)
 
+  // 添加 buffet 人数输入状态
+  const [buffetHeadcountInput, setBuffetHeadcountInput] = useState("20")
+
   // 处理 buffet 人数输入变化
   const handleBuffetHeadcountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseInt(e.target.value)
-    if (!isNaN(value) && value >= 20) {
-      setBuffetHeadcount(value)
+    // 先保存输入的字符串值
+    setBuffetHeadcountInput(e.target.value)
+  }
+
+  // 处理 buffet 人数输入完成
+  const handleBuffetHeadcountBlur = () => {
+    const value = Number.parseInt(buffetHeadcountInput)
+    if (!isNaN(value)) {
+      // 确保值不小于20
+      const finalValue = Math.max(20, value)
+      setBuffetHeadcount(finalValue)
+      setBuffetHeadcountInput(finalValue.toString())
+
       // 同时更新 package 对象
       const pkg = getPackageById("buffet")
       if (pkg) {
-        pkg.headcount = value
+        pkg.headcount = finalValue
       }
-    } else if (!isNaN(value) && value < 20) {
-      setBuffetHeadcount(20)
-      // 同时更新 package 对象
-      const pkg = getPackageById("buffet")
-      if (pkg) {
-        pkg.headcount = 20
-      }
+    } else {
+      // 如果输入无效，恢复为当前值
+      setBuffetHeadcountInput(buffetHeadcount.toString())
     }
   }
+
+  // 处理 buffet 人数输入变化
+  // const handleBuffetHeadcountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = Number.parseInt(e.target.value)
+  //   if (!isNaN(value) && value >= 20) {
+  //     setBuffetHeadcount(value)
+  //     // 同时更新 package 对象
+  //     const pkg = getPackageById("buffet")
+  //     if (pkg) {
+  //       pkg.headcount = value
+  //     }
+  //   } else if (!isNaN(value) && value < 20) {
+  //     setBuffetHeadcount(20)
+  //     // 同时更新 package 对象
+  //     const pkg = getPackageById("buffet")
+  //     if (pkg) {
+  //       pkg.headcount = 20
+  //     }
+  //   }
+  // }
 
   // 添加handleAddOrder函数
   const handleAddOrder = () => {
@@ -447,8 +471,10 @@ export default function PackageSelection({
                       onClick={() => {
                         const pkg = getPackageById("buffet")
                         if (pkg && buffetHeadcount > 20) {
-                          pkg.headcount = buffetHeadcount - 1
-                          setBuffetHeadcount(buffetHeadcount - 1)
+                          const newValue = buffetHeadcount - 1
+                          pkg.headcount = newValue
+                          setBuffetHeadcount(newValue)
+                          setBuffetHeadcountInput(newValue.toString())
                         }
                       }}
                     >
@@ -458,16 +484,20 @@ export default function PackageSelection({
                       type="number"
                       min="20"
                       className="mx-4 w-16 text-center text-lg font-medium border-b border-amber-200 bg-transparent focus:outline-none focus:border-amber-500"
-                      value={buffetHeadcount}
+                      value={buffetHeadcountInput}
                       onChange={handleBuffetHeadcountChange}
+                      onBlur={handleBuffetHeadcountBlur}
+                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                     />
                     <button
                       className="w-10 h-10 rounded-full border border-amber-300 flex items-center justify-center text-amber-700"
                       onClick={() => {
                         const pkg = getPackageById("buffet")
                         if (pkg) {
-                          pkg.headcount = buffetHeadcount + 1
-                          setBuffetHeadcount(buffetHeadcount + 1)
+                          const newValue = buffetHeadcount + 1
+                          pkg.headcount = newValue
+                          setBuffetHeadcount(newValue)
+                          setBuffetHeadcountInput(newValue.toString())
                         }
                       }}
                     >

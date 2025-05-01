@@ -1,4 +1,6 @@
-import * as React from "react"
+"use client"
+
+import type * as React from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,7 +23,10 @@ interface Step3ReviewCheckoutProps {
   isSubmitting: boolean
   setCurrentStep: (step: 1 | 2 | 3) => void
   submitResult: any
-  handleInputChange: (args: { e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, setCustomerInfo: any }) => void
+  handleInputChange: (args: {
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    setCustomerInfo: any
+  }) => void
   handleSubmitOrder: (e: React.MouseEvent<HTMLButtonElement>) => void
 }
 
@@ -51,9 +56,7 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
       </div>
 
       {submitResult && (
-        <Alert
-          className={`mb-6 ${submitResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
-        >
+        <Alert className={`mb-6 ${submitResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
           {submitResult.success ? (
             <CheckCircle className="h-4 w-4 text-green-600" />
           ) : (
@@ -87,12 +90,17 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
               <div className="flex justify-between">
                 <span>Guests:</span>
                 <span>
-                  {getPackageById(selectedPackage || "")?.headcount || 0} {getPackageById(selectedPackage || "")?.headcount !== 1 ? "people" : "person"}
+                  {getPackageById(selectedPackage || "")?.headcount || 0}{" "}
+                  {getPackageById(selectedPackage || "")?.headcount !== 1 ? "people" : "person"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Base Price:</span>
-                <span>${getPackageById(selectedPackage || "")?.flatRate || 0}</span>
+                <span>
+                  {selectedPackage === "buffet"
+                    ? `$${(buffetHeadcount * 39.9).toFixed(2)}`
+                    : `$${getPackageById(selectedPackage || "")?.flatRate || 0}`}
+                </span>
               </div>
             </div>
           </div>
@@ -153,7 +161,9 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
           <div className="flex justify-between font-medium">
             <span>Total:</span>
             <span className="text-[#C33]">
-              ${selectedPackage ? (getPackageById(selectedPackage)?.flatRate || 0) + extraCharges.total : 0}
+              {selectedPackage === "buffet"
+                ? `$${(buffetHeadcount * 39.9).toFixed(2)}`
+                : `$${(getPackageById(selectedPackage || "")?.flatRate || 0) + extraCharges.total}`}
             </span>
           </div>
         </div>
@@ -271,4 +281,4 @@ const Step3ReviewCheckout: React.FC<Step3ReviewCheckoutProps> = ({
   )
 }
 
-export default Step3ReviewCheckout 
+export default Step3ReviewCheckout
