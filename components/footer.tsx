@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Facebook, Instagram, Twitter, Phone, Mail } from "lucide-react"
 import Image from "next/image"
+import { siteConfig } from "@/config/site"
 
 export default function Footer() {
   return (
@@ -11,11 +12,11 @@ export default function Footer() {
           <div className="flex flex-col items-start">
             <div className="flex items-center mb-4">
               <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo-mjF6aoj9t3X7OPJnxLwaZzOEZ3qYn2.png"
-                alt="Hibachi-at-Home Logo"
-                width={180}
-                height={60}
-                className="h-auto"
+                src={siteConfig.logo.main || "/placeholder.svg"}
+                alt={siteConfig.logo.alt}
+                width={siteConfig.logo.width}
+                height={siteConfig.logo.height}
+                className="h-auto rounded-full relative z-10 bg-white/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)]"
               />
             </div>
             <p className="text-[16px] text-white/80 mt-2">

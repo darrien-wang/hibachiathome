@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -72,7 +72,11 @@ export default function BookingPage() {
     e.preventDefault()
 
     if (!date || !selectedTime) {
-      alert("Please select a date and time for your booking")
+      // Replace the browser alert with setting a validation error message
+      setSubmitResult({
+        success: false,
+        message: "Please select a date and time for your booking",
+      })
       return
     }
 
@@ -152,9 +156,20 @@ export default function BookingPage() {
     }
   }
 
+  // Add this useEffect to scroll to the alert when it appears
+  useEffect(() => {
+    if (submitResult) {
+      // Scroll to the top of the form where the alert is displayed
+      window.scrollTo({
+        top: document.querySelector(".alert-container")?.offsetTop || 0,
+        behavior: "smooth",
+      })
+    }
+  }, [submitResult])
+
   return (
     <div className="container mx-auto px-4 pt-24 pb-12 mt-16">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto alert-container">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Book Your Hibachi Experience</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -163,20 +178,28 @@ export default function BookingPage() {
         </div>
 
         {submitResult && (
-          <Alert
-            className={`mb-6 ${submitResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
-          >
-            {submitResult.success ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            )}
-            <AlertTitle>{submitResult.success ? "Success!" : "Error"}</AlertTitle>
-            <AlertDescription>{submitResult.message}</AlertDescription>
-            {submitResult.success && submitResult.reservationId && (
-              <p className="mt-2 text-sm">Reservation ID: {submitResult.reservationId}</p>
-            )}
-          </Alert>
+          <div className="animate-fadeIn">
+            <Alert
+              className={`mb-6 ${
+                submitResult.success
+                  ? "bg-green-50 border-green-200 text-green-800"
+                  : "bg-red-50 border-red-200 text-red-800"
+              } shadow-sm transition-all duration-300`}
+            >
+              {submitResult.success ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              )}
+              <AlertTitle className="text-lg font-medium">{submitResult.success ? "Success!" : "Error"}</AlertTitle>
+              <AlertDescription className="mt-2">
+                {submitResult.message}
+                {submitResult.success && submitResult.reservationId && (
+                  <p className="mt-2 text-sm font-medium">Reservation ID: {submitResult.reservationId}</p>
+                )}
+              </AlertDescription>
+            </Alert>
+          </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -351,8 +374,38 @@ export default function BookingPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Submit Booking Request"}
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 rounded-md transition-all duration-300 shadow-sm hover:shadow-md"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit Booking Request"
+                )}
               </Button>
             </form>
           </CardContent>

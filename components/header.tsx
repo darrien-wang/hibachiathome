@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
+import { siteConfig } from "@/config/site"
 
 const navItems = [
   { name: "Home", href: "/", disabled: false },
@@ -103,10 +104,10 @@ export function Header() {
       <div className="container mx-auto px-4 py-2 flex items-center justify-between max-w-5xl">
         <Link href="/" className="flex items-center relative h-[63px] w-[140px] md:w-[160px]">
           <Image
-            src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo-mjF6aoj9t3X7OPJnxLwaZzOEZ3qYn2.png"
-            alt="Hibachi at Home Logo"
-            width={180}
-            height={60}
+            src={siteConfig.logo.main || "/placeholder.svg"}
+            alt={siteConfig.logo.alt}
+            width={siteConfig.logo.width}
+            height={siteConfig.logo.height}
             className="h-auto w-[140px] md:w-[160px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
             priority
           />
@@ -148,8 +149,8 @@ export function Header() {
             <SheetContent className="w-[250px] sm:w-[300px] bg-stone-100/95">
               <div className="flex justify-center mb-6 mt-4">
                 <Image
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo-mjF6aoj9t3X7OPJnxLwaZzOEZ3qYn2.png"
-                  alt="Hibachi at Home Logo"
+                  src={siteConfig.logo.main || "/placeholder.svg"}
+                  alt={siteConfig.logo.alt}
                   width={140}
                   height={50}
                   className="h-auto hover:-translate-y-1 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"

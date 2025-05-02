@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
+import { contactInfo } from "@/config/contact"
 
 // Gallery data with actual blob images
 const galleryImages = [
@@ -71,11 +72,20 @@ const galleryImages = [
 // Video data with YouTube embeds
 const galleryVideos = [
   {
+    id: "vid-scallops",
+    youtubeId: "fSDzyAoXnfE",
+    title: "How to Make Perfect Hibachi Scallops: Expert Tips and Techniques",
+    description:
+      "Learn how to make perfectly seared hibachi scallops with expert tips and techniques from a professional hibachi chef. Watch as the chef demonstrates the proper way to prepare and cook scallops on a hibachi grill, using just the right amount of heat and seasoning to bring out their natural flavors.",
+    isAvailable: true,
+  },
+  {
     id: "vid0",
     youtubeId: "zI9av1pmEFk",
     title: "Learn How to Breathe Fire - Tutorial",
     description:
       "A professional tutorial on fire breathing techniques. Note: This is for educational purposes only - fire breathing should only be attempted under the supervision of trained professionals and with proper safety precautions.",
+    isAvailable: false, // 标记为不可用
   },
   {
     id: "vid1",
@@ -83,6 +93,7 @@ const galleryVideos = [
     title: "Benihana Fried Rice Secrets Revealed",
     description:
       "A comprehensive guide to making Benihana's famous fried rice at home. Learn all the tips, tricks and techniques to make restaurant-quality hibachi fried rice.",
+    isAvailable: true,
   },
   {
     id: "vid10",
@@ -90,6 +101,7 @@ const galleryVideos = [
     title: "Hibachi Restaurant Chef Live",
     description:
       "Experience the excitement of a live hibachi restaurant chef performance. Watch as the chef demonstrates impressive cooking skills and entertaining tricks right at the table.",
+    isAvailable: true,
   },
   {
     id: "vid11",
@@ -97,6 +109,7 @@ const galleryVideos = [
     title: "How to Make Hibachi at Home | Steak and Shrimp Hibachi on Blackstone Griddle",
     description:
       "A detailed tutorial on how to make restaurant-quality steak and shrimp hibachi at home using a Blackstone griddle. Learn professional techniques and tips for creating the perfect hibachi meal in your own backyard.",
+    isAvailable: true,
   },
   {
     id: "vid2",
@@ -104,6 +117,7 @@ const galleryVideos = [
     title: "Hibachi Chicken At Home Better Than Benihana",
     description:
       "Learn how to make hibachi chicken at home that's even better than Benihana or any Japanese steakhouse, for a fraction of the cost. This Japanese-inspired hibachi teppanyaki recipe is super easy to make.",
+    isAvailable: true,
   },
   {
     id: "vid3",
@@ -111,6 +125,7 @@ const galleryVideos = [
     title: "Hibachi Steak At Home Better Than Benihana",
     description:
       "Make restaurant-quality hibachi steak at home with this easy-to-follow recipe. Perfect for a special dinner that's more affordable than dining out.",
+    isAvailable: true,
   },
   {
     id: "vid4",
@@ -118,6 +133,7 @@ const galleryVideos = [
     title: "Benihana Hibachi Ginger Salad Dressing Recipe",
     description:
       "Learn how to make Benihana's famous ginger salad dressing at home. This tangy, sweet, and slightly spicy dressing perfectly complements any hibachi meal.",
+    isAvailable: true,
   },
   {
     id: "vid5",
@@ -125,6 +141,7 @@ const galleryVideos = [
     title: "Benihana Hibachi Vegetables Recipe",
     description:
       "Create restaurant-quality hibachi vegetables at home with this authentic recipe. Perfect as a side dish for your hibachi-style meal.",
+    isAvailable: true,
   },
   {
     id: "vid6",
@@ -132,18 +149,21 @@ const galleryVideos = [
     title: "Hibachi Chef's Amazing Skills - Onion Volcano",
     description:
       "Watch a professional hibachi chef create the famous onion volcano and showcase impressive cooking skills.",
+    isAvailable: true,
   },
   {
     id: "vid7",
     youtubeId: "gy4PMoAkNc0",
     title: "Hibachi Cooking Techniques",
     description: "Learn the techniques and skills behind authentic hibachi cooking from master chefs.",
+    isAvailable: true,
   },
   {
     id: "vid8",
     youtubeId: "Hc6_CpJQrpg",
     title: "Hibachi Steak and Shrimp - Professional Cooking",
     description: "See how professional hibachi chefs prepare delicious steak and shrimp with flair and entertainment.",
+    isAvailable: true,
   },
   {
     id: "vid9",
@@ -151,6 +171,7 @@ const galleryVideos = [
     title: "Hibachi Chef Performance",
     description:
       "Enjoy the full hibachi chef performance with all the tricks and entertainment you can expect at your event.",
+    isAvailable: true,
   },
 ]
 
@@ -166,13 +187,13 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Gallery</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Browse photos and videos of our hibachi experiences. See our chefs in action and the amazing presentations
-            they create.
+            Browse our collection of hibachi photos and instructional videos. Learn professional techniques and get
+            inspired for your next hibachi experience.
           </p>
         </div>
 
@@ -207,30 +228,43 @@ export default function GalleryPage() {
 
           {/* Videos Tab */}
           <TabsContent value="videos">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {galleryVideos.map((video) => (
-                <div key={video.id} className="rounded-lg overflow-hidden border shadow-md">
-                  <div className="relative aspect-video bg-gray-100">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${video.youtubeId}`}
-                      title={video.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full"
-                    ></iframe>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-lg mb-1">{video.title}</h3>
-                    <p className="text-sm text-gray-600">{video.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="text-center mt-8 text-gray-500 text-sm">
-              <p>
-                These videos showcase professional hibachi cooking techniques and performances similar to what our chefs
-                provide.
+            <div className="mb-8 max-w-3xl mx-auto">
+              <h2 className="text-2xl font-bold mb-3">Hibachi Cooking Tutorials</h2>
+              <p className="text-gray-600 mb-4">
+                Explore our collection of high-quality Hibachi cooking tutorials. Learn everything from basic ingredient
+                preparation to professional cooking techniques, all demonstrated by expert chefs. Recreate
+                restaurant-quality Hibachi experiences at home!
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {galleryVideos
+                .filter((video) => video.isAvailable !== false) // 过滤掉不可用的视频
+                .map((video) => (
+                  <div key={video.id} className="rounded-lg overflow-hidden border shadow-md">
+                    <div className="relative aspect-video bg-gray-100">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${video.youtubeId}`}
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full"
+                      ></iframe>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-medium text-lg mb-1">{video.title}</h3>
+                      <p className="text-sm text-gray-600">{video.description}</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            <div className="mt-10 text-center text-sm text-gray-500 max-w-2xl mx-auto border-t border-gray-200 pt-6">
+              <p className="mb-2">
+                <strong>Disclaimer:</strong> All videos featured on this page are sourced from public platforms. Rights
+                belong to their respective creators and are shared for educational purposes only.
+              </p>
+              <p>If you're the original creator and have concerns, please contact us at {contactInfo.email}</p>
             </div>
           </TabsContent>
         </Tabs>
