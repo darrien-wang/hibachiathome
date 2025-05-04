@@ -49,7 +49,6 @@ const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({
                 <tr className="bg-gray-50">
                   <th className="py-3 px-4 text-left font-medium border-b">Package Features</th>
                   <th className="py-3 px-4 text-center font-medium border-b">Basic Package</th>
-                  <th className="py-3 px-4 text-center font-medium border-b">Premium Package</th>
                   <th className="py-3 px-4 text-center font-medium border-b">Buffet Package</th>
                 </tr>
               </thead>
@@ -64,12 +63,6 @@ const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({
                   </td>
                   <td className="py-2 px-4 text-center border-b">
                     <span className="text-gray-500 text-xs line-through mr-1">
-                      ${pricing.packages.premium.originalPrice}
-                    </span>
-                    ${pricing.packages.premium.perPerson}/person
-                  </td>
-                  <td className="py-2 px-4 text-center border-b">
-                    <span className="text-gray-500 text-xs line-through mr-1">
                       ${pricing.packages.buffet.originalPrice}
                     </span>
                     ${pricing.packages.buffet.perPerson}/person
@@ -78,44 +71,35 @@ const PackageComparisonTable: React.FC<PackageComparisonTableProps> = ({
                 <tr>
                   <td className="py-2 px-4 border-b">Protein Options</td>
                   <td className="py-2 px-4 text-center border-b">2 regular proteins</td>
-                  <td className="py-2 px-4 text-center border-b">3 premium proteins</td>
                   <td className="py-2 px-4 text-center border-b">Fixed menu</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Side Dishes</td>
                   <td className="py-2 px-4 text-center border-b">Fried rice & vegetables</td>
-                  <td className="py-2 px-4 text-center border-b">
-                    Premium fried rice with upgrades (Wagyu, Dried Scallops) & vegetables
-                  </td>
                   <td className="py-2 px-4 text-center border-b">Fried rice & vegetables</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Appetizers</td>
                   <td className="py-2 px-4 text-center border-b">Available as add-ons</td>
-                  <td className="py-2 px-4 text-center border-b">Miso soup, gyoza & edamame</td>
                   <td className="py-2 px-4 text-center border-b">Available as add-ons</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Chef Performance</td>
                   <td className="py-2 px-4 text-center border-b">Standard performance</td>
-                  <td className="py-2 px-4 text-center border-b">Premium performance</td>
                   <td className="py-2 px-4 text-center border-b">Standard performance</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Minimum Price</td>
                   <td className="py-2 px-4 text-center border-b">${pricing.packages.basic.minimum}</td>
-                  <td className="py-2 px-4 text-center border-b">${pricing.packages.premium.minimum}</td>
                   <td className="py-2 px-4 text-center border-b">${pricing.packages.buffet.minimum}</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4 border-b">Service Style</td>
                   <td className="py-2 px-4 text-center border-b">Live cooking</td>
-                  <td className="py-2 px-4 text-center border-b">Live cooking</td>
                   <td className="py-2 px-4 text-center border-b">Buffet style</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-4">Customization</td>
-                  <td className="py-2 px-4 text-center">Customizable</td>
                   <td className="py-2 px-4 text-center">Customizable</td>
                   <td className="py-2 px-4 text-center">Fixed menu</td>
                 </tr>

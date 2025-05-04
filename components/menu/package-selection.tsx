@@ -3,11 +3,13 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Badge } from "@/components/ui/badge"
 import type React from "react"
 import Link from "next/link"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { regularProteins, premiumProteins, sides, packageOptions, getPackageById } from "@/config/menu-items"
 import PackageComparisonTable from "./PackageComparisonTable"
+import { getPackageImageById } from "@/config/images"
 import {
   initialProteinSelections,
   initialSideSelections,
@@ -112,79 +114,6 @@ export default function PackageSelection({
     }
   }
 
-  // 处理 buffet 人数输入变化
-  // const handleBuffetHeadcountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const value = Number.parseInt(e.target.value)
-  //   if (!isNaN(value) && value >= 20) {
-  //     setBuffetHeadcount(value)
-  //     // 同时更新 package 对象
-  //     const pkg = getPackageById("buffet")
-  //     if (pkg) {
-  //       pkg.headcount = value
-  //     }
-  //   } else if (!isNaN(value) && value < 20) {
-  //     setBuffetHeadcount(20)
-  //     // 同时更新 package 对象
-  //     const pkg = getPackageById("buffet")
-  //     if (pkg) {
-  //       pkg.headcount = 20
-  //     }
-  //   }
-  // }
-
-  // 添加handleAddOrder函数
-  const handleAddOrder = () => {
-    setShowAddForm(true)
-    setNewParticipantName("")
-  }
-
-  // 添加handleAddParticipant函数
-  const handleAddParticipant = () => {
-    if (newParticipantName.trim()) {
-      const newId = participants.length > 0 ? Math.max(...participants.map((p) => p.id)) + 1 : 1
-      const newParticipant = {
-        id: newId,
-        name: newParticipantName.trim(),
-        status: "in-progress",
-        isSelected: false,
-        proteinSelections: initialProteinSelections(),
-        sideSelections: initialSideSelections(),
-      }
-
-      // 取消选择所有其他参与者
-      const updatedParticipants = participants.map((p) => ({
-        ...p,
-        isSelected: false,
-      }))
-
-      // 添加新参与者并设为选中状态
-      setParticipants([...updatedParticipants, { ...newParticipant, isSelected: true }])
-      setShowAddForm(false)
-
-      // 更新当前选择状态为新参与者的状态
-      setProteinSelections(initialProteinSelections())
-      setSideSelections(initialSideSelections())
-    }
-  }
-
-  // 添加handleSelectParticipant函数
-  const handleSelectParticipant = (id: number) => {
-    const selectedParticipant = participants.find((p) => p.id === id)
-
-    if (selectedParticipant) {
-      // 更新当前选择状态为所选参与者的状态
-      setProteinSelections(selectedParticipant.proteinSelections || initialProteinSelections())
-      setSideSelections(selectedParticipant.sideSelections || initialSideSelections())
-    }
-
-    setParticipants(
-      participants.map((p) => ({
-        ...p,
-        isSelected: p.id === id,
-      })),
-    )
-  }
-
   // 根据套餐类型设置默认选择
   useEffect(() => {
     if (selectedPackage) {
@@ -271,69 +200,6 @@ export default function PackageSelection({
     }
   }, [selectedPackage, proteinSelections, sideSelections])
 
-  // 处理开始编辑参与者名称
-  const handleStartEditName = (id: number, name: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    handleSelectParticipant(id) // 确保选中当前行
-
-    // 确保所有菜单都关闭
-    const menus = document.querySelectorAll('[id^="menu-"]')
-    menus.forEach((menu) => {
-      menu.classList.add("hidden")
-    })
-
-    setEditingParticipantId(id)
-    setEditingName(name)
-  }
-
-  // 处理保存编辑后的名称
-  const handleSaveName = (id: number, e: React.MouseEvent | React.KeyboardEvent) => {
-    e.stopPropagation()
-    if (editingName.trim()) {
-      setParticipants(
-        participants.map((p) => {
-          if (p.id === id) {
-            return { ...p, name: editingName.trim() }
-          }
-          return p
-        }),
-      )
-    }
-    setEditingParticipantId(null)
-  }
-
-  // 处理取消编辑
-  const handleCancelEdit = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setEditingParticipantId(null)
-  }
-
-  // useEffect to update protein and side selections when the selected participant changes
-  useEffect(() => {
-    const selectedParticipant = participants.find((p) => p.isSelected)
-    if (selectedParticipant) {
-      setProteinSelections(selectedParticipant.proteinSelections || initialProteinSelections())
-      setSideSelections(selectedParticipant.sideSelections || initialSideSelections())
-    }
-  }, [participants])
-
-  // 添加点击外部关闭菜单的事件处理
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const menus = document.querySelectorAll('[id^="menu-"]')
-      menus.forEach((menu) => {
-        if (!menu.contains(event.target) && !event.target.closest('button[id^="menu-button-"]')) {
-          menu.classList.add("hidden")
-        }
-      })
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [])
-
   return (
     <Card className="mb-10 border-amber-100 bg-gradient-to-b from-white to-amber-50/30">
       <CardHeader className="border-b border-amber-100 pb-4">
@@ -344,142 +210,157 @@ export default function PackageSelection({
       </CardHeader>
 
       <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {packageOptions.map((pkg) => (
-            <div
-              key={pkg.id}
-              className={`border rounded-lg overflow-hidden transition-all relative hover:shadow-md ${
-                pkg.id === "basic" ? "border-amber-300/50 hover:border-amber-300" : "hover:border-gray-400"
-              }`}
-            >
-              {/* Popularity tag */}
-              {pkg.id === "basic" && (
-                <div className="absolute top-2 right-2 z-10">
-                  <Badge variant="secondary" className="px-3 py-1 shadow-sm">
-                    Most Popular
-                  </Badge>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {packageOptions
+            .filter((pkg) => pkg.id !== "premium")
+            .map((pkg) => (
+              <div
+                key={pkg.id}
+                className={`border rounded-lg overflow-hidden transition-all relative hover:shadow-md ${
+                  pkg.id === "basic" ? "border-amber-300/50 hover:border-amber-300" : "hover:border-gray-400"
+                }`}
+              >
+                {/* Package image */}
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src={getPackageImageById(pkg.id) || "/placeholder.svg"}
+                    alt={pkg.name}
+                    fill
+                    className="object-cover hover:scale-105 transition-transform duration-500"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
                 </div>
-              )}
 
-              {/* Luxury upgrade tag */}
-              {pkg.id === "premium" && (
-                <div className="absolute top-2 right-2 z-10">
-                  <Badge
-                    variant="outline"
-                    className="bg-gray-50 px-3 py-1 shadow-sm border border-gray-200 text-gray-700"
-                  >
-                    Luxury Upgrade
-                  </Badge>
-                </div>
-              )}
+                {/* Popularity tag */}
+                {pkg.id === "basic" && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <Badge variant="secondary" className="px-3 py-1 shadow-sm">
+                      Most Popular
+                    </Badge>
+                  </div>
+                )}
 
-              {/* Buffet tag */}
-              {pkg.id === "buffet" && (
-                <div className="absolute top-2 right-2 z-10">
-                  <Badge
-                    variant="outline"
-                    className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 shadow-sm border"
-                  >
-                    Self-Service
-                  </Badge>
-                </div>
-              )}
+                {/* Luxury upgrade tag */}
+                {pkg.id === "premium" && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <Badge
+                      variant="outline"
+                      className="bg-gray-50 px-3 py-1 shadow-sm border border-gray-200 text-gray-700"
+                    >
+                      Luxury Upgrade
+                    </Badge>
+                  </div>
+                )}
 
-              <div className="p-6 flex flex-col h-full">
-                <h3 className="text-xl font-bold mb-2">
-                  {pkg.id === "basic"
-                    ? "Basic Package"
-                    : pkg.id === "premium"
-                      ? "Premium Package"
-                      : pkg.id === "buffet"
-                        ? "Buffet Package"
-                        : pkg.name}
-                </h3>
+                {/* Buffet tag */}
+                {pkg.id === "buffet" && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 shadow-sm border"
+                    >
+                      Self-Service
+                    </Badge>
+                  </div>
+                )}
 
-                <div className="mb-4">
-                  <p className="text-lg font-semibold text-amber-600">
-                    {pkg.id && (
+                <div className="p-6 flex flex-col h-full">
+                  <h3 className="text-xl font-bold mb-2">
+                    {pkg.id === "basic"
+                      ? "Basic Package"
+                      : pkg.id === "premium"
+                        ? "Premium Package"
+                        : pkg.id === "buffet"
+                          ? "Buffet Package"
+                          : pkg.name}
+                  </h3>
+
+                  <div className="mb-4">
+                    <p className="text-lg font-semibold text-amber-600">
+                      {pkg.id && (
+                        <>
+                          <span className="text-gray-500 text-sm line-through mr-2">
+                            ${pricing.packages[pkg.id].originalPrice}
+                          </span>
+                          ${pricing.packages[pkg.id].perPerson}
+                          <span className="text-sm font-normal"> per person</span>
+                        </>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {pkg.id && `($${pricing.packages[pkg.id].minimum} minimum)`}
+                    </p>
+                  </div>
+
+                  <ul className="space-y-1 mb-6 text-sm">
+                    {pkg.id === "buffet" ? (
                       <>
-                        <span className="text-gray-500 text-sm line-through mr-2">
-                          ${pricing.packages[pkg.id].originalPrice}
-                        </span>
-                        ${pricing.packages[pkg.id].perPerson}
-                        <span className="text-sm font-normal"> per person</span>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Self-service buffet style</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Fixed menu (chicken, shrimp, beef)</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Fried rice & vegetables</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Chef performance</span>
+                        </li>
+                      </>
+                    ) : pkg.id === "basic" ? (
+                      <>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>2 proteins of your choice</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Fried rice & vegetables</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Gyoza, edamame, lobster & filet available for additional cost</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Chef performance included</span>
+                        </li>
+                      </>
+                    ) : (
+                      <>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>3 premium proteins of your choice</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Miso soup, gyoza, edamame</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Premium fried rice</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>Premium Chef performance</span>
+                        </li>
                       </>
                     )}
-                  </p>
-                  <p className="text-xs text-gray-600">{pkg.id && `($${pricing.packages[pkg.id].minimum} minimum)`}</p>
+                  </ul>
+
+                  <div className="flex-grow"></div>
+
+                  <Button className="w-full bg-amber-500 hover:bg-amber-600" asChild>
+                    <Link href="/book">Book Now</Link>
+                  </Button>
                 </div>
-
-                <ul className="space-y-1 mb-6 text-sm">
-                  {pkg.id === "buffet" ? (
-                    <>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Self-service buffet style</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fixed menu (chicken, shrimp, beef)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Chef performance</span>
-                      </li>
-                    </>
-                  ) : pkg.id === "basic" ? (
-                    <>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>2 proteins of your choice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Gyoza & edamame included</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Chef performance included</span>
-                      </li>
-                    </>
-                  ) : (
-                    <>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>3 premium proteins of your choice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Miso soup, gyoza, edamame</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Premium fried rice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Premium Chef performance</span>
-                      </li>
-                    </>
-                  )}
-                </ul>
-
-                <div className="flex-grow"></div>
-
-                <Button className="w-full bg-amber-500 hover:bg-amber-600" asChild>
-                  <Link href="/book">Book Now</Link>
-                </Button>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         {/* Package comparison table */}

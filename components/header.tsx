@@ -10,7 +10,7 @@ import { siteConfig } from "@/config/site"
 
 const navItems = [
   { name: "Home", href: "/", disabled: false },
-  { name: "Packages & Pricing", href: "/menu", disabled: false },
+  { name: "Menu", href: "/menu", disabled: false },
   { name: "Locations", href: "/locations", disabled: true },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },

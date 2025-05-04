@@ -32,6 +32,7 @@ export interface PackageOption {
     proteins: string[]
     sides: string[]
   }
+  image?: string
 }
 
 // 常规蛋白质
@@ -44,6 +45,7 @@ export const regularProteins: MenuItem[] = [
     category: "regular-protein",
     allergens: ["none"],
     isGlutenFree: true,
+    image: "/images/menu/chicken.png",
   },
   {
     id: "steak",
@@ -54,6 +56,7 @@ export const regularProteins: MenuItem[] = [
     allergens: ["none"],
     isGlutenFree: true,
     cookingOptions: ["Rare", "Medium Rare", "Medium", "Medium Well", "Well Done"],
+    image: "/images/menu/steak.png",
   },
   {
     id: "shrimp",
@@ -63,6 +66,7 @@ export const regularProteins: MenuItem[] = [
     category: "regular-protein",
     allergens: ["shellfish"],
     isGlutenFree: true,
+    image: "/images/menu/shrimp.png",
   },
   {
     id: "scallops",
@@ -72,6 +76,7 @@ export const regularProteins: MenuItem[] = [
     category: "regular-protein",
     allergens: ["shellfish"],
     isGlutenFree: true,
+    image: "/images/menu/scallops.png",
   },
   {
     id: "salmon",
@@ -81,6 +86,7 @@ export const regularProteins: MenuItem[] = [
     category: "regular-protein",
     allergens: ["fish"],
     isGlutenFree: true,
+    image: "/images/menu/salmon.png",
   },
   {
     id: "tofu",
@@ -91,6 +97,7 @@ export const regularProteins: MenuItem[] = [
     allergens: ["soy"],
     isVegetarian: true,
     isGlutenFree: true,
+    image: "/images/menu/tofu.png",
   },
 ]
 
@@ -105,6 +112,7 @@ export const premiumProteins: MenuItem[] = [
     allergens: ["none"],
     isGlutenFree: true,
     cookingOptions: ["Rare", "Medium Rare", "Medium", "Medium Well", "Well Done"],
+    image: "/images/menu/filet.png",
   },
   {
     id: "lobster",
@@ -114,6 +122,7 @@ export const premiumProteins: MenuItem[] = [
     category: "premium-protein",
     allergens: ["shellfish"],
     isGlutenFree: true,
+    image: "/images/menu/lobster.png",
   },
   {
     id: "premium-chicken",
@@ -123,6 +132,7 @@ export const premiumProteins: MenuItem[] = [
     category: "premium-protein",
     allergens: ["none"],
     isGlutenFree: true,
+    image: "/images/menu/chicken.png",
   },
   {
     id: "premium-steak",
@@ -133,6 +143,7 @@ export const premiumProteins: MenuItem[] = [
     allergens: ["none"],
     isGlutenFree: true,
     cookingOptions: ["Rare", "Medium Rare", "Medium", "Medium Well", "Well Done"],
+    image: "/images/menu/steak.png",
   },
   {
     id: "premium-shrimp",
@@ -142,6 +153,7 @@ export const premiumProteins: MenuItem[] = [
     category: "premium-protein",
     allergens: ["shellfish"],
     isGlutenFree: true,
+    image: "/images/menu/shrimp.png",
   },
   {
     id: "premium-salmon",
@@ -151,6 +163,7 @@ export const premiumProteins: MenuItem[] = [
     category: "premium-protein",
     allergens: ["fish"],
     isGlutenFree: true,
+    image: "/images/menu/salmon.png",
   },
 ]
 
@@ -163,6 +176,7 @@ export const sides: MenuItem[] = [
     price: 5,
     category: "side",
     allergens: ["gluten", "soy"],
+    image: "/images/menu/gyoza.png",
   },
   {
     id: "edamame",
@@ -173,6 +187,7 @@ export const sides: MenuItem[] = [
     allergens: ["soy"],
     isVegetarian: true,
     isGlutenFree: true,
+    image: "/images/menu/edamame.png",
   },
   {
     id: "noodles",
@@ -182,6 +197,7 @@ export const sides: MenuItem[] = [
     category: "side",
     allergens: ["gluten", "soy"],
     isVegetarian: true,
+    image: "/images/menu/noodles.png",
   },
   {
     id: "soup",
@@ -191,6 +207,7 @@ export const sides: MenuItem[] = [
     category: "side",
     allergens: ["gluten", "soy"],
     isVegetarian: true,
+    image: "/images/menu/soup.png",
   },
 ]
 
@@ -239,6 +256,7 @@ export const packageOptions: PackageOption[] = [
       proteins: ["chicken", "steak", "shrimp"],
       sides: [],
     },
+    image: "/images/packages/buffet-package.png",
   },
   {
     id: "basic",
@@ -259,26 +277,7 @@ export const packageOptions: PackageOption[] = [
       proteins: ["chicken", "steak"],
       sides: [],
     },
-  },
-  {
-    id: "premium",
-    name: "Premium Package",
-    description: "Our most luxurious offering for special occasions",
-    headcount: 10,
-    childCount: 0,
-    flatRate: 499,
-    originalPrice: 80,
-    currentPrice: 69.9,
-    includedItems: {
-      regularProteins: 0,
-      premiumProteins: 3,
-      sides: 2,
-    },
-    packageCredit: 70, // 3 premium proteins
-    defaultSelections: {
-      proteins: ["premium-steak", "premium-chicken", "premium-shrimp"],
-      sides: ["gyoza", "edamame"],
-    },
+    image: "/images/packages/basic-package.png",
   },
 ]
 
