@@ -97,14 +97,15 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-stone-100/95 shadow-sm backdrop-blur-sm ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-[#F5E3CB] to-white backdrop-blur-sm ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="container mx-auto px-4 py-2 flex items-center justify-between max-w-5xl">
-        <Link href="/" className="flex items-center relative h-[63px] w-[140px] md:w-[160px]">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between max-w-5xl relative">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
+        <Link href="/" className="flex items-center relative h-[63px] w-[140px] md:w-[160px] z-10">
           <Image
-            src={siteConfig.logo.main || "/placeholder.svg"}
+            src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
             alt={siteConfig.logo.alt}
             width={siteConfig.logo.width}
             height={siteConfig.logo.height}
@@ -149,7 +150,7 @@ export function Header() {
             <SheetContent className="w-[250px] sm:w-[300px] bg-stone-100/95">
               <div className="flex justify-center mb-6 mt-4">
                 <Image
-                  src={siteConfig.logo.main || "/placeholder.svg"}
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
                   alt={siteConfig.logo.alt}
                   width={140}
                   height={50}

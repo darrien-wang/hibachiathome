@@ -107,7 +107,7 @@ export const premiumProteins: MenuItem[] = [
     id: "filet",
     name: "Filet Mignon",
     description: "Premium cut filet mignon, tender and juicy",
-    price: 20,
+    price: 15,
     category: "premium-protein",
     allergens: ["none"],
     isGlutenFree: true,

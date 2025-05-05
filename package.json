@@ -64,8 +64,8 @@
     "vue": "latest",
     "vue-router": "latest",
     "@supabase/supabase-js": "latest",
-    "@vercel/analytics": "latest",
-    "resend": "latest"
+    "resend": "latest",
+    "@vercel/analytics": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

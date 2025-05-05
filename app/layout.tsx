@@ -25,7 +25,7 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: "Hibachi at Home | Private Chef Experience",
+  title: "Real Hibachi | Private Chef Experience",
   description: "Enjoy a professional hibachi chef experience in the comfort of your own home or venue.",
     generator: 'v0.dev'
 }

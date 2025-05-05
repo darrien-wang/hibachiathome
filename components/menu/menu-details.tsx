@@ -82,60 +82,79 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
 
         <TabsContent value="premium" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {premiumProteins.map((protein) => (
-              <div
-                key={protein.id}
-                className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
-              >
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={getMenuImageById("filet-lobster") || "/placeholder.svg"} // Using filet-lobster image for premium proteins
-                    alt={protein.name}
-                    fill
-                    className="object-cover hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold mb-1">{protein.name}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{protein.description}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-amber-600">${protein.price}</span>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href="/book">Add to Order</Link>
-                    </Button>
+            {premiumProteins
+              .filter((protein) => protein.id === "filet" || protein.id === "lobster")
+              .map((protein) => (
+                <div
+                  key={protein.id}
+                  className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src={
+                        protein.id === "lobster"
+                          ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/36996-Grilled-Rock-Lobsters-109-4x3-fb4e7e3c2ea34a5b8de9caf3697ed5b9-7CrqVYQUItKQGGwjfc7i4AJqkIxNOP.jpg"
+                          : "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/istockphoto-844731188-612x612-ZN07NpCqj0LP0BrtajkCjMbPDip5dT.jpg"
+                      } // Premium protein image
+                      alt={protein.name}
+                      fill
+                      className="object-cover hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-bold mb-1">{protein.name}</h3>
+                    <p className="text-gray-600 text-sm mb-3">{protein.description}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-amber-600">${protein.price}</span>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/book">Add to Order</Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </TabsContent>
 
         <TabsContent value="sides" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sides.map((side) => (
-              <div key={side.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={getMenuImageById("steak-shrimp") || "/placeholder.svg"} // Using steak-shrimp image for sides
-                    alt={side.name}
-                    fill
-                    className="object-cover hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold mb-1">{side.name}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{side.description}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-amber-600">${side.price}</span>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href="/book">Add to Order</Link>
-                    </Button>
+            {sides
+              .filter((side) => side.id !== "soup")
+              .map((side) => (
+                <div
+                  key={side.id}
+                  className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src={
+                        side.id === "gyoza"
+                          ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/handmade-gyoza-feat-zw3iQhdGEyIwMmLRuEsLVQYGdaPz1w.jpg"
+                          : side.id === "edamame"
+                            ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/SideDish_1024_Edamame-recipe-image-768x588-PRUQpdoeHxQ4b7gNYb5c9Cvav5s8a1.webp"
+                            : side.id === "noodles"
+                              ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/Oil-Free-Hibachi-Noodles_13-ofABNWwAG0GPRFDWbsTP3bfphCsFf0.jpg"
+                              : getMenuImageById("steak-shrimp") || "/placeholder.svg"
+                      }
+                      alt={side.name}
+                      fill
+                      className="object-cover hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-bold mb-1">{side.name}</h3>
+                    <p className="text-gray-600 text-sm mb-3">{side.description}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-amber-600">${side.price}</span>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/book">Add to Order</Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </TabsContent>
       </Tabs>

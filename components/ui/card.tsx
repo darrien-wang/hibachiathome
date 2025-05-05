@@ -11,6 +11,8 @@ const cardVariants = cva("rounded-md border bg-card text-card-foreground shadow-
       default: "border",
       secondary: "bg-secondary text-secondary-foreground",
       outline: "border-border bg-background",
+      estimate: "border-amber-50 bg-white/90 shadow-sm hover:shadow-md transition-all duration-300",
+      calculator: "border-amber-100 bg-white shadow-md p-0 overflow-hidden",
     },
   },
   defaultVariants: {
@@ -46,9 +48,18 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
 )
 CardDescription.displayName = "CardDescription"
 
-const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />,
-)
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { spacing?: "default" | "compact" | "none" }
+>(({ className, spacing = "default", ...props }, ref) => {
+  const spacingClasses = {
+    default: "p-6 pt-0 flex flex-col gap-4",
+    compact: "p-4 pt-0 flex flex-col gap-2",
+    none: "p-0 flex flex-col",
+  }
+
+  return <div ref={ref} className={cn(spacingClasses[spacing], className)} {...props} />
+})
 CardContent.displayName = "CardContent"
 
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(

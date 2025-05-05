@@ -74,7 +74,7 @@ export default function Home() {
               size="lg"
               className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary"
             >
-              <Link href="/book">Book Now</Link>
+              <Link href="/estimation">Free Estimate</Link>
             </Button>
             <Button
               asChild
@@ -323,7 +323,7 @@ export default function Home() {
             size="lg"
             className="text-lg bg-white text-[#F9A77C] hover:bg-white/90 hover:text-[#F4B6A0] rounded-full shadow-sm border-2 border-white"
           >
-            <Link href="/book">Book Your Experience</Link>
+            <Link href="/estimation">Get Your Free Estimate</Link>
           </Button>
         </div>
       </section>

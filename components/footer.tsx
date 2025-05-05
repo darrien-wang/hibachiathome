@@ -12,7 +12,7 @@ export default function Footer() {
           <div className="flex flex-col items-start">
             <div className="flex items-center mb-4">
               <Image
-                src={siteConfig.logo.main || "/placeholder.svg"}
+                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
                 alt={siteConfig.logo.alt}
                 width={siteConfig.logo.width}
                 height={siteConfig.logo.height}
@@ -87,7 +87,7 @@ export default function Footer() {
         {/* 底部边框与版权 */}
         <div className="border-t border-[#21212A] pt-6 mt-6 text-center">
           <p className="text-[14px] text-[#A1A1A1]">
-            &copy; {new Date().getFullYear()} Hibachi-at-Home. All rights reserved.
+            &copy; {new Date().getFullYear()} Real Hibachi. All rights reserved.
           </p>
         </div>
       </div>
