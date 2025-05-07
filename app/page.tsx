@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Flame, Camera, ThumbsUp, Package } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 // Testimonial data
 const testimonials = [
@@ -31,6 +31,8 @@ const testimonials = [
 
 export default function Home() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  const playerRef = useRef<any>(null)
+  const [videoLoaded, setVideoLoaded] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -46,11 +48,9 @@ export default function Home() {
     const firstScriptTag = document.getElementsByTagName("script")[0]
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
 
-    let player: any
-
     // 当YouTube API准备好时初始化播放器
     ;(window as any).onYouTubeIframeAPIReady = () => {
-      player = new (window as any).YT.Player("youtube-player", {
+      playerRef.current = new (window as any).YT.Player("youtube-player", {
         events: {
           onReady: onPlayerReady,
           onStateChange: onPlayerStateChange,
@@ -61,6 +61,14 @@ export default function Home() {
     function onPlayerReady(event: any) {
       // 播放器准备好后的操作
       event.target.playVideo()
+      setVideoLoaded(true)
+
+      // 调试信息
+      console.log(
+        "Video ready, dimensions:",
+        event.target.getIframe().getBoundingClientRect().width,
+        event.target.getIframe().getBoundingClientRect().height,
+      )
     }
 
     function onPlayerStateChange(event: any) {
@@ -68,13 +76,13 @@ export default function Home() {
       if (event.data === (window as any).YT.PlayerState.PLAYING) {
         // 设置定时器检查视频时间
         const checkTime = setInterval(() => {
-          if (player && typeof player.getCurrentTime === "function") {
-            const currentTime = player.getCurrentTime()
-            const duration = player.getDuration()
+          if (playerRef.current && typeof playerRef.current.getCurrentTime === "function") {
+            const currentTime = playerRef.current.getCurrentTime()
+            const duration = playerRef.current.getDuration()
 
-            // 如果视频播放到倒数第3秒，重新开始播放
-            if (duration - currentTime <= 3) {
-              player.seekTo(0)
+            // 如果视频播放到倒数第8秒，重新开始播放
+            if (duration - currentTime <= 8) {
+              playerRef.current.seekTo(0)
             }
           }
         }, 1000)
@@ -86,8 +94,8 @@ export default function Home() {
 
     // 组件卸载时清理
     return () => {
-      if (player && typeof player.destroy === "function") {
-        player.destroy()
+      if (playerRef.current && typeof playerRef.current.destroy === "function") {
+        playerRef.current.destroy()
       }
       ;(window as any).onYouTubeIframeAPIReady = null
     }
@@ -97,10 +105,15 @@ export default function Home() {
     <>
       {/* Hero Section - Softer, more inviting style */}
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
-        <div className="absolute inset-0 overflow-hidden bg-black">
+        <div className="absolute inset-0 overflow-hidden bg-black z-0">
+          {!videoLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
           <iframe
             id="youtube-player"
-            className="absolute w-[300%] md:w-[100%] h-[100%] left-1/2 transform -translate-x-1/2"
+            className="scale-[4] w-auto h-full min-w-full min-h-full"
             frameBorder="0"
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -109,7 +122,7 @@ export default function Home() {
             src="https://www.youtube.com/embed/heOrQBnSSUM?controls=0&rel=0&playsinline=1&autoplay=1&mute=1&loop=1&playlist=heOrQBnSSUM&enablejsapi=1"
           ></iframe>
         </div>
-        <div className="absolute inset-0 bg-black/30 z-[1]"></div>
+        <div className="absolute inset-0 bg-black/50 z-10"></div>
         <div className="container mx-auto px-4 relative z-20 text-center text-white">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 tracking-wide leading-tight">
             <span className="inline-block animate-fadeIn">Hibachi Show </span>
