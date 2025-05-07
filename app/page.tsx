@@ -14,7 +14,7 @@ const testimonials = [
   },
   {
     name: "Michael T.",
-    text: "We booked Hibachi-at-Home for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
+    text: "We booked Real Hibachi for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
     location: "Chicago, IL",
   },
   {
@@ -39,20 +39,78 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    // YouTube API 脚本加载
+    const tag = document.createElement("script")
+    tag.src = "https://www.youtube.com/iframe_api"
+    const firstScriptTag = document.getElementsByTagName("script")[0]
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+
+    let player: any
+
+    // 当YouTube API准备好时初始化播放器
+    ;(window as any).onYouTubeIframeAPIReady = () => {
+      player = new (window as any).YT.Player("youtube-player", {
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange,
+        },
+      })
+    }
+
+    function onPlayerReady(event: any) {
+      // 播放器准备好后的操作
+      event.target.playVideo()
+    }
+
+    function onPlayerStateChange(event: any) {
+      // 当视频播放状态改变时
+      if (event.data === (window as any).YT.PlayerState.PLAYING) {
+        // 设置定时器检查视频时间
+        const checkTime = setInterval(() => {
+          if (player && typeof player.getCurrentTime === "function") {
+            const currentTime = player.getCurrentTime()
+            const duration = player.getDuration()
+
+            // 如果视频播放到倒数第3秒，重新开始播放
+            if (duration - currentTime <= 3) {
+              player.seekTo(0)
+            }
+          }
+        }, 1000)
+
+        // 清除之前的定时器
+        return () => clearInterval(checkTime)
+      }
+    }
+
+    // 组件卸载时清理
+    return () => {
+      if (player && typeof player.destroy === "function") {
+        player.destroy()
+      }
+      ;(window as any).onYouTubeIframeAPIReady = null
+    }
+  }, [])
+
   return (
     <>
       {/* Hero Section - Softer, more inviting style */}
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
-        <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url(https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/edae833a967fb994df866aa8ce7af7b-ifIJnkRuSbTbOMxtgsqvU6zen5lTVv.png)`,
-            }}
-          ></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30"></div>
+        <div className="absolute inset-0 overflow-hidden bg-black">
+          <iframe
+            id="youtube-player"
+            className="absolute w-[300%] md:w-[100%] h-[100%] left-1/2 transform -translate-x-1/2"
+            frameBorder="0"
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            title="Lets Hibachi"
+            src="https://www.youtube.com/embed/heOrQBnSSUM?controls=0&rel=0&playsinline=1&autoplay=1&mute=1&loop=1&playlist=heOrQBnSSUM&enablejsapi=1"
+          ></iframe>
         </div>
-        <div className="container mx-auto px-4 relative z-10 text-center text-white">
+        <div className="absolute inset-0 bg-black/30 z-[1]"></div>
+        <div className="container mx-auto px-4 relative z-20 text-center text-white">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 tracking-wide leading-tight">
             <span className="inline-block animate-fadeIn">Hibachi Show </span>
             <div className="inline-flex items-center">
@@ -124,7 +182,7 @@ export default function Home() {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
-            Why Choose <span className="text-primary">Hibachi-at-Home</span>
+            Why Choose <span className="text-primary">Real Hibachi</span>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
