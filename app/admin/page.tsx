@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { getReservations, getOrderDetails } from "../actions/booking"
 import type { Reservation } from "@/types/booking"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -16,23 +15,149 @@ export default function AdminPage() {
   const [orderDetails, setOrderDetails] = useState<any | null>(null)
   const [loadingDetails, setLoadingDetails] = useState(false)
 
-  useEffect(() => {
-    async function fetchReservations() {
-      try {
-        const result = await getReservations()
-        if (result.success && result.data) {
-          setReservations(result.data)
-        } else {
-          setError(result.error || "Failed to fetch reservations")
-        }
-      } catch (error: any) {
-        setError(error.message || "An unexpected error occurred")
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Calculate date 10 days from now
+  const tenDaysFromNow = new Date()
+  tenDaysFromNow.setDate(tenDaysFromNow.getDate() + 10)
 
-    fetchReservations()
+  // Generate fake data
+  useEffect(() => {
+    // Fake reservation data
+    const fakeReservations: Reservation[] = [
+      {
+        id: "res-001",
+        name: "Jennifer Thompson",
+        email: "jennifer.t@gmail.com",
+        phone: "555-123-4567",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "6:00 PM",
+        headcount: 8,
+        location: "1234 Maple Avenue, Boston, MA",
+        status: "confirmed",
+        created_at: new Date().toISOString(),
+        package_id: "premium",
+      },
+      {
+        id: "res-002",
+        name: "Michael Rodriguez",
+        email: "mrodriguez@gmail.com",
+        phone: "555-987-6543",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "7:30 PM",
+        headcount: 12,
+        location: "42 Oak Street, Cambridge, MA",
+        status: "pending",
+        created_at: new Date().toISOString(),
+        package_id: "buffet",
+      },
+      {
+        id: "res-003",
+        name: "Sarah Johnson",
+        email: "sjohnson@gmail.com",
+        phone: "555-222-3333",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "5:00 PM",
+        headcount: 6,
+        location: "789 Pine Road, Somerville, MA",
+        status: "confirmed",
+        created_at: new Date().toISOString(),
+        package_id: "basic",
+      },
+      {
+        id: "res-004",
+        name: "David Williams",
+        email: "dwilliams@gmail.com",
+        phone: "555-444-5555",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "6:30 PM",
+        headcount: 10,
+        location: "567 Cherry Lane, Brookline, MA",
+        status: "pending",
+        created_at: new Date().toISOString(),
+        package_id: "premium",
+      },
+      {
+        id: "res-005",
+        name: "Emily Chen",
+        email: "echen@gmail.com",
+        phone: "555-777-8888",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "7:00 PM",
+        headcount: 15,
+        location: "123 Birch Street, Newton, MA",
+        status: "confirmed",
+        created_at: new Date().toISOString(),
+        package_id: "buffet",
+      },
+      {
+        id: "res-006",
+        name: "Robert Garcia",
+        email: "rgarcia@gmail.com",
+        phone: "555-333-2222",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "5:30 PM",
+        headcount: 9,
+        location: "456 Elm Court, Watertown, MA",
+        status: "cancelled",
+        created_at: new Date().toISOString(),
+        package_id: "basic",
+      },
+      {
+        id: "res-007",
+        name: "Amanda Miller",
+        email: "amiller@gmail.com",
+        phone: "555-666-7777",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "6:00 PM",
+        headcount: 7,
+        location: "890 Walnut Drive, Arlington, MA",
+        status: "confirmed",
+        created_at: new Date().toISOString(),
+        package_id: "premium",
+      },
+      {
+        id: "res-008",
+        name: "James Wilson",
+        email: "jwilson@gmail.com",
+        phone: "555-111-9999",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "8:00 PM",
+        headcount: 14,
+        location: "234 Cedar Avenue, Medford, MA",
+        status: "pending",
+        created_at: new Date().toISOString(),
+        package_id: "buffet",
+      },
+      {
+        id: "res-009",
+        name: "Sophia Lee",
+        email: "slee@gmail.com",
+        phone: "555-888-1111",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "6:30 PM",
+        headcount: 11,
+        location: "678 Spruce Street, Belmont, MA",
+        status: "confirmed",
+        created_at: new Date().toISOString(),
+        package_id: "basic",
+      },
+      {
+        id: "res-010",
+        name: "Daniel Brown",
+        email: "dbrown@gmail.com",
+        phone: "555-222-4444",
+        event_date: new Date(tenDaysFromNow).toISOString(),
+        event_time: "7:00 PM",
+        headcount: 16,
+        location: "345 Aspen Road, Waltham, MA",
+        status: "pending",
+        created_at: new Date().toISOString(),
+        package_id: "premium",
+      },
+    ]
+
+    // Set the fake reservations and turn off loading
+    setReservations(fakeReservations)
+    setLoading(false)
   }, [])
 
   const handleViewDetails = async (reservationId: string) => {
@@ -40,27 +165,173 @@ export default function AdminPage() {
     setLoadingDetails(true)
 
     try {
-      // 这里假设我们可以通过预订ID获取关联的订单ID
-      // 在实际应用中，您可能需要先获取订单ID
+      // Find the selected reservation
       const reservation = reservations.find((r) => r.id === reservationId)
       if (!reservation) {
         throw new Error("Reservation not found")
       }
 
-      // 假设我们有一个方法来获取与预订关联的订单
-      // 在实际应用中，您需要实现这个逻辑
-      const result = await getOrderDetails(reservationId)
-
-      if (result.success && result.data) {
-        setOrderDetails(result.data)
-      } else {
-        setError(result.error || "Failed to fetch order details")
+      // Generate fake order details based on the reservation
+      const fakeOrderDetails = {
+        order: {
+          id: `order-${reservationId.split("-")[1]}`,
+          reservation_id: reservationId,
+          package_id: reservation.package_id,
+          total_price:
+            reservation.package_id === "basic"
+              ? (reservation.headcount * 45).toFixed(2)
+              : reservation.package_id === "buffet"
+                ? (reservation.headcount * 55).toFixed(2)
+                : (reservation.headcount * 65).toFixed(2),
+          status: reservation.status,
+          created_at: reservation.created_at,
+          reservation: reservation,
+        },
+        orderItems: [
+          {
+            id: `item-${Math.floor(Math.random() * 1000)}`,
+            order_id: `order-${reservationId.split("-")[1]}`,
+            item_id: "Hibachi Steak",
+            item_type: "main",
+            quantity: Math.ceil(reservation.headcount * 0.4),
+            price: "18.99",
+          },
+          {
+            id: `item-${Math.floor(Math.random() * 1000)}`,
+            order_id: `order-${reservationId.split("-")[1]}`,
+            item_id: "Hibachi Chicken",
+            item_type: "main",
+            quantity: Math.ceil(reservation.headcount * 0.3),
+            price: "16.99",
+          },
+          {
+            id: `item-${Math.floor(Math.random() * 1000)}`,
+            order_id: `order-${reservationId.split("-")[1]}`,
+            item_id: "Hibachi Shrimp",
+            item_type: "main",
+            quantity: Math.ceil(reservation.headcount * 0.3),
+            price: "19.99",
+          },
+          {
+            id: `item-${Math.floor(Math.random() * 1000)}`,
+            order_id: `order-${reservationId.split("-")[1]}`,
+            item_id: "Fried Rice",
+            item_type: "side",
+            quantity: reservation.headcount,
+            price: "4.99",
+          },
+          {
+            id: `item-${Math.floor(Math.random() * 1000)}`,
+            order_id: `order-${reservationId.split("-")[1]}`,
+            item_id: "Vegetable Medley",
+            item_type: "side",
+            quantity: reservation.headcount,
+            price: "3.99",
+          },
+        ],
+        participants: generateParticipants(reservation),
+        participantSelections: generateParticipantSelections(reservation),
       }
+
+      setOrderDetails(fakeOrderDetails)
     } catch (error: any) {
       setError(error.message || "An unexpected error occurred")
     } finally {
       setLoadingDetails(false)
     }
+  }
+
+  // Helper function to generate fake participants
+  const generateParticipants = (reservation: Reservation) => {
+    const participants = []
+    const firstNames = [
+      "John",
+      "Mary",
+      "James",
+      "Patricia",
+      "Robert",
+      "Jennifer",
+      "Michael",
+      "Linda",
+      "William",
+      "Elizabeth",
+    ]
+    const lastNames = ["Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor"]
+
+    // Add the reservation owner as a host
+    participants.push({
+      id: `part-${Math.floor(Math.random() * 1000)}`,
+      reservation_id: reservation.id,
+      name: reservation.name,
+      email: reservation.email,
+      is_host: true,
+      is_proxy_selection: false,
+      status: "confirmed",
+    })
+
+    // Generate additional participants
+    for (let i = 1; i < reservation.headcount && i < 8; i++) {
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
+
+      participants.push({
+        id: `part-${Math.floor(Math.random() * 1000)}`,
+        reservation_id: reservation.id,
+        name: `${firstName} ${lastName}`,
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@gmail.com`,
+        is_host: false,
+        is_proxy_selection: Math.random() > 0.7, // Some participants have proxy selection
+        status: Math.random() > 0.3 ? "confirmed" : "pending",
+      })
+    }
+
+    return participants
+  }
+
+  // Helper function to generate fake participant selections
+  const generateParticipantSelections = (reservation: Reservation) => {
+    const selections = []
+    const mainOptions = ["Hibachi Steak", "Hibachi Chicken", "Hibachi Shrimp", "Hibachi Scallops", "Vegetable Hibachi"]
+    const sideOptions = ["Fried Rice", "White Rice", "Vegetable Medley", "Noodles"]
+    const appetizerOptions = ["Gyoza", "Spring Rolls", "Edamame", "Miso Soup"]
+
+    // Generate selections for each participant
+    const participantCount = Math.min(reservation.headcount, 8)
+
+    for (let i = 0; i < participantCount; i++) {
+      const participantId = `part-${Math.floor(Math.random() * 1000)}`
+
+      // Each participant gets a main dish
+      selections.push({
+        id: `sel-${Math.floor(Math.random() * 1000)}`,
+        participant_id: participantId,
+        item_id: mainOptions[Math.floor(Math.random() * mainOptions.length)],
+        item_type: "main",
+        quantity: 1,
+      })
+
+      // Each participant gets a side
+      selections.push({
+        id: `sel-${Math.floor(Math.random() * 1000)}`,
+        participant_id: participantId,
+        item_id: sideOptions[Math.floor(Math.random() * sideOptions.length)],
+        item_type: "side",
+        quantity: 1,
+      })
+
+      // Some participants get appetizers
+      if (Math.random() > 0.5) {
+        selections.push({
+          id: `sel-${Math.floor(Math.random() * 1000)}`,
+          participant_id: participantId,
+          item_id: appetizerOptions[Math.floor(Math.random() * appetizerOptions.length)],
+          item_type: "appetizer",
+          quantity: 1,
+        })
+      }
+    }
+
+    return selections
   }
 
   const getStatusBadge = (status: string) => {

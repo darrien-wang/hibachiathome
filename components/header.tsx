@@ -127,6 +127,12 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
+          <Link
+            href="/admin"
+            className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
+          >
+            Admin
+          </Link>
         </nav>
 
         {/* Book Now Button */}
