@@ -42,6 +42,7 @@ export default function Home() {
   const [videoLoaded, setVideoLoaded] = useState(false)
   const [ctaVideoLoaded, setCtaVideoLoaded] = useState(false)
   const [isLargeScreen, setIsLargeScreen] = useState(false)
+  const [isMediumScreen, setIsMediumScreen] = useState(false)
   const [animatedSteps, setAnimatedSteps] = useState([false, false, false])
   const [animationTriggered, setAnimationTriggered] = useState(false)
 
@@ -49,14 +50,13 @@ export default function Home() {
 
   useEffect(() => {
     // 初始检测
-    setIsLargeScreen(window.innerWidth >= 1280) // 1280px是一个常见的大屏幕断点
-
-    // 添加窗口大小改变事件监听器
-    const handleResize = () => {
-      setIsLargeScreen(window.innerWidth >= 1280)
+    const checkScreenSize = () => {
+      setIsLargeScreen(window.innerWidth >= 1024) // lg 断点
+      setIsMediumScreen(window.innerWidth >= 768 && window.innerWidth < 1024) // md 断点
     }
 
-    window.addEventListener("resize", handleResize)
+    checkScreenSize()
+    window.addEventListener("resize", checkScreenSize)
 
     // 添加滚动监听器来触发步骤动画
     const handleScroll = () => {
@@ -83,10 +83,22 @@ export default function Home() {
 
     // 清理函数
     return () => {
-      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("resize", checkScreenSize)
       window.removeEventListener("scroll", handleScroll)
     }
-  }, [animationTriggered]) // Add animationTriggered to dependency array
+  }, [animationTriggered])
+
+  // 添加自动轮播逻辑
+  useEffect(() => {
+    // 只在大屏幕或中等屏幕上启用自动轮播
+    if (isLargeScreen || isMediumScreen) {
+      const interval = setInterval(() => {
+        setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+      }, 2000) // 每2秒切换一次
+
+      return () => clearInterval(interval)
+    }
+  }, [isLargeScreen, isMediumScreen, testimonials.length])
 
   // 添加基于滚动位置的聚焦逻辑
   useEffect(() => {
@@ -96,6 +108,11 @@ export default function Home() {
     const handleScroll = () => {
       // 如果引用还没准备好，直接返回
       if (!testimonialRefs.current.every(Boolean)) return
+
+      // 大屏幕或中等屏幕上不使用滚动聚焦
+      if (isLargeScreen || isMediumScreen) {
+        return
+      }
 
       let closestCard = 0
       let minDistance = Number.POSITIVE_INFINITY
@@ -125,7 +142,7 @@ export default function Home() {
     handleScroll()
 
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [testimonials.length])
+  }, [isLargeScreen, isMediumScreen, testimonials.length])
 
   // Function to render star ratings
   const renderStars = (rating: number) => {
@@ -226,7 +243,11 @@ export default function Home() {
                   key={index}
                   ref={(el) => (testimonialRefs.current[index] = el)}
                   className={`bg-white rounded-lg shadow-md p-6 w-full transition-all duration-500 ${
-                    index === currentTestimonial ? "scale-105 border-2 border-amber-200" : "scale-100 opacity-60"
+                    index === currentTestimonial
+                      ? "scale-105 border-2 border-amber-200"
+                      : (isLargeScreen || isMediumScreen)
+                        ? "scale-100 opacity-80" // 大屏或中屏时非聚焦卡片样式
+                        : "scale-100 opacity-60" // 小屏时非聚焦卡片样式
                   }`}
                   onClick={() => setCurrentTestimonial(index)}
                 >
@@ -378,18 +399,20 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 font-serif">Pick Your Menu</h3>
-                    <p className="text-foreground/80 font-sans tracking-wide mb-4">
-                      Select from our Basic, Premium, or Deluxe packages based on your preferences and budget.
-                    </p>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <Link href="/menu">View Packages</Link>
-                    </Button>
                   </div>
+                </div>
+                <p className="text-foreground/80 font-sans tracking-wide">
+                  Select from our Basic or Buffet packages based on your preferences and budget.
+                </p>
+                <div className="mt-4">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                  >
+                    <Link href="/menu">View Packages</Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -407,18 +430,20 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 font-serif">Reserve Your Spot</h3>
-                    <p className="text-foreground/80 font-sans tracking-wide mb-4">
-                      Choose your preferred date and time, and we'll confirm availability within 24 hours.
-                    </p>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <Link href="/book">Check Availability</Link>
-                    </Button>
                   </div>
+                </div>
+                <p className="text-foreground/80 font-sans tracking-wide">
+                  Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                </p>
+                <div className="mt-4">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                  >
+                    <Link href="/book">Check Availability</Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -436,24 +461,27 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 font-serif">Let's Hibachi!</h3>
-                    <p className="text-foreground/80 font-sans tracking-wide mb-4">
-                      Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
-                    </p>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <Link href="/estimation">Get Started</Link>
-                    </Button>
                   </div>
+                </div>
+                <p className="text-foreground/80 font-sans tracking-wide">
+                  Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                </p>
+                <div className="mt-4">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                  >
+                    <Link href="/estimation">Get Started</Link>
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+
       {/* Package Options Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -570,168 +598,6 @@ export default function Home() {
               className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
             >
               <Link href="/menu">View All Packages</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Gallery - Auto Scrolling */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
-            Moments to <span className="text-primary">Remember</span>
-          </h2>
-
-          {/* Mobile Gallery (1 or 2 columns) */}
-          <div className="md:hidden">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="rounded-lg overflow-hidden shadow-md">
-                <img
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg"
-                  alt="Hibachi chef cooking with flames"
-                  className="w-full h-64 object-cover"
-                />
-              </div>
-              <div className="rounded-lg overflow-hidden shadow-md">
-                <img
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg"
-                  alt="Fresh hibachi food being prepared"
-                  className="w-full h-64 object-cover"
-                />
-              </div>
-              <div className="rounded-lg overflow-hidden shadow-md">
-                <img
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg"
-                  alt="Family enjoying hibachi at home"
-                  className="w-full h-64 object-cover"
-                />
-              </div>
-              <div className="rounded-lg overflow-hidden shadow-md">
-                <img
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg"
-                  alt="Seafood hibachi"
-                  className="w-full h-64 object-cover"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop Auto-scrolling Gallery */}
-          <div className="relative overflow-hidden hidden md:block">
-            {/* Auto-scrolling gallery */}
-            <div className="flex animate-scroll">
-              {/* First set of images */}
-              <div className="flex flex-nowrap min-w-full">
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg"
-                    alt="Hibachi chef cooking with flames"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg"
-                    alt="Fresh hibachi food being prepared"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg"
-                    alt="Family enjoying hibachi at home"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/4-SfqZqyg2PR4QVtatCRbequgR4WEoED.jpg"
-                    alt="Chef performing tricks"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-              </div>
-
-              {/* Duplicate set for seamless scrolling */}
-              <div className="flex flex-nowrap min-w-full">
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg"
-                    alt="Seafood hibachi"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/7-TDZQrw5MJ7F6E1PmyHBDTtVPfNotpU.jpg"
-                    alt="Backyard party with hibachi"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/9-qHeyNSeSAqYXM7I48CSkphbX7otGg4.jpg"
-                    alt="Chef preparing food for guests"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-                <div className="w-1/4 p-1 aspect-square flex-shrink-0">
-                  <img
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/10-J7UoyKbxWTbhf21D1MIAUmZDztkwuY.jpg"
-                    alt="Indoor hibachi setup"
-                    className="w-full h-full object-cover rounded-lg hover:scale-105 transition-transform"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center">
-            <Button asChild variant="outline" size="lg" className="rounded-full border-2 hover:bg-background/5">
-              <Link href="/gallery">View Full Gallery</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Banner with Fire Video Background */}
-      <section className="relative py-20 overflow-hidden">
-        {/* Video Background */}
-        <div className="absolute inset-0 z-0">
-          {!ctaVideoLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-amber-100">
-              <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
-          <video
-            className="w-full h-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            onLoadedData={() => setCtaVideoLoaded(true)}
-            src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/fire-djgDsdoALH8yxdQMJGZMPUhMljHy9U.mp4"
-          ></video>
-        </div>
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-amber-100/60 to-orange-400/60 z-10"></div>
-
-        {/* Content */}
-        <div className="container mx-auto px-4 text-center relative z-20">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6 text-amber-950 drop-shadow-sm">
-            Ready for an Unforgettable Experience?
-          </h2>
-          <p className="text-xl max-w-2xl mx-auto mb-8 font-sans tracking-wide text-amber-950 drop-shadow-sm">
-            Book your hibachi experience today and surprise your guests with a unique culinary adventure.
-          </p>
-          <div className="max-w-md mx-auto">
-            <Button
-              asChild
-              size="lg"
-              className="text-lg bg-[#FF6600] text-white hover:bg-[#FF7722] rounded-full shadow-md border-2 border-[#FF6600] animate-pulse transition-all duration-300 transform hover:scale-105 pulse-animation w-4/5 mx-auto sm:w-1/2 sm:mx-0"
-            >
-              <Link href="/estimation">Get Your Free Estimate</Link>
             </Button>
           </div>
         </div>
