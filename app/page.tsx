@@ -42,7 +42,6 @@ const testimonials = [
 export default function Home() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const playerRef = useRef<any>(null)
-  const [videoLoaded, setVideoLoaded] = useState(false)
   const [ctaVideoLoaded, setCtaVideoLoaded] = useState(false)
   const [isLargeScreen, setIsLargeScreen] = useState(false)
   const [isMediumScreen, setIsMediumScreen] = useState(false)
@@ -167,32 +166,18 @@ export default function Home() {
 
   // 添加轮播图效果
   useEffect(() => {
-    if (isLargeScreen && sortedHeroImages.length > 0) {
-      // 在轮播图实现部分，使用配置的间隔时间
-      // 例如，如果使用的是setInterval或setTimeout，将时间参数替换为carouselConfig.interval
-      // 或者如果使用的是第三方轮播组件，将interval或autoplaySpeed等属性设置为carouselConfig.interval
-
-      // 示例：
-      // 将
-      // setInterval(nextSlide, 3000)
-      // 修改为
-      // setInterval(nextSlide, carouselConfig.interval)
-
-      // 或者将
-      // <Carousel autoplaySpeed={3000}>
-      // 修改为
-      // <Carousel autoplaySpeed={carouselConfig.interval}>
+    if (sortedHeroImages.length > 0) {
       const interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
       }, carouselConfig.interval)
 
       return () => clearInterval(interval)
     }
-  }, [isLargeScreen, sortedHeroImages.length])
+  }, [sortedHeroImages.length])
 
   // 预加载图片
   useEffect(() => {
-    if (isLargeScreen && sortedHeroImages.length > 0) {
+    if (sortedHeroImages.length > 0) {
       const loadImages = async () => {
         const promises = sortedHeroImages.map((image) => {
           return new Promise((resolve) => {
@@ -208,55 +193,32 @@ export default function Home() {
 
       loadImages()
     }
-  }, [isLargeScreen, sortedHeroImages])
+  }, [sortedHeroImages])
 
   return (
     <>
       {/* Hero Section - Softer, more inviting style */}
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden bg-black z-0">
-          {isLargeScreen ? (
-            // 大屏幕显示轮播图
-            <>
-              {!imagesLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-              {sortedHeroImages.map((image, index) => (
-                <div
-                  key={index}
-                  className={`absolute inset-0 transition-opacity duration-1000 ${
-                    index === currentSlide ? "opacity-100" : "opacity-0"
-                  }`}
-                >
-                  <img
-                    src={image.url || "/placeholder.svg"}
-                    alt={image.alt || `Hero slide ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </>
-          ) : (
-            // 小屏幕显示视频
-            <>
-              {!videoLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-              <video
-                className="w-full h-full object-cover scale-[1.5]"
-                autoPlay
-                muted
-                loop
-                playsInline
-                onLoadedData={() => setVideoLoaded(true)}
-                src="/hibachi-banner-video.mp4"
-              ></video>
-            </>
+          {!imagesLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
           )}
+          {sortedHeroImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentSlide ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <img
+                src={image.url || "/placeholder.svg"}
+                alt={image.alt || `Hero slide ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
         </div>
         <div className="absolute inset-0 bg-black/50 z-10"></div>
         <div className="container mx-auto px-4 relative z-20 text-center text-white">
