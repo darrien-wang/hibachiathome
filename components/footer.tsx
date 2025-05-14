@@ -86,6 +86,27 @@ export default function Footer() {
 
         {/* 底部边框与版权 */}
         <div className="border-t border-[#21212A] pt-6 mt-6 text-center">
+          {/* SEO Keywords */}
+          <div className="mb-4">
+            <a
+              href="https://www.realhibachi.com/sitemap.html"
+              title="Hibachi at home in NY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mx-2"
+            >
+              <strong>Hibachi at home in NY</strong>
+            </a>
+            <a
+              href="https://www.realhibachi.com/sitemap.xml"
+              title="Hibachi at home in NY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mx-2"
+            >
+              <strong>Hibachi at home in NY</strong>
+            </a>
+          </div>
           <p className="text-[14px] text-[#A1A1A1]">
             &copy; {new Date().getFullYear()} Real Hibachi. All rights reserved.
           </p>
