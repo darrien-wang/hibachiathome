@@ -45,6 +45,8 @@ export default function Home() {
   const [animatedSteps, setAnimatedSteps] = useState([false, false, false])
   const [animationTriggered, setAnimationTriggered] = useState(false)
 
+  const testimonialRefs = useRef<(HTMLDivElement | null)[]>([])
+
   useEffect(() => {
     // 初始检测
     setIsLargeScreen(window.innerWidth >= 1280) // 1280px是一个常见的大屏幕断点
@@ -85,6 +87,45 @@ export default function Home() {
       window.removeEventListener("scroll", handleScroll)
     }
   }, [animationTriggered]) // Add animationTriggered to dependency array
+
+  // 添加基于滚动位置的聚焦逻辑
+  useEffect(() => {
+    // 初始化引用数组
+    testimonialRefs.current = testimonialRefs.current.slice(0, testimonials.length)
+
+    const handleScroll = () => {
+      // 如果引用还没准备好，直接返回
+      if (!testimonialRefs.current.every(Boolean)) return
+
+      let closestCard = 0
+      let minDistance = Number.POSITIVE_INFINITY
+
+      // 找到距离视口中心最近的卡片
+      testimonialRefs.current.forEach((ref, index) => {
+        if (ref) {
+          const rect = ref.getBoundingClientRect()
+          const cardCenter = rect.top + rect.height / 2
+          const viewportCenter = window.innerHeight / 2
+          const distance = Math.abs(cardCenter - viewportCenter)
+
+          if (distance < minDistance) {
+            minDistance = distance
+            closestCard = index
+          }
+        }
+      })
+
+      // 更新当前聚焦的卡片
+      setCurrentTestimonial(closestCard)
+    }
+
+    // 添加滚动事件监听器
+    window.addEventListener("scroll", handleScroll)
+    // 初始检查
+    handleScroll()
+
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [testimonials.length])
 
   // Function to render star ratings
   const renderStars = (rating: number) => {
@@ -151,7 +192,10 @@ export default function Home() {
       </section>
 
       {/* Google Reviews Section */}
-      <section className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100">
+      <section
+        id="testimonials-section"
+        className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100"
+      >
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center mb-8">
             <div className="flex items-center mb-2">
@@ -175,12 +219,13 @@ export default function Home() {
             <p className="text-sm text-gray-600">Based on 48 reviews</p>
           </div>
 
-          <div className="relative overflow-hidden">
-            <div className="flex flex-wrap justify-center gap-6">
+          <div className="relative overflow-visible">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
               {testimonials.map((testimonial, index) => (
                 <div
                   key={index}
-                  className={`bg-white rounded-lg shadow-md p-6 max-w-md transition-all duration-500 ${
+                  ref={(el) => (testimonialRefs.current[index] = el)}
+                  className={`bg-white rounded-lg shadow-md p-6 w-full transition-all duration-500 ${
                     index === currentTestimonial ? "scale-105 border-2 border-amber-200" : "scale-100 opacity-60"
                   }`}
                   onClick={() => setCurrentTestimonial(index)}
