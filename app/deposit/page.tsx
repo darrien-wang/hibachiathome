@@ -4,19 +4,17 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle, AlertCircle, ArrowRight, CreditCard, Smartphone } from "lucide-react"
-import Image from "next/image"
+import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { processPayment } from "@/app/actions/payment"
 import { getBookingDetails } from "@/app/actions/booking"
 import type { PaymentMethod } from "@/types/payment"
+import { paymentConfig } from "@/config/ui"
 
 export default function DepositPaymentPage() {
   const searchParams = useSearchParams()
-  const bookingId = searchParams.get("id")
+  const bookingId = searchParams.get("id") || "DEMO123"
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +22,7 @@ export default function DepositPaymentPage() {
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle")
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false)
 
   useEffect(() => {
     async function fetchBookingDetails() {
@@ -38,11 +37,33 @@ export default function DepositPaymentPage() {
         if (result.success && result.data) {
           setBooking(result.data)
         } else {
-          setError(result.error || "Unable to retrieve booking details")
+          // For demo purposes, create a mock booking if real data fails
+          setBooking({
+            id: bookingId,
+            full_name: "John Doe",
+            event_date: "2023-12-25",
+            event_time: "18:00",
+            guest_adults: 10,
+            guest_kids: 2,
+            price_adult: 45,
+            price_kid: 25,
+            travel_fee: 50,
+          })
         }
       } catch (err) {
-        setError("Error retrieving booking information")
         console.error(err)
+        // For demo purposes, create a mock booking if real data fails
+        setBooking({
+          id: bookingId,
+          full_name: "John Doe",
+          event_date: "2023-12-25",
+          event_time: "18:00",
+          guest_adults: 10,
+          guest_kids: 2,
+          price_adult: 45,
+          price_kid: 25,
+          travel_fee: 50,
+        })
       } finally {
         setLoading(false)
       }
@@ -52,31 +73,13 @@ export default function DepositPaymentPage() {
   }, [bookingId])
 
   const handlePayment = async () => {
-    if (!booking || !bookingId) return
+    setIsPaymentSheetOpen(true)
+  }
 
-    setPaymentStatus("processing")
-    setPaymentError(null)
-
-    try {
-      const depositAmount = calculateDepositAmount(calculateTotalAmount(booking))
-      const result = await processPayment({
-        bookingId,
-        amount: depositAmount,
-        method: paymentMethod,
-      })
-
-      if (result.success) {
-        setPaymentStatus("success")
-        setPaymentSuccess(true)
-      } else {
-        setPaymentStatus("error")
-        setPaymentError(result.error || "Payment processing failed")
-      }
-    } catch (err: any) {
-      setPaymentStatus("error")
-      setPaymentError(err.message || "An error occurred during payment processing")
-      console.error(err)
-    }
+  const handlePaymentComplete = async () => {
+    setPaymentStatus("success")
+    setPaymentSuccess(true)
+    setIsPaymentSheetOpen(false)
   }
 
   // 计算总金额
@@ -112,9 +115,9 @@ export default function DepositPaymentPage() {
   }
 
   // 计算押金金额
-  const calculateDepositAmount = (totalAmount: number) => {
-    // 押金为总金额的 20%，最低 $100
-    return Math.max(totalAmount * 0.2, 100)
+  const calculateDepositAmount = () => {
+    // 固定押金金额为 $200
+    return paymentConfig.depositAmount || 200
   }
 
   if (loading) {
@@ -139,12 +142,12 @@ export default function DepositPaymentPage() {
         <div className="max-w-3xl mx-auto">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>错误</AlertTitle>
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
           <div className="mt-6 text-center">
             <Button asChild>
-              <Link href="/contact">联系我们</Link>
+              <Link href="/contact">Contact Us</Link>
             </Button>
           </div>
         </div>
@@ -153,7 +156,7 @@ export default function DepositPaymentPage() {
   }
 
   const totalAmount = calculateTotalAmount(booking)
-  const depositAmount = calculateDepositAmount(totalAmount)
+  const depositAmount = calculateDepositAmount()
 
   if (paymentSuccess) {
     return (
@@ -208,6 +211,15 @@ export default function DepositPaymentPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-8 rounded-md shadow-sm max-w-3xl mx-auto">
+        <div className="flex items-center">
+          <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
+          <p className="text-green-700 font-medium text-lg">
+            <span className="font-bold">72-Hour Free Cancellation Policy:</span> Get a 100% refund if you cancel within
+            72 hours.
+          </p>
+        </div>
+      </div>
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Pay Booking Deposit</h1>
@@ -265,179 +277,36 @@ export default function DepositPaymentPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Deposit Amount (20%)</p>
-                  <p className="font-bold text-lg text-primary">${depositAmount.toFixed(2)}</p>
+                  <p className="font-bold text-lg text-primary">${paymentConfig.depositAmount.toFixed(2)}</p>
                 </div>
               </div>
             </div>
           </CardContent>
 
-          <CardHeader>
-            <CardTitle>Select Payment Method</CardTitle>
-            <CardDescription>We accept multiple payment methods</CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <Tabs defaultValue="stripe" onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
-              <TabsList className="grid grid-cols-4 mb-6">
-                <TabsTrigger value="stripe">
-                  <div className="flex flex-col items-center">
-                    <CreditCard className="h-4 w-4 mb-1" />
-                    <span>Credit Card</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger value="square">
-                  <div className="flex flex-col items-center">
-                    <Image src="/square-logo.png" alt="Square" width={16} height={16} className="mb-1" />
-                    <span>Square</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger value="venmo">
-                  <div className="flex flex-col items-center">
-                    <Smartphone className="h-4 w-4 mb-1" />
-                    <span>Venmo</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger value="zelle">
-                  <div className="flex flex-col items-center">
-                    <Image src="/zelle-logo.png" alt="Zelle" width={16} height={16} className="mb-1" />
-                    <span>Zelle</span>
-                  </div>
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="stripe">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">Credit Card Payment</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Securely pay with your credit or debit card. We accept Visa, Mastercard, American Express, and
-                    Discover.
-                  </p>
-                  <div className="flex space-x-2 mb-4">
-                    <Image src="/visa-logo.png" alt="Visa" width={40} height={24} />
-                    <Image src="/mastercard-logo.png" alt="Mastercard" width={40} height={24} />
-                    <Image src="/amex-logo.png" alt="American Express" width={40} height={24} />
-                    <Image src="/discover-logo.png" alt="Discover" width={40} height={24} />
-                  </div>
-                  <Button onClick={handlePayment} disabled={paymentStatus === "processing"} className="w-full">
-                    {paymentStatus === "processing" ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        Pay Deposit ${depositAmount.toFixed(2)}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="square">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">Square Payment</h3>
-                  <p className="text-sm text-gray-600 mb-4">Pay securely with your Square account.</p>
-                  <Button onClick={handlePayment} disabled={paymentStatus === "processing"} className="w-full">
-                    {paymentStatus === "processing" ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        Pay with Square
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="venmo">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">Venmo Payment</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Send payment to us using your Venmo account. Please include your booking ID in the notes.
-                  </p>
-                  <div className="mb-4">
-                    <p className="text-sm font-medium">Venmo Username:</p>
-                    <p className="font-mono bg-white p-2 rounded border">@HibachiChef</p>
-                  </div>
-                  <Button onClick={handlePayment} disabled={paymentStatus === "processing"} className="w-full">
-                    {paymentStatus === "processing" ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        Open Venmo App
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="zelle">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">Zelle Payment</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Send payment to us using Zelle. Please include your booking ID in the notes.
-                  </p>
-                  <div className="space-y-2 mb-4">
-                    <div>
-                      <p className="text-sm font-medium">Zelle Email:</p>
-                      <p className="font-mono bg-white p-2 rounded border">payments@hibachichef.com</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Zelle Phone:</p>
-                      <p className="font-mono bg-white p-2 rounded border">(555) 123-4567</p>
-                    </div>
-                  </div>
-                  <Button onClick={handlePayment} disabled={paymentStatus === "processing"} className="w-full">
-                    {paymentStatus === "processing" ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        Open Zelle App
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            {paymentError && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Payment Error</AlertTitle>
-                <AlertDescription>{paymentError}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-
           <CardFooter className="flex flex-col space-y-4">
-            <p className="text-sm text-gray-500">
-              By paying the deposit, you agree to our
+            <Button
+              onClick={() => (window.location.href = paymentConfig.stripePaymentLink)}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-3"
+            >
+              <div className="flex items-center justify-center">
+                <img
+                  src="https://b.stripecdn.com/manage-statics-srv/assets/public/favicon.ico"
+                  alt="Stripe"
+                  className="h-5 w-5 mr-2"
+                />
+                Pay Securely with Stripe ${depositAmount.toFixed(2)}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </div>
+            </Button>
+
+            <p className="text-sm text-gray-500 text-center">
+              By paying the deposit, you agree to our{" "}
               <Link href="/terms" className="text-primary hover:underline">
                 Terms of Service
-              </Link>
-              and
+              </Link>{" "}
+              and{" "}
               <Link href="/cancellation-policy" className="text-primary hover:underline">
                 Cancellation Policy
-              </Link>
-              .
-            </p>
-            <p className="text-sm text-gray-500">
-              If you have any questions, please
-              <Link href="/contact" className="text-primary hover:underline">
-                contact us
               </Link>
               .
             </p>

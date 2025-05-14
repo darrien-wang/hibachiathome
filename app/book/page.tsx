@@ -61,6 +61,7 @@ export default function BookingPage() {
               onClick: handleOnlineBooking,
               variant: "default",
               className: "bg-primary/5 border-primary/20",
+              is24_7: true,
             },
           ].map((card, index) => (
             <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
@@ -70,27 +71,37 @@ export default function BookingPage() {
                   {card.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow flex items-end justify-center pb-6">
+              <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
                 {card.onClick ? (
-                  <Button
-                    className="w-3/5 mx-auto md:w-full h-10 text-sm"
-                    variant={card.variant}
-                    onClick={card.onClick}
-                  >
-                    {card.icon}
-                    {card.buttonText}
-                  </Button>
-                ) : (
-                  <Button className="w-3/5 mx-auto md:w-full h-10 text-sm" variant={card.variant} asChild>
-                    <a
-                      href={card.href}
-                      target={card.external ? "_blank" : undefined}
-                      rel={card.external ? "noopener noreferrer" : undefined}
+                  <>
+                    <Button
+                      className="w-3/5 mx-auto md:w-full h-10 text-sm"
+                      variant={card.variant}
+                      onClick={card.onClick}
                     >
                       {card.icon}
                       {card.buttonText}
-                    </a>
-                  </Button>
+                    </Button>
+                    <div className="h-[20px] flex items-center justify-center">
+                      {card.is24_7 && <p className="text-xs text-gray-500 mt-2">24/7 Service Available</p>}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Button className="w-3/5 mx-auto md:w-full h-10 text-sm" variant={card.variant} asChild>
+                      <a
+                        href={card.href}
+                        target={card.external ? "_blank" : undefined}
+                        rel={card.external ? "noopener noreferrer" : undefined}
+                      >
+                        {card.icon}
+                        {card.buttonText}
+                      </a>
+                    </Button>
+                    <div className="h-[20px] flex items-center justify-center">
+                      {card.is24_7 && <p className="text-xs text-gray-500 mt-2">24/7 Service Available</p>}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>

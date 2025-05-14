@@ -266,10 +266,7 @@ export default function ContactPage() {
               </div>
               <CardContent className="pt-6">
                 <h3 className="font-bold mb-2">Our Service Areas</h3>
-                <p className="text-gray-600 text-sm">
-                  We currently serve Chicago (Illinois), Los Angeles, Palm Springs, San Diego (California), and Panama
-                  City, Destin, 30A (Florida).
-                </p>
+                <p className="text-gray-600 text-sm">We currently serve {siteConfig.contact.locations.join(", ")}.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {siteConfig.contact.locations.map((location, index) => (
                     <span
