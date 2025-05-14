@@ -3,6 +3,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import { Star } from "lucide-react"
+// 找到轮播图相关代码，修改轮播间隔时间
+// 导入轮播配置
+import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -45,6 +48,11 @@ export default function Home() {
   const [isMediumScreen, setIsMediumScreen] = useState(false)
   const [animatedSteps, setAnimatedSteps] = useState([false, false, false])
   const [animationTriggered, setAnimationTriggered] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [imagesLoaded, setImagesLoaded] = useState(false)
+
+  // 获取排序后的轮播图片
+  const sortedHeroImages = getSortedHeroImages()
 
   const testimonialRefs = useRef<(HTMLDivElement | null)[]>([])
 
@@ -94,7 +102,7 @@ export default function Home() {
     if (isLargeScreen || isMediumScreen) {
       const interval = setInterval(() => {
         setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-      }, 2000) // 每2秒切换一次
+      }, 3000) // 每2秒切换一次
 
       return () => clearInterval(interval)
     }
@@ -157,25 +165,98 @@ export default function Home() {
     return stars
   }
 
+  // 添加轮播图效果
+  useEffect(() => {
+    if (isLargeScreen && sortedHeroImages.length > 0) {
+      // 在轮播图实现部分，使用配置的间隔时间
+      // 例如，如果使用的是setInterval或setTimeout，将时间参数替换为carouselConfig.interval
+      // 或者如果使用的是第三方轮播组件，将interval或autoplaySpeed等属性设置为carouselConfig.interval
+
+      // 示例：
+      // 将
+      // setInterval(nextSlide, 3000)
+      // 修改为
+      // setInterval(nextSlide, carouselConfig.interval)
+
+      // 或者将
+      // <Carousel autoplaySpeed={3000}>
+      // 修改为
+      // <Carousel autoplaySpeed={carouselConfig.interval}>
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
+      }, carouselConfig.interval)
+
+      return () => clearInterval(interval)
+    }
+  }, [isLargeScreen, sortedHeroImages.length])
+
+  // 预加载图片
+  useEffect(() => {
+    if (isLargeScreen && sortedHeroImages.length > 0) {
+      const loadImages = async () => {
+        const promises = sortedHeroImages.map((image) => {
+          return new Promise((resolve) => {
+            const img = new Image()
+            img.src = image.url
+            img.onload = resolve
+          })
+        })
+
+        await Promise.all(promises)
+        setImagesLoaded(true)
+      }
+
+      loadImages()
+    }
+  }, [isLargeScreen, sortedHeroImages])
+
   return (
     <>
       {/* Hero Section - Softer, more inviting style */}
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden bg-black z-0">
-          {!videoLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
+          {isLargeScreen ? (
+            // 大屏幕显示轮播图
+            <>
+              {!imagesLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              {sortedHeroImages.map((image, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-1000 ${
+                    index === currentSlide ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  <img
+                    src={image.url || "/placeholder.svg"}
+                    alt={image.alt || `Hero slide ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </>
+          ) : (
+            // 小屏幕显示视频
+            <>
+              {!videoLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              <video
+                className="w-full h-full object-cover scale-[1.5]"
+                autoPlay
+                muted
+                loop
+                playsInline
+                onLoadedData={() => setVideoLoaded(true)}
+                src="/hibachi-banner-video.mp4"
+              ></video>
+            </>
           )}
-          <video
-            className={`w-full h-full object-cover ${isLargeScreen ? "" : "scale-[1.5]"}`}
-            autoPlay
-            muted
-            loop
-            playsInline
-            onLoadedData={() => setVideoLoaded(true)}
-            src="/hibachi-banner-video.mp4"
-          ></video>
         </div>
         <div className="absolute inset-0 bg-black/50 z-10"></div>
         <div className="container mx-auto px-4 relative z-20 text-center text-white">
@@ -278,6 +359,40 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Food Preparation Video Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+            Watch Our <span className="text-primary">Chef in Action</span>
+          </h2>
+          <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+            Experience the artistry and skill behind our authentic hibachi cooking
+          </p>
+
+          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+            <div className="relative pb-[56.25%] h-0">
+              <video
+                className="absolute top-0 left-0 w-full h-full object-cover"
+                controls
+                poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
+              >
+                <source
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/splitfire-yi4XvpO3hkWlZOn2w4PCikuIV4N7oR.mp4"
+                  type="video/mp4"
+                />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-amber-600 font-medium">
+              Our chefs bring the same excitement and culinary expertise to your home
+            </p>
           </div>
         </div>
       </section>
