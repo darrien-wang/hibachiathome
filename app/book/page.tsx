@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PromotionBanner } from "@/components/promotions/promotion-banner"
+import { siteConfig } from "@/config/site"
 
 export default function BookingPage() {
   const router = useRouter()
@@ -30,7 +31,7 @@ export default function BookingPage() {
               description: "Fastest response time",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "WhatsApp",
-              href: "https://wa.me/15627134832?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience",
+              href: `https://wa.me/${siteConfig.contact.phoneRaw || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
               external: true,
               variant: "outline",
             },
@@ -39,7 +40,7 @@ export default function BookingPage() {
               description: "Text us directly",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "SMS",
-              href: "sms:15627134832?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience",
+              href: `sms:${siteConfig.contact.phoneRaw || "15627134832"}?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience`,
               external: false,
               variant: "outline",
             },
@@ -47,8 +48,8 @@ export default function BookingPage() {
               title: "Phone",
               description: "Speak with us",
               icon: null,
-              buttonText: "562-713-4832",
-              href: "tel:5627134832",
+              buttonText: siteConfig.contact.phone || "213-770-7788",
+              href: `tel:${siteConfig.contact.phoneRaw || "15627134832"}`,
               external: false,
               variant: "outline",
             },
@@ -63,18 +64,24 @@ export default function BookingPage() {
             },
           ].map((card, index) => (
             <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
-              <CardHeader>
+              <CardHeader className="h-[120px] flex flex-col justify-center">
                 <CardTitle>{card.title}</CardTitle>
-                <CardDescription>{card.description}</CardDescription>
+                <CardDescription className="h-[40px] flex items-center justify-center">
+                  {card.description}
+                </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow flex items-end justify-center pb-6">
                 {card.onClick ? (
-                  <Button className="w-full h-10 text-sm" variant={card.variant} onClick={card.onClick}>
+                  <Button
+                    className="w-3/5 mx-auto md:w-full h-10 text-sm"
+                    variant={card.variant}
+                    onClick={card.onClick}
+                  >
                     {card.icon}
                     {card.buttonText}
                   </Button>
                 ) : (
-                  <Button className="w-full h-10 text-sm" variant={card.variant} asChild>
+                  <Button className="w-3/5 mx-auto md:w-full h-10 text-sm" variant={card.variant} asChild>
                     <a
                       href={card.href}
                       target={card.external ? "_blank" : undefined}

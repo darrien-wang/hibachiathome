@@ -71,11 +71,11 @@ export default function Footer() {
             <div className="space-y-3 mb-4">
               <p className="flex items-center text-[16px]">
                 <Phone className="h-5 w-5 mr-2 text-[#F1691B]" />
-                562-713-4832
+                {siteConfig.contact.phone}
               </p>
               <p className="flex items-center text-[16px]">
                 <Mail className="h-5 w-5 mr-2 text-[#F1691B]" />
-                darrien.wang@gmail.com
+                {siteConfig.contact.email}
               </p>
             </div>
             <p className="text-[14px] text-[#A1A1A1]">
