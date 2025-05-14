@@ -55,7 +55,7 @@ export default function MenuPage() {
     {
       id: "filet-chicken-shrimp",
       title: "Filet + Chicken + Shrimp",
-      price: pricing.packages.basic.perPerson + 5,
+      price: pricing.packages.basic.perPerson + 15,
       image: getMenuImageById("filet-chicken-shrimp"),
       description:
         "Premium filet mignon, tender chicken breast, and large shrimp, served with hibachi vegetables and fried rice",
@@ -63,7 +63,7 @@ export default function MenuPage() {
     {
       id: "filet-lobster",
       title: "Filet + Lobster",
-      price: pricing.packages.basic.perPerson + 10,
+      price: pricing.packages.basic.perPerson + 20,
       image: getMenuImageById("filet-lobster"),
       description: "Premium filet mignon and Maine lobster tail, served with hibachi vegetables and fried rice",
     },
@@ -103,16 +103,18 @@ export default function MenuPage() {
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-8">Featured Combinations</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {menuItems.map((item) => (
-              <MenuItemCard
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                price={item.price}
-                image={item.image}
-                description={item.description}
-              />
-            ))}
+            {[...menuItems]
+              .sort((a, b) => b.price - a.price)
+              .map((item) => (
+                <MenuItemCard
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  price={item.price}
+                  image={item.image}
+                  description={item.description}
+                />
+              ))}
           </div>
         </div>
 

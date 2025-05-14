@@ -1,298 +1,303 @@
 "use server"
 
 import { createServerSupabaseClient } from "@/lib/supabase"
-import type { Reservation, Order, OrderItem, Participant, ParticipantSelection } from "@/types/booking"
+import type { Booking, BookingFormData, BookingResponse, AvailableTimesResponse } from "@/types/booking"
+import { pricing } from "@/config/pricing"
+
+// 计算旅行费用
+function calculateTravelFee(zipcode: string): number {
+  if (!zipcode || zipcode.length < 5) return 0
+
+  const zipPrefix = zipcode.substring(0, 3)
+  const regions: Record<string, number> = {
+    // TX (Austin, Dallas, Houston, San Antonio)
+    "737": 50,
+    "750": 50,
+    "751": 50,
+    "752": 50,
+    "770": 50,
+    "771": 50,
+    "772": 50,
+    "782": 50,
+    // NY, NJ, PA, DE
+    "100": 50,
+    "101": 50,
+    "102": 50,
+    "070": 50,
+    "071": 50,
+    "190": 50,
+    "191": 50,
+    "197": 50,
+    // AZ (Phoenix Metropolitan)
+    "850": 50,
+    "851": 50,
+    "852": 50,
+    "853": 50,
+    // VA, MD, Washington DC
+    "200": 50,
+    "201": 50,
+    "220": 50,
+    "221": 50,
+    "208": 50,
+    "209": 50,
+    // FL (Miami, Orlando)
+    "331": 50,
+    "332": 50,
+    "328": 50,
+    "329": 50,
+  }
+
+  return regions[zipPrefix] || 75
+}
 
 // 创建预订
-export async function createReservation(
-  reservationData: Reservation,
-): Promise<{ success: boolean; data?: Reservation; error?: string }> {
+export async function createBooking(formData: BookingFormData): Promise<BookingResponse> {
   try {
     const supabase = createServerSupabaseClient()
 
-    const { data, error } = await supabase.from("reservations").insert(reservationData).select().single()
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Error creating reservation:", error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-// 创建订单
-export async function createOrder(orderData: Order): Promise<{ success: boolean; data?: Order; error?: string }> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    const { data, error } = await supabase.from("orders").insert(orderData).select().single()
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Error creating order:", error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-// 创建订单项目
-export async function createOrderItems(
-  orderItems: OrderItem[],
-): Promise<{ success: boolean; data?: OrderItem[]; error?: string }> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    const { data, error } = await supabase.from("order_items").insert(orderItems).select()
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Error creating order items:", error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-// 创建参与者
-export async function createParticipants(
-  participants: Participant[],
-): Promise<{ success: boolean; data?: Participant[]; error?: string }> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    const { data, error } = await supabase.from("participants").insert(participants).select()
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Error creating participants:", error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-// 创建参与者选择
-export async function createParticipantSelections(
-  selections: ParticipantSelection[],
-): Promise<{ success: boolean; data?: ParticipantSelection[]; error?: string }> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    const { data, error } = await supabase.from("participant_selections").insert(selections).select()
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Error creating participant selections:", error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-// 完整的预订和订单创建流程
-export async function createBookingWithOrder(
-  reservationData: Reservation,
-  orderData: {
-    package_id: string
-    total_price: number
-    items: Array<{
-      item_type: string
-      item_id: string
-      quantity: number
-      price: number
-    }>
-    participants: Array<{
-      name: string
-      is_host?: boolean
-      is_proxy_selection?: boolean
-      selections?: Array<{
-        item_type: string
-        item_id: string
-        quantity: number
-      }>
-    }>
-  },
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    // 开始事务
-    // 注意：Supabase JS 客户端不直接支持事务，所以我们需要手动处理错误和回滚
-
-    // 1. 创建预订
-    const reservationResult = await createReservation(reservationData)
-    if (!reservationResult.success || !reservationResult.data) {
-      return { success: false, error: reservationResult.error || "Failed to create reservation" }
+    // 验证必填字段
+    const requiredFields = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      zipcode: formData.zipcode,
+      eventDate: formData.eventDate,
+      eventTime: formData.eventTime,
     }
 
-    const reservation = reservationResult.data
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key)
 
-    // 2. 创建订单
-    const orderResult = await createOrder({
-      reservation_id: reservation.id!,
-      package_id: orderData.package_id,
-      total_price: orderData.total_price,
+    if (missingFields.length > 0) {
+      return {
+        success: false,
+        error: `Missing required fields: ${missingFields.join(", ")}`,
+      }
+    }
+
+    // 验证电话号码格式
+    const phoneRegex = /^[\d\s\-$$$$]+$/
+    if (!phoneRegex.test(formData.phone)) {
+      return {
+        success: false,
+        error: "Invalid phone number format",
+      }
+    }
+
+    // 验证邮箱格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      return {
+        success: false,
+        error: "Invalid email format",
+      }
+    }
+
+    // 验证邮编格式
+    const zipcodeRegex = /^\d{5}$/
+    if (!zipcodeRegex.test(formData.zipcode)) {
+      return {
+        success: false,
+        error: "Invalid ZIP code format (must be 5 digits)",
+      }
+    }
+
+    // 准备高级蛋白质数据
+    const premiumProteins = []
+    if (formData.filetMignon > 0) {
+      premiumProteins.push({
+        name: "Filet Mignon",
+        quantity: formData.filetMignon,
+        unit_price: 5,
+      })
+    }
+    if (formData.lobsterTail > 0) {
+      premiumProteins.push({
+        name: "Lobster Tail",
+        quantity: formData.lobsterTail,
+        unit_price: 10,
+      })
+    }
+
+    // 准备附加服务数据
+    const addOns = []
+    if (formData.extraProteins > 0) {
+      addOns.push({
+        name: "Extra Protein",
+        quantity: formData.extraProteins,
+        unit_price: 15,
+      })
+    }
+    if (formData.noodles > 0) {
+      addOns.push({
+        name: "Noodles",
+        quantity: formData.noodles,
+        unit_price: 5,
+      })
+    }
+
+    // 计算旅行费用
+    const travelFee = calculateTravelFee(formData.zipcode)
+
+    // 计算总金额
+    let totalCost = 0
+    totalCost += formData.adults * pricing.packages.basic.perPerson
+    totalCost += formData.kids * pricing.children.basic
+    totalCost += travelFee
+
+    // 添加高级蛋白质费用
+    premiumProteins.forEach((item) => {
+      totalCost += item.quantity * item.unit_price
     })
 
-    if (!orderResult.success || !orderResult.data) {
-      // 如果订单创建失败，我们应该删除预订
-      await supabase.from("reservations").delete().eq("id", reservation.id)
-      return { success: false, error: orderResult.error || "Failed to create order" }
+    // 添加附加服务费用
+    addOns.forEach((item) => {
+      totalCost += item.quantity * item.unit_price
+    })
+
+    // 准备预订数据
+    const bookingData: Booking = {
+      full_name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      zip_code: formData.zipcode,
+      event_date: formData.eventDate,
+      event_time: formData.eventTime,
+      guest_adults: formData.adults,
+      guest_kids: formData.kids,
+      price_adult: pricing.packages.basic.perPerson,
+      price_kid: pricing.children.basic,
+      travel_fee: travelFee,
+      special_requests: formData.message || undefined,
+      premium_proteins: premiumProteins.length > 0 ? premiumProteins : undefined,
+      add_ons: addOns.length > 0 ? addOns : undefined,
+      total_cost: Math.round(totalCost), // 转换为整数，因为数据库中是 bigint
+      status: "pending",
+      deposit: 0,
     }
 
-    const order = orderResult.data
+    // 创建预订记录
+    const { data: booking, error } = await supabase.from("bookings").insert(bookingData).select().single()
 
-    // 3. 创建订单项目
-    if (orderData.items.length > 0) {
-      const orderItems = orderData.items.map((item) => ({
-        order_id: order.id!,
-        item_type: item.item_type,
-        item_id: item.item_id,
-        quantity: item.quantity,
-        price: item.price,
-      }))
-
-      const orderItemsResult = await createOrderItems(orderItems)
-      if (!orderItemsResult.success) {
-        // 如果订单项目创建失败，我们应该删除订单和预订
-        await supabase.from("orders").delete().eq("id", order.id)
-        await supabase.from("reservations").delete().eq("id", reservation.id)
-        return { success: false, error: orderItemsResult.error || "Failed to create order items" }
-      }
-    }
-
-    // 4. 创建参与者
-    if (orderData.participants.length > 0) {
-      const participants = orderData.participants.map((participant) => ({
-        order_id: order.id!,
-        name: participant.name,
-        is_host: participant.is_host || false,
-        is_proxy_selection: participant.is_proxy_selection || false,
-      }))
-
-      const participantsResult = await createParticipants(participants)
-      if (!participantsResult.success || !participantsResult.data) {
-        // 如果参与者创建失败，我们应该删除订单项目、订单和预订
-        await supabase.from("order_items").delete().eq("order_id", order.id)
-        await supabase.from("orders").delete().eq("id", order.id)
-        await supabase.from("reservations").delete().eq("id", reservation.id)
-        return { success: false, error: participantsResult.error || "Failed to create participants" }
-      }
-
-      // 5. 创建参与者选择
-      const createdParticipants = participantsResult.data
-
-      for (let i = 0; i < createdParticipants.length; i++) {
-        const participant = createdParticipants[i]
-        const participantData = orderData.participants[i]
-
-        if (participantData.selections && participantData.selections.length > 0) {
-          const selections = participantData.selections.map((selection) => ({
-            participant_id: participant.id!,
-            item_type: selection.item_type,
-            item_id: selection.item_id,
-            quantity: selection.quantity,
-          }))
-
-          const selectionsResult = await createParticipantSelections(selections)
-          if (!selectionsResult.success) {
-            // 如果选择创建失败，我们应该删除参与者、订单项目、订单和预订
-            await supabase.from("participants").delete().eq("order_id", order.id)
-            await supabase.from("order_items").delete().eq("order_id", order.id)
-            await supabase.from("orders").delete().eq("id", order.id)
-            await supabase.from("reservations").delete().eq("id", reservation.id)
-            return { success: false, error: selectionsResult.error || "Failed to create participant selections" }
-          }
-        }
+    if (error) {
+      console.error("Error creating booking:", error)
+      return {
+        success: false,
+        error: `Failed to create booking: ${error.message}`,
       }
     }
 
     return {
       success: true,
-      data: {
-        reservation,
-        order,
-      },
+      data: booking,
     }
   } catch (error: any) {
-    console.error("Error in booking process:", error.message)
-    return { success: false, error: error.message }
+    console.error("Error in createBooking:", error)
+    return {
+      success: false,
+      error: `An unexpected error occurred: ${error.message || "Unknown error"}`,
+    }
+  }
+}
+
+// 获取可用时间
+export async function getAvailableTimes(date: string, zipcode: string): Promise<AvailableTimesResponse> {
+  try {
+    const supabase = createServerSupabaseClient()
+
+    // 获取当天的预订
+    const { data: existingBookings, error } = await supabase
+      .from("bookings")
+      .select("event_time, zip_code")
+      .eq("event_date", date)
+
+    if (error) {
+      console.error("Error fetching bookings:", error)
+      return {
+        success: false,
+        error: "Failed to fetch available times",
+      }
+    }
+
+    // 默认时间段
+    const allTimeSlots = ["11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"]
+
+    // 计算可用时间段
+    const availableTimeSlots = allTimeSlots.filter((time) => {
+      const conflictingBooking = existingBookings?.find((booking) => {
+        return booking.event_time === time && booking.zip_code === zipcode
+      })
+      return !conflictingBooking
+    })
+
+    return {
+      success: true,
+      availableTimeSlots,
+    }
+  } catch (error: any) {
+    console.error("Error in getAvailableTimes:", error)
+    return {
+      success: false,
+      error: `An unexpected error occurred: ${error.message || "Unknown error"}`,
+    }
   }
 }
 
 // 获取预订列表
-export async function getReservations(): Promise<{ success: boolean; data?: Reservation[]; error?: string }> {
+export async function getBookings(): Promise<{ success: boolean; data?: Booking[]; error?: string }> {
   try {
     const supabase = createServerSupabaseClient()
 
-    const { data, error } = await supabase.from("reservations").select("*").order("created_at", { ascending: false })
+    const { data, error } = await supabase.from("bookings").select("*").order("created_at", { ascending: false })
 
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error: any) {
-    console.error("Error fetching reservations:", error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-// 获取订单详情
-export async function getOrderDetails(orderId: string): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    // 获取订单信息
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .select("*, reservation:reservations(*)")
-      .eq("id", orderId)
-      .single()
-
-    if (orderError) throw orderError
-
-    // 获取订单项目
-    const { data: orderItems, error: itemsError } = await supabase
-      .from("order_items")
-      .select("*")
-      .eq("order_id", orderId)
-
-    if (itemsError) throw itemsError
-
-    // 获取参与者
-    const { data: participants, error: participantsError } = await supabase
-      .from("participants")
-      .select("*")
-      .eq("order_id", orderId)
-
-    if (participantsError) throw participantsError
-
-    // 获取参与者选择
-    const participantIds = participants.map((p) => p.id)
-    let participantSelections = []
-
-    if (participantIds.length > 0) {
-      const { data: selections, error: selectionsError } = await supabase
-        .from("participant_selections")
-        .select("*")
-        .in("participant_id", participantIds)
-
-      if (selectionsError) throw selectionsError
-      participantSelections = selections
+    if (error) {
+      console.error("Error fetching bookings:", error)
+      return {
+        success: false,
+        error: error.message,
+      }
     }
 
     return {
       success: true,
-      data: {
-        order,
-        orderItems,
-        participants,
-        participantSelections,
-      },
+      data: data as Booking[],
     }
   } catch (error: any) {
-    console.error("Error fetching order details:", error.message)
-    return { success: false, error: error.message }
+    console.error("Error fetching bookings:", error)
+    return {
+      success: false,
+      error: `An unexpected error occurred: ${error.message || "Unknown error"}`,
+    }
+  }
+}
+
+// 获取单个预订详情
+export async function getBookingDetails(bookingId: string) {
+  try {
+    const supabase = createServerSupabaseClient()
+
+    const { data, error } = await supabase.from("bookings").select("*").eq("id", bookingId).single()
+
+    if (error) {
+      console.error("Error fetching booking details:", error)
+      return {
+        success: false,
+        error: "获取预订详情时出错",
+      }
+    }
+
+    return {
+      success: true,
+      data,
+    }
+  } catch (error) {
+    console.error("Error in getBookingDetails:", error)
+    return {
+      success: false,
+      error: "获取预订详情时发生错误",
+    }
   }
 }

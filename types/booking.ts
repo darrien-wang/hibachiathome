@@ -1,66 +1,67 @@
-export interface Reservation {
+export interface Booking {
   id?: string
-  name: string
-  email?: string
+  full_name: string
+  email: string
   phone: string
-  headcount: number
+  address: string
+  zip_code: string
   event_date: string
   event_time: string
-  address: string
+  guest_adults: number
+  guest_kids: number
+  price_adult: number
+  price_kid: number
+  travel_fee: number
   special_requests?: string
-  status?: string
+  premium_proteins?: Array<{
+    name: string
+    quantity: number
+    unit_price: number
+  }>
+  add_ons?: Array<{
+    name: string
+    quantity: number
+    unit_price: number
+  }>
+  total_cost?: number
+  deposit?: number
+  status?: "pending" | "confirmed" | "completed" | "cancelled"
   created_at?: string
   updated_at?: string
 }
 
-export interface Order {
-  id?: string
-  reservation_id: string
-  package_id: string
-  total_price: number
-  status?: string
-  created_at?: string
-  updated_at?: string
+export interface BookingFormData {
+  name: string
+  email: string
+  phone: string
+  address: string
+  zipcode: string
+  eventDate: string
+  eventTime: string
+  adults: number
+  kids: number
+  filetMignon: number
+  lobsterTail: number
+  extraProteins: number
+  noodles: number
+  message?: string
 }
 
-export interface OrderItem {
-  id?: string
-  order_id: string
-  item_type: string // 'protein', 'side', 'premium', etc.
-  item_id: string
-  quantity: number
+export interface BookingResponse {
+  success: boolean
+  data?: Booking
+  error?: string
+}
+
+export interface AvailableTimesResponse {
+  success: boolean
+  availableTimeSlots?: string[]
+  error?: string
+}
+
+export type DateTimeSelection = {
+  date: string | undefined
+  time: string | undefined
   price: number
-  created_at?: string
-}
-
-export interface Participant {
-  id?: string
-  order_id: string
-  name: string
-  status?: string
-  is_host?: boolean
-  is_proxy_selection?: boolean
-  created_at?: string
-  updated_at?: string
-}
-
-export interface ParticipantSelection {
-  id?: string
-  participant_id: string
-  item_type: string
-  item_id: string
-  quantity: number
-  created_at?: string
-}
-
-export interface PackageOption {
-  id: string
-  name: string
-  description: string
-  headcount: number
-  childCount: number
-  flatRate: number
-  originalPrice?: number
-  currentPrice?: number
-  upgrades: Record<string, number>
+  originalPrice: number
 }

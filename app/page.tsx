@@ -1,31 +1,38 @@
 "use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Flame, Camera, ThumbsUp, Package } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+import { Star } from "lucide-react"
 
-// Testimonial data
+// Testimonial data with ratings
 const testimonials = [
   {
     name: "Sarah M.",
     text: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious. Perfect for my daughter's birthday party!",
     location: "Boston, MA",
+    rating: 5,
+    date: "2 months ago",
   },
   {
     name: "Michael T.",
     text: "We booked Real Hibachi for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
     location: "Chicago, IL",
+    rating: 5,
+    date: "3 weeks ago",
   },
   {
     name: "Jennifer L.",
     text: "Our family gathering was transformed into an unforgettable event. The chef was professional, friendly, and put on an amazing show!",
     location: "Atlanta, GA",
+    rating: 5,
+    date: "1 month ago",
   },
   {
     name: "David W.",
     text: "The perfect solution for our office party. Everyone was impressed with both the performance and the delicious food. Will definitely book again!",
     location: "Seattle, WA",
+    rating: 5,
+    date: "2 weeks ago",
   },
 ]
 
@@ -33,73 +40,64 @@ export default function Home() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const playerRef = useRef<any>(null)
   const [videoLoaded, setVideoLoaded] = useState(false)
+  const [ctaVideoLoaded, setCtaVideoLoaded] = useState(false)
+  const [isLargeScreen, setIsLargeScreen] = useState(false)
+  const [animatedSteps, setAnimatedSteps] = useState([false, false, false])
+  const [animationTriggered, setAnimationTriggered] = useState(false)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+    // 初始检测
+    setIsLargeScreen(window.innerWidth >= 1280) // 1280px是一个常见的大屏幕断点
 
-  useEffect(() => {
-    // YouTube API 脚本加载
-    const tag = document.createElement("script")
-    tag.src = "https://www.youtube.com/iframe_api"
-    const firstScriptTag = document.getElementsByTagName("script")[0]
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
-
-    // 当YouTube API准备好时初始化播放器
-    ;(window as any).onYouTubeIframeAPIReady = () => {
-      playerRef.current = new (window as any).YT.Player("youtube-player", {
-        events: {
-          onReady: onPlayerReady,
-          onStateChange: onPlayerStateChange,
-        },
-      })
+    // 添加窗口大小改变事件监听器
+    const handleResize = () => {
+      setIsLargeScreen(window.innerWidth >= 1280)
     }
 
-    function onPlayerReady(event: any) {
-      // 播放器准备好后的操作
-      event.target.playVideo()
-      setVideoLoaded(true)
+    window.addEventListener("resize", handleResize)
 
-      // 调试信息
-      console.log(
-        "Video ready, dimensions:",
-        event.target.getIframe().getBoundingClientRect().width,
-        event.target.getIframe().getBoundingClientRect().height,
-      )
-    }
+    // 添加滚动监听器来触发步骤动画
+    const handleScroll = () => {
+      const section = document.getElementById("how-it-works")
+      if (section && !animationTriggered) {
+        const sectionTop = section.getBoundingClientRect().top
+        const windowHeight = window.innerHeight
 
-    function onPlayerStateChange(event: any) {
-      // 当视频播放状态改变时
-      if (event.data === (window as any).YT.PlayerState.PLAYING) {
-        // 设置定时器检查视频时间
-        const checkTime = setInterval(() => {
-          if (playerRef.current && typeof playerRef.current.getCurrentTime === "function") {
-            const currentTime = playerRef.current.getCurrentTime()
-            const duration = playerRef.current.getDuration()
-
-            // 如果视频播放到倒数第8秒，重新开始播放
-            if (duration - currentTime <= 8) {
-              playerRef.current.seekTo(0)
-            }
-          }
-        }, 1000)
-
-        // 清除之前的定时器
-        return () => clearInterval(checkTime)
+        // Only trigger animation when scrolling down to the section
+        if (sectionTop < windowHeight * 0.75) {
+          // Set animation triggered to true to prevent repeating
+          setAnimationTriggered(true)
+          // 依次触发动画
+          setTimeout(() => setAnimatedSteps([true, false, false]), 0)
+          setTimeout(() => setAnimatedSteps([true, true, false]), 300)
+          setTimeout(() => setAnimatedSteps([true, true, true]), 600)
+        }
       }
     }
 
-    // 组件卸载时清理
+    window.addEventListener("scroll", handleScroll)
+    // 初始检查，以防页面已经滚动到该位置
+    handleScroll()
+
+    // 清理函数
     return () => {
-      if (playerRef.current && typeof playerRef.current.destroy === "function") {
-        playerRef.current.destroy()
-      }
-      ;(window as any).onYouTubeIframeAPIReady = null
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("scroll", handleScroll)
     }
-  }, [])
+  }, [animationTriggered]) // Add animationTriggered to dependency array
+
+  // Function to render star ratings
+  const renderStars = (rating: number) => {
+    const stars = []
+    for (let i = 0; i < 5; i++) {
+      if (i < rating) {
+        stars.push(<Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />)
+      } else {
+        stars.push(<Star key={i} className="h-5 w-5 text-gray-300" />)
+      }
+    }
+    return stars
+  }
 
   return (
     <>
@@ -111,46 +109,40 @@ export default function Home() {
               <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
-          <iframe
-            id="youtube-player"
-            className="scale-[4] w-auto h-full min-w-full min-h-full"
-            frameBorder="0"
-            allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            title="Lets Hibachi"
-            src="https://www.youtube.com/embed/heOrQBnSSUM?controls=0&rel=0&playsinline=1&autoplay=1&mute=1&loop=1&playlist=heOrQBnSSUM&enablejsapi=1"
-          ></iframe>
+          <video
+            className={`w-full h-full object-cover ${isLargeScreen ? "" : "scale-[1.5]"}`}
+            autoPlay
+            muted
+            loop
+            playsInline
+            onLoadedData={() => setVideoLoaded(true)}
+            src="/hibachi-banner-video.mp4"
+          ></video>
         </div>
         <div className="absolute inset-0 bg-black/50 z-10"></div>
         <div className="container mx-auto px-4 relative z-20 text-center text-white">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 tracking-wide leading-tight">
-            <span className="inline-block animate-fadeIn">Hibachi Show </span>
-            <div className="inline-flex items-center">
-              <Flame className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-[#F9A77C] animate-flicker mr-1" />
-              <span className="text-[#F9A77C] inline-block animate-fireText relative">
-                & Delicious Food
-                <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-[#F9A77C] to-amber-500 animate-fireUnderline"></span>
-              </span>
-              <Flame className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-[#F9A77C] animate-flicker ml-1" />
-            </div>
-            <span className="inline-block animate-slideUp"> in Your Backyard</span>
+            <span className="inline-block animate-fadeIn">REAL HIBACHI </span>
+            <span className="text-[#F9A77C] inline-block animate-fireText relative">
+              AT HOME
+              <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-[#F9A77C] to-amber-500 animate-fireUnderline"></span>
+            </span>
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-8 font-sans tracking-wide">
             Top-tier food & service. No hidden fees. From $499.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 w-[60%] mx-auto">
             <Button
               asChild
               size="lg"
-              className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary"
+              className="text-lg py-4 px-4 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary w-4/5 mx-auto sm:w-1/2 sm:mx-0"
             >
               <Link href="/estimation">Free Estimate</Link>
             </Button>
             <Button
               asChild
               size="lg"
-              className="text-lg py-6 px-8 bg-white text-[#FF6600] border-2 border-[#FF6600] hover:bg-[#FF6600] hover:text-white transition-colors duration-300 rounded-full shadow-sm hover:shadow-md"
+              className="text-lg py-4 px-4 bg-white text-[#FF6600] border-2 border-[#FF6600] hover:bg-[#FF6600] hover:text-white transition-colors duration-300 rounded-full shadow-sm hover:shadow-md w-4/5 mx-auto sm:w-1/2 sm:mx-0"
             >
               <Link href="/menu">View Packages</Link>
             </Button>
@@ -158,142 +150,382 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonial Slider - Social proof */}
-      <section className="py-10 bg-muted">
+      {/* Google Reviews Section */}
+      <section className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100">
         <div className="container mx-auto px-4">
-          <div className="relative overflow-hidden h-48">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className={`absolute w-full transition-all duration-1000 ease-in-out ${
-                  index === currentTestimonial ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                }`}
-              >
-                <div className="max-w-3xl mx-auto text-center">
-                  <p className="text-lg md:text-xl italic mb-4 font-sans">&ldquo;{testimonial.text}&rdquo;</p>
-                  <p className="font-medium text-primary font-sans">
-                    {testimonial.name} • {testimonial.location}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-center mt-4">
-            {testimonials.map((_, index) => (
-              <button
-                key={index}
-                className={`w-2 h-2 mx-1 rounded-full ${index === currentTestimonial ? "bg-primary" : "bg-gray-300"}`}
-                onClick={() => setCurrentTestimonial(index)}
-                aria-label={`View testimonial ${index + 1}`}
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center mb-2">
+              <img
+                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/google-reviews-png-10-GKGq4SGGN19lPvzMYHb6Rg1jvyOzJJ.png"
+                alt="Google Reviews"
+                className="h-8 mr-2"
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
+                  e.currentTarget.className = "h-6 mr-2"
+                }}
               />
-            ))}
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} className="h-5 w-5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <span className="ml-2 font-medium">5.0</span>
+            </div>
+            <p className="text-sm text-gray-600">Based on 48 reviews</p>
+          </div>
+
+          <div className="relative overflow-hidden">
+            <div className="flex flex-wrap justify-center gap-6">
+              {testimonials.map((testimonial, index) => (
+                <div
+                  key={index}
+                  className={`bg-white rounded-lg shadow-md p-6 max-w-md transition-all duration-500 ${
+                    index === currentTestimonial ? "scale-105 border-2 border-amber-200" : "scale-100 opacity-60"
+                  }`}
+                  onClick={() => setCurrentTestimonial(index)}
+                >
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 flex items-center justify-center text-white font-bold text-lg mr-3">
+                      {testimonial.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{testimonial.name}</h4>
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-500 mr-2">{testimonial.date}</span>
+                        <img
+                          src="/google-g-logo.png"
+                          alt="Google"
+                          className="h-4"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://www.google.com/favicon.ico"
+                            e.currentTarget.className = "h-3"
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex mb-3">{renderStars(testimonial.rating)}</div>
+
+                  <p className="text-gray-700 text-sm">{testimonial.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Key Benefits Section - Three columns with icons */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
-            Why Choose <span className="text-primary">Real Hibachi</span>
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow rounded-2xl overflow-hidden">
-              <CardContent className="pt-6">
-                <div className="mb-4 flex justify-center">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ThumbsUp className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-2 font-serif">Affordable Convenience</h3>
-                <p className="text-center text-foreground/80 font-sans tracking-wide">
-                  Backyard hibachi experience with a show for only $39.9 per person. No travel, no waiting, just pure
-                  enjoyment.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow rounded-2xl overflow-hidden">
-              <CardContent className="pt-6">
-                <div className="mb-4 flex justify-center">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Package className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-2 font-serif">All-Inclusive Service</h3>
-                <p className="text-center text-foreground/80 font-sans tracking-wide">
-                  We provide everything: cooking equipment, ingredients, and professional chefs. You just enjoy the
-                  experience.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow rounded-2xl overflow-hidden">
-              <CardContent className="pt-6">
-                <div className="mb-4 flex justify-center">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-2 font-serif">Perfect for Special Occasions</h3>
-                <p className="text-center text-foreground/80 font-sans tracking-wide">
-                  Birthdays, anniversaries, holidays, or just because. Create memorable moments and amazing photo
-                  opportunities.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-12 text-center">
-            <Button
-              asChild
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-lg rounded-full border-2 border-primary"
-            >
-              <Link href="/menu">View Our Packages</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-16 bg-muted">
+      {/* How It Works Section - Enhanced with gradient background, timeline, and animations */}
+      <section id="how-it-works" className="py-20 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
             How It <span className="text-primary">Works</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#F4B6A0] text-white text-2xl font-serif font-bold mb-4 shadow-sm">
-                1
+          {/* Desktop Timeline View */}
+          <div className="hidden md:block relative">
+            {/* Timeline connector */}
+            <div className="absolute top-24 left-0 right-0 h-1 bg-gradient-to-r from-amber-300 via-orange-400 to-amber-300 z-0"></div>
+
+            <div className="grid grid-cols-3 gap-8 relative z-10">
+              {/* Step 1 */}
+              <div
+                className={`transform transition-all duration-500 ${
+                  animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
+              >
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                  <div className="flex justify-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                      1
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 font-serif text-center">Pick Your Menu</h3>
+                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                    Select from our Basic or Buffet packages based on your preferences and budget.
+                  </p>
+                  <div className="text-center">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <Link href="/menu">View Packages</Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-bold mb-2 font-serif">Choose Your Package</h3>
-              <p className="text-foreground/80 font-sans tracking-wide">
-                Select from our Basic, Premium, or Deluxe packages based on your preferences and budget.
-              </p>
+
+              {/* Step 2 */}
+              <div
+                className={`transform transition-all duration-500 ${
+                  animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
+              >
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                  <div className="flex justify-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                      2
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 font-serif text-center">Reserve Your Spot</h3>
+                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                    Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                  </p>
+                  <div className="text-center">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <Link href="/book">Check Availability</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div
+                className={`transform transition-all duration-500 ${
+                  animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
+              >
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                  <div className="flex justify-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                      3
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 font-serif text-center">Let's Hibachi!</h3>
+                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                    Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                  </p>
+                  <div className="text-center">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <Link href="/estimation">Get Started</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-6">
+            {/* Step 1 */}
+            <div
+              className={`transform transition-all duration-500 ${
+                animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+              }`}
+            >
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-start">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2 font-serif">Pick Your Menu</h3>
+                    <p className="text-foreground/80 font-sans tracking-wide mb-4">
+                      Select from our Basic, Premium, or Deluxe packages based on your preferences and budget.
+                    </p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <Link href="/menu">View Packages</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#F4B6A0] text-white text-2xl font-serif font-bold mb-4 shadow-sm">
-                2
+            {/* Step 2 */}
+            <div
+              className={`transform transition-all duration-500 ${
+                animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+              }`}
+            >
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-start">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2 font-serif">Reserve Your Spot</h3>
+                    <p className="text-foreground/80 font-sans tracking-wide mb-4">
+                      Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                    </p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <Link href="/book">Check Availability</Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-bold mb-2 font-serif">Book Your Date</h3>
-              <p className="text-foreground/80 font-sans tracking-wide">
-                Choose your preferred date and time, and we'll confirm availability within 24 hours.
-              </p>
             </div>
 
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#F4B6A0] text-white text-2xl font-serif font-bold mb-4 shadow-sm">
-                3
+            {/* Step 3 */}
+            <div
+              className={`transform transition-all duration-500 ${
+                animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+              }`}
+            >
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-start">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2 font-serif">Let's Hibachi!</h3>
+                    <p className="text-foreground/80 font-sans tracking-wide mb-4">
+                      Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                    </p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <Link href="/estimation">Get Started</Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-bold mb-2 font-serif">Enjoy The Experience</h3>
-              <p className="text-foreground/80 font-sans tracking-wide">
-                Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
-              </p>
             </div>
+          </div>
+        </div>
+      </section>
+      {/* Package Options Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+            Our Popular <span className="text-primary">Packages</span>
+          </h2>
+          <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
+            Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any
+            occasion
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Basic Package Card */}
+            <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
+              <div className="absolute top-2 right-2 z-10">
+                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
+                  Most Popular
+                </span>
+              </div>
+              <div className="relative h-48 overflow-hidden">
+                <img
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+                  alt="Basic Package"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Basic Package</h3>
+                <div className="mb-4">
+                  <p className="text-lg font-semibold text-amber-600">
+                    <span className="text-gray-500 text-sm line-through mr-2">$60</span>
+                    $49.9
+                    <span className="text-sm font-normal"> per person</span>
+                  </p>
+                  <p className="text-xs text-gray-600">($499 minimum)</p>
+                </div>
+                <ul className="space-y-1 mb-6 text-sm">
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>2 proteins of your choice</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Fried rice & vegetables</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Chef performance included</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Perfect for intimate gatherings</span>
+                  </li>
+                </ul>
+                <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+                  <Link href="/book">Book Now</Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Buffet Package Card */}
+            <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
+              <div className="absolute top-2 right-2 z-10">
+                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
+                  Self-Service
+                </span>
+              </div>
+              <div className="relative h-48 overflow-hidden">
+                <img
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                  alt="Buffet Package"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Buffet Package</h3>
+                <div className="mb-4">
+                  <p className="text-lg font-semibold text-amber-600">
+                    <span className="text-gray-500 text-sm line-through mr-2">$50</span>
+                    $39.9
+                    <span className="text-sm font-normal"> per person</span>
+                  </p>
+                  <p className="text-xs text-gray-600">($798 minimum)</p>
+                </div>
+                <ul className="space-y-1 mb-6 text-sm">
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Self-service buffet style</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Fixed menu (chicken, shrimp, beef)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Fried rice & vegetables</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    <span>Ideal for larger groups (20+ people)</span>
+                  </li>
+                </ul>
+                <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+                  <Link href="/book">Book Now</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-10">
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+            >
+              <Link href="/menu">View All Packages</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -305,7 +537,42 @@ export default function Home() {
             Moments to <span className="text-primary">Remember</span>
           </h2>
 
-          <div className="relative overflow-hidden">
+          {/* Mobile Gallery (1 or 2 columns) */}
+          <div className="md:hidden">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="rounded-lg overflow-hidden shadow-md">
+                <img
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg"
+                  alt="Hibachi chef cooking with flames"
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+              <div className="rounded-lg overflow-hidden shadow-md">
+                <img
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg"
+                  alt="Fresh hibachi food being prepared"
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+              <div className="rounded-lg overflow-hidden shadow-md">
+                <img
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg"
+                  alt="Family enjoying hibachi at home"
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+              <div className="rounded-lg overflow-hidden shadow-md">
+                <img
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg"
+                  alt="Seafood hibachi"
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Auto-scrolling Gallery */}
+          <div className="relative overflow-hidden hidden md:block">
             {/* Auto-scrolling gallery */}
             <div className="flex animate-scroll">
               {/* First set of images */}
@@ -382,20 +649,46 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Banner - Softer colors */}
-      <section className="py-16 bg-gradient-to-r from-[#F9A77C]/90 to-[#FDC5A7]/90 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6">Ready for an Unforgettable Experience?</h2>
-          <p className="text-xl max-w-2xl mx-auto mb-8 font-sans tracking-wide">
+      {/* CTA Banner with Fire Video Background */}
+      <section className="relative py-20 overflow-hidden">
+        {/* Video Background */}
+        <div className="absolute inset-0 z-0">
+          {!ctaVideoLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-amber-100">
+              <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+          <video
+            className="w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            onLoadedData={() => setCtaVideoLoaded(true)}
+            src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/fire-djgDsdoALH8yxdQMJGZMPUhMljHy9U.mp4"
+          ></video>
+        </div>
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-amber-100/60 to-orange-400/60 z-10"></div>
+
+        {/* Content */}
+        <div className="container mx-auto px-4 text-center relative z-20">
+          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6 text-amber-950 drop-shadow-sm">
+            Ready for an Unforgettable Experience?
+          </h2>
+          <p className="text-xl max-w-2xl mx-auto mb-8 font-sans tracking-wide text-amber-950 drop-shadow-sm">
             Book your hibachi experience today and surprise your guests with a unique culinary adventure.
           </p>
-          <Button
-            asChild
-            size="lg"
-            className="text-lg bg-white text-[#F9A77C] hover:bg-white/90 hover:text-[#F4B6A0] rounded-full shadow-sm border-2 border-white"
-          >
-            <Link href="/estimation">Get Your Free Estimate</Link>
-          </Button>
+          <div className="max-w-md mx-auto">
+            <Button
+              asChild
+              size="lg"
+              className="text-lg bg-[#FF6600] text-white hover:bg-[#FF7722] rounded-full shadow-md border-2 border-[#FF6600] animate-pulse transition-all duration-300 transform hover:scale-105 pulse-animation w-4/5 mx-auto sm:w-1/2 sm:mx-0"
+            >
+              <Link href="/estimation">Get Your Free Estimate</Link>
+            </Button>
+          </div>
         </div>
       </section>
     </>

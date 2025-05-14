@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Facebook, Instagram, Mail, MapPin, Phone, Twitter, Loader2 } from "lucide-react"
-import { contactInfo } from "@/config/contact"
+import { siteConfig } from "@/config/site"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const contactReasons = [
@@ -115,8 +115,8 @@ export default function ContactPage() {
             <CardContent>
               <p className="text-gray-600 mb-2">Quick question or ready to book?</p>
               <p className="font-medium">
-                <a href={`tel:${contactInfo.phone}`} className="text-primary hover:underline transition-colors">
-                  {contactInfo.phone}
+                <a href={`tel:${siteConfig.contact.phone}`} className="text-primary hover:underline transition-colors">
+                  {siteConfig.contact.phone}
                 </a>
               </p>
               <p className="text-sm text-gray-500 mt-2">Available 9am-7pm, 7 days</p>
@@ -132,7 +132,7 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-2">Detailed questions or inquiries?</p>
-              <p className="font-medium">{contactInfo.email}</p>
+              <p className="font-medium">{siteConfig.contact.email}</p>
               <p className="text-sm text-gray-500 mt-2">We'll respond within 24 hours</p>
             </CardContent>
           </Card>
@@ -146,7 +146,7 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-2">Serving:</p>
-              {contactInfo.locations.map((location, index) => (
+              {siteConfig.contact.locations.map((location, index) => (
                 <p key={index} className="font-medium">
                   {location}
                 </p>
@@ -271,7 +271,7 @@ export default function ContactPage() {
                   City, Destin, 30A (Florida).
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {contactInfo.locations.map((location, index) => (
+                  {siteConfig.contact.locations.map((location, index) => (
                     <span
                       key={index}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
@@ -295,21 +295,21 @@ export default function ContactPage() {
               <CardContent>
                 <div className="grid grid-cols-3 gap-4">
                   <a
-                    href={contactInfo.social.facebook}
+                    href={siteConfig.social.facebook}
                     className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Facebook className="h-8 w-8 text-blue-600 mb-2" />
                     <span className="text-sm font-medium">Facebook</span>
                   </a>
                   <a
-                    href={contactInfo.social.instagram}
+                    href={siteConfig.social.instagram}
                     className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Instagram className="h-8 w-8 text-pink-600 mb-2" />
                     <span className="text-sm font-medium">Instagram</span>
                   </a>
                   <a
-                    href={contactInfo.social.twitter}
+                    href={siteConfig.social.twitter}
                     className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Twitter className="h-8 w-8 text-blue-400 mb-2" />

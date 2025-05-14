@@ -15,7 +15,7 @@ export const siteConfig = {
 
   // Contact information
   contact: {
-    phone: "562-713-4832",
+    phone: "213-770-7788",
     email: "darrien.wang+hibachi@gmail.com",
     locations: ["Chicago, IL", "Los Angeles, Palm Springs, San Diego, CA", "Panama City, Destin, 30A, FL"],
   },

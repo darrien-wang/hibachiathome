@@ -1,665 +1,558 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { InfoIcon, CheckCircle, MinusCircle, PlusCircle } from "lucide-react"
-import Link from "next/link"
+import type React from "react"
+
+import { useState, useEffect, useCallback, useReducer, useMemo, Suspense } from "react"
 import { pricing } from "@/config/pricing"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { format } from "date-fns"
+import dynamic from "next/dynamic"
+import { useSearchParams } from "next/navigation"
+import { createBooking } from "@/app/actions/booking"
+import type { BookingFormData } from "@/types/booking"
 
-// Define the states with travel fees
-const stateOptions = [
-  { value: "tx", label: "TX (Austin, Dallas, Houston, San Antonio)", fee: 50 },
-  { value: "ny_nj_pa_de", label: "NY, NJ, PA, DE", fee: 50 },
-  { value: "az", label: "AZ (Phoenix Metropolitan)", fee: 50 },
-  { value: "va_md_dc", label: "VA, MD, Washington DC", fee: 50 },
-  { value: "fl", label: "FL (Miami, Orlando)", fee: 50 },
-  { value: "other", label: "Other", fee: 75 },
-]
+// 动态导入大型组件，添加预加载提示
+const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
+  loading: () => <div className="animate-pulse bg-gray-100 h-[400px] rounded-lg" />,
+  ssr: false,
+})
 
-export default function EstimationPage() {
-  // State for the estimation form
-  const [formData, setFormData] = useState({
-    adults: 0,
-    kids: 0,
-    filetMignon: 0,
-    lobsterTail: 0,
-    extraProteins: 0,
-    noodles: 0,
-    state: "",
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-    agreeToTerms: false,
-  })
+// 动态导入表单组件
+const BookingForm = dynamic(() => import("@/components/booking/booking-form"), {
+  loading: () => <div className="animate-pulse bg-gray-100 h-[600px] rounded-lg" />,
+  ssr: false,
+})
 
-  // State for the cost calculation
-  const [costs, setCosts] = useState({
-    adultsCost: 0,
-    kidsCost: 0,
-    filetMignonCost: 0,
-    lobsterTailCost: 0,
-    extraProteinsCost: 0,
-    noodlesCost: 0,
-    travelFee: 0,
-    subtotal: 0,
-    suggestedTip: 0,
-    total: 0,
-  })
+// 动态导入计算器组件
+const CostCalculator = dynamic(() => import("@/components/booking/cost-calculator"), {
+  loading: () => <div className="animate-pulse bg-gray-100 h-[400px] rounded-lg" />,
+  ssr: false,
+})
 
-  // State for form submission
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+// 动态导入成功页面组件
+const BookingSuccess = dynamic(() => import("@/components/booking/booking-success"), {
+  loading: () => <div className="animate-pulse bg-gray-100 h-[300px] rounded-lg" />,
+  ssr: false,
+})
 
-  // Handle input changes
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+// 预加载关键组件
+const preloadComponents = () => {
+  // 预加载表单组件
+  const bookingFormPromise = import("@/components/booking/booking-form")
+  // 预加载计算器组件
+  const costCalculatorPromise = import("@/components/booking/cost-calculator")
+
+  return Promise.all([bookingFormPromise, costCalculatorPromise])
+}
+
+type FormData = {
+  adults: number
+  kids: number
+  filetMignon: number
+  lobsterTail: number
+  extraProteins: number
+  noodles: number
+  gyoza: number
+  edamame: number
+  zipcode: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  eventDate: string
+  eventTime: string
+  message: string
+  agreeToTerms: boolean
+}
+
+type DateTimeSelection = {
+  date: string | undefined
+  time: string | undefined
+  price: number
+  originalPrice: number
+}
+
+// 修改类型定义
+type PremiumProtein = {
+  name: string
+  quantity: number
+  unit_price: number
+}
+
+type AddOn = {
+  name: string
+  quantity: number
+  unit_price: number
+}
+
+type BookingData = {
+  full_name: string
+  email: string
+  phone: string
+  address: string
+  zip_code: string
+  event_date: string
+  event_time: string
+  guest_adults: number
+  guest_kids: number
+  price_adult: number
+  price_kid: number
+  travel_fee: number
+  premium_proteins?: PremiumProtein[]
+  add_ons?: AddOn[]
+  special_requests?: string
+  deposit?: number
+}
+
+// 修改 orderData 的类型定义
+type OrderData = {
+  id: string
+  full_name: string
+  event_date: string
+  event_time: string
+  total_amount: number
+}
+
+// 添加数据库返回数据的类型定义
+type BookingResponse = {
+  id: string
+  full_name: string
+  email: string
+  phone: string
+  address: string
+  zip_code: string
+  event_date: string
+  event_time: string
+  guest_adults: number
+  guest_kids: number
+  price_adult: number
+  price_kid: number
+  travel_fee: number
+  premium_proteins?: PremiumProtein[]
+  add_ons?: AddOn[]
+  special_requests?: string
+  created_at: string
+  updated_at: string
+  deposit?: number
+}
+
+// 将表单状态合并到一个 reducer
+type FormAction =
+  | { type: "UPDATE_FIELD"; field: keyof FormData; value: any }
+  | { type: "RESET_FORM" }
+  | { type: "SET_DATE_TIME"; date: string; time: string }
+
+function formReducer(state: FormData, action: FormAction): FormData {
+  switch (action.type) {
+    case "UPDATE_FIELD":
+      return { ...state, [action.field]: action.value }
+    case "RESET_FORM":
+      return initialState
+    case "SET_DATE_TIME":
+      return { ...state, eventDate: action.date, eventTime: action.time }
+    default:
+      return state
   }
+}
 
-  // Handle number input changes with min/max validation
-  const handleNumberChange = (field, value) => {
-    const numValue = Number.parseInt(value) || 0
-    const validValue = Math.max(0, numValue) // Ensure non-negative
-    setFormData((prev) => ({
-      ...prev,
-      [field]: validValue,
-    }))
-  }
+// 初始状态
+const initialState: FormData = {
+  adults: 0,
+  kids: 0,
+  filetMignon: 0,
+  lobsterTail: 0,
+  extraProteins: 0,
+  noodles: 0,
+  gyoza: 0,
+  edamame: 0,
+  zipcode: "",
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  eventDate: "",
+  eventTime: "",
+  message: "",
+  agreeToTerms: false,
+}
 
-  // Handle increment/decrement
-  const handleIncrement = (field) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: prev[field] + 1,
-    }))
-  }
-
-  const handleDecrement = (field) => {
-    if (formData[field] > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: prev[field] - 1,
-      }))
-    }
-  }
-
-  // Calculate costs whenever form data changes
-  useEffect(() => {
+// 将成本计算逻辑抽离到自定义 hook
+function useCostCalculation(formData: FormData) {
+  return useMemo(() => {
     const adultPrice = pricing.packages.basic.perPerson
     const kidPrice = pricing.children.basic
     const filetUpcharge = 5
     const lobsterUpcharge = 10
     const extraProteinPrice = 15
     const noodlePrice = 5
+    const gyozaPrice = 10
+    const edamamePrice = 8
 
-    // Get travel fee based on selected state
-    const selectedState = stateOptions.find((state) => state.value === formData.state)
-    const travelFee = selectedState ? selectedState.fee : 0
-
-    // Calculate costs
+    const travelFee = calculateTravelFee(formData.zipcode)
     const adultsCost = formData.adults * adultPrice
     const kidsCost = formData.kids * kidPrice
     const filetMignonCost = formData.filetMignon * filetUpcharge
     const lobsterTailCost = formData.lobsterTail * lobsterUpcharge
     const extraProteinsCost = formData.extraProteins * extraProteinPrice
     const noodlesCost = formData.noodles * noodlePrice
+    const gyozaCost = formData.gyoza * gyozaPrice
+    const edamameCost = formData.edamame * edamamePrice
 
-    // Calculate subtotal
-    const mealCost = adultsCost + kidsCost + filetMignonCost + lobsterTailCost + extraProteinsCost + noodlesCost
-
-    // Apply minimum spending requirement
+    const mealCost =
+      adultsCost +
+      kidsCost +
+      filetMignonCost +
+      lobsterTailCost +
+      extraProteinsCost +
+      noodlesCost +
+      gyozaCost +
+      edamameCost
     const minimumSpending = pricing.packages.basic.minimum
     const finalMealCost = Math.max(mealCost, minimumSpending)
-
-    // Calculate total with travel fee
     const subtotal = finalMealCost
     const total = subtotal + travelFee
     const suggestedTip = total * 0.2
 
-    setCosts({
+    return {
       adultsCost,
       kidsCost,
       filetMignonCost,
       lobsterTailCost,
       extraProteinsCost,
       noodlesCost,
+      gyozaCost,
+      edamameCost,
       travelFee,
       subtotal,
       suggestedTip,
       total,
-    })
-  }, [formData])
+    }
+  }, [
+    formData.adults,
+    formData.kids,
+    formData.filetMignon,
+    formData.lobsterTail,
+    formData.extraProteins,
+    formData.noodles,
+    formData.gyoza,
+    formData.edamame,
+    formData.zipcode,
+  ])
+}
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+// 将旅行费用计算函数移到组件外部
+const calculateTravelFee = (zipcode: string): number => {
+  if (!zipcode || zipcode.length < 5) return 0
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSubmitted(true)
-    }, 1500)
+  const zipPrefix = zipcode.substring(0, 3)
+  const regions: Record<string, number> = {
+    // TX (Austin, Dallas, Houston, San Antonio)
+    "737": 50,
+    "750": 50,
+    "751": 50,
+    "752": 50,
+    "770": 50,
+    "771": 50,
+    "772": 50,
+    "782": 50,
+    // NY, NJ, PA, DE
+    "100": 50,
+    "101": 50,
+    "102": 50,
+    "070": 50,
+    "071": 50,
+    "190": 50,
+    "191": 50,
+    "197": 50,
+    // AZ (Phoenix Metropolitan)
+    "850": 50,
+    "851": 50,
+    "852": 50,
+    "853": 50,
+    // VA, MD, Washington DC
+    "200": 50,
+    "201": 50,
+    "220": 50,
+    "221": 50,
+    "208": 50,
+    "209": 50,
+    // FL (Miami, Orlando)
+    "331": 50,
+    "332": 50,
+    "328": 50,
+    "329": 50,
   }
+
+  return regions[zipPrefix] || 75
+}
+
+export default function EstimationPage() {
+  const searchParams = useSearchParams()
+  const source = searchParams.get("source")
+  const isFromBooking = source === "booking"
+  const pageTitle = isFromBooking ? "Online Booking" : "Private Hibachi Party Cost Estimation"
+  const pageDescription = isFromBooking
+    ? "Complete your booking details below to reserve your private hibachi experience"
+    : "Use our calculator to get an instant estimate and book your private hibachi experience"
+
+  // 在组件挂载时预加载其他组件
+  useEffect(() => {
+    preloadComponents()
+  }, [])
 
   return (
     <div className="container mx-auto px-4 py-12 pt-24 mt-16">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Private Hibachi Party Cost Estimation</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Use our calculator to get an instant estimate for your private hibachi experience
-          </p>
+          <h1 className="text-4xl font-bold mb-4">{pageTitle}</h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">{pageDescription}</p>
         </div>
 
-        {isSubmitted ? (
-          <Card className="border-green-100 bg-green-50/30">
-            <CardContent className="pt-6 pb-6 text-center" spacing="default">
-              <div className="mb-6 flex justify-center">
-                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold mb-4">Thank You for Your Request!</h2>
-              <p className="text-lg mb-6">
-                We've received your estimate request and will get back to you within 24 hours to confirm details.
-              </p>
-              <Button asChild className="bg-primary hover:bg-primary/90 rounded-full px-8">
-                <Link href="/">Return to Home</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card variant="calculator">
-            <CardHeader className="bg-amber-50 border-b border-amber-100 p-6">
-              <CardTitle className="text-2xl">Hibachi Party Cost Calculator</CardTitle>
-            </CardHeader>
-            <CardContent spacing="none">
-              <form onSubmit={handleSubmit}>
-                <div className="p-6">
-                  <div className="space-y-6">
-                    {/* Guest Count Section */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Guest Count</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <Label htmlFor="adults">Adults (13+)</Label>
-                            <span className="text-sm text-gray-500">${pricing.packages.basic.perPerson}/person</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleDecrement("adults")}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              id="adults"
-                              type="number"
-                              min="0"
-                              className="mx-2 text-center"
-                              value={formData.adults}
-                              onChange={(e) => handleNumberChange("adults", e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleIncrement("adults")}
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <Label htmlFor="kids">Kids (12 and under)</Label>
-                            <span className="text-sm text-gray-500">${pricing.children.basic}/person</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleDecrement("kids")}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              id="kids"
-                              type="number"
-                              min="0"
-                              className="mx-2 text-center"
-                              value={formData.kids}
-                              onChange={(e) => handleNumberChange("kids", e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleIncrement("kids")}
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <p className="text-xs text-gray-500">Children 3 and under are free</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Premium Proteins Section */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Premium Proteins</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <Label htmlFor="filetMignon">Filet Mignon</Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <InfoIcon className="h-4 w-4 ml-1 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>$5 upcharge per order</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <span className="text-sm text-gray-500">+$5 each</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleDecrement("filetMignon")}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              id="filetMignon"
-                              type="number"
-                              min="0"
-                              className="mx-2 text-center"
-                              value={formData.filetMignon}
-                              onChange={(e) => handleNumberChange("filetMignon", e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleIncrement("filetMignon")}
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <Label htmlFor="lobsterTail">Lobster Tail</Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <InfoIcon className="h-4 w-4 ml-1 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>$10 upcharge per order</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <span className="text-sm text-gray-500">+$10 each</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleDecrement("lobsterTail")}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              id="lobsterTail"
-                              type="number"
-                              min="0"
-                              className="mx-2 text-center"
-                              value={formData.lobsterTail}
-                              onChange={(e) => handleNumberChange("lobsterTail", e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleIncrement("lobsterTail")}
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Add-ons Section */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Add-ons</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <Label htmlFor="extraProteins">Extra Proteins</Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <InfoIcon className="h-4 w-4 ml-1 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Additional protein portions beyond the included 2 per person</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <span className="text-sm text-gray-500">$15 each</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleDecrement("extraProteins")}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              id="extraProteins"
-                              type="number"
-                              min="0"
-                              className="mx-2 text-center"
-                              value={formData.extraProteins}
-                              onChange={(e) => handleNumberChange("extraProteins", e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleIncrement("extraProteins")}
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <Label htmlFor="noodles">Noodles</Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <InfoIcon className="h-4 w-4 ml-1 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Add stir-fried noodles to your meal</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <span className="text-sm text-gray-500">$5 per order</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleDecrement("noodles")}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              id="noodles"
-                              type="number"
-                              min="0"
-                              className="mx-2 text-center"
-                              value={formData.noodles}
-                              onChange={(e) => handleNumberChange("noodles", e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => handleIncrement("noodles")}
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Location Section */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Location</h3>
-                      <div className="space-y-2">
-                        <Label htmlFor="state">What state are you in?</Label>
-                        <Select value={formData.state} onValueChange={(value) => handleInputChange("state", value)}>
-                          <SelectTrigger id="state">
-                            <SelectValue placeholder="Select your state" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stateOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label} (${option.fee} travel fee)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Cost Summary Section */}
-                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-                      <h3 className="text-lg font-medium mb-4">Cost Summary</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>
-                            Adults ({formData.adults} × ${pricing.packages.basic.perPerson})
-                          </span>
-                          <span>${costs.adultsCost.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>
-                            Kids ({formData.kids} × ${pricing.children.basic})
-                          </span>
-                          <span>${costs.kidsCost.toFixed(2)}</span>
-                        </div>
-                        {formData.filetMignon > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span>Filet Mignon Upcharge ({formData.filetMignon} × $5)</span>
-                            <span>${costs.filetMignonCost.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {formData.lobsterTail > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span>Lobster Tail Upcharge ({formData.lobsterTail} × $10)</span>
-                            <span>${costs.lobsterTailCost.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {formData.extraProteins > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span>Extra Proteins ({formData.extraProteins} × $15)</span>
-                            <span>${costs.extraProteinsCost.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {formData.noodles > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span>Noodles ({formData.noodles} × $5)</span>
-                            <span>${costs.noodlesCost.toFixed(2)}</span>
-                          </div>
-                        )}
-
-                        <Separator className="my-2" />
-
-                        <div className="flex justify-between text-sm">
-                          <span>Subtotal</span>
-                          <span>${costs.subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Travel Fee</span>
-                          <span>${costs.travelFee.toFixed(2)}</span>
-                        </div>
-
-                        <Separator className="my-2" />
-
-                        <div className="flex justify-between font-medium">
-                          <span>Total Cash for Meal</span>
-                          <span>${costs.total.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>20% Tip Suggestion</span>
-                          <span>${costs.suggestedTip.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Contact Information Section */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Your Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Full Name*</Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => handleInputChange("name", e.target.value)}
-                            required
-                            placeholder="Your full name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email Address*</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => handleInputChange("email", e.target.value)}
-                            required
-                            placeholder="your.email@example.com"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2 mt-4">
-                        <Label htmlFor="phone">Phone Number*</Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange("phone", e.target.value)}
-                          required
-                          placeholder="(123) 456-7890"
-                        />
-                      </div>
-                      <div className="space-y-2 mt-4">
-                        <Label htmlFor="message">Additional Information (Optional)</Label>
-                        <textarea
-                          id="message"
-                          className="w-full min-h-[100px] p-2 border rounded-md"
-                          value={formData.message}
-                          onChange={(e) => handleInputChange("message", e.target.value)}
-                          placeholder="Event date, special requests, questions, etc."
-                        />
-                      </div>
-                    </div>
-
-                    {/* Terms and Submit */}
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-2">
-                        <Checkbox
-                          id="agreeToTerms"
-                          checked={formData.agreeToTerms}
-                          onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked === true)}
-                          required
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                          <label
-                            htmlFor="agreeToTerms"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            I agree to the terms and conditions
-                          </label>
-                          <p className="text-sm text-gray-500">
-                            By submitting this form, you agree to be contacted about your hibachi experience.
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={
-                          isSubmitting ||
-                          !formData.agreeToTerms ||
-                          !formData.state ||
-                          !formData.name ||
-                          !formData.email ||
-                          !formData.phone
-                        }
-                        className="w-full bg-primary hover:bg-primary/90 rounded-full px-8 py-6 text-lg"
-                      >
-                        {isSubmitting ? "Submitting..." : "Get Your Estimate"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-
-              {/* Information Section */}
-              <div className="bg-gray-50 p-6 border-t">
-                <h3 className="text-lg font-medium mb-4">Important Information</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
-                    • Each person gets two regular proteins with no upcharge (chicken, steak, salmon, shrimp, scallops,
-                    tofu)
-                  </li>
-                  <li>• Premium proteins: Filet Mignon +$5, Lobster +$10</li>
-                  <li>• Appetizers: $10 Gyoza (8), $6 Edamame</li>
-                  <li>• Extra proteins: $15 per order</li>
-                  <li>
-                    • Minimum spending for a hibachi event is ${pricing.packages.basic.minimum} plus the traveling fees
-                  </li>
-                  <li>• If you have questions regarding the estimation, please do not hesitate to contact us</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[800px] rounded-lg" />}>
+          <EstimationContent />
+        </Suspense>
       </div>
     </div>
+  )
+}
+
+// 将主要内容拆分为单独的组件
+function EstimationContent() {
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [showOrderForm, setShowOrderForm] = useState(false)
+  const [orderData, setOrderData] = useState<OrderData | null>(null)
+
+  // 使用 reducer 管理表单状态
+  const [formData, dispatch] = useReducer(formReducer, initialState)
+
+  // 使用自定义 hook 计算成本
+  const costs = useCostCalculation(formData)
+
+  // 其他状态
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [orderError, setOrderError] = useState("")
+  const [selectedDateTime, setSelectedDateTime] = useState<DateTimeSelection>({
+    date: undefined,
+    time: undefined,
+    price: 0,
+    originalPrice: 0,
+  })
+
+  // 优化事件处理函数
+  const handleInputChange = useCallback((field: keyof FormData, value: FormData[keyof FormData]) => {
+    dispatch({ type: "UPDATE_FIELD", field, value })
+  }, [])
+
+  const handleNumberChange = useCallback((field: keyof FormData, value: string) => {
+    const numValue = Number.parseInt(value) || 0
+    const validValue = Math.max(0, numValue)
+    dispatch({ type: "UPDATE_FIELD", field, value: validValue })
+  }, [])
+
+  const handleIncrement = useCallback(
+    (field: keyof FormData) => {
+      dispatch({
+        type: "UPDATE_FIELD",
+        field,
+        value: (formData[field] as number) + 1,
+      })
+    },
+    [formData],
+  )
+
+  const handleDecrement = useCallback(
+    (field: keyof FormData) => {
+      if ((formData[field] as number) > 0) {
+        dispatch({
+          type: "UPDATE_FIELD",
+          field,
+          value: (formData[field] as number) - 1,
+        })
+      }
+    },
+    [formData],
+  )
+
+  // 修改 handleDateTimeSelect 函数
+  const handleDateTimeSelect = useCallback(
+    (date: Date | undefined, time: string | undefined, price: number, originalPrice: number) => {
+      if (!date || !time) {
+        setSelectedDateTime({
+          date: undefined,
+          time: undefined,
+          price: 0,
+          originalPrice: 0,
+        })
+        return
+      }
+
+      const formattedDate = format(date, "yyyy-MM-dd")
+      dispatch({ type: "SET_DATE_TIME", date: formattedDate, time })
+
+      setSelectedDateTime({
+        date: formattedDate,
+        time,
+        price,
+        originalPrice,
+      })
+    },
+    [],
+  )
+
+  // 修复表单验证函数
+  const isEstimationValid = useMemo(
+    () => (formData.adults > 0 || formData.kids > 0) && formData.zipcode && formData.zipcode.length === 5,
+    [formData.adults, formData.kids, formData.zipcode],
+  )
+
+  const isOrderFormValid = useMemo(
+    () =>
+      Boolean(
+        formData.name &&
+          formData.email &&
+          formData.phone &&
+          formData.address &&
+          selectedDateTime.date &&
+          selectedDateTime.time &&
+          formData.agreeToTerms,
+      ),
+    [
+      formData.name,
+      formData.email,
+      formData.phone,
+      formData.address,
+      formData.agreeToTerms,
+      selectedDateTime.date,
+      selectedDateTime.time,
+    ],
+  )
+
+  // 修复事件处理函数
+  const handleProceedToOrder = useCallback(() => {
+    if (isEstimationValid) {
+      // 移除函数调用
+      setShowOrderForm(true)
+      setTimeout(() => {
+        document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" })
+      }, 100)
+    }
+  }, [isEstimationValid])
+
+  // 修改表单提交逻辑
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    // 验证是否是通过按钮点击触发的提交
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement
+    if (!submitter || submitter.type !== "submit" || submitter.id !== "submit-button") {
+      return
+    }
+
+    // 添加额外的验证
+    if (!formData.agreeToTerms) {
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setOrderError("")
+
+      // 准备表单数据
+      const bookingFormData: BookingFormData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        zipcode: formData.zipcode,
+        eventDate: formData.eventDate,
+        eventTime: formData.eventTime,
+        adults: formData.adults,
+        kids: formData.kids,
+        filetMignon: formData.filetMignon,
+        lobsterTail: formData.lobsterTail,
+        extraProteins: formData.extraProteins,
+        noodles: formData.noodles,
+        gyoza: formData.gyoza,
+        edamame: formData.edamame,
+        message: formData.message,
+        agreeToTerms: formData.agreeToTerms,
+      }
+
+      console.log("Creating booking with data:", bookingFormData)
+
+      const result = await createBooking(bookingFormData)
+
+      if (!result.success) {
+        setOrderError(result.error || "Failed to create booking")
+        return
+      }
+
+      // 所有操作成功完成
+      setIsSubmitted(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      setOrderData({
+        id: result.data?.id || "",
+        full_name: result.data?.full_name || "",
+        event_date: result.data?.event_date || "",
+        event_time: result.data?.event_time || "",
+        total_amount: costs.total,
+      })
+    } catch (error: any) {
+      console.error("Error submitting booking:", error)
+      setOrderError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // 计算总人数，确保至少为1
+  const totalGuests = Math.max(1, formData.adults + formData.kids)
+
+  // 修改复选框处理函数
+  const handleCheckboxChange = (checked: boolean) => {
+    dispatch({ type: "UPDATE_FIELD", field: "agreeToTerms", value: checked })
+  }
+
+  if (isSubmitted) {
+    return (
+      <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[300px] rounded-lg" />}>
+        <BookingSuccess orderData={orderData} totalGuests={totalGuests} />
+      </Suspense>
+    )
+  }
+
+  return (
+    <>
+      <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[400px] rounded-lg" />}>
+        <CostCalculator
+          formData={formData}
+          costs={costs}
+          onProceedToOrder={handleProceedToOrder}
+          isEstimationValid={isEstimationValid}
+          onInputChange={handleInputChange}
+          onNumberChange={handleNumberChange}
+          onIncrement={handleIncrement}
+          onDecrement={handleDecrement}
+        />
+      </Suspense>
+
+      {showOrderForm && (
+        <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[600px] rounded-lg" />}>
+          <BookingForm
+            formData={formData}
+            costs={costs}
+            selectedDateTime={selectedDateTime}
+            isSubmitting={isSubmitting}
+            orderError={orderError}
+            isOrderFormValid={isOrderFormValid}
+            onSubmit={handleSubmit}
+            onInputChange={handleInputChange}
+            onCheckboxChange={handleCheckboxChange}
+            onDateTimeSelect={handleDateTimeSelect}
+            totalGuests={totalGuests}
+          />
+        </Suspense>
+      )}
+    </>
   )
 }

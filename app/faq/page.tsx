@@ -5,11 +5,69 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { pricing } from "@/config/pricing"
 
+// Format text with paragraphs and bullet points
+const formatText = (text: string) => {
+  // Split text by double newlines for paragraphs
+  const paragraphs = text.split("\n\n")
+
+  return (
+    <>
+      {paragraphs.map((paragraph, index) => {
+        // Check if paragraph contains bullet points (lines starting with - or *)
+        if (paragraph.includes("\n")) {
+          const lines = paragraph.split("\n")
+          const hasBulletPoints = lines.some((line) => line.trim().startsWith("-") || line.trim().startsWith("•"))
+
+          if (hasBulletPoints) {
+            return (
+              <div key={index} className="mb-3">
+                <ul className="list-disc pl-5 space-y-1">
+                  {lines.map((line, lineIndex) => {
+                    const trimmedLine = line.trim()
+                    // Convert lines starting with - or • to list items
+                    if (trimmedLine.startsWith("-") || trimmedLine.startsWith("•")) {
+                      return <li key={lineIndex}>{trimmedLine.substring(1).trim()}</li>
+                    }
+                    // Regular lines become paragraphs
+                    return trimmedLine ? (
+                      <p key={lineIndex} className="mb-2">
+                        {trimmedLine}
+                      </p>
+                    ) : null
+                  })}
+                </ul>
+              </div>
+            )
+          }
+        }
+
+        // Regular paragraph
+        return (
+          <p key={index} className="mb-3">
+            {paragraph}
+          </p>
+        )
+      })}
+    </>
+  )
+}
+
 // FAQ data
 const faqItems = [
   {
     question: "How much does your hibachi experience cost?",
-    answer: `Base rate: $${pricing.packages.basic.perPerson} per guest (minimum $${pricing.packages.basic.minimum} total)\n\nGratuity: We recommend 20% of the final bill\n\nTravel fee: May apply depending on your location; exact amount disclosed during booking\n\nPayment: Cash or credit card (4% processing fee).\n\nIf using credit card, payment must be settled at least 72 hours before your event.`,
+    answer: `Base rate: $${pricing.packages.basic.perPerson} per guest (minimum $${pricing.packages.basic.minimum} total)
+
+Gratuity: We recommend 20% of the final bill
+
+Travel fee: May apply depending on your location; exact amount disclosed during booking
+
+Payment options:
+- Cash (preferred)
+- Credit card (4% processing fee)
+- Venmo/Zelle (no fee)
+
+If using credit card, payment must be settled at least 72 hours before your event.`,
   },
   {
     question: "Can you provide tables and chairs?",
@@ -39,7 +97,7 @@ const faqItems = [
   {
     question: "What about vegetarians or vegans?",
     answer:
-      "We're happy to swap in tofu—and add extra veggies, salads or noodles at no extra per-person charge. The $60 rate applies to all dietary preferences.",
+      "We're happy to accommodate special dietary needs:\n\n- Vegetarian options include tofu and extra vegetables\n- Vegan meals can be prepared with plant-based ingredients\n- All special dietary meals are prepared at the same per-person rate\n\nPlease let us know about any dietary requirements when booking.",
   },
   {
     question: "Can guests bring their own protein?",
@@ -48,12 +106,12 @@ const faqItems = [
   {
     question: "How do I make a reservation?",
     answer:
-      "Book directly on our website: www.hibachibirthday.party\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
+      "Booking is simple and straightforward:\n\n- Visit our website: www.hibachibirthday.party\n- Select your preferred date and package\n- Provide your guest count and contact information\n- Confirm your booking with a deposit\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
   },
   {
     question: "What is your cancellation policy?",
     answer:
-      "48 hours' notice required for cancellations or reschedules\n\nLate changes incur a $200 fee\n\nRain plan: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event. If you need to cancel due to weather, please let us know at least 48 hours beforehand.",
+      "Our cancellation policy includes the following terms:\n\n- 48 hours' notice required for cancellations or reschedules\n- Late changes incur a $200 fee\n- Weather contingency: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event\n- If you need to cancel due to weather, please let us know at least 48 hours beforehand",
   },
 ]
 
@@ -72,7 +130,7 @@ export default function FAQPage() {
           {faqItems.map((item, index) => (
             <AccordionItem key={index} value={`item-${index}`}>
               <AccordionTrigger className="text-lg font-medium">{item.question}</AccordionTrigger>
-              <AccordionContent className="text-gray-600">{item.answer}</AccordionContent>
+              <AccordionContent className="text-gray-600">{formatText(item.answer)}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
@@ -83,11 +141,8 @@ export default function FAQPage() {
             Can't find the answer you're looking for? Feel free to reach out to our team directly.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button asChild variant="outline">
-              <Link href="/contact">Contact Us</Link>
-            </Button>
             <Button asChild>
-              <Link href="/book">Book a Consultation</Link>
+              <Link href="/contact">Contact Us</Link>
             </Button>
           </div>
         </div>

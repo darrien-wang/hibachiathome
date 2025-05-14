@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
-import { contactInfo } from "@/config/contact"
+import { siteConfig } from "@/config/site"
 
 // Gallery data with actual blob images
 const galleryImages = [
@@ -177,6 +177,7 @@ const galleryVideos = [
 
 export default function GalleryPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({})
 
   const openLightbox = (id: string) => {
     setSelectedImage(id)
@@ -184,6 +185,13 @@ export default function GalleryPage() {
 
   const closeLightbox = () => {
     setSelectedImage(null)
+  }
+
+  const handleImageError = (imageId: string) => {
+    setImageLoadErrors(prev => ({
+      ...prev,
+      [imageId]: true
+    }))
   }
 
   return (
@@ -210,17 +218,24 @@ export default function GalleryPage() {
                 <div
                   key={image.id}
                   className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
-                  onClick={() => openLightbox(image.id)}
+                  onClick={() => !imageLoadErrors[image.id] && openLightbox(image.id)}
                 >
-                  <Image
-                    src={image.src || "/placeholder.svg"}
-                    alt={image.alt}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                    className="object-cover"
-                    priority={image.id === "img1" || image.id === "img2"}
-                  />
-                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-300"></div>
+                  {!imageLoadErrors[image.id] ? (
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      className="object-cover"
+                      priority={image.id === "img1" || image.id === "img2"}
+                      onError={() => handleImageError(image.id)}
+                      unoptimized={true}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                      <span className="text-sm">Image unavailable</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -264,25 +279,33 @@ export default function GalleryPage() {
                 <strong>Disclaimer:</strong> All videos featured on this page are sourced from public platforms. Rights
                 belong to their respective creators and are shared for educational purposes only.
               </p>
-              <p>If you're the original creator and have concerns, please contact us at {contactInfo.email}</p>
+              <p>If you're the original creator and have concerns, please contact us at {siteConfig.contact.email}</p>
             </div>
           </TabsContent>
         </Tabs>
 
         {/* Lightbox */}
-        {selectedImage && (
+        {selectedImage && !imageLoadErrors[selectedImage] && (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center" onClick={closeLightbox}>
             <div className="relative max-w-5xl w-full h-full max-h-[80vh] p-4">
               {galleryImages.find((img) => img.id === selectedImage) && (
                 <Image
-                  src={galleryImages.find((img) => img.id === selectedImage)!.src || "/placeholder.svg"}
+                  src={galleryImages.find((img) => img.id === selectedImage)!.src}
                   alt={galleryImages.find((img) => img.id === selectedImage)!.alt}
                   fill
                   sizes="100vw"
                   className="object-contain"
+                  onError={() => {
+                    handleImageError(selectedImage)
+                    closeLightbox()
+                  }}
+                  unoptimized={true}
                 />
               )}
-              <button className="absolute top-4 right-4 text-white text-4xl" onClick={closeLightbox}>
+              <button 
+                className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors" 
+                onClick={closeLightbox}
+              >
                 &times;
               </button>
             </div>

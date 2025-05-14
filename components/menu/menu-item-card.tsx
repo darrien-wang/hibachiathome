@@ -27,7 +27,8 @@ export default function MenuItemCard({ id, title, price, image, description }: M
         <p className="text-gray-600 text-sm mb-3">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-xl font-bold text-amber-600">
-            ${price} <span className="text-xs font-normal text-gray-500">+tax</span>
+            ${typeof price === "number" ? price.toFixed(1) : price}{" "}
+            <span className="text-xs font-normal text-gray-500">+tax</span>
           </span>
           <Button asChild size="sm" className="bg-amber-500 hover:bg-amber-600">
             <Link href="/book">Book Now</Link>

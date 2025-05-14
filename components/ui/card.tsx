@@ -52,13 +52,25 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { spacing?: "default" | "compact" | "none" }
 >(({ className, spacing = "default", ...props }, ref) => {
+  // 修改 CardContent 组件的 spacingClasses 对象，优化间距和布局
   const spacingClasses = {
     default: "p-6 pt-0 flex flex-col gap-4",
-    compact: "p-4 pt-0 flex flex-col gap-2",
+    compact: "p-4 pt-0 flex flex-col gap-3",
     none: "p-0 flex flex-col",
   }
 
-  return <div ref={ref} className={cn(spacingClasses[spacing], className)} {...props} />
+  // 修改 CardContent 组件的返回值，添加更好的按钮支持
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        spacingClasses[spacing],
+        "items-stretch", // 确保内容横向拉伸
+        className,
+      )}
+      {...props}
+    />
+  )
 })
 CardContent.displayName = "CardContent"
 
