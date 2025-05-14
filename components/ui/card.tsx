@@ -120,6 +120,12 @@ const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
             <h4 className="text-base font-semibold text-gray-800">{stepTitle}</h4>
           </div>
         )}
+        {props.children && props.children.type === "button" && (
+          <p className="text-xs text-gray-500 italic mb-2">
+            Payment of deposit secures your reservation. Bookings without deposit payment within 3 days of the event
+            will be automatically cancelled.
+          </p>
+        )}
         <div {...props} />
       </div>
     )

@@ -46,7 +46,7 @@ export default function DynamicPricingCalendar({
     const dateStr = selectedDate.toISOString().slice(0, 10)
     
     // 只使用 calendar API 获取时间段和价格
-    fetch(`/api/calendar?date=${dateStr}&address=${zipcode}&basePrice=${basePrice}`)
+    fetch(`/api/calendar/manual?date=${dateStr}&address=${zipcode}&basePrice=${basePrice}`)
       .then(res => res.json())
       .then(data => {
         if (data.slots) {
@@ -98,10 +98,12 @@ export default function DynamicPricingCalendar({
                 if (date) onSelectDateTime(date, undefined, 0, 0)
               }}
               disabled={day => {
-                // 禁用过去的日期
+                // 禁用过去的日期和当天
                 const today = new Date()
                 today.setHours(0, 0, 0, 0)
-                return day < today
+                const checkDay = new Date(day)
+                checkDay.setHours(0, 0, 0, 0)
+                return checkDay <= today // 今天及以前都禁用
               }}
               components={{ DayContent }}
             />
