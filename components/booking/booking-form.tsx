@@ -192,7 +192,7 @@ export default function BookingForm({
                     </div>
                     {selectedDateTime.originalPrice > selectedDateTime.price && (
                       <div className="flex justify-between text-green-600">
-                        <span>Special Date Discount:</span>
+                        <span>Special Discount:</ span>
                         <span>-${(selectedDateTime.originalPrice - selectedDateTime.price).toFixed(2)}</span>
                       </div>
                     )}
@@ -203,7 +203,7 @@ export default function BookingForm({
                   <span>Total Amount:</span>
                   <span>
                     $
-                    {(selectedDateTime.date && selectedDateTime.time ? selectedDateTime.price : costs.total).toFixed(2)}
+                    {(selectedDateTime.date && selectedDateTime.time ? selectedDateTime.price + costs.travelFee : costs.total).toFixed(2)}
                   </span>
                 </div>
               </div>

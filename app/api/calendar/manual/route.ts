@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     slots = DEFAULT_TIMES.map(time => {
       let price = basePrice;
       if (DISCOUNT_TIMES.includes(time)) {
-        price = basePrice -50;
+        price =Math.floor(basePrice -50).toFixed(2);
       }
       return {
         time,
