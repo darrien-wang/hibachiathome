@@ -194,7 +194,7 @@ export default function Home() {
                       <div className="flex items-center">
                         <span className="text-xs text-gray-500 mr-2">{testimonial.date}</span>
                         <img
-                          src="/google-g-logo.png"
+                          src="https://www.google.com/favicon.ico"
                           alt="Google"
                           className="h-4"
                           onError={(e) => {
