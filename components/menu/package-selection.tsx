@@ -114,7 +114,7 @@ export default function PackageSelection({
     }
   }
 
-  // 根据套餐类型设置默认选择
+  // ��据套餐类型设置默认选择
   useEffect(() => {
     if (selectedPackage) {
       const pkg = getPackageById(selectedPackage)

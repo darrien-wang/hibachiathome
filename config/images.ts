@@ -14,6 +14,8 @@ export const menuImages = {
     "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/hibachidoge-mfIO7eb5OysEpROnF0PZMbbjMaZzYl.png",
   "chicken-scallop":
     "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/images-hNctUIvTEU7qVt4PnyRu9EYLLZ1WHa.jpg",
+    "chicken-shrimp":
+    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/chiken_shrimps-gk9raxJIf9vMkA73P0D1R7AxNnwx4J.jpg"
 }
 
 // Package images - we'll use some of the same images for packages

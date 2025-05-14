@@ -71,7 +71,7 @@ export default function MenuPage() {
       id: "chicken-shrimp",
       title: "Chicken + Shrimp",
       price: pricing.packages.basic.perPerson,
-      image: getMenuImageById("chicken-steak"), // Reusing an image
+      image: getMenuImageById("chicken-shrimp"), // Reusing an image
       description: "Tender chicken breast and large shrimp, served with hibachi vegetables and fried rice",
     },
     {
