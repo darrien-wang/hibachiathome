@@ -33,11 +33,13 @@ export const metadata: Metadata = {
   authors: [{ name: "Real Hibachi" }],
   icons: {
     icon: [
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      {
+        url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
+      },
     ],
-    apple: [{ url: "/apple-touch-icon.png" }],
-    shortcut: ["/favicon.ico"],
+    apple: {
+      url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
+    },
   },
     generator: 'v0.dev'
 }
@@ -59,8 +61,15 @@ export default function RootLayout({
             gtag('config', 'G-5QDRG6LHBN');
           `}
         </Script>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link
+          rel="icon"
+          href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+          type="image/png"
+        />
+        <link
+          rel="apple-touch-icon"
+          href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+        />
       </head>
       <body className={`${poppins.variable} ${playfair.variable} ${montserrat.variable} font-sans`}>
         <Suspense>
