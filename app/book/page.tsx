@@ -75,7 +75,7 @@ export default function BookingPage() {
                 {card.onClick ? (
                   <>
                     <Button
-                      className="w-3/5 mx-auto md:w-full h-10 text-sm"
+                      className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden"
                       variant={card.variant}
                       onClick={card.onClick}
                     >
@@ -88,7 +88,11 @@ export default function BookingPage() {
                   </>
                 ) : (
                   <>
-                    <Button className="w-3/5 mx-auto md:w-full h-10 text-sm" variant={card.variant} asChild>
+                    <Button
+                      className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden"
+                      variant={card.variant}
+                      asChild
+                    >
                       <a
                         href={card.href}
                         target={card.external ? "_blank" : undefined}

@@ -12,7 +12,7 @@ const MANUAL_SLOTS: Record<string, { time: string; price: number; available: boo
 
 const DEFAULT_TIMES = ['13:00', '16:00', '19:00'];
 const DISCOUNT_TIMES = ['13:00', '16:00'];
-const DISCOUNT_RATE = 0.1;
+const DISCOUNT_AMOUNT = 50;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     slots = DEFAULT_TIMES.map(time => {
       let price = basePrice;
       if (DISCOUNT_TIMES.includes(time)) {
-        price =Math.floor(basePrice -50).toFixed(2);
+        price = +(basePrice - DISCOUNT_AMOUNT).toFixed(2);
       }
       return {
         time,

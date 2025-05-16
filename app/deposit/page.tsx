@@ -215,8 +215,8 @@ export default function DepositPaymentPage() {
         <div className="flex items-center">
           <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
           <p className="text-green-700 font-medium text-lg">
-            <span className="font-bold">72-Hour Free Cancellation Policy:</span> Get a 100% refund if you cancel within
-            72 hours.
+            <span className="font-bold">48-Hour Free Cancellation Policy:</span> Cancel within 48 hours for a full
+            refund with no penalty.
           </p>
         </div>
       </div>
@@ -299,17 +299,45 @@ export default function DepositPaymentPage() {
               </div>
             </Button>
 
-            <p className="text-sm text-gray-500 text-center">
-              By paying the deposit, you agree to our{" "}
-              <Link href="/terms" className="text-primary hover:underline">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/cancellation-policy" className="text-primary hover:underline">
-                Cancellation Policy
-              </Link>
-              .
-            </p>
+            <div className="text-sm text-gray-600 mt-4 space-y-4">
+              <p className="text-center font-medium">
+                By paying the deposit, you agree to our{" "}
+                <Link href="/terms" className="text-primary hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/cancellation-policy" className="text-primary hover:underline">
+                  Cancellation Policy
+                </Link>
+                .
+              </p>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs">
+                <h4 className="font-semibold mb-2">Important Policies:</h4>
+
+                <p className="mb-2">
+                  <span className="font-semibold">Liability Waiver:</span> Real Hibachi, Inc. will NOT be liable for
+                  property damage caused during events. The host waives any claims against Real Hibachi for loss,
+                  damage, or destruction of property.
+                </p>
+
+                <p className="mb-2">
+                  <span className="font-semibold">Communication Consent:</span> By proceeding, you agree to receive
+                  communications by text message about your booking. You may opt-out by replying STOP.
+                </p>
+
+                <p className="mb-2">
+                  <span className="font-semibold">Cancellation Policy:</span> Notify us within 48 hours of your event to
+                  cancel or reschedule and receive a full refund of your deposit with no penalty fees.
+                </p>
+
+                <p>
+                  <span className="font-semibold">Weather Policy:</span> If it rains, customer must provide covering for
+                  the chef. Customer is responsible for canceling due to inclement weather within 48 hours of your
+                  party.
+                </p>
+              </div>
+            </div>
           </CardFooter>
         </Card>
       </div>
