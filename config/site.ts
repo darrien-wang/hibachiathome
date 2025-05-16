@@ -2,8 +2,8 @@
 export const siteConfig = {
   name: "Real Hibachi",
   description: "Bringing the hibachi experience directly to your home or venue.",
-  url: "https://hibachi-at-home.example.com",
-  ogImage: "https://hibachi-at-home.example.com/og-image.jpg",
+  url: "https://realhibachi.com",
+  ogImage: "https://realhibachi.com/og-image.jpg",
 
   // Logo configurations
   logo: {
@@ -16,7 +16,7 @@ export const siteConfig = {
   // Contact information
   contact: {
     phone: "213-770-7788",
-    email: "darrien.wang+hibachi@gmail.com",
+    email: "RealHibachiAtHome@gmail.com",
     locations: ["Manhattan", "Brooklyn", "Queens", "The Bronx", "Staten Island", "Long Island"],
   },
 
