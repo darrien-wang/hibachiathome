@@ -31,6 +31,14 @@ export const metadata: Metadata = {
   keywords: "Hibachi at home in NY,Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png" }],
+    shortcut: ["/favicon.ico"],
+  },
     generator: 'v0.dev'
 }
 
@@ -51,6 +59,8 @@ export default function RootLayout({
             gtag('config', 'G-5QDRG6LHBN');
           `}
         </Script>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${poppins.variable} ${playfair.variable} ${montserrat.variable} font-sans`}>
         <Suspense>
