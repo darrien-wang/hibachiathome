@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -9,6 +10,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap.html',
+        destination: '/api/serve-sitemap-html',
+      },
+    ];
+  },
+};
 
-export default nextConfig
+export default nextConfig;
