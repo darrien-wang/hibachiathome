@@ -18,10 +18,16 @@ export const carouselConfig: CarouselConfig = {
 }
 
 export const heroImages: HeroImage[] = [
+    {
+    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner5-QXDgD4u9YK9SAwtGBCSDADdrM5YNG1.jpg",
+    alt: "Hibachi chef cooking with flames",
+    priority: 1,
+    timestamp: "2025-05-15"
+  },
   {
     url: "https://live.staticflickr.com/65535/53336755436_3c614274cd_b.jpg",
     alt: "Hibachi chef cooking at home party",
-    priority: 1,
+    priority: 2,
   },
 
   // 新增的4张轮播图
@@ -45,11 +51,7 @@ export const heroImages: HeroImage[] = [
     alt: "Elegant hibachi dining experience",
     priority: 8,
   },
-    {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png",
-    alt: "Hibachi chef cooking with flames",
-    priority: 9,
-  },
+
 ]
 
 // 获取排序后的图片数组

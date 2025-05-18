@@ -49,6 +49,7 @@ export default function Home() {
   const [animationTriggered, setAnimationTriggered] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [imageTimestamps, setImageTimestamps] = useState<string[]>([])
 
   // 获取排序后的轮播图片
   const sortedHeroImages = getSortedHeroImages()
@@ -195,6 +196,19 @@ export default function Home() {
     }
   }, [sortedHeroImages])
 
+  // 生成并存储时间戳
+  useEffect(() => {
+    if (sortedHeroImages.length > 0 && imageTimestamps.length === 0) {
+      const timestamps = sortedHeroImages.map((image, index) => {
+        return (
+          image.timestamp ||
+          `2025-${String(index + 1).padStart(2, "0")}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, "0")}`
+        )
+      })
+      setImageTimestamps(timestamps)
+    }
+  }, [sortedHeroImages, imageTimestamps.length])
+
   return (
     <>
       {/* Hero Section - Softer, more inviting style */}
@@ -217,6 +231,9 @@ export default function Home() {
                 alt={image.alt || `Hero slide ${index + 1}`}
                 className="w-full h-full object-cover"
               />
+              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-md text-sm font-mono z-10">
+                {imageTimestamps[index] || "Loading..."}
+              </div>
             </div>
           ))}
         </div>
