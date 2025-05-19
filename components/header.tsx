@@ -97,7 +97,7 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-[#F5E3CB] to-white backdrop-blur-sm ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-[#F5E3CB] to-white backdrop-blur-sm overflow-visible ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
@@ -109,17 +109,19 @@ export function Header() {
           {/* Empty div for left side spacing */}
           <div></div>
 
-          {/* Centered Logo */}
-          <Link href="/" className="flex items-center justify-center relative h-[50px] z-10">
-            <Image
-              src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
-              alt={siteConfig.logo.alt}
-              width={siteConfig.logo.width * 0.8}
-              height={siteConfig.logo.height * 0.8}
-              className="h-auto w-[112px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 left-1/2 -translate-x-1/2 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
-              priority
-            />
-          </Link>
+          {/* Centered Logo - Now positioned lower on mobile */}
+          <div className="flex items-center justify-center relative h-[50px] z-10">
+            <Link href="/" className="block relative">
+              <Image
+                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+                alt={siteConfig.logo.alt}
+                width={siteConfig.logo.width * 0.8}
+                height={siteConfig.logo.height * 0.8}
+                className="h-auto w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[46px]"
+                priority
+              />
+            </Link>
+          </div>
 
           {/* Mobile Menu Button */}
           <div className="flex justify-end">
@@ -137,7 +139,7 @@ export function Header() {
                     alt={siteConfig.logo.alt}
                     width={112}
                     height={35}
-                    className="h-auto hover:-translate-y-1 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
+                    className="h-auto hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
                   />
                 </div>
                 <nav className="flex flex-col mt-6">
@@ -183,17 +185,19 @@ export function Header() {
               ))}
           </nav>
 
-          {/* Logo in Center */}
-          <Link href="/" className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
-            <Image
-              src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
-              alt={siteConfig.logo.alt}
-              width={siteConfig.logo.width * 0.8}
-              height={siteConfig.logo.height * 0.8}
-              className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
-              priority
-            />
-          </Link>
+          {/* Logo in Center - Desktop remains unchanged */}
+          <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
+            <Link href="/" className="block relative w-full h-full">
+              <Image
+                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+                alt={siteConfig.logo.alt}
+                width={siteConfig.logo.width * 0.8}
+                height={siteConfig.logo.height * 0.8}
+                className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
+                priority
+              />
+            </Link>
+          </div>
 
           {/* Desktop Navigation - Right Side with Book Now Button */}
           <div className="flex items-center justify-start flex-1">
