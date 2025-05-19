@@ -357,6 +357,9 @@ export default function Home() {
               <video
                 className="absolute top-0 left-0 w-full h-full object-cover"
                 controls
+                autoPlay
+                muted
+                loop
                 poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
               >
                 <source
@@ -571,6 +574,69 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Customer Atmosphere Video Section */}
+      <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+            Experience the <span className="text-primary">Atmosphere</span>
+          </h2>
+          <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+            See how our hibachi experience transforms your home into an exciting dining venue
+          </p>
+
+          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+            <div className="relative pb-[56.25%] h-0">
+              <video
+                className="absolute top-0 left-0 w-full h-full object-cover"
+                controls
+                autoPlay
+                muted
+                loop
+                poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+              >
+                <source
+                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                  type="video/mp4"
+                />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-amber-600 text-xl">🎉</span>
+              </div>
+              <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
+              <p className="text-gray-600">
+                Experience the excitement and energy of a hibachi restaurant in your own home.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
+              </div>
+              <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
+              <p className="text-gray-600">
+                Perfect entertainment for guests of all ages, creating memorable experiences.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-amber-600 text-xl">🔥</span>
+              </div>
+              <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
+              <p className="text-gray-600">
+                Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
+              </p>
             </div>
           </div>
         </div>
