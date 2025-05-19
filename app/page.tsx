@@ -387,7 +387,7 @@ export default function Home() {
               className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl"
               style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
             >
-              Let's throw a party today!
+              Let's throw a <span style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)",color: "rgb(216, 128, 54)" }}>HIBACHI party</span> today!
             </h1>
           </div>
 
