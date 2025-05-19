@@ -52,6 +52,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet" />
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-5QDRG6LHBN" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
           {`

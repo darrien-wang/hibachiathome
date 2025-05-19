@@ -1,11 +1,14 @@
 "use client"
 import Link from "next/link"
+import type React from "react"
+
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import { Star } from "lucide-react"
 // 找到轮播图相关代码，修改轮播间隔时间
 // 导入轮播配置
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
+import SocialProofCounter from "@/components/social-proof-counter"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -50,13 +53,72 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [imagesLoaded, setImagesLoaded] = useState(false)
   const [imageTimestamps, setImageTimestamps] = useState<string[]>([])
+  const [autoplayEnabled, setAutoplayEnabled] = useState(false)
+  const [userInteracted, setUserInteracted] = useState(false)
+  const [firstSlideTimer, setFirstSlideTimer] = useState<NodeJS.Timeout | null>(null)
+  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // 在组件的state部分添加以下状态变量
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const [swipeDistance, setSwipeDistance] = useState(0)
+  const swipeThreshold = 50 // 滑动阈值，超过这个距离才会触发切换
 
-  // 获取排序后的轮播图片
-  const sortedHeroImages = getSortedHeroImages()
+  // 获取排序后的轮播图片 - 使用useMemo避免每次渲染都重新计算
+  const sortedHeroImages = useState(() => getSortedHeroImages())[0]
 
   const testimonialRefs = useRef<(HTMLDivElement | null)[]>([])
 
+  // 处理用户交互
+  const handleUserInteraction = () => {
+    if (!userInteracted) {
+      setUserInteracted(true)
+      if (carouselConfig.autoplayAfterInteraction) {
+        setAutoplayEnabled(true)
+      }
+    }
+  }
+
+  // 在return语句之前添加以下处理函数
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX)
+    setIsSwiping(true)
+    setSwipeDistance(0)
+    handleUserInteraction()
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return
+    const currentTouch = e.targetTouches[0].clientX
+    setTouchEnd(currentTouch)
+    setSwipeDistance(currentTouch - touchStart)
+  }
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false)
+
+    // 如果滑动距离超过阈值，则切换幻灯片
+    if (swipeDistance > swipeThreshold) {
+      // 向右滑动，显示上一张
+      prevSlide()
+    } else if (swipeDistance < -swipeThreshold) {
+      // 向左滑动，显示下一张
+      nextSlide()
+    }
+
+    // 重置滑动距离
+    setSwipeDistance(0)
+  }
+
   useEffect(() => {
+    // 添加用户交互监听
+    const interactionEvents = ["mousedown", "touchstart", "keydown", "scroll"]
+    const handleInteraction = () => handleUserInteraction()
+
+    interactionEvents.forEach((event) => {
+      window.addEventListener(event, handleInteraction)
+    })
+
     // 初始检测
     const checkScreenSize = () => {
       setIsLargeScreen(window.innerWidth >= 1024) // lg 断点
@@ -89,12 +151,35 @@ export default function Home() {
     // 初始检查，以防页面已经滚动到该位置
     handleScroll()
 
+    // 设置首张幻灯片的特殊显示时间
+    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration) {
+      const timer = setTimeout(() => {
+        if (!userInteracted) {
+          setCurrentSlide(1 % sortedHeroImages.length)
+        }
+      }, sortedHeroImages[0].duration)
+
+      setFirstSlideTimer(timer)
+    }
+
     // 清理函数
     return () => {
       window.removeEventListener("resize", checkScreenSize)
       window.removeEventListener("scroll", handleScroll)
+
+      interactionEvents.forEach((event) => {
+        window.removeEventListener(event, handleInteraction)
+      })
+
+      if (firstSlideTimer) {
+        clearTimeout(firstSlideTimer)
+      }
+
+      if (autoplayTimerRef.current) {
+        clearInterval(autoplayTimerRef.current)
+      }
     }
-  }, [animationTriggered])
+  }, [animationTriggered, sortedHeroImages, userInteracted])
 
   // 添加自动轮播逻辑
   useEffect(() => {
@@ -102,7 +187,7 @@ export default function Home() {
     if (isLargeScreen || isMediumScreen) {
       const interval = setInterval(() => {
         setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-      }, 3000) // 每2秒切换一次
+      }, 3000) // 每3秒切换一次
 
       return () => clearInterval(interval)
     }
@@ -167,19 +252,41 @@ export default function Home() {
 
   // 添加轮播图效果
   useEffect(() => {
-    if (sortedHeroImages.length > 0) {
-      const interval = setInterval(() => {
+    if (sortedHeroImages.length > 0 && autoplayEnabled) {
+      // 清除之前的定时器
+      if (autoplayTimerRef.current) {
+        clearInterval(autoplayTimerRef.current)
+      }
+
+      // 设置新的定时器
+      autoplayTimerRef.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
       }, carouselConfig.interval)
 
-      return () => clearInterval(interval)
+      return () => {
+        if (autoplayTimerRef.current) {
+          clearInterval(autoplayTimerRef.current)
+        }
+      }
     }
-  }, [sortedHeroImages.length])
+  }, [sortedHeroImages.length, autoplayEnabled])
+
+  // 手动切换幻灯片
+  const nextSlide = () => {
+    handleUserInteraction()
+    setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
+  }
+
+  const prevSlide = () => {
+    handleUserInteraction()
+    setCurrentSlide((prev) => (prev - 1 + sortedHeroImages.length) % sortedHeroImages.length)
+  }
 
   // 预加载图片
   useEffect(() => {
-    if (sortedHeroImages.length > 0) {
-      const loadImages = async () => {
+    // 使用ref来跟踪是否已经加载过图片，避免重复加载
+    const loadImagesOnce = async () => {
+      if (sortedHeroImages.length > 0 && !imagesLoaded) {
         const promises = sortedHeroImages.map((image) => {
           return new Promise((resolve) => {
             const img = new Image()
@@ -191,10 +298,10 @@ export default function Home() {
         await Promise.all(promises)
         setImagesLoaded(true)
       }
-
-      loadImages()
     }
-  }, [sortedHeroImages])
+
+    loadImagesOnce()
+  }, [sortedHeroImages.length, imagesLoaded]) // 只依赖长度而不是整个数组
 
   // 生成并存储时间戳
   useEffect(() => {
@@ -207,13 +314,46 @@ export default function Home() {
       })
       setImageTimestamps(timestamps)
     }
-  }, [sortedHeroImages, imageTimestamps.length])
+  }, [sortedHeroImages.length, imageTimestamps.length]) // 只依赖长度而不是整个数组
 
   return (
-    <>
+    <div>
       {/* Hero Section - Softer, more inviting style */}
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
-        <div className="absolute inset-0 overflow-hidden bg-black z-0">
+        <div
+          className="absolute inset-0 overflow-hidden bg-black z-0 touch-pan-y"
+          onTouchStart={(e) => {
+            const touch = e.touches[0]
+            setTouchStart(touch.clientX)
+            setIsSwiping(true)
+            console.log("Touch start:", touch.clientX) // 调试信息
+          }}
+          onTouchMove={(e) => {
+            if (!isSwiping) return
+            const touch = e.touches[0]
+            const currentX = touch.clientX
+            const diff = currentX - touchStart
+            setSwipeDistance(diff)
+            console.log("Touch move:", diff) // 调试信息
+          }}
+          onTouchEnd={() => {
+            setIsSwiping(false)
+            console.log("Touch end, distance:", swipeDistance) // 调试信息
+
+            // 如果滑动距离超过阈值，则切换幻灯片
+            if (swipeDistance > 80) {
+              // 向右滑动，显示上一张
+              prevSlide()
+            } else if (swipeDistance < -80) {
+              // 向左滑动，显示下一张
+              nextSlide()
+            }
+
+            // 重置滑动距离
+            setSwipeDistance(0)
+            handleUserInteraction()
+          }}
+        >
           {!imagesLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -222,9 +362,12 @@ export default function Home() {
           {sortedHeroImages.map((image, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                index === currentSlide ? "opacity-100" : "opacity-0"
-              }`}
+              className="absolute inset-0"
+              style={{
+                opacity: index === currentSlide ? 1 : 0,
+                transform: index === currentSlide && isSwiping ? `translateX(${swipeDistance}px)` : "translateX(0)",
+                transition: isSwiping ? "none" : "opacity 1s ease, transform 0.3s ease",
+              }}
             >
               <img
                 src={image.url || "/placeholder.svg"}
@@ -237,36 +380,92 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
-        <div className="container mx-auto px-4 relative z-20 text-center text-white">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 tracking-wide leading-tight">
-            <span className="inline-block animate-fadeIn">REAL HIBACHI </span>
-            <span className="text-[#F9A77C] inline-block animate-fireText relative">
-              AT HOME
-              <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-[#F9A77C] to-amber-500 animate-fireUnderline"></span>
-            </span>
-          </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-8 font-sans tracking-wide">
-            Top-tier food & service. No hidden fees. From $499.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 w-[60%] mx-auto">
-            <Button
-              asChild
-              size="lg"
-              className="text-lg py-4 px-4 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary w-4/5 mx-auto sm:w-1/2 sm:mx-0"
+        <div className="absolute inset-0 bg-black/60 z-10"></div>
+        <div className="container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16">
+          <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
+            <h1
+              className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl"
+              style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
             >
-              <Link href="/estimation">Free Estimate</Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              className="text-lg py-4 px-4 bg-white text-[#FF6600] border-2 border-[#FF6600] hover:bg-[#FF6600] hover:text-white transition-colors duration-300 rounded-full shadow-sm hover:shadow-md w-4/5 mx-auto sm:w-1/2 sm:mx-0"
-            >
-              <Link href="/menu">View Packages</Link>
-            </Button>
+              Let's throw a party today!
+            </h1>
+          </div>
+
+          <div className="mt-auto mb-12 md:mb-20">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
+              <Button
+                asChild
+                size="lg"
+                className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
+                onClick={handleUserInteraction}
+              >
+                <Link href="/estimation">Free Estimate</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
+                onClick={handleUserInteraction}
+              >
+                <Link href="/menu">Packages</Link>
+              </Button>
+            </div>
+            <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
+              Top-tier food & service. No hidden fees. From $499.
+            </p>
           </div>
         </div>
+
+        {/* 轮播控制按钮 */}
+        <button
+          onClick={prevSlide}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
+          aria-label="Previous slide"
+        >
+          ←
+        </button>
+        <button
+          onClick={nextSlide}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
+          aria-label="Next slide"
+        >
+          →
+        </button>
+
+        {/* 轮播指示器 */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+          {sortedHeroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                handleUserInteraction()
+                setCurrentSlide(index)
+              }}
+              className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"}`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* 滑动指示器 - 仅在滑动时显示 */}
+        {isSwiping && (
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 z-30 pointer-events-none">
+            <div
+              className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance > 50 ? "opacity-100" : "opacity-30"}`}
+            >
+              <span className="text-white text-2xl">←</span>
+            </div>
+            <div
+              className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance < -50 ? "opacity-100" : "opacity-30"}`}
+            >
+              <span className="text-white text-2xl">→</span>
+            </div>
+          </div>
+        )}
       </section>
+
+      {/* Social Proof Counter */}
+      <SocialProofCounter />
 
       {/* Google Reviews Section */}
       <section
@@ -505,8 +704,7 @@ export default function Home() {
                   <Button
                     asChild
                     variant="outline"
-                    size="sm"
-                    className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
                   >
                     <Link href="/menu">View Packages</Link>
                   </Button>
@@ -536,8 +734,7 @@ export default function Home() {
                   <Button
                     asChild
                     variant="outline"
-                    size="sm"
-                    className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
                   >
                     <Link href="/book">Check Availability</Link>
                   </Button>
@@ -567,8 +764,7 @@ export default function Home() {
                   <Button
                     asChild
                     variant="outline"
-                    size="sm"
-                    className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
                   >
                     <Link href="/estimation">Get Started</Link>
                   </Button>
@@ -762,6 +958,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   )
 }
