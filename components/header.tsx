@@ -110,13 +110,13 @@ export function Header() {
           <div></div>
 
           {/* Centered Logo */}
-          <Link href="/" className="flex items-center justify-center relative h-[63px] z-10">
+          <Link href="/" className="flex items-center justify-center relative h-[50px] z-10">
             <Image
               src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
               alt={siteConfig.logo.alt}
-              width={siteConfig.logo.width}
-              height={siteConfig.logo.height}
-              className="h-auto w-[140px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 left-1/2 -translate-x-1/2 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
+              width={siteConfig.logo.width * 0.8}
+              height={siteConfig.logo.height * 0.8}
+              className="h-auto w-[112px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 left-1/2 -translate-x-1/2 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
               priority
             />
           </Link>
@@ -135,8 +135,8 @@ export function Header() {
                   <Image
                     src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
                     alt={siteConfig.logo.alt}
-                    width={140}
-                    height={50}
+                    width={112}
+                    height={35}
                     className="h-auto hover:-translate-y-1 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
                   />
                 </div>
@@ -184,13 +184,13 @@ export function Header() {
           </nav>
 
           {/* Logo in Center */}
-          <Link href="/" className="flex items-center relative h-[63px] w-[140px] md:w-[160px] z-10 mx-4">
+          <Link href="/" className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
             <Image
               src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
               alt={siteConfig.logo.alt}
-              width={siteConfig.logo.width}
-              height={siteConfig.logo.height}
-              className="h-auto w-[140px] md:w-[160px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
+              width={siteConfig.logo.width * 0.8}
+              height={siteConfig.logo.height * 0.8}
+              className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 transition-all duration-300 rounded-full absolute z-10 top-0 bg-stone-100/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)] hover:after:shadow-[0_8px_10px_-3px_rgba(0,0,0,0.3)] after:transition-all"
               priority
             />
           </Link>
