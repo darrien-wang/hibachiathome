@@ -25,10 +25,10 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: "Hibachi at home in NY - Real Hibachi | Private Chef Experience",
+  title: "Hibachi at home in NYC - Real Hibachi | Private Chef Experience",
   description:
-    "Hibachi at home in NY - Enjoy a professional hibachi chef experience in the comfort of your own home or venue.",
-  keywords: "Hibachi at home in NY,Real Hibachi",
+    "Hibachi at home in NYC - Enjoy a professional hibachi chef experience in the comfort of your own home or venue.",
+  keywords: "Hibachi at home in NYC,Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],
   icons: {
