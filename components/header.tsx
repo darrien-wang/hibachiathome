@@ -11,6 +11,7 @@ import { siteConfig } from "@/config/site"
 const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
+  { name: "Blog", href: "/blog", disabled: false }, // 添加博客导航项
   { name: "Locations", href: "/locations", disabled: true },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
