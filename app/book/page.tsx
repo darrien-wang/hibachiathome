@@ -26,6 +26,16 @@ export default function BookingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10 max-w-5xl mx-auto">
           {[
+             {
+              title: "Online Booking",
+              description: "Book at your convenience",
+              icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+              buttonText: "Book Online",
+              onClick: handleOnlineBooking,
+              variant: "default",
+              className: "bg-primary/5 border-primary/20",
+              is24_7: true,
+            },
             {
               title: "WhatsApp",
               description: "Fastest response time",
@@ -53,16 +63,7 @@ export default function BookingPage() {
               external: false,
               variant: "outline",
             },
-            {
-              title: "Online Booking",
-              description: "Book at your convenience",
-              icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-              buttonText: "Book Online",
-              onClick: handleOnlineBooking,
-              variant: "default",
-              className: "bg-primary/5 border-primary/20",
-              is24_7: true,
-            },
+
           ].map((card, index) => (
             <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
               <CardHeader className="h-[120px] flex flex-col justify-center">

@@ -35,14 +35,7 @@ export function PromotionBanner() {
             <CardContent className="px-0">
               <p className="text-lg text-amber-900">{promotion.description}</p>
             </CardContent>
-            <CardFooter className="px-0">
-              <Button
-                className="bg-amber-600 hover:bg-amber-700 text-white"
-                onClick={() => router.push(promotion.buttonLink)}
-              >
-                {promotion.buttonText}
-              </Button>
-            </CardFooter>
+        
           </div>
           <div className="md:w-1/3 relative h-48 md:h-auto">
             <Image

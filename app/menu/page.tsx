@@ -1,154 +1,90 @@
-"use client"
-import { useState } from "react"
-import {
-  packageOptions,
-  getPackageById,
-  calculatePackagePrice,
-  regularProteins,
-  premiumProteins,
-  sides,
-} from "@/config/menu-items"
-import { pricing } from "@/config/pricing"
-import { getMenuImageById } from "@/config/images"
-import MenuItemCard from "@/components/menu/menu-item-card"
+import { AnimateOnScroll } from "@/components/animate-on-scroll"
+import MenuDetails from "@/components/menu/menu-details"
 import PricingBanner from "@/components/menu/pricing-banner"
 import ServiceNotes from "@/components/menu/service-notes"
-import PackageSelection from "@/components/menu/package-selection"
-import MenuDetails from "@/components/menu/menu-details"
+import Testimonials from "@/components/menu/testimonials"
+import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
+import { pricing } from "@/config/pricing"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Menu & Packages",
+}
 
 export default function MenuPage() {
-  const [headcount, setHeadcount] = useState(10)
-  const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
-  const [showSpecialRequests, setShowSpecialRequests] = useState(false)
-  const [selectedTab, setSelectedTab] = useState<string>("overview")
-  const [isComparisonTableExpanded, setIsComparisonTableExpanded] = useState(false)
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
-
-  // 客户评价
-  const testimonials = []
-  // 应用预设套餐
-  const applyPackage = (packageId: string) => {
-    const selectedPkg = getPackageById(packageId)
-    if (selectedPkg) {
-      setHeadcount(selectedPkg.headcount)
-      setSelectedPackage(packageId)
-    }
-  }
-
-  // Menu items with dynamic pricing from config
-  const menuItems = [
+  // 示例评价数据
+  const testimonials = [
     {
-      id: "chicken-steak",
-      title: "Chicken + NY Strip",
-      price: pricing.packages.basic.perPerson,
-      image: getMenuImageById("chicken-steak"),
-      description:
-        "Tender chicken breast and USDA Choice NY Strip steak, served with hibachi vegetables and fried rice",
+      name: "Sarah M.",
+      rating: 5,
+      comment: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious.",
     },
     {
-      id: "steak-shrimp",
-      title: "NY Strip + Shrimp",
-      price: pricing.packages.basic.perPerson,
-      image: getMenuImageById("steak-shrimp"),
-      description: "USDA Choice NY Strip steak and large shrimp, served with hibachi vegetables and fried rice",
+      name: "Michael T.",
+      rating: 5,
+      comment: "We booked for our anniversary and it exceeded all expectations. Restaurant-quality hibachi at home!",
     },
     {
-      id: "filet-chicken-shrimp",
-      title: "Filet + Chicken + Shrimp",
-      price: pricing.packages.basic.perPerson + 15,
-      image: getMenuImageById("filet-chicken-shrimp"),
-      description:
-        "Premium filet mignon, tender chicken breast, and large shrimp, served with hibachi vegetables and fried rice",
+      name: "Jennifer L.",
+      rating: 5,
+      comment:
+        "Our family gathering was transformed into an unforgettable event. The chef was professional and friendly, and put on an amazing show!",
     },
     {
-      id: "filet-lobster",
-      title: "Filet + Lobster",
-      price: pricing.packages.basic.perPerson + 20,
-      image: getMenuImageById("filet-lobster"),
-      description: "Premium filet mignon and Maine lobster tail, served with hibachi vegetables and fried rice",
-    },
-    {
-      id: "chicken-shrimp",
-      title: "Chicken + Shrimp",
-      price: pricing.packages.basic.perPerson,
-      image: getMenuImageById("chicken-shrimp"), // Reusing an image
-      description: "Tender chicken breast and large shrimp, served with hibachi vegetables and fried rice",
-    },
-    {
-      id: "chicken-scallop",
-      title: "Chicken + Scallops",
-      price: pricing.packages.basic.perPerson,
-      image: getMenuImageById("chicken-scallop"),
-      description: "Tender chicken breast and fresh sea scallops, served with hibachi vegetables and fried rice",
+      name: "David W.",
+      rating: 5,
+      comment: "Perfect for our office party. Everyone was impressed with both the performance and the food quality.",
     },
   ]
 
-  // Rename the basic package
-  if (packageOptions.find((pkg) => pkg.id === "basic")) {
-    packageOptions.find((pkg) => pkg.id === "basic").name = "Chef's Selection"
-  }
-
   return (
-    <>
-      <div className="container max-w-6xl mx-auto px-4 pt-24 pb-12 relative mt-16">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Our Menu</h1>
-          <p className="text-xl text-gray-600 mx-auto">
-            Premium hibachi cuisine prepared fresh at your location. All packages include a chef performance,
-            appetizers, main course, and sides.
-          </p>
-        </div>
-
-        {/* Featured Menu Items with Images */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Featured Combinations</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...menuItems]
-              .sort((a, b) => b.price - a.price)
-              .map((item) => (
-                <MenuItemCard
-                  key={item.id}
-                  id={item.id}
-                  title={item.title}
-                  price={item.price}
-                  image={item.image}
-                  description={item.description}
-                />
-              ))}
+    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="max-w-6xl mx-auto">
+        <AnimateOnScroll direction="down">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold mb-4">Our Menu</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Explore our hibachi menu options, featuring premium proteins, fresh vegetables, and authentic Japanese
+              flavors.
+            </p>
           </div>
-        </div>
+        </AnimateOnScroll>
 
-        {/* Menu Details Component */}
-        <MenuDetails proteins={regularProteins} premiumProteins={premiumProteins} sides={sides} />
+        <AnimateOnScroll>
+          <PricingBanner
+            adultPrice={pricing.packages.basic.perPerson}
+            childPrice={pricing.children.basic}
+            minimumTotal={pricing.packages.basic.minimum}
+          />
+        </AnimateOnScroll>
 
-        {/* Use our extracted PricingBanner component with pricing from config */}
-        <PricingBanner
-          adultPrice={pricing.pricingBanner.adultPrice}
-          childPrice={pricing.pricingBanner.childPrice}
-          minimumTotal={pricing.pricingBanner.minimumTotal}
-        />
+        <AnimateOnScroll>
+          <ServiceNotes />
+        </AnimateOnScroll>
 
-        {/* Use our extracted ServiceNotes component */}
-        <ServiceNotes />
+        <AnimateOnScroll>
+          <MenuDetails proteins={regularProteins} premiumProteins={premiumProteins} sides={sides} />
+        </AnimateOnScroll>
 
-        {/* Package Selection Component */}
-        <PackageSelection
-          packages={[
-            packageOptions.find((pkg) => pkg.id === "buffet"),
-            packageOptions.find((pkg) => pkg.id === "basic"),
-          ].filter(Boolean)}
-          selectedPackage={selectedPackage}
-          selectedTab={selectedTab}
-          setSelectedTab={setSelectedTab}
-          applyPackage={applyPackage}
-          currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
-          isComparisonTableExpanded={isComparisonTableExpanded}
-          setIsComparisonTableExpanded={setIsComparisonTableExpanded}
-          calculatePackagePrice={calculatePackagePrice}
-          pricing={pricing}
-        />
+        <AnimateOnScroll direction="up">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold mb-4">What Our Customers Say</h2>
+            <Testimonials testimonials={testimonials} />
+          </div>
+        </AnimateOnScroll>
+
+        <AnimateOnScroll direction="up" delay={200}>
+          <div className="text-center">
+            <p className="text-lg font-medium mb-6">Ready to experience hibachi at your home?</p>
+            <a
+              href="/book"
+              className="inline-block bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-full transition-all duration-300"
+            >
+              Book Your Hibachi Experience
+            </a>
+          </div>
+        </AnimateOnScroll>
       </div>
-    </>
+    </div>
   )
 }

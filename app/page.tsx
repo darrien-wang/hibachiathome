@@ -5,10 +5,9 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import { Star } from "lucide-react"
-// 找到轮播图相关代码，修改轮播间隔时间
-// 导入轮播配置
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 import SocialProofCounter from "@/components/social-proof-counter"
+import { AnimateOnScroll } from "@/components/animate-on-scroll"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -57,14 +56,13 @@ export default function Home() {
   const [userInteracted, setUserInteracted] = useState(false)
   const [firstSlideTimer, setFirstSlideTimer] = useState<NodeJS.Timeout | null>(null)
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null)
-  // 在组件的state部分添加以下状态变量
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [swipeDistance, setSwipeDistance] = useState(0)
-  const swipeThreshold = 50 // 滑动阈值，超过这个距离才会触发切换
+  const swipeThreshold = 50
 
-  // 获取排序后的轮播图片 - 使用useMemo避免每次渲染都重新计算
+  // 获取排序后的轮播图片
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
 
   const testimonialRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -79,7 +77,7 @@ export default function Home() {
     }
   }
 
-  // 在return语句之前添加以下处理函数
+  // 处理触摸事件
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX)
     setIsSwiping(true)
@@ -384,14 +382,24 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16">
           <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
             <h1
-              className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl"
+              className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn"
               style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
             >
-              Let's throw a <span style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)",color: "rgb(216, 128, 54)" }}>HIBACHI party</span> today!
+              Let's throw a{" "}
+              <span
+                style={{
+                  fontFamily: "'Permanent Marker', cursive",
+                  textShadow: "0 4px 8px rgba(0,0,0,0.5)",
+                  color: "rgb(216, 128, 54)",
+                }}
+              >
+                HIBACHI party
+              </span>{" "}
+              today!
             </h1>
           </div>
 
-          <div className="mt-auto mb-12 md:mb-20">
+          <div className="mt-auto mb-12 md:mb-20 animate-slideUp">
             <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
               <Button
                 asChild
@@ -465,125 +473,142 @@ export default function Home() {
       </section>
 
       {/* Social Proof Counter */}
-      <SocialProofCounter />
+      <AnimateOnScroll>
+        <SocialProofCounter />
+      </AnimateOnScroll>
 
       {/* Google Reviews Section */}
-      <section
-        id="testimonials-section"
-        className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100"
-      >
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center mb-8">
-            <div className="flex items-center mb-2">
-              <img
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/google-reviews-png-10-GKGq4SGGN19lPvzMYHb6Rg1jvyOzJJ.png"
-                alt="Google Reviews"
-                className="h-8 mr-2"
-                onError={(e) => {
-                  e.currentTarget.src =
-                    "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
-                  e.currentTarget.className = "h-6 mr-2"
-                }}
-              />
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="h-5 w-5 fill-amber-400 text-amber-400" />
+      <AnimateOnScroll>
+        <section
+          id="testimonials-section"
+          className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100"
+        >
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <div className="flex flex-col items-center mb-8">
+                <div className="flex items-center mb-2">
+                  <img
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/google-reviews-png-10-GKGq4SGGN19lPvzMYHb6Rg1jvyOzJJ.png"
+                    alt="Google Reviews"
+                    className="h-8 mr-2"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
+                      e.currentTarget.className = "h-6 mr-2"
+                    }}
+                  />
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="h-5 w-5 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <span className="ml-2 font-medium">5.0</span>
+                </div>
+                <p className="text-sm text-gray-600">Based on 48 reviews</p>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="relative overflow-visible">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 stagger-container">
+                {testimonials.map((testimonial, index) => (
+                  <AnimateOnScroll key={index} delay={index * 100} className="stagger-item">
+                    <div
+                      ref={(el) => (testimonialRefs.current[index] = el)}
+                      className={`bg-white rounded-lg shadow-md p-6 w-full transition-all duration-500 ${
+                        index === currentTestimonial
+                          ? "scale-105 border-2 border-amber-200"
+                          : (isLargeScreen || isMediumScreen)
+                            ? "scale-100 opacity-80" // 大屏或中屏时非聚焦卡片样式
+                            : "scale-100 opacity-60" // 小屏时非聚焦卡片样式
+                      }`}
+                      onClick={() => setCurrentTestimonial(index)}
+                    >
+                      <div className="flex items-center mb-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 flex items-center justify-center text-white font-bold text-lg mr-3">
+                          {testimonial.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{testimonial.name}</h4>
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-500 mr-2">{testimonial.date}</span>
+                            <img
+                              src="https://www.google.com/favicon.ico"
+                              alt="Google"
+                              className="h-4"
+                              onError={(e) => {
+                                e.currentTarget.src = "https://www.google.com/favicon.ico"
+                                e.currentTarget.className = "h-3"
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex mb-3">{renderStars(testimonial.rating)}</div>
+
+                      <p className="text-gray-700 text-sm">{testimonial.text}</p>
+                    </div>
+                  </AnimateOnScroll>
                 ))}
               </div>
-              <span className="ml-2 font-medium">5.0</span>
-            </div>
-            <p className="text-sm text-gray-600">Based on 48 reviews</p>
-          </div>
-
-          <div className="relative overflow-visible">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-              {testimonials.map((testimonial, index) => (
-                <div
-                  key={index}
-                  ref={(el) => (testimonialRefs.current[index] = el)}
-                  className={`bg-white rounded-lg shadow-md p-6 w-full transition-all duration-500 ${
-                    index === currentTestimonial
-                      ? "scale-105 border-2 border-amber-200"
-                      : (isLargeScreen || isMediumScreen)
-                        ? "scale-100 opacity-80" // 大屏或中屏时非聚焦卡片样式
-                        : "scale-100 opacity-60" // 小屏时非聚焦卡片样式
-                  }`}
-                  onClick={() => setCurrentTestimonial(index)}
-                >
-                  <div className="flex items-center mb-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 flex items-center justify-center text-white font-bold text-lg mr-3">
-                      {testimonial.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{testimonial.name}</h4>
-                      <div className="flex items-center">
-                        <span className="text-xs text-gray-500 mr-2">{testimonial.date}</span>
-                        <img
-                          src="https://www.google.com/favicon.ico"
-                          alt="Google"
-                          className="h-4"
-                          onError={(e) => {
-                            e.currentTarget.src = "https://www.google.com/favicon.ico"
-                            e.currentTarget.className = "h-3"
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex mb-3">{renderStars(testimonial.rating)}</div>
-
-                  <p className="text-gray-700 text-sm">{testimonial.text}</p>
-                </div>
-              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </AnimateOnScroll>
 
       {/* Food Preparation Video Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-            Watch Our <span className="text-primary">Chef in Action</span>
-          </h2>
-          <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-            Experience the artistry and skill behind our authentic hibachi cooking
-          </p>
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Watch Our <span className="text-primary">Chef in Action</span>
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Experience the artistry and skill behind our authentic hibachi cooking
+              </p>
+            </AnimateOnScroll>
 
-          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-            <div className="relative pb-[56.25%] h-0">
-              <video
-                className="absolute top-0 left-0 w-full h-full object-cover"
-                controls
-                autoPlay
-                muted
-                loop
-                poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
-              >
-                <source
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/splitfire-yi4XvpO3hkWlZOn2w4PCikuIV4N7oR.mp4"
-                  type="video/mp4"
-                />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          </div>
+            <AnimateOnScroll>
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <video
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
+                  >
+                    <source
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/splitfire-yi4XvpO3hkWlZOn2w4PCikuIV4N7oR.mp4"
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
 
-          <div className="mt-8 text-center">
-            <p className="text-amber-600 font-medium">
-              Our chefs bring the same excitement and culinary expertise to your home
-            </p>
+            <AnimateOnScroll direction="up" delay={200}>
+              <div className="mt-8 text-center">
+                <p className="text-amber-600 font-medium">
+                  Our chefs bring the same excitement and culinary expertise to your home
+                </p>
+              </div>
+            </AnimateOnScroll>
           </div>
-        </div>
-      </section>
+        </section>
+      </AnimateOnScroll>
 
       {/* How It Works Section - Enhanced with gradient background, timeline, and animations */}
       <section id="how-it-works" className="py-20 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
-            How It <span className="text-primary">Works</span>
-          </h2>
+          <AnimateOnScroll direction="down">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
+              How It <span className="text-primary">Works</span>
+            </h2>
+          </AnimateOnScroll>
 
           {/* Desktop Timeline View */}
           <div className="hidden md:block relative">
@@ -592,372 +617,406 @@ export default function Home() {
 
             <div className="grid grid-cols-3 gap-8 relative z-10">
               {/* Step 1 */}
-              <div
-                className={`transform transition-all duration-500 ${
-                  animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-                }`}
-              >
-                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-                  <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
-                      1
+              <AnimateOnScroll delay={100} direction="up">
+                <div
+                  className={`transform transition-all duration-500 ${
+                    animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                  }`}
+                >
+                  <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                    <div className="flex justify-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                        1
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold mb-3 font-serif text-center">Pick Your Menu</h3>
+                    <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                      Select from our Basic or Buffet packages based on your preferences and budget.
+                    </p>
+                    <div className="text-center">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                      >
+                        <Link href="/menu">View Packages</Link>
+                      </Button>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-3 font-serif text-center">Pick Your Menu</h3>
-                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
-                    Select from our Basic or Buffet packages based on your preferences and budget.
-                  </p>
-                  <div className="text-center">
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <Link href="/menu">View Packages</Link>
-                    </Button>
-                  </div>
                 </div>
-              </div>
+              </AnimateOnScroll>
 
               {/* Step 2 */}
-              <div
-                className={`transform transition-all duration-500 ${
-                  animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-                }`}
-              >
-                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-                  <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
-                      2
+              <AnimateOnScroll delay={300} direction="up">
+                <div
+                  className={`transform transition-all duration-500 ${
+                    animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                  }`}
+                >
+                  <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                    <div className="flex justify-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                        2
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold mb-3 font-serif text-center">Reserve Your Spot</h3>
+                    <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                      Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                    </p>
+                    <div className="text-center">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                      >
+                        <Link href="/book">Check Availability</Link>
+                      </Button>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-3 font-serif text-center">Reserve Your Spot</h3>
-                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
-                    Choose your preferred date and time, and we'll confirm availability within 24 hours.
-                  </p>
-                  <div className="text-center">
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <Link href="/book">Check Availability</Link>
-                    </Button>
-                  </div>
                 </div>
-              </div>
+              </AnimateOnScroll>
 
               {/* Step 3 */}
-              <div
-                className={`transform transition-all duration-500 ${
-                  animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-                }`}
-              >
-                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-                  <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
-                      3
+              <AnimateOnScroll delay={500} direction="up">
+                <div
+                  className={`transform transition-all duration-500 ${
+                    animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                  }`}
+                >
+                  <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                    <div className="flex justify-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                        3
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold mb-3 font-serif text-center">Let's Hibachi!</h3>
+                    <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                      Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                    </p>
+                    <div className="text-center">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                      >
+                        <Link href="/estimation">Get Started</Link>
+                      </Button>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-3 font-serif text-center">Let's Hibachi!</h3>
-                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
-                    Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
-                  </p>
-                  <div className="text-center">
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <Link href="/estimation">Get Started</Link>
-                    </Button>
-                  </div>
                 </div>
-              </div>
+              </AnimateOnScroll>
             </div>
           </div>
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-6">
             {/* Step 1 */}
-            <div
-              className={`transform transition-all duration-500 ${
-                animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-              }`}
-            >
-              <div className="bg-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-start">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
-                    1
+            <AnimateOnScroll delay={100} direction="right">
+              <div
+                className={`transform transition-all duration-500 ${
+                  animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
+              >
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-start">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                      1
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold mb-2 font-serif">Pick Your Menu</h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2 font-serif">Pick Your Menu</h3>
+                  <p className="text-foreground/80 font-sans tracking-wide">
+                    Select from our Basic or Buffet packages based on your preferences and budget.
+                  </p>
+                  <div className="mt-4">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                    >
+                      <Link href="/menu">View Packages</Link>
+                    </Button>
                   </div>
-                </div>
-                <p className="text-foreground/80 font-sans tracking-wide">
-                  Select from our Basic or Buffet packages based on your preferences and budget.
-                </p>
-                <div className="mt-4">
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
-                  >
-                    <Link href="/menu">View Packages</Link>
-                  </Button>
                 </div>
               </div>
-            </div>
+            </AnimateOnScroll>
 
             {/* Step 2 */}
-            <div
-              className={`transform transition-all duration-500 ${
-                animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-              }`}
-            >
-              <div className="bg-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-start">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
-                    2
+            <AnimateOnScroll delay={200} direction="right">
+              <div
+                className={`transform transition-all duration-500 ${
+                  animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
+              >
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-start">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                      2
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold mb-2 font-serif">Reserve Your Spot</h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2 font-serif">Reserve Your Spot</h3>
+                  <p className="text-foreground/80 font-sans tracking-wide">
+                    Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                  </p>
+                  <div className="mt-4">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                    >
+                      <Link href="/book">Check Availability</Link>
+                    </Button>
                   </div>
-                </div>
-                <p className="text-foreground/80 font-sans tracking-wide">
-                  Choose your preferred date and time, and we'll confirm availability within 24 hours.
-                </p>
-                <div className="mt-4">
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
-                  >
-                    <Link href="/book">Check Availability</Link>
-                  </Button>
                 </div>
               </div>
-            </div>
+            </AnimateOnScroll>
 
             {/* Step 3 */}
-            <div
-              className={`transform transition-all duration-500 ${
-                animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-              }`}
-            >
-              <div className="bg-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-start">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
-                    3
+            <AnimateOnScroll delay={300} direction="right">
+              <div
+                className={`transform transition-all duration-500 ${
+                  animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
+              >
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-start">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                      3
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold mb-2 font-serif">Let's Hibachi!</h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2 font-serif">Let's Hibachi!</h3>
+                  <p className="text-foreground/80 font-sans tracking-wide">
+                    Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                  </p>
+                  <div className="mt-4">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                    >
+                      <Link href="/estimation">Get Started</Link>
+                    </Button>
                   </div>
-                </div>
-                <p className="text-foreground/80 font-sans tracking-wide">
-                  Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
-                </p>
-                <div className="mt-4">
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
-                  >
-                    <Link href="/estimation">Get Started</Link>
-                  </Button>
                 </div>
               </div>
-            </div>
+            </AnimateOnScroll>
           </div>
         </div>
       </section>
 
       {/* Customer Atmosphere Video Section */}
-      <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-            Experience the <span className="text-primary">Atmosphere</span>
-          </h2>
-          <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-            See how our hibachi experience transforms your home into an exciting dining venue
-          </p>
+      <AnimateOnScroll>
+        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Experience the <span className="text-primary">Atmosphere</span>
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                See how our hibachi experience transforms your home into an exciting dining venue
+              </p>
+            </AnimateOnScroll>
 
-          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-            <div className="relative pb-[56.25%] h-0">
-              <video
-                className="absolute top-0 left-0 w-full h-full object-cover"
-                controls
-                autoPlay
-                muted
-                loop
-                poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-              >
-                <source
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
-                  type="video/mp4"
-                />
-                Your browser does not support the video tag.
-              </video>
+            <AnimateOnScroll>
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <video
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                  >
+                    <source
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <AnimateOnScroll delay={100} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">🎉</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
+                  <p className="text-gray-600">
+                    Experience the excitement and energy of a hibachi restaurant in your own home.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={200} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
+                  <p className="text-gray-600">
+                    Perfect entertainment for guests of all ages, creating memorable experiences.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={300} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">🔥</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
+                  <p className="text-gray-600">
+                    Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
+                  </p>
+                </div>
+              </AnimateOnScroll>
             </div>
           </div>
-
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-amber-600 text-xl">🎉</span>
-              </div>
-              <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
-              <p className="text-gray-600">
-                Experience the excitement and energy of a hibachi restaurant in your own home.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
-              </div>
-              <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
-              <p className="text-gray-600">
-                Perfect entertainment for guests of all ages, creating memorable experiences.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-amber-600 text-xl">🔥</span>
-              </div>
-              <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
-              <p className="text-gray-600">
-                Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </AnimateOnScroll>
 
       {/* Package Options Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-            Our Popular <span className="text-primary">Packages</span>
-          </h2>
-          <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-            Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any
-            occasion
-          </p>
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Our Popular <span className="text-primary">Packages</span>
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any
+                occasion
+              </p>
+            </AnimateOnScroll>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Basic Package Card */}
-            <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
-              <div className="absolute top-2 right-2 z-10">
-                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
-                  Most Popular
-                </span>
-              </div>
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
-                  alt="Basic Package"
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2">Basic Package</h3>
-                <div className="mb-4">
-                  <p className="text-lg font-semibold text-amber-600">
-                    <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                    $49.9
-                    <span className="text-sm font-normal"> per person</span>
-                  </p>
-                  <p className="text-xs text-gray-600">($499 minimum)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Basic Package Card */}
+              <AnimateOnScroll direction="left">
+                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
+                  <div className="absolute top-2 right-2 z-10">
+                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
+                      Most Popular
+                    </span>
+                  </div>
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+                      alt="Basic Package"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2">Basic Package</h3>
+                    <div className="mb-4">
+                      <p className="text-lg font-semibold text-amber-600">
+                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
+                        $49.9
+                        <span className="text-sm font-normal"> per person</span>
+                      </p>
+                      <p className="text-xs text-gray-600">($499 minimum)</p>
+                    </div>
+                    <ul className="space-y-1 mb-6 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>2 proteins of your choice</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Fried rice & vegetables</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Chef performance included</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Perfect for intimate gatherings</span>
+                      </li>
+                    </ul>
+                    <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+                      <Link href="/book">Book Now</Link>
+                    </Button>
+                  </div>
                 </div>
-                <ul className="space-y-1 mb-6 text-sm">
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>2 proteins of your choice</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Fried rice & vegetables</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Chef performance included</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Perfect for intimate gatherings</span>
-                  </li>
-                </ul>
-                <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
-                  <Link href="/book">Book Now</Link>
-                </Button>
-              </div>
+              </AnimateOnScroll>
+
+              {/* Buffet Package Card */}
+              <AnimateOnScroll direction="right">
+                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
+                  <div className="absolute top-2 right-2 z-10">
+                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
+                      Self-Service
+                    </span>
+                  </div>
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                      alt="Buffet Package"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2">Buffet Package</h3>
+                    <div className="mb-4">
+                      <p className="text-lg font-semibold text-amber-600">
+                        <span className="text-gray-500 text-sm line-through mr-2">$50</span>
+                        $39.9
+                        <span className="text-sm font-normal"> per person</span>
+                      </p>
+                      <p className="text-xs text-gray-600">($798 minimum)</p>
+                    </div>
+                    <ul className="space-y-1 mb-6 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Self-service buffet style</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Fixed menu (chicken, shrimp, beef)</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Fried rice & vegetables</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-amber-500 mr-2">•</span>
+                        <span>Ideal for larger groups (20+ people)</span>
+                      </li>
+                    </ul>
+                    <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+                      <Link href="/book">Book Now</Link>
+                    </Button>
+                  </div>
+                </div>
+              </AnimateOnScroll>
             </div>
 
-            {/* Buffet Package Card */}
-            <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
-              <div className="absolute top-2 right-2 z-10">
-                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
-                  Self-Service
-                </span>
-              </div>
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                  alt="Buffet Package"
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2">Buffet Package</h3>
-                <div className="mb-4">
-                  <p className="text-lg font-semibold text-amber-600">
-                    <span className="text-gray-500 text-sm line-through mr-2">$50</span>
-                    $39.9
-                    <span className="text-sm font-normal"> per person</span>
-                  </p>
-                  <p className="text-xs text-gray-600">($798 minimum)</p>
-                </div>
-                <ul className="space-y-1 mb-6 text-sm">
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Self-service buffet style</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Fixed menu (chicken, shrimp, beef)</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Fried rice & vegetables</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-amber-500 mr-2">•</span>
-                    <span>Ideal for larger groups (20+ people)</span>
-                  </li>
-                </ul>
-                <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
-                  <Link href="/book">Book Now</Link>
+            <AnimateOnScroll direction="up" delay={200}>
+              <div className="text-center mt-10">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                >
+                  <Link href="/menu">View All Packages</Link>
                 </Button>
               </div>
-            </div>
+            </AnimateOnScroll>
           </div>
-
-          <div className="text-center mt-10">
-            <Button
-              asChild
-              variant="outline"
-              className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-            >
-              <Link href="/menu">View All Packages</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+        </section>
+      </AnimateOnScroll>
     </div>
   )
 }

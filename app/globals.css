@@ -97,6 +97,39 @@
   }
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes flicker {
   0%,
   100% {
@@ -138,6 +171,18 @@
   animation: slideUp 1s ease-in-out 0.5s both;
 }
 
+.animate-slideDown {
+  animation: slideDown 1s ease-in-out 0.5s both;
+}
+
+.animate-slideLeft {
+  animation: slideLeft 1s ease-in-out 0.5s both;
+}
+
+.animate-slideRight {
+  animation: slideRight 1s ease-in-out 0.5s both;
+}
+
 .animate-flicker {
   animation: flicker 3s infinite ease-in-out;
 }
@@ -167,4 +212,59 @@
 /* Pause animation on hover */
 .animate-scroll:hover {
   animation-play-state: paused;
+}
+
+/* Scroll animations */
+.fade-in-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.stagger-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays for children */
+.stagger-container .stagger-item:nth-child(1) {
+  transition-delay: 0ms;
+}
+.stagger-container .stagger-item:nth-child(2) {
+  transition-delay: 100ms;
+}
+.stagger-container .stagger-item:nth-child(3) {
+  transition-delay: 200ms;
+}
+.stagger-container .stagger-item:nth-child(4) {
+  transition-delay: 300ms;
+}
+.stagger-container .stagger-item:nth-child(5) {
+  transition-delay: 400ms;
+}
+.stagger-container .stagger-item:nth-child(6) {
+  transition-delay: 500ms;
+}
+.stagger-container .stagger-item:nth-child(7) {
+  transition-delay: 600ms;
+}
+.stagger-container .stagger-item:nth-child(8) {
+  transition-delay: 700ms;
+}
+.stagger-container .stagger-item:nth-child(9) {
+  transition-delay: 800ms;
+}
+.stagger-container .stagger-item:nth-child(10) {
+  transition-delay: 900ms;
 }
