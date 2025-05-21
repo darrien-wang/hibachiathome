@@ -55,11 +55,11 @@ From its humble beginnings as a heating device in Japan to the entertaining culi
 
 Whether you're enjoying hibachi at a restaurant or in the comfort of your own home with a private chef, you're participating in a culinary tradition that has brought joy to millions of people around the world.
     `,
-    coverImage: "/images/blog/hibachi-chef.png",
+    coverImage: "/placeholder-f0mbx.png",
     date: "2023-05-15",
     author: {
       name: "Chef Tanaka",
-      avatar: "/images/authors/japanese-chef-portrait.png",
+      avatar: "/placeholder.svg?height=100&width=100&query=japanese male chef portrait",
     },
     category: "Cooking History",
     tags: ["hibachi", "japanese cuisine", "cooking techniques", "food history"],
@@ -147,11 +147,11 @@ While the full hibachi experience includes entertainment elements that are diffi
 
 Remember, hibachi cooking is about more than just the food—it's about creating an experience. So invite some friends over, show off your new skills, and enjoy the delicious results together!
     `,
-    coverImage: "/images/blog/hibachi-chef-techniques.png",
+    coverImage: "/placeholder.svg?height=600&width=1200&query=hibachi chef knife techniques cooking",
     date: "2023-06-22",
     author: {
       name: "Chef Michael Wong",
-      avatar: "/images/authors/chef-michael-wong.png",
+      avatar: "/placeholder.svg?height=100&width=100&query=asian male chef portrait",
     },
     category: "Cooking Techniques",
     tags: ["hibachi", "cooking tips", "kitchen skills", "japanese cooking"],
@@ -277,11 +277,11 @@ A hibachi party offers a unique combination of entertainment and dining that you
 
 Remember that the heart of hibachi is the shared experience—the conversation, laughter, and connection that happens when people gather around the grill. Focus on creating those moments, and your hibachi party will be a resounding success.
     `,
-    coverImage: "/images/blog/hibachi-party.png",
+    coverImage: "/placeholder.svg?height=600&width=1200&query=hibachi party at home with friends",
     date: "2023-07-10",
     author: {
       name: "Emily Chen",
-      avatar: "/images/authors/chef-emily-chen.png",
+      avatar: "/placeholder.svg?height=100&width=100&query=asian female event planner portrait",
     },
     category: "Entertainment",
     tags: ["hibachi", "party planning", "home entertainment", "japanese food"],
@@ -408,11 +408,11 @@ Understanding these differences enhances appreciation for both cooking styles an
 
 Next time you're at a Japanese steakhouse watching a chef flip a shrimp into his hat, you can impress your dining companions by correctly identifying it as teppanyaki cooking!
     `,
-    coverImage: "/images/blog/hibachi-vs-teppanyaki.png",
+    coverImage: "/placeholder.svg?height=600&width=1200&query=hibachi vs teppanyaki cooking comparison",
     date: "2023-08-05",
     author: {
       name: "Dr. James Nakamura",
-      avatar: "/images/authors/dr-james-nakamura.png",
+      avatar: "/placeholder.svg?height=100&width=100&query=japanese american professor with glasses",
     },
     category: "Food Education",
     tags: ["hibachi", "teppanyaki", "japanese cuisine", "cooking methods"],
@@ -554,11 +554,11 @@ Mastering hibachi-style fried rice at home is all about technique and quality in
 
 With practice, you'll develop the confidence to customize your fried rice with different proteins and vegetables while maintaining that authentic hibachi restaurant flavor. Your family and friends will be impressed with your Japanese steakhouse skills, and you'll save a fortune on dining out!
     `,
-    coverImage: "/images/blog/hibachi-fried-rice.png",
+    coverImage: "/placeholder.svg?height=600&width=1200&query=hibachi fried rice with egg and vegetables",
     date: "2023-09-18",
     author: {
       name: "Lisa Yamamoto",
-      avatar: "/images/authors/chef-lisa-yamamoto.png",
+      avatar: "/placeholder.svg?height=100&width=100&query=japanese female chef with black hair",
     },
     category: "Recipes",
     tags: ["hibachi", "fried rice", "japanese recipes", "cooking tutorial"],

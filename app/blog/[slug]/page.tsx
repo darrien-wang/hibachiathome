@@ -3,7 +3,6 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { blogPosts } from "@/config/blog-posts"
 import { ArrowLeft, Calendar, Clock, Tag } from "lucide-react"
-import customImageLoader from "@/lib/image-loader"
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const post = blogPosts.find((post) => post.slug === params.slug)
@@ -72,23 +71,23 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
           <div className="relative aspect-[2/1] w-full mb-8 rounded-lg overflow-hidden">
             <Image
-              loader={customImageLoader}
               src={post.coverImage || "/placeholder.svg?height=600&width=1200&query=hibachi cooking"}
               alt={post.title}
               fill
               className="object-cover"
               priority
+              unoptimized
             />
           </div>
 
           <div className="flex items-center gap-4 mb-8 p-4 border-y border-gray-100">
             <div className="relative w-12 h-12 rounded-full overflow-hidden">
               <Image
-                loader={customImageLoader}
                 src={post.author.avatar || "/placeholder.svg?height=100&width=100&query=chef portrait"}
                 alt={post.author.name}
                 fill
                 className="object-cover"
+                unoptimized
               />
             </div>
             <div>
