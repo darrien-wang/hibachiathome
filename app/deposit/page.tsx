@@ -116,8 +116,8 @@ export default function DepositPaymentPage() {
 
   // 计算押金金额
   const calculateDepositAmount = () => {
-    // 固定押金金额为 $200
-    return paymentConfig.depositAmount || 200
+    // 固定押金金额为 $100
+    return paymentConfig.depositAmount || 100
   }
 
   if (loading) {
@@ -276,7 +276,7 @@ export default function DepositPaymentPage() {
                   <p className="font-medium">${totalAmount.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Deposit Amount (20%)</p>
+                  <p className="text-sm text-gray-500">Deposit Amount</p>
                   <p className="font-bold text-lg text-primary">${paymentConfig.depositAmount.toFixed(2)}</p>
                 </div>
               </div>
