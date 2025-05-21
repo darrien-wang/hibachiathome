@@ -316,7 +316,7 @@ export default function BookingForm({
                 <p className="font-medium">Cancelation Policy & Weather Policy</p>
                 <p>
                   48 hours notice for all cancellations and rescheduled parties or guest will be charged a fee of
-                  $200.00. If it rains, customer is required to provide some type of covering for the chef to cook under
+                  $100.00. If it rains, customer is required to provide some type of covering for the chef to cook under
                   so they can stay dry. We can cook under tents, and patios. Customer is responsible for canceling due
                   to inclement weather within 48 hours of your party.
                 </p>
