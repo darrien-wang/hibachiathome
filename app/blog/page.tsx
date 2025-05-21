@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { blogPosts } from "@/config/blog-posts"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import customImageLoader from "@/lib/image-loader"
 
 export const metadata = {
   title: "Blog | Hibachi Catering",
@@ -24,7 +25,8 @@ export default function BlogPage() {
             <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300">
               <div className="aspect-video relative overflow-hidden">
                 <Image
-                  src={post.coverImage || "/placeholder.svg"}
+                  loader={customImageLoader}
+                  src={post.coverImage || "/placeholder.svg?height=600&width=1200&query=hibachi cooking"}
                   alt={post.title}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -46,7 +48,8 @@ export default function BlogPage() {
               <CardFooter className="p-4 pt-0 flex items-center gap-3">
                 <div className="relative w-8 h-8 rounded-full overflow-hidden">
                   <Image
-                    src={post.author.avatar || "/placeholder.svg"}
+                    loader={customImageLoader}
+                    src={post.author.avatar || "/placeholder.svg?height=100&width=100&query=chef portrait"}
                     alt={post.author.name}
                     fill
                     className="object-cover"

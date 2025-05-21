@@ -55,11 +55,11 @@ From its humble beginnings as a heating device in Japan to the entertaining culi
 
 Whether you're enjoying hibachi at a restaurant or in the comfort of your own home with a private chef, you're participating in a culinary tradition that has brought joy to millions of people around the world.
     `,
-    coverImage: "/hibachi-chef.png",
+    coverImage: "/images/blog/hibachi-chef.png",
     date: "2023-05-15",
     author: {
       name: "Chef Tanaka",
-      avatar: "/japanese-chef-portrait.png",
+      avatar: "/images/authors/japanese-chef-portrait.png",
     },
     category: "Cooking History",
     tags: ["hibachi", "japanese cuisine", "cooking techniques", "food history"],
@@ -147,11 +147,11 @@ While the full hibachi experience includes entertainment elements that are diffi
 
 Remember, hibachi cooking is about more than just the food—it's about creating an experience. So invite some friends over, show off your new skills, and enjoy the delicious results together!
     `,
-    coverImage: "/hibachi-chef-techniques.png",
+    coverImage: "/images/blog/hibachi-chef-techniques.png",
     date: "2023-06-22",
     author: {
       name: "Chef Michael Wong",
-      avatar: "/chef-michael-wong.png",
+      avatar: "/images/authors/chef-michael-wong.png",
     },
     category: "Cooking Techniques",
     tags: ["hibachi", "cooking tips", "kitchen skills", "japanese cooking"],
@@ -277,11 +277,11 @@ A hibachi party offers a unique combination of entertainment and dining that you
 
 Remember that the heart of hibachi is the shared experience—the conversation, laughter, and connection that happens when people gather around the grill. Focus on creating those moments, and your hibachi party will be a resounding success.
     `,
-    coverImage: "/hibachi-party.png",
+    coverImage: "/images/blog/hibachi-party.png",
     date: "2023-07-10",
     author: {
       name: "Emily Chen",
-      avatar: "/chef-emily-chen.png",
+      avatar: "/images/authors/chef-emily-chen.png",
     },
     category: "Entertainment",
     tags: ["hibachi", "party planning", "home entertainment", "japanese food"],
@@ -408,11 +408,11 @@ Understanding these differences enhances appreciation for both cooking styles an
 
 Next time you're at a Japanese steakhouse watching a chef flip a shrimp into his hat, you can impress your dining companions by correctly identifying it as teppanyaki cooking!
     `,
-    coverImage: "/hibachi-vs-teppanyaki.png",
+    coverImage: "/images/blog/hibachi-vs-teppanyaki.png",
     date: "2023-08-05",
     author: {
       name: "Dr. James Nakamura",
-      avatar: "/dr-james-nakamura.png",
+      avatar: "/images/authors/dr-james-nakamura.png",
     },
     category: "Food Education",
     tags: ["hibachi", "teppanyaki", "japanese cuisine", "cooking methods"],
@@ -554,11 +554,11 @@ Mastering hibachi-style fried rice at home is all about technique and quality in
 
 With practice, you'll develop the confidence to customize your fried rice with different proteins and vegetables while maintaining that authentic hibachi restaurant flavor. Your family and friends will be impressed with your Japanese steakhouse skills, and you'll save a fortune on dining out!
     `,
-    coverImage: "/hibachi-fried-rice.png",
+    coverImage: "/images/blog/hibachi-fried-rice.png",
     date: "2023-09-18",
     author: {
       name: "Lisa Yamamoto",
-      avatar: "/chef-lisa-yamamoto.png",
+      avatar: "/images/authors/chef-lisa-yamamoto.png",
     },
     category: "Recipes",
     tags: ["hibachi", "fried rice", "japanese recipes", "cooking tutorial"],

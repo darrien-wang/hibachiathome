@@ -9,6 +9,13 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['blob.v0.dev', 'pr65kebnwwqnqr8l.public.blob.vercel-storage.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
   async rewrites() {
     return [
