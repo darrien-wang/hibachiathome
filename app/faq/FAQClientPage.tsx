@@ -110,7 +110,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "What is your cancellation policy?",
     answer:
-      "Our cancellation policy includes the following terms:\n\n- 48 hours' notice required for cancellations or reschedules\n- Late changes incur a $200 fee\n- Weather contingency: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event\n- If you need to cancel due to weather, please let us know at least 48 hours beforehand",
+      "Our cancellation policy includes the following terms:\n\n- 48 hours' notice required for cancellations or reschedules\n- Late changes incur a $100 fee\n- Weather contingency: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event\n- If you need to cancel due to weather, please let us know at least 48 hours beforehand",
   },
 ]
 
