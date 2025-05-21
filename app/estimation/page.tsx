@@ -213,18 +213,18 @@ function useCostCalculation(formData: FormData) {
     const suggestedTip = total * 0.2
 
     return {
-      adultsCost,
-      kidsCost,
-      filetMignonCost,
-      lobsterTailCost,
-      extraProteinsCost,
-      noodlesCost,
-      gyozaCost,
-      edamameCost,
-      travelFee,
-      subtotal,
-      suggestedTip,
-      total,
+      adultsCost: Number(adultsCost.toFixed(2)),
+      kidsCost: Number(kidsCost.toFixed(2)),
+      filetMignonCost: Number(filetMignonCost.toFixed(2)),
+      lobsterTailCost: Number(lobsterTailCost.toFixed(2)),
+      extraProteinsCost: Number(extraProteinsCost.toFixed(2)),
+      noodlesCost: Number(noodlesCost.toFixed(2)),
+      gyozaCost: Number(gyozaCost.toFixed(2)),
+      edamameCost: Number(edamameCost.toFixed(2)),
+      travelFee: Number(travelFee.toFixed(2)),
+      subtotal: Number(subtotal.toFixed(2)),
+      suggestedTip: Number(suggestedTip.toFixed(2)),
+      total: Number(total.toFixed(2)),
     }
   }, [
     formData.adults,
