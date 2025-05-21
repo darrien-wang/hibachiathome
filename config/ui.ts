@@ -172,5 +172,5 @@ export const paymentMethodsConfig: PaymentMethodConfig[] = [
 
 export const paymentConfig = {
   stripePaymentLink: "https://buy.stripe.com/fZecPIeSL0e658I7ss",
-  depositAmount: 00,
+  depositAmount: 100,
 }
