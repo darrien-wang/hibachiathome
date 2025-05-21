@@ -71,23 +71,21 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
           <div className="relative aspect-[2/1] w-full mb-8 rounded-lg overflow-hidden">
             <Image
-              src={post.coverImage || "/placeholder.svg?height=600&width=1200&query=hibachi cooking"}
+              src={post.coverImage || "/placeholder.svg"}
               alt={post.title}
               fill
               className="object-cover"
               priority
-              unoptimized
             />
           </div>
 
           <div className="flex items-center gap-4 mb-8 p-4 border-y border-gray-100">
             <div className="relative w-12 h-12 rounded-full overflow-hidden">
               <Image
-                src={post.author.avatar || "/placeholder.svg?height=100&width=100&query=chef portrait"}
+                src={post.author.avatar || "/placeholder.svg"}
                 alt={post.author.name}
                 fill
                 className="object-cover"
-                unoptimized
               />
             </div>
             <div>

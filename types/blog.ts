@@ -1,8 +1,3 @@
-export interface Author {
-  name: string
-  avatar: string
-}
-
 export interface BlogPost {
   id: string
   title: string
@@ -11,7 +6,10 @@ export interface BlogPost {
   content: string
   coverImage: string
   date: string
-  author: Author
+  author: {
+    name: string
+    avatar: string
+  }
   category: string
   tags: string[]
   readTime: number
