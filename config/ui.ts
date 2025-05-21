@@ -83,7 +83,7 @@ export const paymentMethodsConfig: PaymentMethodConfig[] = [
     steps: [
       {
         title: "Confirm Amount",
-        description: "You will be charged $200 for your deposit.",
+        description: "You will be charged $100 for your deposit.",
       },
       {
         title: "Enter Card Details",
@@ -150,7 +150,7 @@ export const paymentMethodsConfig: PaymentMethodConfig[] = [
     qrCode: "/zelle-qrcode.png",
     accountInfo: {
       email: "payments@hibachichef.com",
-      phone: "(555) 123-4567",
+      phone: "(213)770-7788",
     },
     color: "#6D1ED4",
     steps: [
