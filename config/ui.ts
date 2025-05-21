@@ -104,7 +104,7 @@ export const paymentMethodsConfig: PaymentMethodConfig[] = [
     steps: [
       {
         title: "Confirm Amount",
-        description: "You will be charged $200 for your deposit.",
+        description: "You will be charged $100 for your deposit.",
       },
       {
         title: "Connect Square",
