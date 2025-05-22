@@ -10,12 +10,14 @@ export const createServerSupabaseClient = () => {
 
   if (!supabaseUrl) {
     console.error("Missing SUPABASE_URL environment variable")
-    throw new Error("Missing SUPABASE_URL environment variable")
+    // Instead of throwing an error, return null or a mock client
+    return null
   }
 
   if (!supabaseServiceKey) {
     console.error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable")
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable")
+    // Instead of throwing an error, return null or a mock client
+    return null
   }
 
   return createSupabaseClient(supabaseUrl, supabaseServiceKey)
@@ -31,7 +33,9 @@ export const createClientSupabaseClient = () => {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Missing Supabase environment variables")
+    console.error("Missing Supabase environment variables")
+    // Instead of throwing an error, return null or a mock client
+    return null
   }
 
   clientSupabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey)
@@ -44,7 +48,9 @@ export const createClientComponentClient = () => {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Missing Supabase environment variables")
+    console.error("Missing Supabase environment variables")
+    // Instead of throwing an error, return null or a mock client
+    return null
   }
 
   return createSupabaseClient(supabaseUrl, supabaseAnonKey)
