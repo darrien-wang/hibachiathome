@@ -3,12 +3,14 @@
 import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
-import Script from "next/script"
 
 // 在文件顶部添加以下类型声明：
 declare global {
   interface Window {
     google: any
+    googleMapsScriptLoaded: boolean
+    googleMapsLoaded: boolean
+    initGoogleMapsCallback: () => void
   }
 }
 
@@ -32,6 +34,49 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   const autocompleteRef = useRef<any>(null)
   const [scriptLoaded, setScriptLoaded] = useState(false)
   const [inputValue, setInputValue] = useState(value)
+
+  // Load Google Maps script
+  useEffect(() => {
+    // Check if script is already loaded
+    if (window.google?.maps?.places) {
+      setScriptLoaded(true)
+      return
+    }
+
+    // Create a function to handle script loading
+    const loadGoogleMapsScript = async () => {
+      try {
+        // Fetch the script content from our API
+        const response = await fetch("/api/google-maps-script")
+        if (!response.ok) throw new Error("Failed to load Google Maps script")
+
+        const scriptContent = await response.text()
+
+        // Execute the script content
+        const scriptElement = document.createElement("script")
+        scriptElement.type = "text/javascript"
+        scriptElement.text = scriptContent
+        document.head.appendChild(scriptElement)
+
+        // Set up a listener for when Google Maps is fully loaded
+        const checkGoogleMapsLoaded = setInterval(() => {
+          if (window.google?.maps?.places) {
+            clearInterval(checkGoogleMapsLoaded)
+            setScriptLoaded(true)
+          }
+        }, 100)
+
+        // Clear interval after 10 seconds to prevent infinite checking
+        setTimeout(() => clearInterval(checkGoogleMapsLoaded), 10000)
+      } catch (error) {
+        console.error("Error loading Google Maps:", error)
+      }
+    }
+
+    loadGoogleMapsScript()
+
+    // No need for event listener cleanup since we're using intervals with timeouts
+  }, [])
 
   // Initialize autocomplete when script is loaded and input is available
   useEffect(() => {
@@ -71,19 +116,16 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   }
 
   return (
-    <>
-      <Script src="/api/google-maps-loader" onLoad={() => setScriptLoaded(true)} strategy="lazyOnload" />
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white ${className}`}
-        required={required}
-        autoComplete="street-address"
-      />
-    </>
+    <input
+      ref={inputRef}
+      type="text"
+      value={inputValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white ${className}`}
+      required={required}
+      autoComplete="street-address"
+    />
   )
 }
 

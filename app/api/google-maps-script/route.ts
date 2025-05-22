@@ -5,7 +5,12 @@ export async function GET() {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY
 
   if (!apiKey) {
-    return new NextResponse("Google Maps API key not configured", { status: 500 })
+    return new NextResponse("console.error('Google Maps API key not configured');", {
+      status: 200,
+      headers: {
+        "Content-Type": "application/javascript",
+      },
+    })
   }
 
   // Generate a script that will load the Google Maps API
@@ -15,15 +20,12 @@ export async function GET() {
       window.googleMapsScriptLoaded = true;
       
       const script = document.createElement('script');
-      script.src = "https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsCallback";
+      script.src = "https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places";
       script.async = true;
       script.defer = true;
       
-      // Create a global callback that will resolve the promise
-      window.initGoogleMapsCallback = function() {
+      script.onload = function() {
         window.googleMapsLoaded = true;
-        const event = new Event('google-maps-loaded');
-        window.dispatchEvent(event);
       };
       
       document.head.appendChild(script);
