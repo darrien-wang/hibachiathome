@@ -61,14 +61,14 @@ const preloadComponents = () => {
 }
 
 type FormData = {
-  adults: number
-  kids: number
-  filetMignon: number
-  lobsterTail: number
-  extraProteins: number
-  noodles: number
-  gyoza: number
-  edamame: number
+  adults: number | string
+  kids: number | string
+  filetMignon: number | string
+  lobsterTail: number | string
+  extraProteins: number | string
+  noodles: number | string
+  gyoza: number | string
+  edamame: number | string
   zipcode: string
   name: string
   email: string
@@ -209,14 +209,14 @@ function useCostCalculation(formData: FormData) {
     const edamamePrice = 8
 
     const travelFee = calculateTravelFee(formData.zipcode)
-    const adultsCost = formData.adults * adultPrice
-    const kidsCost = formData.kids * kidPrice
-    const filetMignonCost = formData.filetMignon * filetUpcharge
-    const lobsterTailCost = formData.lobsterTail * lobsterUpcharge
-    const extraProteinsCost = formData.extraProteins * extraProteinPrice
-    const noodlesCost = formData.noodles * noodlePrice
-    const gyozaCost = formData.gyoza * gyozaPrice
-    const edamameCost = formData.edamame * edamamePrice
+    const adultsCost = (Number(formData.adults) || 0) * adultPrice
+    const kidsCost = (Number(formData.kids) || 0) * kidPrice
+    const filetMignonCost = (Number(formData.filetMignon) || 0) * filetUpcharge
+    const lobsterTailCost = (Number(formData.lobsterTail) || 0) * lobsterUpcharge
+    const extraProteinsCost = (Number(formData.extraProteins) || 0) * extraProteinPrice
+    const noodlesCost = (Number(formData.noodles) || 0) * noodlePrice
+    const gyozaCost = (Number(formData.gyoza) || 0) * gyozaPrice
+    const edamameCost = (Number(formData.edamame) || 0) * edamamePrice
 
     const mealCost =
       adultsCost +
@@ -495,17 +495,14 @@ function EstimationContent() {
       hasShownPopupRef.current = false
     }
 
-    // 确保滚动到表单顶部
+    // 确保滚动到固定位置（向下70px）
     setTimeout(() => {
-      const formElement = document.getElementById("estimation-form")
-      if (formElement) {
-        window.scrollTo({
-          top: formElement.offsetTop - 20,
-          behavior: "smooth",
-        })
-      }
+      window.scrollTo({
+        top: 140,
+        behavior: "smooth",
+      })
     }, 100)
-  }, [currentStep])
+  }, [currentStep, totalSteps])
 
   const goToPreviousStep = useCallback(() => {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
@@ -529,17 +526,31 @@ function EstimationContent() {
   }, [])
 
   const handleNumberChange = useCallback((field: keyof FormData, value: string) => {
-    const numValue = Number.parseInt(value) || 0
-    const validValue = Math.max(0, numValue)
-    dispatch({ type: "UPDATE_FIELD", field, value: validValue })
+    if (value === "") {
+      dispatch({ type: "UPDATE_FIELD", field, value: "" })
+    } else {
+      const numValue = Number.parseInt(value) || 0
+      const validValue = Math.max(0, numValue)
+      dispatch({ type: "UPDATE_FIELD", field, value: validValue })
+    }
   }, [])
+
+  const handleBlur = useCallback(
+    (field: keyof FormData) => {
+      const value = formData[field]
+      if (value === "") {
+        dispatch({ type: "UPDATE_FIELD", field, value: 0 })
+      }
+    },
+    [formData],
+  )
 
   const handleIncrement = useCallback(
     (field: keyof FormData) => {
       dispatch({
         type: "UPDATE_FIELD",
         field,
-        value: (formData[field] as number) + 1,
+        value: (Number(formData[field]) || 0) + 1,
       })
     },
     [formData],
@@ -547,11 +558,11 @@ function EstimationContent() {
 
   const handleDecrement = useCallback(
     (field: keyof FormData) => {
-      if ((formData[field] as number) > 0) {
+      if ((Number(formData[field]) || 0) > 0) {
         dispatch({
           type: "UPDATE_FIELD",
           field,
-          value: (formData[field] as number) - 1,
+          value: (Number(formData[field]) || 0) - 1,
         })
       }
     },
@@ -586,7 +597,10 @@ function EstimationContent() {
 
   // 修复表单验证函数
   const isEstimationValid = useMemo(
-    () => (formData.adults > 0 || formData.kids > 0) && formData.zipcode && formData.zipcode.length === 5,
+    () =>
+      ((Number(formData.adults) || 0) > 0 || (Number(formData.kids) || 0) > 0) &&
+      formData.zipcode &&
+      formData.zipcode.length === 5,
     [formData.adults, formData.kids, formData.zipcode],
   )
 
@@ -648,14 +662,14 @@ function EstimationContent() {
         zipcode: formData.zipcode,
         eventDate: formData.eventDate,
         eventTime: formData.eventTime,
-        adults: formData.adults,
-        kids: formData.kids,
-        filetMignon: formData.filetMignon,
-        lobsterTail: formData.lobsterTail,
-        extraProteins: formData.extraProteins,
-        noodles: formData.noodles,
-        gyoza: formData.gyoza,
-        edamame: formData.edamame,
+        adults: Number(formData.adults) || 0,
+        kids: Number(formData.kids) || 0,
+        filetMignon: Number(formData.filetMignon) || 0,
+        lobsterTail: Number(formData.lobsterTail) || 0,
+        extraProteins: Number(formData.extraProteins) || 0,
+        noodles: Number(formData.noodles) || 0,
+        gyoza: Number(formData.gyoza) || 0,
+        edamame: Number(formData.edamame) || 0,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,
       }
@@ -701,7 +715,7 @@ function EstimationContent() {
   }
 
   // 计算总人数，确保至少为1
-  const totalGuests = Math.max(1, formData.adults + formData.kids)
+  const totalGuests = Math.max(1, (Number(formData.adults) || 0) + (Number(formData.kids) || 0))
 
   // 修改复选框处理函数
   const handleCheckboxChange = (checked: boolean) => {
@@ -762,6 +776,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.adults}
                       onChange={(e) => handleNumberChange("adults", e.target.value)}
+                      onBlur={() => handleBlur("adults")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -791,6 +806,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.kids}
                       onChange={(e) => handleNumberChange("kids", e.target.value)}
+                      onBlur={() => handleBlur("kids")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -810,7 +826,7 @@ function EstimationContent() {
               <div className="pt-4">
                 <button
                   onClick={goToNextStep}
-                  disabled={formData.adults === 0 && formData.kids === 0}
+                  disabled={(Number(formData.adults) || 0) === 0 && (Number(formData.kids) || 0) === 0}
                   className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
                 >
                   Next Step
@@ -839,6 +855,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.gyoza}
                       onChange={(e) => handleNumberChange("gyoza", e.target.value)}
+                      onBlur={() => handleBlur("gyoza")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -867,6 +884,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.edamame}
                       onChange={(e) => handleNumberChange("edamame", e.target.value)}
+                      onBlur={() => handleBlur("edamame")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -929,6 +947,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.filetMignon}
                       onChange={(e) => handleNumberChange("filetMignon", e.target.value)}
+                      onBlur={() => handleBlur("filetMignon")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -957,6 +976,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.lobsterTail}
                       onChange={(e) => handleNumberChange("lobsterTail", e.target.value)}
+                      onBlur={() => handleBlur("lobsterTail")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -1019,6 +1039,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.extraProteins}
                       onChange={(e) => handleNumberChange("extraProteins", e.target.value)}
+                      onBlur={() => handleBlur("extraProteins")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -1047,6 +1068,7 @@ function EstimationContent() {
                       type="number"
                       value={formData.noodles}
                       onChange={(e) => handleNumberChange("noodles", e.target.value)}
+                      onBlur={() => handleBlur("noodles")}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
                     />
@@ -1112,21 +1134,21 @@ function EstimationContent() {
                   <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
                     <h3 className="text-xl font-bold mb-3">Your Estimated Price</h3>
 
-                    {(formData.adults > 0 || formData.kids > 0) && (
+                    {((Number(formData.adults) || 0) > 0 || (Number(formData.kids) || 0) > 0) && (
                       <div className="space-y-2">
-                        {formData.adults > 0 && (
+                        {(Number(formData.adults) || 0) > 0 && (
                           <div className="flex justify-between">
                             <span>
-                              Adults ({formData.adults} x ${pricing.packages.basic.perPerson})
+                              Adults ({Number(formData.adults) || 0} x ${pricing.packages.basic.perPerson})
                             </span>
                             <span>${costs.adultsCost}</span>
                           </div>
                         )}
 
-                        {formData.kids > 0 && (
+                        {(Number(formData.kids) || 0) > 0 && (
                           <div className="flex justify-between">
                             <span>
-                              Children ({formData.kids} x ${pricing.children.basic})
+                              Children ({Number(formData.kids) || 0} x ${pricing.children.basic})
                             </span>
                             <span>${costs.kidsCost}</span>
                           </div>
@@ -1134,57 +1156,57 @@ function EstimationContent() {
                       </div>
                     )}
 
-                    {(formData.filetMignon > 0 || formData.lobsterTail > 0) && (
+                    {((Number(formData.filetMignon) || 0) > 0 || (Number(formData.lobsterTail) || 0) > 0) && (
                       <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
                         <h4 className="font-medium">Premium Upgrades</h4>
-                        {formData.filetMignon > 0 && (
+                        {(Number(formData.filetMignon) || 0) > 0 && (
                           <div className="flex justify-between">
-                            <span>Filet Mignon ({formData.filetMignon} x $5)</span>
+                            <span>Filet Mignon ({Number(formData.filetMignon) || 0} x $5)</span>
                             <span>${costs.filetMignonCost}</span>
                           </div>
                         )}
 
-                        {formData.lobsterTail > 0 && (
+                        {(Number(formData.lobsterTail) || 0) > 0 && (
                           <div className="flex justify-between">
-                            <span>Lobster Tail ({formData.lobsterTail} x $10)</span>
+                            <span>Lobster Tail ({Number(formData.lobsterTail) || 0} x $10)</span>
                             <span>${costs.lobsterTailCost}</span>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {(formData.extraProteins > 0 || formData.noodles > 0) && (
+                    {((Number(formData.extraProteins) || 0) > 0 || (Number(formData.noodles) || 0) > 0) && (
                       <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
                         <h4 className="font-medium">Side Dishes</h4>
-                        {formData.extraProteins > 0 && (
+                        {(Number(formData.extraProteins) || 0) > 0 && (
                           <div className="flex justify-between">
-                            <span>Extra Proteins ({formData.extraProteins} x $15)</span>
+                            <span>Extra Proteins ({Number(formData.extraProteins) || 0} x $15)</span>
                             <span>${costs.extraProteinsCost}</span>
                           </div>
                         )}
 
-                        {formData.noodles > 0 && (
+                        {(Number(formData.noodles) || 0) > 0 && (
                           <div className="flex justify-between">
-                            <span>Noodles ({formData.noodles} x $5)</span>
+                            <span>Noodles ({Number(formData.noodles) || 0} x $5)</span>
                             <span>${costs.noodlesCost}</span>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {(formData.gyoza > 0 || formData.edamame > 0) && (
+                    {((Number(formData.gyoza) || 0) > 0 || (Number(formData.edamame) || 0) > 0) && (
                       <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
                         <h4 className="font-medium">Appetizers</h4>
-                        {formData.gyoza > 0 && (
+                        {(Number(formData.gyoza) || 0) > 0 && (
                           <div className="flex justify-between">
-                            <span>Gyoza ({formData.gyoza} x $10)</span>
+                            <span>Gyoza ({Number(formData.gyoza) || 0} x $10)</span>
                             <span>${costs.gyozaCost}</span>
                           </div>
                         )}
 
-                        {formData.edamame > 0 && (
+                        {(Number(formData.edamame) || 0) > 0 && (
                           <div className="flex justify-between">
-                            <span>Edamame ({formData.edamame} x $8)</span>
+                            <span>Edamame ({Number(formData.edamame) || 0} x $8)</span>
                             <span>${costs.edamameCost}</span>
                           </div>
                         )}
@@ -1290,10 +1312,10 @@ function EstimationContent() {
                         <GooglePlacesAutocomplete
                           value={formData.address}
                           onChange={(value, placeDetails) => {
-                            handleInputChange("address", value)
-
-                            // 如果有地点详情，解析并填充其他字段
+                            // 如果有地点详情，解析并填充各个字段
                             if (placeDetails && placeDetails.address_components) {
+                              let streetNumber = ""
+                              let streetName = ""
                               let city = ""
                               let state = ""
                               let zipcode = ""
@@ -1301,6 +1323,16 @@ function EstimationContent() {
                               // 解析地址组件
                               placeDetails.address_components.forEach((component: any) => {
                                 const types = component.types
+
+                                // 获取街道号码
+                                if (types.includes("street_number")) {
+                                  streetNumber = component.long_name
+                                }
+
+                                // 获取街道名称
+                                if (types.includes("route")) {
+                                  streetName = component.long_name
+                                }
 
                                 // 获取城市
                                 if (
@@ -1322,6 +1354,12 @@ function EstimationContent() {
                                 }
                               })
 
+                              // 构建街道地址（只包含街道号码和街道名称）
+                              const streetAddress = `${streetNumber} ${streetName}`.trim()
+
+                              // 更新街道地址
+                              handleInputChange("address", streetAddress)
+
                               // 更新城市和州字段的显示值
                               const cityInput = document.getElementById("city-input") as HTMLInputElement
                               const stateInput = document.getElementById("state-input") as HTMLInputElement
@@ -1332,6 +1370,9 @@ function EstimationContent() {
                               if (zipcode) {
                                 handleInputChange("zipcode", zipcode)
                               }
+                            } else {
+                              // 如果没有地点详情，直接使用输入值
+                              handleInputChange("address", value)
                             }
                           }}
                           placeholder="Enter your street address"

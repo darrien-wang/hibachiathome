@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 判断是否打折
+        // 判断是���打折
         let price = base;
         if (hasHighLoadSlot && available && hasSufficientGap) {
           const discountPrice = Math.floor(base * (1 - DISCOUNT_RATE));
