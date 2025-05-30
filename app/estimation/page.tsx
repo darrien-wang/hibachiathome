@@ -470,7 +470,14 @@ function EstimationContent() {
   }
 
   const goToNextStep = useCallback(() => {
-    setCurrentStep((prev) => Math.min(prev + 1, totalSteps))
+    const nextStep = Math.min(currentStep + 1, totalSteps)
+
+    // 当进入第6步时，清空zipcode状态
+    if (nextStep === 6) {
+      dispatch({ type: "UPDATE_FIELD", field: "zipcode", value: "" })
+    }
+
+    setCurrentStep(nextStep)
 
     // 重置退出意图状态
     if (currentStep === 5) {
@@ -922,7 +929,7 @@ function EstimationContent() {
                     >
                       +
                     </button>
-                    <span className="ml-3 text-[#6B7280]">+$5 per person</span>
+                    <span className="ml-3 text-[#6B7280]">$5 per person</span>
                   </div>
                 </div>
 
@@ -950,7 +957,7 @@ function EstimationContent() {
                     >
                       +
                     </button>
-                    <span className="ml-3 text-[#6B7280]">+$10 per person</span>
+                    <span className="ml-3 text-[#6B7280]">$10 per person</span>
                   </div>
                 </div>
               </div>
