@@ -59,7 +59,7 @@ export default function BookingPage() {
               description: "Speak with us",
               icon: null,
               buttonText: siteConfig.contact.phone || "213-770-7788",
-              href: `tel:${siteConfig.contact.phoneRaw || "15627134832"}`,
+              href: `tel:${siteConfig.contact.phone || "15627134832"}`,
               external: false,
               variant: "outline",
             },
