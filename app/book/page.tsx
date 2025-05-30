@@ -50,7 +50,7 @@ export default function BookingPage() {
               description: "Text us directly",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "SMS",
-              href: `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience`,
+              href: `sms:12137707788?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience`,
               external: false,
               variant: "outline",
             },
