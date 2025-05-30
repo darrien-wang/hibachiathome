@@ -26,7 +26,7 @@ export default function BookingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10 max-w-5xl mx-auto">
           {[
-             {
+            {
               title: "Online Booking",
               description: "Book at your convenience",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
@@ -50,7 +50,7 @@ export default function BookingPage() {
               description: "Text us directly",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "SMS",
-              href: `sms:${siteConfig.contact.phoneRaw || "15627134832"}?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience`,
+              href: `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20hibachi%20experience`,
               external: false,
               variant: "outline",
             },
@@ -63,7 +63,6 @@ export default function BookingPage() {
               external: false,
               variant: "outline",
             },
-
           ].map((card, index) => (
             <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
               <CardHeader className="h-[120px] flex flex-col justify-center">
