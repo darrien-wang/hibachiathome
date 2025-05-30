@@ -379,7 +379,7 @@ export default function Home() {
           ))}
         </div>
         <div className="absolute inset-0 bg-black/60 z-10"></div>
-        <div className="container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16">
+        <div className="container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 overflow-x-hidden">
           <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
             <h1
               className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn"
@@ -419,7 +419,7 @@ export default function Home() {
               </Button>
             </div>
             <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
-              Top-tier food & service. No hidden fees. From $499.
+              Top-tier food & service. No hidden fees. From $599.
             </p>
           </div>
         </div>
@@ -562,16 +562,16 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Watch Our <span className="text-primary">Chef in Action</span>
+                When Our Fire Gets Too Real
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Experience the artistry and skill behind our authentic hibachi cooking
+                Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!
               </p>
             </AnimateOnScroll>
 
             <AnimateOnScroll>
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
+              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[177.78%] h-0">
                   <video
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
@@ -581,7 +581,7 @@ export default function Home() {
                     poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
                   >
                     <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/splitfire-yi4XvpO3hkWlZOn2w4PCikuIV4N7oR.mp4"
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
                       type="video/mp4"
                     />
                     Your browser does not support the video tag.
@@ -590,13 +590,14 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="mt-8 text-center">
-                <p className="text-amber-600 font-medium">
-                  Our chefs bring the same excitement and culinary expertise to your home
-                </p>
-              </div>
-            </AnimateOnScroll>
+            <div className="mt-8 text-center">
+              <p className="text-amber-600 font-medium">
+                Our hibachi fire is so real, sometimes we get unexpected guests! 🚒
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                Don't worry - our chefs are trained professionals who know how to handle the heat safely.
+              </p>
+            </div>
           </div>
         </section>
       </AnimateOnScroll>
@@ -921,11 +922,11 @@ export default function Home() {
                     <h3 className="text-xl font-bold mb-2">Basic Package</h3>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $49.9
+                        <span className="text-gray-500 text-sm line-through mr-2">$70</span>
+                        $59.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
-                      <p className="text-xs text-gray-600">($499 minimum)</p>
+                      <p className="text-xs text-gray-600">($599 minimum)</p>
                     </div>
                     <ul className="space-y-1 mb-6 text-sm">
                       <li className="flex items-start">
@@ -971,11 +972,11 @@ export default function Home() {
                     <h3 className="text-xl font-bold mb-2">Buffet Package</h3>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$50</span>
-                        $39.9
+                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
+                        $49.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
-                      <p className="text-xs text-gray-600">($798 minimum)</p>
+                      <p className="text-xs text-gray-600">($998 minimum)</p>
                     </div>
                     <ul className="space-y-1 mb-6 text-sm">
                       <li className="flex items-start">

@@ -25,10 +25,13 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: "Hibachi at home in NYC - Real Hibachi | Private Chef Experience",
+  title: {
+    default: "Real Hibachi | Private Chef & Hibachi At Home Experience",
+    template: "%s - Real Hibachi",
+  },
   description:
-    "Hibachi at home in NYC - Enjoy a professional hibachi chef experience in the comfort of your own home or venue.",
-  keywords: "Hibachi at home in NYC,Real Hibachi",
+    "Enjoy a professional hibachi chef experience in the comfort of your own home or venue with Real Hibachi. Serving delicious food and unforgettable entertainment.",
+  keywords: "Hibachi at home, private chef, hibachi catering, teppanyaki, party catering, Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],
   icons: {
@@ -41,7 +44,7 @@ export const metadata: Metadata = {
       url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
     },
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -58,20 +61,20 @@ export default function RootLayout({
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-5QDRG6LHBN" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-5QDRG6LHBN');
-          `}
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-5QDRG6LHBN');
+        `}
         </Script>
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-WQZNBK82');
-  `}
+  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-WQZNBK82');
+`}
         </Script>
 
         <link

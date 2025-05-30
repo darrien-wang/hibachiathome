@@ -22,8 +22,8 @@ export const siteConfig = {
 
   // Social media links
   social: {
-    facebook: "#",
-    instagram: "#",
-    twitter: "#",
+    facebook: "https://www.facebook.com/profile.php?id=61576199137704",
+    instagram: "https://www.instagram.com/realhibachi/",
+    twitter: "#", // Assuming twitter remains unchanged or is a placeholder
   },
 }

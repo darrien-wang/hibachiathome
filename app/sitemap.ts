@@ -1,40 +1,47 @@
 import type { MetadataRoute } from "next"
+import { siteConfig } from "@/config/site"
+import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog posts
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://hibachi-at-home.example.com"
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
 
-  return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/book`,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/locations`,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/menu`,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/gallery`,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/faq`,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/rentals`,
-      lastModified: new Date(),
-    },
-    {
-      url: `${baseUrl}/contact`,
-      lastModified: new Date(),
-    },
-  ]
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticPages = [
+    "", // Homepage
+    "/menu",
+    "/gallery",
+    "/faq",
+    "/contact",
+    "/book",
+    "/estimation",
+    "/locations/nyc-long-island", // Updated from pensacola
+    "/privacy-policy",
+    "/rentals",
+  ].map((route) => ({
+    url: `${BASE_URL}${route}`,
+    lastModified: new Date().toISOString(),
+    changeFrequency: route === "" ? "daily" : "monthly", // Homepage might change more often
+    priority: route === "" ? 1.0 : 0.8,
+  }))
+
+  let blogPostsSitemap: MetadataRoute.Sitemap = []
+  try {
+    const blogPosts = await getBlogPosts() // Fetch your blog posts
+    blogPostsSitemap = blogPosts.map((post) => ({
+      url: `${BASE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.date).toISOString(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }))
+  } catch (error) {
+    console.error("Failed to fetch blog posts for sitemap:", error)
+    // Optionally, you could add a default blog page if posts can't be fetched
+    blogPostsSitemap.push({
+      url: `${BASE_URL}/blog`,
+      lastModified: new Date().toISOString(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    })
+  }
+
+  return [...staticPages, ...blogPostsSitemap]
 }
