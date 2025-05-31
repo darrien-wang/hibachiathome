@@ -90,7 +90,7 @@ export default function TestimonialsSection() {
     const stars = []
     for (let i = 0; i < 5; i++) {
       if (i < rating) {
-        stars.push(<Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400 animate-pulse" />)
+        stars.push(<Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />)
       } else {
         stars.push(<Star key={i} className="h-5 w-5 text-gray-300" />)
       }
@@ -101,32 +101,34 @@ export default function TestimonialsSection() {
   return (
     <section
       id="testimonials-section"
-      className="py-16 relative overflow-hidden min-h-[600px]"
-      style={{
-        backgroundImage: `url('/images/fire-background.png')`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
+      className="py-12 bg-gradient-to-br from-gray-900 via-black to-gray-800 border-y border-orange-500/20 relative overflow-hidden"
     >
-      {/* Dark overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.2px]"></div>
-
-      {/* Additional fire atmosphere overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 via-transparent to-red-900/20 pointer-events-none"></div>
-
+      {/* Add fire atmosphere overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-900/10 via-red-900/5 to-yellow-900/10 pointer-events-none"></div>
       <div className="container mx-auto px-4 relative z-10">
         <AnimateOnScroll direction="down">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-energy font-bold text-center mb-4 text-white fire-text-glow">
-              WHAT OUR <span className="fire-text-gradient">CUSTOMERS SAY</span>
-            </h2>
-            <p className="text-amber-100 text-lg max-w-2xl mx-auto">
-              Real experiences from real customers who brought the hibachi fire to their events
-            </p>
+          <div className="flex flex-col items-center mb-8 hidden">
+            <div className="flex items-center mb-2">
+              <img
+                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/google-reviews-png-10-GKGq4SGGN19lPvzMYHb6Rg1jvyOzJJ.png"
+                alt="Google Reviews"
+                className="h-8 mr-2"
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
+                  e.currentTarget.className = "h-6 mr-2"
+                }}
+              />
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} className="h-5 w-5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <span className="ml-2 font-medium">5.0</span>
+            </div>
+            <p className="text-sm text-gray-600">Based on 48 reviews</p>
           </div>
         </AnimateOnScroll>
-
         <div className="relative overflow-visible">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 stagger-container">
             {testimonials.map((testimonial, index) => (
@@ -135,21 +137,21 @@ export default function TestimonialsSection() {
                   ref={(el) => {
                     testimonialRefs.current[index] = el
                   }}
-                  className={`bg-black/60 backdrop-blur-sm rounded-xl shadow-2xl p-6 w-full transition-all duration-500 border border-orange-500/30 hover:border-orange-400/60 hover:shadow-2xl hover:shadow-orange-500/30 hover:bg-black/70 ${
+                  className={`bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl p-6 w-full transition-all duration-500 border border-orange-500/20 hover:border-orange-400/40 hover:shadow-2xl hover:shadow-orange-500/20 ${
                     index === currentTestimonial
-                      ? "scale-105 border-2 border-orange-400 shadow-2xl shadow-orange-500/40 bg-black/70"
+                      ? "scale-105 border-2 border-orange-400 shadow-2xl shadow-orange-500/30"
                       : (isLargeScreen || isMediumScreen)
-                        ? "scale-100 opacity-95 hover:scale-102"
-                        : "scale-100 opacity-80 hover:opacity-95"
+                        ? "scale-100 opacity-90 hover:scale-102"
+                        : "scale-100 opacity-70 hover:opacity-90"
                   }`}
                   onClick={() => setCurrentTestimonial(index)}
                 >
                   <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-lg mr-3 shadow-lg ring-2 ring-orange-400/50">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-lg mr-3 shadow-lg">
                       {testimonial.name.charAt(0)}
                     </div>
                     <div>
-                      <h4 className="font-bold text-amber-100 text-lg">{testimonial.name}</h4>
+                      <h4 className="font-medium text-amber-100 text-lg">{testimonial.name}</h4>
                       <div className="flex items-center">
                         <span className="text-xs text-orange-300 mr-2">{testimonial.date}</span>
                         <img
@@ -164,8 +166,8 @@ export default function TestimonialsSection() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex mb-4">{renderStars(testimonial.rating)}</div>
-                  <p className="text-amber-50 text-sm leading-relaxed font-medium">{testimonial.text}</p>
+                  <div className="flex mb-3 animate-pulse">{renderStars(testimonial.rating)}</div>
+                  <p className="text-amber-50 text-sm leading-relaxed">{testimonial.text}</p>
                 </div>
               </AnimateOnScroll>
             ))}

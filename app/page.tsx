@@ -211,9 +211,6 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
-      {/* Testimonials Section */}
-      <TestimonialsSection />
-
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
@@ -388,6 +385,9 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
     </div>
   )
 }
