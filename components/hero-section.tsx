@@ -22,6 +22,7 @@ export default function HeroSection() {
   const [isPortrait, setIsPortrait] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [videoError, setVideoError] = useState(false)
+  const [videoLoaded, setVideoLoaded] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
@@ -51,23 +52,10 @@ export default function HeroSection() {
 
   // 根据设备和方向选择视频
   const getVideoSource = () => {
-    // 使用绝对URL确保视频能被找到
-    const baseUrl = window.location.origin
-
     if (isMobile || isPortrait) {
-      // 尝试多种可能的路径
-      return [
-        `${baseUrl}/video/realhibachi_fire_opening_mobile.mp4`,
-        "/video/realhibachi_fire_opening_mobile.mp4",
-        "/realhibachi_fire_opening_mobile.mp4",
-      ]
+      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
     }
-
-    return [
-      `${baseUrl}/video/realhibachi_fire_opening_desktop.mp4`,
-      "/video/realhibachi_fire_opening_desktop.mp4",
-      "/realhibachi_fire_opening_desktop.mp4",
-    ]
+    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_desktop.mp4"
   }
 
   const handleUserInteraction = () => {
@@ -131,7 +119,7 @@ export default function HeroSection() {
   // 视频播放逻辑
   useEffect(() => {
     const playVideo = async () => {
-      if (videoRef.current && showVideo && typeof window !== "undefined" && !videoError) {
+      if (videoRef.current && showVideo && typeof window !== "undefined" && !videoError && videoLoaded) {
         try {
           // 首先尝试不静音播放
           videoRef.current.muted = false
@@ -155,58 +143,84 @@ export default function HeroSection() {
       }
     }
 
-    if (showVideo && !videoError) {
+    if (showVideo && !videoError && videoLoaded) {
       playVideo()
     }
-  }, [showVideo, videoError])
+  }, [showVideo, videoError, videoLoaded])
 
   // 当设备类型或方向改变时重新加载视频
   useEffect(() => {
     if (videoRef.current && showVideo && typeof window !== "undefined" && !videoError) {
-      try {
-        const currentTime = videoRef.current.currentTime
-        const wasPaused = videoRef.current.paused
-        const wasMuted = videoRef.current.muted
+      const video = videoRef.current
 
-        // 清除当前源
-        while (videoRef.current.firstChild) {
-          videoRef.current.removeChild(videoRef.current.firstChild)
-        }
+      // 暂停当前视频
+      video.pause()
 
-        // 尝试多个可能的视频源
-        const sources = getVideoSource()
-        sources.forEach((src) => {
-          const sourceElement = document.createElement("source")
-          sourceElement.src = src
-          sourceElement.type = "video/mp4"
-          videoRef.current?.appendChild(sourceElement)
-        })
+      // 设置新的视频源
+      const newSource = getVideoSource()
+      video.src = newSource
 
-        videoRef.current.load() // 重新加载视频
-        videoRef.current.currentTime = currentTime
-        videoRef.current.muted = wasMuted
+      // 重置状态
+      setVideoLoaded(false)
 
-        if (!wasPaused) {
-          videoRef.current.play().catch((error) => {
-            console.error("Failed to play video after source change:", error)
-            // 如果播放失败，静音播放
-            if (videoRef.current) {
-              videoRef.current.muted = true
-              setIsMuted(true)
-              videoRef.current.play().catch((mutedError) => {
-                console.error("Failed to play muted video:", mutedError)
-                // 如果仍然失败，跳过视频
-                handleVideoError(mutedError)
-              })
-            }
-          })
-        }
-      } catch (error) {
-        console.error("Error updating video source:", error)
-        handleVideoError(error)
+      // 添加事件监听器
+      const handleCanPlay = () => {
+        setVideoLoaded(true)
+      }
+
+      const handleLoadedData = () => {
+        console.log("Video loaded successfully")
+      }
+
+      const handleError = (e: Event) => {
+        console.error("Video loading error:", e)
+        handleVideoError(e)
+      }
+
+      video.addEventListener("canplay", handleCanPlay)
+      video.addEventListener("loadeddata", handleLoadedData)
+      video.addEventListener("error", handleError)
+
+      // 开始加载视频
+      video.load()
+
+      // 清理函数
+      return () => {
+        video.removeEventListener("canplay", handleCanPlay)
+        video.removeEventListener("loadeddata", handleLoadedData)
+        video.removeEventListener("error", handleError)
       }
     }
   }, [isMobile, isPortrait, showVideo, videoError])
+
+  // 初始化视频
+  useEffect(() => {
+    if (videoRef.current && showVideo && typeof window !== "undefined") {
+      const video = videoRef.current
+      const source = getVideoSource()
+
+      video.src = source
+
+      const handleCanPlay = () => {
+        setVideoLoaded(true)
+      }
+
+      const handleError = (e: Event) => {
+        console.error("Initial video loading error:", e)
+        handleVideoError(e)
+      }
+
+      video.addEventListener("canplay", handleCanPlay)
+      video.addEventListener("error", handleError)
+
+      video.load()
+
+      return () => {
+        video.removeEventListener("canplay", handleCanPlay)
+        video.removeEventListener("error", handleError)
+      }
+    }
+  }, [])
 
   const nextSlide = () => {
     handleUserInteraction()
@@ -296,13 +310,27 @@ export default function HeroSection() {
             className="w-full h-full object-cover"
             autoPlay
             playsInline
+            preload="auto"
+            crossOrigin="anonymous"
             onEnded={handleVideoEnd}
             onError={(e) => handleVideoError(e)}
-            key={`${isMobile}-${isPortrait}`} // 强制重新渲染当设备类型改变时
+            onLoadStart={() => {
+              console.log("Video loading started")
+            }}
+            onCanPlay={() => {
+              console.log("Video can play")
+            }}
+            key={`video-${isMobile}-${isPortrait}`} // 强制重新渲染当设备类型改变时
           >
-            {/* 视频源将通过JavaScript动态添加 */}
-            <p>Your browser does not support the video tag.</p>
+            Your browser does not support the video tag.
           </video>
+
+          {/* 视频加载指示器 */}
+          {!videoLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
 
           {/* 控制按钮组 */}
           <div className={`absolute top-4 right-4 flex gap-2 z-10 ${isMobile ? "scale-90" : ""}`}>
@@ -325,7 +353,7 @@ export default function HeroSection() {
           </div>
 
           {/* 音频启用提示 - 仅在静音时显示 */}
-          {isMuted && !audioEnabled && (
+          {isMuted && !audioEnabled && videoLoaded && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
               <button
                 onClick={enableAudio}
@@ -337,7 +365,7 @@ export default function HeroSection() {
           )}
 
           {/* 移动端底部提示 */}
-          {isMobile && (
+          {isMobile && videoLoaded && (
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
               <p className="text-white/80 text-xs text-center bg-black/30 px-3 py-1 rounded-full">
                 {isMuted ? "Tap to enable sound or skip" : "Tap to skip"}
@@ -346,12 +374,14 @@ export default function HeroSection() {
           )}
 
           {/* 点击任意位置的处理 */}
-          <div
-            className="absolute inset-0 cursor-pointer"
-            onClick={isMuted && !audioEnabled ? enableAudio : handleSkipVideo}
-            aria-label={isMuted && !audioEnabled ? "Click to enable sound" : "Click to skip video"}
-            style={{ WebkitTapHighlightColor: "transparent" }} // 移除移动端点击高亮
-          />
+          {videoLoaded && (
+            <div
+              className="absolute inset-0 cursor-pointer"
+              onClick={isMuted && !audioEnabled ? enableAudio : handleSkipVideo}
+              aria-label={isMuted && !audioEnabled ? "Click to enable sound" : "Click to skip video"}
+              style={{ WebkitTapHighlightColor: "transparent" }} // 移除移动端点击高亮
+            />
+          )}
         </div>
       )}
 
