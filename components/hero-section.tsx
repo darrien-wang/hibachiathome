@@ -51,9 +51,9 @@ export default function HeroSection() {
   // 根据设备和方向选择视频
   const getVideoSource = () => {
     if (isMobile || isPortrait) {
-      return "/video/realhibachi_fire_opening_mobile.mp4"
+      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
     }
-    return "/video/realhibachi_fire_opening_desktop.mp4"
+    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_desktop.mp4"
   }
 
   const handleUserInteraction = () => {
@@ -148,6 +148,7 @@ export default function HeroSection() {
         const wasMuted = videoRef.current.muted
 
         videoRef.current.src = getVideoSource()
+        videoRef.current.load() // 重新加载视频
         videoRef.current.currentTime = currentTime
         videoRef.current.muted = wasMuted
 
@@ -259,10 +260,18 @@ export default function HeroSection() {
             className="w-full h-full object-cover"
             autoPlay
             playsInline
+            preload="auto"
+            crossOrigin="anonymous"
             onEnded={handleVideoEnd}
-            onError={() => {
-              console.error("Video failed to load")
+            onError={(e) => {
+              console.error("Video failed to load:", e)
               handleVideoEnd()
+            }}
+            onLoadStart={() => {
+              console.log("Video loading started")
+            }}
+            onCanPlay={() => {
+              console.log("Video can play")
             }}
             key={`${isMobile}-${isPortrait}`} // 强制重新渲染当设备类型改变时
           >
