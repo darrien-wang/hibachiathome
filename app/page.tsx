@@ -338,13 +338,14 @@ export default function Home() {
 
       {/* Call to Action Section */}
       <AnimateOnScroll>
-        <section className="py-20 bg-gradient-to-r from-amber-600 to-orange-600">
-          <div className="container mx-auto px-4 text-center">
+        <section className="py-20 bg-gradient-to-br from-gray-900 via-black to-gray-800">
+          <div className="container mx-auto px-4 text-center relative z-10">
+            <div className="absolute inset-0 bg-gradient-to-t from-orange-500/10 via-transparent to-yellow-500/10 pointer-events-none"></div>
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
+              <h2 className="text-3xl md:text-5xl font-serif font-bold mb-6 fire-text-gradient">
                 Ready to Create Unforgettable Memories?
               </h2>
-              <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-10">
                 Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home.
                 Our professional chefs are ready to create an amazing show and delicious meal for you and your guests.
               </p>
@@ -355,7 +356,7 @@ export default function Home() {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-white text-amber-600 hover:bg-amber-50 font-bold px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl hover:shadow-orange-500/30 transition-all duration-300"
                 >
                   <Link href="/book">Book Your Experience Now</Link>
                 </Button>
@@ -363,7 +364,7 @@ export default function Home() {
                   asChild
                   variant="outline"
                   size="lg"
-                  className="border-2 border-white text-white hover:bg-white hover:text-amber-600 font-bold px-8 py-4 text-lg rounded-full transition-all duration-300 bg-white/10 backdrop-blur-sm"
+                  className="border-2 border-orange-500 text-orange-400 hover:bg-orange-500/10 font-bold px-8 py-4 text-lg rounded-full transition-all duration-300 bg-gray-800/50 backdrop-blur-sm"
                 >
                   <Link href="/menu">View Our Packages</Link>
                 </Button>
@@ -373,16 +374,16 @@ export default function Home() {
             <AnimateOnScroll direction="up" delay={400}>
               <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">500+</div>
-                  <div className="text-amber-100">Happy Customers</div>
+                  <div className="text-3xl font-bold mb-2 fire-text-gradient">500+</div>
+                  <div className="text-gray-300">Happy Customers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">4.9★</div>
-                  <div className="text-amber-100">Average Rating</div>
+                  <div className="text-3xl font-bold mb-2 fire-text-gradient">4.9★</div>
+                  <div className="text-gray-300">Average Rating</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">100%</div>
-                  <div className="text-amber-100">Satisfaction Guarantee</div>
+                  <div className="text-3xl font-bold mb-2 fire-text-gradient">100%</div>
+                  <div className="text-gray-300">Satisfaction Guarantee</div>
                 </div>
               </div>
             </AnimateOnScroll>
