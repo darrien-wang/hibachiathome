@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
-
 @layer base {
   :root {
     /* 黑色背景主题 */
@@ -132,11 +130,13 @@
   }
 }
 
-/* 能量感十足的标题字体 */
+/* 能量感十足的标题字体 - 使用系统字体 */
 .font-energy {
-  font-family: "Bebas Neue", sans-serif;
+  font-family: "Impact", "Arial Black", "Franklin Gothic Bold", "Helvetica Neue", sans-serif;
+  font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-stretch: condensed;
 }
 
 /* Fire-themed utility classes */

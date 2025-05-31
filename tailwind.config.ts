@@ -23,7 +23,7 @@ const config = {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         montserrat: ["var(--font-montserrat)"],
-        energy: ["Bebas Neue", "Impact", "sans-serif"],
+        energy: ["Impact", "Arial Black", "Franklin Gothic Bold", "Helvetica Neue", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
