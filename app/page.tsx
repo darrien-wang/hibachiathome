@@ -51,9 +51,6 @@ export default function Home() {
       {/* How It Works Section */}
       <HowItWorksSection />
 
-      {/* Service Areas Section */}
-      <ServiceAreasSection />
-
       {/* Package Options Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-black">
@@ -214,6 +211,9 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
+
+      {/* Service Areas Section */}
+      <ServiceAreasSection />
 
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
