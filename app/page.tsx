@@ -110,7 +110,7 @@ export default function Home() {
 
                       <Button
                         asChild
-                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30 hover:scale-105 border-none"
+                        className="w-full bg-gray-800 border-2 border-orange-500 text-orange-400 hover:bg-orange-500/10 font-bold py-4 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30"
                       >
                         <Link href="/book">BOOK NOW</Link>
                       </Button>
@@ -201,8 +201,7 @@ export default function Home() {
               <div className="text-center mt-10">
                 <Button
                   asChild
-                  variant="outline"
-                  className="rounded-full border-2 border-orange-500 text-orange-400 hover:bg-orange-900/20 hover:text-white hover:border-orange-400 font-bold px-8 py-3 transition-all duration-300"
+                  className="rounded-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold px-8 py-4 text-xl shadow-lg hover:shadow-xl hover:shadow-orange-500/30 hover:scale-105 transition-all duration-300 border-none"
                 >
                   <Link href="/book">Get Your Free Estimate</Link>
                 </Button>
