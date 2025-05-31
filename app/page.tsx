@@ -67,10 +67,10 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               {/* Basic Package Card */}
               <AnimateOnScroll direction="left">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
+                <div className="bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-red-900/40 backdrop-blur-sm border border-orange-500/30 rounded-2xl overflow-hidden transition-all duration-500 hover:border-orange-400/50 hover:shadow-2xl hover:shadow-orange-500/20 relative group">
                   <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
-                      Most Popular
+                    <span className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-bold bg-gradient-to-r from-yellow-400 to-orange-400 text-black border-none shadow-lg tracking-wide">
+                      MOST POPULAR
                     </span>
                   </div>
                   <div className="relative h-48 overflow-hidden">
@@ -81,37 +81,45 @@ export default function Home() {
                       loading="lazy"
                     />
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Basic Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $49.9
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($499 minimum)</p>
+                  <div className="p-6 bg-gradient-to-br from-gray-900 via-black to-gray-800 relative">
+                    {/* Fire glow overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 via-transparent to-yellow-500/5 pointer-events-none"></div>
+
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-energy font-bold mb-4 fire-text-gradient">Basic Package</h3>
+                      <div className="mb-6">
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="text-gray-400 text-lg line-through">$60</span>
+                          <span className="text-3xl font-bold fire-text-gradient">$49.9</span>
+                          <span className="text-gray-300 text-lg">/person</span>
+                        </div>
+                        <p className="text-yellow-400 text-sm font-medium">Only $499 minimum!</p>
+                      </div>
+                      <ul className="space-y-3 mb-8 text-gray-200">
+                        <li className="flex items-start gap-3">
+                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
+                          <span>2 proteins of your choice</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
+                          <span>Fried rice & vegetables</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
+                          <span>Chef performance included</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
+                          <span>Perfect for intimate gatherings</span>
+                        </li>
+                      </ul>
+                      <Button
+                        asChild
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30 hover:scale-105 border-none"
+                      >
+                        <Link href="/book">BOOK NOW</Link>
+                      </Button>
                     </div>
-                    <ul className="space-y-1 mb-6 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>2 proteins of your choice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Chef performance included</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Perfect for intimate gatherings</span>
-                      </li>
-                    </ul>
-                    <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
-                      <Link href="/book">Book Now</Link>
-                    </Button>
                   </div>
                 </div>
               </AnimateOnScroll>
