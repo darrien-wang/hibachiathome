@@ -18,7 +18,7 @@ export default function Testimonials({ testimonials }: TestimonialsProps) {
           <div key={index} className="bg-secondary/5 rounded-lg p-4 max-w-xs">
             <div className="flex items-center mb-2">
               {Array.from({ length: testimonial.rating }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-secondary text-secondary" />
+                <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
               ))}
             </div>
             <p className="text-sm italic mb-2">"{testimonial.comment}"</p>
