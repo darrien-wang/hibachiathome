@@ -263,13 +263,13 @@ export default function Home() {
 
       {/* Customer Atmosphere Video Section */}
       <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
+        <section className="py-16 bg-gradient-to-br from-gray-900 via-black to-gray-800">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Experience the <span className="text-primary">Atmosphere</span>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6 fire-text-gradient">
+                Experience the <span className="text-yellow-400">Atmosphere</span>
               </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+              <p className="text-lg text-center text-gray-300 max-w-3xl mx-auto mb-10">
                 See how our hibachi experience transforms your home into an exciting dining venue
               </p>
             </AnimateOnScroll>
@@ -297,36 +297,36 @@ export default function Home() {
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🎉</span>
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-lg shadow-md text-center border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-500 text-xl">🎉</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
-                  <p className="text-gray-600">
+                  <h3 className="font-bold text-lg mb-2 text-orange-400">Lively Atmosphere</h3>
+                  <p className="text-gray-300">
                     Experience the excitement and energy of a hibachi restaurant in your own home.
                   </p>
                 </div>
               </AnimateOnScroll>
 
               <AnimateOnScroll delay={200} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-lg shadow-md text-center border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-500 text-xl">👨‍👩‍👧‍👦</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
-                  <p className="text-gray-600">
+                  <h3 className="font-bold text-lg mb-2 text-orange-400">Family Friendly</h3>
+                  <p className="text-gray-300">
                     Perfect entertainment for guests of all ages, creating memorable experiences.
                   </p>
                 </div>
               </AnimateOnScroll>
 
               <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🔥</span>
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-lg shadow-md text-center border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-500 text-xl">🔥</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
-                  <p className="text-gray-600">
+                  <h3 className="font-bold text-lg mb-2 text-orange-400">Spectacular Show</h3>
+                  <p className="text-gray-300">
                     Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
                   </p>
                 </div>
