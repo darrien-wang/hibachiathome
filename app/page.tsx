@@ -202,7 +202,7 @@ export default function Home() {
                 <Button
                   asChild
                   variant="outline"
-                  className="rounded-full border-2 border-orange-500 text-orange-400 hover:bg-orange-500/10 font-bold px-8 py-3"
+                  className="rounded-full border-2 border-orange-500 text-orange-400 hover:bg-orange-900/20 hover:text-white hover:border-orange-400 font-bold px-8 py-3 transition-all duration-300"
                 >
                   <Link href="/book">Get Your Free Estimate</Link>
                 </Button>
