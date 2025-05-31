@@ -21,6 +21,7 @@ export default function HeroSection() {
   const [isMobile, setIsMobile] = useState(false)
   const [isPortrait, setIsPortrait] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
+  const [videoError, setVideoError] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
@@ -50,10 +51,23 @@ export default function HeroSection() {
 
   // 根据设备和方向选择视频
   const getVideoSource = () => {
+    // 使用绝对URL确保视频能被找到
+    const baseUrl = window.location.origin
+
     if (isMobile || isPortrait) {
-      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
+      // 尝试多种可能的路径
+      return [
+        `${baseUrl}/video/realhibachi_fire_opening_mobile.mp4`,
+        "/video/realhibachi_fire_opening_mobile.mp4",
+        "/realhibachi_fire_opening_mobile.mp4",
+      ]
     }
-    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_desktop.mp4"
+
+    return [
+      `${baseUrl}/video/realhibachi_fire_opening_desktop.mp4`,
+      "/video/realhibachi_fire_opening_desktop.mp4",
+      "/realhibachi_fire_opening_desktop.mp4",
+    ]
   }
 
   const handleUserInteraction = () => {
@@ -107,10 +121,17 @@ export default function HeroSection() {
     handleUserInteraction()
   }
 
+  // 处理视频错误
+  const handleVideoError = (error: any) => {
+    console.error("Video error:", error)
+    setVideoError(true)
+    handleVideoEnd() // 跳过视频，显示轮播图
+  }
+
   // 视频播放逻辑
   useEffect(() => {
     const playVideo = async () => {
-      if (videoRef.current && showVideo && typeof window !== "undefined") {
+      if (videoRef.current && showVideo && typeof window !== "undefined" && !videoError) {
         try {
           // 首先尝试不静音播放
           videoRef.current.muted = false
@@ -134,43 +155,58 @@ export default function HeroSection() {
       }
     }
 
-    if (showVideo) {
+    if (showVideo && !videoError) {
       playVideo()
     }
-  }, [showVideo])
+  }, [showVideo, videoError])
 
   // 当设备类型或方向改变时重新加载视频
   useEffect(() => {
-    if (videoRef.current && showVideo && typeof window !== "undefined") {
+    if (videoRef.current && showVideo && typeof window !== "undefined" && !videoError) {
       try {
         const currentTime = videoRef.current.currentTime
         const wasPaused = videoRef.current.paused
         const wasMuted = videoRef.current.muted
 
-        videoRef.current.src = getVideoSource()
+        // 清除当前源
+        while (videoRef.current.firstChild) {
+          videoRef.current.removeChild(videoRef.current.firstChild)
+        }
+
+        // 尝试多个可能的视频源
+        const sources = getVideoSource()
+        sources.forEach((src) => {
+          const sourceElement = document.createElement("source")
+          sourceElement.src = src
+          sourceElement.type = "video/mp4"
+          videoRef.current?.appendChild(sourceElement)
+        })
+
         videoRef.current.load() // 重新加载视频
         videoRef.current.currentTime = currentTime
         videoRef.current.muted = wasMuted
 
         if (!wasPaused) {
-          videoRef.current.play().catch(() => {
+          videoRef.current.play().catch((error) => {
+            console.error("Failed to play video after source change:", error)
             // 如果播放失败，静音播放
             if (videoRef.current) {
               videoRef.current.muted = true
               setIsMuted(true)
-              videoRef.current.play().catch(() => {
+              videoRef.current.play().catch((mutedError) => {
+                console.error("Failed to play muted video:", mutedError)
                 // 如果仍然失败，跳过视频
-                handleVideoEnd()
+                handleVideoError(mutedError)
               })
             }
           })
         }
       } catch (error) {
         console.error("Error updating video source:", error)
-        handleVideoEnd()
+        handleVideoError(error)
       }
     }
-  }, [isMobile, isPortrait, showVideo])
+  }, [isMobile, isPortrait, showVideo, videoError])
 
   const nextSlide = () => {
     handleUserInteraction()
@@ -253,30 +289,19 @@ export default function HeroSection() {
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center">
       {/* 开场视频 */}
-      {showVideo && (
+      {showVideo && !videoError && (
         <div className="absolute inset-0 z-50 bg-black">
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
             autoPlay
             playsInline
-            preload="auto"
-            crossOrigin="anonymous"
             onEnded={handleVideoEnd}
-            onError={(e) => {
-              console.error("Video failed to load:", e)
-              handleVideoEnd()
-            }}
-            onLoadStart={() => {
-              console.log("Video loading started")
-            }}
-            onCanPlay={() => {
-              console.log("Video can play")
-            }}
+            onError={(e) => handleVideoError(e)}
             key={`${isMobile}-${isPortrait}`} // 强制重新渲染当设备类型改变时
           >
-            <source src={getVideoSource()} type="video/mp4" />
-            Your browser does not support the video tag.
+            {/* 视频源将通过JavaScript动态添加 */}
+            <p>Your browser does not support the video tag.</p>
           </video>
 
           {/* 控制按钮组 */}
@@ -333,23 +358,23 @@ export default function HeroSection() {
       {/* 原有的轮播图内容 */}
       <div
         className={`absolute inset-0 overflow-hidden bg-black z-0 touch-pan-y transition-opacity duration-1000 ${
-          showVideo ? "opacity-0" : "opacity-100"
+          showVideo && !videoError ? "opacity-0" : "opacity-100"
         }`}
         onTouchStart={(e) => {
-          if (showVideo) return
+          if (showVideo && !videoError) return
           const touch = e.touches[0]
           setTouchStart(touch.clientX)
           setIsSwiping(true)
         }}
         onTouchMove={(e) => {
-          if (!isSwiping || showVideo) return
+          if (!isSwiping || (showVideo && !videoError)) return
           const touch = e.touches[0]
           const currentX = touch.clientX
           const diff = currentX - touchStart
           setSwipeDistance(diff)
         }}
         onTouchEnd={() => {
-          if (showVideo) return
+          if (showVideo && !videoError) return
           setIsSwiping(false)
           if (swipeDistance > 80) {
             prevSlide()
@@ -360,7 +385,7 @@ export default function HeroSection() {
           handleUserInteraction()
         }}
       >
-        {!imagesLoaded && !showVideo && (
+        {!imagesLoaded && (!showVideo || videoError) && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -389,11 +414,15 @@ export default function HeroSection() {
       </div>
 
       <div
-        className={`absolute inset-0 bg-black/60 z-10 transition-opacity duration-1000 ${showVideo ? "opacity-0" : "opacity-100"}`}
+        className={`absolute inset-0 bg-black/60 z-10 transition-opacity duration-1000 ${
+          showVideo && !videoError ? "opacity-0" : "opacity-100"
+        }`}
       ></div>
 
       <div
-        className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 overflow-x-hidden transition-opacity duration-1000 ${showVideo ? "opacity-0" : "opacity-100"}`}
+        className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 overflow-x-hidden transition-opacity duration-1000 ${
+          showVideo && !videoError ? "opacity-0" : "opacity-100"
+        }`}
       >
         <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
           <h1
@@ -439,7 +468,7 @@ export default function HeroSection() {
       </div>
 
       {/* 轮播控制按钮 */}
-      {!showVideo && (
+      {(!showVideo || videoError) && (
         <>
           <button
             onClick={prevSlide}
@@ -459,7 +488,7 @@ export default function HeroSection() {
       )}
 
       {/* 轮播指示器 */}
-      {!showVideo && (
+      {(!showVideo || videoError) && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
           {sortedHeroImages.map((_, index) => (
             <button
@@ -476,7 +505,7 @@ export default function HeroSection() {
       )}
 
       {/* 滑动指示器 - 仅在滑动时显示 */}
-      {isSwiping && !showVideo && (
+      {isSwiping && (!showVideo || videoError) && (
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 z-30 pointer-events-none">
           <div
             className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance > 50 ? "opacity-100" : "opacity-30"}`}
