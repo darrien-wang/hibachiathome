@@ -217,13 +217,13 @@ export default function Home() {
 
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-gradient-to-br from-gray-900 via-black to-gray-800">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6 fire-text-gradient">
                 When Our Fire Gets Too Real
               </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+              <p className="text-lg text-center text-gray-300 max-w-3xl mx-auto mb-10">
                 Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!
               </p>
             </AnimateOnScroll>
@@ -250,10 +250,10 @@ export default function Home() {
             </AnimateOnScroll>
 
             <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium">
+              <p className="text-orange-400 font-medium">
                 Our hibachi fire is so real, sometimes we get unexpected guests! 🚒
               </p>
-              <p className="text-gray-600 text-sm mt-2">
+              <p className="text-gray-300 text-sm mt-2">
                 Don't worry - our chefs are trained professionals who know how to handle the heat safely.
               </p>
             </div>
