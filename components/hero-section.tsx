@@ -53,7 +53,7 @@ export default function HeroSection() {
   // 根据设备和方向选择视频
   const getVideoSource = () => {
     if (isMobile || isPortrait) {
-      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile%20-%20Compressed%20with%20FlexClip-ZYMlZZw9dZiHBfb30ZsKSprpwHINJh.mp4"
+      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile%20-%20Compressed%20with%20FlexClip%20%281%29-6GzUXJw2lM1Epus9x4E1fU8aVl80q0.mp4"
     }
     return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_desktop%20-%20Compressed%20with%20FlexClip-liz7pwPLKPl2zvYoTBjiebEvWAAxJS.mp4"
   }
