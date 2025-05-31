@@ -101,9 +101,11 @@ export default function TestimonialsSection() {
   return (
     <section
       id="testimonials-section"
-      className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100"
+      className="py-12 bg-gradient-to-br from-gray-900 via-black to-gray-800 border-y border-orange-500/20 relative overflow-hidden"
     >
-      <div className="container mx-auto px-4">
+      {/* Add fire atmosphere overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-900/10 via-red-900/5 to-yellow-900/10 pointer-events-none"></div>
+      <div className="container mx-auto px-4 relative z-10">
         <AnimateOnScroll direction="down">
           <div className="flex flex-col items-center mb-8 hidden">
             <div className="flex items-center mb-2">
@@ -135,37 +137,37 @@ export default function TestimonialsSection() {
                   ref={(el) => {
                     testimonialRefs.current[index] = el
                   }}
-                  className={`bg-white rounded-lg shadow-md p-6 w-full transition-all duration-500 ${
+                  className={`bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl p-6 w-full transition-all duration-500 border border-orange-500/20 hover:border-orange-400/40 hover:shadow-2xl hover:shadow-orange-500/20 ${
                     index === currentTestimonial
-                      ? "scale-105 border-2 border-amber-200"
+                      ? "scale-105 border-2 border-orange-400 shadow-2xl shadow-orange-500/30"
                       : (isLargeScreen || isMediumScreen)
-                        ? "scale-100 opacity-80"
-                        : "scale-100 opacity-60"
+                        ? "scale-100 opacity-90 hover:scale-102"
+                        : "scale-100 opacity-70 hover:opacity-90"
                   }`}
                   onClick={() => setCurrentTestimonial(index)}
                 >
                   <div className="flex items-center mb-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 flex items-center justify-center text-white font-bold text-lg mr-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-lg mr-3 shadow-lg">
                       {testimonial.name.charAt(0)}
                     </div>
                     <div>
-                      <h4 className="font-medium">{testimonial.name}</h4>
+                      <h4 className="font-medium text-amber-100 text-lg">{testimonial.name}</h4>
                       <div className="flex items-center">
-                        <span className="text-xs text-gray-500 mr-2">{testimonial.date}</span>
+                        <span className="text-xs text-orange-300 mr-2">{testimonial.date}</span>
                         <img
                           src="https://www.google.com/favicon.ico"
                           alt="Google"
-                          className="h-4"
+                          className="h-4 opacity-80"
                           onError={(e) => {
                             e.currentTarget.src = "https://www.google.com/favicon.ico"
-                            e.currentTarget.className = "h-3"
+                            e.currentTarget.className = "h-3 opacity-80"
                           }}
                         />
                       </div>
                     </div>
                   </div>
-                  <div className="flex mb-3">{renderStars(testimonial.rating)}</div>
-                  <p className="text-gray-700 text-sm">{testimonial.text}</p>
+                  <div className="flex mb-3 animate-pulse">{renderStars(testimonial.rating)}</div>
+                  <p className="text-amber-50 text-sm leading-relaxed">{testimonial.text}</p>
                 </div>
               </AnimateOnScroll>
             ))}
