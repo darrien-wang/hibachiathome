@@ -163,6 +163,15 @@
   }
 }
 
+@keyframes bounceOnce {
+  0% { transform: scale(1); }
+  20% { transform: scale(1.25); }
+  40% { transform: scale(0.92); }
+  60% { transform: scale(1.12); }
+  80% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
 .animate-fadeIn {
   animation: fadeIn 1s ease-in-out;
 }
@@ -193,6 +202,10 @@
 
 .animate-fireUnderline {
   animation: fireUnderline 1s ease-in-out 1.5s forwards;
+}
+
+.animate-bounceOnce {
+  animation: bounceOnce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
 }
 
 /* Auto-scrolling gallery animation */

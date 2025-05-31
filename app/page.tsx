@@ -205,6 +205,7 @@ export default function Home() {
                       src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
                       alt="Basic Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
                     />
                   </div>
                   <div className="p-6">
@@ -212,10 +213,10 @@ export default function Home() {
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$70</span>
-                        $59.9
+                        $49.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
-                      <p className="text-xs text-gray-600">($599 minimum)</p>
+                      <p className="text-xs text-gray-600">($499 minimum)</p>
                     </div>
                     <ul className="space-y-1 mb-6 text-sm">
                       <li className="flex items-start">
@@ -255,6 +256,7 @@ export default function Home() {
                       src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
                       alt="Buffet Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
                     />
                   </div>
                   <div className="p-6">

@@ -12,6 +12,7 @@ import { ArrowDown } from "lucide-react"
 import { format } from "date-fns"
 import dynamic from "next/dynamic"
 import type { DateTimeSelection } from "@/types/booking"
+import { TermsModal } from "@/components/booking/terms-modal"
 
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
   loading: () => <div className="animate-pulse bg-gray-100 h-[400px] rounded-lg" />,
@@ -42,6 +43,43 @@ interface BookingFormProps {
   onCheckboxChange: (checked: boolean) => void
   onDateTimeSelect: (date: Date | undefined, time: string | undefined, price: number, originalPrice: number) => void
   totalGuests: number
+}
+
+interface TermsCheckboxProps {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  onShowTerms?: () => void
+}
+
+export function TermsCheckbox({ checked, onChange, onShowTerms }: TermsCheckboxProps) {
+  return (
+    <div className="flex items-start space-x-2">
+      <Checkbox
+        id="agreeToTerms"
+        checked={checked}
+        onCheckedChange={(checked) => onChange(checked === true)}
+        required
+      />
+      <div className="grid gap-1.5 leading-none">
+        <label
+          htmlFor="agreeToTerms"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          I agree to the{" "}
+          <button
+            type="button"
+            onClick={onShowTerms}
+            className="text-primary hover:underline focus:outline-none"
+          >
+            terms and conditions
+          </button>
+        </label>
+        <p className="text-sm text-gray-500">
+          By submitting this form, you agree to be contacted about your hibachi experience.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export default function BookingForm({
@@ -210,34 +248,11 @@ export default function BookingForm({
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="agreeToTerms"
-                  checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) => {
-                    onCheckboxChange(checked === true)
-                  }}
-                  required
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="agreeToTerms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    I agree to the{" "}
-                    <button
-                      type="button"
-                      onClick={() => setShowTerms(true)}
-                      className="text-primary hover:underline focus:outline-none"
-                    >
-                      terms and conditions
-                    </button>
-                  </label>
-                  <p className="text-sm text-gray-500">
-                    By submitting this form, you agree to be contacted about your hibachi experience.
-                  </p>
-                </div>
-              </div>
+              <TermsCheckbox
+                checked={formData.agreeToTerms}
+                onChange={onCheckboxChange}
+                onShowTerms={() => setShowTerms(true)}
+              />
 
               {orderError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">{orderError}</div>
@@ -282,66 +297,7 @@ export default function BookingForm({
         </CardContent>
       </Card>
 
-      {/* Terms and Conditions Modal */}
-      {showTerms && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Terms & Conditions</h3>
-            <div className="prose prose-sm space-y-6">
-              <div>
-                <p className="font-medium">PLEASE TAKE NOTICE:</p>
-                <p>
-                  Real Hibachi, Inc., or any agent, employee, director, or representative of Real Hibachi, Inc., will NOT
-                  be liable to any Licensee (Host) or Licensee's guests for property damage caused as a result of any
-                  party held on the Licensee's (Hosts) premises. For the purpose of this paragraph "property damage" is
-                  defined as: injury to any real or personal property on the premises of where the Real Hibachi event is
-                  taking place. Furthermore, Licensee (Host), individually and for Licensee's guests, waives any claim
-                  against Real Hibachi, Inc. for any loss of, or damage or destruction to, property of Licensee (Host) or
-                  Licensee's guests, arising from any cause. This waiver is intended to be a complete release of any
-                  responsibility for property loss or damage or destruction to the property sustained by the Licensee or
-                  Licensee's guests before, during, or after the Real Hibachi Inc. event has taken place.
-                </p>
-              </div>
-
-              <div>
-                <p className="font-medium">Communication Consent</p>
-                <p>
-                  I agree to receive communications by text message about my inquiry. You may opt-out by replying STOP
-                  or reply HELP for more information. Message frequency varies. Message and data rates may apply. You
-                  may review our Privacy Policy to learn how your data is used.
-                </p>
-              </div>
-
-              <div>
-                <p className="font-medium">Cancelation Policy & Weather Policy</p>
-                <p>
-                  48 hours notice for all cancellations and rescheduled parties or guest will be charged a fee of
-                  $100.00. If it rains, customer is required to provide some type of covering for the chef to cook under
-                  so they can stay dry. We can cook under tents, and patios. Customer is responsible for canceling due
-                  to inclement weather within 48 hours of your party.
-                </p>
-              </div>
-
-              <div>
-                <p className="font-medium">Travel Fee Policy</p>
-                <p>
-                  PLEASE NOTE: The Following Locations Require A Travel Fee And/ Or Larger Minimum. 1 Travel Fee Per
-                  Chef.
-                </p>
-                <p>Updating Travel Fees, a Booking Manager will let you know if your city requires one!</p>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setShowTerms(false)}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
     </div>
   )
 }

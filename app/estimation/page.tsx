@@ -11,6 +11,8 @@ import { createBooking } from "@/app/actions/booking"
 import type { BookingFormData } from "@/types/booking"
 import { paymentConfig } from "@/config/ui"
 import { createClientSupabaseClient } from "@/lib/supabase"
+import { TermsCheckbox } from "@/components/booking/booking-form"
+import { TermsModal } from "@/components/booking/terms-modal"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -393,6 +395,9 @@ function EstimationContent() {
   const zipCodeChangesRef = useRef(0)
   const hasInteractedRef = useRef(false)
   const hasShownPopupRef = useRef(false)
+
+  // Add after the other state declarations in EstimationContent function
+  const [showTerms, setShowTerms] = useState(false)
 
   // 监听用户行为以显示退出意图弹窗
   useEffect(() => {
@@ -1463,24 +1468,12 @@ function EstimationContent() {
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-2">
-                  <input
-                    type="checkbox"
-                    id="agreeToTerms"
-                    checked={formData.agreeToTerms}
-                    onChange={(e) => handleCheckboxChange(e.target.checked)}
-                    className="mt-1"
-                    required
-                  />
-                  <div>
-                    <label htmlFor="agreeToTerms" className="text-sm font-medium">
-                      I agree to the terms and conditions
-                    </label>
-                    <p className="text-sm text-[#4B5563]">
-                      By submitting this form, you agree to be contacted about your hibachi experience.
-                    </p>
-                  </div>
-                </div>
+                <TermsCheckbox
+                  checked={formData.agreeToTerms}
+                  onChange={handleCheckboxChange}
+                  onShowTerms={() => setShowTerms(true)}
+                />
+                <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
 
                 {orderError && (
                   <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">{orderError}</div>

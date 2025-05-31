@@ -148,6 +148,7 @@ export default function HeroSection() {
               src={image.url || "/placeholder.svg"}
               alt={image.alt || `Hero slide ${index + 1}`}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
             <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-md text-sm font-mono z-10">
               {imageTimestamps[index] || "Loading..."}
@@ -195,7 +196,7 @@ export default function HeroSection() {
             </Button>
           </div>
           <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
-            Top-tier food & service. No hidden fees. From $599.
+            Top-tier food & service. No hidden fees. From $499.
           </p>
         </div>
       </div>

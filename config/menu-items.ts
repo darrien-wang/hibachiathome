@@ -264,9 +264,9 @@ export const packageOptions: PackageOption[] = [
     description: "Perfect for intimate gatherings",
     headcount: 10,
     childCount: 0,
-    flatRate: 599,
+    flatRate: 499,
     originalPrice: 60,
-    currentPrice: 59.9,
+    currentPrice: 49.9,
     includedItems: {
       regularProteins: 2,
       premiumProteins: 0,
