@@ -4,6 +4,25 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
+// 火焰SVG组件
+const FlameSVG = () => (
+  <svg className="w-12 h-12 animate-flameLick" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M12 2C10.5 4 8.5 5.5 6 6.5C3.5 7.5 2 10 2 12.5C2 17.5 6.5 22 12 22C17.5 22 22 17.5 22 12.5C22 10 20.5 7.5 18 6.5C15.5 5.5 13.5 4 12 2Z"
+      fill="url(#fireGradient)"
+    />
+    <defs>
+      <linearGradient id="fireGradient" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#E63900" />
+        <stop offset="0.3" stopColor="#FF4500" />
+        <stop offset="0.6" stopColor="#FF6A00" />
+        <stop offset="0.8" stopColor="#FFA500" />
+        <stop offset="1" stopColor="#FFD700" />
+      </linearGradient>
+    </defs>
+  </svg>
+)
+
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [imagesLoaded, setImagesLoaded] = useState(false)
@@ -341,7 +360,7 @@ export default function HeroSection() {
           {/* 视频加载指示器 */}
           {!videoLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-black">
-              <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-12 h-12 border-4 border-blazing-orange border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
 
@@ -430,7 +449,7 @@ export default function HeroSection() {
       >
         {!imagesLoaded && (!showVideo || videoError) && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-blazing-orange border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
         {sortedHeroImages.map((image, index) => (
@@ -467,34 +486,48 @@ export default function HeroSection() {
           showVideo && !videoError ? "opacity-0" : "opacity-100"
         }`}
       >
-        <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
-          <h1
-            className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-gradient"
-            style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
-          >
-            Let{"`"}s throw a <span className="fire-text-gradient animate-fireText">HIBACHI party</span> today!
+        <div className="mt-40 md:mt-64 flex flex-col justify-center items-center w-full">
+          {/* 使用更有能量感的字体和两行布局 */}
+          <h1 className="font-energy text-5xl md:text-7xl font-bold mb-2 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-glow">
+            LET'S THROW A
           </h1>
+
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <FlameSVG />
+            <span className="font-energy text-6xl md:text-8xl font-bold fire-text-gradient animate-fireText">
+              HIBACHI PARTY
+            </span>
+            <FlameSVG />
+          </div>
+
+          <h2 className="font-energy text-4xl md:text-6xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-glow">
+            TODAY!
+          </h2>
         </div>
+
         <div className="mt-auto mb-12 md:mb-20 animate-slideUp">
           <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
+            {/* 主CTA按钮 - 使用烈焰橙 */}
             <Button
               asChild
               size="lg"
-              className="text-lg py-6 px-8 fire-gradient hover:animate-fire-glow rounded-full border-2 border-fire-bright shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3 animate-fireFlicker"
+              className="cta-primary text-lg py-6 px-8 bg-blazing-orange hover:bg-fire-deep w-full sm:w-2/3 animate-fireGlowIntense"
               onClick={handleFirstInteraction}
             >
-              <Link href="/estimation">Free Estimate</Link>
+              <Link href="/estimation">GET A QUOTE</Link>
             </Button>
+
+            {/* 次CTA按钮 - 黑底金黄字 */}
             <Button
               asChild
               size="lg"
-              className="text-lg py-6 px-8 bg-fire-ember/20 text-white border border-fire-golden/70 hover:bg-fire-ember/30 transition-colors duration-300 rounded-full w-full sm:w-1/3 hover:animate-fire-glow"
+              className="cta-secondary text-lg py-6 px-8 w-full sm:w-1/3"
               onClick={handleFirstInteraction}
             >
-              <Link href="/menu">Packages</Link>
+              <Link href="/menu">VIEW PACKAGES</Link>
             </Button>
           </div>
-          <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
+          <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90 text-blazing-yellow">
             Top-tier food & service. No hidden fees. From $499.
           </p>
         </div>
@@ -530,7 +563,7 @@ export default function HeroSection() {
                 handleUserInteraction()
                 setCurrentSlide(index)
               }}
-              className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"}`}
+              className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-blazing-orange" : "bg-white/50"}`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}

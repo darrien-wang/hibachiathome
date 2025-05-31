@@ -23,6 +23,7 @@ const config = {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         montserrat: ["var(--font-montserrat)"],
+        energy: ["Bebas Neue", "Impact", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -58,7 +59,7 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Fire-inspired color palette
+        // Fire-inspired color palette - 增强版
         fire: {
           deep: "hsl(var(--fire-deep))",
           core: "hsl(var(--fire-core))",
@@ -68,7 +69,7 @@ const config = {
           hot: "hsl(var(--fire-hot))",
           ember: "hsl(var(--fire-ember))",
         },
-        // Semantic fire colors
+        // 具体火焰色彩
         flame: {
           50: "#FFF8E1", // Lightest flame
           100: "#FFECB3", // Very light flame
@@ -107,16 +108,10 @@ const config = {
           900: "#18181b", // 最深
           950: "#09090b", // 接近黑色
         },
-
-        // 黑色背景上的火焰色彩增强版本
-        "fire-enhanced": {
-          deep: "#D2691E", // 增强的深火焰色
-          core: "#FF8C00", // 增强的核心火焰色
-          bright: "#FFA500", // 增强的明亮火焰色
-          golden: "#FFD700", // 增强的金色火焰
-          tips: "#FFFF00", // 增强的火焰尖端色
-          hot: "#FF4500", // 增强的热火焰色
-          ember: "#FF6347", // 增强的余烬色
+        // 新增烈焰橙和光感金黄
+        blazing: {
+          orange: "#FF6A00", // 烈焰橙
+          yellow: "#FFF3B0", // 光感金黄
         },
       },
       borderRadius: {
@@ -163,16 +158,37 @@ const config = {
             boxShadow: "0 0 30px hsl(var(--fire-bright) / 0.5), 0 0 50px hsl(var(--fire-golden) / 0.3)",
           },
         },
+        typewriter: {
+          from: { width: "0" },
+          to: { width: "100%" },
+        },
+        "blink-cursor": {
+          "from, to": { borderRightColor: "transparent" },
+          "50%": { borderRightColor: "hsl(var(--fire-tips))" },
+        },
+        "flame-lick": {
+          "0%, 100%": {
+            transform: "scaleY(1) translateY(0)",
+          },
+          "50%": {
+            transform: "scaleY(1.1) translateY(-5px)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fire-flicker": "fire-flicker 3s infinite ease-in-out",
         "fire-glow": "fire-glow 2s infinite ease-in-out",
+        typewriter: "typewriter 2.5s steps(40, end) 1s forwards",
+        "blink-cursor": "blink-cursor 0.75s step-end infinite",
+        "flame-lick": "flame-lick 2s ease-in-out infinite",
       },
       backgroundImage: {
         "fire-gradient": "var(--fire-gradient)",
+        "fire-gradient-text": "var(--fire-gradient-text)",
         "fire-gradient-subtle": "var(--fire-gradient-subtle)",
+        "fire-texture": "var(--fire-texture)",
       },
     },
   },

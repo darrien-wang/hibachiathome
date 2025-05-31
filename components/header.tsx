@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
+import { Sheet } from "@/components/ui/sheet"
 import { siteConfig } from "@/config/site"
 
 const navItems = [
@@ -98,12 +96,12 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-flame-100 to-white backdrop-blur-sm overflow-visible fire-glow ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-black/90 to-black/70 backdrop-blur-sm overflow-visible ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
       <div className="container mx-auto px-4 py-3 relative">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-fire-golden/10 rounded-full blur-xl -z-10 animate-fire-glow"></div>
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-blazing-orange/10 rounded-full blur-xl -z-10 animate-fire-glow"></div>
 
         {/* Mobile Layout */}
         <div className="md:hidden grid grid-cols-3 items-center">
@@ -118,7 +116,7 @@ export function Header() {
                 alt={siteConfig.logo.alt}
                 width={siteConfig.logo.width * 0.8}
                 height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
+                className="h-auto w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(255,106,0,0.4)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
                 priority
               />
             </Link>
@@ -127,105 +125,4 @@ export function Header() {
           {/* Mobile Menu Button */}
           <div className="flex justify-end">
             <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-fire-bright hover:bg-fire-bright/10 rounded-full">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[250px] sm:w-[300px] bg-stone-100/95">
-                <div className="flex justify-center mb-6 mt-4">
-                  <Image
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
-                    alt={siteConfig.logo.alt}
-                    width={112}
-                    height={35}
-                    className="h-auto hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
-                  />
-                </div>
-                <nav className="flex flex-col mt-6">
-                  {navItems
-                    .filter((item) => !item.disabled)
-                    .map((item) => (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className="py-3 text-lg font-sans font-medium text-gray-700 hover:text-fire-bright transition-colors tracking-wide"
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  <Button
-                    asChild
-                    className="fire-gradient hover:animate-fire-glow text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 border-2 border-fire-bright"
-                    size="default"
-                  >
-                    <Link href="/book">Book Now</Link>
-                  </Button>
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden md:flex items-center justify-between max-w-5xl mx-auto">
-          {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-end flex-1">
-            {navItems
-              .filter((item) => !item.disabled)
-              .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
-              .map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-fire-bright transition-colors tracking-wide mx-1"
-                >
-                  {item.name}
-                </Link>
-              ))}
-          </nav>
-
-          {/* Logo in Center - Desktop remains unchanged */}
-          <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
-            <Link href="/" className="block relative w-full h-full">
-              <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width * 0.8}
-                height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
-                priority
-              />
-            </Link>
-          </div>
-
-          {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-start flex-1">
-            {navItems
-              .filter((item) => !item.disabled)
-              .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
-              .map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-fire-bright transition-colors tracking-wide mx-1"
-                >
-                  {item.name}
-                </Link>
-              ))}
-            <div className="ml-auto">
-              <Button
-                asChild
-                className="fire-gradient hover:animate-fire-glow text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 text-base border-2 border-fire-bright"
-                size="default"
-              >
-                <Link href="/book">Book Now</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-  )
-}
+              \
