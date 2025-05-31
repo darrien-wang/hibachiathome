@@ -45,7 +45,7 @@ const testimonials = [
 
 export default function Home() {
   return (
-    <div>
+    <div className="overflow-x-hidden">
       <HeroSection />
       {/* Social Proof Counter */}
       <AnimateOnScroll>
