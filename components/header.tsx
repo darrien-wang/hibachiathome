@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Sheet } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 import { siteConfig } from "@/config/site"
 
 const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
-  { name: "Blog", href: "/blog", disabled: false }, // 添加博客导航项
+  { name: "Blog", href: "/blog", disabled: false },
   { name: "Locations", href: "/locations", disabled: true },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
@@ -31,51 +33,35 @@ export function Header() {
       window.requestAnimationFrame(() => {
         const currentScrollY = window.scrollY
 
-        // Only update if we've scrolled at least 5px to reduce jitter
         if (Math.abs(currentScrollY - lastScrollY) > 5) {
-          // Determine if we're scrolling up or down
           if (currentScrollY > lastScrollY && currentScrollY > 100) {
-            // Scrolling down and past threshold
             setIsVisible(false)
           } else if (currentScrollY < lastScrollY) {
-            // Scrolling up
             setIsVisible(true)
           }
-
-          // Update last scroll position
           setLastScrollY(currentScrollY)
         }
 
-        // Update background change
         setIsScrolled(currentScrollY > 10)
-
         setTicking(false)
       })
     }
   }, [lastScrollY, ticking])
 
-  // 添加一个 ref 来引用 header 元素
   const headerRef = useRef<HTMLElement>(null)
 
-  // 添加一个 effect 来设置CSS变量而不是body padding
   useEffect(() => {
-    // 函数来更新header高度CSS变量
     const updateHeaderHeight = () => {
       if (headerRef.current) {
         const headerHeight = headerRef.current.offsetHeight
         document.documentElement.style.setProperty("--header-height", `${headerHeight}px`)
-        // 移除body padding，让hero可以无缝连接
         document.body.style.paddingTop = "0"
       }
     }
 
-    // 初始设置
     updateHeaderHeight()
-
-    // 在窗口大小改变时重新计算
     window.addEventListener("resize", updateHeaderHeight)
 
-    // 清理函数
     return () => {
       window.removeEventListener("resize", updateHeaderHeight)
       document.documentElement.style.removeProperty("--header-height")
@@ -84,8 +70,6 @@ export function Header() {
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true })
-
-    // Initial check
     handleScroll()
 
     return () => {
@@ -96,27 +80,26 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-black/90 to-black/70 backdrop-blur-sm overflow-visible ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-black/95 to-black/80 backdrop-blur-sm overflow-visible ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="container mx-auto px-4 py-3 relative">
+      <div className="container mx-auto px-4 py-2 relative">
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-blazing-orange/10 rounded-full blur-xl -z-10 animate-fire-glow"></div>
 
         {/* Mobile Layout */}
         <div className="md:hidden grid grid-cols-3 items-center">
-          {/* Empty div for left side spacing */}
           <div></div>
 
-          {/* Centered Logo - Now positioned lower on mobile */}
-          <div className="flex items-center justify-center relative h-[50px] z-10">
+          {/* Centered Logo - Mobile */}
+          <div className="flex items-center justify-center relative h-[60px] z-10">
             <Link href="/" className="block relative">
               <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+                src={siteConfig.logo.main || "/placeholder.svg"}
                 alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width * 0.8}
-                height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(255,106,0,0.4)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
+                width={80}
+                height={96}
+                className="h-auto w-[80px] hover:scale-105 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,106,0,0.5)] hover:drop-shadow-[0_0_15px_rgba(255,106,0,0.8)]"
                 priority
               />
             </Link>
@@ -125,4 +108,109 @@ export function Header() {
           {/* Mobile Menu Button */}
           <div className="flex justify-end">
             <Sheet>
-              \
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-blazing-orange hover:bg-blazing-orange/10 rounded-full"
+                >
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[250px] sm:w-[300px] bg-black/95 border-blazing-orange/20">
+                <div className="flex justify-center mb-6 mt-4">
+                  <Image
+                    src={siteConfig.logo.main || "/placeholder.svg"}
+                    alt={siteConfig.logo.alt}
+                    width={100}
+                    height={120}
+                    className="h-auto w-[100px] drop-shadow-[0_0_10px_rgba(255,106,0,0.5)]"
+                  />
+                </div>
+                <nav className="flex flex-col mt-6">
+                  {navItems
+                    .filter((item) => !item.disabled)
+                    .map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="py-3 text-lg font-energy font-medium text-white hover:text-blazing-orange transition-colors tracking-wide"
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  <Button
+                    asChild
+                    className="mt-6 bg-blazing-orange hover:bg-blazing-orange/80 text-white rounded-full shadow-lg transition-all hover:shadow-xl hover:shadow-blazing-orange/25 px-6 border-2 border-blazing-orange font-energy"
+                    size="default"
+                  >
+                    <Link href="/book">BOOK NOW</Link>
+                  </Button>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden md:flex items-center justify-between max-w-6xl mx-auto">
+          {/* Desktop Navigation - Left Side */}
+          <nav className="flex items-center justify-end flex-1">
+            {navItems
+              .filter((item) => !item.disabled)
+              .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
+              .map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="px-3 py-2 text-base font-energy font-medium text-white hover:text-blazing-orange transition-colors tracking-wide mx-1 uppercase"
+                >
+                  {item.name}
+                </Link>
+              ))}
+          </nav>
+
+          {/* Logo in Center - Desktop */}
+          <div className="flex items-center relative h-[70px] w-[120px] z-10 mx-6">
+            <Link href="/" className="block relative w-full h-full">
+              <Image
+                src={siteConfig.logo.main || "/placeholder.svg"}
+                alt={siteConfig.logo.alt}
+                width={120}
+                height={144}
+                className="h-auto w-[120px] hover:scale-105 transition-all duration-300 drop-shadow-[0_0_15px_rgba(255,106,0,0.6)] hover:drop-shadow-[0_0_20px_rgba(255,106,0,0.9)]"
+                priority
+              />
+            </Link>
+          </div>
+
+          {/* Desktop Navigation - Right Side with Book Now Button */}
+          <div className="flex items-center justify-start flex-1">
+            {navItems
+              .filter((item) => !item.disabled)
+              .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
+              .map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="px-3 py-2 text-base font-energy font-medium text-white hover:text-blazing-orange transition-colors tracking-wide mx-1 uppercase"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            <div className="ml-auto">
+              <Button
+                asChild
+                className="bg-blazing-orange hover:bg-blazing-orange/80 text-white rounded-full shadow-lg transition-all hover:shadow-xl hover:shadow-blazing-orange/25 px-8 text-base border-2 border-blazing-orange font-energy uppercase tracking-wider"
+                size="default"
+              >
+                <Link href="/book">BOOK NOW</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
