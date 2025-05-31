@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Star } from "lucide-react"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 
@@ -99,17 +99,21 @@ export default function TestimonialsSection() {
   }
 
   return (
-    <section id="testimonials-section" className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100">
+    <section
+      id="testimonials-section"
+      className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100"
+    >
       <div className="container mx-auto px-4">
         <AnimateOnScroll direction="down">
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-8 hidden">
             <div className="flex items-center mb-2">
               <img
                 src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/google-reviews-png-10-GKGq4SGGN19lPvzMYHb6Rg1jvyOzJJ.png"
                 alt="Google Reviews"
                 className="h-8 mr-2"
                 onError={(e) => {
-                  e.currentTarget.src = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
+                  e.currentTarget.src =
+                    "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
                   e.currentTarget.className = "h-6 mr-2"
                 }}
               />
@@ -128,7 +132,9 @@ export default function TestimonialsSection() {
             {testimonials.map((testimonial, index) => (
               <AnimateOnScroll key={index} delay={index * 100} className="stagger-item">
                 <div
-                  ref={el => { testimonialRefs.current[index] = el }}
+                  ref={(el) => {
+                    testimonialRefs.current[index] = el
+                  }}
                   className={`bg-white rounded-lg shadow-md p-6 w-full transition-all duration-500 ${
                     index === currentTestimonial
                       ? "scale-105 border-2 border-amber-200"
