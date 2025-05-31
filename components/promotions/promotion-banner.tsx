@@ -1,6 +1,5 @@
 "use client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -19,7 +18,7 @@ export function PromotionBanner() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto mb-10">
+    <div className="w-full max-w-5xl mx-auto mb-10 hidden">
       <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 overflow-hidden">
         <div className="md:flex">
           <div className="md:w-2/3 p-6">
@@ -35,7 +34,6 @@ export function PromotionBanner() {
             <CardContent className="px-0">
               <p className="text-lg text-amber-900">{promotion.description}</p>
             </CardContent>
-        
           </div>
           <div className="md:w-1/3 relative h-48 md:h-auto">
             <Image
