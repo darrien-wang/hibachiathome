@@ -488,19 +488,28 @@ export default function HeroSection() {
       >
         <div className="mt-40 md:mt-64 flex flex-col justify-center items-center w-full">
           {/* 使用更有能量感的字体和两行布局 */}
-          <h1 className="font-energy text-5xl md:text-7xl font-bold mb-2 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-glow">
+          <h1
+            className="text-5xl md:text-7xl font-bold mb-2 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-glow"
+            style={{ fontFamily: "'Permanent Marker', cursive" }}
+          >
             LET'S THROW A
           </h1>
 
           <div className="flex items-center justify-center gap-3 mb-6">
             <FlameSVG />
-            <span className="font-energy text-6xl md:text-8xl font-bold fire-text-gradient animate-fireText">
+            <span
+              className="text-6xl md:text-8xl font-bold fire-text-gradient animate-fireText"
+              style={{ fontFamily: "'Permanent Marker', cursive" }}
+            >
               HIBACHI PARTY
             </span>
             <FlameSVG />
           </div>
 
-          <h2 className="font-energy text-4xl md:text-6xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-glow">
+          <h2
+            className="text-4xl md:text-6xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-glow"
+            style={{ fontFamily: "'Permanent Marker', cursive" }}
+          >
             TODAY!
           </h2>
         </div>
