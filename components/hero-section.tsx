@@ -17,6 +17,7 @@ export default function HeroSection() {
   const [swipeDistance, setSwipeDistance] = useState(0)
   const [showVideo, setShowVideo] = useState(true)
   const [videoEnded, setVideoEnded] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
@@ -44,6 +45,44 @@ export default function HeroSection() {
     }
     handleUserInteraction()
   }
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted
+      setIsMuted(videoRef.current.muted)
+    }
+  }
+
+  // 尝试启用声音播放
+  useEffect(() => {
+    const enableAudio = async () => {
+      if (videoRef.current && showVideo) {
+        try {
+          // 尝试取消静音并播放
+          videoRef.current.muted = false
+          setIsMuted(false)
+          await videoRef.current.play()
+        } catch (error) {
+          // 如果浏览器阻止自动播放音频，则静音播放
+          console.log("Autoplay with sound blocked, playing muted")
+          if (videoRef.current) {
+            videoRef.current.muted = true
+            setIsMuted(true)
+            try {
+              await videoRef.current.play()
+            } catch (playError) {
+              console.error("Video play failed:", playError)
+              handleVideoEnd()
+            }
+          }
+        }
+      }
+    }
+
+    if (showVideo) {
+      enableAudio()
+    }
+  }, [showVideo])
 
   const nextSlide = () => {
     handleUserInteraction()
@@ -129,7 +168,6 @@ export default function HeroSection() {
             ref={videoRef}
             className="w-full h-full object-cover"
             autoPlay
-            muted
             playsInline
             onEnded={handleVideoEnd}
             onError={() => {
@@ -137,17 +175,29 @@ export default function HeroSection() {
               handleVideoEnd()
             }}
           >
-            <source src="/video/fireopening.mp4" type="video/mp4" />
+            <source src="/video/realhibachiopening.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
 
-          {/* 跳过按钮 */}
-          <button
-            onClick={handleSkipVideo}
-            className="absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors z-10"
-          >
-            Skip
-          </button>
+          {/* 控制按钮组 */}
+          <div className="absolute top-4 right-4 flex gap-2 z-10">
+            {/* 静音/取消静音按钮 */}
+            <button
+              onClick={toggleMute}
+              className="bg-black/50 text-white p-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+              aria-label={isMuted ? "Unmute video" : "Mute video"}
+            >
+              {isMuted ? "🔇" : "🔊"}
+            </button>
+
+            {/* 跳过按钮 */}
+            <button
+              onClick={handleSkipVideo}
+              className="bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+            >
+              Skip
+            </button>
+          </div>
 
           {/* 点击任意位置跳过 */}
           <div className="absolute inset-0 cursor-pointer" onClick={handleSkipVideo} aria-label="Click to skip video" />
