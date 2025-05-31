@@ -7,6 +7,8 @@ import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 
 const poppins = Poppins({
   subsets: ["latin"],
