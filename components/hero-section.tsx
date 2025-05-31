@@ -26,31 +26,33 @@ export default function HeroSection() {
 
   // 检测设备类型和屏幕方向
   useEffect(() => {
-    const checkDevice = () => {
-      const userAgent = navigator.userAgent.toLowerCase()
-      const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
-      const portrait = window.innerHeight > window.innerWidth
+    if (typeof window !== "undefined") {
+      const checkDevice = () => {
+        const userAgent = navigator.userAgent.toLowerCase()
+        const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
+        const portrait = window.innerHeight > window.innerWidth
 
-      setIsMobile(mobile)
-      setIsPortrait(portrait)
-    }
+        setIsMobile(mobile)
+        setIsPortrait(portrait)
+      }
 
-    checkDevice()
-    window.addEventListener("resize", checkDevice)
-    window.addEventListener("orientationchange", checkDevice)
+      checkDevice()
+      window.addEventListener("resize", checkDevice)
+      window.addEventListener("orientationchange", checkDevice)
 
-    return () => {
-      window.removeEventListener("resize", checkDevice)
-      window.removeEventListener("orientationchange", checkDevice)
+      return () => {
+        window.removeEventListener("resize", checkDevice)
+        window.removeEventListener("orientationchange", checkDevice)
+      }
     }
   }, [])
 
   // 根据设备和方向选择视频
   const getVideoSource = () => {
     if (isMobile || isPortrait) {
-      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
+      return "/video/realhibachi_fire_opening_mobile.mp4"
     }
-    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
+    return "/video/realhibachi_fire_opening_desktop.mp4"
   }
 
   const handleUserInteraction = () => {
@@ -110,22 +112,37 @@ export default function HeroSection() {
       }
     }
 
-    if (showVideo) {
+    if (showVideo && typeof window !== "undefined") {
       enableAudio()
     }
   }, [showVideo])
 
   // 当设备类型或方向改变时重新加载视频
   useEffect(() => {
-    if (videoRef.current && showVideo) {
-      const currentTime = videoRef.current.currentTime
-      const wasPaused = videoRef.current.paused
+    if (videoRef.current && showVideo && typeof window !== "undefined") {
+      try {
+        const currentTime = videoRef.current.currentTime
+        const wasPaused = videoRef.current.paused
 
-      videoRef.current.src = getVideoSource()
-      videoRef.current.currentTime = currentTime
+        videoRef.current.src = getVideoSource()
+        videoRef.current.currentTime = currentTime
 
-      if (!wasPaused) {
-        videoRef.current.play().catch(console.error)
+        if (!wasPaused) {
+          videoRef.current.play().catch(() => {
+            // 如果播放失败，静音播放
+            if (videoRef.current) {
+              videoRef.current.muted = true
+              setIsMuted(true)
+              videoRef.current.play().catch(() => {
+                // 如果仍然失败，跳过视频
+                handleVideoEnd()
+              })
+            }
+          })
+        }
+      } catch (error) {
+        console.error("Error updating video source:", error)
+        handleVideoEnd()
       }
     }
   }, [isMobile, isPortrait, showVideo])
@@ -154,7 +171,10 @@ export default function HeroSection() {
         setImagesLoaded(true)
       }
     }
-    loadImagesOnce()
+
+    if (typeof window !== "undefined") {
+      loadImagesOnce()
+    }
   }, [sortedHeroImages.length, imagesLoaded])
 
   useEffect(() => {
