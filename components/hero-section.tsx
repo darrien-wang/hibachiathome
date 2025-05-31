@@ -17,9 +17,10 @@ export default function HeroSection() {
   const [swipeDistance, setSwipeDistance] = useState(0)
   const [showVideo, setShowVideo] = useState(true)
   const [videoEnded, setVideoEnded] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
+  const [isMuted, setIsMuted] = useState(false) // 默认不静音
   const [isMobile, setIsMobile] = useState(false)
   const [isPortrait, setIsPortrait] = useState(false)
+  const [audioEnabled, setAudioEnabled] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
@@ -86,25 +87,46 @@ export default function HeroSection() {
     }
   }
 
-  // 尝试启用声音播放
+  // 启用音频播放 - 用户交互后
+  const enableAudio = async () => {
+    if (videoRef.current && !audioEnabled) {
+      try {
+        videoRef.current.muted = false
+        setIsMuted(false)
+        setAudioEnabled(true)
+        await videoRef.current.play()
+      } catch (error) {
+        console.log("Audio enable failed:", error)
+      }
+    }
+  }
+
+  // 处理用户首次点击/触摸 - 启用音频
+  const handleFirstInteraction = () => {
+    enableAudio()
+    handleUserInteraction()
+  }
+
+  // 视频播放逻辑
   useEffect(() => {
-    const enableAudio = async () => {
-      if (videoRef.current && showVideo) {
+    const playVideo = async () => {
+      if (videoRef.current && showVideo && typeof window !== "undefined") {
         try {
-          // 尝试取消静音并播放
+          // 首先尝试不静音播放
           videoRef.current.muted = false
           setIsMuted(false)
           await videoRef.current.play()
+          setAudioEnabled(true)
         } catch (error) {
-          // 如果浏览器阻止自动播放音频，则静音播放
-          console.log("Autoplay with sound blocked, playing muted")
+          console.log("Autoplay with sound blocked, trying muted playback")
+          // 如果被阻止，则静音播放
           if (videoRef.current) {
             videoRef.current.muted = true
             setIsMuted(true)
             try {
               await videoRef.current.play()
-            } catch (playError) {
-              console.error("Video play failed:", playError)
+            } catch (mutedError) {
+              console.error("Video play failed completely:", mutedError)
               handleVideoEnd()
             }
           }
@@ -112,8 +134,8 @@ export default function HeroSection() {
       }
     }
 
-    if (showVideo && typeof window !== "undefined") {
-      enableAudio()
+    if (showVideo) {
+      playVideo()
     }
   }, [showVideo])
 
@@ -123,9 +145,11 @@ export default function HeroSection() {
       try {
         const currentTime = videoRef.current.currentTime
         const wasPaused = videoRef.current.paused
+        const wasMuted = videoRef.current.muted
 
         videoRef.current.src = getVideoSource()
         videoRef.current.currentTime = currentTime
+        videoRef.current.muted = wasMuted
 
         if (!wasPaused) {
           videoRef.current.play().catch(() => {
@@ -266,18 +290,32 @@ export default function HeroSection() {
             </button>
           </div>
 
-          {/* 移动端底部提示 */}
-          {isMobile && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-              <p className="text-white/80 text-xs text-center bg-black/30 px-3 py-1 rounded-full">Tap to skip</p>
+          {/* 音频启用提示 - 仅在静音时显示 */}
+          {isMuted && !audioEnabled && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+              <button
+                onClick={enableAudio}
+                className="bg-black/70 text-white px-6 py-3 rounded-full text-sm hover:bg-black/90 transition-colors flex items-center gap-2"
+              >
+                🔊 Click to enable sound
+              </button>
             </div>
           )}
 
-          {/* 点击任意位置跳过 */}
+          {/* 移动端底部提示 */}
+          {isMobile && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+              <p className="text-white/80 text-xs text-center bg-black/30 px-3 py-1 rounded-full">
+                {isMuted ? "Tap to enable sound or skip" : "Tap to skip"}
+              </p>
+            </div>
+          )}
+
+          {/* 点击任意位置的处理 */}
           <div
             className="absolute inset-0 cursor-pointer"
-            onClick={handleSkipVideo}
-            aria-label="Click to skip video"
+            onClick={isMuted && !audioEnabled ? enableAudio : handleSkipVideo}
+            aria-label={isMuted && !audioEnabled ? "Click to enable sound" : "Click to skip video"}
             style={{ WebkitTapHighlightColor: "transparent" }} // 移除移动端点击高亮
           />
         </div>
@@ -372,7 +410,7 @@ export default function HeroSection() {
               asChild
               size="lg"
               className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
-              onClick={handleUserInteraction}
+              onClick={handleFirstInteraction}
             >
               <Link href="/estimation">Free Estimate</Link>
             </Button>
@@ -380,7 +418,7 @@ export default function HeroSection() {
               asChild
               size="lg"
               className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
-              onClick={handleUserInteraction}
+              onClick={handleFirstInteraction}
             >
               <Link href="/menu">Packages</Link>
             </Button>
