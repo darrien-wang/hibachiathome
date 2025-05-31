@@ -14,29 +14,34 @@ export default function Footer() {
       className="bg-gradient-to-b from-gray-900 to-black text-white py-[60px] relative overflow-hidden"
       role="contentinfo"
     >
-      <div className="absolute inset-0 bg-fire-gradient opacity-5 animate-fire-glow"></div>
-      <div className="container mx-auto px-4">
+      <div className="absolute inset-0 bg-fire-gradient opacity-10 animate-fire-glow"></div>
+      <div className="container mx-auto px-4 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
           {/* Left Column: Brand Logo and Description */}
           <div className="flex flex-col items-start">
             <div className="flex items-center mb-4">
-              <Image
-                src={siteConfig.logo.main || "/placeholder.svg"}
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width || 60} // Fallback if not in siteConfig
-                height={siteConfig.logo.height || 60} // Fallback if not in siteConfig
-                className="h-auto rounded-full relative z-10 bg-white/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)]"
-                priority={false} // Set to true if it's LCP, usually not for footer logo
-              />
+              <div className="relative">
+                <Image
+                  src={siteConfig.logo.main || "/placeholder.svg"}
+                  alt={siteConfig.logo.alt}
+                  width={siteConfig.logo.width || 60}
+                  height={siteConfig.logo.height || 60}
+                  className="h-auto rounded-full relative z-10 bg-gradient-to-br from-orange-100 to-amber-50 backdrop-blur-sm shadow-lg shadow-orange-500/20 border-2 border-orange-500/30"
+                  priority={false}
+                />
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-500/20 to-red-500/20 animate-pulse"></div>
+              </div>
             </div>
-            <p className="text-[16px] text-white/80 mt-2">
+            <p className="text-[16px] text-gray-300 mt-2 leading-relaxed">
               Bringing the hibachi experience directly to your home or venue.
             </p>
           </div>
 
           {/* Middle Column: Quick Links */}
           <div className="mb-8 md:mb-0">
-            <h4 className="text-[18px] font-bold text-white mb-6">Quick Links</h4>
+            <h4 className="text-[18px] font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent mb-6">
+              Quick Links
+            </h4>
             <ul className="space-y-3">
               <li>
                 <Link href="/" className="text-[16px] hover:text-fire-bright transition-colors duration-200">
@@ -81,7 +86,9 @@ export default function Footer() {
 
           {/* Right Column: Connect With Us & Contact Info */}
           <div>
-            <h4 className="text-[18px] font-bold text-white mb-6">Connect With Us</h4>
+            <h4 className="text-[18px] font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent mb-6">
+              Connect With Us
+            </h4>
             <div className="flex space-x-4 mb-6">
               <a
                 href={siteConfig.socialLinks?.facebook ?? "#"}
@@ -172,7 +179,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom Section: Sitemap Links and Copyright */}
-        <div className="border-t border-[#21212A] pt-6 mt-6 text-center">
+        <div className="border-t border-gradient-to-r from-orange-500/30 via-red-500/30 to-orange-500/30 pt-6 mt-6 text-center relative">
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-orange-500 to-transparent"></div>
           <div className="mb-4">
             <a
               href="https://www.realhibachi.com/sitemap.html" // Assuming this is the correct public URL
