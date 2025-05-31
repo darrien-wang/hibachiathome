@@ -4,25 +4,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
-// 火焰SVG组件
-const FlameSVG = () => (
-  <svg className="w-12 h-12 animate-flameLick" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M12 2C10.5 4 8.5 5.5 6 6.5C3.5 7.5 2 10 2 12.5C2 17.5 6.5 22 12 22C17.5 22 22 17.5 22 12.5C22 10 20.5 7.5 18 6.5C15.5 5.5 13.5 4 12 2Z"
-      fill="url(#fireGradient)"
-    />
-    <defs>
-      <linearGradient id="fireGradient" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stopColor="#E63900" />
-        <stop offset="0.3" stopColor="#FF4500" />
-        <stop offset="0.6" stopColor="#FF6A00" />
-        <stop offset="0.8" stopColor="#FFA500" />
-        <stop offset="1" stopColor="#FFD700" />
-      </linearGradient>
-    </defs>
-  </svg>
-)
-
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [imagesLoaded, setImagesLoaded] = useState(false)
@@ -496,14 +477,12 @@ export default function HeroSection() {
           </h1>
 
           <div className="flex items-center justify-center gap-3 mb-6">
-            <FlameSVG />
             <span
               className="text-6xl md:text-8xl font-bold fire-text-gradient animate-fireText"
               style={{ fontFamily: "'Permanent Marker', cursive" }}
             >
               HIBACHI PARTY
             </span>
-            <FlameSVG />
           </div>
 
           <h2
