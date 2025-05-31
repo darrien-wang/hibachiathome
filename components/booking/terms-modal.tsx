@@ -4,8 +4,16 @@ export function TermsModal({ open, onClose }: { open: boolean; onClose: () => vo
   if (!open) return null
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">Terms & Conditions</h3>
+      <div className="relative bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto mx-2">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none z-10"
+          style={{ lineHeight: 1 }}
+        >
+          ×
+        </button>
+        <h3 className="text-xl font-bold mb-4 text-center">Terms & Conditions</h3>
         <div className="prose prose-sm space-y-6">
           <div>
             <p className="font-medium">PLEASE TAKE NOTICE:</p>
