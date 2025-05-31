@@ -145,8 +145,8 @@ export default function HowItWorksSection() {
                     1
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-energy mb-3 text-white">PICK YOUR MENU</h3>
-                    <p className="text-muted-foreground font-sans tracking-wide mb-4 leading-relaxed">
+                    <h3 className="text-xl font-bold mb-3 text-white tracking-wide">PICK YOUR MENU</h3>
+                    <p className="text-muted-foreground font-medium tracking-wide mb-4 leading-relaxed">
                       Select from our Basic or Buffet packages based on your preferences and budget.
                     </p>
                     <Button
@@ -172,8 +172,8 @@ export default function HowItWorksSection() {
                     2
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-energy mb-3 text-white">RESERVE YOUR SPOT</h3>
-                    <p className="text-muted-foreground font-sans tracking-wide mb-4 leading-relaxed">
+                    <h3 className="text-xl font-bold mb-3 text-white tracking-wide">RESERVE YOUR SPOT</h3>
+                    <p className="text-muted-foreground font-medium tracking-wide mb-4 leading-relaxed">
                       Choose your preferred date and time, and we'll confirm availability within 24 hours.
                     </p>
                     <Button
@@ -199,8 +199,8 @@ export default function HowItWorksSection() {
                     3
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-energy mb-3 text-white">LET'S HIBACHI!</h3>
-                    <p className="text-muted-foreground font-sans tracking-wide mb-4 leading-relaxed">
+                    <h3 className="text-xl font-bold mb-3 text-white tracking-wide">LET'S HIBACHI!</h3>
+                    <p className="text-muted-foreground font-medium tracking-wide mb-4 leading-relaxed">
                       Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
                     </p>
                     <Button
