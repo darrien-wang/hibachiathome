@@ -52,67 +52,62 @@ export default function Home() {
 
       {/* Package Options Section */}
       <AnimateOnScroll>
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-black">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Our Popular <span className="text-primary">Packages</span>
+              <h2 className="text-3xl md:text-4xl font-energy font-bold text-center mb-6 fire-text-gradient">
+                Our <span className="text-yellow-400">Pricing</span>
               </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any
-                occasion
+              <p className="text-lg text-center text-gray-300 max-w-3xl mx-auto mb-12">
+                Simple, transparent pricing for an unforgettable hibachi experience
               </p>
             </AnimateOnScroll>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {/* Basic Package Card */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+              {/* Pricing Card */}
               <AnimateOnScroll direction="left">
                 <div className="bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-red-900/40 backdrop-blur-sm border border-orange-500/30 rounded-2xl overflow-hidden transition-all duration-500 hover:border-orange-400/50 hover:shadow-2xl hover:shadow-orange-500/20 relative group">
                   <div className="absolute top-2 right-2 z-10">
                     <span className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-bold bg-gradient-to-r from-yellow-400 to-orange-400 text-black border-none shadow-lg tracking-wide">
-                      MOST POPULAR
+                      PRICING
                     </span>
                   </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
-                      alt="Basic Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6 bg-gradient-to-br from-gray-900 via-black to-gray-800 relative">
+
+                  <div className="p-8 bg-gradient-to-br from-gray-900 via-black to-gray-800 relative">
                     {/* Fire glow overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 via-transparent to-yellow-500/5 pointer-events-none"></div>
 
                     <div className="relative z-10">
-                      <h3 className="text-2xl font-energy font-bold mb-4 fire-text-gradient">Basic Package</h3>
-                      <div className="mb-6">
-                        <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-gray-400 text-lg line-through">$60</span>
-                          <span className="text-3xl font-bold fire-text-gradient">$49.9</span>
-                          <span className="text-gray-300 text-lg">/person</span>
+                      <h3 className="text-3xl font-energy font-bold mb-6 fire-text-gradient">Pricing</h3>
+
+                      {/* Main Pricing */}
+                      <div className="mb-8">
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <span className="text-4xl font-bold fire-text-gradient">$49.90</span>
+                          <span className="text-gray-300 text-xl">per person</span>
                         </div>
-                        <p className="text-yellow-400 text-sm font-medium">Only $499 minimum!</p>
+                        <p className="text-yellow-400 text-lg font-medium mb-4">$499 Minimum for all parties</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold text-orange-400">$24.90</span>
+                          <span className="text-gray-300">per child 12 and under</span>
+                        </div>
                       </div>
-                      <ul className="space-y-3 mb-8 text-gray-200">
-                        <li className="flex items-start gap-3">
-                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
-                          <span>2 proteins of your choice</span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
-                          <span>Fried rice & vegetables</span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
-                          <span>Chef performance included</span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                          <span className="text-yellow-400 text-lg mt-0.5">✓</span>
-                          <span>Perfect for intimate gatherings</span>
-                        </li>
-                      </ul>
+
+                      {/* Service Notes */}
+                      <div className="space-y-4 mb-8">
+                        <div className="flex items-start gap-3">
+                          <span className="text-yellow-400 text-lg mt-0.5">🔥</span>
+                          <span className="text-gray-200">We cook outside only.</span>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="text-yellow-400 text-lg mt-0.5">☔</span>
+                          <span className="text-gray-200">
+                            We provide services rain or shine, as long as there is a dry area for the chef to cook
+                            under.
+                          </span>
+                        </div>
+                      </div>
+
                       <Button
                         asChild
                         className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30 hover:scale-105 border-none"
@@ -124,53 +119,79 @@ export default function Home() {
                 </div>
               </AnimateOnScroll>
 
-              {/* Buffet Package Card */}
+              {/* Menu Details Card */}
               <AnimateOnScroll direction="right">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
+                <div className="bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-red-900/40 backdrop-blur-sm border border-orange-500/30 rounded-2xl overflow-hidden transition-all duration-500 hover:border-orange-400/50 hover:shadow-2xl hover:shadow-orange-500/20 relative group">
                   <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
-                      Self-Service
+                    <span className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 text-black border-none shadow-lg tracking-wide">
+                      MENU
                     </span>
                   </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                      alt="Buffet Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Buffet Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $49.9
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($998 minimum)</p>
+
+                  <div className="p-8 bg-gradient-to-br from-gray-900 via-black to-gray-800 relative">
+                    {/* Fire glow overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 via-transparent to-yellow-500/5 pointer-events-none"></div>
+
+                    <div className="relative z-10">
+                      <h3 className="text-3xl font-energy font-bold mb-6 fire-text-gradient">Protein Choices</h3>
+
+                      {/* Protein Selection */}
+                      <div className="mb-6">
+                        <p className="text-yellow-400 text-lg font-medium mb-4">2 Per Person</p>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {["Chicken", "Steak", "Shrimp", "Scallops", "Salmon", "Tofu"].map((protein) => (
+                            <span
+                              key={protein}
+                              className="text-gray-200 text-sm bg-gray-800/50 px-3 py-1 rounded-lg border border-orange-500/20"
+                            >
+                              {protein}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-orange-400 text-sm mb-4">Upgrade proteins: Filet Mignon $5 · Lobster $10</p>
+                      </div>
+
+                      {/* Includes */}
+                      <div className="mb-6">
+                        <h4 className="text-yellow-400 font-bold mb-2">Includes</h4>
+                        <p className="text-gray-200">Salad, Fried Rice, and Vegetables</p>
+                      </div>
+
+                      {/* Add-ons */}
+                      <div className="space-y-2 mb-8 text-sm">
+                        <div className="flex justify-between text-gray-200">
+                          <span>Gyoza (12pcs)</span>
+                          <span className="text-orange-400">$15</span>
+                        </div>
+                        <div className="flex justify-between text-gray-200">
+                          <span>Edamame</span>
+                          <span className="text-orange-400">$10</span>
+                        </div>
+                        <div className="flex justify-between text-gray-200">
+                          <span>3rd Protein</span>
+                          <span className="text-orange-400">$10</span>
+                        </div>
+                        <div className="flex justify-between text-gray-200">
+                          <span>Filet Mignon</span>
+                          <span className="text-orange-400">$15</span>
+                        </div>
+                        <div className="flex justify-between text-gray-200">
+                          <span>Lobster</span>
+                          <span className="text-orange-400">$20</span>
+                        </div>
+                        <div className="flex justify-between text-gray-200">
+                          <span>Noodles</span>
+                          <span className="text-orange-400">$5 per order</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        asChild
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30 hover:scale-105 border-none"
+                      >
+                        <Link href="/menu">VIEW FULL MENU</Link>
+                      </Button>
                     </div>
-                    <ul className="space-y-1 mb-6 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Self-service buffet style</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fixed menu (chicken, shrimp, beef)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Ideal for larger groups (20+ people)</span>
-                      </li>
-                    </ul>
-                    <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
-                      <Link href="/book">Book Now</Link>
-                    </Button>
                   </div>
                 </div>
               </AnimateOnScroll>
@@ -181,9 +202,9 @@ export default function Home() {
                 <Button
                   asChild
                   variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                  className="rounded-full border-2 border-orange-500 text-orange-400 hover:bg-orange-500/10 font-bold px-8 py-3"
                 >
-                  <Link href="/menu">View All Packages</Link>
+                  <Link href="/book">Get Your Free Estimate</Link>
                 </Button>
               </div>
             </AnimateOnScroll>
