@@ -110,7 +110,7 @@ export default function TestimonialsSection() {
       }}
     >
       {/* Dark overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px]"></div>
+      <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.2px]"></div>
 
       {/* Additional fire atmosphere overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 via-transparent to-red-900/20 pointer-events-none"></div>
