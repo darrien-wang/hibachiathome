@@ -18,9 +18,40 @@ export default function HeroSection() {
   const [showVideo, setShowVideo] = useState(true)
   const [videoEnded, setVideoEnded] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isPortrait, setIsPortrait] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
+
+  // 检测设备类型和屏幕方向
+  useEffect(() => {
+    const checkDevice = () => {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
+      const portrait = window.innerHeight > window.innerWidth
+
+      setIsMobile(mobile)
+      setIsPortrait(portrait)
+    }
+
+    checkDevice()
+    window.addEventListener("resize", checkDevice)
+    window.addEventListener("orientationchange", checkDevice)
+
+    return () => {
+      window.removeEventListener("resize", checkDevice)
+      window.removeEventListener("orientationchange", checkDevice)
+    }
+  }, [])
+
+  // 根据设备和方向选择视频
+  const getVideoSource = () => {
+    if (isMobile || isPortrait) {
+      return "/video/realhibachi_fire_opening_mobile.mp4"
+    }
+    return "/video/realhibachi_fire_opening_desktop.mp4"
+  }
 
   const handleUserInteraction = () => {
     if (!userInteracted) {
@@ -83,6 +114,21 @@ export default function HeroSection() {
       enableAudio()
     }
   }, [showVideo])
+
+  // 当设备类型或方向改变时重新加载视频
+  useEffect(() => {
+    if (videoRef.current && showVideo) {
+      const currentTime = videoRef.current.currentTime
+      const wasPaused = videoRef.current.paused
+
+      videoRef.current.src = getVideoSource()
+      videoRef.current.currentTime = currentTime
+
+      if (!wasPaused) {
+        videoRef.current.play().catch(console.error)
+      }
+    }
+  }, [isMobile, isPortrait, showVideo])
 
   const nextSlide = () => {
     handleUserInteraction()
@@ -174,13 +220,14 @@ export default function HeroSection() {
               console.error("Video failed to load")
               handleVideoEnd()
             }}
+            key={`${isMobile}-${isPortrait}`} // 强制重新渲染当设备类型改变时
           >
-            <source src="/video/realhibachiopening.mp4" type="video/mp4" />
+            <source src={getVideoSource()} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
 
           {/* 控制按钮组 */}
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <div className={`absolute top-4 right-4 flex gap-2 z-10 ${isMobile ? "scale-90" : ""}`}>
             {/* 静音/取消静音按钮 */}
             <button
               onClick={toggleMute}
@@ -199,8 +246,20 @@ export default function HeroSection() {
             </button>
           </div>
 
+          {/* 移动端底部提示 */}
+          {isMobile && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+              <p className="text-white/80 text-xs text-center bg-black/30 px-3 py-1 rounded-full">Tap to skip</p>
+            </div>
+          )}
+
           {/* 点击任意位置跳过 */}
-          <div className="absolute inset-0 cursor-pointer" onClick={handleSkipVideo} aria-label="Click to skip video" />
+          <div
+            className="absolute inset-0 cursor-pointer"
+            onClick={handleSkipVideo}
+            aria-label="Click to skip video"
+            style={{ WebkitTapHighlightColor: "transparent" }} // 移除移动端点击高亮
+          />
         </div>
       )}
 
