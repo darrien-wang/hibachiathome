@@ -212,7 +212,7 @@ export default function Home() {
                     <h3 className="text-xl font-bold mb-2">Basic Package</h3>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$70</span>
+                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
                         $49.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
