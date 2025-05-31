@@ -122,9 +122,15 @@ export default function HowItWorksSection() {
                   <div className="text-center">
                     <Button
                       asChild
-                      className="cta-primary hover:fire-glow-intense transition-all duration-300 font-bold text-lg px-8 py-3"
+                      className="relative overflow-hidden bg-gradient-to-r from-amber-500 to-red-600 text-white font-bold py-3 px-6 rounded-full w-full border-2 border-amber-300/30 shadow-[0_0_15px_rgba(255,106,0,0.5)] hover:shadow-[0_0_25px_rgba(255,106,0,0.8)] transition-all duration-300 group"
                     >
-                      <Link href="/estimation">Get Started</Link>
+                      <Link href="/estimation" className="flex items-center justify-center">
+                        <span className="relative z-10">Get Started</span>
+                        <span className="absolute inset-0 bg-gradient-to-t from-orange-600 to-amber-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></span>
+                        <span className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-transparent to-amber-500/20 opacity-0 group-hover:opacity-100 animate-pulse z-0"></span>
+                        <span className="absolute -inset-1 rounded-full blur-md bg-gradient-to-r from-amber-400 to-red-500 opacity-0 group-hover:opacity-30 transition-opacity duration-300 group-hover:duration-700"></span>
+                        <span className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-amber-300 opacity-0 group-hover:animate-fireUnderline"></span>
+                      </Link>
                     </Button>
                   </div>
                 </div>
@@ -206,9 +212,15 @@ export default function HowItWorksSection() {
                     </p>
                     <Button
                       asChild
-                      className="cta-primary hover:fire-glow-intense transition-all duration-300 font-bold w-full"
+                      className="relative overflow-hidden bg-gradient-to-r from-amber-500 to-red-600 text-white font-bold py-3 px-6 rounded-full w-full border-2 border-amber-300/30 shadow-[0_0_15px_rgba(255,106,0,0.5)] hover:shadow-[0_0_25px_rgba(255,106,0,0.8)] transition-all duration-300 group"
                     >
-                      <Link href="/estimation">Get Started</Link>
+                      <Link href="/estimation" className="flex items-center justify-center">
+                        <span className="relative z-10">Get Started</span>
+                        <span className="absolute inset-0 bg-gradient-to-t from-orange-600 to-amber-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></span>
+                        <span className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-transparent to-amber-500/20 opacity-0 group-hover:opacity-100 animate-pulse z-0"></span>
+                        <span className="absolute -inset-1 rounded-full blur-md bg-gradient-to-r from-amber-400 to-red-500 opacity-0 group-hover:opacity-30 transition-opacity duration-300 group-hover:duration-700"></span>
+                        <span className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-amber-300 opacity-0 group-hover:animate-fireUnderline"></span>
+                      </Link>
                     </Button>
                   </div>
                 </div>
