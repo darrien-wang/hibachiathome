@@ -98,12 +98,12 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-[#F5E3CB] to-white backdrop-blur-sm overflow-visible ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-flame-100 to-white backdrop-blur-sm overflow-visible fire-glow ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
       <div className="container mx-auto px-4 py-3 relative">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-fire-golden/10 rounded-full blur-xl -z-10 animate-fire-glow"></div>
 
         {/* Mobile Layout */}
         <div className="md:hidden grid grid-cols-3 items-center">
@@ -128,7 +128,7 @@ export function Header() {
           <div className="flex justify-end">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-[#F9A77C] hover:bg-[#F9A77C]/10 rounded-full">
+                <Button variant="ghost" size="icon" className="text-fire-bright hover:bg-fire-bright/10 rounded-full">
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Open menu</span>
                 </Button>
@@ -150,14 +150,14 @@ export function Header() {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className="py-3 text-lg font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
+                        className="py-3 text-lg font-sans font-medium text-gray-700 hover:text-fire-bright transition-colors tracking-wide"
                       >
                         {item.name}
                       </Link>
                     ))}
                   <Button
                     asChild
-                    className="mt-6 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 border-2 border-amber-500"
+                    className="fire-gradient hover:animate-fire-glow text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 border-2 border-fire-bright"
                     size="default"
                   >
                     <Link href="/book">Book Now</Link>
@@ -179,7 +179,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
+                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-fire-bright transition-colors tracking-wide mx-1"
                 >
                   {item.name}
                 </Link>
@@ -209,7 +209,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
+                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-fire-bright transition-colors tracking-wide mx-1"
                 >
                   {item.name}
                 </Link>
@@ -217,7 +217,7 @@ export function Header() {
             <div className="ml-auto">
               <Button
                 asChild
-                className="bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 text-base border-2 border-amber-500"
+                className="fire-gradient hover:animate-fire-glow text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 text-base border-2 border-fire-bright"
                 size="default"
               >
                 <Link href="/book">Book Now</Link>

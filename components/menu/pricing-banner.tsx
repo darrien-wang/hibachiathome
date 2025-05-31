@@ -6,9 +6,9 @@ interface PricingBannerProps {
 
 export default function PricingBanner({ adultPrice, childPrice, minimumTotal }: PricingBannerProps) {
   return (
-    <div className="bg-primary text-white rounded-lg p-6 mb-10">
+    <div className="fire-gradient text-white rounded-lg p-6 mb-10 fire-glow animate-fire-glow">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Hibachi Experience Pricing</h2>
+        <h2 className="text-2xl font-bold mb-2 animate-fireText">Hibachi Experience Pricing</h2>
         <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-10 mt-4">
           <div className="text-center">
             <p className="text-sm uppercase tracking-wide">Adult</p>

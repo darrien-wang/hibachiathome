@@ -10,20 +10,55 @@
     --card-foreground: 20 14.3% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 20 14.3% 4.1%;
-    --primary: 24.6 95% 53.1%;
-    --primary-foreground: 60 9.1% 97.8%;
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
-    --muted: 60 4.8% 95.9%;
+
+    /* Fire-inspired primary colors */
+    --primary: 22 100% 52%; /* Bright flame orange #FF8C00 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Fire secondary colors */
+    --secondary: 30 100% 50%; /* Golden fire #FFA500 */
+    --secondary-foreground: 20 14.3% 4.1%;
+
+    /* Fire accent colors */
+    --accent: 43 100% 50%; /* Flame tips gold #FFD700 */
+    --accent-foreground: 20 14.3% 4.1%;
+
+    /* Fire muted colors */
+    --muted: 30 44% 72%; /* Ember glow #CD853F with opacity */
     --muted-foreground: 25 5.3% 44.7%;
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 20 5.9% 90%;
     --input: 20 5.9% 90%;
-    --ring: 24.6 95% 53.1%;
+    --ring: 22 100% 52%; /* Match primary */
     --radius: 0.75rem;
+
+    /* Custom fire colors */
+    --fire-deep: 22 85% 36%; /* Deep flame base #B8460E */
+    --fire-core: 25 75% 47%; /* Core fire #D2691E */
+    --fire-bright: 22 100% 52%; /* Bright flame #FF8C00 */
+    --fire-golden: 39 100% 50%; /* Golden fire #FFA500 */
+    --fire-tips: 43 100% 50%; /* Flame tips #FFD700 */
+    --fire-hot: 9 100% 64%; /* Hot center #FF6347 */
+    --fire-ember: 30 44% 55%; /* Ember glow #CD853F */
+
+    /* Gradient combinations */
+    --fire-gradient: linear-gradient(
+      135deg,
+      hsl(var(--fire-deep)) 0%,
+      hsl(var(--fire-core)) 25%,
+      hsl(var(--fire-bright)) 50%,
+      hsl(var(--fire-golden)) 75%,
+      hsl(var(--fire-tips)) 100%
+    );
+
+    --fire-gradient-subtle: linear-gradient(
+      135deg,
+      hsl(var(--fire-bright) / 0.1) 0%,
+      hsl(var(--fire-golden) / 0.1) 50%,
+      hsl(var(--fire-tips) / 0.1) 100%
+    );
   }
 
   .dark {
@@ -33,19 +68,22 @@
     --card-foreground: 60 9.1% 97.8%;
     --popover: 20 14.3% 4.1%;
     --popover-foreground: 60 9.1% 97.8%;
-    --primary: 20.5 90.2% 48.2%;
-    --primary-foreground: 60 9.1% 97.8%;
-    --secondary: 12 6.5% 15.1%;
-    --secondary-foreground: 60 9.1% 97.8%;
+
+    /* Dark mode fire colors - more intense */
+    --primary: 22 100% 58%; /* Brighter in dark mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 100% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 43 100% 60%;
+    --accent-foreground: 20 14.3% 4.1%;
     --muted: 12 6.5% 15.1%;
     --muted-foreground: 24 5.4% 63.9%;
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 60 9.1% 97.8%;
+
     --destructive: 0 72.2% 50.6%;
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 12 6.5% 15.1%;
     --input: 12 6.5% 15.1%;
-    --ring: 20.5 90.2% 48.2%;
+    --ring: 22 100% 58%;
   }
 }
 
@@ -76,79 +114,76 @@
   }
 }
 
-/* Custom animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Fire-themed utility classes */
+.fire-gradient {
+  background: var(--fire-gradient);
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fire-gradient-subtle {
+  background: var(--fire-gradient-subtle);
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fire-text-gradient {
+  background: var(--fire-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-@keyframes slideLeft {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.fire-glow {
+  box-shadow: 0 0 20px hsl(var(--fire-bright) / 0.3), 0 0 40px hsl(var(--fire-golden) / 0.2), 0 0 60px
+    hsl(var(--fire-tips) / 0.1);
 }
 
-@keyframes slideRight {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.fire-border {
+  border: 2px solid;
+  border-image: var(--fire-gradient) 1;
 }
 
-@keyframes flicker {
+/* Enhanced animations with fire theme */
+@keyframes fireFlicker {
   0%,
   100% {
     opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  25% {
+    opacity: 0.8;
+    transform: scale(1.02);
+    filter: brightness(1.1);
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.9;
+    transform: scale(0.98);
+    filter: brightness(0.9);
+  }
+  75% {
+    opacity: 1.1;
+    transform: scale(1.01);
+    filter: brightness(1.05);
+  }
+}
+
+@keyframes fireGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px hsl(var(--fire-bright) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px hsl(var(--fire-bright) / 0.5), 0 0 50px hsl(var(--fire-golden) / 0.3);
   }
 }
 
 @keyframes fireText {
   0% {
-    text-shadow: 0 0 4px rgba(255, 165, 0, 0.7);
+    text-shadow: 0 0 4px hsl(var(--fire-bright) / 0.7);
   }
   50% {
-    text-shadow: 0 0 8px rgba(255, 165, 0, 0.9);
+    text-shadow: 0 0 8px hsl(var(--fire-bright) / 0.9), 0 0 12px hsl(var(--fire-golden) / 0.6);
   }
   100% {
-    text-shadow: 0 0 4px rgba(255, 165, 0, 0.7);
+    text-shadow: 0 0 4px hsl(var(--fire-bright) / 0.7);
   }
 }
 
@@ -156,22 +191,40 @@
   0% {
     width: 0%;
     left: 50%;
+    background: hsl(var(--fire-deep));
+  }
+  50% {
+    background: hsl(var(--fire-bright));
   }
   100% {
     width: 100%;
     left: 0;
+    background: hsl(var(--fire-golden));
   }
 }
 
 @keyframes bounceOnce {
-  0% { transform: scale(1); }
-  20% { transform: scale(1.25); }
-  40% { transform: scale(0.92); }
-  60% { transform: scale(1.12); }
-  80% { transform: scale(0.98); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.25);
+  }
+  40% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  80% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
+/* Updated animation classes */
 .animate-fadeIn {
   animation: fadeIn 1s ease-in-out;
 }
@@ -192,8 +245,12 @@
   animation: slideRight 1s ease-in-out 0.5s both;
 }
 
-.animate-flicker {
-  animation: flicker 3s infinite ease-in-out;
+.animate-fireFlicker {
+  animation: fireFlicker 3s infinite ease-in-out;
+}
+
+.animate-fireGlow {
+  animation: fireGlow 2s infinite ease-in-out;
 }
 
 .animate-fireText {

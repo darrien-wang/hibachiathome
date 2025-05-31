@@ -469,20 +469,10 @@ export default function HeroSection() {
       >
         <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
           <h1
-            className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn"
+            className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn fire-text-gradient"
             style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
           >
-            Let{"`"}s throw a{" "}
-            <span
-              style={{
-                fontFamily: "'Permanent Marker', cursive",
-                textShadow: "0 4px 8px rgba(0,0,0,0.5)",
-                color: "rgb(216, 128, 54)",
-              }}
-            >
-              HIBACHI party
-            </span>{" "}
-            today!
+            Let{"`"}s throw a <span className="fire-text-gradient animate-fireText">HIBACHI party</span> today!
           </h1>
         </div>
         <div className="mt-auto mb-12 md:mb-20 animate-slideUp">
@@ -490,7 +480,7 @@ export default function HeroSection() {
             <Button
               asChild
               size="lg"
-              className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
+              className="text-lg py-6 px-8 fire-gradient hover:animate-fire-glow rounded-full border-2 border-fire-bright shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3 animate-fireFlicker"
               onClick={handleFirstInteraction}
             >
               <Link href="/estimation">Free Estimate</Link>
@@ -498,7 +488,7 @@ export default function HeroSection() {
             <Button
               asChild
               size="lg"
-              className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
+              className="text-lg py-6 px-8 bg-fire-ember/20 text-white border border-fire-golden/70 hover:bg-fire-ember/30 transition-colors duration-300 rounded-full w-full sm:w-1/3 hover:animate-fire-glow"
               onClick={handleFirstInteraction}
             >
               <Link href="/menu">Packages</Link>
