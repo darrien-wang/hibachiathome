@@ -93,7 +93,7 @@ export function Header() {
 
           {/* Centered Logo - Mobile */}
           <div className="flex items-center justify-center relative h-[60px] z-10">
-            <Link href="/" className="block relative">
+            <Link href="/" className="block relative rounded-full overflow-hidden">
               <Image
                 src={siteConfig.logo.main || "/placeholder.svg"}
                 alt={siteConfig.logo.alt}
