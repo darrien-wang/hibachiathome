@@ -53,9 +53,9 @@ export default function HeroSection() {
   // 根据设备和方向选择视频
   const getVideoSource = () => {
     if (isMobile || isPortrait) {
-      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
+      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile%20-%20Compressed%20with%20FlexClip-ZYMlZZw9dZiHBfb30ZsKSprpwHINJh.mp4"
     }
-    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_desktop.mp4"
+    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_desktop%20-%20Compressed%20with%20FlexClip-liz7pwPLKPl2zvYoTBjiebEvWAAxJS.mp4"
   }
 
   const handleUserInteraction = () => {
@@ -222,6 +222,19 @@ export default function HeroSection() {
     }
   }, [])
 
+  // Auto-skip video after maximum duration
+  useEffect(() => {
+    if (showVideo && !videoError && videoLoaded) {
+      const maxDuration = 3000 // 3 seconds maximum
+      const timer = setTimeout(() => {
+        console.log("Video auto-skipped after maximum duration")
+        handleVideoEnd()
+      }, maxDuration)
+
+      return () => clearTimeout(timer)
+    }
+  }, [showVideo, videoError, videoLoaded])
+
   const nextSlide = () => {
     handleUserInteraction()
     setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
@@ -310,7 +323,7 @@ export default function HeroSection() {
             className="w-full h-full object-cover"
             autoPlay
             playsInline
-            preload="auto"
+            preload="metadata"
             crossOrigin="anonymous"
             onEnded={handleVideoEnd}
             onError={(e) => handleVideoError(e)}
