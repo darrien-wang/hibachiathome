@@ -66,7 +66,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                   </div>
                   <div className="p-4">
                     <h3 className="text-lg font-bold mb-1">{protein.name}</h3>
-                    <p className="text-gray-600 text-sm mb-3">{protein.description}</p>
+                    <p className="text-gray-300 text-sm mb-3">{protein.description}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-amber-600">${protein.price}</span>
                       <Button asChild size="sm" variant="outline">
@@ -104,7 +104,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                   </div>
                   <div className="p-4">
                     <h3 className="text-lg font-bold mb-1">{protein.name}</h3>
-                    <p className="text-gray-600 text-sm mb-3">{protein.description}</p>
+                    <p className="text-gray-300 text-sm mb-3">{protein.description}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-amber-600">${protein.price}</span>
                       <Button asChild size="sm" variant="outline">
@@ -145,7 +145,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                   </div>
                   <div className="p-4">
                     <h3 className="text-lg font-bold mb-1">{side.name}</h3>
-                    <p className="text-gray-600 text-sm mb-3">{side.description}</p>
+                    <p className="text-gray-300 text-sm mb-3">{side.description}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-amber-600">${side.price}</span>
                       <Button asChild size="sm" variant="outline">
