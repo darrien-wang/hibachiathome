@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
@@ -15,6 +15,9 @@ export default function HeroSection() {
   const [touchStart, setTouchStart] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [swipeDistance, setSwipeDistance] = useState(0)
+  const [showVideo, setShowVideo] = useState(true)
+  const [videoEnded, setVideoEnded] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
 
@@ -25,6 +28,21 @@ export default function HeroSection() {
         setAutoplayEnabled(true)
       }
     }
+  }
+
+  const handleVideoEnd = () => {
+    setVideoEnded(true)
+    setShowVideo(false)
+    handleUserInteraction()
+  }
+
+  const handleSkipVideo = () => {
+    setShowVideo(false)
+    setVideoEnded(true)
+    if (videoRef.current) {
+      videoRef.current.pause()
+    }
+    handleUserInteraction()
   }
 
   const nextSlide = () => {
@@ -68,7 +86,7 @@ export default function HeroSection() {
   }, [sortedHeroImages.length, imageTimestamps.length])
 
   useEffect(() => {
-    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration) {
+    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration && videoEnded) {
       const timer = setTimeout(() => {
         if (!userInteracted) {
           setCurrentSlide(1 % sortedHeroImages.length)
@@ -84,10 +102,10 @@ export default function HeroSection() {
         clearInterval(autoplayTimerRef.current)
       }
     }
-  }, [sortedHeroImages, userInteracted])
+  }, [sortedHeroImages, userInteracted, videoEnded])
 
   useEffect(() => {
-    if (sortedHeroImages.length > 0 && autoplayEnabled) {
+    if (sortedHeroImages.length > 0 && autoplayEnabled && videoEnded) {
       if (autoplayTimerRef.current) {
         clearInterval(autoplayTimerRef.current)
       }
@@ -100,25 +118,62 @@ export default function HeroSection() {
         }
       }
     }
-  }, [sortedHeroImages.length, autoplayEnabled])
+  }, [sortedHeroImages.length, autoplayEnabled, videoEnded])
 
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center">
+      {/* 开场视频 */}
+      {showVideo && (
+        <div className="absolute inset-0 z-50 bg-black">
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            muted
+            playsInline
+            onEnded={handleVideoEnd}
+            onError={() => {
+              console.error("Video failed to load")
+              handleVideoEnd()
+            }}
+          >
+            <source src="/video/fireopening.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+
+          {/* 跳过按钮 */}
+          <button
+            onClick={handleSkipVideo}
+            className="absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors z-10"
+          >
+            Skip
+          </button>
+
+          {/* 点击任意位置跳过 */}
+          <div className="absolute inset-0 cursor-pointer" onClick={handleSkipVideo} aria-label="Click to skip video" />
+        </div>
+      )}
+
+      {/* 原有的轮播图内容 */}
       <div
-        className="absolute inset-0 overflow-hidden bg-black z-0 touch-pan-y"
+        className={`absolute inset-0 overflow-hidden bg-black z-0 touch-pan-y transition-opacity duration-1000 ${
+          showVideo ? "opacity-0" : "opacity-100"
+        }`}
         onTouchStart={(e) => {
+          if (showVideo) return
           const touch = e.touches[0]
           setTouchStart(touch.clientX)
           setIsSwiping(true)
         }}
         onTouchMove={(e) => {
-          if (!isSwiping) return
+          if (!isSwiping || showVideo) return
           const touch = e.touches[0]
           const currentX = touch.clientX
           const diff = currentX - touchStart
           setSwipeDistance(diff)
         }}
         onTouchEnd={() => {
+          if (showVideo) return
           setIsSwiping(false)
           if (swipeDistance > 80) {
             prevSlide()
@@ -129,7 +184,7 @@ export default function HeroSection() {
           handleUserInteraction()
         }}
       >
-        {!imagesLoaded && (
+        {!imagesLoaded && !showVideo && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -156,14 +211,20 @@ export default function HeroSection() {
           </div>
         ))}
       </div>
-      <div className="absolute inset-0 bg-black/60 z-10"></div>
-      <div className="container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 overflow-x-hidden">
+
+      <div
+        className={`absolute inset-0 bg-black/60 z-10 transition-opacity duration-1000 ${showVideo ? "opacity-0" : "opacity-100"}`}
+      ></div>
+
+      <div
+        className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 overflow-x-hidden transition-opacity duration-1000 ${showVideo ? "opacity-0" : "opacity-100"}`}
+      >
         <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
           <h1
             className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn"
             style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
           >
-            Let{'`'}s throw a{" "}
+            Let{"`"}s throw a{" "}
             <span
               style={{
                 fontFamily: "'Permanent Marker', cursive",
@@ -200,37 +261,46 @@ export default function HeroSection() {
           </p>
         </div>
       </div>
+
       {/* 轮播控制按钮 */}
-      <button
-        onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
-        aria-label="Previous slide"
-      >
-        ←
-      </button>
-      <button
-        onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
-        aria-label="Next slide"
-      >
-        →
-      </button>
-      {/* 轮播指示器 */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
-        {sortedHeroImages.map((_, index) => (
+      {!showVideo && (
+        <>
           <button
-            key={index}
-            onClick={() => {
-              handleUserInteraction()
-              setCurrentSlide(index)
-            }}
-            className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"}`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
+            aria-label="Previous slide"
+          >
+            ←
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
+            aria-label="Next slide"
+          >
+            →
+          </button>
+        </>
+      )}
+
+      {/* 轮播指示器 */}
+      {!showVideo && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+          {sortedHeroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                handleUserInteraction()
+                setCurrentSlide(index)
+              }}
+              className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"}`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
       {/* 滑动指示器 - 仅在滑动时显示 */}
-      {isSwiping && (
+      {isSwiping && !showVideo && (
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 z-30 pointer-events-none">
           <div
             className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance > 50 ? "opacity-100" : "opacity-30"}`}
@@ -246,4 +316,4 @@ export default function HeroSection() {
       )}
     </section>
   )
-} 
+}

@@ -66,4 +66,4 @@ export function TermsModal({ open, onClose }: { open: boolean; onClose: () => vo
       </div>
     </div>
   )
-} 
+}
