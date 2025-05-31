@@ -55,6 +55,15 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
   try {
     const supabase = createServerSupabaseClient()
 
+    // Add null check for supabase client
+    if (!supabase) {
+      console.error("Failed to create Supabase client")
+      return {
+        success: false,
+        error: "Database connection failed. Please try again.",
+      }
+    }
+
     // 验证必填字段
     const requiredFields = {
       name: formData.name,
@@ -179,14 +188,22 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
       deposit: 0,
     }
 
-    // 创建预订记录
+    // Create booking record with additional error handling
     const { data: booking, error } = await supabase.from("bookings").insert(bookingData).select().single()
 
     if (error) {
-      console.error("Error creating booking:", error)
+      console.error("Supabase error creating booking:", error)
       return {
         success: false,
         error: `Failed to create booking: ${error.message}`,
+      }
+    }
+
+    if (!booking) {
+      console.error("No booking data returned from Supabase")
+      return {
+        success: false,
+        error: "Failed to create booking: No data returned",
       }
     }
 
@@ -207,6 +224,15 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
 export async function getAvailableTimes(date: string, zipcode: string): Promise<AvailableTimesResponse> {
   try {
     const supabase = createServerSupabaseClient()
+
+    // Add null check for supabase client
+    if (!supabase) {
+      console.error("Failed to create Supabase client")
+      return {
+        success: false,
+        error: "Database connection failed. Please try again.",
+      }
+    }
 
     // 获取当天的预订
     const { data: existingBookings, error } = await supabase

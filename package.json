@@ -39,6 +39,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@react-email/components": "latest",
     "@remix-run/react": "latest",
+    "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@sveltejs/kit": "latest",
     "@vercel/analytics": "latest",
