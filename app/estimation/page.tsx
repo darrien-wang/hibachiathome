@@ -698,6 +698,19 @@ function EstimationContent() {
     dispatch({ type: "UPDATE_FIELD", field: "agreeToTerms", value: checked })
   }
 
+  // 计算实际餐费
+  const actualMealCost =
+    costs.adultsCost +
+    costs.kidsCost +
+    costs.filetMignonCost +
+    costs.lobsterTailCost +
+    costs.extraProteinsCost +
+    costs.noodlesCost +
+    costs.gyozaCost +
+    costs.edamameCost;
+  const minimumSpending = pricing.packages.basic.minimum;
+  const usedMinimum = actualMealCost < minimumSpending;
+
   if (isSubmitted) {
     return (
       <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[300px] rounded-lg" />}>
@@ -1189,10 +1202,21 @@ function EstimationContent() {
                     </div>
 
                     <div className="mt-3 pt-3 border-t-2 border-amber-700 font-bold">
+                      {usedMinimum && (
+                        <div className="flex justify-between text-sm text-amber-600 font-semibold mb-1">
+                          <span>Minimum Spending Adjustment</span>
+                          <span>${minimumSpending.toFixed(2)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-lg">
                         <span>Total</span>
                         <span>${costs.total}</span>
                       </div>
+                      {usedMinimum && (
+                        <div className="text-xs text-amber-600 mt-1 text-right">
+                          (Your total was adjusted to meet the minimum spending requirement of ${minimumSpending.toFixed(2)})
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1280,19 +1304,22 @@ function EstimationContent() {
                         <GooglePlacesAutocomplete
                           value={formData.address}
                           onChange={(value, placeDetails) => {
-                            handleInputChange("address", value)
-
-                            // 如果有地点详情，解析并填充其他字段
+                            // 默认用 value，但如果有详细结构则只取街道部分
+                            let street = value
                             if (placeDetails && placeDetails.address_components) {
+                              let streetNumber = ""
+                              let route = ""
                               let city = ""
                               let state = ""
                               let zipcode = ""
-
-                              // 解析地址组件
                               placeDetails.address_components.forEach((component: any) => {
                                 const types = component.types
-
-                                // 获取城市
+                                if (types.includes("street_number")) {
+                                  streetNumber = component.long_name
+                                }
+                                if (types.includes("route")) {
+                                  route = component.long_name
+                                }
                                 if (
                                   types.includes("locality") ||
                                   types.includes("sublocality") ||
@@ -1300,29 +1327,22 @@ function EstimationContent() {
                                 ) {
                                   city = component.long_name
                                 }
-
-                                // 获取州/省
                                 if (types.includes("administrative_area_level_1")) {
                                   state = component.short_name
                                 }
-
-                                // 获取邮政编码
                                 if (types.includes("postal_code")) {
                                   zipcode = component.long_name
                                 }
                               })
-
-                              // 更新城市和州字段的显示值
-                              const cityInput = document.getElementById("city-input") as HTMLInputElement
-                              const stateInput = document.getElementById("state-input") as HTMLInputElement
-                              if (cityInput && city) cityInput.value = city
-                              if (stateInput && state) stateInput.value = state
-
-                              // 更新邮政编码
-                              if (zipcode) {
-                                handleInputChange("zipcode", zipcode)
+                              // 只保留街道地址
+                              if (streetNumber || route) {
+                                street = [streetNumber, route].filter(Boolean).join(" ")
                               }
+                              if (city) handleInputChange("city", city)
+                              if (state) handleInputChange("state", state)
+                              if (zipcode) handleInputChange("zipcode", zipcode)
                             }
+                            handleInputChange("address", street)
                           }}
                           placeholder="Enter your street address"
                           className="address-input"
@@ -1338,10 +1358,8 @@ function EstimationContent() {
                           placeholder="City"
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
                           autoComplete="address-level2"
-                          onChange={(e) => {
-                            // 当用户手动修改城市时，可以更新这个值
-                            // 但不需要更新完整地址，因为完整地址已经由Google Places提供
-                          }}
+                          value={formData.city}
+                          onChange={e => handleInputChange("city", e.target.value)}
                         />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
@@ -1350,15 +1368,13 @@ function EstimationContent() {
                             placeholder="State"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
                             autoComplete="address-level1"
-                            onChange={(e) => {
-                              // 当用户手动修改州时，可以更新这个值
-                              // 但不需要更新完整地址，因为完整地址已经由Google Places提供
-                            }}
+                            value={formData.state}
+                            onChange={e => handleInputChange("state", e.target.value)}
                           />
                           <input
                             type="text"
                             value={formData.zipcode}
-                            onChange={(e) => handleInputChange("zipcode", e.target.value)}
+                            onChange={e => handleInputChange("zipcode", e.target.value)}
                             placeholder="ZIP"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
                             autoComplete="postal-code"
@@ -1586,23 +1602,8 @@ function EstimationContent() {
               <div className="pt-4">
                 <button
                   onClick={() => {
-                    try {
-                      // 确保 Supabase 环境变量存在
-                      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-                        console.error("Supabase environment variables are missing")
-                        alert("Payment system is temporarily unavailable. Please try again later or contact support.")
-                        return
-                      }
-
-                      // 尝试创建 Supabase 客户端以验证连接
-                      createClientSupabaseClient()
-
-                      // 如果成功，则跳转到支付链接
-                      window.location.href = paymentConfig.stripePaymentLink
-                    } catch (error) {
-                      console.error("Error initializing payment:", error)
-                      alert("Unable to process payment at this time. Please try again later or contact support.")
-                    }
+                    const stripeLink = `${paymentConfig.stripePaymentLink}?prefilled_email=${encodeURIComponent(formData.email)}`
+                    window.location.href = stripeLink
                   }}
                   className="w-full py-4 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] font-bold text-lg transition-colors shadow-md"
                 >

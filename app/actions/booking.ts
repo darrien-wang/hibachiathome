@@ -159,21 +159,23 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
     // 计算旅行费用
     const travelFee = calculateTravelFee(formData.zipcode)
 
-    // 计算总金额
-    let totalCost = 0
-    totalCost += formData.adults * pricing.packages.basic.perPerson
-    totalCost += formData.kids * pricing.children.basic
-    totalCost += travelFee
-
-    // 添加高级蛋白质费用
+    // 计算餐费（不含差旅费）
+    let mealCost = 0
+    mealCost += formData.adults * pricing.packages.basic.perPerson
+    mealCost += formData.kids * pricing.children.basic
     premiumProteins.forEach((item) => {
-      totalCost += item.quantity * item.unit_price
+      mealCost += item.quantity * item.unit_price
+    })
+    addOns.forEach((item) => {
+      mealCost += item.quantity * item.unit_price
     })
 
-    // 添加附加服务费用
-    addOns.forEach((item) => {
-      totalCost += item.quantity * item.unit_price
-    })
+    // 应用最低消费
+    const minimumSpending = pricing.packages.basic.minimum
+    const finalMealCost = Math.max(mealCost, minimumSpending)
+
+    // 总金额 = 餐费（含最低消费）+ 差旅费
+    const totalCost = Math.round(finalMealCost + travelFee)
 
     // 准备预订数据
     const bookingData: Booking = {
@@ -192,10 +194,13 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
       special_requests: formData.message || undefined,
       premium_proteins: premiumProteins.length > 0 ? premiumProteins : undefined,
       add_ons: addOns.length > 0 ? addOns : undefined,
-      total_cost: Math.round(totalCost), // 转换为整数，因为数据库中是 bigint
+      total_cost: totalCost,
       status: "pending",
       deposit: 0,
     }
+
+    // 打印每次上传到数据库的 bookingData
+    console.log("[createBooking] 上传到数据库的预定数据:", bookingData)
 
     // Create booking record with additional error handling
     const { data: booking, error } = await supabase.from("bookings").insert(bookingData).select().single()
