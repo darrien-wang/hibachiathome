@@ -48,9 +48,9 @@ export default function HeroSection() {
   // 根据设备和方向选择视频
   const getVideoSource = () => {
     if (isMobile || isPortrait) {
-      return "/video/realhibachi_fire_opening_mobile.mp4"
+      return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
     }
-    return "/video/realhibachi_fire_opening_desktop.mp4"
+    return "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/realhibachi_fire_opening_mobile.mp4"
   }
 
   const handleUserInteraction = () => {
