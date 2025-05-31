@@ -40,8 +40,9 @@ export default function HowItWorksSection() {
       <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
       <div className="container mx-auto px-4 relative z-20">
         <AnimateOnScroll direction="down">
-          <h2 className="text-4xl md:text-5xl font-energy font-bold text-center mb-16 text-white fire-text-glow">
-            HOW IT <span className="fire-text-gradient">WORKS</span>
+          <h2 className="text-4xl md:text-5xl font-energy font-bold text-center mb-16 tracking-wide">
+            <span className="text-[#FFF4E0] drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">HOW THE </span>
+            <span className="fire-text-gradient animate-pulse">FIRE STARTS</span>
           </h2>
         </AnimateOnScroll>
 
