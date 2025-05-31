@@ -523,7 +523,7 @@ export default function HeroSection() {
               className="cta-primary text-lg py-6 px-8 bg-blazing-orange hover:bg-fire-deep w-full sm:w-2/3 animate-fireGlowIntense"
               onClick={handleFirstInteraction}
             >
-              <Link href="/estimation">GET A QUOTE</Link>
+              <Link href="/estimation">FREE ESTIMATE</Link>
             </Button>
 
             {/* 次CTA按钮 - 黑底金黄字 */}
