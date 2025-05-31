@@ -6,6 +6,7 @@ import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import HowItWorksSection from "@/components/how-it-works-section"
+import ServiceAreasSection from "@/components/service-areas-section"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -49,6 +50,9 @@ export default function Home() {
       </AnimateOnScroll>
       {/* How It Works Section */}
       <HowItWorksSection />
+
+      {/* Service Areas Section */}
+      <ServiceAreasSection />
 
       {/* Package Options Section */}
       <AnimateOnScroll>
