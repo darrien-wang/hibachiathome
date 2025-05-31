@@ -13,3 +13,47 @@ export const paymentConfig = {
     return "https://book.stripe.com/test_5kQbJ3gezbCaf6hepw5sA00"
   },
 }
+
+// Payment methods configuration
+export const paymentMethodsConfig = {
+  creditCards: [
+    {
+      name: "Visa",
+      logo: "/visa-logo.png",
+      enabled: true,
+    },
+    {
+      name: "Mastercard",
+      logo: "/mastercard-logo.png",
+      enabled: true,
+    },
+    {
+      name: "American Express",
+      logo: "/amex-logo.png",
+      enabled: true,
+    },
+    {
+      name: "Discover",
+      logo: "/discover-logo.png",
+      enabled: true,
+    },
+  ],
+  digitalWallets: [
+    {
+      name: "Zelle",
+      logo: "/zelle-logo.png",
+      qrCode: "/zelle-qrcode.png",
+      enabled: true,
+    },
+    {
+      name: "Venmo",
+      qrCode: "/venmo-qrcode.png",
+      enabled: true,
+    },
+    {
+      name: "Square",
+      logo: "/square-logo.png",
+      enabled: true,
+    },
+  ],
+}
