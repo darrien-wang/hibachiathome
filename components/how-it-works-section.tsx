@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
@@ -28,11 +28,20 @@ export default function HowItWorksSection() {
   }, [animationTriggered])
 
   return (
-    <section id="how-it-works" className="py-20 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100">
-      <div className="container mx-auto px-4">
+    <section id="how-it-works" className="py-20 relative overflow-hidden">
+      <video
+        className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60"
+        autoPlay
+        muted
+        loop
+        playsInline
+        src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/smallfire-EtpxGU9GpXZMkOHfBSrfm4qWNxXChh.mp4"
+      />
+      <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
+      <div className="container mx-auto px-4 relative z-20">
         <AnimateOnScroll direction="down">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12">
-            How It <span className="text-primary">Works</span>
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12 text-white">
+            How It <span className="text-amber-300">Works</span>
           </h2>
         </AnimateOnScroll>
         {/* Desktop Timeline View */}
@@ -41,15 +50,26 @@ export default function HowItWorksSection() {
           <div className="grid grid-cols-3 gap-8 relative z-10">
             {/* Step 1 */}
             <AnimateOnScroll delay={100} direction="up">
-              <div className={`transform transition-all duration-500 ${animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+              <div
+                className={`transform transition-all duration-500 ${animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
+              >
                 <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                   <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">1</div>
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                      1
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold mb-3 font-serif text-center">Pick Your Menu</h3>
-                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">Select from our Basic or Buffet packages based on your preferences and budget.</p>
+                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                    Select from our Basic or Buffet packages based on your preferences and budget.
+                  </p>
                   <div className="text-center">
-                    <Button asChild variant="outline" size="sm" className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
                       <Link href="/menu">View Packages</Link>
                     </Button>
                   </div>
@@ -58,15 +78,26 @@ export default function HowItWorksSection() {
             </AnimateOnScroll>
             {/* Step 2 */}
             <AnimateOnScroll delay={300} direction="up">
-              <div className={`transform transition-all duration-500 ${animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+              <div
+                className={`transform transition-all duration-500 ${animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
+              >
                 <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                   <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">2</div>
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                      2
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold mb-3 font-serif text-center">Reserve Your Spot</h3>
-                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">Choose your preferred date and time, and we'll confirm availability within 24 hours.</p>
+                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                    Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                  </p>
                   <div className="text-center">
-                    <Button asChild variant="outline" size="sm" className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
                       <Link href="/book">Check Availability</Link>
                     </Button>
                   </div>
@@ -75,15 +106,26 @@ export default function HowItWorksSection() {
             </AnimateOnScroll>
             {/* Step 3 */}
             <AnimateOnScroll delay={500} direction="up">
-              <div className={`transform transition-all duration-500 ${animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+              <div
+                className={`transform transition-all duration-500 ${animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
+              >
                 <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                   <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">3</div>
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-2xl font-serif font-bold mb-6 shadow-md">
+                      3
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold mb-3 font-serif text-center">Let's Hibachi!</h3>
-                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!</p>
+                  <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
+                    Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                  </p>
                   <div className="text-center">
-                    <Button asChild variant="outline" size="sm" className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
                       <Link href="/estimation">Get Started</Link>
                     </Button>
                   </div>
@@ -96,17 +138,27 @@ export default function HowItWorksSection() {
         <div className="md:hidden space-y-6">
           {/* Step 1 */}
           <AnimateOnScroll delay={100} direction="right">
-            <div className={`transform transition-all duration-500 ${animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+            <div
+              className={`transform transition-all duration-500 ${animatedSteps[0] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
+            >
               <div className="bg-white rounded-xl p-6 shadow-lg">
                 <div className="flex items-start">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">1</div>
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                    1
+                  </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 font-serif">Pick Your Menu</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide">Select from our Basic or Buffet packages based on your preferences and budget.</p>
+                <p className="text-foreground/80 font-sans tracking-wide">
+                  Select from our Basic or Buffet packages based on your preferences and budget.
+                </p>
                 <div className="mt-4">
-                  <Button asChild variant="outline" className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                  >
                     <Link href="/menu">View Packages</Link>
                   </Button>
                 </div>
@@ -115,17 +167,27 @@ export default function HowItWorksSection() {
           </AnimateOnScroll>
           {/* Step 2 */}
           <AnimateOnScroll delay={200} direction="right">
-            <div className={`transform transition-all duration-500 ${animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+            <div
+              className={`transform transition-all duration-500 ${animatedSteps[1] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
+            >
               <div className="bg-white rounded-xl p-6 shadow-lg">
                 <div className="flex items-start">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">2</div>
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                    2
+                  </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 font-serif">Reserve Your Spot</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide">Choose your preferred date and time, and we'll confirm availability within 24 hours.</p>
+                <p className="text-foreground/80 font-sans tracking-wide">
+                  Choose your preferred date and time, and we'll confirm availability within 24 hours.
+                </p>
                 <div className="mt-4">
-                  <Button asChild variant="outline" className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                  >
                     <Link href="/book">Check Availability</Link>
                   </Button>
                 </div>
@@ -134,17 +196,27 @@ export default function HowItWorksSection() {
           </AnimateOnScroll>
           {/* Step 3 */}
           <AnimateOnScroll delay={300} direction="right">
-            <div className={`transform transition-all duration-500 ${animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+            <div
+              className={`transform transition-all duration-500 ${animatedSteps[2] ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
+            >
               <div className="bg-white rounded-xl p-6 shadow-lg">
                 <div className="flex items-start">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">3</div>
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xl font-serif font-bold mr-4 shadow-md flex-shrink-0">
+                    3
+                  </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 font-serif">Let's Hibachi!</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide">Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!</p>
+                <p className="text-foreground/80 font-sans tracking-wide">
+                  Our chef arrives, sets up, performs, cooks, serves, and cleans up. You just enjoy!
+                </p>
                 <div className="mt-4">
-                  <Button asChild variant="outline" className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full"
+                  >
                     <Link href="/estimation">Get Started</Link>
                   </Button>
                 </div>

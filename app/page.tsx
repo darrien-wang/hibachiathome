@@ -1,10 +1,6 @@
 import Link from "next/link"
-import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { useState, useEffect, useRef } from "react"
-import { Star } from "lucide-react"
-import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 import SocialProofCounter from "@/components/social-proof-counter"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
@@ -51,131 +47,8 @@ export default function Home() {
       <AnimateOnScroll>
         <SocialProofCounter />
       </AnimateOnScroll>
-      {/* Testimonials Section */}
-      <TestimonialsSection />
       {/* How It Works Section */}
       <HowItWorksSection />
-
-      {/* Food Preparation Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                When Our Fire Gets Too Real
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[177.78%] h-0">
-                  <video
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
-                  >
-                    <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
-                      type="video/mp4"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium">
-                Our hibachi fire is so real, sometimes we get unexpected guests! 🚒
-              </p>
-              <p className="text-gray-600 text-sm mt-2">
-                Don't worry - our chefs are trained professionals who know how to handle the heat safely.
-              </p>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Customer Atmosphere Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Experience the <span className="text-primary">Atmosphere</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                See how our hibachi experience transforms your home into an exciting dining venue
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
-                  <video
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                  >
-                    <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
-                      type="video/mp4"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🎉</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
-                  <p className="text-gray-600">
-                    Experience the excitement and energy of a hibachi restaurant in your own home.
-                  </p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={200} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
-                  <p className="text-gray-600">
-                    Perfect entertainment for guests of all ages, creating memorable experiences.
-                  </p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🔥</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
-                  <p className="text-gray-600">
-                    Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
-                  </p>
-                </div>
-              </AnimateOnScroll>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
 
       {/* Package Options Section */}
       <AnimateOnScroll>
@@ -304,6 +177,184 @@ export default function Home() {
                 >
                   <Link href="/menu">View All Packages</Link>
                 </Button>
+              </div>
+            </AnimateOnScroll>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
+      {/* Food Preparation Video Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                When Our Fire Gets Too Real
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[177.78%] h-0">
+                  <video
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
+                  >
+                    <source
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-8 text-center">
+              <p className="text-amber-600 font-medium">
+                Our hibachi fire is so real, sometimes we get unexpected guests! 🚒
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                Don't worry - our chefs are trained professionals who know how to handle the heat safely.
+              </p>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
+      {/* Customer Atmosphere Video Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Experience the <span className="text-primary">Atmosphere</span>
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                See how our hibachi experience transforms your home into an exciting dining venue
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <video
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                  >
+                    <source
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <AnimateOnScroll delay={100} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">🎉</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
+                  <p className="text-gray-600">
+                    Experience the excitement and energy of a hibachi restaurant in your own home.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={200} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
+                  <p className="text-gray-600">
+                    Perfect entertainment for guests of all ages, creating memorable experiences.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={300} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">🔥</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
+                  <p className="text-gray-600">
+                    Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
+      {/* Call to Action Section */}
+      <AnimateOnScroll>
+        <section className="py-20 bg-gradient-to-r from-amber-600 to-orange-600">
+          <div className="container mx-auto px-4 text-center">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
+                Ready to Create Unforgettable Memories?
+              </h2>
+              <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
+                Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home.
+                Our professional chefs are ready to create an amazing show and delicious meal for you and your guests.
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll direction="up" delay={200}>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-white text-amber-600 hover:bg-amber-50 font-bold px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Link href="/book">Book Your Experience Now</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="border-2 border-white text-white hover:bg-white hover:text-amber-600 font-bold px-8 py-4 text-lg rounded-full transition-all duration-300 bg-white/10 backdrop-blur-sm"
+                >
+                  <Link href="/menu">View Our Packages</Link>
+                </Button>
+              </div>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll direction="up" delay={400}>
+              <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-2">500+</div>
+                  <div className="text-amber-100">Happy Customers</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-2">4.9★</div>
+                  <div className="text-amber-100">Average Rating</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-2">100%</div>
+                  <div className="text-amber-100">Satisfaction Guarantee</div>
+                </div>
               </div>
             </AnimateOnScroll>
           </div>
