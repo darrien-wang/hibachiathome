@@ -346,8 +346,8 @@ export default function EstimationPage() {
     <div className="container mx-auto px-4 py-12 pt-24 mt-16 min-h-[800px]">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">{pageTitle}</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">{pageDescription}</p>
+          <h1 className="text-4xl font-bold mb-4 fire-text-gradient">{pageTitle}</h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">{pageDescription}</p>
         </div>
 
         <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[800px] rounded-lg" />}>
