@@ -1137,7 +1137,7 @@ function EstimationContent() {
                   </div>
 
                   {formData.zipcode && formData.zipcode.length === 5 && (
-                    <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <div className="mt-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-orange-200 shadow-md">
                       <h3 className="text-xl font-bold mb-3">Your Estimated Price</h3>
 
                       {(formData.adults > 0 || formData.kids > 0) && (
