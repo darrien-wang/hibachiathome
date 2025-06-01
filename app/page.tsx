@@ -116,7 +116,7 @@ export default function Home() {
                 </div>
               </AnimateOnScroll>
 
-              {/* Buffet Package Card */}
+              {/* Buffet Style Package Card */}
               <AnimateOnScroll direction="right">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
                   <div className="absolute top-2 right-2 z-10">
@@ -127,13 +127,13 @@ export default function Home() {
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                      alt="Buffet Package"
+                      alt="Buffet Style Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Buffet Package</h3>
+                    <h3 className="text-xl font-bold mb-2">Buffet Style Package</h3>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
