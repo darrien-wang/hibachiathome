@@ -343,16 +343,18 @@ export default function EstimationPage() {
   }, [])
 
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16 min-h-[800px]">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4 fire-text-gradient">{pageTitle}</h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">{pageDescription}</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#2A1A0A] to-[#000000] px-4 py-12 pt-24 mt-16">
+      <div className="container mx-auto">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold mb-4 fire-text-gradient">{pageTitle}</h1>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">{pageDescription}</p>
+          </div>
 
-        <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[800px] rounded-lg" />}>
-          <EstimationContent />
-        </Suspense>
+          <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[800px] rounded-lg" />}>
+            <EstimationContent />
+          </Suspense>
+        </div>
       </div>
     </div>
   )
@@ -733,18 +735,18 @@ function EstimationContent() {
           <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 via-transparent to-yellow-500/5 pointer-events-none"></div>
           {/* Progress indicator */}
           <div className="relative z-10">
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-[#4B5563]">
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-lg font-bold text-[#FFCC66]">
                   Step {currentStep} / {totalSteps}
                 </span>
-                <span className="text-sm font-medium text-[#4B5563]">
+                <span className="text-sm font-medium text-[#FFCC66]">
                   {Math.round((currentStep / totalSteps) * 100)}% Complete
                 </span>
               </div>
-              <div className="w-full bg-[#E5E7EB] rounded-full h-1.5">
+              <div className="w-full bg-[#E5E7EB] rounded-full h-3">
                 <div
-                  className="bg-[#E4572E] h-1.5 rounded-full transition-all duration-300 ease-in-out"
+                  className="bg-[#FF6A00] h-3 rounded-full transition-all duration-300 ease-in-out shadow-lg"
                   style={{ width: `${(currentStep / totalSteps) * 100}%` }}
                 ></div>
               </div>
@@ -753,16 +755,18 @@ function EstimationContent() {
             {/* Step 1: Choose number of adults and kids */}
             {currentStep === 1 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-center mb-6">Select Party Size</h2>
+                <h2 className="text-3xl font-bold text-center mb-6 text-[#FFCC66]">🔥 Who's Coming to Dinner?</h2>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="block text-lg font-medium">👤 How many adults? (13 years and older)</label>
-                    <div className="flex items-center">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="block text-xl font-medium text-gray-100">
+                      👤 How many adults? <span className="text-gray-400 text-base">(Age 13+)</span>
+                    </label>
+                    <div className="flex items-center justify-center">
                       <button
                         type="button"
                         onClick={() => handleDecrement("adults")}
-                        className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
+                        className="px-6 py-3 bg-[#4B5563] border-2 border-[#FF6A00]/30 rounded-xl hover:bg-[#FF6A00] hover:border-[#FF6A00] text-white font-bold text-lg transition-all duration-200 active:scale-95 shadow-lg"
                         aria-label="Decrease adult count"
                       >
                         -
@@ -771,13 +775,13 @@ function EstimationContent() {
                         type="number"
                         value={formData.adults}
                         onChange={(e) => handleNumberChange("adults", e.target.value)}
-                        className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
+                        className="w-20 text-center py-3 mx-2 border-2 border-[#FF6A00]/30 rounded-lg bg-[#F9FAFB] text-[#111827] font-bold text-lg"
                         min="0"
                       />
                       <button
                         type="button"
                         onClick={() => handleIncrement("adults")}
-                        className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
+                        className="px-6 py-3 bg-[#4B5563] border-2 border-[#FF6A00]/30 rounded-xl hover:bg-[#FF6A00] hover:border-[#FF6A00] text-white font-bold text-lg transition-all duration-200 active:scale-95 shadow-lg"
                         aria-label="Increase adult count"
                       >
                         +
@@ -785,13 +789,15 @@ function EstimationContent() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-lg font-medium">👶 How many children? (12 years and under)</label>
-                    <div className="flex items-center">
+                  <div className="space-y-3">
+                    <label className="block text-xl font-medium text-gray-100">
+                      👶 How many children? <span className="text-gray-400 text-base">(Age 12 & under)</span>
+                    </label>
+                    <div className="flex items-center justify-center">
                       <button
                         type="button"
                         onClick={() => handleDecrement("kids")}
-                        className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
+                        className="px-6 py-3 bg-[#4B5563] border-2 border-[#FF6A00]/30 rounded-xl hover:bg-[#FF6A00] hover:border-[#FF6A00] text-white font-bold text-lg transition-all duration-200 active:scale-95 shadow-lg"
                         aria-label="Decrease children count"
                       >
                         -
@@ -800,27 +806,29 @@ function EstimationContent() {
                         type="number"
                         value={formData.kids}
                         onChange={(e) => handleNumberChange("kids", e.target.value)}
-                        className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
+                        className="w-20 text-center py-3 mx-2 border-2 border-[#FF6A00]/30 rounded-lg bg-[#F9FAFB] text-[#111827] font-bold text-lg"
                         min="0"
                       />
                       <button
                         type="button"
                         onClick={() => handleIncrement("kids")}
-                        className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
+                        className="px-6 py-3 bg-[#4B5563] border-2 border-[#FF6A00]/30 rounded-xl hover:bg-[#FF6A00] hover:border-[#FF6A00] text-white font-bold text-lg transition-all duration-200 active:scale-95 shadow-lg"
                         aria-label="Increase children count"
                       >
                         +
                       </button>
                     </div>
-                    <p className="text-sm text-[#4B5563]">(Note: Children under 3 are free, no need to include)</p>
+                    <p className="text-base text-[#FFCC66] text-center font-medium">
+                      ✨ Kids under 3 eat free! No need to include them.
+                    </p>
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-4">
                   <button
                     onClick={goToNextStep}
                     disabled={formData.adults === 0 && formData.kids === 0}
-                    className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    className="w-full py-4 bg-[#E4572E] text-white rounded-xl hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg font-bold text-lg"
                   >
                     Next Step
                   </button>
