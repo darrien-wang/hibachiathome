@@ -866,7 +866,7 @@ function EstimationContent() {
                       >
                         +
                       </button>
-                      <span className="ml-3 text-[#6B7280]">$10 per order</span>
+                      <span className="ml-3 text-[#FFCC66] font-medium">$10 per order</span>
                     </div>
                   </div>
 
@@ -894,7 +894,7 @@ function EstimationContent() {
                       >
                         +
                       </button>
-                      <span className="ml-3 text-[#6B7280]">$8 per order</span>
+                      <span className="ml-3 text-[#FFCC66] font-medium">$8 per order</span>
                     </div>
                   </div>
                 </div>
@@ -959,7 +959,7 @@ function EstimationContent() {
                       >
                         +
                       </button>
-                      <span className="ml-3 text-[#6B7280]">$5 per person</span>
+                      <span className="ml-3 text-[#FFCC66] font-medium">$5 per person</span>
                     </div>
                   </div>
 
@@ -987,7 +987,7 @@ function EstimationContent() {
                       >
                         +
                       </button>
-                      <span className="ml-3 text-[#6B7280]">$10 per person</span>
+                      <span className="ml-3 text-[#FFCC66] font-medium">$10 per person</span>
                     </div>
                   </div>
                 </div>
@@ -1052,7 +1052,7 @@ function EstimationContent() {
                       >
                         +
                       </button>
-                      <span className="ml-3 text-[#6B7280]">$15 per order</span>
+                      <span className="ml-3 text-[#FFCC66] font-medium">$15 per order</span>
                     </div>
                   </div>
 
@@ -1080,7 +1080,7 @@ function EstimationContent() {
                       >
                         +
                       </button>
-                      <span className="ml-3 text-[#6B7280]">$5 per order</span>
+                      <span className="ml-3 text-[#FFCC66] font-medium">$5 per order</span>
                     </div>
                   </div>
                 </div>
