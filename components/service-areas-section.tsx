@@ -135,11 +135,11 @@ export default function ServiceAreasSection() {
                     <div className="text-center">
                       <p className="text-amber-200 text-xs mb-2">OR CALL TO BOOK</p>
                       <a
-                        href={`tel:${region.phone}`}
+                        href="tel:2137707788"
                         className="inline-flex items-center gap-2 text-orange-300 hover:text-orange-200 transition-colors border border-orange-500/30 rounded-lg px-3 py-2 text-sm hover:border-orange-400/50"
                       >
                         <Phone className="h-4 w-4" />
-                        {region.phone}
+                        2137707788
                       </a>
                     </div>
                   </div>
