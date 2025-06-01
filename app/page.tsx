@@ -82,7 +82,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Basic Package</h3>
+                    <h3 className="text-xl font-bold mb-2">Hibachi Show Package</h3>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
@@ -140,7 +140,7 @@ export default function Home() {
                         $49.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
-                      <p className="text-xs text-gray-600">($998 minimum)</p>
+                      <p className="text-xs text-gray-600">($1497 minimum)</p>
                     </div>
                     <ul className="space-y-1 mb-6 text-sm">
                       <li className="flex items-start">
@@ -153,11 +153,11 @@ export default function Home() {
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
+                        <span>Same price, larger portions & more food</span>
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
-                        <span>Ideal for larger groups (20+ people)</span>
+                        <span>Minimum 30 people required</span>
                       </li>
                     </ul>
                     <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
@@ -182,9 +182,6 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
-
-      {/* Testimonials Section */}
-      <TestimonialsSection />
 
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
@@ -360,6 +357,9 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
     </div>
   )
 }
