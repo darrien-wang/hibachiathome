@@ -1131,7 +1131,9 @@ function EstimationContent() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
                       maxLength={5}
                     />
-                    <p className="text-sm text-[#4B5563]">We need your ZIP code to calculate service fees</p>
+                    <p className="text-sm text-[#FFCC66] font-medium">
+                      We need your ZIP code to calculate service fees
+                    </p>
                   </div>
 
                   {formData.zipcode && formData.zipcode.length === 5 && (
