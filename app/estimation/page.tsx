@@ -17,6 +17,7 @@ import Step1PartySize from "@/components/estimation/Step1PartySize"
 import Step2Appetizers from "@/components/estimation/Step2Appetizers"
 import Step3PremiumMains from "@/components/estimation/Step3PremiumMains"
 import Step4Sides from "@/components/estimation/Step4Sides"
+import Step5Estimate from "@/components/estimation/Step5Estimate"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -513,12 +514,13 @@ function EstimationContent() {
       hasShownPopupRef.current = false
     }
 
-    // 确保滚动到表单顶部
+    // 优化滚动逻辑：让表单距离顶部有 15% 的空白
     setTimeout(() => {
       const formElement = document.getElementById("estimation-form")
       if (formElement) {
+        const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0)
         window.scrollTo({
-          top: formElement.offsetTop - 20,
+          top: offset,
           behavior: "smooth",
         })
       }
@@ -529,7 +531,14 @@ function EstimationContent() {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
     // 返回上一步时，确保表单完全可见
     setTimeout(() => {
-      ensureFormVisible()
+      const formElement = document.getElementById("estimation-form")
+      if (formElement) {
+        const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0)
+        window.scrollTo({
+          top: offset,
+          behavior: "smooth",
+        })
+      }
     }, 100)
   }, [])
 
@@ -885,161 +894,41 @@ function EstimationContent() {
 
           {/* Step 5: Enter ZIP code for pricing */}
           {currentStep === 5 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-center mb-6">Enter Your ZIP Code for Pricing</h2>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">📍 ZIP Code</label>
-                  <input
-                    type="text"
-                    value={formData.zipcode}
-                    onChange={(e) => handleInputChange("zipcode", e.target.value)}
-                    placeholder="Example: 10001"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                    maxLength={5}
-                  />
-                  <p className="text-sm text-[#4B5563]">We need your ZIP code to calculate service fees</p>
-                </div>
-
-                {formData.zipcode && formData.zipcode.length === 5 && (
-                  <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-                    <h3 className="text-xl font-bold mb-3">Your Estimated Price</h3>
-
-                    {(formData.adults > 0 || formData.kids > 0) && (
-                      <div className="space-y-2">
-                        {formData.adults > 0 && (
-                          <div className="flex justify-between">
-                            <span>
-                              Adults ({formData.adults} x ${pricing.packages.basic.perPerson})
-                            </span>
-                            <span>${costs.adultsCost}</span>
-                          </div>
-                        )}
-
-                        {formData.kids > 0 && (
-                          <div className="flex justify-between">
-                            <span>
-                              Children ({formData.kids} x ${pricing.children.basic})
-                            </span>
-                            <span>${costs.kidsCost}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {(formData.filetMignon > 0 || formData.lobsterTail > 0) && (
-                      <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
-                        <h4 className="font-medium">Premium Upgrades</h4>
-                        {formData.filetMignon > 0 && (
-                          <div className="flex justify-between">
-                            <span>Filet Mignon ({formData.filetMignon} x $5)</span>
-                            <span>${costs.filetMignonCost}</span>
-                          </div>
-                        )}
-
-                        {formData.lobsterTail > 0 && (
-                          <div className="flex justify-between">
-                            <span>Lobster Tail ({formData.lobsterTail} x $10)</span>
-                            <span>${costs.lobsterTailCost}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {(formData.extraProteins > 0 || formData.noodles > 0) && (
-                      <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
-                        <h4 className="font-medium">Side Dishes</h4>
-                        {formData.extraProteins > 0 && (
-                          <div className="flex justify-between">
-                            <span>Extra Proteins ({formData.extraProteins} x $15)</span>
-                            <span>${costs.extraProteinsCost}</span>
-                          </div>
-                        )}
-
-                        {formData.noodles > 0 && (
-                          <div className="flex justify-between">
-                            <span>Noodles ({formData.noodles} x $5)</span>
-                            <span>${costs.noodlesCost}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {(formData.gyoza > 0 || formData.edamame > 0) && (
-                      <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
-                        <h4 className="font-medium">Appetizers</h4>
-                        {formData.gyoza > 0 && (
-                          <div className="flex justify-between">
-                            <span>Gyoza ({formData.gyoza} x $10)</span>
-                            <span>${costs.gyozaCost}</span>
-                          </div>
-                        )}
-
-                        {formData.edamame > 0 && (
-                          <div className="flex justify-between">
-                            <span>Edamame ({formData.edamame} x $8)</span>
-                            <span>${costs.edamameCost}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="mt-2 pt-2 border-t border-gray-700">
-                      <div className="flex justify-between">
-                        <span>Travel Fee</span>
-                        <span>${costs.travelFee}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t-2 border-amber-700 font-bold">
-                      {usedMinimum && (
-                        <div className="flex justify-between text-sm text-amber-600 font-semibold mb-1">
-                          <span>Minimum Spending Adjustment</span>
-                          <span>${minimumSpending.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-lg">
-                        <span>Total</span>
-                        <span>${costs.total}</span>
-                      </div>
-                      {usedMinimum && (
-                        <div className="text-xs text-amber-600 mt-1 text-right">
-                          (Your total was adjusted to meet the minimum spending requirement of ${minimumSpending.toFixed(2)})
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 space-y-3">
-                <button
-                  onClick={handleProceedToOrder}
-                  disabled={!isEstimationValid}
-                  className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  Yes, I want to book this!
-                </button>
-                <button
-                  onClick={() => setShowExitPopup(true)}
-                  className="w-full py-2.5 border border-gray-300 bg-white text-[#4B5563] font-medium rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  No, thank you
-                </button>
-                {!isEstimationValid && (
-                  <p className="text-sm text-amber-400 mt-2 text-center">
-                    Please select at least one guest and enter a valid ZIP code
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-2 text-center">
-                <button onClick={goToPreviousStep} className="text-[#4B5563] hover:text-[#E4572E] text-sm font-medium">
-                  Back to previous step
-                </button>
-              </div>
-            </div>
+            <Step5Estimate
+              zipcode={formData.zipcode}
+              adults={formData.adults}
+              kids={formData.kids}
+              filetMignon={formData.filetMignon}
+              lobsterTail={formData.lobsterTail}
+              extraProteins={formData.extraProteins}
+              noodles={formData.noodles}
+              gyoza={formData.gyoza}
+              edamame={formData.edamame}
+              travelFee={costs.travelFee}
+              subtotal={costs.subtotal}
+              total={costs.total}
+              minimumSpending={pricing.packages.basic.minimum}
+              usedMinimum={usedMinimum}
+              onNext={goToNextStep}
+              onPrev={goToPreviousStep}
+              isEstimationValid={isEstimationValid}
+              adultsUnit={pricing.packages.basic.perPerson}
+              adultsCost={costs.adultsCost}
+              kidsUnit={pricing.children.basic}
+              kidsCost={costs.kidsCost}
+              filetMignonUnit={5}
+              filetMignonCost={costs.filetMignonCost}
+              lobsterTailUnit={10}
+              lobsterTailCost={costs.lobsterTailCost}
+              extraProteinsUnit={15}
+              extraProteinsCost={costs.extraProteinsCost}
+              noodlesUnit={5}
+              noodlesCost={costs.noodlesCost}
+              gyozaUnit={10}
+              gyozaCost={costs.gyozaCost}
+              edamameUnit={8}
+              edamameCost={costs.edamameCost}
+            />
           )}
 
           {/* Step 6: Booking Form */}

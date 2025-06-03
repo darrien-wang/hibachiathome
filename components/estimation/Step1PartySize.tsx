@@ -79,6 +79,7 @@ const Step1PartySize: React.FC<Step1PartySizeProps> = ({
             maxLength={5}
             required
           />
+          <p className="text-sm text-[#4B5563] mt-1">Please enter the ZIP code where you plan to host the event. This will affect the travel fee.</p>
         </div>
       </div>
       <div className="space-y-4 pt-4">
@@ -152,6 +153,10 @@ const Step1PartySize: React.FC<Step1PartySizeProps> = ({
         >
           Next Step
         </button>
+      </div>
+      <div className="mt-4 text-sm text-[#4B5563] text-center">
+        <p>Be sure to fill in your primary <b>CELL PHONE</b> and email address.</p>
+        <p className="mt-1">Please rest assured that we respect and protect your privacy. You can review our privacy policy at the bottom of our website.</p>
       </div>
     </div>
   );
