@@ -15,6 +15,7 @@ import { TermsCheckbox } from "@/components/booking/booking-form"
 import { TermsModal } from "@/components/booking/terms-modal"
 import Step1PartySize from "@/components/estimation/Step1PartySize"
 import Step2Appetizers from "@/components/estimation/Step2Appetizers"
+import Step3PremiumMains from "@/components/estimation/Step3PremiumMains"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -845,96 +846,21 @@ function EstimationContent() {
 
           {/* Step 3: Optional premium main dishes */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-center mb-6">Upgrade Your Main Course?</h2>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">🥩 Filet Mignon</label>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDecrement("filetMignon")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editingFiletMignon}
-                      onChange={(e) => handleNumberChange("filetMignon", e.target.value)}
-                      onBlur={(e) => handleNumberBlur("filetMignon", e.target.value)}
-                      className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
-                      min="0"
-                      pattern="\\d*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleIncrement("filetMignon")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
-                    >
-                      +
-                    </button>
-                    <span className="ml-3 text-[#6B7280]">$5 per person</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">🦞 Lobster Tail</label>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDecrement("lobsterTail")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editingLobsterTail}
-                      onChange={(e) => handleNumberChange("lobsterTail", e.target.value)}
-                      onBlur={(e) => handleNumberBlur("lobsterTail", e.target.value)}
-                      className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
-                      min="0"
-                      pattern="\\d*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleIncrement("lobsterTail")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
-                    >
-                      +
-                    </button>
-                    <span className="ml-3 text-[#6B7280]">$10 per person</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 flex flex-col space-y-3">
-                <button
-                  onClick={goToNextStep}
-                  className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  Next Step
-                </button>
-                <button
-                  onClick={() => {
-                    handleNumberChange("filetMignon", "0")
-                    handleNumberChange("lobsterTail", "0")
-                    goToNextStep()
-                  }}
-                  className="w-full py-2 border border-gray-300 text-[#4B5563] font-medium rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  No upgrades needed, skip
-                </button>
-              </div>
-
-              <div className="pt-2 text-center">
-                <button onClick={goToPreviousStep} className="text-[#4B5563] hover:text-[#E4572E] text-sm font-medium">
-                  Back to previous step
-                </button>
-              </div>
-            </div>
+            <Step3PremiumMains
+              filetMignon={editingFiletMignon}
+              lobsterTail={editingLobsterTail}
+              onNumberChange={(field, value) => handleNumberChange(field as keyof FormData, value)}
+              onNumberBlur={(field, value) => handleNumberBlur(field as keyof FormData, value)}
+              onDecrement={(field) => handleDecrement(field as keyof FormData)}
+              onIncrement={(field) => handleIncrement(field as keyof FormData)}
+              onNext={goToNextStep}
+              onPrev={goToPreviousStep}
+              onSkip={() => {
+                handleNumberChange("filetMignon", "0");
+                handleNumberChange("lobsterTail", "0");
+                goToNextStep();
+              }}
+            />
           )}
 
           {/* Step 4: Optional side dishes */}
