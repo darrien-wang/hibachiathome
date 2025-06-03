@@ -368,6 +368,26 @@ function EstimationContent() {
   // 使用 reducer 管理表单状态
   const [formData, dispatch] = useReducer(formReducer, initialState)
 
+  // 为每个数字输入框添加独立的 editingValue 局部 state
+  const [editingAdults, setEditingAdults] = useState<string>(String(formData.adults))
+  const [editingKids, setEditingKids] = useState<string>(String(formData.kids))
+  const [editingGyoza, setEditingGyoza] = useState<string>(String(formData.gyoza))
+  const [editingEdamame, setEditingEdamame] = useState<string>(String(formData.edamame))
+  const [editingFiletMignon, setEditingFiletMignon] = useState<string>(String(formData.filetMignon))
+  const [editingLobsterTail, setEditingLobsterTail] = useState<string>(String(formData.lobsterTail))
+  const [editingExtraProteins, setEditingExtraProteins] = useState<string>(String(formData.extraProteins))
+  const [editingNoodles, setEditingNoodles] = useState<string>(String(formData.noodles))
+
+  // 同步 formData 变化时也同步 editingValue
+  useEffect(() => { setEditingAdults(String(formData.adults)) }, [formData.adults])
+  useEffect(() => { setEditingKids(String(formData.kids)) }, [formData.kids])
+  useEffect(() => { setEditingGyoza(String(formData.gyoza)) }, [formData.gyoza])
+  useEffect(() => { setEditingEdamame(String(formData.edamame)) }, [formData.edamame])
+  useEffect(() => { setEditingFiletMignon(String(formData.filetMignon)) }, [formData.filetMignon])
+  useEffect(() => { setEditingLobsterTail(String(formData.lobsterTail)) }, [formData.lobsterTail])
+  useEffect(() => { setEditingExtraProteins(String(formData.extraProteins)) }, [formData.extraProteins])
+  useEffect(() => { setEditingNoodles(String(formData.noodles)) }, [formData.noodles])
+
   // 使用自定义 hook 计算成本
   const costs = useCostCalculation(formData)
 
@@ -522,11 +542,41 @@ function EstimationContent() {
     dispatch({ type: "UPDATE_FIELD", field, value })
   }, [])
 
+  // 修改 handleNumberChange 只处理字符串，不再直接 dispatch
   const handleNumberChange = useCallback((field: keyof FormData, value: string) => {
-    const numValue = Number.parseInt(value) || 0
-    const validValue = Math.max(0, numValue)
-    dispatch({ type: "UPDATE_FIELD", field, value: validValue })
-  }, [])
+    // 允许输入为空字符串
+    let sanitized = value.replace(/[^\d]/g, "");
+    // 去除前导零
+    sanitized = sanitized.replace(/^0+(\d+)$/, "$1");
+    if (field === "adults") setEditingAdults(sanitized);
+    if (field === "kids") setEditingKids(sanitized);
+    if (field === "gyoza") setEditingGyoza(sanitized);
+    if (field === "edamame") setEditingEdamame(sanitized);
+    if (field === "filetMignon") setEditingFiletMignon(sanitized);
+    if (field === "lobsterTail") setEditingLobsterTail(sanitized);
+    if (field === "extraProteins") setEditingExtraProteins(sanitized);
+    if (field === "noodles") setEditingNoodles(sanitized);
+  }, []);
+
+  // 新增 handleNumberBlur
+  const handleNumberBlur = useCallback((field: keyof FormData, value: string) => {
+    if (value === "") {
+      dispatch({ type: "UPDATE_FIELD", field, value: 0 });
+      // 失焦后显示0
+      if (field === "adults") setEditingAdults("0");
+      if (field === "kids") setEditingKids("0");
+      if (field === "gyoza") setEditingGyoza("0");
+      if (field === "edamame") setEditingEdamame("0");
+      if (field === "filetMignon") setEditingFiletMignon("0");
+      if (field === "lobsterTail") setEditingLobsterTail("0");
+      if (field === "extraProteins") setEditingExtraProteins("0");
+      if (field === "noodles") setEditingNoodles("0");
+      return;
+    }
+    // 失焦时同步到 formData
+    const numValue = Math.max(0, Number.parseInt(value, 10) || 0);
+    dispatch({ type: "UPDATE_FIELD", field, value: numValue });
+  }, []);
 
   const handleIncrement = useCallback(
     (field: keyof FormData) => {
@@ -768,10 +818,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.adults}
+                      value={editingAdults}
                       onChange={(e) => handleNumberChange("adults", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("adults", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -797,10 +849,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.kids}
+                      value={editingKids}
                       onChange={(e) => handleNumberChange("kids", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("kids", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -845,10 +899,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.gyoza}
+                      value={editingGyoza}
                       onChange={(e) => handleNumberChange("gyoza", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("gyoza", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -873,10 +929,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.edamame}
+                      value={editingEdamame}
                       onChange={(e) => handleNumberChange("edamame", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("edamame", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -935,10 +993,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.filetMignon}
+                      value={editingFiletMignon}
                       onChange={(e) => handleNumberChange("filetMignon", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("filetMignon", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -963,10 +1023,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.lobsterTail}
+                      value={editingLobsterTail}
                       onChange={(e) => handleNumberChange("lobsterTail", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("lobsterTail", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -1025,10 +1087,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.extraProteins}
+                      value={editingExtraProteins}
                       onChange={(e) => handleNumberChange("extraProteins", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("extraProteins", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
@@ -1053,10 +1117,12 @@ function EstimationContent() {
                     </button>
                     <input
                       type="number"
-                      value={formData.noodles}
+                      value={editingNoodles}
                       onChange={(e) => handleNumberChange("noodles", e.target.value)}
+                      onBlur={(e) => handleNumberBlur("noodles", e.target.value)}
                       className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
                       min="0"
+                      pattern="\\d*"
                     />
                     <button
                       type="button"
