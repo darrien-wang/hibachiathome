@@ -13,6 +13,7 @@ import { paymentConfig } from "@/config/ui"
 import { createClientSupabaseClient } from "@/lib/supabase"
 import { TermsCheckbox } from "@/components/booking/booking-form"
 import { TermsModal } from "@/components/booking/terms-modal"
+import Step1PartySize from "@/components/estimation/Step1PartySize"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -799,86 +800,26 @@ function EstimationContent() {
             </div>
           </div>
 
-          {/* Step 1: Choose number of adults and kids */}
+          {/* Step 1: Party size & user info */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-center mb-6">Select Party Size</h2>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">👤 How many adults? (13 years and older)</label>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDecrement("adults")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
-                      aria-label="Decrease adult count"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editingAdults}
-                      onChange={(e) => handleNumberChange("adults", e.target.value)}
-                      onBlur={(e) => handleNumberBlur("adults", e.target.value)}
-                      className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
-                      min="0"
-                      pattern="\\d*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleIncrement("adults")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
-                      aria-label="Increase adult count"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">👶 How many children? (12 years and under)</label>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDecrement("kids")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
-                      aria-label="Decrease children count"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editingKids}
-                      onChange={(e) => handleNumberChange("kids", e.target.value)}
-                      onBlur={(e) => handleNumberBlur("kids", e.target.value)}
-                      className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
-                      min="0"
-                      pattern="\\d*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleIncrement("kids")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
-                      aria-label="Increase children count"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <p className="text-sm text-[#4B5563]">(Note: Children under 3 are free, no need to include)</p>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  onClick={goToNextStep}
-                  disabled={formData.adults === 0 && formData.kids === 0}
-                  className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  Next Step
-                </button>
-              </div>
-            </div>
+            <Step1PartySize
+              name={formData.name}
+              email={formData.email}
+              phone={formData.phone}
+              zipcode={formData.zipcode}
+              adults={editingAdults}
+              kids={editingKids}
+              onInputChange={(field, value) => dispatch({ type: "UPDATE_FIELD", field: field as keyof FormData, value })}
+              onNumberChange={(field, value) => handleNumberChange(field as keyof FormData, value)}
+              onNumberBlur={(field, value) => handleNumberBlur(field as keyof FormData, value)}
+              onDecrement={(field) => handleDecrement(field as keyof FormData)}
+              onIncrement={(field) => handleIncrement(field as keyof FormData)}
+              onNext={goToNextStep}
+              disableNext={
+                !formData.name || !formData.email || !formData.phone || !formData.zipcode ||
+                (formData.adults === 0 && formData.kids === 0) || formData.zipcode.length !== 5
+              }
+            />
           )}
 
           {/* Step 2: Optional appetizers */}
