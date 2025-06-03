@@ -14,6 +14,7 @@ import { createClientSupabaseClient } from "@/lib/supabase"
 import { TermsCheckbox } from "@/components/booking/booking-form"
 import { TermsModal } from "@/components/booking/terms-modal"
 import Step1PartySize from "@/components/estimation/Step1PartySize"
+import Step2Appetizers from "@/components/estimation/Step2Appetizers"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -545,9 +546,7 @@ function EstimationContent() {
 
   // 修改 handleNumberChange 只处理字符串，不再直接 dispatch
   const handleNumberChange = useCallback((field: keyof FormData, value: string) => {
-    // 允许输入为空字符串
     let sanitized = value.replace(/[^\d]/g, "");
-    // 去除前导零
     sanitized = sanitized.replace(/^0+(\d+)$/, "$1");
     if (field === "adults") setEditingAdults(sanitized);
     if (field === "kids") setEditingKids(sanitized);
@@ -557,6 +556,9 @@ function EstimationContent() {
     if (field === "lobsterTail") setEditingLobsterTail(sanitized);
     if (field === "extraProteins") setEditingExtraProteins(sanitized);
     if (field === "noodles") setEditingNoodles(sanitized);
+    // 新增：同步到 formData
+    const numValue = sanitized === "" ? 0 : Math.max(0, Number.parseInt(sanitized, 10));
+    dispatch({ type: "UPDATE_FIELD", field, value: numValue });
   }, []);
 
   // 新增 handleNumberBlur
@@ -824,96 +826,21 @@ function EstimationContent() {
 
           {/* Step 2: Optional appetizers */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-center mb-6">Would You Like Appetizers?</h2>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">🥟 Gyoza (Japanese Dumplings)</label>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDecrement("gyoza")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editingGyoza}
-                      onChange={(e) => handleNumberChange("gyoza", e.target.value)}
-                      onBlur={(e) => handleNumberBlur("gyoza", e.target.value)}
-                      className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
-                      min="0"
-                      pattern="\\d*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleIncrement("gyoza")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
-                    >
-                      +
-                    </button>
-                    <span className="ml-3 text-[#6B7280]">$10 per order</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">🫛 Edamame (Soybeans)</label>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDecrement("edamame")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editingEdamame}
-                      onChange={(e) => handleNumberChange("edamame", e.target.value)}
-                      onBlur={(e) => handleNumberBlur("edamame", e.target.value)}
-                      className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
-                      min="0"
-                      pattern="\\d*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleIncrement("edamame")}
-                      className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
-                    >
-                      +
-                    </button>
-                    <span className="ml-3 text-[#6B7280]">$8 per order</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 flex flex-col space-y-3">
-                <button
-                  onClick={goToNextStep}
-                  className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  Next Step
-                </button>
-                <button
-                  onClick={() => {
-                    handleNumberChange("gyoza", "0")
-                    handleNumberChange("edamame", "0")
-                    goToNextStep()
-                  }}
-                  className="w-full py-2 border border-gray-300 text-[#4B5563] font-medium rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  I don't need appetizers, skip
-                </button>
-              </div>
-
-              <div className="pt-2 text-center">
-                <button onClick={goToPreviousStep} className="text-[#4B5563] hover:text-[#E4572E] text-sm font-medium">
-                  Back to previous step
-                </button>
-              </div>
-            </div>
+            <Step2Appetizers
+              gyoza={editingGyoza}
+              edamame={editingEdamame}
+              onNumberChange={(field, value) => handleNumberChange(field as keyof FormData, value)}
+              onNumberBlur={(field, value) => handleNumberBlur(field as keyof FormData, value)}
+              onDecrement={(field) => handleDecrement(field as keyof FormData)}
+              onIncrement={(field) => handleIncrement(field as keyof FormData)}
+              onNext={goToNextStep}
+              onPrev={goToPreviousStep}
+              onSkip={() => {
+                handleNumberChange("gyoza", "0");
+                handleNumberChange("edamame", "0");
+                goToNextStep();
+              }}
+            />
           )}
 
           {/* Step 3: Optional premium main dishes */}
