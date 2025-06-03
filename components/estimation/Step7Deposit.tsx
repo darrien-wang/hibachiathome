@@ -76,55 +76,58 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({ orderData, totalGuests, cos
         </p>
       </div>
 
-      {/* 支付按钮区 */}
-      <div className="pt-4">
-        <Button
-          onClick={() => {
-            const stripeLink = `${paymentConfig.stripePaymentLink}?prefilled_email=${encodeURIComponent(formData.email)}`;
-            window.location.href = stripeLink;
-          }}
-          className="w-full py-4 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] font-bold text-lg transition-colors shadow-md"
-        >
-          🟧 Confirm and Pay ${paymentConfig.depositAmount.toFixed(2)} Deposit
-        </Button>
-        <p className="text-center text-sm text-gray-500 mt-2">💳 Powered by Stripe • Secure & Encrypted</p>
-      </div>
-
-      {/* 小字说明区 */}
-      <div className="text-xs text-gray-500 text-center space-y-1">
-        <p>By paying the deposit, you are confirming your request for this event.</p>
-        <p>
-          If for any reason you need to cancel, you will receive a full refund if cancelled at least 72 hours
-          before your event.
-        </p>
-        <p>
-          <a href="/faq" className="text-[#E4572E] hover:underline">
-            View our full refund policy
-          </a>
-        </p>
-      </div>
-
-      {/* 可选备选路径 */}
+      {/* 支付方式选择区 */}
       <div className="mt-8 pt-6 border-t border-gray-200">
-        <h3 className="text-lg font-medium text-center mb-3">❓ Not ready to pay now?</h3>
-        <p className="text-center text-sm text-gray-600 mb-4">
-          We can hold your quote for 24 hours. Leave your name and number below and we'll follow up.
-        </p>
+        <h3 className="text-lg font-medium text-center mb-6">Choose your deposit payment method</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Credit Card/Stripe */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 flex flex-col items-center">
+            <img src="https://b.stripecdn.com/manage-statics-srv/assets/public/favicon.ico" alt="Stripe" className="h-8 w-8 mb-2" />
+            <div className="font-semibold mb-2">Credit Card</div>
+            <Button
+              onClick={() => {
+                const stripeLink = `${paymentConfig.stripePaymentLink}?prefilled_email=${encodeURIComponent(formData.email)}`;
+                window.location.href = stripeLink;
+              }}
+              className="w-full bg-[#E4572E] hover:bg-[#D64545] text-white rounded-full px-6 py-3 text-base font-bold mt-2"
+            >
+              Pay ${paymentConfig.depositAmount.toFixed(2)} Deposit
+            </Button>
+            <div className="text-xs text-gray-500 mt-2 text-center">💳 Powered by Stripe • Secure & Encrypted</div>
+          </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            placeholder="Your Name"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E]"
-          />
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E]"
-          />
-          <Button className="px-4 py-2 bg-gray-100 text-gray-800 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors">
-            📩 Hold My Spot
-          </Button>
+          {/* Venmo */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 flex flex-col items-center">
+            <img src="https://cdn.iconscout.com/icon/free/png-256/venmo-2-569346.png" alt="Venmo" className="h-8 w-8 mb-2" />
+            <div className="font-semibold mb-2">Venmo</div>
+            <div className="text-[#E4572E] font-bold text-lg mb-1">@realhibachiathome</div>
+            <div className="text-xs text-gray-500 text-center mb-2">Please include your name & event date in the note</div>
+            <div className="text-xs text-gray-500 text-center">
+              Need help? <a href="sms:+15627134832" className="text-[#E4572E] hover:underline">Text us</a> or <a href="tel:+12137707788" className="text-[#E4572E] hover:underline">Call us</a>
+            </div>
+          </div>
+
+          {/* Zelle */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 flex flex-col items-center">
+            <img src="https://cdn.iconscout.com/icon/free/png-256/zelle-1-761688.png" alt="Zelle" className="h-8 w-8 mb-2" />
+            <div className="font-semibold mb-2">Zelle</div>
+            <div className="text-[#E4572E] font-bold text-lg mb-1">562-713-4832</div>
+            <div className="text-xs text-gray-500 text-center mb-2">Please include your name & event date in the note</div>
+            <div className="text-xs text-gray-500 text-center">
+              Need help? <a href="sms:+15627134832" className="text-[#E4572E] hover:underline">Text us</a> or <a href="tel:+12137707788" className="text-[#E4572E] hover:underline">Call us</a>
+            </div>
+          </div>
+        </div>
+        <div className="text-center text-base text-[#E4572E] font-semibold mb-2">
+          If you pay by Venmo or Zelle, please send a screenshot of your payment to <a href="sms:+15627134832" className="underline">562-713-4832</a> via SMS.
+        </div>
+        <div className="text-center text-sm text-gray-600 mt-2">
+          Your reservation is successful! If you have any questions or want to confirm your menu, contact us anytime:<br />
+          <span className="font-medium">SMS/Text:</span> <a href="sms:+15627134832" className="text-[#E4572E] hover:underline">562-713-4832</a>
+          &nbsp;|&nbsp;
+          <span className="font-medium">Phone:</span> <a href="tel:+12137707788" className="text-[#E4572E] hover:underline">213-770-7788</a>
+          &nbsp;|&nbsp;
+          <span className="font-medium">WhatsApp:</span> <a href="https://wa.me/12137707788" target="_blank" rel="noopener noreferrer" className="text-[#E4572E] hover:underline">213-770-7788</a>
         </div>
       </div>
 

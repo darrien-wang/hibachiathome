@@ -206,7 +206,7 @@ function useCostCalculation(formData: FormData) {
     const kidPrice = pricing.children.basic
     const filetUpcharge = 5
     const lobsterUpcharge = 10
-    const extraProteinPrice = 15
+    const extraProteinPrice = 10
     const noodlePrice = 5
     const gyozaPrice = 10
     const edamamePrice = 8
@@ -887,7 +887,7 @@ function EstimationContent() {
               filetMignonCost={costs.filetMignonCost}
               lobsterTailUnit={10}
               lobsterTailCost={costs.lobsterTailCost}
-              extraProteinsUnit={15}
+              extraProteinsUnit={10}
               extraProteinsCost={costs.extraProteinsCost}
               noodlesUnit={5}
               noodlesCost={costs.noodlesCost}

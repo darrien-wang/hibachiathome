@@ -53,7 +53,7 @@ const Step4Sides: React.FC<Step4SidesProps> = ({
             >
               +
             </button>
-            <span className="ml-3 text-[#6B7280]">$15 per order</span>
+            <span className="ml-3 text-[#6B7280]">$10 per order</span>
           </div>
         </div>
         <div className="space-y-2">
