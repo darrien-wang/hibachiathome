@@ -156,7 +156,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                         }
                         onInputChange("address", street);
                       }}
-                      placeholder="Enter your street address"
+                      placeholder="Street Address"
                       className="address-input"
                       required
                     />
@@ -194,7 +194,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Start typing your street address, then select a complete address from the dropdown to auto-fill all fields
+                FULL ADDRESS OF PARTY (House #, Street, PLEASE include Zip Code) 
                 </p>
               </div>
             </div>
