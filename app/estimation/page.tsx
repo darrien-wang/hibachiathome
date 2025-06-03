@@ -20,6 +20,7 @@ import Step4Sides from "@/components/estimation/Step4Sides"
 import Step5Estimate from "@/components/estimation/Step5Estimate"
 import Step6BookingForm from "@/components/estimation/Step6BookingForm"
 import Step7Deposit from "@/components/estimation/Step7Deposit"
+import { Button } from "@/components/ui/button"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -63,6 +64,7 @@ const preloadComponents = () => {
   return Promise.all([bookingFormPromise, costCalculatorPromise, googlePlacesPromise])
 }
 
+// Keep the original FormData type
 type FormData = {
   adults: number
   kids: number
@@ -85,6 +87,23 @@ type FormData = {
   agreeToTerms: boolean
 }
 
+// Rename the new type to avoid conflicts
+type BookingFormInputFields = {
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  customerAddress: string
+  customerCity: string
+  customerState: string
+  customerZipcode: string
+  customerEventDate: string
+  customerEventTime: string
+  customerMessage: string
+  customerAgreeToTerms: boolean
+  customerGyoza: number
+  customerEdamame: number
+}
+
 type DateTimeSelection = {
   date: string | undefined
   time: string | undefined
@@ -92,9 +111,8 @@ type DateTimeSelection = {
   originalPrice: number
 }
 
-// 修改类型定义
+// Fix duplicate name field in PremiumProtein type
 type PremiumProtein = {
-  name: string
   name: string
   quantity: number
   unit_price: number
@@ -106,12 +124,15 @@ type AddOn = {
   unit_price: number
 }
 
+// Update BookingData type to include all fields
 type BookingData = {
   full_name: string
   email: string
   phone: string
   address: string
   zip_code: string
+  city: string
+  state: string
   event_date: string
   event_time: string
   guest_adults: number
@@ -123,15 +144,25 @@ type BookingData = {
   add_ons?: AddOn[]
   special_requests?: string
   deposit?: number
+  gyoza?: number
+  edamame?: number
 }
 
-// 修改 orderData 的类型定义
+// Update OrderData type to match the expected structure
 type OrderData = {
   id: string
   full_name: string
   event_date: string
   event_time: string
   total_amount: number
+  email: string
+  phone: string
+  address: string
+  city: string
+  state: string
+  zipcode: string
+  message: string
+  agreeToTerms: boolean
 }
 
 // 添加数据库返回数据的类型定义
@@ -330,6 +361,18 @@ const ensureFormVisible = () => {
   }
 }
 
+// Add localStorage key constant
+const STORAGE_KEY = "hibachi_estimation_form_data"
+
+// Add type for saved form data
+type SavedFormData = {
+  formData: FormData
+  timestamp: number
+  currentStep: number
+}
+
+const ORDER_DATA_KEY = 'hibachi_estimation_order_data';
+
 export default function EstimationPage() {
   const searchParams = useSearchParams()
   const source = searchParams.get("source")
@@ -364,7 +407,9 @@ export default function EstimationPage() {
 function EstimationContent() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showOrderForm, setShowOrderForm] = useState(false)
-  const [orderData, setOrderData] = useState<OrderData | null>(null)
+  const [orderData, setOrderDataState] = useState<OrderData | null>(null)
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false)
+  const [savedData, setSavedData] = useState<SavedFormData | null>(null)
 
   // 使用 reducer 管理表单状态
   const [formData, dispatch] = useReducer(formReducer, initialState)
@@ -412,6 +457,132 @@ function EstimationContent() {
 
   // 添加 after the other state declarations in EstimationContent function
   const [showTerms, setShowTerms] = useState(false)
+
+  // Add effect to check for saved data on mount
+  useEffect(() => {
+    const savedFormData = localStorage.getItem(STORAGE_KEY)
+    if (savedFormData) {
+      try {
+        const parsed = JSON.parse(savedFormData) as SavedFormData
+        // Only show restore prompt if the saved data is less than 24 hours old
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          setSavedData(parsed)
+          setShowRestorePrompt(true)
+        } else {
+          // Clear expired data
+          localStorage.removeItem(STORAGE_KEY)
+        }
+      } catch (e) {
+        console.error("Error parsing saved form data:", e)
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    }
+  }, [])
+
+  // Add effect to save form data when it changes
+  useEffect(() => {
+    // Only save if we have some meaningful data (at least zipcode or guests)
+    if (formData.zipcode || formData.adults > 0 || formData.kids > 0) {
+      const dataToSave: SavedFormData = {
+        formData,
+        timestamp: Date.now(),
+        currentStep,
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
+    }
+  }, [formData, currentStep])
+
+  // Update handleRestoreData to properly restore date and time with price information
+  const handleRestoreData = useCallback(() => {
+    if (savedData) {
+      // 直接使用保存的完整表单数据
+      const savedFormData = savedData.formData
+      
+      // 确保所有字段都被正确恢复
+      const fieldsToRestore: (keyof FormData)[] = [
+        'adults', 'kids', 'filetMignon', 'lobsterTail', 
+        'extraProteins', 'noodles', 'gyoza', 'edamame',
+        'zipcode', 'name', 'email', 'phone', 
+        'address', 'city', 'state', 
+        'eventDate', 'eventTime', 'message', 'agreeToTerms'
+      ]
+
+      // 逐个恢复每个字段
+      fieldsToRestore.forEach(field => {
+        if (savedFormData[field] !== undefined) {
+          dispatch({ 
+            type: "UPDATE_FIELD", 
+            field, 
+            value: savedFormData[field] 
+          })
+        }
+      })
+
+      // 恢复步骤
+      setCurrentStep(savedData.currentStep)
+      
+      // 同步编辑状态的值
+      setEditingAdults(String(savedFormData.adults))
+      setEditingKids(String(savedFormData.kids))
+      setEditingGyoza(String(savedFormData.gyoza))
+      setEditingEdamame(String(savedFormData.edamame))
+      setEditingFiletMignon(String(savedFormData.filetMignon))
+      setEditingLobsterTail(String(savedFormData.lobsterTail))
+      setEditingExtraProteins(String(savedFormData.extraProteins))
+      setEditingNoodles(String(savedFormData.noodles))
+
+      // 如果有日期时间数据，重新获取价格信息
+      if (savedFormData.eventDate && savedFormData.eventTime && savedFormData.zipcode) {
+        // 获取价格信息
+        fetch(`/api/calendar/manual?date=${savedFormData.eventDate}&address=${savedFormData.zipcode}&basePrice=${costs.subtotal}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.slots) {
+              // 找到对应时间段的slot
+              const slot = data.slots.find((s: any) => s.time === savedFormData.eventTime)
+              if (slot) {
+                // 使用找到的价格信息更新selectedDateTime
+                setSelectedDateTime({
+                  date: savedFormData.eventDate,
+                  time: savedFormData.eventTime,
+                  price: slot.price,
+                  originalPrice: costs.subtotal
+                })
+              } else {
+                // 如果找不到对应的slot，使用基础价格
+                setSelectedDateTime({
+                  date: savedFormData.eventDate,
+                  time: savedFormData.eventTime,
+                  price: costs.subtotal,
+                  originalPrice: costs.subtotal
+                })
+              }
+            }
+          })
+          .catch(error => {
+            // 如果获取价格失败，使用基础价格
+            setSelectedDateTime({
+              date: savedFormData.eventDate,
+              time: savedFormData.eventTime,
+              price: costs.subtotal,
+              originalPrice: costs.subtotal
+            })
+          })
+      }
+
+      // 清除保存的数据
+      localStorage.removeItem(STORAGE_KEY)
+      setSavedData(null)
+      setShowRestorePrompt(false)
+    }
+  }, [savedData, costs.subtotal])
+
+  // Add function to clear saved data
+  const handleClearSavedData = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY)
+    setSavedData(null)
+    setShowRestorePrompt(false)
+  }, [])
 
   // 监听用户行为以显示退出意图弹窗
   useEffect(() => {
@@ -637,94 +808,80 @@ function EstimationContent() {
     ],
   )
 
-  // 修复事件处理函数
-  const handleProceedToOrder = useCallback(() => {
-    if (isEstimationValid) {
-      goToNextStep()
-    }
-  }, [isEstimationValid, goToNextStep])
-
   // 修改表单提交逻辑
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    e.stopPropagation()
-
-    // 验证是否是通过按钮点击触发的提交
-    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement
-    if (!submitter || submitter.type !== "submit" || submitter.id !== "submit-button") {
-      return
-    }
-
-    // 添加额外的验证
-    if (!formData.agreeToTerms) {
-      return
-    }
+    setIsSubmitting(true)
+    setOrderError("")
 
     try {
-      setIsSubmitting(true)
-      setOrderError("")
-
-      // 准备表单数据
-      const bookingFormData: BookingFormData = {
-        name: formData.name,
+      // Convert form data to booking data
+      const bookingData: BookingData = {
+        full_name: formData.name,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
-        zipcode: formData.zipcode,
-        eventDate: formData.eventDate,
-        eventTime: formData.eventTime,
-        adults: formData.adults,
-        kids: formData.kids,
-        filetMignon: formData.filetMignon,
-        lobsterTail: formData.lobsterTail,
-        extraProteins: formData.extraProteins,
-        noodles: formData.noodles,
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zipcode,
+        event_date: selectedDateTime.date || formData.eventDate,
+        event_time: selectedDateTime.time || formData.eventTime,
+        guest_adults: formData.adults,
+        guest_kids: formData.kids,
+        price_adult: pricing.packages.basic.perPerson,
+        price_kid: pricing.children.basic,
+        travel_fee: costs.travelFee,
+        special_requests: formData.message,
         gyoza: formData.gyoza,
         edamame: formData.edamame,
+      }
+
+      // Create order data with selected date and time
+      const newOrderData: OrderData = {
+        id: crypto.randomUUID(),
+        full_name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipcode: formData.zipcode,
+        event_date: selectedDateTime.date || formData.eventDate,
+        event_time: selectedDateTime.time || formData.eventTime,
+        total_amount: costs.total,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,
       }
 
-      console.log("Creating booking with data:", bookingFormData)
+      // 日志调试
+      console.log('[handleSubmit] formData:', formData)
+      console.log('[handleSubmit] selectedDateTime:', selectedDateTime)
+      console.log('[handleSubmit] newOrderData:', newOrderData)
 
-      const result = await createBooking(bookingFormData)
-
-      if (!result.success) {
-        setOrderError(result.error || "Failed to create booking")
-        return
+      // 同步更新 formData 中的日期和时间
+      if (selectedDateTime.date && selectedDateTime.time) {
+        dispatch({ 
+          type: "SET_DATE_TIME", 
+          date: selectedDateTime.date, 
+          time: selectedDateTime.time 
+        })
       }
 
-      // 所有操作成功完成后，进入第7步而不是直接设置 isSubmitted
-      setOrderData({
-        id: result.data?.id || "",
-        full_name: result.data?.full_name || "",
-        event_date: result.data?.event_date || "",
-        event_time: result.data?.event_time || "",
-        address: result.data?.address || "",
-        total_amount: costs.total,
-      })
-
-      // 先进入下一步
-      goToNextStep()
-
-      // 然后确保滚动到表单顶部
-      setTimeout(() => {
-        const formElement = document.getElementById("estimation-form")
-        if (formElement) {
-          // 滚动到表单顶部
-          window.scrollTo({
-            top: formElement.offsetTop - 20,
-            behavior: "smooth",
-          })
-        }
-      }, 100)
-    } catch (error: any) {
-      console.error("Error submitting booking:", error)
-      setOrderError("An unexpected error occurred. Please try again.")
+      setOrderData(newOrderData)
+    } catch (error) {
+      setOrderError("提交订单时发生错误，请重试")
+      console.error("Error submitting order:", error)
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  // 新增：orderData 变化时自动进入第7步
+  useEffect(() => {
+    if (orderData && currentStep !== 7) {
+      setCurrentStep(7)
+    }
+  }, [orderData, currentStep])
 
   // 计算总人数，确保至少为1
   const totalGuests = Math.max(1, formData.adults + formData.kids)
@@ -747,16 +904,55 @@ function EstimationContent() {
   const minimumSpending = pricing.packages.basic.minimum;
   const usedMinimum = actualMealCost < minimumSpending;
 
-  if (isSubmitted) {
-    return (
-      <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[300px] rounded-lg" />}>
-        <BookingSuccess orderData={orderData} totalGuests={totalGuests} />
-      </Suspense>
-    )
-  }
+  // 页面初始化时恢复 orderData
+  useEffect(() => {
+    const savedOrderData = localStorage.getItem(ORDER_DATA_KEY);
+    if (savedOrderData) {
+      try {
+        setOrderDataState(JSON.parse(savedOrderData));
+      } catch (e) {
+        localStorage.removeItem(ORDER_DATA_KEY);
+      }
+    }
+  }, []);
+
+  // 封装 setOrderData，每次都同步到 localStorage
+  const setOrderData = (data: OrderData | null) => {
+    setOrderDataState(data);
+    if (data) {
+      localStorage.setItem(ORDER_DATA_KEY, JSON.stringify(data));
+    } else {
+      localStorage.removeItem(ORDER_DATA_KEY);
+    }
+  };
 
   return (
-    <>
+    <div className="container mx-auto px-4 py-8">
+      {/* Add restore prompt dialog */}
+      {showRestorePrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Continue Your Estimation?</h3>
+            <p className="text-gray-600 mb-6">
+              We found your previous estimation that wasn't completed. Would you like to continue where you left off?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <Button
+                variant="outline"
+                onClick={handleClearSavedData}
+              >
+                Start New
+              </Button>
+              <Button
+                onClick={handleRestoreData}
+              >
+                Continue Previous
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Suspense fallback={<div className="animate-pulse bg-gray-100 h-[400px] rounded-lg" />}>
         <div
           id="estimation-form"
@@ -925,7 +1121,10 @@ function EstimationContent() {
           )}
 
           {/* Step 7: Deposit Payment */}
-          {currentStep === 7 && (
+          {currentStep === 7 && !orderData && (
+            <div className="text-center py-12 text-lg text-gray-500">Loading your booking summary...</div>
+          )}
+          {currentStep === 7 && orderData && (
             <Step7Deposit
               orderData={orderData}
               totalGuests={totalGuests}
@@ -936,6 +1135,7 @@ function EstimationContent() {
           )}
         </div>
       </Suspense>
-    </>
+    </div>
   )
 }
+
