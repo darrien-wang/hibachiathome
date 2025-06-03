@@ -18,6 +18,7 @@ import Step2Appetizers from "@/components/estimation/Step2Appetizers"
 import Step3PremiumMains from "@/components/estimation/Step3PremiumMains"
 import Step4Sides from "@/components/estimation/Step4Sides"
 import Step5Estimate from "@/components/estimation/Step5Estimate"
+import Step6BookingForm from "@/components/estimation/Step6BookingForm"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -46,12 +47,6 @@ const BookingSuccess = dynamic(() => import("@/components/booking/booking-succes
 // 动态导入Google地址自动完成组件
 const GooglePlacesAutocomplete = dynamic(() => import("@/components/google-places-autocomplete"), {
   loading: () => <div className="animate-pulse bg-gray-100 h-[42px] rounded-md" />,
-  ssr: false,
-})
-
-// 动态导入退出意图弹窗组件
-const ExitIntentPopup = dynamic(() => import("@/components/exit-intent-popup"), {
-  loading: () => null,
   ssr: false,
 })
 
@@ -414,14 +409,7 @@ function EstimationContent() {
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 7
 
-  // 退出意图弹窗状态
-  const [showExitPopup, setShowExitPopup] = useState(false)
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const zipCodeChangesRef = useRef(0)
-  const hasInteractedRef = useRef(false)
-  const hasShownPopupRef = useRef(false)
-
-  // Add after the other state declarations in EstimationContent function
+  // 添加 after the other state declarations in EstimationContent function
   const [showTerms, setShowTerms] = useState(false)
 
   // 监听用户行为以显示退出意图弹窗
@@ -430,23 +418,19 @@ function EstimationContent() {
       if (
         e.clientY <= 0 && // Mouse leaves towards the top of the viewport
         currentStep === 5 && // Ensure still on step 5
-        !hasShownPopupRef.current &&
-        formData.zipcode &&
-        formData.zipcode.length === 5 &&
-        hasStayedLongEnoughOnStep5 // Crucially, check if they've stayed long enough
+        !hasStayedLongEnoughOnStep5
       ) {
-        setShowExitPopup(true)
-        hasShownPopupRef.current = true
+        setHasStayedLongEnoughOnStep5(true)
       }
     }
 
-    if (currentStep === 5 && !hasShownPopupRef.current) {
+    if (currentStep === 5 && !hasStayedLongEnoughOnStep5) {
       // If on step 5 and popup hasn't been shown yet:
       // Start the 2-minute timer if it's not already running and the duration hasn't been met
       if (!step5DurationTimerRef && !hasStayedLongEnoughOnStep5) {
         const timer = setTimeout(() => {
           // After 2 minutes, if still on step 5 and popup not shown, mark as stayed long enough
-          if (currentStep === 5 && !hasShownPopupRef.current) {
+          if (currentStep === 5 && !hasStayedLongEnoughOnStep5) {
             setHasStayedLongEnoughOnStep5(true)
           }
         }, 120000) // 2 minutes = 120,000 milliseconds
@@ -472,20 +456,7 @@ function EstimationContent() {
       }
       document.removeEventListener("mouseleave", mouseLeaveHandler)
     }
-  }, [currentStep, formData.zipcode, hasStayedLongEnoughOnStep5, setShowExitPopup])
-
-  // 监听ZIP码变化
-  useEffect(() => {
-    if (currentStep === 5 && formData.zipcode && formData.zipcode.length === 5) {
-      zipCodeChangesRef.current += 1
-
-      // 如果用户修改了多次ZIP码但没有继续
-      if (zipCodeChangesRef.current >= 3 && !hasShownPopupRef.current) {
-        setShowExitPopup(true)
-        hasShownPopupRef.current = true
-      }
-    }
-  }, [currentStep, formData.zipcode])
+  }, [currentStep, hasStayedLongEnoughOnStep5, setHasStayedLongEnoughOnStep5])
 
   // 处理报价请求提交
   const handleQuoteRequest = async (name: string, phone: string) => {
@@ -508,11 +479,6 @@ function EstimationContent() {
     }
 
     setCurrentStep(nextStep)
-
-    // 重置退出意图状态
-    if (currentStep === 5) {
-      hasShownPopupRef.current = false
-    }
 
     // 优化滚动逻辑：让表单距离顶部有 15% 的空白
     setTimeout(() => {
@@ -911,7 +877,7 @@ function EstimationContent() {
               usedMinimum={usedMinimum}
               onNext={goToNextStep}
               onPrev={goToPreviousStep}
-              isEstimationValid={isEstimationValid}
+              isEstimationValid={Boolean(isEstimationValid)}
               adultsUnit={pricing.packages.basic.perPerson}
               adultsCost={costs.adultsCost}
               kidsUnit={pricing.children.basic}
@@ -933,274 +899,30 @@ function EstimationContent() {
 
           {/* Step 6: Booking Form */}
           {currentStep === 6 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-center mb-6">Complete Your Booking</h2>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-lg font-medium">Full Name*</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
-                      placeholder="Your full name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-lg font-medium">Email Address*</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      placeholder="your.email@example.com"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-lg font-medium">Phone Number*</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      placeholder="(123) 456-7890"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-lg font-medium">Full Address*</label>
-                    <div className="space-y-3">
-                      {/* 街道地址输入框，集成Google Places自动完成 */}
-                      <div id="street-address-container">
-                        <GooglePlacesAutocomplete
-                          value={formData.address}
-                          onChange={(value, placeDetails) => {
-                            // 默认用 value，但如果有详细结构则只取街道部分
-                            let street = value
-                            if (placeDetails && placeDetails.address_components) {
-                              let streetNumber = ""
-                              let route = ""
-                              let city = ""
-                              let state = ""
-                              let zipcode = ""
-                              placeDetails.address_components.forEach((component: any) => {
-                                const types = component.types
-                                if (types.includes("street_number")) {
-                                  streetNumber = component.long_name
-                                }
-                                if (types.includes("route")) {
-                                  route = component.long_name
-                                }
-                                if (
-                                  types.includes("locality") ||
-                                  types.includes("sublocality") ||
-                                  types.includes("administrative_area_level_3")
-                                ) {
-                                  city = component.long_name
-                                }
-                                if (types.includes("administrative_area_level_1")) {
-                                  state = component.short_name
-                                }
-                                if (types.includes("postal_code")) {
-                                  zipcode = component.long_name
-                                }
-                              })
-                              // 只保留街道地址
-                              if (streetNumber || route) {
-                                street = [streetNumber, route].filter(Boolean).join(" ")
-                              }
-                              if (city) handleInputChange("city", city)
-                              if (state) handleInputChange("state", state)
-                              if (zipcode) handleInputChange("zipcode", zipcode)
-                            }
-                            handleInputChange("address", street)
-                          }}
-                          placeholder="Enter your street address"
-                          className="address-input"
-                          required
-                        />
-                      </div>
-
-                      {/* 城市、州和邮编字段 */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          id="city-input"
-                          type="text"
-                          placeholder="City"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                          autoComplete="address-level2"
-                          value={formData.city}
-                          onChange={e => handleInputChange("city", e.target.value)}
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <input
-                            id="state-input"
-                            type="text"
-                            placeholder="State"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                            autoComplete="address-level1"
-                            value={formData.state}
-                            onChange={e => handleInputChange("state", e.target.value)}
-                          />
-                          <input
-                            type="text"
-                            value={formData.zipcode}
-                            onChange={e => handleInputChange("zipcode", e.target.value)}
-                            placeholder="ZIP"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                            autoComplete="postal-code"
-                            maxLength={5}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Start typing your street address, then select a complete address from the dropdown to auto-fill
-                      all fields
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-lg font-medium">Special Requests or Notes</label>
-                  <textarea
-                    value={formData.message}
-                    onChange={(e) => handleInputChange("message", e.target.value)}
-                    placeholder="Dietary restrictions, special occasions, or other requests"
-                    className="w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#E4572E] bg-white"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Select Date & Time</h3>
-                  <p className="text-sm text-[#4B5563] mb-4">
-                    Choose from available dates and times. Green dates indicate special pricing!
-                  </p>
-                  {formData.zipcode && formData.zipcode.length === 5 && (
-                    <DynamicPricingCalendar
-                      key={`calendar-${formData.zipcode}-${totalGuests}`}
-                      onSelectDateTime={handleDateTimeSelect}
-                      packageType="basic"
-                      headcount={totalGuests}
-                      zipcode={formData.zipcode}
-                      basePrice={costs.subtotal}
-                    />
-                  )}
-                </div>
-
-                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                  <h3 className="text-lg font-medium mb-2">Order Summary</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Total Guests:</span>
-                      <span>{totalGuests} people</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Food & Add-ons:</span>
-                      <span>${costs.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Travel Fee:</span>
-                      <span>${costs.travelFee.toFixed(2)}</span>
-                    </div>
-
-                    {selectedDateTime.date && selectedDateTime.time && (
-                      <>
-                        <div className="flex justify-between">
-                          <span>Selected Date & Time:</span>
-                          <span>
-                            {format(selectedDateTime.date, "MMM d, yyyy")} at {selectedDateTime.time}
-                          </span>
-                        </div>
-                        {selectedDateTime.originalPrice > selectedDateTime.price && (
-                          <div className="flex justify-between text-green-600">
-                            <span>Special Discount:</span>
-                            <span>-${(selectedDateTime.originalPrice - selectedDateTime.price).toFixed(2)}</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    <div className="flex justify-between font-bold">
-                      <span>Total Amount:</span>
-                      <span>
-                        $
-                        {(selectedDateTime.date && selectedDateTime.time
-                          ? selectedDateTime.price + costs.travelFee
-                          : costs.total
-                        ).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <TermsCheckbox
-                  checked={formData.agreeToTerms}
-                  onChange={handleCheckboxChange}
-                  onShowTerms={() => setShowTerms(true)}
-                />
-                <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
-
-                {orderError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">{orderError}</div>
-                )}
-              </div>
-
-              <div className="pt-4">
-                <form onSubmit={handleSubmit}>
-                  <button
-                    id="submit-button"
-                    type="submit"
-                    disabled={isSubmitting || !isOrderFormValid}
-                    className="w-full py-3 bg-[#E4572E] text-white rounded-md hover:bg-[#D64545] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center justify-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </span>
-                    ) : (
-                      "Book My Hibachi Party"
-                    )}
-                  </button>
-                </form>
-              </div>
-
-              <div className="pt-2 text-center">
-                <button onClick={goToPreviousStep} className="text-[#4B5563] hover:text-[#E4572E] text-sm font-medium">
-                  Back to previous step
-                </button>
-              </div>
-            </div>
+            <Step6BookingForm
+              formData={formData}
+              totalGuests={totalGuests}
+              costs={costs}
+              selectedDateTime={{
+                date: selectedDateTime.date ? (typeof selectedDateTime.date === 'string' ? new Date(selectedDateTime.date) : selectedDateTime.date) : undefined,
+                time: selectedDateTime.time,
+                price: selectedDateTime.price,
+                originalPrice: selectedDateTime.originalPrice,
+              }}
+              showTerms={Boolean(showTerms)}
+              isOrderFormValid={isOrderFormValid}
+              isSubmitting={isSubmitting}
+              orderError={orderError}
+              onInputChange={(field: string, value: string) => handleInputChange(field as keyof FormData, value)}
+              onCheckboxChange={handleCheckboxChange}
+              onShowTerms={() => setShowTerms(true)}
+              onCloseTerms={() => setShowTerms(false)}
+              onDateTimeSelect={handleDateTimeSelect}
+              onSubmit={handleSubmit}
+              onPrev={goToPreviousStep}
+            />
           )}
+
           {/* Step 7: Deposit Payment */}
           {currentStep === 7 && (
             <div className="space-y-6">
@@ -1326,14 +1048,6 @@ function EstimationContent() {
             </div>
           )}
         </div>
-
-        {/* Exit Intent Popup */}
-        <ExitIntentPopup
-          zipcode={formData.zipcode}
-          isVisible={showExitPopup}
-          onClose={() => setShowExitPopup(false)}
-          onSubmit={handleQuoteRequest}
-        />
       </Suspense>
     </>
   )
