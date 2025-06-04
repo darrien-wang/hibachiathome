@@ -109,4 +109,4 @@ const Step2Appetizers: React.FC<Step2AppetizersProps> = ({
   );
 };
 
-export default Step2Appetizers; 
+export default Step2Appetizers;

@@ -109,4 +109,4 @@ const Step4Sides: React.FC<Step4SidesProps> = ({
   );
 };
 
-export default Step4Sides; 
+export default Step4Sides;

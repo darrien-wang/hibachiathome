@@ -162,4 +162,4 @@ const Step1PartySize: React.FC<Step1PartySizeProps> = ({
   );
 };
 
-export default Step1PartySize; 
+export default Step1PartySize;
