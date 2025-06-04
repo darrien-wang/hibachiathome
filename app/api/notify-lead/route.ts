@@ -210,14 +210,14 @@ export async function POST(request: Request) {
       : `Real Hibachi 新客户询价 - ${data.customer.name} (${data.order.guests.total}人)`;
 
     console.log("Preparing to send email:");
-    console.log("- From:", "notify@realhibachi.com");
+    console.log("- From:", "Real Hibachi Team <notify@realhibachi.com>");
     console.log("- To:", "darrien.wang@gmail.com");
     console.log("- Subject:", subject);
 
     try {
       console.log("Attempting to send email with Resend...");
       const { data: emailData, error: emailError } = await resend.emails.send({
-        from: "notify@realhibachi.com",
+        from: "Real Hibachi Team <notify@realhibachi.com>",
         to: "darrien.wang@gmail.com",
         subject,
         html,
