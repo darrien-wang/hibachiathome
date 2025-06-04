@@ -111,4 +111,4 @@ const Step3PremiumMains: React.FC<Step3PremiumMainsProps> = ({
   );
 };
 
-export default Step3PremiumMains; 
+export default Step3PremiumMains;
