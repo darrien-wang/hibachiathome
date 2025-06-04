@@ -2,17 +2,12 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback, useReducer, useMemo, Suspense, useRef } from "react"
+import { useState, useEffect, useCallback, useReducer, useMemo, Suspense } from "react"
 import { pricing } from "@/config/pricing"
 import { format } from "date-fns"
 import dynamic from "next/dynamic"
 import { useSearchParams } from "next/navigation"
 import { createBooking } from "@/app/actions/booking"
-import type { BookingFormData } from "@/types/booking"
-import { paymentConfig } from "@/config/ui"
-import { createClientSupabaseClient } from "@/lib/supabase"
-import { TermsCheckbox } from "@/components/booking/booking-form"
-import { TermsModal } from "@/components/booking/terms-modal"
 import Step1PartySize from "@/components/estimation/Step1PartySize"
 import Step2Appetizers from "@/components/estimation/Step2Appetizers"
 import Step3PremiumMains from "@/components/estimation/Step3PremiumMains"
@@ -371,7 +366,7 @@ type SavedFormData = {
   currentStep: number
 }
 
-const ORDER_DATA_KEY = 'hibachi_estimation_order_data';
+const ORDER_DATA_KEY = "hibachi_estimation_order_data"
 
 export default function EstimationPage() {
   const searchParams = useSearchParams()
@@ -382,6 +377,9 @@ export default function EstimationPage() {
     ? "Complete your booking details below to reserve your private hibachi experience"
     : "Use our calculator to get an instant estimate and book your private hibachi experience"
 
+  // 添加状态来控制弹窗的显示
+  const [showPopup, setShowPopup] = useState(true)
+
   // 在组件挂载时预加载其他组件
   useEffect(() => {
     preloadComponents()
@@ -389,6 +387,24 @@ export default function EstimationPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 pt-24 mt-16 min-h-[800px]">
+      {/* 弹窗组件 */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Important Information</h3>
+            <p className="text-gray-600 mb-6">
+              The prices on this page are estimates only. Protein selections will be confirmed via SMS, phone call,
+              email, or other communication methods, and the final price will be determined on the day of the event.
+            </p>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setShowPopup(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">{pageTitle}</h1>
@@ -425,14 +441,30 @@ function EstimationContent() {
   const [editingNoodles, setEditingNoodles] = useState<string>(String(formData.noodles))
 
   // 同步 formData 变化时也同步 editingValue
-  useEffect(() => { setEditingAdults(String(formData.adults)) }, [formData.adults])
-  useEffect(() => { setEditingKids(String(formData.kids)) }, [formData.kids])
-  useEffect(() => { setEditingGyoza(String(formData.gyoza)) }, [formData.gyoza])
-  useEffect(() => { setEditingEdamame(String(formData.edamame)) }, [formData.edamame])
-  useEffect(() => { setEditingFiletMignon(String(formData.filetMignon)) }, [formData.filetMignon])
-  useEffect(() => { setEditingLobsterTail(String(formData.lobsterTail)) }, [formData.lobsterTail])
-  useEffect(() => { setEditingExtraProteins(String(formData.extraProteins)) }, [formData.extraProteins])
-  useEffect(() => { setEditingNoodles(String(formData.noodles)) }, [formData.noodles])
+  useEffect(() => {
+    setEditingAdults(String(formData.adults))
+  }, [formData.adults])
+  useEffect(() => {
+    setEditingKids(String(formData.kids))
+  }, [formData.kids])
+  useEffect(() => {
+    setEditingGyoza(String(formData.gyoza))
+  }, [formData.gyoza])
+  useEffect(() => {
+    setEditingEdamame(String(formData.edamame))
+  }, [formData.edamame])
+  useEffect(() => {
+    setEditingFiletMignon(String(formData.filetMignon))
+  }, [formData.filetMignon])
+  useEffect(() => {
+    setEditingLobsterTail(String(formData.lobsterTail))
+  }, [formData.lobsterTail])
+  useEffect(() => {
+    setEditingExtraProteins(String(formData.extraProteins))
+  }, [formData.extraProteins])
+  useEffect(() => {
+    setEditingNoodles(String(formData.noodles))
+  }, [formData.noodles])
 
   // 使用自定义 hook 计算成本
   const costs = useCostCalculation(formData)
@@ -497,30 +529,44 @@ function EstimationContent() {
     if (savedData) {
       // 直接使用保存的完整表单数据
       const savedFormData = savedData.formData
-      
+
       // 确保所有字段都被正确恢复
       const fieldsToRestore: (keyof FormData)[] = [
-        'adults', 'kids', 'filetMignon', 'lobsterTail', 
-        'extraProteins', 'noodles', 'gyoza', 'edamame',
-        'zipcode', 'name', 'email', 'phone', 
-        'address', 'city', 'state', 
-        'eventDate', 'eventTime', 'message', 'agreeToTerms'
+        "adults",
+        "kids",
+        "filetMignon",
+        "lobsterTail",
+        "extraProteins",
+        "noodles",
+        "gyoza",
+        "edamame",
+        "zipcode",
+        "name",
+        "email",
+        "phone",
+        "address",
+        "city",
+        "state",
+        "eventDate",
+        "eventTime",
+        "message",
+        "agreeToTerms",
       ]
 
       // 逐个恢复每个字段
-      fieldsToRestore.forEach(field => {
+      fieldsToRestore.forEach((field) => {
         if (savedFormData[field] !== undefined) {
-          dispatch({ 
-            type: "UPDATE_FIELD", 
-            field, 
-            value: savedFormData[field] 
+          dispatch({
+            type: "UPDATE_FIELD",
+            field,
+            value: savedFormData[field],
           })
         }
       })
 
       // 恢复步骤
       setCurrentStep(savedData.currentStep)
-      
+
       // 同步编辑状态的值
       setEditingAdults(String(savedFormData.adults))
       setEditingKids(String(savedFormData.kids))
@@ -534,9 +580,11 @@ function EstimationContent() {
       // 如果有日期时间数据，重新获取价格信息
       if (savedFormData.eventDate && savedFormData.eventTime && savedFormData.zipcode) {
         // 获取价格信息
-        fetch(`/api/calendar/manual?date=${savedFormData.eventDate}&address=${savedFormData.zipcode}&basePrice=${costs.subtotal}`)
-          .then(res => res.json())
-          .then(data => {
+        fetch(
+          `/api/calendar/manual?date=${savedFormData.eventDate}&address=${savedFormData.zipcode}&basePrice=${costs.subtotal}`,
+        )
+          .then((res) => res.json())
+          .then((data) => {
             if (data.slots) {
               // 找到对应时间段的slot
               const slot = data.slots.find((s: any) => s.time === savedFormData.eventTime)
@@ -546,7 +594,7 @@ function EstimationContent() {
                   date: savedFormData.eventDate,
                   time: savedFormData.eventTime,
                   price: slot.price,
-                  originalPrice: costs.subtotal
+                  originalPrice: costs.subtotal,
                 })
               } else {
                 // 如果找不到对应的slot，使用基础价格
@@ -554,18 +602,18 @@ function EstimationContent() {
                   date: savedFormData.eventDate,
                   time: savedFormData.eventTime,
                   price: costs.subtotal,
-                  originalPrice: costs.subtotal
+                  originalPrice: costs.subtotal,
                 })
               }
             }
           })
-          .catch(error => {
+          .catch((error) => {
             // 如果获取价格失败，使用基础价格
             setSelectedDateTime({
               date: savedFormData.eventDate,
               time: savedFormData.eventTime,
               price: costs.subtotal,
-              originalPrice: costs.subtotal
+              originalPrice: costs.subtotal,
             })
           })
       }
@@ -668,33 +716,33 @@ function EstimationContent() {
   const goToPreviousStep = useCallback(() => {
     // 如果当前在第7步，且 orderData 存在，返回上一步时清空 orderData 并跳转到第6步
     if (currentStep === 7 && orderData) {
-      setOrderData(null);
-      setCurrentStep(6);
+      setOrderData(null)
+      setCurrentStep(6)
       setTimeout(() => {
-        const formElement = document.getElementById("estimation-form");
+        const formElement = document.getElementById("estimation-form")
         if (formElement) {
-          const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0);
+          const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0)
           window.scrollTo({
             top: offset,
             behavior: "smooth",
-          });
+          })
         }
-      }, 100);
-      return;
+      }, 100)
+      return
     }
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1))
     // 返回上一步时，确保表单完全可见
     setTimeout(() => {
-      const formElement = document.getElementById("estimation-form");
+      const formElement = document.getElementById("estimation-form")
       if (formElement) {
-        const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0);
+        const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0)
         window.scrollTo({
           top: offset,
           behavior: "smooth",
-        });
+        })
       }
-    }, 100);
-  }, [currentStep, orderData]);
+    }, 100)
+  }, [currentStep, orderData])
 
   const skipToStep = useCallback((step: number) => {
     setCurrentStep(Math.min(Math.max(step, 1), totalSteps))
@@ -711,40 +759,40 @@ function EstimationContent() {
 
   // 修改 handleNumberChange 只处理字符串，不再直接 dispatch
   const handleNumberChange = useCallback((field: keyof FormData, value: string) => {
-    let sanitized = value.replace(/[^\d]/g, "");
-    sanitized = sanitized.replace(/^0+(\d+)$/, "$1");
+    let sanitized = value.replace(/[^\d]/g, "")
+    sanitized = sanitized.replace(/^0+(\d+)$/, "$1")
     // 限制最大值为99
-    let numValue = sanitized === "" ? 0 : Math.max(0, Math.min(99, Number.parseInt(sanitized, 10)));
-    if (field === "adults") setEditingAdults(sanitized);
-    if (field === "kids") setEditingKids(sanitized);
-    if (field === "gyoza") setEditingGyoza(sanitized);
-    if (field === "edamame") setEditingEdamame(sanitized);
-    if (field === "filetMignon") setEditingFiletMignon(sanitized);
-    if (field === "lobsterTail") setEditingLobsterTail(sanitized);
-    if (field === "extraProteins") setEditingExtraProteins(sanitized);
-    if (field === "noodles") setEditingNoodles(sanitized);
-    dispatch({ type: "UPDATE_FIELD", field, value: numValue });
-  }, []);
+    const numValue = sanitized === "" ? 0 : Math.max(0, Math.min(99, Number.parseInt(sanitized, 10)))
+    if (field === "adults") setEditingAdults(sanitized)
+    if (field === "kids") setEditingKids(sanitized)
+    if (field === "gyoza") setEditingGyoza(sanitized)
+    if (field === "edamame") setEditingEdamame(sanitized)
+    if (field === "filetMignon") setEditingFiletMignon(sanitized)
+    if (field === "lobsterTail") setEditingLobsterTail(sanitized)
+    if (field === "extraProteins") setEditingExtraProteins(sanitized)
+    if (field === "noodles") setEditingNoodles(sanitized)
+    dispatch({ type: "UPDATE_FIELD", field, value: numValue })
+  }, [])
 
   // 新增 handleNumberBlur
   const handleNumberBlur = useCallback((field: keyof FormData, value: string) => {
-    let numValue = Math.max(0, Math.min(99, Number.parseInt(value, 10) || 0));
+    const numValue = Math.max(0, Math.min(99, Number.parseInt(value, 10) || 0))
     if (value === "") {
-      dispatch({ type: "UPDATE_FIELD", field, value: 0 });
+      dispatch({ type: "UPDATE_FIELD", field, value: 0 })
       // 失焦后显示0
-      if (field === "adults") setEditingAdults("0");
-      if (field === "kids") setEditingKids("0");
-      if (field === "gyoza") setEditingGyoza("0");
-      if (field === "edamame") setEditingEdamame("0");
-      if (field === "filetMignon") setEditingFiletMignon("0");
-      if (field === "lobsterTail") setEditingLobsterTail("0");
-      if (field === "extraProteins") setEditingExtraProteins("0");
-      if (field === "noodles") setEditingNoodles("0");
-      return;
+      if (field === "adults") setEditingAdults("0")
+      if (field === "kids") setEditingKids("0")
+      if (field === "gyoza") setEditingGyoza("0")
+      if (field === "edamame") setEditingEdamame("0")
+      if (field === "filetMignon") setEditingFiletMignon("0")
+      if (field === "lobsterTail") setEditingLobsterTail("0")
+      if (field === "extraProteins") setEditingExtraProteins("0")
+      if (field === "noodles") setEditingNoodles("0")
+      return
     }
     // 失焦时同步到 formData，最大99
-    dispatch({ type: "UPDATE_FIELD", field, value: numValue });
-  }, []);
+    dispatch({ type: "UPDATE_FIELD", field, value: numValue })
+  }, [])
 
   const handleIncrement = useCallback(
     (field: keyof FormData) => {
@@ -832,13 +880,19 @@ function EstimationContent() {
 
     // 校验所有数字字段最大99
     const numericFields = [
-      formData.adults, formData.kids, formData.filetMignon, formData.lobsterTail,
-      formData.extraProteins, formData.noodles, formData.gyoza, formData.edamame
-    ];
+      formData.adults,
+      formData.kids,
+      formData.filetMignon,
+      formData.lobsterTail,
+      formData.extraProteins,
+      formData.noodles,
+      formData.gyoza,
+      formData.edamame,
+    ]
     if (numericFields.some((v) => v > 99)) {
-      setOrderError("所有数字输入不能超过99");
-      setIsSubmitting(false);
-      return;
+      setOrderError("所有数字输入不能超过99")
+      setIsSubmitting(false)
+      return
     }
 
     try {
@@ -858,16 +912,16 @@ function EstimationContent() {
         extraProteins: formData.extraProteins,
         noodles: formData.noodles,
         message: formData.message,
-      });
+      })
 
       if (!bookingResult.success) {
-        setOrderError("数据库写入失败: " + bookingResult.error);
-        setIsSubmitting(false);
-        return;
+        setOrderError("数据库写入失败: " + bookingResult.error)
+        setIsSubmitting(false)
+        return
       }
 
       // 2. 构建结构化的订单数据用于发送邮件
-      const newOrderId = bookingResult.data?.id || crypto.randomUUID();
+      const newOrderId = bookingResult.data?.id || crypto.randomUUID()
       const orderAnalytics = {
         // 元数据
         metadata: {
@@ -887,7 +941,7 @@ function EstimationContent() {
             city: formData.city,
             state: formData.state,
             zipcode: formData.zipcode,
-          }
+          },
         },
         // 订单详情
         order: {
@@ -908,7 +962,7 @@ function EstimationContent() {
                 quantity: formData.edamame,
                 unit_price: 8,
                 total: costs.edamameCost,
-              }
+              },
             },
             premium_mains: {
               filet_mignon: {
@@ -920,7 +974,7 @@ function EstimationContent() {
                 quantity: formData.lobsterTail,
                 unit_price: 10,
                 total: costs.lobsterTailCost,
-              }
+              },
             },
             sides: {
               extra_proteins: {
@@ -932,8 +986,8 @@ function EstimationContent() {
                 quantity: formData.noodles,
                 unit_price: 5,
                 total: costs.noodlesCost,
-              }
-            }
+              },
+            },
           },
           pricing: {
             base_costs: {
@@ -946,7 +1000,7 @@ function EstimationContent() {
                 unit_price: pricing.children.basic,
                 quantity: formData.kids,
                 total: costs.kidsCost,
-              }
+              },
             },
             fees: {
               travel_fee: costs.travelFee,
@@ -966,19 +1020,19 @@ function EstimationContent() {
           status: {
             stage: "deposit_pending",
             timestamp: new Date().toISOString(),
-          }
-        }
-      };
+          },
+        },
+      }
 
       // 3. 发送订单确认邮件
       await fetch("/api/notify-lead", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "X-RealHibachi-Tag": "order_confirmation"
+          "X-RealHibachi-Tag": "order_confirmation",
         },
         body: JSON.stringify(orderAnalytics),
-      });
+      })
 
       // 4. 更新 orderData 并跳转
       const newOrderData: OrderData = {
@@ -995,19 +1049,19 @@ function EstimationContent() {
         total_amount: costs.total,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,
-      };
+      }
 
       // 日志调试
-      console.log('[handleSubmit] formData:', formData)
-      console.log('[handleSubmit] selectedDateTime:', selectedDateTime)
-      console.log('[handleSubmit] newOrderData:', newOrderData)
+      console.log("[handleSubmit] formData:", formData)
+      console.log("[handleSubmit] selectedDateTime:", selectedDateTime)
+      console.log("[handleSubmit] newOrderData:", newOrderData)
 
       // 同步更新 formData 中的日期和时间
       if (selectedDateTime.date && selectedDateTime.time) {
-        dispatch({ 
-          type: "SET_DATE_TIME", 
-          date: selectedDateTime.date, 
-          time: selectedDateTime.time 
+        dispatch({
+          type: "SET_DATE_TIME",
+          date: selectedDateTime.date,
+          time: selectedDateTime.time,
         })
       }
 
@@ -1044,73 +1098,73 @@ function EstimationContent() {
     costs.extraProteinsCost +
     costs.noodlesCost +
     costs.gyozaCost +
-    costs.edamameCost;
-  const minimumSpending = pricing.packages.basic.minimum;
-  const usedMinimum = actualMealCost < minimumSpending;
+    costs.edamameCost
+  const minimumSpending = pricing.packages.basic.minimum
+  const usedMinimum = actualMealCost < minimumSpending
 
   // 页面初始化时恢复 orderData
   useEffect(() => {
-    const savedOrderData = localStorage.getItem(ORDER_DATA_KEY);
+    const savedOrderData = localStorage.getItem(ORDER_DATA_KEY)
     if (savedOrderData) {
       try {
-        setOrderDataState(JSON.parse(savedOrderData));
+        setOrderDataState(JSON.parse(savedOrderData))
       } catch (e) {
-        localStorage.removeItem(ORDER_DATA_KEY);
+        localStorage.removeItem(ORDER_DATA_KEY)
       }
     }
-  }, []);
+  }, [])
 
   // 封装 setOrderData，每次都同步到 localStorage
   const setOrderData = (data: OrderData | null) => {
-    setOrderDataState(data);
+    setOrderDataState(data)
     if (data) {
-      localStorage.setItem(ORDER_DATA_KEY, JSON.stringify(data));
+      localStorage.setItem(ORDER_DATA_KEY, JSON.stringify(data))
     } else {
-      localStorage.removeItem(ORDER_DATA_KEY);
+      localStorage.removeItem(ORDER_DATA_KEY)
     }
-  };
+  }
 
   // 新增：重置所有状态的方法
   const handleStartNew = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(ORDER_DATA_KEY);
-    dispatch({ type: "RESET_FORM" });
-    setOrderData(null);
-    setCurrentStep(1);
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(ORDER_DATA_KEY)
+    dispatch({ type: "RESET_FORM" })
+    setOrderData(null)
+    setCurrentStep(1)
     setSelectedDateTime({
       date: undefined,
       time: undefined,
       price: 0,
       originalPrice: 0,
-    });
-    setEditingAdults("0");
-    setEditingKids("0");
-    setEditingGyoza("0");
-    setEditingEdamame("0");
-    setEditingFiletMignon("0");
-    setEditingLobsterTail("0");
-    setEditingExtraProteins("0");
-    setEditingNoodles("0");
-    setOrderError("");
-    setIsSubmitting(false);
-    setShowRestorePrompt(false);
-  }, []);
+    })
+    setEditingAdults("0")
+    setEditingKids("0")
+    setEditingGyoza("0")
+    setEditingEdamame("0")
+    setEditingFiletMignon("0")
+    setEditingLobsterTail("0")
+    setEditingExtraProteins("0")
+    setEditingNoodles("0")
+    setOrderError("")
+    setIsSubmitting(false)
+    setShowRestorePrompt(false)
+  }, [])
 
   // 新增：currentStep 变为 7 时自动滚动到表单顶部
   useEffect(() => {
     if (currentStep === 7) {
       setTimeout(() => {
-        const formElement = document.getElementById("estimation-form");
+        const formElement = document.getElementById("estimation-form")
         if (formElement) {
-          const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0);
+          const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0)
           window.scrollTo({
             top: offset,
             behavior: "smooth",
-          });
+          })
         }
-      }, 100);
+      }, 100)
     }
-  }, [currentStep]);
+  }, [currentStep])
 
   // 新增：Step1 下一步时先发邮件
   const handleStep1Next = async () => {
@@ -1125,9 +1179,9 @@ function EstimationContent() {
         adults: formData.adults,
         kids: formData.kids,
       }),
-    });
-    goToNextStep();
-  };
+    })
+    goToNextStep()
+  }
 
   // 新增：Step4 下一步时发邮件，包含所有用户选择
   const handleStep4Next = async () => {
@@ -1151,7 +1205,7 @@ function EstimationContent() {
           city: formData.city,
           state: formData.state,
           zipcode: formData.zipcode,
-        }
+        },
       },
       // 订单详情
       order: {
@@ -1173,7 +1227,7 @@ function EstimationContent() {
               quantity: formData.edamame,
               unit_price: 8,
               total: costs.edamameCost,
-            }
+            },
           },
           premium_mains: {
             filet_mignon: {
@@ -1185,7 +1239,7 @@ function EstimationContent() {
               quantity: formData.lobsterTail,
               unit_price: 10,
               total: costs.lobsterTailCost,
-            }
+            },
           },
           sides: {
             extra_proteins: {
@@ -1197,8 +1251,8 @@ function EstimationContent() {
               quantity: formData.noodles,
               unit_price: 5,
               total: costs.noodlesCost,
-            }
-          }
+            },
+          },
         },
         // 价格信息
         pricing: {
@@ -1212,7 +1266,7 @@ function EstimationContent() {
               unit_price: pricing.children.basic,
               quantity: formData.kids,
               total: costs.kidsCost,
-            }
+            },
           },
           fees: {
             travel_fee: costs.travelFee,
@@ -1231,19 +1285,19 @@ function EstimationContent() {
         // 其他信息
         notes: formData.message || "",
         terms_accepted: formData.agreeToTerms,
-      }
-    };
+      },
+    }
 
     await fetch("/api/notify-lead", {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "X-RealHibachi-Tag": "quote_request" // 添加标签头
+        "X-RealHibachi-Tag": "quote_request", // 添加标签头
       },
       body: JSON.stringify(orderAnalytics),
-    });
-    goToNextStep();
-  };
+    })
+    goToNextStep()
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -1256,17 +1310,10 @@ function EstimationContent() {
               We found your previous estimation that wasn't completed. Would you like to continue where you left off?
             </p>
             <div className="flex justify-end space-x-4">
-              <Button
-                variant="outline"
-                onClick={handleStartNew}
-              >
+              <Button variant="outline" onClick={handleStartNew}>
                 Start New
               </Button>
-              <Button
-                onClick={handleRestoreData}
-              >
-                Continue Previous
-              </Button>
+              <Button onClick={handleRestoreData}>Continue Previous</Button>
             </div>
           </div>
         </div>
@@ -1304,15 +1351,21 @@ function EstimationContent() {
               zipcode={formData.zipcode}
               adults={editingAdults}
               kids={editingKids}
-              onInputChange={(field, value) => dispatch({ type: "UPDATE_FIELD", field: field as keyof FormData, value })}
+              onInputChange={(field, value) =>
+                dispatch({ type: "UPDATE_FIELD", field: field as keyof FormData, value })
+              }
               onNumberChange={(field, value) => handleNumberChange(field as keyof FormData, value)}
               onNumberBlur={(field, value) => handleNumberBlur(field as keyof FormData, value)}
               onDecrement={(field) => handleDecrement(field as keyof FormData)}
               onIncrement={(field) => handleIncrement(field as keyof FormData)}
               onNext={goToNextStep}
               disableNext={
-                !formData.name || !formData.email || !formData.phone || !formData.zipcode ||
-                (formData.adults === 0 && formData.kids === 0) || formData.zipcode.length !== 5
+                !formData.name ||
+                !formData.email ||
+                !formData.phone ||
+                !formData.zipcode ||
+                (formData.adults === 0 && formData.kids === 0) ||
+                formData.zipcode.length !== 5
               }
             />
           )}
@@ -1329,9 +1382,9 @@ function EstimationContent() {
               onNext={goToNextStep}
               onPrev={goToPreviousStep}
               onSkip={() => {
-                handleNumberChange("gyoza", "0");
-                handleNumberChange("edamame", "0");
-                goToNextStep();
+                handleNumberChange("gyoza", "0")
+                handleNumberChange("edamame", "0")
+                goToNextStep()
               }}
             />
           )}
@@ -1348,9 +1401,9 @@ function EstimationContent() {
               onNext={goToNextStep}
               onPrev={goToPreviousStep}
               onSkip={() => {
-                handleNumberChange("filetMignon", "0");
-                handleNumberChange("lobsterTail", "0");
-                goToNextStep();
+                handleNumberChange("filetMignon", "0")
+                handleNumberChange("lobsterTail", "0")
+                goToNextStep()
               }}
             />
           )}
@@ -1367,9 +1420,9 @@ function EstimationContent() {
               onNext={handleStep4Next}
               onPrev={goToPreviousStep}
               onSkip={() => {
-                handleNumberChange("extraProteins", "0");
-                handleNumberChange("noodles", "0");
-                handleStep4Next();
+                handleNumberChange("extraProteins", "0")
+                handleNumberChange("noodles", "0")
+                handleStep4Next()
               }}
             />
           )}
@@ -1420,7 +1473,11 @@ function EstimationContent() {
               totalGuests={totalGuests}
               costs={costs}
               selectedDateTime={{
-                date: selectedDateTime.date ? (typeof selectedDateTime.date === 'string' ? new Date(selectedDateTime.date) : selectedDateTime.date) : undefined,
+                date: selectedDateTime.date
+                  ? typeof selectedDateTime.date === "string"
+                    ? new Date(selectedDateTime.date)
+                    : selectedDateTime.date
+                  : undefined,
                 time: selectedDateTime.time,
                 price: selectedDateTime.price,
                 originalPrice: selectedDateTime.originalPrice,
