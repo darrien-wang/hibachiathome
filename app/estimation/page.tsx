@@ -926,6 +926,48 @@ function EstimationContent() {
     }
   };
 
+  // 新增：重置所有状态的方法
+  const handleStartNew = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ORDER_DATA_KEY);
+    dispatch({ type: "RESET_FORM" });
+    setOrderData(null);
+    setCurrentStep(1);
+    setSelectedDateTime({
+      date: undefined,
+      time: undefined,
+      price: 0,
+      originalPrice: 0,
+    });
+    setEditingAdults("0");
+    setEditingKids("0");
+    setEditingGyoza("0");
+    setEditingEdamame("0");
+    setEditingFiletMignon("0");
+    setEditingLobsterTail("0");
+    setEditingExtraProteins("0");
+    setEditingNoodles("0");
+    setOrderError("");
+    setIsSubmitting(false);
+    setShowRestorePrompt(false);
+  }, []);
+
+  // 新增：currentStep 变为 7 时自动滚动到表单顶部
+  useEffect(() => {
+    if (currentStep === 7) {
+      setTimeout(() => {
+        const formElement = document.getElementById("estimation-form");
+        if (formElement) {
+          const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0);
+          window.scrollTo({
+            top: offset,
+            behavior: "smooth",
+          });
+        }
+      }, 100);
+    }
+  }, [currentStep]);
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Add restore prompt dialog */}
@@ -939,7 +981,7 @@ function EstimationContent() {
             <div className="flex justify-end space-x-4">
               <Button
                 variant="outline"
-                onClick={handleClearSavedData}
+                onClick={handleStartNew}
               >
                 Start New
               </Button>
@@ -1131,6 +1173,7 @@ function EstimationContent() {
               costs={costs}
               formData={formData}
               goToPreviousStep={goToPreviousStep}
+              onStartNew={handleStartNew}
             />
           )}
         </div>

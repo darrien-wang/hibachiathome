@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { useState, useRef, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import SocialProofCounter from "@/components/social-proof-counter"
@@ -38,6 +41,47 @@ const testimonials = [
     date: "2 weeks ago",
   },
 ]
+
+// 视频加载超时组件
+function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
+  const [showVideo, setShowVideo] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => {
+      if (!loaded) setShowVideo(false);
+    }, 2000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [loaded]);
+
+  const handleLoadedData = () => {
+    setLoaded(true);
+    setShowVideo(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
+
+  if (!showVideo) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl min-h-[200px]">
+        <span className="text-gray-400">Video failed to load.</span>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      {...props}
+      onLoadedData={handleLoadedData}
+      poster={poster}
+    >
+      <source src={src} type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+  );
+}
 
 export default function Home() {
   return (
@@ -199,20 +243,15 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[177.78%] h-0">
-                  <video
+                  <TimeoutVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
                     autoPlay
                     muted
                     loop
                     poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
-                  >
-                    <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
-                      type="video/mp4"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                  />
                 </div>
               </div>
             </AnimateOnScroll>

@@ -9,9 +9,10 @@ interface Step7DepositProps {
   costs: { total: number };
   formData: any;
   goToPreviousStep: () => void;
+  onStartNew: () => void;
 }
 
-const Step7Deposit: React.FC<Step7DepositProps> = ({ orderData, totalGuests, costs, formData, goToPreviousStep }) => {
+const Step7Deposit: React.FC<Step7DepositProps> = ({ orderData, totalGuests, costs, formData, goToPreviousStep, onStartNew }) => {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-center mb-6">Secure Your Hibachi Party with a Deposit</h2>
@@ -131,9 +132,12 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({ orderData, totalGuests, cos
         </div>
       </div>
 
-      <div className="pt-2 text-center">
+      <div className="pt-2 text-center flex flex-col items-center gap-2">
         <Button onClick={goToPreviousStep} variant="ghost" className="text-[#4B5563] hover:text-[#E4572E] text-sm font-medium">
           Back to previous step
+        </Button>
+        <Button onClick={onStartNew} variant="outline" className="text-[#E4572E] border-[#E4572E] mt-2">
+          Start New
         </Button>
       </div>
     </div>
