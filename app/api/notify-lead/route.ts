@@ -180,29 +180,88 @@ const generateOrderConfirmationEmail = (data: any) => `
 `;
 
 export async function POST(request: Request) {
-  // 获取 IP（如需限流可在此处实现）
-  // const ipHeader = request.headers.get('x-forwarded-for');
-  // const ip = ipHeader ? ipHeader.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown';
+  console.log("=== Notify Lead API Called ===");
+  console.log("Timestamp:", new Date().toISOString());
+  
+  // 记录环境变量状态
+  console.log("Environment Check:");
+  console.log("- RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY);
+  console.log("- EMAIL_FROM:", process.env.EMAIL_FROM || "not set");
+  console.log("- NODE_ENV:", process.env.NODE_ENV);
 
-  const data = await request.json();
-  const tag = request.headers.get('X-RealHibachi-Tag') || 'quote_request';
+  try {
+    const data = await request.json();
+    const tag = request.headers.get('X-RealHibachi-Tag') || 'quote_request';
+    
+    console.log("Request Details:");
+    console.log("- Tag:", tag);
+    console.log("- Customer Name:", data.customer?.name);
+    console.log("- Customer Email:", data.customer?.email);
+    console.log("- Total Guests:", data.order?.guests?.total);
 
-  // 根据标签选择邮件模板
-  const html = tag === 'order_confirmation' 
-    ? generateOrderConfirmationEmail(data)
-    : generateQuoteEmail(data);
+    // 根据标签选择邮件模板
+    const html = tag === 'order_confirmation' 
+      ? generateOrderConfirmationEmail(data)
+      : generateQuoteEmail(data);
 
-  // 根据标签设置邮件主题
-  const subject = tag === 'order_confirmation'
-    ? `Real Hibachi 新订单确认 - ${data.customer.name} (订单号: ${data.order.order_id})`
-    : `Real Hibachi 新客户询价 - ${data.customer.name} (${data.order.guests.total}人)`;
+    // 根据标签设置邮件主题
+    const subject = tag === 'order_confirmation'
+      ? `Real Hibachi 新订单确认 - ${data.customer.name} (订单号: ${data.order.order_id})`
+      : `Real Hibachi 新客户询价 - ${data.customer.name} (${data.order.guests.total}人)`;
 
-  await resend.emails.send({
-    from: "notify@realhibachi.com",
-    to: "darrien.wang@gmail.com",
-    subject,
-    html,
-  });
+    console.log("Preparing to send email:");
+    console.log("- From:", "notify@realhibachi.com");
+    console.log("- To:", "darrien.wang@gmail.com");
+    console.log("- Subject:", subject);
 
-  return NextResponse.json({ success: true });
+    try {
+      console.log("Attempting to send email with Resend...");
+      const { data: emailData, error: emailError } = await resend.emails.send({
+        from: "notify@realhibachi.com",
+        to: "darrien.wang@gmail.com",
+        subject,
+        html,
+      });
+
+      if (emailError) {
+        console.error("Resend API Error:", {
+          error: emailError,
+          message: emailError.message
+        });
+        throw emailError;
+      }
+
+      console.log("Email sent successfully:", {
+        id: emailData?.id
+      });
+
+      return NextResponse.json({ 
+        success: true,
+        emailId: emailData?.id 
+      });
+    } catch (sendError: any) {
+      console.error("Detailed Send Error:", {
+        name: sendError.name,
+        message: sendError.message,
+        response: sendError.response?.data
+      });
+      
+      return NextResponse.json({ 
+        success: false, 
+        error: "Failed to send email",
+        details: sendError.message
+      }, { status: 500 });
+    }
+  } catch (error: any) {
+    console.error("Request Processing Error:", {
+      name: error.name,
+      message: error.message
+    });
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: "Failed to process request",
+      details: error.message
+    }, { status: 500 });
+  }
 } 
