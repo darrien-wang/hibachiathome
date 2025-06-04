@@ -666,19 +666,35 @@ function EstimationContent() {
   }, [currentStep])
 
   const goToPreviousStep = useCallback(() => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1))
+    // 如果当前在第7步，且 orderData 存在，返回上一步时清空 orderData 并跳转到第6步
+    if (currentStep === 7 && orderData) {
+      setOrderData(null);
+      setCurrentStep(6);
+      setTimeout(() => {
+        const formElement = document.getElementById("estimation-form");
+        if (formElement) {
+          const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0);
+          window.scrollTo({
+            top: offset,
+            behavior: "smooth",
+          });
+        }
+      }, 100);
+      return;
+    }
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
     // 返回上一步时，确保表单完全可见
     setTimeout(() => {
-      const formElement = document.getElementById("estimation-form")
+      const formElement = document.getElementById("estimation-form");
       if (formElement) {
-        const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0)
+        const offset = Math.max(formElement.offsetTop - window.innerHeight * 0.15, 0);
         window.scrollTo({
           top: offset,
           behavior: "smooth",
-        })
+        });
       }
-    }, 100)
-  }, [])
+    }, 100);
+  }, [currentStep, orderData]);
 
   const skipToStep = useCallback((step: number) => {
     setCurrentStep(Math.min(Math.max(step, 1), totalSteps))
@@ -697,6 +713,8 @@ function EstimationContent() {
   const handleNumberChange = useCallback((field: keyof FormData, value: string) => {
     let sanitized = value.replace(/[^\d]/g, "");
     sanitized = sanitized.replace(/^0+(\d+)$/, "$1");
+    // 限制最大值为99
+    let numValue = sanitized === "" ? 0 : Math.max(0, Math.min(99, Number.parseInt(sanitized, 10)));
     if (field === "adults") setEditingAdults(sanitized);
     if (field === "kids") setEditingKids(sanitized);
     if (field === "gyoza") setEditingGyoza(sanitized);
@@ -705,13 +723,12 @@ function EstimationContent() {
     if (field === "lobsterTail") setEditingLobsterTail(sanitized);
     if (field === "extraProteins") setEditingExtraProteins(sanitized);
     if (field === "noodles") setEditingNoodles(sanitized);
-    // 新增：同步到 formData
-    const numValue = sanitized === "" ? 0 : Math.max(0, Number.parseInt(sanitized, 10));
     dispatch({ type: "UPDATE_FIELD", field, value: numValue });
   }, []);
 
   // 新增 handleNumberBlur
   const handleNumberBlur = useCallback((field: keyof FormData, value: string) => {
+    let numValue = Math.max(0, Math.min(99, Number.parseInt(value, 10) || 0));
     if (value === "") {
       dispatch({ type: "UPDATE_FIELD", field, value: 0 });
       // 失焦后显示0
@@ -725,8 +742,7 @@ function EstimationContent() {
       if (field === "noodles") setEditingNoodles("0");
       return;
     }
-    // 失焦时同步到 formData
-    const numValue = Math.max(0, Number.parseInt(value, 10) || 0);
+    // 失焦时同步到 formData，最大99
     dispatch({ type: "UPDATE_FIELD", field, value: numValue });
   }, []);
 
@@ -814,31 +830,159 @@ function EstimationContent() {
     setIsSubmitting(true)
     setOrderError("")
 
+    // 校验所有数字字段最大99
+    const numericFields = [
+      formData.adults, formData.kids, formData.filetMignon, formData.lobsterTail,
+      formData.extraProteins, formData.noodles, formData.gyoza, formData.edamame
+    ];
+    if (numericFields.some((v) => v > 99)) {
+      setOrderError("所有数字输入不能超过99");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // Convert form data to booking data
-      const bookingData: BookingData = {
-        full_name: formData.name,
+      // 1. 写入数据库
+      const bookingResult = await createBooking({
+        name: formData.name,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zip_code: formData.zipcode,
-        event_date: selectedDateTime.date || formData.eventDate,
-        event_time: selectedDateTime.time || formData.eventTime,
-        guest_adults: formData.adults,
-        guest_kids: formData.kids,
-        price_adult: pricing.packages.basic.perPerson,
-        price_kid: pricing.children.basic,
-        travel_fee: costs.travelFee,
-        special_requests: formData.message,
-        gyoza: formData.gyoza,
-        edamame: formData.edamame,
+        zipcode: formData.zipcode,
+        eventDate: selectedDateTime.date || formData.eventDate,
+        eventTime: selectedDateTime.time || formData.eventTime,
+        adults: formData.adults,
+        kids: formData.kids,
+        filetMignon: formData.filetMignon,
+        lobsterTail: formData.lobsterTail,
+        extraProteins: formData.extraProteins,
+        noodles: formData.noodles,
+        message: formData.message,
+      });
+
+      if (!bookingResult.success) {
+        setOrderError("数据库写入失败: " + bookingResult.error);
+        setIsSubmitting(false);
+        return;
       }
 
-      // Create order data with selected date and time
+      // 2. 构建结构化的订单数据用于发送邮件
+      const newOrderId = bookingResult.data?.id || crypto.randomUUID();
+      const orderAnalytics = {
+        // 元数据
+        metadata: {
+          source: "realhibachi",
+          platform: "web",
+          timestamp: new Date().toISOString(),
+          version: "1.0",
+          event_type: "order_confirmation",
+        },
+        // 客户信息
+        customer: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: {
+            street: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zipcode: formData.zipcode,
+          }
+        },
+        // 订单详情
+        order: {
+          order_id: newOrderId,
+          guests: {
+            adults: formData.adults,
+            kids: formData.kids,
+            total: totalGuests,
+          },
+          items: {
+            appetizers: {
+              gyoza: {
+                quantity: formData.gyoza,
+                unit_price: 10,
+                total: costs.gyozaCost,
+              },
+              edamame: {
+                quantity: formData.edamame,
+                unit_price: 8,
+                total: costs.edamameCost,
+              }
+            },
+            premium_mains: {
+              filet_mignon: {
+                quantity: formData.filetMignon,
+                unit_price: 5,
+                total: costs.filetMignonCost,
+              },
+              lobster_tail: {
+                quantity: formData.lobsterTail,
+                unit_price: 10,
+                total: costs.lobsterTailCost,
+              }
+            },
+            sides: {
+              extra_proteins: {
+                quantity: formData.extraProteins,
+                unit_price: 10,
+                total: costs.extraProteinsCost,
+              },
+              noodles: {
+                quantity: formData.noodles,
+                unit_price: 5,
+                total: costs.noodlesCost,
+              }
+            }
+          },
+          pricing: {
+            base_costs: {
+              adults: {
+                unit_price: pricing.packages.basic.perPerson,
+                quantity: formData.adults,
+                total: costs.adultsCost,
+              },
+              kids: {
+                unit_price: pricing.children.basic,
+                quantity: formData.kids,
+                total: costs.kidsCost,
+              }
+            },
+            fees: {
+              travel_fee: costs.travelFee,
+            },
+            subtotal: costs.subtotal,
+            total: costs.total,
+          },
+          scheduling: {
+            selected_date: selectedDateTime.date,
+            selected_time: selectedDateTime.time,
+            original_price: selectedDateTime.originalPrice,
+            final_price: selectedDateTime.price,
+            discount: selectedDateTime.originalPrice - selectedDateTime.price,
+          },
+          notes: formData.message || "",
+          terms_accepted: formData.agreeToTerms,
+          status: {
+            stage: "deposit_pending",
+            timestamp: new Date().toISOString(),
+          }
+        }
+      };
+
+      // 3. 发送订单确认邮件
+      await fetch("/api/notify-lead", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-RealHibachi-Tag": "order_confirmation"
+        },
+        body: JSON.stringify(orderAnalytics),
+      });
+
+      // 4. 更新 orderData 并跳转
       const newOrderData: OrderData = {
-        id: crypto.randomUUID(),
+        id: newOrderId,
         full_name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -851,7 +995,7 @@ function EstimationContent() {
         total_amount: costs.total,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,
-      }
+      };
 
       // 日志调试
       console.log('[handleSubmit] formData:', formData)
@@ -967,6 +1111,139 @@ function EstimationContent() {
       }, 100);
     }
   }, [currentStep]);
+
+  // 新增：Step1 下一步时先发邮件
+  const handleStep1Next = async () => {
+    await fetch("/api/notify-lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        zipcode: formData.zipcode,
+        adults: formData.adults,
+        kids: formData.kids,
+      }),
+    });
+    goToNextStep();
+  };
+
+  // 新增：Step4 下一步时发邮件，包含所有用户选择
+  const handleStep4Next = async () => {
+    // 构建结构化的订单数据
+    const orderAnalytics = {
+      // 元数据
+      metadata: {
+        source: "realhibachi",
+        platform: "web",
+        timestamp: new Date().toISOString(),
+        version: "1.0",
+        event_type: "quote_request",
+      },
+      // 客户信息
+      customer: {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: {
+          street: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipcode: formData.zipcode,
+        }
+      },
+      // 订单详情
+      order: {
+        // 人数信息
+        guests: {
+          adults: formData.adults,
+          kids: formData.kids,
+          total: totalGuests,
+        },
+        // 菜品选择
+        items: {
+          appetizers: {
+            gyoza: {
+              quantity: formData.gyoza,
+              unit_price: 10,
+              total: costs.gyozaCost,
+            },
+            edamame: {
+              quantity: formData.edamame,
+              unit_price: 8,
+              total: costs.edamameCost,
+            }
+          },
+          premium_mains: {
+            filet_mignon: {
+              quantity: formData.filetMignon,
+              unit_price: 5,
+              total: costs.filetMignonCost,
+            },
+            lobster_tail: {
+              quantity: formData.lobsterTail,
+              unit_price: 10,
+              total: costs.lobsterTailCost,
+            }
+          },
+          sides: {
+            extra_proteins: {
+              quantity: formData.extraProteins,
+              unit_price: 10,
+              total: costs.extraProteinsCost,
+            },
+            noodles: {
+              quantity: formData.noodles,
+              unit_price: 5,
+              total: costs.noodlesCost,
+            }
+          }
+        },
+        // 价格信息
+        pricing: {
+          base_costs: {
+            adults: {
+              unit_price: pricing.packages.basic.perPerson,
+              quantity: formData.adults,
+              total: costs.adultsCost,
+            },
+            kids: {
+              unit_price: pricing.children.basic,
+              quantity: formData.kids,
+              total: costs.kidsCost,
+            }
+          },
+          fees: {
+            travel_fee: costs.travelFee,
+          },
+          subtotal: costs.subtotal,
+          total: costs.total,
+        },
+        // 时间选择
+        scheduling: {
+          selected_date: selectedDateTime.date,
+          selected_time: selectedDateTime.time,
+          original_price: selectedDateTime.originalPrice,
+          final_price: selectedDateTime.price,
+          discount: selectedDateTime.originalPrice - selectedDateTime.price,
+        },
+        // 其他信息
+        notes: formData.message || "",
+        terms_accepted: formData.agreeToTerms,
+      }
+    };
+
+    await fetch("/api/notify-lead", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-RealHibachi-Tag": "quote_request" // 添加标签头
+      },
+      body: JSON.stringify(orderAnalytics),
+    });
+    goToNextStep();
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -1087,12 +1364,12 @@ function EstimationContent() {
               onNumberBlur={(field, value) => handleNumberBlur(field as keyof FormData, value)}
               onDecrement={(field) => handleDecrement(field as keyof FormData)}
               onIncrement={(field) => handleIncrement(field as keyof FormData)}
-              onNext={goToNextStep}
+              onNext={handleStep4Next}
               onPrev={goToPreviousStep}
               onSkip={() => {
                 handleNumberChange("extraProteins", "0");
                 handleNumberChange("noodles", "0");
-                goToNextStep();
+                handleStep4Next();
               }}
             />
           )}
@@ -1159,6 +1436,7 @@ function EstimationContent() {
               onDateTimeSelect={handleDateTimeSelect}
               onSubmit={handleSubmit}
               onPrev={goToPreviousStep}
+              onNext={goToNextStep}
             />
           )}
 

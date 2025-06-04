@@ -101,6 +101,7 @@ const Step1PartySize: React.FC<Step1PartySizeProps> = ({
               onBlur={e => onNumberBlur("adults", e.target.value)}
               className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
               min="0"
+              max="99"
               pattern="\\d*"
             />
             <button
@@ -131,6 +132,7 @@ const Step1PartySize: React.FC<Step1PartySizeProps> = ({
               onBlur={e => onNumberBlur("kids", e.target.value)}
               className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
               min="0"
+              max="99"
               pattern="\\d*"
             />
             <button

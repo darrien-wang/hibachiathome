@@ -44,6 +44,7 @@ const Step3PremiumMains: React.FC<Step3PremiumMainsProps> = ({
               onBlur={e => onNumberBlur("filetMignon", e.target.value)}
               className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
               min="0"
+              max="99"
               pattern="\\d*"
             />
             <button
@@ -73,6 +74,7 @@ const Step3PremiumMains: React.FC<Step3PremiumMainsProps> = ({
               onBlur={e => onNumberBlur("lobsterTail", e.target.value)}
               className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
               min="0"
+              max="99"
               pattern="\\d*"
             />
             <button

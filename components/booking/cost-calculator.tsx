@@ -219,6 +219,7 @@ export default function CostCalculator({
                       id="gyoza"
                       type="number"
                       min="0"
+                      max="99"
                       className="mx-2 text-center"
                       value={formData.gyoza}
                       onChange={(e) => onNumberChange("gyoza", e.target.value)}
@@ -266,6 +267,7 @@ export default function CostCalculator({
                       id="edamame"
                       type="number"
                       min="0"
+                      max="99"
                       className="mx-2 text-center"
                       value={formData.edamame}
                       onChange={(e) => onNumberChange("edamame", e.target.value)}
@@ -319,6 +321,7 @@ export default function CostCalculator({
                       id="filetMignon"
                       type="number"
                       min="0"
+                      max="99"
                       className="mx-2 text-center"
                       value={formData.filetMignon}
                       onChange={(e) => onNumberChange("filetMignon", e.target.value)}
@@ -419,6 +422,7 @@ export default function CostCalculator({
                       id="extraProteins"
                       type="number"
                       min="0"
+                      max="99"
                       className="mx-2 text-center"
                       value={formData.extraProteins}
                       onChange={(e) => onNumberChange("extraProteins", e.target.value)}
@@ -466,6 +470,7 @@ export default function CostCalculator({
                       id="noodles"
                       type="number"
                       min="0"
+                      max="99"
                       className="mx-2 text-center"
                       value={formData.noodles}
                       onChange={(e) => onNumberChange("noodles", e.target.value)}

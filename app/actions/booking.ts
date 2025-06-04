@@ -48,6 +48,24 @@ function calculateTravelFee(zipcode: string): number {
   return regions[zipPrefix] || 75
 }
 
+// 类型校验函数
+function isValidProteinItem(item: any): item is { name: string; quantity: number; unit_price: number } {
+  return (
+    typeof item === "object" &&
+    (item.name === "Filet Mignon" || item.name === "Lobster Tail") &&
+    typeof item.quantity === "number" &&
+    typeof item.unit_price === "number"
+  );
+}
+function isValidAddOnItem(item: any): item is { name: string; quantity: number; unit_price: number } {
+  return (
+    typeof item === "object" &&
+    (item.name === "Extra Protein" || item.name === "Noodles") &&
+    typeof item.quantity === "number" &&
+    typeof item.unit_price === "number"
+  );
+}
+
 // 创建预订
 export async function createBooking(formData: BookingFormData): Promise<BookingResponse> {
   try {
@@ -154,6 +172,14 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
         quantity: formData.noodles,
         unit_price: 5,
       })
+    }
+
+    // --- 新增结构校验 ---
+    if (premiumProteins.length > 0 && !premiumProteins.every(isValidProteinItem)) {
+      return { success: false, error: "Invalid premium_proteins structure" };
+    }
+    if (addOns.length > 0 && !addOns.every(isValidAddOnItem)) {
+      return { success: false, error: "Invalid add_ons structure" };
     }
 
     // 计算旅行费用

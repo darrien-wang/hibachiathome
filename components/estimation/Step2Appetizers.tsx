@@ -44,6 +44,7 @@ const Step2Appetizers: React.FC<Step2AppetizersProps> = ({
               onBlur={e => onNumberBlur("gyoza", e.target.value)}
               className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
               min="0"
+              max="99"
               pattern="\\d*"
             />
             <button
@@ -73,6 +74,7 @@ const Step2Appetizers: React.FC<Step2AppetizersProps> = ({
               onBlur={e => onNumberBlur("edamame", e.target.value)}
               className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
               min="0"
+              max="99"
               pattern="\\d*"
             />
             <button

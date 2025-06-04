@@ -45,6 +45,7 @@ interface Step6BookingFormProps {
   onDateTimeSelect: (date: Date | undefined, time: string | undefined, price: number, originalPrice: number) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onPrev: () => void;
+  onNext?: () => void;
 }
 
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -68,6 +69,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
   onDateTimeSelect,
   onSubmit,
   onPrev,
+  onNext,
 }) => {
   return (
     <div id="order-form" className="scroll-mt-24">
