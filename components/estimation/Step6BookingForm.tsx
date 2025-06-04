@@ -335,4 +335,4 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
   );
 };
 
-export default Step6BookingForm; 
+export default Step6BookingForm;

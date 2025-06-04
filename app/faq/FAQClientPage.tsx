@@ -105,7 +105,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "How do I make a reservation?",
     answer:
-      "Booking is simple and straightforward:\n\n- Visit our website: www.hibachibirthday.party\n- Select your preferred date and package\n- Provide your guest count and contact information\n- Confirm your booking with a deposit\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
+      "Booking is simple and straightforward:\n\n- Visit our website: www.realhibachi.com\n- Select your preferred date and package\n- Provide your guest count and contact information\n- Confirm your booking with a deposit\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
   },
   {
     question: "What is your cancellation policy?",

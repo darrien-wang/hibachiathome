@@ -144,4 +144,4 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({ orderData, totalGuests, cos
   );
 };
 
-export default Step7Deposit; 
+export default Step7Deposit;
