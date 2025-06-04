@@ -71,7 +71,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "Can you provide tables and chairs?",
     answer:
-      "Yes! We offer table & chair rental at $15 per person. If you'd rather supply your own, that's fine too—just let us know in advance.",
+      "No we do not! We provide the chef, grill, food, sake and the best part ENTERTAINMENT! Customers will provide utensils and table set ups. For more information on set ups please check out our Instagram @realhibachi to see how other customers set up!",
   },
   {
     question: "When will the chef arrive?",
