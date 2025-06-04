@@ -3,20 +3,6 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// 简单内存速率限制：同一 IP 每小时最多 5 次
-const ipHits = new Map<string, { count: number; last: number }>();
-function rateLimit(ip: string, max = 5, windowMs = 60 * 60 * 1000) {
-  const now = Date.now();
-  const entry = ipHits.get(ip) || { count: 0, last: now };
-  if (now - entry.last > windowMs) {
-    entry.count = 0;
-    entry.last = now;
-  }
-  entry.count += 1;
-  ipHits.set(ip, entry);
-  return entry.count > max;
-}
-
 // 格式化菜品数量，只显示数量大于0的
 const formatItems = (items: any) => {
   return Object.entries(items)
@@ -194,11 +180,9 @@ const generateOrderConfirmationEmail = (data: any) => `
 `;
 
 export async function POST(request: Request) {
-  // 获取 IP
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  if (rateLimit(ip)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
+  // 获取 IP（如需限流可在此处实现）
+  // const ipHeader = request.headers.get('x-forwarded-for');
+  // const ip = ipHeader ? ipHeader.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown';
 
   const data = await request.json();
   const tag = request.headers.get('X-RealHibachi-Tag') || 'quote_request';
