@@ -7,8 +7,7 @@ import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
-// 在生产环境中取消注释下面这行
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { FloatingContactButtons } from "@/components/floating-contact-buttons"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -102,6 +101,7 @@ export default function RootLayout({
           <Header />
           <main>{children}</main>
           <Footer />
+          <FloatingContactButtons />
           <Analytics />
           {/* 在生产环境中取消注释下面这行 */}
           {/* <SpeedInsights /> */}
