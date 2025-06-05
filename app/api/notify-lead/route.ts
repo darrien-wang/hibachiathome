@@ -211,14 +211,14 @@ export async function POST(request: Request) {
 
     console.log("Preparing to send email:");
     console.log("- From:", "Real Hibachi Team <notify@realhibachi.com>");
-    console.log("- To:", "darrien.wang@gmail.com");
+    console.log("- To:", "realhibachiathome@gmail.com");
     console.log("- Subject:", subject);
 
     try {
       console.log("Attempting to send email with Resend...");
       const { data: emailData, error: emailError } = await resend.emails.send({
         from: "Real Hibachi Team <notify@realhibachi.com>",
-        to: "darrien.wang@gmail.com",
+        to: "realhibachiathome@gmail.com",
         subject,
         html,
       });
