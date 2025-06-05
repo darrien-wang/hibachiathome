@@ -81,7 +81,7 @@ export default function ContactPageClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white pt-32 pb-16">
+      <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">Seeking Local Partners</h1>
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
