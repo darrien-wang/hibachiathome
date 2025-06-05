@@ -7,7 +7,7 @@ import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
-import FloatingContactButtons from "@/components/floating-contact-buttons"
+import { FloatingContactButtons } from "@/components/floating-contact-buttons"
 
 const poppins = Poppins({
   subsets: ["latin"],

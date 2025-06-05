@@ -4,10 +4,10 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle, Calendar, Clock, Users, DollarSign, ArrowRight } from "lucide-react"
+import { CheckCircle, Calendar, Clock, Users, DollarSign, ArrowRight, Phone, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { getBookingDetails } from "@/app/actions/booking"
-import { format } from "date-fns"
+import { formatDate } from "@/lib/utils"
 
 export default function AfterDepositPage() {
   const searchParams = useSearchParams()
@@ -114,7 +114,7 @@ export default function AfterDepositPage() {
                   <div>
                     <p className="font-medium">Event Date</p>
                     <p className="text-gray-600">
-                      {booking?.event_date ? format(new Date(booking.event_date), "yyyy-MM-dd") : "Not specified"}
+                      {booking?.event_date ? formatDate(booking.event_date) : "Not specified"}
                     </p>
                   </div>
                 </div>
@@ -169,10 +169,14 @@ export default function AfterDepositPage() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="rounded-full px-8">
-                <a href="tel:2137707788">Call 213-770-7788</a>
+                <a href="tel:2137707788">
+                  <Phone className="h-4 w-4 mr-2" /> (213) 770-7788
+                </a>
               </Button>
               <Button asChild variant="outline" className="rounded-full px-8">
-                <a href="sms:5627134832">Text 562-713-4832</a>
+                <a href="sms:5627134832">
+                  <MessageSquare className="h-4 w-4 mr-2" /> (562) 713-4832
+                </a>
               </Button>
             </div>
           </CardContent>
