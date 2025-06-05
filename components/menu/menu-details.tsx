@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,17 @@ interface MenuDetailsProps {
 
 export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDetailsProps) {
   const [activeTab, setActiveTab] = useState("proteins")
+
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   return (
     <div className="mb-16">
@@ -70,7 +81,15 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-amber-600">${protein.price}</span>
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/book">Add to Order</Link>
+                        {isMobile ? (
+                          <a
+                            href={`sms:5627134832?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
+                          >
+                            Order via SMS
+                          </a>
+                        ) : (
+                          <Link href="/book">Add to Order</Link>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -108,7 +127,15 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-amber-600">${protein.price}</span>
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/book">Add to Order</Link>
+                        {isMobile ? (
+                          <a
+                            href={`sms:5627134832?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
+                          >
+                            Order via SMS
+                          </a>
+                        ) : (
+                          <Link href="/book">Add to Order</Link>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -149,7 +176,15 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-amber-600">${side.price}</span>
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/book">Add to Order</Link>
+                        {isMobile ? (
+                          <a
+                            href={`sms:5627134832?body=Hi! I'd like to order ${side.name} for my hibachi catering. Please contact me for details.`}
+                          >
+                            Order via SMS
+                          </a>
+                        ) : (
+                          <Link href="/book">Add to Order</Link>
+                        )}
                       </Button>
                     </div>
                   </div>
