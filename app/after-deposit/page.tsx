@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle, Calendar, Clock, Users, DollarSign, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { getBookingDetails } from "@/app/actions/booking"
-import { formatDate } from "@/lib/utils"
+import { format } from "date-fns"
 
 export default function AfterDepositPage() {
   const searchParams = useSearchParams()
@@ -114,7 +114,7 @@ export default function AfterDepositPage() {
                   <div>
                     <p className="font-medium">Event Date</p>
                     <p className="text-gray-600">
-                      {booking?.event_date ? formatDate(booking.event_date) : "Not specified"}
+                      {booking?.event_date ? format(new Date(booking.event_date), "yyyy-MM-dd") : "Not specified"}
                     </p>
                   </div>
                 </div>
@@ -169,7 +169,10 @@ export default function AfterDepositPage() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="rounded-full px-8">
-                <Link href="/contact">Contact Us</Link>
+                <a href="tel:2137707788">Call 213-770-7788</a>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full px-8">
+                <a href="sms:5627134832">Text 562-713-4832</a>
               </Button>
             </div>
           </CardContent>
