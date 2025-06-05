@@ -32,16 +32,10 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
       <h2 className="text-3xl font-bold text-center mb-8">Menu Details</h2>
 
       <Tabs defaultValue="proteins" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 mb-8 h-auto">
-          <TabsTrigger value="proteins" className="text-xs sm:text-sm px-2 py-3 whitespace-nowrap">
-            Regular Proteins
-          </TabsTrigger>
-          <TabsTrigger value="premium" className="text-xs sm:text-sm px-2 py-3 whitespace-nowrap">
-            Premium Proteins
-          </TabsTrigger>
-          <TabsTrigger value="sides" className="text-xs sm:text-sm px-2 py-3 whitespace-nowrap">
-            Sides & Appetizers
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsTrigger value="proteins">Regular Proteins</TabsTrigger>
+          <TabsTrigger value="premium">Premium Proteins</TabsTrigger>
+          <TabsTrigger value="sides">Sides & Appetizers</TabsTrigger>
         </TabsList>
 
         <TabsContent value="proteins" className="mt-0">

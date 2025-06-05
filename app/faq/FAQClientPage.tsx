@@ -1,6 +1,7 @@
 "use client"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import Link from "next/link"
 import { pricing } from "@/config/pricing"
 
 // Format text with paragraphs and bullet points
@@ -115,7 +116,7 @@ If using credit card, payment must be settled at least 72 hours before your even
 
 export default function FAQClientPage() {
   return (
-    <section className="container grid items-center justify-center gap-6 pt-32 pb-10">
+    <section className="container grid items-center justify-center gap-6 pt-20 pb-10">
       <div className="mx-auto max-w-[980px] text-center">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">Frequently Asked Questions</h1>
         <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
@@ -125,21 +126,14 @@ export default function FAQClientPage() {
       <Accordion type="single" collapsible className="w-full max-w-[980px]">
         {faqItems.map((item, index) => (
           <AccordionItem value={`item-${index}`} key={index}>
-            <AccordionTrigger className="text-left">{item.question}</AccordionTrigger>
+            <AccordionTrigger>{item.question}</AccordionTrigger>
             <AccordionContent>{formatText(item.answer)}</AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
       <div className="mx-auto max-w-[980px] text-center">
         <p className="text-gray-500 dark:text-gray-400">
-          Still have questions? Call us at{" "}
-          <a href="tel:2137707788" className="text-amber-600 hover:text-amber-700 font-medium">
-            (213) 770-7788
-          </a>{" "}
-          or text{" "}
-          <a href="sms:5627134832" className="text-amber-600 hover:text-amber-700 font-medium">
-            (562) 713-4832
-          </a>
+          Still have questions? <Link href="/contact">Contact us</Link>
         </p>
       </div>
     </section>
