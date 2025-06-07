@@ -92,12 +92,129 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
   )
 }
 
+// Add Google Analytics event tracking types and helper
+declare global {
+  interface Window {
+    gtag: (command: string, action: string, params?: {
+      event_callback?: () => void;
+      event_timeout?: number;
+      [key: string]: any;
+    }) => void;
+  }
+}
+
+// Helper function for conversion tracking
+const trackConversion = (eventName: string, url?: string) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    const callback = () => {
+      if (url) {
+        window.location.href = url;
+      }
+    };
+
+    window.gtag('event', eventName, {
+      event_callback: callback,
+      event_timeout: 2000,
+    });
+    return false;
+  }
+  return true;
+};
+
+// Type definitions for card items
+type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost";
+
+interface CardItem {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  buttonText: string;
+  onClick?: () => void;
+  href?: string;
+  external?: boolean;
+  variant: CardVariant;
+  className: string;
+  is24_7?: boolean;
+}
+
 export default function Home() {
   const router = useRouter()
 
   const handleOnlineBooking = () => {
-    router.push("/estimation?source=booking")
+    trackConversion('conversion_event_submit_lead_form_1');
+    router.push("/estimation?source=booking");
   }
+
+  const handleBookNow = (packageType: string) => {
+    trackConversion('conversion_event_submit_lead_form_1');
+    router.push(`/book?package=${packageType}`);
+  }
+
+  const handleViewMenu = () => {
+    trackConversion('conversion_event_view_menu');
+    router.push("/menu");
+  }
+
+  const handleViewFAQ = () => {
+    trackConversion('conversion_event_view_faq');
+    router.push("/faq");
+  }
+
+  const handleWhatsApp = () => {
+    const url = `https://wa.me/${siteConfig.contact.phone || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`;
+    trackConversion('conversion_event_whatsapp_contact', url);
+  }
+
+  const handleSMS = () => {
+    const url = `sms:5627134832?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`;
+    trackConversion('conversion_event_sms_contact', url);
+  }
+
+  const handlePhone = () => {
+    const url = `tel:${siteConfig.contact.phone || "15627134832"}`;
+    trackConversion('conversion_event_phone_contact', url);
+  }
+
+  const cardItems: CardItem[] = [
+    {
+      title: "Online Booking",
+      description: "Book at your convenience",
+      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+      buttonText: "Book Online",
+      onClick: handleOnlineBooking,
+      variant: "default",
+      className: "bg-white/20 border-white/30",
+      is24_7: true,
+    },
+    {
+      title: "WhatsApp",
+      description: "Fastest response time",
+      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+      buttonText: "WhatsApp",
+      onClick: handleWhatsApp,
+      variant: "outline",
+      className: "bg-white/20 border-white/30",
+    },
+    {
+      title: "SMS",
+      description: "Text us directly",
+      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+      buttonText: "SMS",
+      onClick: handleSMS,
+      variant: "outline",
+      className: "bg-white/20 border-white/30",
+    },
+    {
+      title: "Phone",
+      description: "Speak with us",
+      icon: null,
+      buttonText: siteConfig.contact.phone || "15627134832",
+      onClick: handlePhone,
+      variant: "outline",
+      className: "bg-white/20 border-white/30",
+    },
+  ];
+
   return (
     <div className="overflow-x-hidden">
       <HeroSection />
@@ -167,7 +284,11 @@ export default function Home() {
                         <span>Perfect for intimate gatherings</span>
                       </li>
                     </ul>
-                    <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+                    <Button 
+                      asChild 
+                      className="w-full bg-amber-500 hover:bg-amber-600"
+                      onClick={() => handleBookNow('show')}
+                    >
                       <Link href="/book">Book Now</Link>
                     </Button>
                   </div>
@@ -218,7 +339,11 @@ export default function Home() {
                         <span>Minimum 30 people required</span>
                       </li>
                     </ul>
-                    <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+                    <Button 
+                      asChild 
+                      className="w-full bg-amber-500 hover:bg-amber-600"
+                      onClick={() => handleBookNow('buffet')}
+                    >
                       <Link href="/book">Book Now</Link>
                     </Button>
                   </div>
@@ -232,6 +357,7 @@ export default function Home() {
                   asChild
                   variant="outline"
                   className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                  onClick={handleViewMenu}
                 >
                   <Link href="/menu">View Menu</Link>
                 </Button>
@@ -390,6 +516,7 @@ export default function Home() {
                     asChild
                     variant="outline"
                     className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                    onClick={handleViewFAQ}
                   >
                     <Link href="/faq">View All FAQs</Link>
                   </Button>
@@ -416,49 +543,8 @@ export default function Home() {
 
             <AnimateOnScroll direction="up" delay={200}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                {[
-                  {
-                    title: "Online Booking",
-                    description: "Book at your convenience",
-                    icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-                    buttonText: "Book Online",
-                    onClick: handleOnlineBooking,
-                    variant: "default",
-                    className: "bg-white/20 border-white/30",
-                    is24_7: true,
-                  },
-                  {
-                    title: "WhatsApp",
-                    description: "Fastest response time",
-                    icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-                    buttonText: "WhatsApp",
-                    href: `https://wa.me/${siteConfig.contact.phone || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
-                    external: true,
-                    variant: "outline",
-                    className: "bg-white/20 border-white/30",
-                  },
-                  {
-                    title: "SMS",
-                    description: "Text us directly",
-                    icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-                    buttonText: "SMS",
-                    href: `sms:5627134832?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`,
-                    external: false,
-                    variant: "outline",
-                    className: "bg-white/20 border-white/30",
-                  },
-                  {
-                    title: "Phone",
-                    description: "Speak with us",
-                    icon: null,
-                    buttonText: siteConfig.contact.phone || "15627134832",
-                    href: `tel:${siteConfig.contact.phone || "15627134832"}`,
-                    external: false,
-                    variant: "outline",
-                    className: "bg-white/20 border-white/30",
-                  },
-                ].map((card, index) => (
-                  <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
+                {cardItems.map((card, index) => (
+                  <Card key={index} className={`text-center flex flex-col ${card.className}`}>
                     <CardHeader className="h-[100px] flex flex-col justify-center">
                       <CardTitle className="text-white text-lg">{card.title}</CardTitle>
                       <CardDescription className="h-[30px] flex items-center justify-center text-amber-100">
@@ -466,41 +552,17 @@ export default function Home() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
-                      {card.onClick ? (
-                        <>
-                          <Button
-                            className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
-                            variant={card.variant}
-                            onClick={card.onClick}
-                          >
-                            {card.icon}
-                            {card.buttonText}
-                          </Button>
-                          <div className="h-[20px] flex items-center justify-center">
-                            {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
-                            variant={card.variant}
-                            asChild
-                          >
-                            <a
-                              href={card.href}
-                              target={card.external ? "_blank" : undefined}
-                              rel={card.external ? "noopener noreferrer" : undefined}
-                            >
-                              {card.icon}
-                              {card.buttonText}
-                            </a>
-                          </Button>
-                          <div className="h-[20px] flex items-center justify-center">
-                            {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
-                          </div>
-                        </>
-                      )}
+                      <Button
+                        className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
+                        variant={card.variant}
+                        onClick={card.onClick}
+                      >
+                        {card.icon}
+                        {card.buttonText}
+                      </Button>
+                      <div className="h-[20px] flex items-center justify-center">
+                        {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
