@@ -2,6 +2,10 @@
 
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageSquare } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { siteConfig } from "@/config/site"
 
 import { Button } from "@/components/ui/button"
 import SocialProofCounter from "@/components/social-proof-counter"
@@ -44,46 +48,56 @@ const testimonials = [
 
 // 视频加载超时组件
 function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
-  const [showVideo, setShowVideo] = useState(true);
-  const [loaded, setLoaded] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showVideo, setShowVideo] = useState(true)
+  const [loaded, setLoaded] = useState(false)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     timerRef.current = setTimeout(() => {
-      if (!loaded) setShowVideo(false);
-    }, 2000);
+      if (!loaded) setShowVideo(false)
+    }, 5000)
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [loaded]);
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [loaded])
 
   const handleLoadedData = () => {
-    setLoaded(true);
-    setShowVideo(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-  };
+    console.log("Video loaded successfully")
+    setLoaded(true)
+    setShowVideo(true)
+    if (timerRef.current) clearTimeout(timerRef.current)
+  }
+
+  const handleError = (error) => {
+    console.error("Video loading error:", error)
+    setShowVideo(false)
+  }
 
   if (!showVideo) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl min-h-[200px]">
-        <span className="text-gray-400">Video failed to load.</span>
+        <div className="text-center">
+          <span className="text-gray-400 block">Video failed to load.</span>
+          <span className="text-gray-300 text-sm">Please check your internet connection.</span>
+        </div>
       </div>
-    );
+    )
   }
 
   return (
-    <video
-      {...props}
-      onLoadedData={handleLoadedData}
-      poster={poster}
-    >
+    <video {...props} onLoadedData={handleLoadedData} onError={handleError} poster={poster}>
       <source src={src} type="video/mp4" />
       Your browser does not support the video tag.
     </video>
-  );
+  )
 }
 
 export default function Home() {
+  const router = useRouter()
+
+  const handleOnlineBooking = () => {
+    router.push("/estimation?source=booking")
+  }
   return (
     <div className="overflow-x-hidden">
       <HeroSection />
@@ -193,7 +207,7 @@ export default function Home() {
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
-                        <span>Fixed menu (chicken, shrimp, beef)</span>
+                        <span>Fixed menu (3 proteins included)</span>
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
@@ -219,7 +233,7 @@ export default function Home() {
                   variant="outline"
                   className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
                 >
-                  <Link href="/menu">View All Packages</Link>
+                  <Link href="/menu">View Menu</Link>
                 </Button>
               </div>
             </AnimateOnScroll>
@@ -358,22 +372,95 @@ export default function Home() {
             </AnimateOnScroll>
 
             <AnimateOnScroll direction="up" delay={200}>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-white text-amber-600 hover:bg-amber-50 font-bold px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Link href="/book">Book Your Experience Now</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="border-2 border-white text-white hover:bg-white hover:text-amber-600 font-bold px-8 py-4 text-lg rounded-full transition-all duration-300 bg-white/10 backdrop-blur-sm"
-                >
-                  <Link href="/menu">View Our Packages</Link>
-                </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                {[
+                  {
+                    title: "Online Booking",
+                    description: "Book at your convenience",
+                    icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+                    buttonText: "Book Online",
+                    onClick: handleOnlineBooking,
+                    variant: "default",
+                    className: "bg-white/20 border-white/30",
+                    is24_7: true,
+                  },
+                  {
+                    title: "WhatsApp",
+                    description: "Fastest response time",
+                    icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+                    buttonText: "WhatsApp",
+                    href: `https://wa.me/${siteConfig.contact.phone || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
+                    external: true,
+                    variant: "outline",
+                    className: "bg-white/20 border-white/30",
+                  },
+                  {
+                    title: "SMS",
+                    description: "Text us directly",
+                    icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+                    buttonText: "SMS",
+                    href: `sms:5627134832?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`,
+                    external: false,
+                    variant: "outline",
+                    className: "bg-white/20 border-white/30",
+                  },
+                  {
+                    title: "Phone",
+                    description: "Speak with us",
+                    icon: null,
+                    buttonText: siteConfig.contact.phone || "15627134832",
+                    href: `tel:${siteConfig.contact.phone || "15627134832"}`,
+                    external: false,
+                    variant: "outline",
+                    className: "bg-white/20 border-white/30",
+                  },
+                ].map((card, index) => (
+                  <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
+                    <CardHeader className="h-[100px] flex flex-col justify-center">
+                      <CardTitle className="text-white text-lg">{card.title}</CardTitle>
+                      <CardDescription className="h-[30px] flex items-center justify-center text-amber-100">
+                        {card.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
+                      {card.onClick ? (
+                        <>
+                          <Button
+                            className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
+                            variant={card.variant}
+                            onClick={card.onClick}
+                          >
+                            {card.icon}
+                            {card.buttonText}
+                          </Button>
+                          <div className="h-[20px] flex items-center justify-center">
+                            {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
+                            variant={card.variant}
+                            asChild
+                          >
+                            <a
+                              href={card.href}
+                              target={card.external ? "_blank" : undefined}
+                              rel={card.external ? "noopener noreferrer" : undefined}
+                            >
+                              {card.icon}
+                              {card.buttonText}
+                            </a>
+                          </Button>
+                          <div className="h-[20px] flex items-center justify-center">
+                            {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </AnimateOnScroll>
 
@@ -391,6 +478,17 @@ export default function Home() {
                   <div className="text-3xl font-bold text-white mb-2">100%</div>
                   <div className="text-amber-100">Satisfaction Guarantee</div>
                 </div>
+              </div>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll direction="up" delay={600}>
+              <div className="mt-16 max-w-4xl mx-auto">
+                <img
+                  src="/hibachi-group-selfie.jpg"
+                  alt="Happy customers enjoying hibachi experience at home"
+                  className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
+                  loading="lazy"
+                />
               </div>
             </AnimateOnScroll>
           </div>

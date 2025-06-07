@@ -5,8 +5,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
 import { siteConfig } from "@/config/site"
+import { Menu } from "lucide-react"
 
 const navItems = [
   { name: "Home", href: "/", disabled: false },
@@ -128,8 +128,12 @@ export function Header() {
           <div className="flex justify-end">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-[#F9A77C] hover:bg-[#F9A77C]/10 rounded-full">
-                  <Menu className="h-6 w-6" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-[#F9A77C] hover:bg-[#F9A77C]/10 rounded-full p-2 border-2 border-[#F9A77C]/30 hover:border-[#F9A77C]/50 transition-all"
+                >
+                  <Menu className="h-7 w-7" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>

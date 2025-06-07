@@ -26,6 +26,8 @@ export default function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const swipeThreshold = 50
   const sortedHeroImages = useState(() => getSortedHeroImages())[0]
+  const [showPromoPopup, setShowPromoPopup] = useState(false)
+  const [promoPopupDismissed, setPromoPopupDismissed] = useState(false)
 
   // 检测设备类型和屏幕方向
   useEffect(() => {
@@ -235,6 +237,16 @@ export default function HeroSection() {
     }
   }, [showVideo, videoError, videoLoaded])
 
+  // Show promo popup after 3 seconds if not dismissed
+  useEffect(() => {
+    if (!showVideo && !promoPopupDismissed) {
+      const timer = setTimeout(() => {
+        setShowPromoPopup(true)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showVideo, promoPopupDismissed])
+
   const nextSlide = () => {
     handleUserInteraction()
     setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
@@ -366,22 +378,11 @@ export default function HeroSection() {
           </div>
 
           {/* 音频启用提示 - 仅在静音时显示 */}
-          {isMuted && !audioEnabled && videoLoaded && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-              <button
-                onClick={enableAudio}
-                className="bg-black/70 text-white px-6 py-3 rounded-full text-sm hover:bg-black/90 transition-colors flex items-center gap-2"
-              >
-                🔊 Click to enable sound
-              </button>
-            </div>
-          )}
-
           {/* 移动端底部提示 */}
           {isMobile && videoLoaded && (
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
               <p className="text-white/80 text-xs text-center bg-black/30 px-3 py-1 rounded-full">
-                {isMuted ? "Tap to enable sound or skip" : "Tap to skip"}
+                Tap anywhere to skip
               </p>
             </div>
           )}
@@ -390,8 +391,8 @@ export default function HeroSection() {
           {videoLoaded && (
             <div
               className="absolute inset-0 cursor-pointer"
-              onClick={isMuted && !audioEnabled ? enableAudio : handleSkipVideo}
-              aria-label={isMuted && !audioEnabled ? "Click to enable sound" : "Click to skip video"}
+              onClick={handleSkipVideo}
+              aria-label="Click to skip video"
               style={{ WebkitTapHighlightColor: "transparent" }} // 移除移动端点击高亮
             />
           )}
@@ -463,7 +464,7 @@ export default function HeroSection() {
       ></div>
 
       <div
-        className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 overflow-x-hidden transition-opacity duration-1000 ${
+        className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000 ${
           showVideo && !videoError ? "opacity-0" : "opacity-100"
         }`}
       >
@@ -559,6 +560,42 @@ export default function HeroSection() {
             className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance < -50 ? "opacity-100" : "opacity-30"}`}
           >
             <span className="text-white text-2xl">→</span>
+          </div>
+        </div>
+      )}
+      {/* Promotional Popup */}
+      {showPromoPopup && !promoPopupDismissed && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 relative animate-fadeIn">
+            <button
+              onClick={() => {
+                setShowPromoPopup(false)
+                setPromoPopupDismissed(true)
+              }}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl font-bold"
+              aria-label="Close popup"
+            >
+              ×
+            </button>
+
+            <div className="p-6 text-center">
+              <div className="text-4xl mb-4">🦞</div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">Limited Time Offer!</h3>
+              <p className="text-gray-600 mb-4 leading-relaxed">
+                Book now and get a <span className="font-bold text-amber-600">FREE lobster protein upgrade</span> for
+                one lucky guest at every party!
+              </p>
+              <Button
+                onClick={() => {
+                  setShowPromoPopup(false)
+                  setPromoPopupDismissed(true)
+                }}
+                className="bg-amber-600 hover:bg-amber-700 text-white mt-4"
+              >
+                Got it
+              </Button>
+              <p className="text-xs text-gray-500 mt-3">*Valid for new bookings only. One upgrade per party.</p>
+            </div>
           </div>
         </div>
       )}
