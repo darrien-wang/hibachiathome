@@ -353,6 +353,49 @@ export default function Home() {
                 </div>
               </AnimateOnScroll>
             </div>
+
+            {/* FAQ Section */}
+            <AnimateOnScroll>
+              <div className="mt-16 max-w-4xl mx-auto">
+                <h3 className="text-2xl md:text-3xl font-serif font-bold text-center mb-8">
+                  Frequently Asked Questions
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <AnimateOnScroll direction="left">
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                      <h4 className="font-bold text-lg mb-3 text-amber-600">
+                        How much space do you need for the hibachi setup?
+                      </h4>
+                      <p className="text-gray-600">
+                        We need a minimum 8x8 feet outdoor space for our hibachi grill setup. This includes space for
+                        the chef to perform safely and for guests to gather around comfortably.
+                      </p>
+                    </div>
+                  </AnimateOnScroll>
+
+                  <AnimateOnScroll direction="right">
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                      <h4 className="font-bold text-lg mb-3 text-amber-600">
+                        What's included in the hibachi experience?
+                      </h4>
+                      <p className="text-gray-600">
+                        Our service includes a professional hibachi chef, all cooking equipment, ingredients for your
+                        selected menu, chef performance with tricks and entertainment, and complete cleanup afterward.
+                      </p>
+                    </div>
+                  </AnimateOnScroll>
+                </div>
+                <div className="mt-8 text-center">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                  >
+                    <Link href="/faq">View All FAQs</Link>
+                  </Button>
+                </div>
+              </div>
+            </AnimateOnScroll>
           </div>
         </section>
       </AnimateOnScroll>

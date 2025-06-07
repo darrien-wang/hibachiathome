@@ -170,6 +170,22 @@ export default function TestimonialsSection() {
               </AnimateOnScroll>
             ))}
           </div>
+
+          {/* Image showcase below testimonials */}
+          <AnimateOnScroll direction="up" className="mt-12">
+            <div className="flex justify-center">
+              <div className="relative w-full max-w-4xl rounded-xl overflow-hidden shadow-lg">
+                <img
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/15480838bcc52a968ca3f740d29ca13.jpg-cBE9Ir9LiFjc3QgvFfUtuznTow315t.jpeg"
+                  alt="Hibachi chef taking selfie with happy customers celebrating in background"
+                  className="w-full h-auto object-cover"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                  <p className="text-white text-lg font-medium">Our chefs love celebrating with you!</p>
+                </div>
+              </div>
+            </div>
+          </AnimateOnScroll>
         </div>
       </div>
     </section>

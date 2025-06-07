@@ -115,7 +115,7 @@ If using credit card, payment must be settled at least 72 hours before your even
 
 export default function FAQClientPage() {
   return (
-    <section className="container grid items-center justify-center gap-6 pt-32 pb-10">
+    <section className="container grid items-center justify-center gap-6 pt-40 pb-10">
       <div className="mx-auto max-w-[980px] text-center">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">Frequently Asked Questions</h1>
         <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
