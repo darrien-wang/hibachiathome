@@ -70,7 +70,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "Can you provide tables and chairs?",
     answer:
-      "Yes! We offer table & chair rental at $15 per person. If you'd rather supply your own, that's fine too—just let us know in advance.",
+      "Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included in this package. If you need utensils, we can provide them for an additional $5 per person. If you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in advance.",
   },
   {
     question: "When will the chef arrive?",

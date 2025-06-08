@@ -1,9 +1,11 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, MapPin, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 
@@ -55,7 +57,7 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
   useEffect(() => {
     timerRef.current = setTimeout(() => {
       if (!loaded) setShowVideo(false)
-    }, 5000)
+    }, 15000)
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
@@ -77,8 +79,19 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl min-h-[200px]">
         <div className="text-center">
-          <span className="text-gray-400 block">Video failed to load.</span>
-          <span className="text-gray-300 text-sm">Please check your internet connection.</span>
+          <span className="text-gray-400 block mb-2">Video is taking longer to load...</span>
+          <span className="text-gray-300 text-sm block mb-4">
+            This may be due to slow internet connection or large video file.
+          </span>
+          <button
+            onClick={() => {
+              setShowVideo(true)
+              setLoaded(false)
+            }}
+            className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     )
@@ -95,84 +108,88 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
 // Add Google Analytics event tracking types and helper
 declare global {
   interface Window {
-    gtag: (command: string, action: string, params?: {
-      event_callback?: () => void;
-      event_timeout?: number;
-      [key: string]: any;
-    }) => void;
+    gtag: (
+      command: string,
+      action: string,
+      params?: {
+        event_callback?: () => void
+        event_timeout?: number
+        [key: string]: any
+      },
+    ) => void
   }
 }
 
 // Helper function for conversion tracking
 const trackConversion = (eventName: string, url?: string) => {
-  if (typeof window !== 'undefined' && window.gtag) {
+  if (typeof window !== "undefined" && window.gtag) {
     const callback = () => {
       if (url) {
-        window.location.href = url;
+        window.location.href = url
       }
-    };
+    }
 
-    window.gtag('event', eventName, {
+    window.gtag("event", eventName, {
       event_callback: callback,
       event_timeout: 2000,
-    });
-    return false;
+    })
+    return false
   }
-  return true;
-};
+  return true
+}
 
 // Type definitions for card items
-type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost";
+type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost"
 
 interface CardItem {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  buttonText: string;
-  onClick?: () => void;
-  href?: string;
-  external?: boolean;
-  variant: CardVariant;
-  className: string;
-  is24_7?: boolean;
+  title: string
+  description: string
+  icon: React.ReactNode
+  buttonText: string
+  onClick?: () => void
+  href?: string
+  external?: boolean
+  variant: CardVariant
+  className: string
+  is24_7?: boolean
 }
 
 export default function Home() {
   const router = useRouter()
 
   const handleOnlineBooking = () => {
-    trackConversion('conversion_event_submit_lead_form_1');
-    router.push("/estimation?source=booking");
+    trackConversion("conversion_event_submit_lead_form_1")
+    router.push("/estimation?source=booking")
   }
 
   const handleBookNow = (packageType: string) => {
-    trackConversion('conversion_event_submit_lead_form_1');
-    router.push(`/book?package=${packageType}`);
+    trackConversion("conversion_event_submit_lead_form_1")
+    router.push(`/book?package=${packageType}`)
   }
 
   const handleViewMenu = () => {
-    trackConversion('conversion_event_view_menu');
-    router.push("/menu");
+    trackConversion("conversion_event_view_menu")
+    router.push("/menu")
   }
 
   const handleViewFAQ = () => {
-    trackConversion('conversion_event_view_faq');
-    router.push("/faq");
+    trackConversion("conversion_event_view_faq")
+    router.push("/faq")
   }
 
   const handleWhatsApp = () => {
-    const url = `https://wa.me/${siteConfig.contact.phone || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`;
-    trackConversion('conversion_event_whatsapp_contact', url);
+    const url = `https://wa.me/${siteConfig.contact.phone || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    trackConversion("conversion_event_whatsapp_contact", url)
   }
 
   const handleSMS = () => {
-    const url = `sms:5627134832?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`;
-    trackConversion('conversion_event_sms_contact', url);
+    const url = `sms:5627134832?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    trackConversion("conversion_event_sms_contact", url)
   }
 
   const handlePhone = () => {
-    const url = `tel:${siteConfig.contact.phone || "15627134832"}`;
-    trackConversion('conversion_event_phone_contact', url);
+    const url = `tel:${siteConfig.contact.phone || "15627134832"}`
+    trackConversion("conversion_event_phone_contact", url)
   }
 
   const cardItems: CardItem[] = [
@@ -213,11 +230,62 @@ export default function Home() {
       variant: "outline",
       className: "bg-white/20 border-white/30",
     },
-  ];
+  ]
 
   return (
     <div className="overflow-x-hidden">
       <HeroSection />
+
+      {/* Los Angeles Service Area Highlight */}
+      <AnimateOnScroll>
+        <section className="py-12 relative overflow-hidden">
+          {/* Video Background */}
+          <div className="absolute inset-0 w-full h-full z-0">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+              poster="/placeholder.svg?height=1080&width=1920"
+            >
+              <source src="/videos/los-angeles-background.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            {/* Overlay to ensure text readability */}
+            <div className="absolute inset-0 bg-black/50 z-10"></div>
+          </div>
+
+          <div className="container mx-auto px-4 relative z-20">
+            <div className="text-center max-w-4xl mx-auto">
+              <h2 className="text-2xl md:text-3xl font-serif font-bold text-white mb-4">
+                Now Serving <span className="text-primary">Los Angeles & Orange County</span>
+              </h2>
+              <p className="text-lg text-white mb-6">
+                Experience authentic hibachi at home in LA, Beverly Hills, Santa Monica, Irvine, and surrounding areas
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 mb-6">
+                <div className="flex items-center text-sm text-white">
+                  <MapPin className="h-4 w-4 text-primary mr-1" />
+                  Los Angeles County
+                </div>
+                <div className="flex items-center text-sm text-white">
+                  <MapPin className="h-4 w-4 text-primary mr-1" />
+                  Orange County
+                </div>
+                <div className="flex items-center text-sm text-white">
+                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                  Same Day Available
+                </div>
+              </div>
+              <Button asChild className="bg-primary hover:bg-primary/90">
+                <Link href="/locations/la-orange-county">Book Hibachi at Home in LA</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
       {/* Social Proof Counter */}
       <AnimateOnScroll>
         <SocialProofCounter />
@@ -284,10 +352,10 @@ export default function Home() {
                         <span>Perfect for intimate gatherings</span>
                       </li>
                     </ul>
-                    <Button 
-                      asChild 
+                    <Button
+                      asChild
                       className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow('show')}
+                      onClick={() => handleBookNow("show")}
                     >
                       <Link href="/book">Book Now</Link>
                     </Button>
@@ -339,10 +407,10 @@ export default function Home() {
                         <span>Minimum 30 people required</span>
                       </li>
                     </ul>
-                    <Button 
-                      asChild 
+                    <Button
+                      asChild
                       className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow('buffet')}
+                      onClick={() => handleBookNow("buffet")}
                     >
                       <Link href="/book">Book Now</Link>
                     </Button>
@@ -507,6 +575,28 @@ export default function Home() {
                       <p className="text-gray-600">
                         Our service includes a professional hibachi chef, all cooking equipment, ingredients for your
                         selected menu, chef performance with tricks and entertainment, and complete cleanup afterward.
+                      </p>
+                    </div>
+                  </AnimateOnScroll>
+                  <AnimateOnScroll direction="left">
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                      <h4 className="font-bold text-lg mb-3 text-amber-600">Can you provide tables and chairs?</h4>
+                      <p className="text-gray-600">
+                        Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included
+                        in this package. If you need utensils, we can provide them for an additional $5 per person. If
+                        you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in
+                        advance.
+                      </p>
+                    </div>
+                  </AnimateOnScroll>
+                  <AnimateOnScroll direction="right">
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                      <h4 className="font-bold text-lg mb-3 text-amber-600">What is your cancellation policy?</h4>
+                      <p className="text-gray-600">
+                        Our cancellation policy includes the following terms: 48 hours' notice required for
+                        cancellations or reschedules. Late changes incur a $100 fee. Weather contingency: You're
+                        responsible for providing cover (e.g., tent, canopy) within 48 hours of the event. If you need
+                        to cancel due to weather, please let us know at least 48 hours beforehand.
                       </p>
                     </div>
                   </AnimateOnScroll>
