@@ -1,11 +1,12 @@
 "use client"
 
-import { Phone, MessageCircle } from "lucide-react"
+import { Phone, MessageCircle, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function FloatingContactButtons() {
   const phoneNumber = "2137707788"
   const smsNumber = "5627134832"
+  const emailAddress = "realhibachiathome@gmail.com"
 
   const handleCall = () => {
     window.location.href = `tel:${phoneNumber}`
@@ -13,6 +14,10 @@ export function FloatingContactButtons() {
 
   const handleSMS = () => {
     window.location.href = `sms:${smsNumber}`
+  }
+
+  const handleEmail = () => {
+    window.location.href = `mailto:${emailAddress}`
   }
 
   return (
@@ -41,6 +46,17 @@ export function FloatingContactButtons() {
           SMS ({smsNumber.slice(0, 3)}) {smsNumber.slice(3, 6)}-{smsNumber.slice(6)}
         </span>
         <span className="sm:hidden">SMS</span>
+      </Button>
+
+      {/* Email Button */}
+      <Button
+        onClick={handleEmail}
+        className="bg-slate-700 hover:bg-slate-800 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+        size="lg"
+      >
+        <Mail className="h-4 w-4" />
+        <span className="hidden sm:inline">{emailAddress}</span>
+        <span className="sm:hidden">Email</span>
       </Button>
     </div>
   )
