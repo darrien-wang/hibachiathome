@@ -56,18 +56,18 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/locations/nyc-long-island"
-                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  NYC & Long Island Hibachi
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/locations/la-orange-county"
                   className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
                 >
                   LA & Orange County Hibachi
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/locations/nyc-long-island"
+                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
+                >
+                  NYC & Long Island Hibachi
                 </Link>
               </li>
               <li>
@@ -167,11 +167,15 @@ export default function Footer() {
                 </a>
               )}
             </div>
-            {siteConfig.contact.locations && siteConfig.contact.locations.length > 0 && (
+            <div className="space-y-2">
               <p className="text-[14px] text-[#A1A1A1]">
-                Serving {siteConfig.contact.locations.join(", ")} areas in New York
+                Proudly serving Los Angeles, Orange County, Beverly Hills, Santa Monica, Irvine, Pasadena, and all of
+                Southern California
               </p>
-            )}
+              <p className="text-[14px] text-[#A1A1A1]">
+                Also available in New York: {siteConfig.contact.locations?.join(", ")} areas
+              </p>
+            </div>
           </div>
         </div>
 
