@@ -585,15 +585,27 @@ export default function HeroSection() {
                 Book now and get a <span className="font-bold text-amber-600">FREE lobster protein upgrade</span> for
                 one lucky guest at every party!
               </p>
-              <Button
-                onClick={() => {
-                  setShowPromoPopup(false)
-                  setPromoPopupDismissed(true)
-                }}
-                className="bg-amber-600 hover:bg-amber-700 text-white mt-4"
-              >
-                Got it
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <Button
+                  asChild
+                  className="bg-primary hover:bg-primary/90 text-white flex-1"
+                  onClick={() => {
+                    setShowPromoPopup(false)
+                    setPromoPopupDismissed(true)
+                  }}
+                >
+                  <Link href="/estimation">Free Estimate</Link>
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowPromoPopup(false)
+                    setPromoPopupDismissed(true)
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white flex-1"
+                >
+                  Got it
+                </Button>
+              </div>
               <p className="text-xs text-gray-500 mt-3">*Valid for new bookings only. One upgrade per party.</p>
             </div>
           </div>

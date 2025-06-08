@@ -239,21 +239,15 @@ export default function Home() {
       {/* Los Angeles Service Area Highlight */}
       <AnimateOnScroll>
         <section className="py-12 relative overflow-hidden">
-          {/* Video Background */}
+          {/* Image Background instead of Video */}
           <div className="absolute inset-0 w-full h-full z-0">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
+            <img
+              src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+              alt="Los Angeles hibachi catering background"
               className="w-full h-full object-cover"
-              poster="/placeholder.svg?height=1080&width=1920"
-            >
-              <source src="/videos/los-angeles-background.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            />
             {/* Overlay to ensure text readability */}
-            <div className="absolute inset-0 bg-black/50 z-10"></div>
+            <div className="absolute inset-0 bg-black/60 z-10"></div>
           </div>
 
           <div className="container mx-auto px-4 relative z-20">
