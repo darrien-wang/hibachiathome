@@ -21,42 +21,49 @@ export function FloatingContactButtons() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
       {/* Phone Button */}
       <Button
         onClick={handleCall}
-        className="bg-slate-700 hover:bg-slate-800 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+        className="bg-slate-700 hover:bg-green-600 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium group min-w-[4rem] hover:min-w-max"
         size="lg"
       >
-        <Phone className="h-4 w-4" />
+        <Phone className="h-4 w-4 flex-shrink-0" />
         <span className="hidden sm:inline">
           Call ({phoneNumber.slice(0, 3)}) {phoneNumber.slice(3, 6)}-{phoneNumber.slice(6)}
         </span>
-        <span className="sm:hidden">Call</span>
+        <span className="sm:hidden group-hover:hidden">Call</span>
+        <span className="hidden group-hover:inline sm:hidden whitespace-nowrap text-xs">
+          ({phoneNumber.slice(0, 3)}) {phoneNumber.slice(3, 6)}-{phoneNumber.slice(6)}
+        </span>
       </Button>
 
       {/* SMS Button */}
       <Button
         onClick={handleSMS}
-        className="bg-slate-700 hover:bg-slate-800 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+        className="bg-slate-700 hover:bg-blue-600 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium group min-w-[4rem] hover:min-w-max"
         size="lg"
       >
-        <MessageCircle className="h-4 w-4" />
+        <MessageCircle className="h-4 w-4 flex-shrink-0" />
         <span className="hidden sm:inline">
           SMS ({smsNumber.slice(0, 3)}) {smsNumber.slice(3, 6)}-{smsNumber.slice(6)}
         </span>
-        <span className="sm:hidden">SMS</span>
+        <span className="sm:hidden group-hover:hidden">SMS</span>
+        <span className="hidden group-hover:inline sm:hidden whitespace-nowrap text-xs">
+          ({smsNumber.slice(0, 3)}) {smsNumber.slice(3, 6)}-{smsNumber.slice(6)}
+        </span>
       </Button>
 
       {/* Email Button */}
       <Button
         onClick={handleEmail}
-        className="bg-slate-700 hover:bg-slate-800 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+        className="bg-slate-700 hover:bg-amber-600 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium group min-w-[4rem] hover:min-w-max"
         size="lg"
       >
-        <Mail className="h-4 w-4" />
+        <Mail className="h-4 w-4 flex-shrink-0" />
         <span className="hidden sm:inline">{emailAddress}</span>
-        <span className="sm:hidden">Email</span>
+        <span className="sm:hidden group-hover:hidden">Email</span>
+        <span className="hidden group-hover:inline sm:hidden whitespace-nowrap text-xs">{emailAddress}</span>
       </Button>
     </div>
   )
