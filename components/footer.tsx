@@ -63,6 +63,14 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/locations/la-orange-county"
+                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
+                >
+                  LA & Orange County Hibachi
+                </Link>
+              </li>
+              <li>
                 <Link href="/faq" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
                   FAQ
                 </Link>
