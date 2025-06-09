@@ -28,6 +28,14 @@ export default function Footer() {
             <p className="text-[16px] text-white/80 mt-2">
               Bringing the hibachi experience directly to your home or venue.
             </p>
+            <div className="mt-4">
+              <Link
+                href="/privacy-policy"
+                className="text-[14px] text-white/70 hover:text-[#F1691B] transition-colors duration-200"
+              >
+                Privacy Policy
+              </Link>
+            </div>
           </div>
 
           {/* Middle Column: Quick Links */}
