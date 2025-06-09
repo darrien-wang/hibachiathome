@@ -28,6 +28,14 @@ export default function Footer() {
             <p className="text-[16px] text-white/80 mt-2">
               Bringing the hibachi experience directly to your home or venue.
             </p>
+            <div className="mt-4">
+              <Link
+                href="/privacy-policy"
+                className="text-[14px] text-white/70 hover:text-[#F1691B] transition-colors duration-200"
+              >
+                Privacy Policy
+              </Link>
+            </div>
           </div>
 
           {/* Middle Column: Quick Links */}
@@ -52,6 +60,14 @@ export default function Footer() {
               <li>
                 <Link href="/gallery" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
                   Gallery
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/locations/la-orange-county"
+                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
+                >
+                  LA & Orange County Hibachi
                 </Link>
               </li>
               <li>
@@ -159,11 +175,15 @@ export default function Footer() {
                 </a>
               )}
             </div>
-            {siteConfig.contact.locations && siteConfig.contact.locations.length > 0 && (
+            <div className="space-y-2">
               <p className="text-[14px] text-[#A1A1A1]">
-                Serving {siteConfig.contact.locations.join(", ")} areas in New York
+                Proudly serving Los Angeles, Orange County, Beverly Hills, Santa Monica, Irvine, Pasadena, and all of
+                Southern California
               </p>
-            )}
+              <p className="text-[14px] text-[#A1A1A1]">
+                Also available in New York: {siteConfig.contact.locations?.join(", ")} areas
+              </p>
+            </div>
           </div>
         </div>
 

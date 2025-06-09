@@ -102,8 +102,9 @@ export function Header() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="container mx-auto px-4 py-3 relative">
+      <div className="container mx-auto px-4 py-3 lg:py-8 relative">
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
+
 
         {/* Mobile Layout */}
         <div className="md:hidden grid grid-cols-3 items-center">

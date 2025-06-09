@@ -1,20 +1,101 @@
 "use client"
 
-import type React from "react"
-
-import Link from "next/link"
-import { useState, useRef, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, MapPin, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { siteConfig } from "@/config/site"
 
+import type React from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import SocialProofCounter from "@/components/social-proof-counter"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageSquare, Star, MapPin } from "lucide-react"
+import { siteConfig } from "@/config/site"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
-import HowItWorksSection from "@/components/how-it-works-section"
+import SocialProofCounter from "@/components/social-proof-counter"
+
+// FAQ data
+const faqs = [
+  {
+    question: "Do I need to prepare anything?",
+    answer: "No! We bring the grill, table, and all ingredients. You just provide the space and guests.",
+  },
+  {
+    question: "Is cleanup included?",
+    answer: "Yes. We leave your space as clean as it was. Complete setup and cleanup included.",
+  },
+  {
+    question: "Can you cook for kids or vegetarians?",
+    answer: "Of course! Let us know dietary restrictions and we'll adjust the menu accordingly.",
+  },
+  {
+    question: "How do I pay?",
+    answer: "Zelle, Venmo, or cash. $100 deposit to lock your date, remaining balance due day of service.",
+  },
+  {
+    question: "What if it rains?",
+    answer: "You provide cover (tent/canopy). 48-hour notice required for weather cancellations with full refund.",
+  },
+  {
+    question: "Can I cancel or reschedule?",
+    answer: "Yes! Cancel up to 48 hours before for full refund. Reschedule anytime with 24-hour notice.",
+  },
+]
+
+// Service features data
+const serviceFeatures = [
+  {
+    icon: "🥢",
+    title: "What's Included",
+    description: "Private chef, grill, full setup, cleanup. You host, we cook.",
+  },
+  {
+    icon: "🍱",
+    title: "What You Eat",
+    description: "Fried rice, salad, veggies, and 2 proteins per guest. Add lobster or filet upgrades!",
+  },
+  {
+    icon: "🔥",
+    title: "What to Expect",
+    description: "Live hibachi show with fire tricks, food tossing, and crowd interaction.",
+  },
+  {
+    icon: "⏱️",
+    title: "Duration",
+    description: "~1.5 to 2 hours depending on guest count and menu.",
+  },
+  {
+    icon: "👪",
+    title: "Guest Minimum",
+    description: "Minimum 10 guests or $499 total. Perfect for birthdays or backyard dinners.",
+  },
+  {
+    icon: "🪑",
+    title: "Optional Add-ons",
+    description: "We offer table, chair & utensil rentals — or you're welcome to use your own!",
+  },
+]
+
+// Customer reviews
+const reviews = [
+  {
+    name: "Linda",
+    location: "NY",
+    rating: 5,
+    text: "The best experience we've had at home. Fun, delicious, and zero cleanup.",
+  },
+  {
+    name: "Michael",
+    location: "LA",
+    rating: 5,
+    text: "Our kids loved the fire show and the food was restaurant quality. Highly recommend!",
+  },
+  {
+    name: "Sarah",
+    location: "Chicago",
+    rating: 5,
+    text: "Perfect for our anniversary. The chef was entertaining and professional.",
+  },
+]
 
 // Testimonial data with ratings
 const testimonials = [
@@ -154,7 +235,7 @@ interface CardItem {
   is24_7?: boolean
 }
 
-export default function Home() {
+export default function HibachiAtHomePage() {
   const router = useRouter()
 
   const handleOnlineBooking = () => {
@@ -233,7 +314,7 @@ export default function Home() {
   ]
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden">
       <HeroSection />
 
       {/* Los Angeles Service Area Highlight */}
@@ -273,7 +354,7 @@ export default function Home() {
                 </div>
               </div>
               <Button asChild className="bg-primary hover:bg-primary/90">
-                <Link href="/locations/la-orange-county">Book Hibachi at Home in LA</Link>
+                <a href="/locations/la-orange-county">Book Hibachi at Home in LA</a>
               </Button>
             </div>
           </div>
@@ -284,8 +365,31 @@ export default function Home() {
       <AnimateOnScroll>
         <SocialProofCounter />
       </AnimateOnScroll>
-      {/* How It Works Section */}
-      <HowItWorksSection />
+
+      {/* Service Introduction */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-serif font-bold mb-4">✅ "We bring the restaurant to your backyard."</h3>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Professional hibachi chef comes to your home with everything needed for an authentic Japanese dining
+                experience.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto text-center">
+              {serviceFeatures.map((feature, index) => (
+                <div key={index} className="flex flex-col items-center text-center p-4">
+                  <div className="text-3xl mb-3">{feature.icon}</div>
+                  <div className="text-lg font-semibold mb-2">{feature.title}</div>
+                  <div className="text-sm text-gray-600">{feature.description}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
 
       {/* Package Options Section */}
       <AnimateOnScroll>
@@ -346,12 +450,8 @@ export default function Home() {
                         <span>Perfect for intimate gatherings</span>
                       </li>
                     </ul>
-                    <Button
-                      asChild
-                      className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow("show")}
-                    >
-                      <Link href="/book">Book Now</Link>
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600" onClick={() => handleBookNow("show")}>
+                      Book Now
                     </Button>
                   </div>
                 </div>
@@ -401,12 +501,8 @@ export default function Home() {
                         <span>Minimum 30 people required</span>
                       </li>
                     </ul>
-                    <Button
-                      asChild
-                      className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow("buffet")}
-                    >
-                      <Link href="/book">Book Now</Link>
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600" onClick={() => handleBookNow("buffet")}>
+                      Book Now
                     </Button>
                   </div>
                 </div>
@@ -416,12 +512,11 @@ export default function Home() {
             <AnimateOnScroll direction="up" delay={200}>
               <div className="text-center mt-10">
                 <Button
-                  asChild
                   variant="outline"
                   className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
                   onClick={handleViewMenu}
                 >
-                  <Link href="/menu">View Menu</Link>
+                  View Menu
                 </Button>
               </div>
             </AnimateOnScroll>
@@ -549,60 +644,22 @@ export default function Home() {
                   Frequently Asked Questions
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <AnimateOnScroll direction="left">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">
-                        How much space do you need for the hibachi setup?
-                      </h4>
-                      <p className="text-gray-600">
-                        We need a minimum 8x8 feet outdoor space for our hibachi grill setup. This includes space for
-                        the chef to perform safely and for guests to gather around comfortably.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
-
-                  <AnimateOnScroll direction="right">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">
-                        What's included in the hibachi experience?
-                      </h4>
-                      <p className="text-gray-600">
-                        Our service includes a professional hibachi chef, all cooking equipment, ingredients for your
-                        selected menu, chef performance with tricks and entertainment, and complete cleanup afterward.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
-                  <AnimateOnScroll direction="left">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">Can you provide tables and chairs?</h4>
-                      <p className="text-gray-600">
-                        Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included
-                        in this package. If you need utensils, we can provide them for an additional $5 per person. If
-                        you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in
-                        advance.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
-                  <AnimateOnScroll direction="right">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">What is your cancellation policy?</h4>
-                      <p className="text-gray-600">
-                        Our cancellation policy includes the following terms: 48 hours' notice required for
-                        cancellations or reschedules. Late changes incur a $100 fee. Weather contingency: You're
-                        responsible for providing cover (e.g., tent, canopy) within 48 hours of the event. If you need
-                        to cancel due to weather, please let us know at least 48 hours beforehand.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
+                  {faqs.map((faq, index) => (
+                    <AnimateOnScroll key={index} direction={index % 2 === 0 ? "left" : "right"}>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <h4 className="font-bold text-lg mb-3 text-amber-600">{faq.question}</h4>
+                        <p className="text-gray-600">{faq.answer}</p>
+                      </div>
+                    </AnimateOnScroll>
+                  ))}
                 </div>
                 <div className="mt-8 text-center">
                   <Button
-                    asChild
                     variant="outline"
                     className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
                     onClick={handleViewFAQ}
                   >
-                    <Link href="/faq">View All FAQs</Link>
+                    View All FAQs
                   </Button>
                 </div>
               </div>
@@ -611,81 +668,109 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
-      {/* Call to Action Section */}
+      {/* Customer Reviews */}
       <AnimateOnScroll>
-        <section className="py-20 bg-gradient-to-r from-amber-600 to-orange-600">
-          <div className="container mx-auto px-4 text-center">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
-                Ready to Create Unforgettable Memories?
-              </h2>
-              <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
-                Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home.
-                Our professional chefs are ready to create an amazing show and delicious meal for you and your guests.
-              </p>
-            </AnimateOnScroll>
+        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="container mx-auto px-4">
+            <h3 className="text-3xl font-serif font-bold text-center mb-12">What Our Customers Say</h3>
 
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                {cardItems.map((card, index) => (
-                  <Card key={index} className={`text-center flex flex-col ${card.className}`}>
-                    <CardHeader className="h-[100px] flex flex-col justify-center">
-                      <CardTitle className="text-white text-lg">{card.title}</CardTitle>
-                      <CardDescription className="h-[30px] flex items-center justify-center text-amber-100">
-                        {card.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
-                      <Button
-                        className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
-                        variant={card.variant}
-                        onClick={card.onClick}
-                      >
-                        {card.icon}
-                        {card.buttonText}
-                      </Button>
-                      <div className="h-[20px] flex items-center justify-center">
-                        {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {reviews.map((review, index) => (
+                <AnimateOnScroll key={index} delay={index * 100}>
+                  <Card className="p-6 hover:shadow-lg transition-shadow">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center mb-4">
+                        {[...Array(review.rating)].map((_, i) => (
+                          <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
+                        ))}
                       </div>
+                      <p className="text-gray-600 mb-4 italic">"{review.text}"</p>
+                      <p className="font-semibold">
+                        — {review.name}, {review.location}
+                      </p>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </AnimateOnScroll>
+                </AnimateOnScroll>
+              ))}
+            </div>
 
-            <AnimateOnScroll direction="up" delay={400}>
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">500+</div>
-                  <div className="text-amber-100">Happy Customers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">4.9★</div>
-                  <div className="text-amber-100">Average Rating</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">100%</div>
-                  <div className="text-amber-100">Satisfaction Guarantee</div>
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll direction="up" delay={600}>
-              <div className="mt-16 max-w-4xl mx-auto">
-                <img
-                  src="/hibachi-group-selfie.jpg"
-                  alt="Happy customers enjoying hibachi experience at home"
-                  className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
-                  loading="lazy"
-                />
-              </div>
-            </AnimateOnScroll>
+            <div className="text-center mt-12">
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg font-semibold"
+                onClick={handleSMS}
+              >
+                <MessageSquare className="mr-2 h-5 w-5" /> Text for Instant Quote
+              </Button>
+            </div>
           </div>
         </section>
       </AnimateOnScroll>
 
+      {/* Final CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-amber-600 to-orange-600 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h3 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
+            Ready to Create Unforgettable Memories?
+          </h3>
+          <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
+            Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home. Our
+            professional chefs are ready to create an amazing show and delicious meal for you and your guests.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            {cardItems.map((card, index) => (
+              <Card key={index} className={`text-center flex flex-col ${card.className}`}>
+                <CardHeader className="h-[100px] flex flex-col justify-center">
+                  <CardTitle className="text-white text-lg">{card.title}</CardTitle>
+                  <CardDescription className="h-[30px] flex items-center justify-center text-amber-100">
+                    {card.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
+                  <Button
+                    className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
+                    variant={card.variant}
+                    onClick={card.onClick}
+                  >
+                    {card.icon}
+                    {card.buttonText}
+                  </Button>
+                  <div className="h-[20px] flex items-center justify-center">
+                    {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">500+</div>
+              <div className="text-amber-100">Happy Customers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">4.9★</div>
+              <div className="text-amber-100">Average Rating</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">100%</div>
+              <div className="text-amber-100">Satisfaction Guarantee</div>
+            </div>
+          </div>
+
+          <div className="mt-16 max-w-4xl mx-auto">
+            <img
+              src="/hibachi-group-selfie.jpg"
+              alt="Happy customers enjoying hibachi experience at home"
+              className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
-      <TestimonialsSection />
+      <TestimonialsSection testimonials={testimonials} />
     </div>
   )
 }
