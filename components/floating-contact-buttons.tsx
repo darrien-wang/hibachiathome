@@ -109,7 +109,7 @@ export function FloatingContactButtons() {
           size="lg"
         >
           <MessageCircle className="h-4 w-4" />
-          <span>SMS</span>
+          <span>Text</span>
         </Button>
       )}
 

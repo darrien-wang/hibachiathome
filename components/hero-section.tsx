@@ -188,17 +188,7 @@ export default function HeroSection() {
             className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn"
             style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
           >
-            Let{"`"}s throw a{" "}
-            <span
-              style={{
-                fontFamily: "'Permanent Marker', cursive",
-                textShadow: "0 4px 8px rgba(0,0,0,0.5)",
-                color: "rgb(216, 128, 54)",
-              }}
-            >
-              HIBACHI party
-            </span>{" "}
-            today!
+            Private Hibachi Dinner – From <span style={{ color: "#fbbf24" }}>$49.9</span>/Guest
           </h1>
         </div>
         <div className="mt-auto mb-12 md:mb-20 animate-slideUp">
@@ -209,7 +199,7 @@ export default function HeroSection() {
               className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
               onClick={handleFirstInteraction}
             >
-              <Link href="/estimation">Free Estimate</Link>
+              <Link href="/estimation">Get Instant Quote</Link>
             </Button>
             <Button
               asChild
@@ -217,7 +207,7 @@ export default function HeroSection() {
               className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
               onClick={handleFirstInteraction}
             >
-              <Link href="/menu">Packages</Link>
+              <Link href="/menu">View Menu & Upgrades</Link>
             </Button>
           </div>
           <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
