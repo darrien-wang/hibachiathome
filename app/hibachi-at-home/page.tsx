@@ -524,6 +524,53 @@ export default function HibachiAtHomePage() {
         </section>
       </AnimateOnScroll>
 
+      {/* Party Experience Video Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Perfect for <span className="text-primary">Birthday Parties & Celebrations</span>
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Make your special occasions unforgettable with a private hibachi chef and an exciting dining experience
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <TimeoutVideo
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="/hibachi-party.png"
+                    src="/videos/hibachi-party-experience.mp4"
+                  />
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-8 text-center">
+              <p className="text-amber-600 font-medium">
+                Create lasting memories with friends and family at your next celebration!
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                Our chefs bring the entertainment and delicious food directly to your home or venue
+              </p>
+              <Button
+                className="mt-6 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => handleBookNow("party")}
+              >
+                Book Your Party Experience
+              </Button>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
