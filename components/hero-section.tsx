@@ -76,13 +76,38 @@ export default function HeroSection() {
 
   useEffect(() => {
     if (sortedHeroImages.length > 0 && imageTimestamps.length === 0) {
+      // Get current date
+      const currentDate = new Date()
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth() + 1 // JavaScript months are 0-indexed
+      const currentDay = currentDate.getDate()
+
       const timestamps = sortedHeroImages.map((image, index) => {
-        // @ts-ignore
-        return (
-          image.timestamp ||
-          `2025-${String(index + 1).padStart(2, "0")}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, "0")}`
-        )
+        // Use image timestamp if available
+        if (image.timestamp) return image.timestamp
+
+        // Generate a random past date within the last 3 months
+        const randomMonthsAgo = Math.floor(Math.random() * 3) // 0-2 months ago
+        const randomDaysAgo = Math.floor(Math.random() * 28) + 1 // 1-28 days
+
+        let dateMonth = currentMonth - randomMonthsAgo
+        let dateYear = currentYear
+
+        // Handle month rollover
+        if (dateMonth <= 0) {
+          dateMonth += 12
+          dateYear -= 1
+        }
+
+        // Ensure day doesn't exceed current day for current month
+        let dateDay = randomDaysAgo
+        if (dateMonth === currentMonth && dateDay > currentDay) {
+          dateDay = Math.min(currentDay, randomDaysAgo)
+        }
+
+        return `${dateYear}-${String(dateMonth).padStart(2, "0")}-${String(dateDay).padStart(2, "0")}`
       })
+
       setImageTimestamps(timestamps)
     }
   }, [sortedHeroImages.length, imageTimestamps.length])
@@ -178,41 +203,37 @@ export default function HeroSection() {
         ))}
       </div>
 
-      <div className={`absolute inset-0 bg-black/60 z-10 transition-opacity duration-1000`}></div>
+      {/* Remove the full overlay div */}
 
       <div
         className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
       >
-        <div className="mt-40 md:mt-64 flex justify-center items-center w-full">
-          <h1
-            className="text-5xl md:text-7xl font-bold mb-6 tracking-wide leading-tight mx-auto max-w-4xl animate-fadeIn"
-            style={{ fontFamily: "'Permanent Marker', cursive", textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
-          >
-            Private Hibachi Dinner – From <span style={{ color: "#fbbf24" }}>$49.9</span>/Guest
-          </h1>
-        </div>
-        <div className="mt-auto mb-12 md:mb-20 animate-slideUp">
-          <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
-            <Button
-              asChild
-              size="lg"
-              className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
-              onClick={handleFirstInteraction}
-            >
-              <Link href="/estimation">Get Instant Quote</Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
-              onClick={handleFirstInteraction}
-            >
-              <Link href="/menu">View Menu & Upgrades</Link>
-            </Button>
+        <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative">
+          {/* Local overlay for button area only */}
+          <div className="absolute inset-0 bg-black/60 rounded-lg -m-8"></div>
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
+              <Button
+                asChild
+                size="lg"
+                className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
+                onClick={handleFirstInteraction}
+              >
+                <Link href="/estimation">Get Instant Quote</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
+                onClick={handleFirstInteraction}
+              >
+                <Link href="/menu">View Menu & Upgrades</Link>
+              </Button>
+            </div>
+            <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
+              Top-tier food & service. No hidden fees. From $499.
+            </p>
           </div>
-          <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
-            Top-tier food & service. No hidden fees. From $499.
-          </p>
         </div>
       </div>
 

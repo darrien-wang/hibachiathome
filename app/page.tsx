@@ -5,12 +5,11 @@ import type React from "react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, MapPin, Star } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 
 import { Button } from "@/components/ui/button"
-import SocialProofCounter from "@/components/social-proof-counter"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
@@ -157,6 +156,8 @@ interface CardItem {
 export default function Home() {
   const router = useRouter()
 
+  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
+
   const handleOnlineBooking = () => {
     trackConversion("conversion_event_submit_lead_form_1")
     router.push("/estimation?source=booking")
@@ -236,54 +237,6 @@ export default function Home() {
     <div className="overflow-x-hidden">
       <HeroSection />
 
-      {/* Los Angeles Service Area Highlight */}
-      <AnimateOnScroll>
-        <section className="py-12 relative overflow-hidden">
-          {/* Image Background instead of Video */}
-          <div className="absolute inset-0 w-full h-full z-0">
-            <img
-              src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
-              alt="Los Angeles hibachi catering background"
-              className="w-full h-full object-cover"
-            />
-            {/* Overlay to ensure text readability */}
-            <div className="absolute inset-0 bg-black/60 z-10"></div>
-          </div>
-
-          <div className="container mx-auto px-4 relative z-20">
-            <div className="text-center max-w-4xl mx-auto">
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-white mb-4">
-                Now Serving <span className="text-primary">Los Angeles & Orange County</span>
-              </h2>
-              <p className="text-lg text-white mb-6">
-                Experience authentic hibachi at home in LA, Beverly Hills, Santa Monica, Irvine, and surrounding areas
-              </p>
-              <div className="flex flex-wrap justify-center gap-4 mb-6">
-                <div className="flex items-center text-sm text-white">
-                  <MapPin className="h-4 w-4 text-primary mr-1" />
-                  Los Angeles County
-                </div>
-                <div className="flex items-center text-sm text-white">
-                  <MapPin className="h-4 w-4 text-primary mr-1" />
-                  Orange County
-                </div>
-                <div className="flex items-center text-sm text-white">
-                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                  Same Day Available
-                </div>
-              </div>
-              <Button asChild className="bg-primary hover:bg-primary/90">
-                <Link href="/locations/la-orange-county">Book Hibachi at Home in LA</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Social Proof Counter */}
-      <AnimateOnScroll>
-        <SocialProofCounter />
-      </AnimateOnScroll>
       {/* How It Works Section */}
       <HowItWorksSection />
 
@@ -429,6 +382,153 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
+      {/* Signature Fried Rice Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Our Signature <span className="text-primary">Garlic Butter Fried Rice</span>
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Watch our master chefs create the perfect hibachi fried rice with aromatic garlic butter, fresh
+                vegetables, and authentic Japanese seasonings right before your eyes
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <video className="absolute top-0 left-0 w-full h-full object-cover" controls autoPlay muted loop>
+                    <source src="/videos/signature-fried-rice.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <AnimateOnScroll delay={100} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">🧄</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Garlic Butter Magic</h3>
+                  <p className="text-gray-600">
+                    Our secret blend of garlic butter creates the perfect aromatic base for our signature fried rice.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={200} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">🍚</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Perfect Fried Rice</h3>
+                  <p className="text-gray-600">
+                    Each grain is perfectly seasoned and cooked to achieve that authentic hibachi restaurant taste.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={300} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-amber-600 text-xl">👨‍🍳</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Chef's Technique</h3>
+                  <p className="text-gray-600">
+                    Watch our skilled chefs demonstrate traditional hibachi cooking techniques with flair and precision.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-amber-600 font-medium text-lg">
+                Every grain tells a story of authentic Japanese flavors! 🍚✨
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                Our garlic butter fried rice is included in all hibachi packages and is always a crowd favorite.
+              </p>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+      {/* Hibachi Steak Cooking Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Premium <span className="text-primary">Hibachi Steak</span> Experience
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Watch our master chefs prepare perfectly seasoned hibachi steak with precision and flair. Each cut is
+                grilled to perfection on our authentic hibachi grill, delivering restaurant-quality taste at your home.
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <video className="absolute top-0 left-0 w-full h-full object-cover" controls autoPlay muted loop>
+                    <source src="/videos/hibachi-steak-cooking.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <AnimateOnScroll delay={100} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-red-600 text-xl">🥩</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Premium Quality Beef</h3>
+                  <p className="text-gray-600">
+                    We use only the finest cuts of beef, carefully selected and prepared to hibachi perfection.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={200} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-red-600 text-xl">🔥</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">High-Heat Searing</h3>
+                  <p className="text-gray-600">
+                    Our hibachi grills reach the perfect temperature for that signature sear and smoky flavor.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={300} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-red-600 text-xl">👨‍🍳</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Expert Preparation</h3>
+                  <p className="text-gray-600">
+                    Our skilled chefs know exactly how to cook each steak to your preferred doneness with precision.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-red-600 font-medium text-lg">Perfectly grilled steak, every single time! 🥩🔥</p>
+              <p className="text-gray-600 text-sm mt-2">
+                Available as part of our premium protein selections in all hibachi packages.
+              </p>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
@@ -503,108 +603,124 @@ export default function Home() {
                 </div>
               </div>
             </AnimateOnScroll>
+          </div>
+        </section>
+      </AnimateOnScroll>
 
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🎉</span>
+      {/* Customer Reactions Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Sake Service & Entertainment
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Experience the authentic Japanese tradition as our skilled chefs serve premium sake alongside
+                spectacular hibachi entertainment
+              </p>
+            </AnimateOnScroll>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+              <AnimateOnScroll direction="left">
+                <div className="relative">
+                  <img
+                    src="/images/customer-enjoying-hibachi.png"
+                    alt="Chef serving sake to delighted customers during hibachi experience"
+                    className="w-full h-auto rounded-xl shadow-2xl"
+                    loading="lazy"
+                  />
+                  <div className="absolute -bottom-4 -right-4 bg-amber-500 text-white p-4 rounded-full shadow-lg">
+                    <span className="text-2xl">🔥</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
-                  <p className="text-gray-600">
-                    Experience the excitement and energy of a hibachi restaurant in your own home.
-                  </p>
                 </div>
               </AnimateOnScroll>
 
-              <AnimateOnScroll delay={200} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
+              <AnimateOnScroll direction="right">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-white rounded-lg shadow-md">
+                      <div className="text-2xl font-bold text-amber-600 mb-1">98%</div>
+                      <div className="text-sm text-gray-600">Customer Satisfaction</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-lg shadow-md">
+                      <div className="text-2xl font-bold text-amber-600 mb-1">100%</div>
+                      <div className="text-sm text-gray-600">Entertainment Guaranteed</div>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
-                  <p className="text-gray-600">
-                    Perfect entertainment for guests of all ages, creating memorable experiences.
-                  </p>
-                </div>
-              </AnimateOnScroll>
 
-              <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🔥</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
-                  <p className="text-gray-600">
-                    Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
-                  </p>
+                  <Button asChild className="w-full bg-amber-500 hover:bg-amber-600" onClick={handleOnlineBooking}>
+                    <Link href="/estimation?source=booking">Book Your Sake & Hibachi Experience</Link>
+                  </Button>
                 </div>
               </AnimateOnScroll>
             </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
 
-            {/* FAQ Section */}
-            <AnimateOnScroll>
-              <div className="mt-16 max-w-4xl mx-auto">
-                <h3 className="text-2xl md:text-3xl font-serif font-bold text-center mb-8">
-                  Frequently Asked Questions
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <AnimateOnScroll direction="left">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">
-                        How much space do you need for the hibachi setup?
-                      </h4>
-                      <p className="text-gray-600">
-                        We need a minimum 8x8 feet outdoor space for our hibachi grill setup. This includes space for
-                        the chef to perform safely and for guests to gather around comfortably.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
+      {/* FAQ Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h3 className="text-2xl md:text-3xl font-serif font-bold text-center mb-8">Frequently Asked Questions</h3>
+            </AnimateOnScroll>
 
-                  <AnimateOnScroll direction="right">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">
-                        What's included in the hibachi experience?
-                      </h4>
-                      <p className="text-gray-600">
-                        Our service includes a professional hibachi chef, all cooking equipment, ingredients for your
-                        selected menu, chef performance with tricks and entertainment, and complete cleanup afterward.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
-                  <AnimateOnScroll direction="left">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">Can you provide tables and chairs?</h4>
-                      <p className="text-gray-600">
-                        Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included
-                        in this package. If you need utensils, we can provide them for an additional $5 per person. If
-                        you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in
-                        advance.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
-                  <AnimateOnScroll direction="right">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h4 className="font-bold text-lg mb-3 text-amber-600">What is your cancellation policy?</h4>
-                      <p className="text-gray-600">
-                        Our cancellation policy includes the following terms: 48 hours' notice required for
-                        cancellations or reschedules. Late changes incur a $100 fee. Weather contingency: You're
-                        responsible for providing cover (e.g., tent, canopy) within 48 hours of the event. If you need
-                        to cancel due to weather, please let us know at least 48 hours beforehand.
-                      </p>
-                    </div>
-                  </AnimateOnScroll>
-                </div>
-                <div className="mt-8 text-center">
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-                    onClick={handleViewFAQ}
+            <div className="space-y-4">
+              {[
+                {
+                  question: "How much space do you need for the hibachi setup?",
+                  answer:
+                    "We need a minimum 8x8 feet outdoor space for our hibachi grill setup. This includes space for the chef to perform safely and for guests to gather around comfortably.",
+                },
+                {
+                  question: "What's included in the hibachi experience?",
+                  answer:
+                    "Our service includes a professional hibachi chef, all cooking equipment, ingredients for your selected menu, chef performance with tricks and entertainment, and complete cleanup afterward.",
+                },
+                {
+                  question: "Can you provide tables and chairs?",
+                  answer:
+                    "Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included in this package. If you need utensils, we can provide them for an additional $5 per person. If you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in advance.",
+                },
+                {
+                  question: "What is your cancellation policy?",
+                  answer:
+                    "Our cancellation policy includes the following terms: 48 hours' notice required for cancellations or reschedules. Late changes incur a $100 fee. Weather contingency: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event. If you need to cancel due to weather, please let us know at least 48 hours beforehand.",
+                },
+              ].map((faq, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <button
+                    className="w-full p-6 text-left flex justify-between items-center hover:bg-amber-50 transition-colors"
+                    onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
                   >
-                    <Link href="/faq">View All FAQs</Link>
-                  </Button>
+                    <h4 className="font-bold text-lg text-amber-600 pr-4">{faq.question}</h4>
+                    <span
+                      className={`text-amber-600 text-xl transition-transform ${expandedFAQ === index ? "rotate-180" : ""}`}
+                    >
+                      ▼
+                    </span>
+                  </button>
+                  {expandedFAQ === index && (
+                    <div className="px-6 pb-6">
+                      <p className="text-gray-600">{faq.answer}</p>
+                    </div>
+                  )}
                 </div>
+              ))}
+            </div>
+
+            <AnimateOnScroll direction="up" delay={200}>
+              <div className="mt-8 text-center">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                  onClick={handleViewFAQ}
+                >
+                  <Link href="/faq">View All FAQs</Link>
+                </Button>
               </div>
             </AnimateOnScroll>
           </div>
