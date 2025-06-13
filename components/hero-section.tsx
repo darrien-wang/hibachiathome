@@ -18,16 +18,18 @@ export default function HeroSection() {
   const swipeThreshold = 50
 
   // Fix: Correctly initialize heroImagesRef with a computed value, not a function
-  const heroImagesRef = useRef(getSortedHeroImages().filter((_, index) => index !== 0 && index !== 4).concat({
-    url: "/images/hibachi-dinner-party.jpg",
-    alt: "Hibachi dinner party with friends enjoying a meal outdoors",
-    priority: 10, // Lower priority to ensure it's added at the end
-  }))
+  const heroImagesRef = useRef(
+    getSortedHeroImages()
+      .filter((_, index) => index !== 0 && index !== 4)
+      .concat({
+        url: "/images/hibachi-dinner-party.jpg",
+        alt: "Hibachi dinner party with friends enjoying a meal outdoors",
+        priority: 10, // Lower priority to ensure it's added at the end
+      }),
+  )
 
   const sortedHeroImages = heroImagesRef.current
   const carouselIntervalOverride = 3000 // 3 seconds instead of default
-  const [showPromoPopup, setShowPromoPopup] = useState(false)
-  const [promoPopupDismissed, setPromoPopupDismissed] = useState(false)
   const videoEnded = true
 
   const handleUserInteraction = () => {
@@ -42,16 +44,6 @@ export default function HeroSection() {
   const handleFirstInteraction = () => {
     handleUserInteraction()
   }
-
-  useEffect(() => {
-    // Show promo popup after 3 seconds if not dismissed
-    if (!promoPopupDismissed) {
-      const timer = setTimeout(() => {
-        setShowPromoPopup(true)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [promoPopupDismissed])
 
   const nextSlide = () => {
     handleUserInteraction()
@@ -220,6 +212,18 @@ export default function HeroSection() {
       <div
         className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
       >
+        <div className="relative max-w-3xl mx-auto" style={{ marginTop: "25vh" }}>
+          <div
+            className="bg-red-600 text-white py-3 px-6 rounded-md transform rotate-[-1deg] shadow-lg border-2 border-yellow-400"
+            style={{
+              backgroundImage: "linear-gradient(135deg, #e53e3e 0%, #c53030 100%)",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 215, 0, 0.3)",
+            }}
+          >
+            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉3 Minutes! Throw a Party. Just Show Up 🎉</p>
+          </div>
+        </div>
+
         <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative">
           {/* Frosted glass overlay for button area */}
           <div className="absolute inset-0 backdrop-blur-md bg-white/20 rounded-lg -m-8 border border-white/30"></div>
@@ -294,55 +298,6 @@ export default function HeroSection() {
             className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance < -50 ? "opacity-100" : "opacity-30"}`}
           >
             <span className="text-white text-2xl">→</span>
-          </div>
-        </div>
-      )}
-
-      {/* Promotional Popup */}
-      {showPromoPopup && !promoPopupDismissed && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 relative animate-fadeIn">
-            <button
-              onClick={() => {
-                setShowPromoPopup(false)
-                setPromoPopupDismissed(true)
-              }}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl font-bold"
-              aria-label="Close popup"
-            >
-              ×
-            </button>
-
-            <div className="p-6 text-center">
-              <div className="text-4xl mb-4">🦞</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Limited Time Offer!</h3>
-              <p className="text-gray-600 mb-4 leading-relaxed">
-                Book now and get a <span className="font-bold text-amber-600">FREE lobster protein upgrade</span> for
-                one lucky guest at every party!
-              </p>
-              <div className="flex gap-3 mt-4">
-                <Button
-                  asChild
-                  className="bg-primary hover:bg-primary/90 text-white flex-1"
-                  onClick={() => {
-                    setShowPromoPopup(false)
-                    setPromoPopupDismissed(true)
-                  }}
-                >
-                  <Link href="/estimation">Free Estimate</Link>
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowPromoPopup(false)
-                    setPromoPopupDismissed(true)
-                  }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white flex-1"
-                >
-                  Got it
-                </Button>
-              </div>
-              <p className="text-xs text-gray-500 mt-3">*Valid for new bookings only. One upgrade per party.</p>
-            </div>
           </div>
         </div>
       )}

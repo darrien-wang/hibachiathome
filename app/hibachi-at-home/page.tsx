@@ -796,7 +796,7 @@ export default function HibachiAtHomePage() {
               <div className="text-amber-100">Happy Customers</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">4.9★</div>
+              <div className="text-3xl font-bold text-white mb-2">4.9���</div>
               <div className="text-amber-100">Average Rating</div>
             </div>
             <div className="text-center">

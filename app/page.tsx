@@ -14,6 +14,7 @@ import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import HowItWorksSection from "@/components/how-it-works-section"
+import PromotionalCard from "@/components/promotional-card"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -299,13 +300,7 @@ export default function Home() {
                         <span>Perfect for intimate gatherings</span>
                       </li>
                     </ul>
-                    <Button
-                      asChild
-                      className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow("show")}
-                    >
-                      <Link href="/book">Book Now</Link>
-                    </Button>
+                
                   </div>
                 </div>
               </AnimateOnScroll>
@@ -354,13 +349,7 @@ export default function Home() {
                         <span>Everything ready to go!</span>
                       </li>
                     </ul>
-                    <Button
-                      asChild
-                      className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow("showup")}
-                    >
-                      <Link href="/book">Book Now</Link>
-                    </Button>
+                
                   </div>
                 </div>
               </AnimateOnScroll>
@@ -409,17 +398,14 @@ export default function Home() {
                         <span>Minimum 30 people required</span>
                       </li>
                     </ul>
-                    <Button
-                      asChild
-                      className="w-full bg-amber-500 hover:bg-amber-600"
-                      onClick={() => handleBookNow("buffet")}
-                    >
-                      <Link href="/book">Book Now</Link>
-                    </Button>
+                    
                   </div>
                 </div>
               </AnimateOnScroll>
             </div>
+
+            {/* Promotional Card - Added after package cards */}
+            <PromotionalCard />
 
             <AnimateOnScroll direction="up" delay={200}>
               <div className="text-center mt-10">
@@ -770,10 +756,6 @@ export default function Home() {
                       <div className="text-sm text-gray-600">Entertainment Guaranteed</div>
                     </div>
                   </div>
-
-                  <Button asChild className="w-full bg-amber-500 hover:bg-amber-600" onClick={handleOnlineBooking}>
-                    <Link href="/estimation?source=booking">Book Your Sake & Hibachi Experience</Link>
-                  </Button>
                 </div>
               </AnimateOnScroll>
             </div>
