@@ -796,7 +796,7 @@ export default function HibachiAtHomePage() {
               <div className="text-amber-100">Happy Customers</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">4.9���</div>
+              <div className="text-3xl font-bold text-white mb-2">4.9</div>
               <div className="text-amber-100">Average Rating</div>
             </div>
             <div className="text-center">
@@ -818,6 +818,41 @@ export default function HibachiAtHomePage() {
 
       {/* Testimonials Section */}
       <TestimonialsSection testimonials={testimonials} />
+
+      {/* Signature Fried Rice Video Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">Signature Fried Rice</h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Watch our chef prepare our signature fried rice.
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <TimeoutVideo
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/signature-fried-rice-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/signature-fried-rice-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                  />
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-8 text-center">
+              <p className="text-amber-600 font-medium">Our signature fried rice is a crowd favorite!</p>
+              <p className="text-gray-600 text-sm mt-2">Made with fresh ingredients and cooked to perfection.</p>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
     </div>
   )
 }

@@ -266,7 +266,7 @@ export default function Home() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/fried%20rice%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8Clipchamp%E5%88%B6%E4%BD%9C-3ADECoQ8RcpU3s0WNKfW1v5cLlSsiL.mp4"
                       alt="Basic Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
@@ -300,7 +300,6 @@ export default function Home() {
                         <span>Perfect for intimate gatherings</span>
                       </li>
                     </ul>
-                
                   </div>
                 </div>
               </AnimateOnScroll>
@@ -349,7 +348,6 @@ export default function Home() {
                         <span>Everything ready to go!</span>
                       </li>
                     </ul>
-                
                   </div>
                 </div>
               </AnimateOnScroll>
@@ -398,7 +396,6 @@ export default function Home() {
                         <span>Minimum 30 people required</span>
                       </li>
                     </ul>
-                    
                   </div>
                 </div>
               </AnimateOnScroll>
@@ -440,10 +437,15 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <video className="absolute top-0 left-0 w-full h-full object-cover" controls autoPlay muted loop>
-                    <source src="/videos/signature-fried-rice.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  <TimeoutVideo
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/signature-fried-rice-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/AQMZeMY8EF_j_fglcE3cfFprzTeRb6_2VViMqKLTk8A74DzytNZ4EcprS7wY6vKzNmvEcY3CjYdVVPFDJtcmX69ccg_95g7mEZyVMAU.-rxB2mXpQhOkR95B8v11qxN072QyNyy.mp4"
+                  />
                 </div>
               </div>
             </AnimateOnScroll>
@@ -513,10 +515,15 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <video className="absolute top-0 left-0 w-full h-full object-cover" controls autoPlay muted loop>
-                    <source src="/videos/hibachi-shrimp-cooking.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  <TimeoutVideo
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/hibachi-shrimp-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/%E6%97%A0%E6%A0%87%E9%A2%98%E8%A7%86%E9%A2%91%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8Clipchamp%E5%88%B6%E4%BD%9C%20%286%29-GPDBGmtsQpjD214EDrt1aM2QxyJmex.mp4"
+                  />
                 </div>
               </div>
             </AnimateOnScroll>
@@ -586,10 +593,15 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <video className="absolute top-0 left-0 w-full h-full object-cover" controls autoPlay muted loop>
-                    <source src="/videos/hibachi-steak-cooking.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  <TimeoutVideo
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/hibachi-steak-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/AQMZeMY8EF_j_fglcE3cfFprzTeRb6_2VViMqKLTk8A74DzytNZ4EcprS7wY6vKzNmvEcY3CjYdVVPFDJtcmX69ccg_95g7mEZyVMAU.-rxB2mXpQhOkR95B8v11qxN072QyNyy.mp4"
+                  />
                 </div>
               </div>
             </AnimateOnScroll>
@@ -660,7 +672,7 @@ export default function Home() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
+                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
                     src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
                   />
                 </div>
