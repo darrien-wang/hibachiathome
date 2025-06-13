@@ -266,7 +266,7 @@ export default function Home() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/fried%20rice%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8Clipchamp%E5%88%B6%E4%BD%9C-3ADECoQ8RcpU3s0WNKfW1v5cLlSsiL.mp4"
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
                       alt="Basic Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
