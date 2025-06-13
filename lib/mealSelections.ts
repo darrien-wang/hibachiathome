@@ -1,4 +1,4 @@
-// 蛋白质和配菜选择相关操作函数迁移自 package-selection.tsx
+// 蛋白质和配菜选择相关操作函数迁移�� package-selection.tsx
 
 export function handleProteinChange({
   protein,

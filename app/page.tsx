@@ -254,7 +254,7 @@ export default function Home() {
               </p>
             </AnimateOnScroll>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Basic Package Card */}
               <AnimateOnScroll direction="left">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
@@ -303,6 +303,61 @@ export default function Home() {
                       asChild
                       className="w-full bg-amber-500 hover:bg-amber-600"
                       onClick={() => handleBookNow("show")}
+                    >
+                      <Link href="/book">Book Now</Link>
+                    </Button>
+                  </div>
+                </div>
+              </AnimateOnScroll>
+
+              {/* Show Up Package Card */}
+              <AnimateOnScroll direction="up">
+                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-green-300/50 hover:border-green-300">
+                  <div className="absolute top-2 right-2 z-10">
+                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 border-green-200">
+                      All-Inclusive
+                    </span>
+                  </div>
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3ce446cf6f67fa9ee6ef2bbdb81de44-v6JRJjtRTudV3D6zJCWCEoOXtgw4NU.png"
+                      alt="Show Up Package"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2">Show Up Package</h3>
+                    <div className="mb-4">
+                      <p className="text-lg font-semibold text-amber-600">
+                        <span className="text-gray-500 text-sm line-through mr-2">$75</span>
+                        $64.9
+                        <span className="text-sm font-normal"> per person</span>
+                      </p>
+                      <p className="text-xs text-gray-600">($599 minimum)</p>
+                    </div>
+                    <ul className="space-y-1 mb-6 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-green-500 mr-2">•</span>
+                        <span>2 proteins of your choice</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-green-500 mr-2">•</span>
+                        <span>Tables, chairs & utensils included</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-green-500 mr-2">•</span>
+                        <span>Chef performance included</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-green-500 mr-2">•</span>
+                        <span>Everything ready to go!</span>
+                      </li>
+                    </ul>
+                    <Button
+                      asChild
+                      className="w-full bg-amber-500 hover:bg-amber-600"
+                      onClick={() => handleBookNow("showup")}
                     >
                       <Link href="/book">Book Now</Link>
                     </Button>
@@ -374,7 +429,7 @@ export default function Home() {
                   className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
                   onClick={handleViewMenu}
                 >
-                  <Link href="/menu">View Menu</Link>
+                  <Link href="/menu">See Full Menu</Link>
                 </Button>
               </div>
             </AnimateOnScroll>
@@ -391,8 +446,8 @@ export default function Home() {
                 Our Signature <span className="text-primary">Garlic Butter Fried Rice</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Watch our master chefs create the perfect hibachi fried rice with aromatic garlic butter, fresh
-                vegetables, and authentic Japanese seasonings right before your eyes
+                Experience our chefs preparing delicious hibachi fried rice with aromatic garlic butter and fresh
+                vegetables right before your eyes.
               </p>
             </AnimateOnScroll>
 
@@ -413,9 +468,9 @@ export default function Home() {
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-amber-600 text-xl">🧄</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Garlic Butter Magic</h3>
+                  <h3 className="font-bold text-lg mb-2">Aromatic Garlic Butter</h3>
                   <p className="text-gray-600">
-                    Our secret blend of garlic butter creates the perfect aromatic base for our signature fried rice.
+                    Our special garlic butter creates a flavorful base for our signature fried rice.
                   </p>
                 </div>
               </AnimateOnScroll>
@@ -425,9 +480,9 @@ export default function Home() {
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-amber-600 text-xl">🍚</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Perfect Fried Rice</h3>
+                  <h3 className="font-bold text-lg mb-2">Delicious Fried Rice</h3>
                   <p className="text-gray-600">
-                    Each grain is perfectly seasoned and cooked to achieve that authentic hibachi restaurant taste.
+                    Each grain is seasoned and cooked to achieve an authentic hibachi taste.
                   </p>
                 </div>
               </AnimateOnScroll>
@@ -437,36 +492,108 @@ export default function Home() {
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-amber-600 text-xl">👨‍🍳</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Chef's Technique</h3>
+                  <h3 className="font-bold text-lg mb-2">Skilled Chef's Technique</h3>
                   <p className="text-gray-600">
-                    Watch our skilled chefs demonstrate traditional hibachi cooking techniques with flair and precision.
+                    Watch our skilled chefs demonstrate traditional hibachi cooking techniques.
                   </p>
                 </div>
               </AnimateOnScroll>
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium text-lg">
-                Every grain tells a story of authentic Japanese flavors! 🍚✨
-              </p>
+              <p className="text-amber-600 font-medium text-lg">Every grain offers authentic Japanese flavors! 🍚✨</p>
               <p className="text-gray-600 text-sm mt-2">
-                Our garlic butter fried rice is included in all hibachi packages and is always a crowd favorite.
+                Our garlic butter fried rice is included in all hibachi packages.
               </p>
             </div>
           </div>
         </section>
       </AnimateOnScroll>
-      {/* Hibachi Steak Cooking Section */}
+
+      {/* Hibachi Shrimp Cooking Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Premium <span className="text-primary">Hibachi Steak</span> Experience
+                Sizzling <span className="text-primary">Hibachi Shrimp</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Watch our master chefs prepare perfectly seasoned hibachi steak with precision and flair. Each cut is
-                grilled to perfection on our authentic hibachi grill, delivering restaurant-quality taste at your home.
+                Watch our chefs prepare succulent jumbo shrimp with flair. These delicious seafood items are cooked to
+                perfection right before your eyes.
+              </p>
+            </AnimateOnScroll>
+
+            <AnimateOnScroll>
+              <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[56.25%] h-0">
+                  <video className="absolute top-0 left-0 w-full h-full object-cover" controls autoPlay muted loop>
+                    <source src="/videos/hibachi-shrimp-cooking.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </AnimateOnScroll>
+
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <AnimateOnScroll delay={100} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-blue-600 text-xl">🦐</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Quality Jumbo Shrimp</h3>
+                  <p className="text-gray-600">
+                    We use fresh, high-quality jumbo shrimp for a great hibachi experience.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={200} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-blue-600 text-xl">🔥</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Expertly Cooked</h3>
+                  <p className="text-gray-600">
+                    Our cooking technique creates a good sear while keeping the shrimp tender and juicy.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+
+              <AnimateOnScroll delay={300} direction="up">
+                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-blue-600 text-xl">🍋</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Enhanced Flavor</h3>
+                  <p className="text-gray-600">
+                    A hint of lemon and our seasoning blend enhances the natural sweetness of the shrimp.
+                  </p>
+                </div>
+              </AnimateOnScroll>
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-blue-600 font-medium text-lg">Delicious shrimp, prepared with care! 🦐✨</p>
+              <p className="text-gray-600 text-sm mt-2">
+                Available as a premium protein option in all hibachi packages.
+              </p>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
+      {/* Hibachi Steak Cooking Section */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
+          <div className="container mx-auto px-4">
+            <AnimateOnScroll direction="down">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+                Delicious <span className="text-primary">Hibachi Steak</span> Experience
+              </h2>
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Watch our chefs prepare seasoned hibachi steak with precision. Each cut is grilled to your preference on
+                our hibachi grill, delivering a great taste at your home.
               </p>
             </AnimateOnScroll>
 
@@ -487,10 +614,8 @@ export default function Home() {
                   <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-red-600 text-xl">🥩</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Premium Quality Beef</h3>
-                  <p className="text-gray-600">
-                    We use only the finest cuts of beef, carefully selected and prepared to hibachi perfection.
-                  </p>
+                  <h3 className="font-bold text-lg mb-2">Quality Beef</h3>
+                  <p className="text-gray-600">We use selected cuts of beef, prepared for hibachi cooking.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -499,9 +624,9 @@ export default function Home() {
                   <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-red-600 text-xl">🔥</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">High-Heat Searing</h3>
+                  <h3 className="font-bold text-lg mb-2">Optimal Searing</h3>
                   <p className="text-gray-600">
-                    Our hibachi grills reach the perfect temperature for that signature sear and smoky flavor.
+                    Our hibachi grills reach the right temperature for a good sear and flavor.
                   </p>
                 </div>
               </AnimateOnScroll>
@@ -511,18 +636,16 @@ export default function Home() {
                   <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-red-600 text-xl">👨‍🍳</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Expert Preparation</h3>
-                  <p className="text-gray-600">
-                    Our skilled chefs know exactly how to cook each steak to your preferred doneness with precision.
-                  </p>
+                  <h3 className="font-bold text-lg mb-2">Skilled Preparation</h3>
+                  <p className="text-gray-600">Our chefs know how to cook each steak to your preferred doneness.</p>
                 </div>
               </AnimateOnScroll>
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-red-600 font-medium text-lg">Perfectly grilled steak, every single time! 🥩🔥</p>
+              <p className="text-red-600 font-medium text-lg">Steak cooked just right, every time! 🥩🔥</p>
               <p className="text-gray-600 text-sm mt-2">
-                Available as part of our premium protein selections in all hibachi packages.
+                Available as part of our protein selections in all hibachi packages.
               </p>
             </div>
           </div>
@@ -616,8 +739,7 @@ export default function Home() {
                 Sake Service & Entertainment
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Experience the authentic Japanese tradition as our skilled chefs serve premium sake alongside
-                spectacular hibachi entertainment
+                Experience Japanese tradition as our chefs serve sake alongside hibachi entertainment.
               </p>
             </AnimateOnScroll>
 
@@ -661,7 +783,7 @@ export default function Home() {
 
       {/* FAQ Section */}
       <AnimateOnScroll>
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
               <h3 className="text-2xl md:text-3xl font-serif font-bold text-center mb-8">Frequently Asked Questions</h3>
@@ -733,11 +855,11 @@ export default function Home() {
           <div className="container mx-auto px-4 text-center">
             <AnimateOnScroll direction="down">
               <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
-                Ready to Create Unforgettable Memories?
+                Ready to Create Great Memories?
               </h2>
               <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
                 Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home.
-                Our professional chefs are ready to create an amazing show and delicious meal for you and your guests.
+                Our chefs are ready to create a great show and delicious meal for you and your guests.
               </p>
             </AnimateOnScroll>
 

@@ -53,11 +53,6 @@ export const heroImages: HeroImage[] = [
     priority: 6,
   },
   {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner3-RRJ8sTikDnZjukYjncPEnJQkklZJpZ.jpg",
-    alt: "Hibachi chef performing cooking show",
-    priority: 7,
-  },
-  {
     url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner4-gzupE1yCoJ0UA36Gm8v3BMNHdVfA5Q.jpg",
     alt: "Elegant hibachi dining experience",
     priority: 8,

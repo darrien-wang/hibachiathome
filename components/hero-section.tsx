@@ -10,13 +10,22 @@ export default function HeroSection() {
   const [imageTimestamps, setImageTimestamps] = useState<string[]>([])
   const [autoplayEnabled, setAutoplayEnabled] = useState(false)
   const [userInteracted, setUserInteracted] = useState(false)
-  const [firstSlideTimer, setFirstSlideTimer] = useState<NodeJS.Timeout | null>(null)
+  const firstSlideTimerRef = useRef<NodeJS.Timeout | null>(null)
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [touchStart, setTouchStart] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [swipeDistance, setSwipeDistance] = useState(0)
   const swipeThreshold = 50
-  const sortedHeroImages = useState(() => getSortedHeroImages())[0]
+
+  // Fix: Correctly initialize heroImagesRef with a computed value, not a function
+  const heroImagesRef = useRef(getSortedHeroImages().filter((_, index) => index !== 0 && index !== 4).concat({
+    url: "/images/hibachi-dinner-party.jpg",
+    alt: "Hibachi dinner party with friends enjoying a meal outdoors",
+    priority: 10, // Lower priority to ensure it's added at the end
+  }))
+
+  const sortedHeroImages = heroImagesRef.current
+  const carouselIntervalOverride = 3000 // 3 seconds instead of default
   const [showPromoPopup, setShowPromoPopup] = useState(false)
   const [promoPopupDismissed, setPromoPopupDismissed] = useState(false)
   const videoEnded = true
@@ -48,13 +57,14 @@ export default function HeroSection() {
     handleUserInteraction()
     setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
   }
+
   const prevSlide = () => {
     handleUserInteraction()
     setCurrentSlide((prev) => (prev - 1 + sortedHeroImages.length) % sortedHeroImages.length)
   }
 
   useEffect(() => {
-    // 预加载图片
+    // Preload images
     const loadImagesOnce = async () => {
       if (sortedHeroImages.length > 0 && !imagesLoaded) {
         const promises = sortedHeroImages.map((image) => {
@@ -72,7 +82,7 @@ export default function HeroSection() {
     if (typeof window !== "undefined") {
       loadImagesOnce()
     }
-  }, [sortedHeroImages.length, imagesLoaded])
+  }, [imagesLoaded]) // Remove sortedHeroImages from dependencies
 
   useEffect(() => {
     if (sortedHeroImages.length > 0 && imageTimestamps.length === 0) {
@@ -110,26 +120,27 @@ export default function HeroSection() {
 
       setImageTimestamps(timestamps)
     }
-  }, [sortedHeroImages.length, imageTimestamps.length])
+  }, [imageTimestamps.length]) // Remove sortedHeroImages from dependencies
 
   useEffect(() => {
-    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration && videoEnded) {
-      const timer = setTimeout(() => {
-        if (!userInteracted) {
-          setCurrentSlide(1 % sortedHeroImages.length)
-        }
-      }, sortedHeroImages[0].duration)
-      setFirstSlideTimer(timer)
+    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration && videoEnded && !userInteracted) {
+      // Clear any existing timer
+      if (firstSlideTimerRef.current) {
+        clearTimeout(firstSlideTimerRef.current)
+      }
+
+      // Set new timer
+      firstSlideTimerRef.current = setTimeout(() => {
+        setCurrentSlide(0)
+      }, 5000) // Use a default duration since the first image with duration is now removed
     }
+
     return () => {
-      if (firstSlideTimer) {
-        clearTimeout(firstSlideTimer)
-      }
-      if (autoplayTimerRef.current) {
-        clearInterval(autoplayTimerRef.current)
+      if (firstSlideTimerRef.current) {
+        clearTimeout(firstSlideTimerRef.current)
       }
     }
-  }, [sortedHeroImages, userInteracted, videoEnded])
+  }, [userInteracted, videoEnded]) // Remove sortedHeroImages from dependencies
 
   useEffect(() => {
     if (sortedHeroImages.length > 0 && autoplayEnabled && videoEnded) {
@@ -138,14 +149,15 @@ export default function HeroSection() {
       }
       autoplayTimerRef.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
-      }, carouselConfig.interval)
-      return () => {
-        if (autoplayTimerRef.current) {
-          clearInterval(autoplayTimerRef.current)
-        }
+      }, carouselIntervalOverride) // Use the faster interval override
+    }
+
+    return () => {
+      if (autoplayTimerRef.current) {
+        clearInterval(autoplayTimerRef.current)
       }
     }
-  }, [sortedHeroImages.length, autoplayEnabled, videoEnded])
+  }, [autoplayEnabled, videoEnded]) // Remove sortedHeroImages from dependencies
 
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center">
@@ -209,8 +221,8 @@ export default function HeroSection() {
         className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
       >
         <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative">
-          {/* Local overlay for button area only */}
-          <div className="absolute inset-0 bg-black/60 rounded-lg -m-8"></div>
+          {/* Frosted glass overlay for button area */}
+          <div className="absolute inset-0 backdrop-blur-md bg-white/20 rounded-lg -m-8 border border-white/30"></div>
           <div className="relative z-10">
             <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
               <Button
@@ -219,15 +231,15 @@ export default function HeroSection() {
                 className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
                 onClick={handleFirstInteraction}
               >
-                <Link href="/estimation">Get Instant Quote</Link>
+                <Link href="/estimation">Build Your Hibachi Party</Link>
               </Button>
               <Button
                 asChild
                 size="lg"
-                className="text-lg py-6 px-8 bg-white/10 text-white border border-white/70 hover:bg-white/20 transition-colors duration-300 rounded-full w-full sm:w-1/3"
+                className="text-lg py-6 px-8 bg-white text-amber-600 border-2 border-amber-500 hover:bg-amber-600 hover:text-white shadow-lg hover:shadow-xl transition-colors duration-300 rounded-full w-full sm:w-1/3"
                 onClick={handleFirstInteraction}
               >
-                <Link href="/menu">View Menu & Upgrades</Link>
+                <Link href="/menu">See What's on the Grill</Link>
               </Button>
             </div>
             <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
@@ -238,7 +250,7 @@ export default function HeroSection() {
       </div>
 
       {/* 轮播控制按钮 */}
-      <>
+      <div>
         <button
           onClick={prevSlide}
           className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
@@ -253,7 +265,7 @@ export default function HeroSection() {
         >
           →
         </button>
-      </>
+      </div>
 
       {/* 轮播指示器 */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
@@ -285,6 +297,7 @@ export default function HeroSection() {
           </div>
         </div>
       )}
+
       {/* Promotional Popup */}
       {showPromoPopup && !promoPopupDismissed && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
