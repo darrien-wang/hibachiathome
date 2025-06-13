@@ -212,7 +212,7 @@ export default function HeroSection() {
       <div
         className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
       >
-        <div className="relative max-w-3xl mx-auto" style={{ marginTop: "25vh" }}>
+        <div className="relative max-w-3xl mx-auto" style={{ marginTop: "calc(25vh - 100px)" }}>
           <div
             className="bg-red-600 text-white py-3 px-6 rounded-md transform rotate-[-1deg] shadow-lg border-2 border-yellow-400"
             style={{
