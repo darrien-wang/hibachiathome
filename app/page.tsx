@@ -444,7 +444,7 @@ export default function Home() {
                     muted
                     loop
                     poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/signature-fried-rice-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/AQMZeMY8EF_j_fglcE3cfFprzTeRb6_2VViMqKLTk8A74DzytNZ4EcprS7wY6vKzNmvEcY3CjYdVVPFDJtcmX69ccg_95g7mEZyVMAU.-rxB2mXpQhOkR95B8v11qxN072QyNyy.mp4"
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/fried%20rice%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8Clipchamp%E5%88%B6%E4%BD%9C%20%281%29-KokWcVkQaH2bx0S1MqMxI675DrVvlm.mp4"
                   />
                 </div>
               </div>
