@@ -29,17 +29,6 @@ export default function HowItWorksSection() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [animationTriggered])
 
-  /* Remove this useEffect block entirely:
-  useEffect(() => {
-    // Function to format today's date as MM/DD
-    const getTodayFormatted = () => {
-      const today = new Date()
-      return `${today.getMonth() + 1}/${today.getDate()}`
-    }
-    setTodayFormatted(getTodayFormatted())
-  }, [])
-  */
-
   // SMS template for availability check
   const availabilitySmsTemplate = `Hi, I'm interested in booking a hibachi party on [DATE]. Is this date available? I'm looking at [YOUR PACKAGE].`
   const availabilitySmsLink = `sms:+15627134832?body=${encodeURIComponent(availabilitySmsTemplate)}`
@@ -63,48 +52,48 @@ export default function HowItWorksSection() {
         {/* Show Up Package Highlight Box */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 mb-12 shadow-lg border-l-4 border-amber-500 max-w-3xl mx-auto">
           <h3 className="text-2xl md:text-3xl font-bold mb-3 text-amber-700 font-serif">
-            Throw a Hibachi Party in 3 Minutes – Just Show Up!
+            Introducing Our Show Up Package – Party Planning Made Simple!
           </h3>
           <p className="text-gray-700 mb-6 text-lg">
-            Planning a party has never been this easy. With our Show Up Package, you get everything you need — without
-            lifting a finger.
+            Hosting a hibachi party has never been easier! Our revolutionary Show Up Package takes care of everything,
+            so you can focus on what matters most – enjoying time with your guests.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Professional chef</span>
+              <span className="text-gray-800">Professional hibachi chef</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">All food & ingredients</span>
+              <span className="text-gray-800">Premium fresh ingredients</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Teppanyaki grill & gas</span>
+              <span className="text-gray-800">Teppanyaki grill & propane</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Tables & chairs</span>
+              <span className="text-gray-800">Tables & chairs setup</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Plates & utensils</span>
+              <span className="text-gray-800">Plates, utensils & napkins</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Sake & beverages</span>
+              <span className="text-gray-800">Complete table decoration</span>
             </div>
           </div>
           <p className="text-gray-700 font-medium text-center text-lg border-t border-gray-200 pt-4">
-            We handle the setup, cooking, serving, and cleanup.
+            We arrive, set up everything beautifully, cook an amazing meal, serve your guests, and clean up afterward.
             <br />
-            <span className="font-bold text-amber-700">You just show up, and enjoy.</span>
+            <span className="font-bold text-amber-700">You literally just show up and enjoy your own party!</span>
           </p>
         </div>
 
         <AnimateOnScroll direction="down">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12 text-white">
-            How to <span className="text-amber-300">Throw a Party in 3 Minutes</span>?
+            🎉 <span className="text-amber-300">Throw a Party — It Only Takes 3 Minutes!</span>
           </h2>
         </AnimateOnScroll>
         {/* Desktop Timeline View */}
@@ -124,7 +113,7 @@ export default function HowItWorksSection() {
                   </div>
                   <h3 className="text-xl font-bold mb-3 font-serif text-center">Pick Your Menu</h3>
                   <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
-                    Choose our Show Up package or select from other available packages. Tell us your preferred proteins.
+                    Pick your package and favorite proteins — that's it!
                   </p>
                   <div className="text-center">
                     <Button
@@ -152,7 +141,7 @@ export default function HowItWorksSection() {
                   </div>
                   <h3 className="text-xl font-bold mb-3 font-serif text-center">Check Availability</h3>
                   <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
-                    Send us a quick text to check if your preferred date is available. We'll respond within hours.
+                    Text us your date — we'll confirm availability fast.
                   </p>
                   <div className="text-center">
                     <Button
@@ -183,8 +172,7 @@ export default function HowItWorksSection() {
                   </div>
                   <h3 className="text-xl font-bold mb-3 font-serif text-center">Book Your Party</h3>
                   <p className="text-foreground/80 font-sans tracking-wide text-center mb-6">
-                    Send us your party details including date, time, location, and number of guests. We'll handle the
-                    rest!
+                    Send the date, time & guest count — we'll handle the rest!
                   </p>
                   <div className="text-center">
                     <Button
@@ -221,8 +209,7 @@ export default function HowItWorksSection() {
                   </div>
                 </div>
                 <p className="text-foreground/80 font-sans tracking-wide mt-2">
-                  Choose our Show Up package (or select from other available packages) and tell us your preferred
-                  proteins.
+                  Pick your package and favorite proteins — that's it!
                 </p>
                 <div className="mt-4">
                   <Button

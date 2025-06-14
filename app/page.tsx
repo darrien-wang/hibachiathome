@@ -196,16 +196,6 @@ export default function Home() {
 
   const cardItems: CardItem[] = [
     {
-      title: "Online Booking",
-      description: "Book at your convenience",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "Book Online",
-      onClick: handleOnlineBooking,
-      variant: "default",
-      className: "bg-white/20 border-white/30",
-      is24_7: true,
-    },
-    {
       title: "WhatsApp",
       description: "Fastest response time",
       icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,

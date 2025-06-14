@@ -1,7 +1,5 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
 export default function HeroSection() {
@@ -220,37 +218,11 @@ export default function HeroSection() {
               boxShadow: "0 4px 6px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 215, 0, 0.3)",
             }}
           >
-            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉3 Minutes! Throw a Party. Just Show Up 🎉</p>
+            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 Want a Party? One Call, That's All. 🎉</p>
           </div>
         </div>
 
-        <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative">
-          {/* Frosted glass overlay for button area */}
-          <div className="absolute inset-0 backdrop-blur-md bg-white/20 rounded-lg -m-8 border border-white/30"></div>
-          <div className="relative z-10">
-            <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 max-w-2xl mx-auto">
-              <Button
-                asChild
-                size="lg"
-                className="text-lg py-6 px-8 bg-primary hover:bg-primary/90 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-2/3"
-                onClick={handleFirstInteraction}
-              >
-                <Link href="/estimation">Build Your Hibachi Party</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                className="text-lg py-6 px-8 bg-white text-amber-600 border-2 border-amber-500 hover:bg-amber-600 hover:text-white shadow-lg hover:shadow-xl transition-colors duration-300 rounded-full w-full sm:w-1/3"
-                onClick={handleFirstInteraction}
-              >
-                <Link href="/menu">See What's on the Grill</Link>
-              </Button>
-            </div>
-            <p className="text-sm md:text-base max-w-xl mx-auto mt-4 font-light opacity-90">
-              Top-tier food & service. No hidden fees. From $499.
-            </p>
-          </div>
-        </div>
+        <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative"></div>
       </div>
 
       {/* 轮播控制按钮 */}

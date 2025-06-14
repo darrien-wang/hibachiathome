@@ -49,129 +49,210 @@ export function FloatingContactButtons() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#F5E3CB] to-white backdrop-blur-sm border-t border-[#F5E3CB]/30 shadow-2xl">
       {!isMainExpanded ? (
-        // Collapsed state - single contact button
-        <Button
-          onClick={() => setIsMainExpanded(true)}
-          className="bg-orange-600 hover:bg-orange-700 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-          size="lg"
-        >
-          <MessageCircle className="h-4 w-4" />
-          <span>Book Now</span>
-        </Button>
-      ) : (
-        // Expanded state - show all contact options
-        <>
-          {/* Close button */}
+        // Collapsed state - full width bottom bar
+        <div className="px-4 py-3">
           <Button
-            onClick={() => {
-              setIsMainExpanded(false)
-              setExpandedButton(null)
-            }}
-            className="bg-red-600 hover:bg-red-700 text-white rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-            size="sm"
+            onClick={() => setIsMainExpanded(true)}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-lg py-4 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 text-lg font-semibold"
+            size="lg"
           >
-            <X className="h-4 w-4" />
-            <span>Close</span>
+            <MessageCircle className="h-5 w-5" />
+            <span>Book Now</span>
           </Button>
+        </div>
+      ) : (
+        // Expanded state - optimized for desktop and mobile
+        <div className="px-4 py-4 space-y-3">
+          {/* Close button */}
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold text-gray-800">Book Now</h3>
+            <Button
+              onClick={() => {
+                setIsMainExpanded(false)
+                setExpandedButton(null)
+              }}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-          {/* Phone Button */}
-          {expandedButton === "phone" ? (
-            <div className="bg-white text-slate-800 rounded-lg p-4 shadow-lg flex flex-col gap-2 min-w-[250px]">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold flex items-center gap-2">
+          {/* Contact options - responsive grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
+            {/* Phone - Mobile: expandable, Desktop: always shown */}
+            <div className="md:bg-white/50 md:backdrop-blur-sm md:rounded-lg md:p-4 md:border md:border-white/40">
+              {/* Mobile expandable version */}
+              <div className="md:hidden">
+                {expandedButton === "phone" ? (
+                  <div
+                    className="bg-white/50 backdrop-blur-sm rounded-lg p-4 border border-white/40"
+                    onClick={() => setExpandedButton(null)}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Phone className="h-4 w-4" /> Phone
+                      </h4>
+                    </div>
+                    <p className="select-all text-base mb-3">{formatPhoneNumber(phoneNumber)}</p>
+                    <div className="flex flex-row gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white flex-[3]"
+                        onClick={handleCall}
+                      >
+                        Call Now
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => copyToClipboard(phoneNumber)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" /> Copy
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => toggleExpand("phone")}
+                    variant="outline"
+                    className="w-full justify-center py-4 text-center bg-white/30 hover:bg-white/50 border-white/40"
+                    size="lg"
+                  >
+                    <Phone className="h-4 w-4 mr-3" />
+                    <span>Call Us</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Desktop always visible version */}
+              <div className="hidden md:block">
+                <h4 className="font-semibold flex items-center gap-2 mb-2">
                   <Phone className="h-4 w-4" /> Phone
-                </h3>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setExpandedButton(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="select-all text-base">{formatPhoneNumber(phoneNumber)}</p>
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleCall}>
-                  Call Now
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => copyToClipboard(phoneNumber)}>
+                </h4>
+                <p className="select-all text-base mb-3">{formatPhoneNumber(phoneNumber)}</p>
+                <Button size="sm" variant="outline" onClick={() => copyToClipboard(phoneNumber)} className="w-full">
                   <Copy className="h-3 w-3 mr-1" /> Copy
                 </Button>
               </div>
             </div>
-          ) : (
-            <Button
-              onClick={() => toggleExpand("phone")}
-              className="bg-slate-700 hover:bg-green-600 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-              size="lg"
-            >
-              <Phone className="h-4 w-4" />
-              <span>Call</span>
-            </Button>
-          )}
 
-          {/* SMS Button */}
-          {expandedButton === "sms" ? (
-            <div className="bg-white text-slate-800 rounded-lg p-4 shadow-lg flex flex-col gap-2 min-w-[250px]">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold flex items-center gap-2">
+            {/* SMS - Mobile: expandable, Desktop: always shown */}
+            <div className="md:bg-white/50 md:backdrop-blur-sm md:rounded-lg md:p-4 md:border md:border-white/40">
+              {/* Mobile expandable version */}
+              <div className="md:hidden">
+                {expandedButton === "sms" ? (
+                  <div
+                    className="bg-white/50 backdrop-blur-sm rounded-lg p-4 border border-white/40"
+                    onClick={() => setExpandedButton(null)}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4" /> SMS
+                      </h4>
+                    </div>
+                    <p className="select-all text-base mb-3">{formatPhoneNumber(smsNumber)}</p>
+                    <div className="flex flex-row gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex-[3]"
+                        onClick={handleSMS}
+                      >
+                        Send SMS
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => copyToClipboard(smsNumber)}>
+                        <Copy className="h-3 w-3 mr-1" /> Copy
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => toggleExpand("sms")}
+                    variant="outline"
+                    className="w-full justify-center py-4 text-center bg-white/30 hover:bg-white/50 border-white/40"
+                    size="lg"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-3" />
+                    <span>Send Text</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Desktop always visible version */}
+              <div className="hidden md:block">
+                <h4 className="font-semibold flex items-center gap-2 mb-2">
                   <MessageCircle className="h-4 w-4" /> SMS
-                </h3>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setExpandedButton(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="select-all text-base">{formatPhoneNumber(smsNumber)}</p>
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSMS}>
-                  Send SMS
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => copyToClipboard(smsNumber)}>
+                </h4>
+                <p className="select-all text-base mb-3">{formatPhoneNumber(smsNumber)}</p>
+                <Button size="sm" variant="outline" onClick={() => copyToClipboard(smsNumber)} className="w-full">
                   <Copy className="h-3 w-3 mr-1" /> Copy
                 </Button>
               </div>
             </div>
-          ) : (
-            <Button
-              onClick={() => toggleExpand("sms")}
-              className="bg-slate-700 hover:bg-blue-600 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-              size="lg"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>Text</span>
-            </Button>
-          )}
 
-          {/* Email Button */}
-          {expandedButton === "email" ? (
-            <div className="bg-white text-slate-800 rounded-lg p-4 shadow-lg flex flex-col gap-2 min-w-[250px]">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Mail className="h-4 w-4" /> Email
-                </h3>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setExpandedButton(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
+            {/* Email - Mobile: expandable, Desktop: always shown */}
+            <div className="md:bg-white/50 md:backdrop-blur-sm md:rounded-lg md:p-4 md:border md:border-white/40">
+              {/* Mobile expandable version */}
+              <div className="md:hidden">
+                {expandedButton === "email" ? (
+                  <div
+                    className="bg-white/50 backdrop-blur-sm rounded-lg p-4 border border-white/40"
+                    onClick={() => setExpandedButton(null)}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Mail className="h-4 w-4" /> Email
+                      </h4>
+                    </div>
+                    <p className="select-all text-base break-all mb-3">{emailAddress}</p>
+                    <div className="flex flex-row gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-amber-600 hover:bg-amber-700 text-white flex-[3]"
+                        onClick={handleEmail}
+                      >
+                        Send Email
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => copyToClipboard(emailAddress)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" /> Copy
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => toggleExpand("email")}
+                    variant="outline"
+                    className="w-full justify-center py-4 text-center bg-white/30 hover:bg-white/50 border-white/40"
+                    size="lg"
+                  >
+                    <Mail className="h-4 w-4 mr-3" />
+                    <span>Send Email</span>
+                  </Button>
+                )}
               </div>
-              <p className="select-all text-base break-all">{emailAddress}</p>
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={handleEmail}>
-                  Send Email
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => copyToClipboard(emailAddress)}>
+
+              {/* Desktop always visible version */}
+              <div className="hidden md:block">
+                <h4 className="font-semibold flex items-center gap-2 mb-2">
+                  <Mail className="h-4 w-4" /> Email
+                </h4>
+                <p className="select-all text-base break-all mb-3">{emailAddress}</p>
+                <Button size="sm" variant="outline" onClick={() => copyToClipboard(emailAddress)} className="w-full">
                   <Copy className="h-3 w-3 mr-1" /> Copy
                 </Button>
               </div>
             </div>
-          ) : (
-            <Button
-              onClick={() => toggleExpand("email")}
-              className="bg-slate-700 hover:bg-amber-600 text-white rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-              size="lg"
-            >
-              <Mail className="h-4 w-4" />
-              <span>Email</span>
-            </Button>
-          )}
-        </>
+          </div>
+        </div>
       )}
     </div>
   )
