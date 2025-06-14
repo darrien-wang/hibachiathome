@@ -8,7 +8,7 @@ import { CheckCircle, MessageSquare, Calendar } from "lucide-react"
 export default function HowItWorksSection() {
   const [animatedSteps, setAnimatedSteps] = useState([false, false, false])
   const [animationTriggered, setAnimationTriggered] = useState(false)
-  const [todayFormatted, setTodayFormatted] = useState("")
+  const [/* remove */ todayFormatted, /* remove */ setTodayFormatted] = useState("")
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,6 +29,7 @@ export default function HowItWorksSection() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [animationTriggered])
 
+  /* Remove this useEffect block entirely:
   useEffect(() => {
     // Function to format today's date as MM/DD
     const getTodayFormatted = () => {
@@ -37,14 +38,15 @@ export default function HowItWorksSection() {
     }
     setTodayFormatted(getTodayFormatted())
   }, [])
+  */
 
   // SMS template for availability check
-  const availabilitySmsTemplate = `Hi, I'm interested in booking a hibachi party on ${todayFormatted}. Is this date available? I'm looking at the Show Up Package.`
-  const availabilitySmsLink = `sms:5627134832&body=${encodeURIComponent(availabilitySmsTemplate)}`
+  const availabilitySmsTemplate = `Hi, I'm interested in booking a hibachi party on [DATE]. Is this date available? I'm looking at [YOUR PACKAGE].`
+  const availabilitySmsLink = `sms:+15627134832?body=${encodeURIComponent(availabilitySmsTemplate)}`
 
   // SMS template for booking details
   const bookingSmsTemplate = `Hi, I'd like to book a hibachi party on [DATE] at [TIME], at [LOCATION/ZIP CODE] for approximately [NUMBER] people. Can you help me arrange this?`
-  const bookingSmsLink = `sms:5627134832&body=${encodeURIComponent(bookingSmsTemplate)}`
+  const bookingSmsLink = `sms:+15627134832?body=${encodeURIComponent(bookingSmsTemplate)}`
 
   return (
     <section id="how-it-works" className="py-20 relative overflow-hidden">
