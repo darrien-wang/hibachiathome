@@ -240,8 +240,7 @@ export default function Home() {
                 Our Popular <span className="text-primary">Packages</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any
-                occasion
+                Choose the perfect hibachi package for your event
               </p>
             </AnimateOnScroll>
 
@@ -393,19 +392,6 @@ export default function Home() {
 
             {/* Promotional Card - Added after package cards */}
             <PromotionalCard />
-
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="text-center mt-10">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-                  onClick={handleViewMenu}
-                >
-                  <Link href="/menu">See Full Menu</Link>
-                </Button>
-              </div>
-            </AnimateOnScroll>
           </div>
         </section>
       </AnimateOnScroll>
@@ -640,6 +626,19 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
+      <AnimateOnScroll direction="up" delay={200}>
+        <div className="text-center mt-10">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+            onClick={handleViewMenu}
+          >
+            <Link href="/menu">See Full Menu</Link>
+          </Button>
+        </div>
+      </AnimateOnScroll>
+
       {/* Food Preparation Video Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
@@ -663,7 +662,7 @@ export default function Home() {
                     muted
                     loop
                     poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
                   />
                 </div>
               </div>

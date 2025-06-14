@@ -52,42 +52,39 @@ export default function HowItWorksSection() {
         {/* Show Up Package Highlight Box */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 mb-12 shadow-lg border-l-4 border-amber-500 max-w-3xl mx-auto">
           <h3 className="text-2xl md:text-3xl font-bold mb-3 text-amber-700 font-serif">
-            Introducing Our Show Up Package – Party Planning Made Simple!
+            Show Up Package – We Handle Everything!
           </h3>
           <p className="text-gray-700 mb-6 text-lg">
-            Hosting a hibachi party has never been easier! Our revolutionary Show Up Package takes care of everything,
-            so you can focus on what matters most – enjoying time with your guests.
+            Just show up and enjoy! We bring the chef, food, equipment, tables, and even clean up afterward.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Professional hibachi chef</span>
+              <span className="text-gray-800">Chef & Food</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Premium fresh ingredients</span>
+              <span className="text-gray-800">Grill & Equipment</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Teppanyaki grill & propane</span>
+              <span className="text-gray-800">Tables & Chairs</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Tables & chairs setup</span>
+              <span className="text-gray-800">Plates & Utensils</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Plates, utensils & napkins</span>
+              <span className="text-gray-800">Setup & Cleanup</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Complete table decoration</span>
+              <span className="text-gray-800">Full Service</span>
             </div>
           </div>
-          <p className="text-gray-700 font-medium text-center text-lg border-t border-gray-200 pt-4">
-            We arrive, set up everything beautifully, cook an amazing meal, serve your guests, and clean up afterward.
-            <br />
-            <span className="font-bold text-amber-700">You literally just show up and enjoy your own party!</span>
+          <p className="text-gray-700 font-bold text-center text-lg border-t border-gray-200 pt-4 text-amber-700">
+            You literally just show up and enjoy your party!
           </p>
         </div>
 
