@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, Calculator } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PromotionBanner } from "@/components/promotions/promotion-banner"
 import { siteConfig } from "@/config/site"
@@ -10,7 +10,7 @@ import { siteConfig } from "@/config/site"
 export default function BookingPage() {
   const router = useRouter()
 
-  const handleOnlineBooking = () => {
+  const handleEstimation = () => {
     router.push("/estimation?source=booking")
   }
 
@@ -20,21 +20,21 @@ export default function BookingPage() {
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Book Your Hibachi Experience</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Choose your preferred booking method below, or contact us directly for faster service.
+            Get a free estimate first, then contact us directly to book your experience.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10 max-w-5xl mx-auto">
           {[
             {
-              title: "Online Booking",
-              description: "Book at your convenience",
-              icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-              buttonText: "Book Online",
-              onClick: handleOnlineBooking,
+              title: "Free Estimate",
+              description: "Calculate your price first",
+              icon: <Calculator className="mr-2 h-4 w-4 flex-shrink-0" />,
+              buttonText: "Get Estimate",
+              onClick: handleEstimation,
               variant: "default",
               className: "bg-primary/5 border-primary/20",
-              is24_7: true,
+              isRecommended: true,
             },
             {
               title: "WhatsApp",
@@ -83,7 +83,9 @@ export default function BookingPage() {
                       {card.buttonText}
                     </Button>
                     <div className="h-[20px] flex items-center justify-center">
-                      {card.is24_7 && <p className="text-xs text-gray-500 mt-2">24/7 Service Available</p>}
+                      {card.isRecommended && (
+                        <p className="text-xs text-green-600 mt-2 font-medium">Recommended First Step</p>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -103,13 +105,30 @@ export default function BookingPage() {
                       </a>
                     </Button>
                     <div className="h-[20px] flex items-center justify-center">
-                      {card.is24_7 && <p className="text-xs text-gray-500 mt-2">24/7 Service Available</p>}
+                      {card.isRecommended && (
+                        <p className="text-xs text-green-600 mt-2 font-medium">Recommended First Step</p>
+                      )}
                     </div>
                   </>
                 )}
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-10">
+          <h3 className="text-lg font-semibold text-blue-900 mb-2">How It Works</h3>
+          <div className="text-blue-800 space-y-2">
+            <p>
+              <strong>Step 1:</strong> Use our free estimate calculator to get your pricing
+            </p>
+            <p>
+              <strong>Step 2:</strong> Contact us via WhatsApp, SMS, or phone to book
+            </p>
+            <p>
+              <strong>Step 3:</strong> We'll confirm details and arrange payment (cash, Zelle, Venmo)
+            </p>
+          </div>
         </div>
 
         <PromotionBanner />

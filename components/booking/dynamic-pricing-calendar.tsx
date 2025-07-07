@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon, Clock, ChevronRight } from "lucide-react"
-import { format, addMonths, subMonths, isSameMonth, isBefore, startOfMonth } from "date-fns"
+import { Clock } from "lucide-react"
+import { format, addMonths, subMonths, isBefore, startOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
 
 interface DynamicPricingCalendarProps {
-  onSelectDateTime: (date: Date | undefined, time: string | undefined, price: number, originalPrice: number) => void
+  onSelectDateTime: (
+    dateString: string | undefined,
+    time: string | undefined,
+    price: number,
+    originalPrice: number,
+  ) => void
   packageType: string
   headcount: number
   zipcode: string
@@ -26,7 +31,9 @@ function getMonthDates(year: number, month: number, today: Date) {
   const startDay = isCurrentMonth ? today.getDate() : 1
   const lastDay = new Date(year, month + 1, 0).getDate()
   for (let d = startDay; d <= lastDay; d++) {
-    days.push(new Date(year, month, d))
+    // 创建本地时区的日期，设置为当天中午，避免夏令时问题
+    const localDate = new Date(year, month, d, 12, 0, 0, 0)
+    days.push(localDate)
   }
   return days
 }
@@ -41,6 +48,7 @@ export default function DynamicPricingCalendar({
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const [selectedDate, setSelectedDate] = useState<Date>()
+  const [selectedDateString, setSelectedDateString] = useState<string>()
   const [selectedTime, setSelectedTime] = useState<string>()
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
@@ -48,36 +56,69 @@ export default function DynamicPricingCalendar({
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
 
-  // 获取时间段和价格信息
+  // 格式化日期为字符串
+  const formatDateString = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+  }
+
+  // 获取时间段和价格信息（新版）
   useEffect(() => {
-    if (!selectedDate) {
-      setTimeSlots([])
-      return
-    }
-    setLoadingTimes(true)
-    const dateStr = selectedDate.toISOString().slice(0, 10)
-    fetch(`/api/calendar/manual?date=${dateStr}&address=${zipcode}&basePrice=${basePrice}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.slots) {
-          setTimeSlots(data.slots.map((slot: any) => ({
-            time: slot.time,
-            price: slot.price,
-            available: true
-          })))
+    /* 3-1）换日期时先清空旧 Time，防止"旧时间+新日期" */
+    setSelectedTime(undefined)
+
+    // ✅ 在使用 selectedDate 之前都加判断
+    if (!selectedDate || !selectedDateString) return
+
+    /* 3-3）让父组件立即知道选了什么日期（时间先留空） */
+    console.log("🔵 Calendar: Selected date string:", selectedDateString)
+    onSelectDateTime(selectedDateString, undefined, basePrice, basePrice)
+
+    /* 3-4）拉取当天可用时间段（加入 AbortController，避免竞态） */
+    const controller = new AbortController()
+    const fetchSlots = async () => {
+      setLoadingTimes(true)
+      try {
+        // 用本地时区格式化，避免时区-1 天
+        const dateStr =
+          selectedDate.getFullYear() +
+          "-" +
+          String(selectedDate.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(selectedDate.getDate()).padStart(2, "0")
+        console.log("🔵 Calendar: Fetching slots for date string:", dateStr)
+        const res = await fetch(`/api/calendar/manual?date=${dateStr}&address=${zipcode}&basePrice=${basePrice}`, {
+          signal: controller.signal,
+        })
+        const data = await res.json()
+        // 把返回值转成你组件的 TimeSlot 结构
+        const slots =
+          data?.slots?.map((s: any) => ({
+            time: s.time,
+            price: s.price,
+            available: true,
+          })) ?? []
+        setTimeSlots(slots)
+      } catch (err: any) {
+        // 如果是用户快速切换日期触发的中断，不必报错
+        if (err.name !== "AbortError") {
+          console.error("Error fetching time slots:", err)
+          setTimeSlots([])
         }
-      })
-      .catch(error => {
-        console.error('Error fetching time slots:', error)
-        setTimeSlots([])
-      })
-      .finally(() => setLoadingTimes(false))
-  }, [selectedDate, zipcode, basePrice])
+      } finally {
+        setLoadingTimes(false)
+      }
+    }
+
+    fetchSlots()
+
+    /* 3-5）依赖变动或组件卸载时，中断旧请求 */
+    return () => controller.abort()
+  }, [selectedDate, selectedDateString, zipcode, basePrice, onSelectDateTime])
 
   // 确认按钮逻辑
   const handleConfirm = () => {
     setDateConfirmed(true)
-    if (selectedDate) onSelectDateTime(selectedDate, selectedTime, 0, 0)
+    if (selectedDateString) onSelectDateTime(selectedDateString, selectedTime, 0, 0)
   }
 
   // 生成当前月的未来日期
@@ -126,9 +167,7 @@ export default function DynamicPricingCalendar({
             <div className="w-[90px]" />
           )}
           {/* 月份标题 居中 */}
-          <span className="flex-1 text-center text-lg font-bold">
-            {format(thisMonthDate, "MMMM yyyy")}
-          </span>
+          <span className="flex-1 text-center text-lg font-bold">{format(thisMonthDate, "MMMM yyyy")}</span>
           {/* 右侧按钮 */}
           <Button
             variant="ghost"
@@ -144,15 +183,17 @@ export default function DynamicPricingCalendar({
             }}
             aria-label="Next month"
           >
-            {format(nextMonthDate, "MMMM")}<span className="ml-1">→</span>
+            {format(nextMonthDate, "MMMM")}
+            <span className="ml-1">→</span>
           </Button>
         </div>
         {/* 日期网格 */}
         <div className="space-y-2">
           {rows.map((row, rowIdx) => (
             <div key={rowIdx} className="flex gap-2 justify-center">
-              {row.map(date => {
-                const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()
+              {row.map((date) => {
+                const dateString = formatDateString(date)
+                const isSelected = selectedDateString === dateString
                 return (
                   <button
                     key={date.toISOString()}
@@ -161,10 +202,16 @@ export default function DynamicPricingCalendar({
                       "w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all border",
                       isSelected
                         ? "bg-green-600 text-white border-green-700 shadow-lg ring-2 ring-green-700"
-                        : "bg-green-50 text-green-900 border-green-200 hover:bg-green-100 hover:ring-2 hover:ring-green-400"
+                        : "bg-green-50 text-green-900 border-green-200 hover:bg-green-100 hover:ring-2 hover:ring-green-400",
                     )}
                     style={{ fontWeight: isSelected ? 700 : 500 }}
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => {
+                      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0)
+                      const formattedDateString = formatDateString(localDate)
+                      console.log("🔵 Calendar: Creating date string:", formattedDateString)
+                      setSelectedDate(localDate)
+                      setSelectedDateString(formattedDateString)
+                    }}
                   >
                     {date.getDate()}
                   </button>
@@ -175,12 +222,9 @@ export default function DynamicPricingCalendar({
         </div>
         {/* 已选择日期显示 */}
         <div className="text-center my-2 text-lg font-semibold text-green-700 min-h-[32px]">
-          {selectedDate ? (
-            <span
-              key={selectedDate.toISOString()}
-              className={`inline-block animate-bounceOnce`}
-            >
-              Selected: {format(selectedDate, "yyyy-MM-dd")}
+          {selectedDateString ? (
+            <span key={selectedDateString} className={`inline-block animate-bounceOnce`}>
+              Selected: {selectedDateString}
             </span>
           ) : (
             <span className="inline-block">Select a date</span>
@@ -188,71 +232,95 @@ export default function DynamicPricingCalendar({
         </div>
       </div>
       {/* 时间卡片渐入动画 */}
-      <div className={`transition-all duration-500 min-h-[120px] ${selectedDate ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+      <div
+        className={`transition-all duration-500 min-h-[120px] ${selectedDate ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none"}`}
+      >
         <div>
           <label className="block text-sm font-medium mb-2">Select Time</label>
-          {
-            !loadingTimes && timeSlots.length > 0 && timeSlots.every(slot => slot.price === basePrice) ? (
-              <select
-                className="w-full border rounded-lg p-3 text-lg"
-                value={selectedTime || ''}
-                onChange={e => {
-                  setSelectedTime(e.target.value)
-                  if (selectedDate) onSelectDateTime(selectedDate, e.target.value, basePrice, basePrice)
-                }}
-              >
-                <option value="" disabled>Select a time</option>
-                {timeSlots.map(slot => (
-                  <option key={slot.time} value={slot.time}>{slot.time}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {loadingTimes && (
-                  <div className="col-span-3 text-center py-4 text-muted-foreground">Loading time slots…</div>
-                )}
-                {!loadingTimes && timeSlots.length === 0 && (
-                  <div className="col-span-3 text-center py-4 text-muted-foreground">
-                    {selectedDate ? "No available time slots for this date" : "Please select a date first"}
-                  </div>
-                )}
-                {timeSlots.map(slot => {
-                  const isDiscount = slot.price < basePrice
-                  const discountAmount = Math.round(basePrice - slot.price)
-                  return (
-                    <button
-                      key={slot.time}
-                      type="button"
-                      className={cn(
-                        "border rounded-lg p-4 flex flex-col items-center transition-all shadow-sm",
-                        selectedTime === slot.time ? "border-green-600 bg-green-50 shadow-lg ring-2 ring-green-500" : "border-gray-200 bg-white hover:border-green-400 hover:shadow-md"
-                      )}
-                      style={{ fontWeight: selectedTime === slot.time ? 700 : 500, fontSize: 18 }}
-                      onClick={() => {
-                        setSelectedTime(slot.time)
-                        if (selectedDate) onSelectDateTime(selectedDate, slot.time, slot.price, basePrice)
-                      }}
-                    >
-                      <span className="flex items-center gap-1 text-lg font-medium mb-1">
-                        <Clock className="w-4 h-4" /> {slot.time}
-                      </span>
-                      {isDiscount ? (
-                        <>
-                          <span className="text-2xl font-bold text-green-600">${slot.price}</span>
-                          <span className="text-xs text-gray-400 line-through mt-1">${basePrice}</span>
-                          <span className="mt-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold" style={{fontFamily: 'SF Pro Display, Helvetica Neue, Arial, sans-serif', letterSpacing: 0.2}}>
-                            Save ${discountAmount}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-2xl font-bold text-gray-900">${slot.price}</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          }
+          <p className="text-sm text-gray-600 mb-3">
+            Please choose when you'd like your party to start and be seated. We'll arrive 20-40 minutes early to set up
+            everything for you.
+          </p>
+          {!loadingTimes && timeSlots.length > 0 && timeSlots.every((slot) => slot.price === basePrice) ? (
+            <select
+              className="w-full border rounded-lg p-3 text-lg"
+              value={selectedTime || ""}
+              onChange={(e) => {
+                setSelectedTime(e.target.value)
+                if (selectedDateString) {
+                  console.log("🟡 Calendar: Dropdown time selected, passing date string:", selectedDateString)
+                  console.log("🟡 Calendar: Time selected:", e.target.value)
+                  onSelectDateTime(selectedDateString, e.target.value, basePrice, basePrice)
+                }
+              }}
+            >
+              <option value="" disabled>
+                Select a time
+              </option>
+              {timeSlots.map((slot) => (
+                <option key={slot.time} value={slot.time}>
+                  {slot.time}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="grid grid-cols-3 gap-4">
+              {loadingTimes && (
+                <div className="col-span-3 text-center py-4 text-muted-foreground">Loading time slots…</div>
+              )}
+              {!loadingTimes && timeSlots.length === 0 && (
+                <div className="col-span-3 text-center py-4 text-muted-foreground">
+                  {selectedDate ? "No available time slots for this date" : "Please select a date first"}
+                </div>
+              )}
+              {timeSlots.map((slot) => {
+                const isDiscount = slot.price < basePrice
+                const discountAmount = Math.round(basePrice - slot.price)
+                return (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    className={cn(
+                      "border rounded-lg p-4 flex flex-col items-center transition-all shadow-sm",
+                      selectedTime === slot.time
+                        ? "border-green-600 bg-green-50 shadow-lg ring-2 ring-green-500"
+                        : "border-gray-200 bg-white hover:border-green-400 hover:shadow-md",
+                    )}
+                    style={{ fontWeight: selectedTime === slot.time ? 700 : 500, fontSize: 18 }}
+                    onClick={() => {
+                      setSelectedTime(slot.time)
+                      if (selectedDateString) {
+                        console.log("🟢 Calendar: Time selected, passing date string:", selectedDateString)
+                        console.log("🟢 Calendar: Time selected:", slot.time)
+                        onSelectDateTime(selectedDateString, slot.time, slot.price, basePrice)
+                      }
+                    }}
+                  >
+                    <span className="flex items-center gap-1 text-lg font-medium mb-1">
+                      <Clock className="w-4 h-4" /> {slot.time}
+                    </span>
+                    {isDiscount ? (
+                      <>
+                        <span className="text-2xl font-bold text-green-600">${slot.price}</span>
+                        <span className="text-xs text-gray-400 line-through mt-1">${basePrice}</span>
+                        <span
+                          className="mt-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold"
+                          style={{
+                            fontFamily: "SF Pro Display, Helvetica Neue, Arial, sans-serif",
+                            letterSpacing: 0.2,
+                          }}
+                        >
+                          Save ${discountAmount}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-2xl font-bold text-gray-900">${slot.price}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: "%s - Real Hibachi",
   },
   description:
-    "Enjoy a professional hibachi chef experience in the comfort of your own home or venue with Real Hibachi. Serving delicious food and unforgettable entertainment.",
+    "Book a live-show hibachi chef at your home. Flat-rate $49.9 pp, tables & utensils optional. Reserve now for an unforgettable night!",
   keywords: "Hibachi at home, private chef, hibachi catering, teppanyaki, party catering, Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],

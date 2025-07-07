@@ -1,57 +1,63 @@
-import React from "react";
-import dynamic from "next/dynamic";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { ArrowDown } from "lucide-react";
-import { format } from "date-fns";
-import { TermsCheckbox } from "@/components/booking/booking-form";
-import { TermsModal } from "@/components/booking/terms-modal";
-import GooglePlacesAutocomplete from "../google-places-autocomplete";
+"use client"
+
+import type React from "react"
+import dynamic from "next/dynamic"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { ArrowDown } from "lucide-react"
+import { TermsCheckbox } from "@/components/booking/booking-form"
+import { TermsModal } from "@/components/booking/terms-modal"
+import GooglePlacesAutocomplete from "../google-places-autocomplete"
 
 interface Step6BookingFormProps {
   formData: {
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-    message: string;
-    agreeToTerms: boolean;
-    zipcode: string;
-    city: string;
-    state: string;
-  };
-  totalGuests: number;
+    name: string
+    email: string
+    phone: string
+    address: string
+    message: string
+    agreeToTerms: boolean
+    zipcode: string
+    city: string
+    state: string
+  }
+  totalGuests: number
   costs: {
-    subtotal: number;
-    travelFee: number;
-    total: number;
-  };
+    subtotal: number
+    travelFee: number
+    total: number
+  }
   selectedDateTime: {
-    date: Date | undefined;
-    time: string | undefined;
-    price: number;
-    originalPrice: number;
-  };
-  showTerms: boolean;
-  isOrderFormValid: boolean;
-  isSubmitting: boolean;
-  orderError: string;
-  onInputChange: (field: string, value: string) => void;
-  onCheckboxChange: (checked: boolean) => void;
-  onShowTerms: () => void;
-  onCloseTerms: () => void;
-  onDateTimeSelect: (date: Date | undefined, time: string | undefined, price: number, originalPrice: number) => void;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  onPrev: () => void;
-  onNext?: () => void;
+    dateString: string | undefined
+    time: string | undefined
+    price: number
+    originalPrice: number
+  }
+  showTerms: boolean
+  isOrderFormValid: boolean
+  isSubmitting: boolean
+  orderError: string
+  onInputChange: (field: string, value: string) => void
+  onCheckboxChange: (checked: boolean) => void
+  onShowTerms: () => void
+  onCloseTerms: () => void
+  onDateTimeSelect: (
+    dateString: string | undefined,
+    time: string | undefined,
+    price: number,
+    originalPrice: number,
+  ) => void
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  onPrev: () => void
+  onNext?: () => void
 }
 
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
   loading: () => <div className="animate-pulse bg-gray-100 h-[400px] rounded-lg" />,
   ssr: false,
-});
+})
 
 const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
   formData,
@@ -71,6 +77,10 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
   onPrev,
   onNext,
 }) => {
+  console.log("🔴 Step6Form: Received selectedDateTime:", selectedDateTime)
+  console.log("🔴 Step6Form: Date string:", selectedDateTime.dateString)
+  console.log("🔴 Step6Form: Time:", selectedDateTime.time)
+
   return (
     <div id="order-form" className="scroll-mt-24">
       <div className="flex justify-center my-8">
@@ -132,31 +142,32 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                     <GooglePlacesAutocomplete
                       value={formData.address}
                       onChange={(value, placeDetails) => {
-                        let street = value;
+                        let street = value
                         if (placeDetails && placeDetails.address_components) {
-                          let streetNumber = "";
-                          let route = "";
-                          let city = "";
-                          let state = "";
-                          let zipcode = "";
+                          let streetNumber = ""
+                          let route = ""
+                          let city = ""
+                          let state = ""
+                          let zipcode = ""
                           placeDetails.address_components.forEach((component: any) => {
-                            const types = component.types;
-                            if (types.includes("street_number")) streetNumber = component.long_name;
-                            if (types.includes("route")) route = component.long_name;
+                            const types = component.types
+                            if (types.includes("street_number")) streetNumber = component.long_name
+                            if (types.includes("route")) route = component.long_name
                             if (
                               types.includes("locality") ||
                               types.includes("sublocality") ||
                               types.includes("administrative_area_level_3")
-                            ) city = component.long_name;
-                            if (types.includes("administrative_area_level_1")) state = component.short_name;
-                            if (types.includes("postal_code")) zipcode = component.long_name;
-                          });
-                          if (streetNumber || route) street = [streetNumber, route].filter(Boolean).join(" ");
-                          if (city) onInputChange("city", city);
-                          if (state) onInputChange("state", state);
-                          if (zipcode) onInputChange("zipcode", zipcode);
+                            )
+                              city = component.long_name
+                            if (types.includes("administrative_area_level_1")) state = component.short_name
+                            if (types.includes("postal_code")) zipcode = component.long_name
+                          })
+                          if (streetNumber || route) street = [streetNumber, route].filter(Boolean).join(" ")
+                          if (city) onInputChange("city", city)
+                          if (state) onInputChange("state", state)
+                          if (zipcode) onInputChange("zipcode", zipcode)
                         }
-                        onInputChange("address", street);
+                        onInputChange("address", street)
                       }}
                       placeholder="Street Address"
                       className="address-input"
@@ -196,7 +207,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                FULL ADDRESS OF PARTY (House #, Street, PLEASE include Zip Code) 
+                  FULL ADDRESS OF PARTY (House #, Street, PLEASE include Zip Code)
                 </p>
               </div>
             </div>
@@ -244,12 +255,12 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                   <span>Travel Fee:</span>
                   <span>${costs.travelFee.toFixed(2)}</span>
                 </div>
-                {selectedDateTime.date && selectedDateTime.time && (
+                {selectedDateTime.dateString && selectedDateTime.time ? (
                   <>
                     <div className="flex justify-between">
                       <span>Selected Date & Time:</span>
                       <span>
-                        {format(selectedDateTime.date, "MMM d, yyyy")} at {selectedDateTime.time}
+                        {selectedDateTime.dateString} at {selectedDateTime.time}
                       </span>
                     </div>
                     {selectedDateTime.originalPrice > selectedDateTime.price && (
@@ -259,12 +270,17 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                       </div>
                     )}
                   </>
+                ) : (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Selected Date & Time:</span>
+                    <span>Please select date and time above</span>
+                  </div>
                 )}
                 <div className="flex justify-between font-bold border-t pt-2 mt-2">
                   <span>Total Amount:</span>
                   <span>
                     $
-                    {(selectedDateTime.date && selectedDateTime.time
+                    {(selectedDateTime.dateString && selectedDateTime.time
                       ? selectedDateTime.price + costs.travelFee
                       : costs.total
                     ).toFixed(2)}
@@ -274,11 +290,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
             </div>
 
             <div className="space-y-4">
-              <TermsCheckbox
-                checked={formData.agreeToTerms}
-                onChange={onCheckboxChange}
-                onShowTerms={onShowTerms}
-              />
+              <TermsCheckbox checked={formData.agreeToTerms} onChange={onCheckboxChange} onShowTerms={onShowTerms} />
               <TermsModal open={showTerms} onClose={onCloseTerms} />
 
               {orderError && (
@@ -323,18 +335,14 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
           </form>
 
           <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              onClick={onPrev}
-              className="text-gray-600 hover:text-primary"
-            >
+            <Button variant="ghost" onClick={onPrev} className="text-gray-600 hover:text-primary">
               Back to previous step
             </Button>
           </div>
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default Step6BookingForm;
+export default Step6BookingForm

@@ -1,39 +1,41 @@
-import React from "react";
+"use client"
+
+import type React from "react"
 
 interface Step5EstimateProps {
-  zipcode: string;
-  adults: number;
-  kids: number;
-  filetMignon: number;
-  lobsterTail: number;
-  extraProteins: number;
-  noodles: number;
-  gyoza: number;
-  edamame: number;
-  travelFee: number;
-  subtotal: number;
-  total: number;
-  minimumSpending: number;
-  usedMinimum: boolean;
-  onNext: () => void;
-  onPrev: () => void;
-  isEstimationValid: boolean;
-  adultsUnit: number;
-  adultsCost: number;
-  kidsUnit: number;
-  kidsCost: number;
-  filetMignonUnit: number;
-  filetMignonCost: number;
-  lobsterTailUnit: number;
-  lobsterTailCost: number;
-  extraProteinsUnit: number;
-  extraProteinsCost: number;
-  noodlesUnit: number;
-  noodlesCost: number;
-  gyozaUnit: number;
-  gyozaCost: number;
-  edamameUnit: number;
-  edamameCost: number;
+  zipcode: string
+  adults: number
+  kids: number
+  filetMignon: number
+  lobsterTail: number
+  extraProteins: number
+  noodles: number
+  gyoza: number
+  edamame: number
+  travelFee: number
+  subtotal: number
+  total: number
+  minimumSpending: number
+  usedMinimum: boolean
+  onNext: () => void
+  onPrev: () => void
+  isEstimationValid: boolean
+  adultsUnit: number
+  adultsCost: number
+  kidsUnit: number
+  kidsCost: number
+  filetMignonUnit: number
+  filetMignonCost: number
+  lobsterTailUnit: number
+  lobsterTailCost: number
+  extraProteinsUnit: number
+  extraProteinsCost: number
+  noodlesUnit: number
+  noodlesCost: number
+  gyozaUnit: number
+  gyozaCost: number
+  edamameUnit: number
+  edamameCost: number
 }
 
 const Step5Estimate: React.FC<Step5EstimateProps> = ({
@@ -90,49 +92,61 @@ const Step5Estimate: React.FC<Step5EstimateProps> = ({
           <div className="space-y-2">
             {adults > 0 && (
               <div className="flex justify-between">
-                <span>Adults ({adults} x ${adultsUnit})</span>
+                <span>
+                  Adults ({adults} x ${adultsUnit})
+                </span>
                 <span>${adultsCost}</span>
               </div>
             )}
             {kids > 0 && (
               <div className="flex justify-between">
-                <span>Children ({kids} x ${kidsUnit})</span>
+                <span>
+                  Children ({kids} x ${kidsUnit})
+                </span>
                 <span>${kidsCost}</span>
               </div>
             )}
             {filetMignon > 0 && (
               <div className="flex justify-between">
-                <span>Filet Mignon ({filetMignon} x ${filetMignonUnit})</span>
+                <span>
+                  Filet Mignon ({filetMignon} x ${filetMignonUnit})
+                </span>
                 <span>${filetMignonCost}</span>
               </div>
             )}
             {lobsterTail > 0 && (
               <div className="flex justify-between">
-                <span>Lobster Tail ({lobsterTail} x ${lobsterTailUnit})</span>
+                <span>
+                  Lobster Tail ({lobsterTail} x ${lobsterTailUnit})
+                </span>
                 <span>${lobsterTailCost}</span>
               </div>
             )}
             {extraProteins > 0 && (
               <div className="flex justify-between">
-                <span>Extra Proteins ({extraProteins} x ${extraProteinsUnit})</span>
+                <span>
+                  Extra Proteins ({extraProteins} x ${extraProteinsUnit})
+                </span>
                 <span>${extraProteinsCost}</span>
               </div>
             )}
             {noodles > 0 && (
               <div className="flex justify-between">
-                <span>Noodles ({noodles} x ${noodlesUnit})</span>
+                <span>
+                  Noodles ({noodles} x ${noodlesUnit})
+                </span>
                 <span>${noodlesCost}</span>
               </div>
             )}
             {gyoza > 0 && (
               <div className="flex justify-between">
-                <span>Gyoza ({gyoza} x ${gyozaUnit})</span>
+                <span>Gyoza ({gyoza} x $15)</span>
                 <span>${gyozaCost}</span>
               </div>
             )}
             {edamame > 0 && (
               <div className="flex justify-between">
-                <span>Edamame ({edamame} x ${edamameUnit})</span>
+                <span>Edamame ({edamame} x $10)</span>
                 <span>${edamameCost}</span>
               </div>
             )}
@@ -177,7 +191,7 @@ const Step5Estimate: React.FC<Step5EstimateProps> = ({
         </button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Step5Estimate;
+export default Step5Estimate

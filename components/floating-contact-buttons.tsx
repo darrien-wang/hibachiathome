@@ -3,15 +3,21 @@
 import { Phone, MessageCircle, Mail, Copy, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 
 export function FloatingContactButtons() {
   const phoneNumber = "2137707788"
   const smsNumber = "5627134832"
   const emailAddress = "realhibachiathome@gmail.com"
 
-  // Track which button is expanded
   const [expandedButton, setExpandedButton] = useState<string | null>(null)
   const [isMainExpanded, setIsMainExpanded] = useState(false)
+  const pathname = usePathname()
+
+  // Hide the floating button on book and estimation pages
+  if (pathname === "/book" || pathname.startsWith("/estimation")) {
+    return null
+  }
 
   const toggleExpand = (buttonType: string) => {
     if (expandedButton === buttonType) {
@@ -109,7 +115,7 @@ export function FloatingContactButtons() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 bg-transparent"
                         onClick={() => copyToClipboard(phoneNumber)}
                       >
                         <Copy className="h-3 w-3 mr-1" /> Copy
@@ -164,7 +170,12 @@ export function FloatingContactButtons() {
                       >
                         Send SMS
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => copyToClipboard(smsNumber)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-transparent"
+                        onClick={() => copyToClipboard(smsNumber)}
+                      >
                         <Copy className="h-3 w-3 mr-1" /> Copy
                       </Button>
                     </div>
@@ -220,7 +231,7 @@ export function FloatingContactButtons() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 bg-transparent"
                         onClick={() => copyToClipboard(emailAddress)}
                       >
                         <Copy className="h-3 w-3 mr-1" /> Copy

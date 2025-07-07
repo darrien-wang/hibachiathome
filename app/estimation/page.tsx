@@ -4,10 +4,8 @@ import type React from "react"
 
 import { useState, useEffect, useCallback, useReducer, useMemo, Suspense } from "react"
 import { pricing } from "@/config/pricing"
-import { format } from "date-fns"
 import dynamic from "next/dynamic"
 import { useSearchParams } from "next/navigation"
-import { createBooking } from "@/app/actions/booking"
 import Step1PartySize from "@/components/estimation/Step1PartySize"
 import Step2Appetizers from "@/components/estimation/Step2Appetizers"
 import Step3PremiumMains from "@/components/estimation/Step3PremiumMains"
@@ -100,7 +98,7 @@ type BookingFormInputFields = {
 }
 
 type DateTimeSelection = {
-  date: string | undefined
+  dateString: string | undefined
   time: string | undefined
   price: number
   originalPrice: number
@@ -234,8 +232,8 @@ function useCostCalculation(formData: FormData) {
     const lobsterUpcharge = 10
     const extraProteinPrice = 10
     const noodlePrice = 5
-    const gyozaPrice = 10
-    const edamamePrice = 8
+    const gyozaPrice = 15
+    const edamamePrice = 10
 
     const travelFee = calculateTravelFee(formData.zipcode)
     const adultsCost = formData.adults * adultPrice
@@ -372,10 +370,8 @@ export default function EstimationPage() {
   const searchParams = useSearchParams()
   const source = searchParams.get("source")
   const isFromBooking = source === "booking"
-  const pageTitle = isFromBooking ? "Online Booking" : "Private Hibachi Party Cost Estimation"
-  const pageDescription = isFromBooking
-    ? "Complete your booking details below to reserve your private hibachi experience"
-    : "Use our calculator to get an instant estimate and book your private hibachi experience"
+  const pageTitle = "Private Hibachi Party Cost Estimation"
+  const pageDescription = "Use our calculator to get an instant estimate for your private hibachi experience"
 
   // 添加状态来控制弹窗的显示
   const [showPopup, setShowPopup] = useState(true)
@@ -393,8 +389,8 @@ export default function EstimationPage() {
           <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Important Information</h3>
             <p className="text-gray-600 mb-6">
-              The prices on this page are estimates only. Protein selections will be confirmed via SMS, phone call,
-              email, or other communication methods, and the final price will be determined on the day of the event.
+              Estimate only. Final pricing will be confirmed by our team. We'll reach out shortly with your official
+              quote.
             </p>
             <div className="flex justify-end">
               <Button variant="outline" onClick={() => setShowPopup(false)}>
@@ -473,7 +469,7 @@ function EstimationContent() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderError, setOrderError] = useState("")
   const [selectedDateTime, setSelectedDateTime] = useState<DateTimeSelection>({
-    date: undefined,
+    dateString: undefined,
     time: undefined,
     price: 0,
     originalPrice: 0,
@@ -591,7 +587,7 @@ function EstimationContent() {
               if (slot) {
                 // 使用找到的价格信息更新selectedDateTime
                 setSelectedDateTime({
-                  date: savedFormData.eventDate,
+                  dateString: savedFormData.eventDate,
                   time: savedFormData.eventTime,
                   price: slot.price,
                   originalPrice: costs.subtotal,
@@ -599,7 +595,7 @@ function EstimationContent() {
               } else {
                 // 如果找不到对应的slot，使用基础价格
                 setSelectedDateTime({
-                  date: savedFormData.eventDate,
+                  dateString: savedFormData.eventDate,
                   time: savedFormData.eventTime,
                   price: costs.subtotal,
                   originalPrice: costs.subtotal,
@@ -610,7 +606,7 @@ function EstimationContent() {
           .catch((error) => {
             // 如果获取价格失败，使用基础价格
             setSelectedDateTime({
-              date: savedFormData.eventDate,
+              dateString: savedFormData.eventDate,
               time: savedFormData.eventTime,
               price: costs.subtotal,
               originalPrice: costs.subtotal,
@@ -818,24 +814,26 @@ function EstimationContent() {
     [formData],
   )
 
-  // 修改 handleDateTimeSelect 函数
+  // 修改 handleDateTimeSelect 函数，接收日期字符串
   const handleDateTimeSelect = useCallback(
-    (date: Date | undefined, time: string | undefined, price: number, originalPrice: number) => {
-      if (!date || !time) {
+    (dateString: string | undefined, time: string | undefined, price: number, originalPrice: number) => {
+      console.log("🟠 Parent: handleDateTimeSelect called with:", { dateString, time, price, originalPrice })
+
+      if (!dateString || !time) {
         setSelectedDateTime({
-          date: undefined,
-          time: undefined,
+          dateString: dateString,
+          time: time,
           price: 0,
           originalPrice: 0,
         })
         return
       }
 
-      const formattedDate = format(date, "yyyy-MM-dd")
-      dispatch({ type: "SET_DATE_TIME", date: formattedDate, time })
+      // 更新 formData 中的日期和时间
+      dispatch({ type: "SET_DATE_TIME", date: dateString, time })
 
       setSelectedDateTime({
-        date: formattedDate,
+        dateString,
         time,
         price,
         originalPrice,
@@ -857,7 +855,7 @@ function EstimationContent() {
           formData.email &&
           formData.phone &&
           formData.address &&
-          selectedDateTime.date &&
+          selectedDateTime.dateString &&
           selectedDateTime.time &&
           formData.agreeToTerms,
       ),
@@ -867,18 +865,24 @@ function EstimationContent() {
       formData.phone,
       formData.address,
       formData.agreeToTerms,
-      selectedDateTime.date,
+      selectedDateTime.dateString,
       selectedDateTime.time,
     ],
   )
 
-  // 修改表单提交逻辑
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  /**
+   * 100 % 前端版 handleSubmit
+   * — 不再调用 createBooking / booking API —
+   * 返回 { success, orderId?, error? } 供调用方处理
+   */
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ): Promise<{ success: boolean; orderId?: string; error?: string }> => {
     e.preventDefault()
     setIsSubmitting(true)
     setOrderError("")
 
-    // 校验所有数字字段最大99
+    /* ---------- 1. 表单校验 ---------- */
     const numericFields = [
       formData.adults,
       formData.kids,
@@ -890,40 +894,17 @@ function EstimationContent() {
       formData.edamame,
     ]
     if (numericFields.some((v) => v > 99)) {
-      setOrderError("所有数字输入不能超过99")
+      const msg = "所有数字输入不能超过99"
+      setOrderError(msg)
       setIsSubmitting(false)
-      return
+      return { success: false, error: msg }
     }
 
     try {
-      // 1. 写入数据库
-      const bookingResult = await createBooking({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        zipcode: formData.zipcode,
-        eventDate: selectedDateTime.date || formData.eventDate,
-        eventTime: selectedDateTime.time || formData.eventTime,
-        adults: formData.adults,
-        kids: formData.kids,
-        filetMignon: formData.filetMignon,
-        lobsterTail: formData.lobsterTail,
-        extraProteins: formData.extraProteins,
-        noodles: formData.noodles,
-        message: formData.message,
-      })
+      /* ---------- 2. 生成订单 ID & 结构化数据 ---------- */
+      const newOrderId = crypto.randomUUID()
 
-      if (!bookingResult.success) {
-        setOrderError("数据库写入失败: " + bookingResult.error)
-        setIsSubmitting(false)
-        return
-      }
-
-      // 2. 构建结构化的订单数据用于发送邮件
-      const newOrderId = bookingResult.data?.id || crypto.randomUUID()
       const orderAnalytics = {
-        // 元数据
         metadata: {
           source: "realhibachi",
           platform: "web",
@@ -931,7 +912,6 @@ function EstimationContent() {
           version: "1.0",
           event_type: "order_confirmation",
         },
-        // 客户信息
         customer: {
           name: formData.name,
           email: formData.email,
@@ -943,7 +923,6 @@ function EstimationContent() {
             zipcode: formData.zipcode,
           },
         },
-        // 订单详情
         order: {
           order_id: newOrderId,
           guests: {
@@ -1009,7 +988,7 @@ function EstimationContent() {
             total: costs.total,
           },
           scheduling: {
-            selected_date: selectedDateTime.date,
+            selected_date: selectedDateTime.dateString,
             selected_time: selectedDateTime.time,
             original_price: selectedDateTime.originalPrice,
             final_price: selectedDateTime.price,
@@ -1024,7 +1003,7 @@ function EstimationContent() {
         },
       }
 
-      // 3. 发送订单确认邮件
+      /* ---------- 3. （可选）发送订单确认邮件 ---------- */
       await fetch("/api/notify-lead", {
         method: "POST",
         headers: {
@@ -1034,8 +1013,8 @@ function EstimationContent() {
         body: JSON.stringify(orderAnalytics),
       })
 
-      // 4. 更新 orderData 并跳转
-      const newOrderData: OrderData = {
+      /* ---------- 4. 更新本地状态 ---------- */
+      setOrderData({
         id: newOrderId,
         full_name: formData.name,
         email: formData.email,
@@ -1044,31 +1023,28 @@ function EstimationContent() {
         city: formData.city,
         state: formData.state,
         zipcode: formData.zipcode,
-        event_date: selectedDateTime.date || formData.eventDate,
+        event_date: selectedDateTime.dateString || formData.eventDate,
         event_time: selectedDateTime.time || formData.eventTime,
         total_amount: costs.total,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,
-      }
+      })
 
-      // 日志调试
-      console.log("[handleSubmit] formData:", formData)
-      console.log("[handleSubmit] selectedDateTime:", selectedDateTime)
-      console.log("[handleSubmit] newOrderData:", newOrderData)
-
-      // 同步更新 formData 中的日期和时间
-      if (selectedDateTime.date && selectedDateTime.time) {
+      if (selectedDateTime.dateString && selectedDateTime.time) {
         dispatch({
           type: "SET_DATE_TIME",
-          date: selectedDateTime.date,
+          date: selectedDateTime.dateString,
           time: selectedDateTime.time,
         })
       }
 
-      setOrderData(newOrderData)
-    } catch (error) {
-      setOrderError("提交订单时发生错误，请重试")
-      console.error("Error submitting order:", error)
+      /* ---------- 5. 成功返回 ---------- */
+      return { success: true, orderId: newOrderId }
+    } catch (err) {
+      console.error("Error submitting order:", err)
+      const msg = "提交订单时发生错误，请重试"
+      setOrderError(msg)
+      return { success: false, error: msg }
     } finally {
       setIsSubmitting(false)
     }
@@ -1132,7 +1108,7 @@ function EstimationContent() {
     setOrderData(null)
     setCurrentStep(1)
     setSelectedDateTime({
-      date: undefined,
+      dateString: undefined,
       time: undefined,
       price: 0,
       originalPrice: 0,
@@ -1276,7 +1252,7 @@ function EstimationContent() {
         },
         // 时间选择
         scheduling: {
-          selected_date: selectedDateTime.date,
+          selected_date: selectedDateTime.dateString,
           selected_time: selectedDateTime.time,
           original_price: selectedDateTime.originalPrice,
           final_price: selectedDateTime.price,
@@ -1472,16 +1448,7 @@ function EstimationContent() {
               formData={formData}
               totalGuests={totalGuests}
               costs={costs}
-              selectedDateTime={{
-                date: selectedDateTime.date
-                  ? typeof selectedDateTime.date === "string"
-                    ? new Date(selectedDateTime.date)
-                    : selectedDateTime.date
-                  : undefined,
-                time: selectedDateTime.time,
-                price: selectedDateTime.price,
-                originalPrice: selectedDateTime.originalPrice,
-              }}
+              selectedDateTime={selectedDateTime}
               showTerms={Boolean(showTerms)}
               isOrderFormValid={isOrderFormValid}
               isSubmitting={isSubmitting}

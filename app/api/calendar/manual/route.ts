@@ -10,8 +10,8 @@ const MANUAL_SLOTS: Record<string, { time: string; price: number; available: boo
   // 可继续添加其它日期
 };
 
-const DEFAULT_TIMES = ['13:00', '16:00', '19:00'];
-const DISCOUNT_TIMES = ['13:00', '16:00'];
+const DEFAULT_TIMES = ['13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+const DISCOUNT_TIMES = [];//'13:00', '14:00','15:00'
 const DISCOUNT_AMOUNT = 50;
 
 export async function GET(req: NextRequest) {

@@ -260,7 +260,7 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
   }
 }
 
-// 获取可用时间
+// 获取可�����时间
 export async function getAvailableTimes(date: string, zipcode: string): Promise<AvailableTimesResponse> {
   try {
     const supabase = (() => {
