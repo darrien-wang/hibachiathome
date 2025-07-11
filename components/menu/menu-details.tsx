@@ -121,7 +121,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                       <Button asChild size="sm" variant="outline">
                         {isMobile ? (
                           <a
-                            href={`sms:5627134832?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
+                            href={`sms:2137707788?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
                           >
                             Order via SMS
                           </a>
@@ -170,7 +170,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                       <Button asChild size="sm" variant="outline">
                         {isMobile ? (
                           <a
-                            href={`sms:5627134832?body=Hi! I'd like to order ${side.name} for my hibachi catering. Please contact me for details.`}
+                            href={`sms:2137707788?body=Hi! I'd like to order ${side.name} for my hibachi catering. Please contact me for details.`}
                           >
                             Order via SMS
                           </a>

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 
 export function FloatingContactButtons() {
   const phoneNumber = "2137707788"
-  const smsNumber = "5627134832"
+  const smsNumber = "2137707788"
   const emailAddress = "realhibachiathome@gmail.com"
 
   const [expandedButton, setExpandedButton] = useState<string | null>(null)

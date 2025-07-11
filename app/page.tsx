@@ -180,17 +180,17 @@ export default function Home() {
   }
 
   const handleWhatsApp = () => {
-    const url = `https://wa.me/${siteConfig.contact.phone || "15627134832"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
     trackConversion("conversion_event_whatsapp_contact", url)
   }
 
   const handleSMS = () => {
-    const url = `sms:5627134832?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
     trackConversion("conversion_event_sms_contact", url)
   }
 
   const handlePhone = () => {
-    const url = `tel:${siteConfig.contact.phone || "15627134832"}`
+    const url = `tel:${siteConfig.contact.phone || "12137707788"}`
     trackConversion("conversion_event_phone_contact", url)
   }
 
@@ -217,7 +217,7 @@ export default function Home() {
       title: "Phone",
       description: "Speak with us",
       icon: null,
-      buttonText: siteConfig.contact.phone || "15627134832",
+      buttonText: siteConfig.contact.phone || "12137707788",
       onClick: handlePhone,
       variant: "outline",
       className: "bg-white/20 border-white/30",

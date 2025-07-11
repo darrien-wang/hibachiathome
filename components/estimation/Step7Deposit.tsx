@@ -126,7 +126,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
             </div>
             <div className="text-xs text-gray-500 text-center">
               Need help?{" "}
-              <a href="sms:+15627134832" className="text-[#E4572E] hover:underline">
+              <a href="sms:+12137707788" className="text-[#E4572E] hover:underline">
                 Text us
               </a>{" "}
               or{" "}
@@ -150,7 +150,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
             </div>
             <div className="text-xs text-gray-500 text-center">
               Need help?{" "}
-              <a href="sms:+15627134832" className="text-[#E4572E] hover:underline">
+              <a href="sms:+12137707788" className="text-[#E4572E] hover:underline">
                 Text us
               </a>{" "}
               or{" "}
@@ -162,7 +162,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
         </div>
         <div className="text-center text-base text-[#E4572E] font-semibold mb-2">
           If you pay by Venmo or Zelle, please send a screenshot of your payment to{" "}
-          <a href="sms:+15627134832" className="underline">
+          <a href="sms:+12137707788" className="underline">
             562-713-4832
           </a>{" "}
           via SMS.
@@ -171,7 +171,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
           Your reservation is successful! If you have any questions or want to confirm your menu, contact us anytime:
           <br />
           <span className="font-medium">SMS/Text:</span>{" "}
-          <a href="sms:+15627134832" className="text-[#E4572E] hover:underline">
+          <a href="sms:+12137707788" className="text-[#E4572E] hover:underline">
             562-713-4832
           </a>
           &nbsp;|&nbsp;

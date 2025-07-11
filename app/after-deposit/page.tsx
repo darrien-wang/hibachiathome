@@ -174,7 +174,7 @@ export default function AfterDepositPage() {
                 </a>
               </Button>
               <Button asChild variant="outline" className="rounded-full px-8">
-                <a href="sms:5627134832">
+                <a href="sms:2137707788">
                   <MessageSquare className="h-4 w-4 mr-2" /> (562) 713-4832
                 </a>
               </Button>
