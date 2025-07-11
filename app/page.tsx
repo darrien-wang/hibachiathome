@@ -847,7 +847,8 @@ export default function Home() {
             </AnimateOnScroll>
 
             <AnimateOnScroll direction="up" delay={200}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+
                 {cardItems.map((card, index) => (
                   <Card key={index} className={`text-center flex flex-col ${card.className}`}>
                     <CardHeader className="h-[100px] flex flex-col justify-center">
