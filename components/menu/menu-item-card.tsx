@@ -35,9 +35,6 @@ export default function MenuItemCard({ id, title, price, image, description }: M
             <span className="text-sm font-medium text-amber-800">/adult</span>{" "}
             <span className="text-xs font-normal text-gray-500">+tax</span>
           </span>
-          <Button asChild size="sm" className="bg-amber-500 hover:bg-amber-600">
-            <Link href="/book">Book Now</Link>
-          </Button>
         </div>
       </div>
     </div>

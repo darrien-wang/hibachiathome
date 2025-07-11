@@ -105,9 +105,9 @@ export const regularProteins: MenuItem[] = [
 export const premiumProteins: MenuItem[] = [
   {
     id: "filet",
-    name: "Filet Mignon",
+    name: "Filet Mignon Upgrade",
     description: "Premium cut filet mignon, tender and juicy",
-    price: 15,
+    price: 5,
     category: "premium-protein",
     allergens: ["none"],
     isGlutenFree: true,
@@ -115,55 +115,14 @@ export const premiumProteins: MenuItem[] = [
     image: "/images/menu/filet.png",
   },
   {
-    id: "lobster",
+    id: "Lobster Upgrade",
     name: "Lobster",
     description: "Maine lobster tail, buttery and delicious",
-    price: 20,
+    price: 10,
     category: "premium-protein",
     allergens: ["shellfish"],
     isGlutenFree: true,
     image: "/images/menu/lobster.png",
-  },
-  {
-    id: "premium-chicken",
-    name: "Premium Chicken",
-    description: "Free-range organic chicken breast, specially marinated",
-    price: 15, // 两倍于regular chicken
-    category: "premium-protein",
-    allergens: ["none"],
-    isGlutenFree: true,
-    image: "/images/menu/chicken.png",
-  },
-  {
-    id: "premium-steak",
-    name: "Premium Steak",
-    description: "USDA Prime beef, aged for tenderness and flavor",
-    price: 20, // 两倍于regular steak
-    category: "premium-protein",
-    allergens: ["none"],
-    isGlutenFree: true,
-    cookingOptions: ["Rare", "Medium Rare", "Medium", "Medium Well", "Well Done"],
-    image: "/images/menu/steak.png",
-  },
-  {
-    id: "premium-shrimp",
-    name: "Premium Shrimp",
-    description: "Jumbo wild-caught shrimp, perfectly seasoned",
-    price: 20, // 两倍于regular shrimp
-    category: "premium-protein",
-    allergens: ["shellfish"],
-    isGlutenFree: true,
-    image: "/images/menu/shrimp.png",
-  },
-  {
-    id: "premium-salmon",
-    name: "Premium Salmon",
-    description: "Wild Alaskan salmon, sustainably sourced",
-    price: 20, // 两倍于regular salmon
-    category: "premium-protein",
-    allergens: ["fish"],
-    isGlutenFree: true,
-    image: "/images/menu/salmon.png",
   },
 ]
 
@@ -198,16 +157,6 @@ export const sides: MenuItem[] = [
     allergens: ["gluten", "soy"],
     isVegetarian: true,
     image: "/images/menu/noodles.png",
-  },
-  {
-    id: "soup",
-    name: "Miso soup",
-    description: "Miso soup with tofu and kelp",
-    price: 5,
-    category: "side",
-    allergens: ["gluten", "soy"],
-    isVegetarian: true,
-    image: "/images/menu/soup.png",
   },
 ]
 

@@ -72,18 +72,6 @@ export default function MenuPage() {
             <Testimonials testimonials={testimonials} />
           </div>
         </AnimateOnScroll>
-
-        <AnimateOnScroll direction="up" delay={200}>
-          <div className="text-center">
-            <p className="text-lg font-medium mb-6">Ready to experience hibachi at your home?</p>
-            <a
-              href="/book"
-              className="inline-block bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-full transition-all duration-300"
-            >
-              Book Your Hibachi Experience
-            </a>
-          </div>
-        </AnimateOnScroll>
       </div>
     </div>
   )

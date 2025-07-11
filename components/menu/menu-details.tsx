@@ -84,20 +84,6 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                   <div className="p-4">
                     <h3 className="text-lg font-bold mb-1">{protein.name}</h3>
                     <p className="text-gray-600 text-sm mb-3">{protein.description}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-amber-600">${protein.price}</span>
-                      <Button asChild size="sm" variant="outline">
-                        {isMobile ? (
-                          <a
-                            href={`sms:5627134832?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
-                          >
-                            Order via SMS
-                          </a>
-                        ) : (
-                          <Link href="/book">Add to Order</Link>
-                        )}
-                      </Button>
-                    </div>
                   </div>
                 </div>
               )

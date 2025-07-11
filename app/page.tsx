@@ -390,8 +390,8 @@ export default function Home() {
               </AnimateOnScroll>
             </div>
 
-            {/* Promotional Card - Added after package cards */}
-            <PromotionalCard />
+            {/* Promotional Card - Added after package cards  */}
+            {/* <PromotionalCard />*/}
           </div>
         </section>
       </AnimateOnScroll>

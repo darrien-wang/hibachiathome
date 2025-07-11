@@ -38,7 +38,7 @@ export const regions: Record<string, number> = {
 }
 
 // 默认旅行费用
-export const DEFAULT_TRAVEL_FEE = 75
+export const DEFAULT_TRAVEL_FEE = 50
 
 /**
  * 根据邮编计算旅行费用

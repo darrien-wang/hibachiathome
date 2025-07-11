@@ -132,14 +132,10 @@ export default function FAQClientPage() {
       </Accordion>
       <div className="mx-auto max-w-[980px] text-center">
         <p className="text-gray-500 dark:text-gray-400">
-          Still have questions? Call us at{" "}
+          Still have questions? Call or text us at{" "}
           <a href="tel:2137707788" className="text-amber-600 hover:text-amber-700 font-medium">
             (213) 770-7788
           </a>{" "}
-          or text{" "}
-          <a href="sms:5627134832" className="text-amber-600 hover:text-amber-700 font-medium">
-            (562) 713-4832
-          </a>
         </p>
       </div>
     </section>
