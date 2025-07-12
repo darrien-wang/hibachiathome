@@ -178,7 +178,7 @@ If your budget allows, hiring a professional hibachi chef to cook in your home c
 - **Ventilation**: Professional hibachi cooking produces smoke, so good ventilation is essential.
 - **Booking in advance**: The best hibachi chefs often book out weeks or months in advance, especially during peak seasons.
 - **Menu customization**: Discuss dietary restrictions and preferences with your chef beforehand.
-- **Cost considerations**: Expect to pay $50-150 per person depending on your location and menu choices.
+- **Cost considerations**: Expect to pay $75-150 per person depending on your location and menu choices.
 
 ### DIY Hibachi Setup
 

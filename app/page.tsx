@@ -196,6 +196,15 @@ export default function Home() {
 
   const cardItems: CardItem[] = [
     {
+      title: "WhatsApp",
+      description: "Fastest response time",
+      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+      buttonText: "WhatsApp",
+      onClick: handleWhatsApp,
+      variant: "outline",
+      className: "bg-white/20 border-white/30",
+    },
+    {
       title: "SMS",
       description: "Text us directly",
       icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
@@ -210,15 +219,6 @@ export default function Home() {
       icon: null,
       buttonText: siteConfig.contact.phone || "12137707788",
       onClick: handlePhone,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-    {
-      title: "WhatsApp",
-      description: "Fastest response time",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "WhatsApp",
-      onClick: handleWhatsApp,
       variant: "outline",
       className: "bg-white/20 border-white/30",
     },
