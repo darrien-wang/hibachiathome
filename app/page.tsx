@@ -196,15 +196,6 @@ export default function Home() {
 
   const cardItems: CardItem[] = [
     {
-      title: "WhatsApp",
-      description: "Fastest response time",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "WhatsApp",
-      onClick: handleWhatsApp,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-    {
       title: "SMS",
       description: "Text us directly",
       icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
@@ -219,6 +210,15 @@ export default function Home() {
       icon: null,
       buttonText: siteConfig.contact.phone || "12137707788",
       onClick: handlePhone,
+      variant: "outline",
+      className: "bg-white/20 border-white/30",
+    },
+    {
+      title: "WhatsApp",
+      description: "Fastest response time",
+      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+      buttonText: "WhatsApp",
+      onClick: handleWhatsApp,
       variant: "outline",
       className: "bg-white/20 border-white/30",
     },
@@ -848,7 +848,7 @@ export default function Home() {
 
             <AnimateOnScroll direction="up" delay={200}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                {cardItems.map((card, index) => (
+                {cardItems.map((card, index) => (   
                   <Card key={index} className={`text-center flex flex-col ${card.className}`}>
                     <CardHeader className="h-[100px] flex flex-col justify-center">
                       <CardTitle className="text-white text-lg">{card.title}</CardTitle>

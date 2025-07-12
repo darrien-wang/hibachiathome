@@ -330,7 +330,7 @@ const calculateTravelFee = (zipcode: string): number => {
     "329": 50,
   }
 
-  return regions[zipPrefix] || 75
+  return regions[zipPrefix] || 50
 }
 
 // 添加一个辅助函数，确保表单在视图中完全可见
