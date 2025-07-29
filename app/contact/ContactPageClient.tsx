@@ -243,7 +243,7 @@ export default function ContactPageClient() {
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <MapPin className="h-5 w-5 text-orange-500" />
-                <span>Service Area: NYC and surrounding areas</span>
+                <span>Service Area: LA and surrounding areas</span>
               </div>
               <div className="text-sm text-gray-600 italic mt-2">
                 We will gradually open other areas in the future, you can contact us in advance.
