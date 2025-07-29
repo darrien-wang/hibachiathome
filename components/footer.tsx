@@ -96,7 +96,7 @@ export default function Footer() {
             <h4 className="text-[18px] font-bold text-white mb-6">Connect With Us</h4>
             <div className="flex space-x-4 mb-6">
               <a
-                href={siteConfig.socialLinks?.facebook ?? "#"}
+                href={siteConfig.social?.facebook ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-[#F1691B] transition-colors duration-200"
@@ -106,7 +106,7 @@ export default function Footer() {
                 <span className="sr-only">Facebook</span>
               </a>
               <a
-                href={siteConfig.socialLinks?.instagram ?? "#"}
+                href={siteConfig.social?.instagram ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-[#F1691B] transition-colors duration-200"
@@ -116,7 +116,7 @@ export default function Footer() {
                 <span className="sr-only">Instagram</span>
               </a>
               <a
-                href={siteConfig.socialLinks?.twitter ?? "#"}
+                href={siteConfig.social?.twitter ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-[#F1691B] transition-colors duration-200"
