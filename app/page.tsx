@@ -342,7 +342,7 @@ export default function Home() {
               </AnimateOnScroll>
 
               {/* Buffet Style Package Card */}
-              <AnimateOnScroll direction="right">
+              {/* <AnimateOnScroll direction="right">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
                   <div className="absolute top-2 right-2 z-10">
                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
@@ -387,7 +387,7 @@ export default function Home() {
                     </ul>
                   </div>
                 </div>
-              </AnimateOnScroll>
+              </AnimateOnScroll> */}
             </div>
 
             {/* Promotional Card - Added after package cards  */}
