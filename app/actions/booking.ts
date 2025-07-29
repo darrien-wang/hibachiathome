@@ -45,7 +45,7 @@ function calculateTravelFee(zipcode: string): number {
     "329": 50,
   }
 
-  return regions[zipPrefix] || 75
+  return regions[zipPrefix] || 50
 }
 
 // 类型校验函数
