@@ -33,7 +33,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
 
         <div className="grid grid-cols-2 gap-2 max-w-md mx-auto text-[#111827]">
           <div className="font-medium">📅 Date:</div>
-          <div>{orderData?.event_date ? format(new Date(orderData.event_date), "MMMM d, yyyy") : "Not selected"}</div>
+          <div>{orderData?.event_date ? format(new Date(orderData.event_date + "T00:00:00"), "MMMM d, yyyy") : "Not selected"}</div>
 
           <div className="font-medium">🕒 Time:</div>
           <div>{orderData?.event_time || "Not selected"}</div>
