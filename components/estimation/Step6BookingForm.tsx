@@ -22,6 +22,16 @@ interface Step6BookingFormProps {
     zipcode: string
     city: string
     state: string
+    estimatedGuests: string
+    adults: number
+    kids: number
+    filetMignon: number
+    lobsterTail: number
+    premiumScallops: number
+    extraProteins: number
+    noodles: number
+    gyoza: number
+    edamame: number
   }
   totalGuests: number
   costs: {
@@ -37,6 +47,7 @@ interface Step6BookingFormProps {
   }
   showTerms: boolean
   isOrderFormValid: boolean
+  validationErrors: string[]
   isSubmitting: boolean
   orderError: string
   onInputChange: (field: string, value: string) => void
@@ -66,6 +77,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
   selectedDateTime,
   showTerms,
   isOrderFormValid,
+  validationErrors,
   isSubmitting,
   orderError,
   onInputChange,
@@ -77,10 +89,6 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
   onPrev,
   onNext,
 }) => {
-  console.log("🔴 Step6Form: Received selectedDateTime:", selectedDateTime)
-  console.log("🔴 Step6Form: Date string:", selectedDateTime.dateString)
-  console.log("🔴 Step6Form: Time:", selectedDateTime.time)
-
   return (
     <div id="order-form" className="scroll-mt-24">
       <div className="flex justify-center my-8">
@@ -136,8 +144,26 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Full Address*</Label>
-                <div className="space-y-3">
+                <Label htmlFor="estimatedGuests">Estimated Guest Count*</Label>
+                <Input
+                  id="estimatedGuests"
+                  type="number"
+                  value={formData.estimatedGuests}
+                  onChange={(e) => onInputChange("estimatedGuests", e.target.value)}
+                  required
+                  placeholder="Number of guests"
+                  min="1"
+                  max="100"
+                />
+                <p className="text-xs text-gray-500">
+                  You can adjust this number later as needed
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Full Address*</Label>
+              <div className="space-y-3">
                   <div id="street-address-container">
                     <GooglePlacesAutocomplete
                       value={formData.address}
@@ -210,17 +236,130 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                   FULL ADDRESS OF PARTY (House #, Street, PLEASE include Zip Code)
                 </p>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="message">Special Requests or Notes</Label>
-              <textarea
-                id="message"
-                value={formData.message}
-                onChange={(e) => onInputChange("message", e.target.value)}
-                placeholder="Dietary restrictions, special occasions, or other requests"
-                className="w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary bg-white"
-              />
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">🍽️ Your Estimated Menu</h3>
+              
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Base Package */}
+                  <div className="bg-white rounded-lg p-4 border border-blue-100">
+                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                      🥘 <span className="ml-2">Base Hibachi Package</span>
+                    </h4>
+                    <div className="text-sm space-y-1">
+                      <p>• Hibachi Fried Rice</p>
+                      <p>• Mixed Vegetables</p>
+                      <p>• Yum Yum Sauce, Teriyaki Sauce, Salad Dressing</p>
+                      <p>• Regular Protein (Choice of: Chicken, Steak, Shrimp, Salmon, or Tofu)</p>
+                    </div>
+                  </div>
+
+                  {/* Entertainment Activities */}
+                  <div className="bg-white rounded-lg p-4 border border-purple-200">
+                    <h4 className="font-semibold text-purple-900 mb-3 flex items-center">
+                      🎭 <span className="ml-2">Entertainment & Show</span>
+                    </h4>
+                    <div className="text-sm space-y-1">
+                      <p>• Onion Volcano 🌋</p>
+                      <p>• Sake Gun 🔫</p>
+                      <p>• Pee Pee Boy 💦</p>
+                      <p>• Zucchini Toss 🥒</p>
+                      <p>• Interactive Chef Performance</p>
+                      <p>• Egg Juggling & Tricks</p>
+                    </div>
+                  </div>
+
+                  {/* Premium Upgrades */}
+                  {(formData.filetMignon > 0 || formData.lobsterTail > 0 || formData.premiumScallops > 0) && (
+                    <div className="bg-white rounded-lg p-4 border border-amber-200">
+                      <h4 className="font-semibold text-amber-900 mb-3 flex items-center">
+                        ⭐ <span className="ml-2">Premium Upgrades</span>
+                      </h4>
+                      <div className="text-sm space-y-1">
+                        {formData.filetMignon > 0 && (
+                          <p>• Filet Mignon Upgrade</p>
+                        )}
+                        {formData.lobsterTail > 0 && (
+                          <p>• Spiny Lobster Tail</p>
+                        )}
+                        {formData.premiumScallops > 0 && (
+                          <p>• Premium Sea Scallops</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sides & Add-ons */}
+                  {(formData.extraProteins > 0 || formData.noodles > 0 || formData.gyoza > 0 || formData.edamame > 0) && (
+                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <h4 className="font-semibold text-green-900 mb-3 flex items-center">
+                        🍜 <span className="ml-2">Sides & Add-ons</span>
+                      </h4>
+                      <div className="text-sm space-y-1">
+                        {formData.extraProteins > 0 && (
+                          <p>• Extra Proteins</p>
+                        )}
+                        {formData.noodles > 0 && (
+                          <p>• Hibachi Noodles</p>
+                        )}
+                        {formData.gyoza > 0 && (
+                          <p>• Gyoza (12pcs)</p>
+                        )}
+                        {formData.edamame > 0 && (
+                          <p>• Edamame</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 border border-red-200">
+                  <h4 className="font-semibold text-red-900 mb-2 flex items-center">
+                    🔥 <span className="ml-2">What Makes Our Hibachi Special</span>
+                  </h4>
+                  <p className="text-sm text-red-800">
+                    Our experienced hibachi chefs bring the authentic Japanese teppanyaki experience to your home with skilled knife work, 
+                    entertaining cooking tricks, and interactive performances that will delight guests of all ages!
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="message">Special Requests & Dietary Restrictions (Optional)</Label>
+                <textarea
+                  id="message"
+                  value={formData.message}
+                  onChange={(e) => onInputChange("message", e.target.value)}
+                  placeholder="Please let us know about any allergies, dietary restrictions, or special requests for your hibachi party..."
+                  className="w-full min-h-[120px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary bg-white text-sm"
+                />
+                <p className="text-xs text-gray-500">
+                  💡 Optional: Please specify any food allergies or dietary restrictions to ensure a safe dining experience
+                </p>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-medium text-green-900 mb-2">✅ Booking Policy & Flexibility:</h4>
+                <div className="text-sm text-green-800 space-y-2">
+                  <p className="flex items-start">
+                    <span className="text-green-600 mr-2">📅</span>
+                    <span><strong>Menu Selection:</strong> No rush! You can finalize your exact menu choices up to <strong>1 day before</strong> your party date.</span>
+                  </p>
+                  <p className="flex items-start">
+                    <span className="text-green-600 mr-2">➕</span>
+                    <span><strong>Increase Guests:</strong> You can <strong>add more guests any time</strong> (additional charges apply).</span>
+                  </p>
+                  <p className="flex items-start">
+                    <span className="text-green-600 mr-2">➖</span>
+                    <span><strong>Reduce Guests:</strong> You can <strong>reduce guest count</strong> up until the day before your party.</span>
+                  </p>
+                  <p className="flex items-start">
+                    <span className="text-orange-500 mr-2">⚠️</span>
+                    <span><strong>Day-of Policy:</strong> Guest count <strong>cannot be reduced on the party day</strong> as ingredients are already prepared.</span>
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -236,62 +375,31 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                   headcount={totalGuests}
                   zipcode={formData.zipcode}
                   basePrice={costs.subtotal}
+                  selectedDateTime={selectedDateTime}
                 />
               )}
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              <h3 className="text-lg font-medium mb-2">Order Summary</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Total Guests:</span>
-                  <span>{totalGuests} people</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Food & Add-ons:</span>
-                  <span>${costs.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Travel Fee:</span>
-                  <span>${costs.travelFee.toFixed(2)}</span>
-                </div>
-                {selectedDateTime.dateString && selectedDateTime.time ? (
-                  <>
-                    <div className="flex justify-between">
-                      <span>Selected Date & Time:</span>
-                      <span>
-                        {selectedDateTime.dateString} at {selectedDateTime.time}
-                      </span>
-                    </div>
-                    {selectedDateTime.originalPrice > selectedDateTime.price && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Special Discount:</span>
-                        <span>-${(selectedDateTime.originalPrice - selectedDateTime.price).toFixed(2)}</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex justify-between text-gray-500">
-                    <span>Selected Date & Time:</span>
-                    <span>Please select date and time above</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold border-t pt-2 mt-2">
-                  <span>Total Amount:</span>
-                  <span>
-                    $
-                    {(selectedDateTime.dateString && selectedDateTime.time
-                      ? selectedDateTime.price + costs.travelFee
-                      : costs.total
-                    ).toFixed(2)}
-                  </span>
-                </div>
-              </div>
             </div>
 
             <div className="space-y-4">
               <TermsCheckbox checked={formData.agreeToTerms} onChange={onCheckboxChange} onShowTerms={onShowTerms} />
               <TermsModal open={showTerms} onClose={onCloseTerms} />
+
+              {/* Validation Errors */}
+              {!isOrderFormValid && validationErrors.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <h4 className="font-medium text-amber-900 mb-2 flex items-center">
+                    ⚠️ <span className="ml-2">Please complete the following required fields:</span>
+                  </h4>
+                  <ul className="text-sm text-amber-800 space-y-1 ml-4">
+                    {validationErrors.map((error, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-amber-600 mr-2">•</span>
+                        <span>{error}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {orderError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">{orderError}</div>

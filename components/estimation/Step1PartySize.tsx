@@ -147,6 +147,23 @@ const Step1PartySize: React.FC<Step1PartySizeProps> = ({
           <p className="text-sm text-[#4B5563]">(Note: Children under 3 are free, no need to include)</p>
         </div>
       </div>
+      {/* Validation Errors */}
+      {disableNext && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <h4 className="font-medium text-amber-900 mb-2 flex items-center">
+            ⚠️ <span className="ml-2">Please complete the following required fields:</span>
+          </h4>
+          <ul className="text-sm text-amber-800 space-y-1 ml-4">
+            {!name && <li className="flex items-start"><span className="text-amber-600 mr-2">•</span><span>Full Name is required</span></li>}
+            {!email && <li className="flex items-start"><span className="text-amber-600 mr-2">•</span><span>Email Address is required</span></li>}
+            {!phone && <li className="flex items-start"><span className="text-amber-600 mr-2">•</span><span>Phone Number is required</span></li>}
+            {!zipcode && <li className="flex items-start"><span className="text-amber-600 mr-2">•</span><span>ZIP Code is required</span></li>}
+            {zipcode && zipcode.length !== 5 && <li className="flex items-start"><span className="text-amber-600 mr-2">•</span><span>ZIP Code must be 5 digits</span></li>}
+            {Number(adults) === 0 && Number(kids) === 0 && <li className="flex items-start"><span className="text-amber-600 mr-2">•</span><span>At least 1 adult or 1 kid is required</span></li>}
+          </ul>
+        </div>
+      )}
+
       <div className="pt-2">
         <button
           onClick={onNext}

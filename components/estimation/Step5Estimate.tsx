@@ -8,6 +8,7 @@ interface Step5EstimateProps {
   kids: number
   filetMignon: number
   lobsterTail: number
+  premiumScallops: number
   extraProteins: number
   noodles: number
   gyoza: number
@@ -28,6 +29,8 @@ interface Step5EstimateProps {
   filetMignonCost: number
   lobsterTailUnit: number
   lobsterTailCost: number
+  premiumScallopsUnit: number
+  premiumScallopsCost: number
   extraProteinsUnit: number
   extraProteinsCost: number
   noodlesUnit: number
@@ -44,6 +47,7 @@ const Step5Estimate: React.FC<Step5EstimateProps> = ({
   kids,
   filetMignon,
   lobsterTail,
+  premiumScallops,
   extraProteins,
   noodles,
   gyoza,
@@ -64,6 +68,8 @@ const Step5Estimate: React.FC<Step5EstimateProps> = ({
   filetMignonCost,
   lobsterTailUnit,
   lobsterTailCost,
+  premiumScallopsUnit,
+  premiumScallopsCost,
   extraProteinsUnit,
   extraProteinsCost,
   noodlesUnit,
@@ -117,9 +123,17 @@ const Step5Estimate: React.FC<Step5EstimateProps> = ({
             {lobsterTail > 0 && (
               <div className="flex justify-between">
                 <span>
-                  Lobster Tail ({lobsterTail} x ${lobsterTailUnit})
+                  Spiny Lobster Tail ({lobsterTail} x ${lobsterTailUnit})
                 </span>
                 <span>${lobsterTailCost}</span>
+              </div>
+            )}
+            {premiumScallops > 0 && (
+              <div className="flex justify-between">
+                <span>
+                  Premium Sea Scallops ({premiumScallops} x ${premiumScallopsUnit})
+                </span>
+                <span>${premiumScallopsCost}</span>
               </div>
             )}
             {extraProteins > 0 && (
@@ -150,12 +164,14 @@ const Step5Estimate: React.FC<Step5EstimateProps> = ({
                 <span>${edamameCost}</span>
               </div>
             )}
-            <div className="mt-2 pt-2 border-t border-gray-700">
-              <div className="flex justify-between">
-                <span>Travel Fee</span>
-                <span>${travelFee}</span>
+            {travelFee > 0 && (
+              <div className="mt-2 pt-2 border-t border-gray-700">
+                <div className="flex justify-between">
+                  <span>Travel Fee</span>
+                  <span>${travelFee}</span>
+                </div>
               </div>
-            </div>
+            )}
             <div className="mt-3 pt-3 border-t-2 border-amber-700 font-bold">
               {usedMinimum && (
                 <div className="flex justify-between text-sm text-amber-600 font-semibold mb-1">

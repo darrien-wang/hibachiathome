@@ -17,6 +17,12 @@ interface DynamicPricingCalendarProps {
   headcount: number
   zipcode: string
   basePrice: number
+  selectedDateTime?: {
+    dateString: string | undefined
+    time: string | undefined
+    price: number
+    originalPrice: number
+  }
 }
 
 interface TimeSlot {
@@ -44,6 +50,7 @@ export default function DynamicPricingCalendar({
   headcount,
   zipcode,
   basePrice,
+  selectedDateTime,
 }: DynamicPricingCalendarProps) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -56,6 +63,24 @@ export default function DynamicPricingCalendar({
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
 
+  // 当外部传入选中的日期时间时，恢复状态
+  useEffect(() => {
+    if (selectedDateTime?.dateString && selectedDateTime?.time) {
+      // 解析日期字符串并设置选中的日期
+      const dateObj = new Date(selectedDateTime.dateString + 'T12:00:00')
+      setSelectedDate(dateObj)
+      setSelectedDateString(selectedDateTime.dateString)
+      setSelectedTime(selectedDateTime.time)
+      setDateConfirmed(true)
+      
+      // 设置日历显示到正确的月份
+      setCurrentYear(dateObj.getFullYear())
+      setCurrentMonth(dateObj.getMonth())
+      
+      console.log("🔄 Calendar: Restored selected date:", selectedDateTime.dateString, "time:", selectedDateTime.time)
+    }
+  }, [selectedDateTime])
+
   // 格式化日期为字符串
   const formatDateString = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
@@ -63,15 +88,17 @@ export default function DynamicPricingCalendar({
 
   // 获取时间段和价格信息（新版）
   useEffect(() => {
-    /* 3-1）换日期时先清空旧 Time，防止"旧时间+新日期" */
-    setSelectedTime(undefined)
-
     // ✅ 在使用 selectedDate 之前都加判断
     if (!selectedDate || !selectedDateString) return
 
-    /* 3-3）让父组件立即知道选了什么日期（时间先留空） */
-    console.log("🔵 Calendar: Selected date string:", selectedDateString)
-    onSelectDateTime(selectedDateString, undefined, basePrice, basePrice)
+    // 只有在从外部恢复状态时才不清空时间，正常选择新日期时才清空
+    if (!selectedDateTime?.dateString || selectedDateTime.dateString !== selectedDateString) {
+      /* 3-1）换日期时先清空旧 Time，防止"旧时间+新日期" */
+      setSelectedTime(undefined)
+      /* 3-3）让父组件立即知道选了什么日期（时间先留空） */
+      console.log("🔵 Calendar: Selected date string:", selectedDateString)
+      onSelectDateTime(selectedDateString, undefined, basePrice, basePrice)
+    }
 
     /* 3-4）拉取当天可用时间段（加入 AbortController，避免竞态） */
     const controller = new AbortController()
@@ -118,7 +145,13 @@ export default function DynamicPricingCalendar({
   // 确认按钮逻辑
   const handleConfirm = () => {
     setDateConfirmed(true)
-    if (selectedDateString) onSelectDateTime(selectedDateString, selectedTime, 0, 0)
+    if (selectedDateString && selectedTime) {
+      // 找到选中时间对应的价格
+      const selectedSlot = timeSlots.find(slot => slot.time === selectedTime)
+      const price = selectedSlot?.price || basePrice
+      console.log("🟣 Calendar: Confirming selection - Date:", selectedDateString, "Time:", selectedTime, "Price:", price)
+      onSelectDateTime(selectedDateString, selectedTime, price, basePrice)
+    }
   }
 
   // 生成当前月的未来日期
@@ -246,11 +279,15 @@ export default function DynamicPricingCalendar({
               className="w-full border rounded-lg p-3 text-lg"
               value={selectedTime || ""}
               onChange={(e) => {
-                setSelectedTime(e.target.value)
-                if (selectedDateString) {
+                const selectedTimeValue = e.target.value
+                setSelectedTime(selectedTimeValue)
+                if (selectedDateString && selectedTimeValue) {
+                  // 找到对应的时间槽价格
+                  const selectedSlot = timeSlots.find(slot => slot.time === selectedTimeValue)
+                  const price = selectedSlot?.price || basePrice
                   console.log("🟡 Calendar: Dropdown time selected, passing date string:", selectedDateString)
-                  console.log("🟡 Calendar: Time selected:", e.target.value)
-                  onSelectDateTime(selectedDateString, e.target.value, basePrice, basePrice)
+                  console.log("🟡 Calendar: Time selected:", selectedTimeValue, "Price:", price)
+                  onSelectDateTime(selectedDateString, selectedTimeValue, price, basePrice)
                 }
               }}
             >
@@ -291,7 +328,7 @@ export default function DynamicPricingCalendar({
                       setSelectedTime(slot.time)
                       if (selectedDateString) {
                         console.log("🟢 Calendar: Time selected, passing date string:", selectedDateString)
-                        console.log("🟢 Calendar: Time selected:", slot.time)
+                        console.log("🟢 Calendar: Time selected:", slot.time, "Price:", slot.price)
                         onSelectDateTime(selectedDateString, slot.time, slot.price, basePrice)
                       }
                     }}

@@ -78,6 +78,7 @@ type FormData = {
   eventDate: string
   eventTime: string
   message: string
+  estimatedGuests: string
   agreeToTerms: boolean
 }
 
@@ -151,6 +152,7 @@ type OrderData = {
   total_amount: number
   email: string
   phone: string
+  estimatedGuests: string
   address: string
   city: string
   state: string
@@ -222,6 +224,7 @@ const initialState: FormData = {
   eventDate: "",
   eventTime: "",
   message: "",
+  estimatedGuests: "",
   agreeToTerms: false,
 }
 
@@ -260,9 +263,11 @@ function useCostCalculation(formData: FormData) {
       gyozaCost +
       edamameCost
     const minimumSpending = pricing.packages.basic.minimum
+    const meetsMinimum = mealCost >= minimumSpending
     const finalMealCost = Math.max(mealCost, minimumSpending)
+    const applicableTravelFee = meetsMinimum ? travelFee : 0
     const subtotal = finalMealCost
-    const total = subtotal + travelFee
+    const total = subtotal + applicableTravelFee
     const suggestedTip = total * 0.2
 
     return {
@@ -270,11 +275,12 @@ function useCostCalculation(formData: FormData) {
       kidsCost: Number(kidsCost.toFixed(2)),
       filetMignonCost: Number(filetMignonCost.toFixed(2)),
       lobsterTailCost: Number(lobsterTailCost.toFixed(2)),
+      premiumScallopsCost: Number(premiumScallopsCost.toFixed(2)),
       extraProteinsCost: Number(extraProteinsCost.toFixed(2)),
       noodlesCost: Number(noodlesCost.toFixed(2)),
       gyozaCost: Number(gyozaCost.toFixed(2)),
       edamameCost: Number(edamameCost.toFixed(2)),
-      travelFee: Number(travelFee.toFixed(2)),
+      travelFee: Number(applicableTravelFee.toFixed(2)),
       subtotal: Number(subtotal.toFixed(2)),
       suggestedTip: Number(suggestedTip.toFixed(2)),
       total: Number(total.toFixed(2)),
@@ -284,6 +290,7 @@ function useCostCalculation(formData: FormData) {
     formData.kids,
     formData.filetMignon,
     formData.lobsterTail,
+    formData.premiumScallops,
     formData.extraProteins,
     formData.noodles,
     formData.gyoza,
@@ -864,6 +871,7 @@ function EstimationContent() {
           formData.email &&
           formData.phone &&
           formData.address &&
+          formData.estimatedGuests &&
           selectedDateTime.dateString &&
           selectedDateTime.time &&
           formData.agreeToTerms,
@@ -872,12 +880,38 @@ function EstimationContent() {
       formData.name,
       formData.email,
       formData.phone,
+      formData.estimatedGuests,
       formData.address,
       formData.agreeToTerms,
       selectedDateTime.dateString,
       selectedDateTime.time,
     ],
   )
+
+  // 添加详细的验证错误信息
+  const getValidationErrors = useMemo(() => {
+    const errors: string[] = []
+    
+    if (!formData.name) errors.push("Full Name is required")
+    if (!formData.email) errors.push("Email Address is required")
+    if (!formData.phone) errors.push("Phone Number is required")
+    if (!formData.address) errors.push("Full Address is required")
+    if (!formData.estimatedGuests) errors.push("Estimated Guest Count is required")
+    if (!selectedDateTime.dateString) errors.push("Event Date is required")
+    if (!selectedDateTime.time) errors.push("Event Time is required")
+    if (!formData.agreeToTerms) errors.push("You must agree to Terms & Conditions")
+    
+    return errors
+  }, [
+    formData.name,
+    formData.email,
+    formData.phone,
+    formData.address,
+    formData.estimatedGuests,
+    selectedDateTime.dateString,
+    selectedDateTime.time,
+    formData.agreeToTerms,
+  ])
 
   /**
    * 100 % 前端版 handleSubmit
@@ -925,12 +959,14 @@ function EstimationContent() {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
+          estimatedGuests: formData.estimatedGuests,
           address: {
             street: formData.address,
             city: formData.city,
             state: formData.state,
             zipcode: formData.zipcode,
           },
+          message: formData.message,
         },
         order: {
           order_id: newOrderId,
@@ -1028,6 +1064,7 @@ function EstimationContent() {
         full_name: formData.name,
         email: formData.email,
         phone: formData.phone,
+        estimatedGuests: formData.estimatedGuests,
         address: formData.address,
         city: formData.city,
         state: formData.state,
@@ -1080,6 +1117,7 @@ function EstimationContent() {
     costs.kidsCost +
     costs.filetMignonCost +
     costs.lobsterTailCost +
+    costs.premiumScallopsCost +
     costs.extraProteinsCost +
     costs.noodlesCost +
     costs.gyozaCost +
@@ -1422,6 +1460,7 @@ function EstimationContent() {
               kids={formData.kids}
               filetMignon={formData.filetMignon}
               lobsterTail={formData.lobsterTail}
+              premiumScallops={formData.premiumScallops}
               extraProteins={formData.extraProteins}
               noodles={formData.noodles}
               gyoza={formData.gyoza}
@@ -1438,17 +1477,19 @@ function EstimationContent() {
               adultsCost={costs.adultsCost}
               kidsUnit={pricing.children.basic}
               kidsCost={costs.kidsCost}
-              filetMignonUnit={5}
+              filetMignonUnit={8}
               filetMignonCost={costs.filetMignonCost}
-              lobsterTailUnit={10}
+              lobsterTailUnit={12}
               lobsterTailCost={costs.lobsterTailCost}
+              premiumScallopsUnit={6}
+              premiumScallopsCost={costs.premiumScallopsCost}
               extraProteinsUnit={10}
               extraProteinsCost={costs.extraProteinsCost}
               noodlesUnit={5}
               noodlesCost={costs.noodlesCost}
-              gyozaUnit={10}
+              gyozaUnit={15}
               gyozaCost={costs.gyozaCost}
-              edamameUnit={8}
+              edamameUnit={10}
               edamameCost={costs.edamameCost}
             />
           )}
@@ -1456,12 +1497,24 @@ function EstimationContent() {
           {/* Step 6: Booking Form */}
           {currentStep === 6 && (
             <Step6BookingForm
-              formData={formData}
+              formData={{
+                ...formData,
+                adults: formData.adults,
+                kids: formData.kids,
+                filetMignon: formData.filetMignon,
+                lobsterTail: formData.lobsterTail,
+                premiumScallops: formData.premiumScallops,
+                extraProteins: formData.extraProteins,
+                noodles: formData.noodles,
+                gyoza: formData.gyoza,
+                edamame: formData.edamame,
+              }}
               totalGuests={totalGuests}
               costs={costs}
               selectedDateTime={selectedDateTime}
               showTerms={Boolean(showTerms)}
               isOrderFormValid={isOrderFormValid}
+              validationErrors={getValidationErrors}
               isSubmitting={isSubmitting}
               orderError={orderError}
               onInputChange={(field: string, value: string) => handleInputChange(field as keyof FormData, value)}
