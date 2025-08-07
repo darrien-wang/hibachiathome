@@ -9,19 +9,19 @@ export async function GET(req: NextRequest) {
   let timeSlots = []
   if (date === "2025-05-15") {
     timeSlots = [
-      { time: "11:00", price: 399, originalPrice: 499, discount: true },
-      { time: "13:00", price: 399, originalPrice: 499, discount: true },
-      { time: "15:00", price: 499, originalPrice: 499, discount: false },
-      { time: "17:00", price: 499, originalPrice: 499, discount: false },
-      { time: "19:00", price: 499, originalPrice: 499, discount: false },
+      { time: "11:00", price: 399, originalPrice: 599, discount: true },
+      { time: "13:00", price: 399, originalPrice: 599, discount: true },
+      { time: "15:00", price: 599, originalPrice: 599, discount: false },
+      { time: "17:00", price: 599, originalPrice: 599, discount: false },
+      { time: "19:00", price: 599, originalPrice: 599, discount: false },
     ]
   } else {
     timeSlots = [
-      { time: "11:00", price: 499, originalPrice: 499, discount: false },
-      { time: "13:00", price: 499, originalPrice: 499, discount: false },
-      { time: "15:00", price: 499, originalPrice: 499, discount: false },
-      { time: "17:00", price: 499, originalPrice: 499, discount: false },
-      { time: "19:00", price: 499, originalPrice: 499, discount: false },
+      { time: "11:00", price: 599, originalPrice: 599, discount: false },
+      { time: "13:00", price: 599, originalPrice: 599, discount: false },
+      { time: "15:00", price: 599, originalPrice: 599, discount: false },
+      { time: "17:00", price: 599, originalPrice: 599, discount: false },
+      { time: "19:00", price: 599, originalPrice: 599, discount: false },
     ]
   }
 

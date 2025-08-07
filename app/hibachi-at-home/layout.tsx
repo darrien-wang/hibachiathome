@@ -2,12 +2,12 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Private Hibachi at Your Home - Starting at $49.9/Guest | Real Hibachi",
+  title: "Private Hibachi at Your Home - Starting at $59.9/Guest | Real Hibachi",
   description:
     "Professional hibachi chef comes to your home. Chef show, full setup, fried rice, salad, and 2 proteins—all done at your place. Book now!",
   keywords: "hibachi at home, private hibachi chef, home hibachi service, backyard hibachi party, hibachi catering",
   openGraph: {
-    title: "Private Hibachi at Your Home - Starting at $49.9/Guest",
+    title: "Private Hibachi at Your Home - Starting at $59.9/Guest",
     description: "Chef show, full setup, fried rice, salad, and 2 proteins—all done at your place.",
     images: [
       {

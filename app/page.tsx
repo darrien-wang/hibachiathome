@@ -225,7 +225,7 @@ export default function Home() {
   ]
 
   return (
-    <div className="overflow-x-hidden">
+    <div>
       <HeroSection />
 
       {/* How It Works Section */}
@@ -244,9 +244,9 @@ export default function Home() {
               </p>
             </AnimateOnScroll>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto justify-center items-center md:items-start">
               {/* Basic Package Card */}
-              <AnimateOnScroll direction="left">
+              <AnimateOnScroll direction="left" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
                   <div className="absolute top-2 right-2 z-10">
                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
@@ -266,10 +266,10 @@ export default function Home() {
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $49.9
+                        $59.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
-                      <p className="text-xs text-gray-600">($499 minimum)</p>
+                      <p className="text-xs text-gray-600">($599 minimum)</p>
                     </div>
                     <ul className="space-y-1 mb-6 text-sm">
                       <li className="flex items-start">
@@ -294,7 +294,7 @@ export default function Home() {
               </AnimateOnScroll>
 
               {/* Show Up Package Card */}
-              <AnimateOnScroll direction="up">
+              <AnimateOnScroll direction="up" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-green-300/50 hover:border-green-300">
                   <div className="absolute top-2 right-2 z-10">
                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 border-green-200">
@@ -314,7 +314,7 @@ export default function Home() {
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$75</span>
-                        $64.9
+                        $74.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
                       <p className="text-xs text-gray-600">($599 minimum)</p>
@@ -362,7 +362,7 @@ export default function Home() {
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $49.9
+                        $59.9
                         <span className="text-sm font-normal"> per person</span>
                       </p>
                       <p className="text-xs text-gray-600">($1497 minimum)</p>

@@ -55,6 +55,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    padding-bottom: 70px; /* ✅ 为浮动按钮预留空间，防止遮挡footer */
   }
   h1,
   h2,

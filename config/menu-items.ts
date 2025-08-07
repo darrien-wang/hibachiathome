@@ -194,7 +194,7 @@ export const packageOptions: PackageOption[] = [
     childCount: 0,
     flatRate: 998,
     originalPrice: 60,
-    currentPrice: 49.9,
+    currentPrice: 59.9,
     includedItems: {
       regularProteins: 3,
       premiumProteins: 0,
@@ -213,9 +213,9 @@ export const packageOptions: PackageOption[] = [
     description: "Perfect for intimate gatherings",
     headcount: 10,
     childCount: 0,
-    flatRate: 499,
+    flatRate: 599,
     originalPrice: 60,
-    currentPrice: 49.9,
+    currentPrice: 59.9,
     includedItems: {
       regularProteins: 2,
       premiumProteins: 0,
