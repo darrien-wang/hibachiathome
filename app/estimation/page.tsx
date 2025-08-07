@@ -63,6 +63,7 @@ type FormData = {
   kids: number
   filetMignon: number
   lobsterTail: number
+  premiumScallops: number
   extraProteins: number
   noodles: number
   gyoza: number
@@ -206,6 +207,7 @@ const initialState: FormData = {
   kids: 0,
   filetMignon: 0,
   lobsterTail: 0,
+  premiumScallops: 0,
   extraProteins: 0,
   noodles: 0,
   gyoza: 0,
@@ -228,8 +230,9 @@ function useCostCalculation(formData: FormData) {
   return useMemo(() => {
     const adultPrice = pricing.packages.basic.perPerson
     const kidPrice = pricing.children.basic
-    const filetUpcharge = 5
-    const lobsterUpcharge = 10
+    const filetUpcharge = 8
+    const lobsterUpcharge = 12
+    const scallopUpcharge = 6
     const extraProteinPrice = 10
     const noodlePrice = 5
     const gyozaPrice = 15
@@ -240,6 +243,7 @@ function useCostCalculation(formData: FormData) {
     const kidsCost = formData.kids * kidPrice
     const filetMignonCost = formData.filetMignon * filetUpcharge
     const lobsterTailCost = formData.lobsterTail * lobsterUpcharge
+    const premiumScallopsCost = formData.premiumScallops * scallopUpcharge
     const extraProteinsCost = formData.extraProteins * extraProteinPrice
     const noodlesCost = formData.noodles * noodlePrice
     const gyozaCost = formData.gyoza * gyozaPrice
@@ -250,6 +254,7 @@ function useCostCalculation(formData: FormData) {
       kidsCost +
       filetMignonCost +
       lobsterTailCost +
+      premiumScallopsCost +
       extraProteinsCost +
       noodlesCost +
       gyozaCost +
@@ -433,6 +438,7 @@ function EstimationContent() {
   const [editingEdamame, setEditingEdamame] = useState<string>(String(formData.edamame))
   const [editingFiletMignon, setEditingFiletMignon] = useState<string>(String(formData.filetMignon))
   const [editingLobsterTail, setEditingLobsterTail] = useState<string>(String(formData.lobsterTail))
+  const [editingPremiumScallops, setEditingPremiumScallops] = useState<string>(String(formData.premiumScallops))
   const [editingExtraProteins, setEditingExtraProteins] = useState<string>(String(formData.extraProteins))
   const [editingNoodles, setEditingNoodles] = useState<string>(String(formData.noodles))
 
@@ -455,6 +461,9 @@ function EstimationContent() {
   useEffect(() => {
     setEditingLobsterTail(String(formData.lobsterTail))
   }, [formData.lobsterTail])
+  useEffect(() => {
+    setEditingPremiumScallops(String(formData.premiumScallops))
+  }, [formData.premiumScallops])
   useEffect(() => {
     setEditingExtraProteins(String(formData.extraProteins))
   }, [formData.extraProteins])
@@ -1370,6 +1379,7 @@ function EstimationContent() {
             <Step3PremiumMains
               filetMignon={editingFiletMignon}
               lobsterTail={editingLobsterTail}
+              premiumScallops={editingPremiumScallops}
               onNumberChange={(field, value) => handleNumberChange(field as keyof FormData, value)}
               onNumberBlur={(field, value) => handleNumberBlur(field as keyof FormData, value)}
               onDecrement={(field) => handleDecrement(field as keyof FormData)}
@@ -1378,6 +1388,7 @@ function EstimationContent() {
               onPrev={goToPreviousStep}
               onSkip={() => {
                 handleNumberChange("filetMignon", "0")
+                handleNumberChange("premiumScallops", "0")
                 handleNumberChange("lobsterTail", "0")
                 goToNextStep()
               }}

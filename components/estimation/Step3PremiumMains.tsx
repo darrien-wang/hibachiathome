@@ -3,6 +3,7 @@ import React from "react";
 interface Step3PremiumMainsProps {
   filetMignon: string;
   lobsterTail: string;
+  premiumScallops: string;
   onNumberChange: (field: string, value: string) => void;
   onNumberBlur: (field: string, value: string) => void;
   onDecrement: (field: string) => void;
@@ -15,6 +16,7 @@ interface Step3PremiumMainsProps {
 const Step3PremiumMains: React.FC<Step3PremiumMainsProps> = ({
   filetMignon,
   lobsterTail,
+  premiumScallops,
   onNumberChange,
   onNumberBlur,
   onDecrement,
@@ -54,11 +56,41 @@ const Step3PremiumMains: React.FC<Step3PremiumMainsProps> = ({
             >
               +
             </button>
-            <span className="ml-3 text-[#6B7280]">$5 per person</span>
+            <span className="ml-3 text-[#6B7280]">$8 per person</span>
           </div>
         </div>
         <div className="space-y-2">
-          <label className="block text-lg font-medium">🦞 Lobster Tail</label>
+          <label className="block text-lg font-medium">🦪 Premium Sea Scallops</label>
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => onDecrement("premiumScallops")}
+              className="px-4 py-2 bg-[#4B5563] rounded-l-md hover:bg-[#374151] text-white"
+            >
+              -
+            </button>
+            <input
+              type="number"
+              value={premiumScallops}
+              onChange={e => onNumberChange("premiumScallops", e.target.value)}
+              onBlur={e => onNumberBlur("premiumScallops", e.target.value)}
+              className="w-16 text-center py-2 border-y border-gray-300 bg-[#F9FAFB] text-[#111827] font-medium"
+              min="0"
+              max="99"
+              pattern="\\d*"
+            />
+            <button
+              type="button"
+              onClick={() => onIncrement("premiumScallops")}
+              className="px-4 py-2 bg-[#4B5563] rounded-r-md hover:bg-[#374151] text-white"
+            >
+              +
+            </button>
+            <span className="ml-3 text-[#6B7280]">$6 per person</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-lg font-medium">🦞 Australian Spiny Lobster</label>
           <div className="flex items-center">
             <button
               type="button"
@@ -84,7 +116,7 @@ const Step3PremiumMains: React.FC<Step3PremiumMainsProps> = ({
             >
               +
             </button>
-            <span className="ml-3 text-[#6B7280]">$10 per person</span>
+            <span className="ml-3 text-[#6B7280]">$12 per person</span>
           </div>
         </div>
       </div>

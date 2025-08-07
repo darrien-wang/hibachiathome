@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
 import { Menu } from "lucide-react"
 
@@ -139,6 +140,9 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-[250px] sm:w-[300px] bg-stone-100/95">
+                <VisuallyHidden>
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                </VisuallyHidden>
                 <div className="flex justify-center mb-6 mt-4">
                   <Image
                     src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"

@@ -94,7 +94,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
         <TabsContent value="premium" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {premiumProteins
-              .filter((protein) => protein.id === "filet" || protein.id === "lobster")
+              .filter((protein) => protein.id === "filet" || protein.id === "lobster" || protein.id === "scallops-premium")
               .map((protein) => (
                 <div
                   key={protein.id}
@@ -105,6 +105,8 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                       src={
                         protein.id === "lobster"
                           ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/36996-Grilled-Rock-Lobsters-109-4x3-fb4e7e3c2ea34a5b8de9caf3697ed5b9-7CrqVYQUItKQGGwjfc7i4AJqkIxNOP.jpg"
+                          : protein.id === "scallops-premium"
+                          ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/benihana-hibachi-scallops-n4M84f7dlGvTfIRetEp2wYqy8zd1kk.jpeg"
                           : "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/istockphoto-844731188-612x612-ZN07NpCqj0LP0BrtajkCjMbPDip5dT.jpg"
                       } // Premium protein image
                       alt={protein.name}
