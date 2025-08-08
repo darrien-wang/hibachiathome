@@ -14,6 +14,7 @@ import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import HowItWorksSection from "@/components/how-it-works-section"
+import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
 
 // Testimonial data with ratings
@@ -70,7 +71,7 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
     if (timerRef.current) clearTimeout(timerRef.current)
   }
 
-  const handleError = (error) => {
+  const handleError = (error: any) => {
     console.error("Video loading error:", error)
     setShowVideo(false)
   }
@@ -230,6 +231,15 @@ export default function Home() {
 
       {/* How It Works Section */}
       <HowItWorksSection />
+
+      {/* Instagram Videos Section */}
+      <InstagramVideosSection
+        displayMode="grid"
+        maxVisible={6}
+        showViewAll={true}
+        title="Real Events, Real Moments"
+        subtitle="See our recent hibachi experiences from satisfied customers across Los Angeles"
+      />
 
       {/* Package Options Section */}
       <AnimateOnScroll>
@@ -543,9 +553,9 @@ export default function Home() {
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-blue-600 font-medium text-lg">Delicious shrimp, prepared with care! 🦐✨</p>
+              <p className="text-red-600 font-medium text-lg">Delicious shrimp, prepared with care! 🦐✨</p>
               <p className="text-gray-600 text-sm mt-2">
-                Available as a premium protein option in all hibachi packages.
+                Available as a regular protein option in all hibachi packages.
               </p>
             </div>
           </div>

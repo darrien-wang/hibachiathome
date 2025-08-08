@@ -5,8 +5,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // 格式化菜品数量，只显示数量大于0的
 const formatItems = (items: any) => {
-  return Object.entries(items)
-    .filter(([_, item]: [string, any]) => item.quantity > 0)
+  if (!items || typeof items !== 'object') {
+    return 'N/A';
+  }
+  
+  const formattedItems = Object.entries(items)
+    .filter(([_, item]: [string, any]) => item && item.quantity > 0)
     .map(([name, item]: [string, any]) => {
       const formattedName = name.split('_').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
@@ -14,6 +18,8 @@ const formatItems = (items: any) => {
       return `${formattedName}: ${item.quantity} ($${item.total.toFixed(2)})`;
     })
     .join('<br>');
+    
+  return formattedItems || 'N/A';
 };
 
 // 生成询价邮件模板
@@ -67,7 +73,7 @@ const generateQuoteEmail = (data: any) => `
     ${data.order.scheduling.selected_date ? `
       <div style="margin-bottom: 20px;">
         <h3 style="color: #333;">时间选择</h3>
-        <p><strong>日期:</strong> ${new Date(data.order.scheduling.selected_date).toLocaleDateString()}</p>
+        <p><strong>日期:</strong> ${data.order.scheduling.selected_date}</p>
         <p><strong>时间:</strong> ${data.order.scheduling.selected_time}</p>
         ${data.order.scheduling.discount > 0 ? `
           <p style="color: #28a745;">
@@ -150,7 +156,7 @@ const generateOrderConfirmationEmail = (data: any) => `
 
     <div style="margin-bottom: 20px;">
       <h3 style="color: #333;">时间选择</h3>
-      <p><strong>日期:</strong> ${new Date(data.order.scheduling.selected_date).toLocaleDateString()}</p>
+      <p><strong>日期:</strong> ${data.order.scheduling.selected_date}</p>
       <p><strong>时间:</strong> ${data.order.scheduling.selected_time}</p>
       ${data.order.scheduling.discount > 0 ? `
         <p style="color: #28a745;">

@@ -991,13 +991,18 @@ function EstimationContent() {
             premium_mains: {
               filet_mignon: {
                 quantity: formData.filetMignon,
-                unit_price: 5,
+                unit_price: 8,
                 total: costs.filetMignonCost,
               },
               lobster_tail: {
                 quantity: formData.lobsterTail,
-                unit_price: 10,
+                unit_price: 12,
                 total: costs.lobsterTailCost,
+              },
+              premium_scallops: {
+                quantity: formData.premiumScallops,
+                unit_price: 6,
+                total: costs.premiumScallopsCost,
               },
             },
             sides: {
@@ -1255,13 +1260,18 @@ function EstimationContent() {
           premium_mains: {
             filet_mignon: {
               quantity: formData.filetMignon,
-              unit_price: 5,
+              unit_price: 8,
               total: costs.filetMignonCost,
             },
             lobster_tail: {
               quantity: formData.lobsterTail,
-              unit_price: 10,
+              unit_price: 12,
               total: costs.lobsterTailCost,
+            },
+            premium_scallops: {
+              quantity: formData.premiumScallops,
+              unit_price: 6,
+              total: costs.premiumScallopsCost,
             },
           },
           sides: {

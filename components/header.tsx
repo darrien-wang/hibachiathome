@@ -103,24 +103,24 @@ export function Header() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="container mx-auto px-4 py-3 lg:py-8 relative">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 lg:py-8 relative">
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-[120px] h-[120px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
 
 
         {/* Mobile Layout */}
-        <div className="md:hidden grid grid-cols-3 items-center">
+        <div className="md:hidden grid grid-cols-3 items-center gap-1">
           {/* Empty div for left side spacing */}
           <div></div>
 
           {/* Centered Logo - Now positioned lower on mobile */}
-          <div className="flex items-center justify-center relative h-[50px] z-10">
+          <div className="flex items-center justify-center relative h-[50px] z-10 overflow-visible mx-auto max-w-[120px]">
             <Link href="/" className="block relative">
               <Image
                 src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
                 alt={siteConfig.logo.alt}
                 width={siteConfig.logo.width * 0.8}
                 height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
+                className="h-auto w-[96px] sm:w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
                 priority
               />
             </Link>
@@ -139,7 +139,7 @@ export function Header() {
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-[250px] sm:w-[300px] bg-stone-100/95">
+              <SheetContent className="w-[280px] max-w-[90vw] bg-stone-100/95">
                 <VisuallyHidden>
                   <SheetTitle>Navigation Menu</SheetTitle>
                 </VisuallyHidden>
