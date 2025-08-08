@@ -183,67 +183,51 @@ export default function HeroSection() {
           <div className="absolute inset-0 bg-black/30"></div>
         </div>
       ) : (
-        /* 桌面端图片轮播 */
-        <div
-          className={`absolute inset-0 overflow-hidden bg-black z-0 touch-pan-y transition-opacity duration-1000`}
-          onTouchStart={(e) => {
-            const touch = e.touches[0]
-            setTouchStart(touch.clientX)
-            setIsSwiping(true)
-          }}
-          onTouchMove={(e) => {
-            if (!isSwiping) return
-            const touch = e.touches[0]
-            const currentX = touch.clientX
-            const diff = currentX - touchStart
-            setSwipeDistance(diff)
-          }}
-          onTouchEnd={() => {
-            setIsSwiping(false)
-            if (swipeDistance > 80) {
-              prevSlide()
-            } else if (swipeDistance < -80) {
-              nextSlide()
-            }
-            setSwipeDistance(0)
-            handleUserInteraction()
-          }}
-        >
-          {!imagesLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
-          {sortedHeroImages.map((image, index) => (
-            <div
-              key={index}
-              className="absolute inset-0"
-              style={{
-                opacity: index === currentSlide ? 1 : 0,
-                transform: index === currentSlide && isSwiping ? `translateX(${swipeDistance}px)` : "translateX(0)",
-                transition: isSwiping ? "none" : "opacity 1s ease, transform 0.3s ease",
-              }}
-            >
-              <img
-                src={image.url || "/placeholder.svg"}
-                alt={image.alt || `Hero slide ${index + 1}`}
+        /* 桌面端Instagram Stories风格视频 */
+        <div className="absolute inset-0 overflow-hidden bg-black z-0">
+          {/* 模糊背景视频 */}
+          <video
+            className="absolute inset-0 w-full h-full object-cover blur-lg scale-110"
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/images/hibachi-dinner-party.jpg"
+          >
+            <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+          </video>
+          
+          {/* 深色遮罩 */}
+          <div className="absolute inset-0 bg-black/50"></div>
+          
+          {/* 中心清晰视频 */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative h-full max-w-[500px] w-full max-h-[90vh] aspect-[9/16] bg-black rounded-lg overflow-hidden shadow-2xl">
+              <video
                 className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-md text-sm font-mono z-10">
-                {imageTimestamps[index] || "Loading..."}
-              </div>
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster="/images/hibachi-dinner-party.jpg"
+              >
+                <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+              
+              {/* 轻微的边框效果 */}
+              <div className="absolute inset-0 border border-white/10 rounded-lg pointer-events-none"></div>
             </div>
-          ))}
+          </div>
         </div>
       )}
 
       {/* Remove the full overlay div */}
 
       <div
-        className={`container mx-auto px-4 relative z-20 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
+        className={`container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
       >
-        <div className="relative max-w-3xl mx-auto" style={{ marginTop: "calc(25vh - 100px)" }}>
+        <div className="relative max-w-3xl mx-auto" style={{ marginTop: isMobile ? "calc(25vh - 100px)" : "calc(15vh - 50px)" }}>
           <div
             className="bg-red-600 text-white py-3 px-6 rounded-md transform rotate-[-1deg] shadow-lg border-2 border-yellow-400"
             style={{
@@ -258,58 +242,7 @@ export default function HeroSection() {
         <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative"></div>
       </div>
 
-      {/* 轮播控制按钮 - 仅桌面端显示 */}
-      {!isMobile && (
-        <div>
-          <button
-            onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
-            aria-label="Previous slide"
-          >
-            ←
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 text-white p-2 rounded-full z-20 hover:bg-black/50"
-            aria-label="Next slide"
-          >
-            →
-          </button>
-        </div>
-      )}
-
-      {/* 轮播指示器 - 仅桌面端显示 */}
-      {!isMobile && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
-          {sortedHeroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                handleUserInteraction()
-                setCurrentSlide(index)
-              }}
-              className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"}`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* 滑动指示器 - 仅在桌面端滑动时显示 */}
-      {!isMobile && isSwiping && (
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 z-30 pointer-events-none">
-          <div
-            className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance > 50 ? "opacity-100" : "opacity-30"}`}
-          >
-            <span className="text-white text-2xl">←</span>
-          </div>
-          <div
-            className={`p-4 bg-black/30 rounded-full transition-opacity ${swipeDistance < -50 ? "opacity-100" : "opacity-30"}`}
-          >
-            <span className="text-white text-2xl">→</span>
-          </div>
-        </div>
-      )}
+      {/* 桌面端不再需要轮播控制 - 现在统一使用视频 */}
     </section>
   )
 }
