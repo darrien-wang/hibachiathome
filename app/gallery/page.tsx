@@ -79,14 +79,7 @@ const galleryVideos = [
       "Learn how to make perfectly seared hibachi scallops with expert tips and techniques from a professional hibachi chef. Watch as the chef demonstrates the proper way to prepare and cook scallops on a hibachi grill, using just the right amount of heat and seasoning to bring out their natural flavors.",
     isAvailable: true,
   },
-  {
-    id: "vid0",
-    youtubeId: "zI9av1pmEFk",
-    title: "Learn How to Breathe Fire - Tutorial",
-    description:
-      "A professional tutorial on fire breathing techniques. Note: This is for educational purposes only - fire breathing should only be attempted under the supervision of trained professionals and with proper safety precautions.",
-    isAvailable: false, // 标记为不可用
-  },
+
   {
     id: "vid1",
     youtubeId: "5ZH43ej3wys",
@@ -143,36 +136,6 @@ const galleryVideos = [
       "Create restaurant-quality hibachi vegetables at home with this authentic recipe. Perfect as a side dish for your hibachi-style meal.",
     isAvailable: true,
   },
-  {
-    id: "vid6",
-    youtubeId: "dW0c4t1RUW0",
-    title: "Hibachi Chef's Amazing Skills - Onion Volcano",
-    description:
-      "Watch a professional hibachi chef create the famous onion volcano and showcase impressive cooking skills.",
-    isAvailable: true,
-  },
-  {
-    id: "vid7",
-    youtubeId: "gy4PMoAkNc0",
-    title: "Hibachi Cooking Techniques",
-    description: "Learn the techniques and skills behind authentic hibachi cooking from master chefs.",
-    isAvailable: true,
-  },
-  {
-    id: "vid8",
-    youtubeId: "Hc6_CpJQrpg",
-    title: "Hibachi Steak and Shrimp - Professional Cooking",
-    description: "See how professional hibachi chefs prepare delicious steak and shrimp with flair and entertainment.",
-    isAvailable: true,
-  },
-  {
-    id: "vid9",
-    youtubeId: "Yk7_c8G8ZT8",
-    title: "Hibachi Chef Performance",
-    description:
-      "Enjoy the full hibachi chef performance with all the tricks and entertainment you can expect at your event.",
-    isAvailable: true,
-  },
 ]
 
 export default function GalleryPage() {
@@ -195,7 +158,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+    <div className="gallery-page-safe container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Gallery</h1>

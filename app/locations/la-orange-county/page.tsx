@@ -19,6 +19,24 @@ export const metadata: Metadata = {
     siteName: "Real Hibachi",
     locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        width: 1200,
+        height: 630,
+        alt: 'Hibachi at Home Los Angeles - Authentic Cooking with Amazing Flames',
+      },
+    ],
+  },
+  
+  // Twitter Cards
+  twitter: {
+    card: 'summary_large_image',
+    site: '@realhibachi',
+    creator: '@realhibachi',
+    title: 'Hibachi at Home Los Angeles | Private Chef Service',
+    description: 'Authentic hibachi experience in LA & Orange County. Professional chefs bring Japanese teppanyaki to your home!',
+    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 
@@ -88,7 +106,7 @@ export default function LAOrangeCountyPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-amber-50 to-orange-50 pt-32 pb-16">
+      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
         <div className="container mx-auto px-4">
           <AnimateOnScroll>
             <div className="text-center max-w-4xl mx-auto">

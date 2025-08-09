@@ -50,7 +50,7 @@ const rentalItems = [
 
 export default function RentalsPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Equipment Rentals</h1>

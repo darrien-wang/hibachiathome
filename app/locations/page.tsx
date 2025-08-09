@@ -2,39 +2,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { MapPin } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Hibachi at Home Service Locations | Los Angeles & Orange County | Real Hibachi",
+  description: "Professional hibachi at home service in Los Angeles and Orange County. Authentic Japanese teppanyaki chefs serving Beverly Hills, Santa Monica, Irvine, and surrounding areas.",
+  keywords: "hibachi service locations Los Angeles, teppanyaki at home Orange County, Japanese chef service areas LA, hibachi catering locations California",
+  openGraph: {
+    title: "Hibachi at Home Service Locations | Los Angeles & Orange County",
+    description: "Premium hibachi at home service covering Los Angeles and Orange County. Professional Japanese teppanyaki chefs at your location.",
+    url: "https://realhibachi.com/locations",
+    siteName: "Real Hibachi",
+    type: "website",
+  },
+}
 
 const locations = [
   {
-    id: "orlando",
-    name: "Orlando",
-    state: "FL",
-    description: "Serving Orlando and surrounding areas within a 30-mile radius",
+    id: "los-angeles",
+    name: "Los Angeles",
+    state: "CA",
+    description: "Serving Los Angeles, Orange County and surrounding areas within a 50-mile radius",
     areas: [
-      "Downtown Orlando",
-      "Winter Park",
-      "Lake Nona",
-      "Windermere",
-      "Dr. Phillips",
-      "Altamonte Springs",
-      "Maitland",
-      "UCF Area",
+      "Los Angeles",
+      "Orange County",
+      "Beverly Hills",
+      "Santa Monica",
+      "Pasadena",
+      "Irvine",
+      "Newport Beach",
+      "Anaheim",
+      "Long Beach",
+      "Burbank",
+      "Glendale",
+      "West Hollywood",
     ],
-  },
-  {
-    id: "tampa",
-    name: "Tampa",
-    state: "FL",
-    description: "Serving Tampa and surrounding areas within a 30-mile radius",
-    areas: [
-      "Downtown Tampa",
-      "St. Petersburg",
-      "Clearwater",
-      "Brandon",
-      "Wesley Chapel",
-      "Temple Terrace",
-      "Oldsmar",
-      "Palm Harbor",
-    ],
+    featured: true,
   },
 ]
 
@@ -43,10 +46,9 @@ export default function LocationsPage() {
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Service Locations</h1>
+          <h1 className="text-4xl font-bold mb-4">Hibachi at Home Service Locations</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Currently serving Florida with locations in Orlando and Tampa. Our professional chefs bring the hibachi
-            experience directly to you.
+            Currently serving Southern California with premium hibachi at home service in Los Angeles and Orange County. Our professional chefs bring authentic Japanese teppanyaki experience directly to your location.
           </p>
         </div>
 
@@ -70,7 +72,7 @@ export default function LocationsPage() {
                   ))}
                 </ul>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/book">Book in {location.name}</Link>
+                  <Link href="/locations/la-orange-county">Learn More About {location.name} Service</Link>
                 </Button>
               </CardContent>
             </Card>

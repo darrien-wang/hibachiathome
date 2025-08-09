@@ -17,7 +17,7 @@ export const siteConfig = {
   contact: {
     phone: "213-770-7788",
     email: "RealHibachiAtHome@gmail.com",
-    locations: ["Manhattan", "Brooklyn", "Queens", "The Bronx", "Staten Island", "Long Island"],
+    locations: ["Los Angeles", "Orange County", "Beverly Hills", "Santa Monica", "Pasadena", "Irvine", "Newport Beach", "Anaheim", "Long Beach", "Burbank"],
   },
 
   // Social media links

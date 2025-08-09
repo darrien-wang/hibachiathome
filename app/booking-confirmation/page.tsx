@@ -53,7 +53,7 @@ export default function BookingConfirmationPage() {
 
   if (loading) {
     return (
-      <div className="container max-w-4xl mx-auto py-12 px-4">
+      <div className="page-container container max-w-4xl mx-auto py-12 px-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -67,7 +67,7 @@ export default function BookingConfirmationPage() {
 
   if (error || !reservation) {
     return (
-      <div className="container max-w-4xl mx-auto py-12 px-4">
+      <div className="page-container container max-w-4xl mx-auto py-12 px-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -83,7 +83,7 @@ export default function BookingConfirmationPage() {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-12 px-4">
+    <div className="page-container container max-w-4xl mx-auto py-12 px-4">
       <Card className="border-green-200 bg-green-50">
         <CardHeader className="text-center border-b border-green-200 bg-green-100">
           <div className="flex justify-center mb-4">

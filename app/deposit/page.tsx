@@ -122,7 +122,7 @@ export default function DepositPaymentPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="page-container container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <Card>
             <CardContent className="pt-6">
@@ -138,7 +138,7 @@ export default function DepositPaymentPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="page-container container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -160,7 +160,7 @@ export default function DepositPaymentPage() {
 
   if (paymentSuccess) {
     return (
-      <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="page-container container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <Card className="border-green-100 bg-green-50/30">
             <CardContent className="pt-6 pb-6 text-center">
@@ -210,7 +210,7 @@ export default function DepositPaymentPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+    <div className="page-container container mx-auto px-4 py-12">
       <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-8 rounded-md shadow-sm max-w-3xl mx-auto">
         <div className="flex items-center">
           <CheckCircle className="h-6 w-6 text-green-500 mr-3" />

@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function EstimationLoading() {
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+    <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
         {/* Header Skeleton */}
         <div className="text-center mb-10">

@@ -394,7 +394,7 @@ export default function EstimationPage() {
   }, [])
 
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16 min-h-[800px]">
+    <div className="page-container container mx-auto px-4 py-12 min-h-[800px]">
       {/* 弹窗组件 */}
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1333,7 +1333,7 @@ function EstimationContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8" style={{ paddingTop: '2rem' }}>
       {/* Add restore prompt dialog */}
       {showRestorePrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

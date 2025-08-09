@@ -44,7 +44,7 @@ export default function AfterDepositPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="page-container container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <Card>
             <CardContent className="pt-6">
@@ -60,7 +60,7 @@ export default function AfterDepositPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+      <div className="page-container container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-3xl font-bold mb-6">Deposit Confirmation</h1>
           <Card className="border-red-100">
@@ -85,7 +85,7 @@ export default function AfterDepositPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+    <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Thank You for Your Deposit!</h1>

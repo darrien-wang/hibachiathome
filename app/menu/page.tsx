@@ -8,7 +8,24 @@ import { pricing } from "@/config/pricing"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Menu & Packages",
+  title: "Hibachi Menu & Packages Los Angeles | Real Hibachi",
+  description: "Explore our authentic hibachi menu and packages for Los Angeles & Orange County. Premium proteins, fresh vegetables, teppanyaki cooking. Starting at $59.9 per person.",
+  keywords: "hibachi menu Los Angeles, teppanyaki packages LA, Japanese food catering Orange County, hibachi pricing Los Angeles, authentic Japanese cuisine LA",
+  openGraph: {
+    title: "Hibachi Menu & Packages Los Angeles | Real Hibachi",
+    description: "Authentic hibachi menu and packages for Los Angeles. Premium Japanese cuisine brought to your home by professional chefs.",
+    url: "https://realhibachi.com/menu",
+    siteName: "Real Hibachi",
+    type: "website",
+    images: [
+      {
+        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        width: 1200,
+        height: 630,
+        alt: 'Hibachi Menu Los Angeles - Authentic Cooking Experience',
+      },
+    ],
+  },
 }
 
 export default function MenuPage() {
@@ -38,7 +55,7 @@ export default function MenuPage() {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+    <div className="menu-page-safe container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         <AnimateOnScroll direction="down">
           <div className="text-center mb-10">

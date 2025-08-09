@@ -7,20 +7,21 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     "", // Homepage
+    "/locations/la-orange-county", // Los Angeles page - highest priority
     "/menu",
-    "/gallery",
-    "/faq",
-    "/contact",
     "/book",
+    "/contact",
+    "/faq",
+    "/gallery",
     "/estimation",
-    "/locations/nyc-long-island", // Updated from pensacola
+    "/locations", // Main locations page
     "/privacy-policy",
     "/rentals",
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
     lastModified: new Date().toISOString(),
-    changeFrequency: route === "" ? "daily" : "monthly", // Homepage might change more often
-    priority: route === "" ? 1.0 : 0.8,
+    changeFrequency: route === "" || route === "/locations/la-orange-county" ? "daily" : "monthly",
+    priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : 0.8,
   }))
 
   let blogPostsSitemap: MetadataRoute.Sitemap = []

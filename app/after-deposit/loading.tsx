@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 
 export default function AfterDepositLoading() {
   return (
-    <div className="container mx-auto px-4 py-12 pt-24 mt-16">
+    <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <div className="h-10 w-64 bg-gray-200 animate-pulse rounded mx-auto mb-4"></div>

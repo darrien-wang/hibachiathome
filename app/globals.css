@@ -2,6 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Header height variable - automatically updated by header component */
+:root {
+  --header-height: 120px; /* Increased default fallback for safety */
+}
+
+/* Fixed header layout utilities */
+@layer components {
+  /* Main page container that accounts for fixed header */
+  .page-container {
+    @apply min-h-screen;
+    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    margin-top: 1rem !important;
+  }
+  
+  /* Hero sections that should start right below the header */
+  .hero-section {
+    @apply relative;
+    padding-top: calc(var(--header-height) + 2rem);
+  }
+  
+  /* Full-height hero that accounts for header */
+  .hero-fullscreen {
+    min-height: calc(100vh - var(--header-height));
+    padding-top: var(--header-height);
+  }
+  
+  /* Section with proper spacing after header */
+  .section-after-header {
+    @apply pt-8;
+    margin-top: var(--header-height);
+  }
+  
+  /* Emergency fix class for immediate use */
+  .header-safe {
+    padding-top: calc(var(--header-height) + 1rem) !important;
+  }
+  
+  /* Menu page specific fix */
+  .menu-page-safe {
+    padding-top: calc(var(--header-height, 120px) + 5rem) !important;
+    margin-top: 1rem !important;
+  }
+  
+  /* Blog page specific fix */
+  .blog-page-safe {
+    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    margin-top: 1rem !important;
+  }
+  
+  /* Gallery page specific fix */
+  .gallery-page-safe {
+    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    margin-top: 1rem !important;
+  }
+  
+  /* Universal strong fix for any remaining issues */
+  .super-safe {
+    padding-top: calc(var(--header-height, 120px) + 7rem) !important;
+    margin-top: 1rem !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

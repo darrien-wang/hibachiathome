@@ -27,14 +27,43 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: {
-    default: "Real Hibachi | Private Chef & Hibachi At Home Experience",
-    template: "%s - Real Hibachi",
+    default: "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
+    template: "%s - Real Hibachi LA",
   },
   description:
-    "Book a live-show hibachi chef at your home. Flat-rate $59.9 pp, tables & utensils optional. Reserve now for an unforgettable night!",
-  keywords: "Hibachi at home, private chef, hibachi catering, teppanyaki, party catering, Real Hibachi",
+    "Book a professional hibachi chef at your home in Los Angeles & Orange County. Flat-rate $59.9 per person, authentic Japanese teppanyaki experience. Reserve now!",
+  keywords: "Hibachi at home Los Angeles, private chef LA, hibachi catering Los Angeles, teppanyaki Orange County, Japanese chef Los Angeles, hibachi party catering LA, Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],
+  
+  // Open Graph tags for social media
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://realhibachi.com',
+    siteName: 'Real Hibachi',
+    title: 'Real Hibachi | Professional Hibachi Chef At Your Home in Los Angeles',
+    description: 'Book a professional hibachi chef at your home in Los Angeles & Orange County. Flat-rate $59.9 per person, authentic Japanese teppanyaki experience. Reserve now!',
+    images: [
+      {
+        url: 'https://realhibachi.com/images/hibachi-flame-og.png', // 请将图片上传到这个路径
+        width: 1200,
+        height: 630,
+        alt: 'Real Hibachi - Authentic Hibachi Cooking with Amazing Flames',
+      },
+    ],
+  },
+  
+  // Twitter Cards
+  twitter: {
+    card: 'summary_large_image',
+    site: '@realhibachi',
+    creator: '@realhibachi',
+    title: 'Real Hibachi | Professional Hibachi Chef At Your Home in LA',
+    description: 'Premium hibachi catering service in Los Angeles and Orange County. Book now for an authentic Japanese experience!',
+    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+  },
+  
   icons: {
     icon: [
       {
