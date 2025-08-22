@@ -13,11 +13,10 @@ const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
   { name: "Blog", href: "/blog", disabled: false }, // 添加博客导航项
-  { name: "Locations", href: "/locations", disabled: true },
+  { name: "Service Area", href: "/service-area", disabled: false },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
   { name: "Equipment Rentals", href: "/rentals", disabled: true },
-  { name: "Contact", href: "/contact", disabled: false },
 ]
 
 export function Header() {

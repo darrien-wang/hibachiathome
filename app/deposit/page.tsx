@@ -147,7 +147,7 @@ export default function DepositPaymentPage() {
           </Alert>
           <div className="mt-6 text-center">
             <Button asChild>
-              <Link href="/contact">Contact Us</Link>
+              <Link href="/service-area">Contact Us</Link>
             </Button>
           </div>
         </div>

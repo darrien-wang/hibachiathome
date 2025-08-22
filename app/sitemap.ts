@@ -8,9 +8,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     "", // Homepage
     "/locations/la-orange-county", // Los Angeles page - highest priority
+    "/service-area", // Service area page - high priority
+    "/service-area/los-angeles", // Los Angeles service area
+    "/service-area/orange-county", // Orange County service area
+    "/service-area/san-diego", // San Diego service area
+    "/service-area/palm-springs", // Palm Springs service area
+    "/service-area/riverside", // Riverside service area
     "/menu",
     "/book",
-    "/contact",
     "/faq",
     "/gallery",
     "/estimation",
@@ -20,8 +25,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
     lastModified: new Date().toISOString(),
-    changeFrequency: route === "" || route === "/locations/la-orange-county" ? "daily" : "monthly",
-    priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : 0.8,
+    changeFrequency: route === "" || route === "/locations/la-orange-county" || route === "/service-area" || route.startsWith("/service-area/") ? "daily" : "monthly",
+    priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : route === "/service-area" ? 0.85 : route.startsWith("/service-area/") ? 0.8 : 0.7,
   }))
 
   let blogPostsSitemap: MetadataRoute.Sitemap = []

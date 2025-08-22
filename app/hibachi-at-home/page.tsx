@@ -65,8 +65,8 @@ const serviceFeatures = [
   },
   {
     icon: "👪",
-    title: "Guest Minimum",
-    description: "Minimum 10 guests or $599 total. Perfect for birthdays or backyard dinners.",
+    title: "Minimum Order",
+    description: "$599 minimum order required. Perfect for dinner parties, birthdays, anniversaries, and special occasions.",
   },
   {
     icon: "🪑",
@@ -259,18 +259,24 @@ export default function HibachiAtHomePage() {
   }
 
   const handleWhatsApp = () => {
-    const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
+    const url = `https://wa.me/${phoneNumber}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
     trackConversion("conversion_event_whatsapp_contact", url)
+    window.open(url, '_blank')
   }
 
   const handleSMS = () => {
-    const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
+    const url = `sms:${phoneNumber}?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
     trackConversion("conversion_event_sms_contact", url)
+    window.location.href = url
   }
 
   const handlePhone = () => {
-    const url = `tel:${siteConfig.contact.phone || "12137707788"}`
+    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
+    const url = `tel:${phoneNumber}`
     trackConversion("conversion_event_phone_contact", url)
+    window.location.href = url
   }
 
   const cardItems: CardItem[] = [
@@ -306,7 +312,7 @@ export default function HibachiAtHomePage() {
       title: "Phone",
       description: "Speak with us",
       icon: null,
-      buttonText: siteConfig.contact.phone || "12137707788",
+      buttonText: siteConfig.contact.phone || "(213) 770-7788",
       onClick: handlePhone,
       variant: "outline",
       className: "bg-white/20 border-white/30",
@@ -498,7 +504,7 @@ export default function HibachiAtHomePage() {
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
-                        <span>Minimum 30 people required</span>
+                        <span>$998 minimum order required</span>
                       </li>
                     </ul>
                     <Button className="w-full bg-amber-500 hover:bg-amber-600" onClick={() => handleBookNow("buffet")}>

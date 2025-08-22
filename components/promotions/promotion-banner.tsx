@@ -15,7 +15,7 @@ export function PromotionBanner() {
     description:
       "We're excited to introduce our new seasonal specialty: Sea Urchin Fried Rice. This premium dish features fresh sea urchin in our signature fried rice. To upgrade your package with this exclusive item, please contact our booking manager.",
     buttonText: "Contact Us",
-    buttonLink: "/contact",
+    buttonLink: "/service-area",
   }
 
   return (

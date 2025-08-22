@@ -106,7 +106,7 @@ export default function RentalsPage() {
             equipment, setup, service staff, and cleanup.
           </p>
           <Button asChild size="lg">
-            <Link href="/contact">Request Custom Quote</Link>
+            <Link href="/service-area">Check Service Area & Contact</Link>
           </Button>
         </div>
 
@@ -120,7 +120,7 @@ export default function RentalsPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild variant="outline">
-                <Link href="/contact">Ask a Question</Link>
+                <Link href="/service-area">Ask a Question</Link>
               </Button>
               <Button asChild>
                 <Link href="/book">Add to Booking</Link>

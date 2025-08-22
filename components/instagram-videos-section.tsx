@@ -165,17 +165,23 @@ export default function InstagramVideosSection({
           </>
         ) : (
           <AnimateOnScroll>
-            <div className="relative max-w-4xl mx-auto">
+            {/* 移动端优化：显示多卡片横向滑动 */}
+            <div className="relative mx-auto px-4">
               <div 
                 ref={carouselRef}
-                className="overflow-hidden rounded-xl"
+                className="overflow-x-auto scrollbar-hide"
+                style={{ 
+                  scrollBehavior: 'smooth',
+                  scrollSnapType: 'x mandatory'
+                }}
               >
-                <div 
-                  className="flex transition-transform duration-500 ease-in-out"
-                  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-                >
+                <div className="flex gap-4 pb-4 md:gap-6">
                   {videos.map((video, index) => (
-                    <div key={video.id} className="w-full flex-shrink-0">
+                    <div 
+                      key={video.id} 
+                      className="w-[280px] sm:w-[320px] md:w-[350px] flex-shrink-0"
+                      style={{ scrollSnapAlign: 'start' }}
+                    >
                       <VideoCard
                         video={video}
                         index={index}
@@ -189,37 +195,9 @@ export default function InstagramVideosSection({
                 </div>
               </div>
               
-              {videos.length > 1 && (
-                <>
-                  <Button
-                    onClick={prevSlide}
-                    variant="outline"
-                    size="icon"
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    onClick={nextSlide}
-                    variant="outline"
-                    size="icon"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-              
-              <div className="flex justify-center gap-2 mt-6">
-                {videos.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      index === currentIndex ? "bg-amber-500" : "bg-gray-300"
-                    }`}
-                  />
-                ))}
+              {/* 移动端提示 */}
+              <div className="text-center mt-2">
+                <p className="text-sm text-gray-500">← Swipe to see more videos →</p>
               </div>
             </div>
           </AnimateOnScroll>
@@ -281,11 +259,15 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
 
   return (
     <AnimateOnScroll delay={isCarousel ? 0 : index * 100} direction="up">
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+      <Card className={`overflow-hidden hover:shadow-xl transition-all duration-300 group ${
+        isCarousel ? 'h-[380px] sm:h-[400px]' : ''
+      }`}>
         <CardContent className="p-0">
           {video.isEmbedded ? (
             // Instagram直接嵌入
-            <div className="relative bg-white" style={{ minHeight: '400px' }}>
+            <div className={`relative bg-white ${
+              isCarousel ? 'h-[280px] sm:h-[300px]' : ''
+            }`} style={{ minHeight: isCarousel ? 'auto' : '400px' }}>
               <blockquote 
                 className="instagram-media" 
                 data-instgrm-captioned 
@@ -342,7 +324,9 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
             </div>
           ) : (
             // 普通视频显示
-            <div className="relative aspect-[4/5] bg-gray-100">
+            <div className={`relative bg-gray-100 ${
+              isCarousel ? 'h-[280px] sm:h-[300px]' : 'aspect-[4/5]'
+            }`}>
               {showVideo ? (
                 <video
                   ref={(ref) => onVideoRef(video.id, ref)}

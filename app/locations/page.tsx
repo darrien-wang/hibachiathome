@@ -91,7 +91,7 @@ export default function LocationsPage() {
             We're expanding our service areas regularly. Contact us to check if we can accommodate your location.
           </p>
           <Button asChild>
-            <Link href="/contact">Contact Us</Link>
+            <Link href="/service-area">View Service Area</Link>
           </Button>
         </div>
       </div>

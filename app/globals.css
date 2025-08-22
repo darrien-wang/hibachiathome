@@ -429,3 +429,13 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* 隐藏滚动条 - 适用于轮播组件 */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

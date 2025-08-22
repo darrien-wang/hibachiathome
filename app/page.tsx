@@ -181,18 +181,24 @@ export default function Home() {
   }
 
   const handleWhatsApp = () => {
-    const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
+    const url = `https://wa.me/${phoneNumber}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
     trackConversion("conversion_event_whatsapp_contact", url)
+    window.open(url, '_blank')
   }
 
   const handleSMS = () => {
-    const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
+    const url = `sms:${phoneNumber}?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
     trackConversion("conversion_event_sms_contact", url)
+    window.location.href = url
   }
 
   const handlePhone = () => {
-    const url = `tel:${siteConfig.contact.phone || "12137707788"}`
+    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
+    const url = `tel:${phoneNumber}`
     trackConversion("conversion_event_phone_contact", url)
+    window.location.href = url
   }
 
   const cardItems: CardItem[] = [
@@ -218,7 +224,7 @@ export default function Home() {
       title: "Phone",
       description: "Speak with us",
       icon: null,
-      buttonText: siteConfig.contact.phone || "12137707788",
+      buttonText: siteConfig.contact.phone || "(213) 770-7788",
       onClick: handlePhone,
       variant: "outline",
       className: "bg-white/20 border-white/30",
@@ -232,14 +238,7 @@ export default function Home() {
       {/* How It Works Section */}
       <HowItWorksSection />
 
-      {/* Instagram Videos Section */}
-      <InstagramVideosSection
-        displayMode="grid"
-        maxVisible={6}
-        showViewAll={true}
-        title="Real Events, Real Moments"
-        subtitle="See our recent hibachi experiences from satisfied customers across Los Angeles"
-      />
+
 
       {/* Package Options Section */}
       <AnimateOnScroll>
@@ -773,6 +772,15 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
+
+      {/* Instagram Videos Section - Before FAQ */}
+      <InstagramVideosSection
+        displayMode="carousel"
+        maxVisible={3}
+        showViewAll={false}
+        title="Real Events, Real Moments"
+        subtitle="Swipe to see our recent hibachi experiences from satisfied customers"
+      />
 
       {/* FAQ Section */}
       <AnimateOnScroll>

@@ -1,4 +1,4 @@
-// 菜品类型定义
+// Menu item type definition
 export interface MenuItem {
   id: string
   name: string
@@ -12,7 +12,7 @@ export interface MenuItem {
   cookingOptions?: string[]
 }
 
-// 套餐类型定义
+// Package type definition
 export interface PackageOption {
   id: string
   name: string
@@ -35,7 +35,7 @@ export interface PackageOption {
   image?: string
 }
 
-// 常规蛋白质
+// Regular proteins
 export const regularProteins: MenuItem[] = [
   {
     id: "chicken",
@@ -92,7 +92,7 @@ export const regularProteins: MenuItem[] = [
   },
 ]
 
-// 高级蛋白质
+// Premium proteins
 export const premiumProteins: MenuItem[] = [
   {
     id: "filet",
@@ -127,7 +127,7 @@ export const premiumProteins: MenuItem[] = [
   },
 ]
 
-// 配菜
+// Side dishes
 export const sides: MenuItem[] = [
   {
     id: "gyoza",
@@ -161,7 +161,7 @@ export const sides: MenuItem[] = [
   },
 ]
 
-// 饮料
+// Beverages
 export const beverages: MenuItem[] = [
   {
     id: "soft-drinks",
@@ -185,7 +185,7 @@ export const beverages: MenuItem[] = [
   },
 ]
 
-// 套餐选项
+// Package options
 export const packageOptions: PackageOption[] = [
   {
     id: "buffet",
@@ -231,22 +231,22 @@ export const packageOptions: PackageOption[] = [
   },
 ]
 
-// 获取所有菜品
+// Get all menu items
 export const getAllMenuItems = (): MenuItem[] => {
   return [...regularProteins, ...premiumProteins, ...sides, ...beverages]
 }
 
-// 根据ID获取菜品
+// Get menu item by ID
 export const getMenuItemById = (id: string): MenuItem | undefined => {
   return getAllMenuItems().find((item) => item.id === id)
 }
 
-// 根据ID获取套餐
+// Get package by ID
 export const getPackageById = (id: string): PackageOption | undefined => {
   return packageOptions.find((pkg) => pkg.id === id)
 }
 
-// 计算套餐价格
+// Calculate package price
 export const calculatePackagePrice = (
   packageId: string,
   headcount: number,
@@ -256,15 +256,15 @@ export const calculatePackagePrice = (
   const pkg = getPackageById(packageId)
   if (!pkg) return 0
 
-  // 如果是固定价格套餐，直接返回
+  // If it's a fixed price package, return directly
   if (packageId === "buffet") {
     return pkg.flatRate
   }
 
-  // 计算所有选中项目的总价
+  // Calculate total price of all selected items
   let totalItemsPrice = 0
 
-  // 遍历所有选中的菜品
+  // Iterate through all selected menu items
   Object.entries(selectedItems).forEach(([itemId, { selected, quantity }]) => {
     if (selected && quantity > 0) {
       const menuItem = getMenuItemById(itemId)
@@ -274,9 +274,9 @@ export const calculatePackagePrice = (
     }
   })
 
-  // 减去套餐抵扣额度
+  // Subtract package credit amount
   const extraCharge = Math.max(0, totalItemsPrice - pkg.packageCredit)
 
-  // 基础价格 + 额外费用
+  // Base price + extra charges
   return pkg.flatRate + extraCharge
 }

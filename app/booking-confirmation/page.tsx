@@ -145,7 +145,7 @@ export default function BookingConfirmationPage() {
               <Link href="/">Return to Home</Link>
             </Button>
             <Button asChild>
-              <Link href="/contact">Contact Us</Link>
+              <Link href="/service-area">Contact Us</Link>
             </Button>
           </div>
         </CardContent>

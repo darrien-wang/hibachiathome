@@ -74,7 +74,7 @@ export default function AfterDepositPage() {
               <p className="text-center mb-6">{error}</p>
               <div className="flex justify-center">
                 <Button asChild>
-                  <Link href="/contact">Contact Support</Link>
+                  <Link href="/service-area">Contact Support</Link>
                 </Button>
               </div>
             </CardContent>

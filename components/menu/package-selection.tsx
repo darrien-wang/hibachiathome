@@ -378,8 +378,8 @@ export default function PackageSelection({
           </Button>
           <p className="mt-3 text-sm text-gray-600">
             Have questions?{" "}
-            <Link href="/contact" className="text-primary hover:underline">
-              Contact us
+            <Link href="/service-area" className="text-primary hover:underline">
+              Check service area
             </Link>{" "}
             or check our{" "}
             <Link href="/faq" className="text-primary hover:underline">
