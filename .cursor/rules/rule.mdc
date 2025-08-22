@@ -1,0 +1,10 @@
+---
+description: Prefer PowerShell commands for Windows environment
+globs:
+  - "**/*"
+alwaysApply: true
+---
+我的系统开发环境是在 Windows，默认终端是 PowerShell。
+请在给出命令行示例时，使用 PowerShell 的写法（例如 Invoke-WebRequest），
+而不要使用 Linux/macOS 的 bash 写法（例如 curl -I）。
+如果必须用 curl，请使用 curl.exe。

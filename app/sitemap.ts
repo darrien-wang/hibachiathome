@@ -4,10 +4,8 @@ import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
 
-// Ensure BASE_URL has protocol and www
-const normalizedBaseUrl = BASE_URL.startsWith('http') 
-  ? BASE_URL.replace('https://realhibachi.com', 'https://www.realhibachi.com')
-  : `https://www.realhibachi.com`
+// Ensure BASE_URL has protocol and www - simplified logic
+const normalizedBaseUrl = `https://www.realhibachi.com`
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Los Angeles cities for long-tail SEO
