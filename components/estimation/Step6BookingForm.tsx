@@ -251,7 +251,7 @@ const Step6BookingForm: React.FC<Step6BookingFormProps> = ({
                       <p>• Hibachi Fried Rice</p>
                       <p>• Mixed Vegetables</p>
                       <p>• Yum Yum Sauce, Teriyaki Sauce, Salad Dressing</p>
-                      <p>• Regular Protein (Choice of: Chicken, Steak, Shrimp, Salmon, or Tofu)</p>
+                      <p>• Regular Protein (Choice of: Chicken, Steak, Shrimp, Salmon, etc., or Tofu)</p>
                     </div>
                   </div>
 

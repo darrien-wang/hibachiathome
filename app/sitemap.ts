@@ -5,6 +5,48 @@ import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Los Angeles cities for long-tail SEO
+  const laCityPages = [
+    "/service-area/los-angeles-city",
+    "/service-area/beverly-hills",
+    "/service-area/west-hollywood",
+    "/service-area/santa-monica",
+    "/service-area/venice",
+    "/service-area/culver-city",
+    "/service-area/manhattan-beach",
+    "/service-area/hermosa-beach",
+    "/service-area/redondo-beach",
+    "/service-area/torrance",
+    "/service-area/el-segundo",
+    "/service-area/burbank",
+    "/service-area/glendale",
+    "/service-area/pasadena",
+    "/service-area/arcadia",
+    "/service-area/monrovia",
+    "/service-area/san-gabriel",
+    "/service-area/alhambra",
+    "/service-area/monterey-park",
+    "/service-area/south-pasadena",
+    "/service-area/sherman-oaks",
+    "/service-area/studio-city",
+    "/service-area/north-hollywood",
+    "/service-area/encino",
+    "/service-area/tarzana",
+    "/service-area/woodland-hills",
+    "/service-area/inglewood",
+    "/service-area/hawthorne",
+    "/service-area/gardena",
+    "/service-area/carson",
+    "/service-area/long-beach",
+    "/service-area/lakewood",
+    "/service-area/downey",
+    "/service-area/whittier",
+    "/service-area/cerritos",
+    "/service-area/norwalk",
+    "/service-area/bellflower",
+    "/service-area/compton"
+  ]
+
   const staticPages = [
     "", // Homepage
     "/locations/la-orange-county", // Los Angeles page - highest priority
@@ -15,6 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/san-bernardino", // San Bernardino service area
     "/service-area/palm-springs", // Palm Springs service area
     "/service-area/riverside", // Riverside service area
+    ...laCityPages, // Add all LA city pages
     "/menu",
     "/book",
     "/faq",
@@ -27,7 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${BASE_URL}${route}`,
     lastModified: new Date().toISOString(),
     changeFrequency: route === "" || route === "/locations/la-orange-county" || route === "/service-area" || route.startsWith("/service-area/") ? "daily" : "monthly",
-    priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : route === "/service-area" ? 0.85 : route.startsWith("/service-area/") ? 0.8 : 0.7,
+    priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : route === "/service-area" ? 0.85 : route.startsWith("/service-area/") ? 0.75 : 0.7,
   }))
 
   let blogPostsSitemap: MetadataRoute.Sitemap = []

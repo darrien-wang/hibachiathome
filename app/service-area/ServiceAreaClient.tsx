@@ -181,11 +181,29 @@ export default function ServiceAreaClient() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
-                    {area.cities.map((city, cityIndex) => (
-                      <Badge key={cityIndex} variant="outline" className="text-sm justify-center">
-                        {city}
-                      </Badge>
-                    ))}
+                    {area.cities.map((city, cityIndex) => {
+                      const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
+                      const isLosAngeles = area.region === "Los Angeles"
+                      
+                      if (isLosAngeles) {
+                        return (
+                          <Link 
+                            key={cityIndex} 
+                            href={`/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`}
+                          >
+                            <Badge variant="outline" className="text-sm justify-center hover:bg-orange-50 hover:border-orange-300 cursor-pointer transition-colors w-full">
+                              {city}
+                            </Badge>
+                          </Link>
+                        )
+                      }
+                      
+                      return (
+                        <Badge key={cityIndex} variant="outline" className="text-sm justify-center">
+                          {city}
+                        </Badge>
+                      )
+                    })}
                   </div>
                   <div className="flex gap-2">
                     <Button asChild className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">

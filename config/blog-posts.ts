@@ -471,7 +471,7 @@ While you don't need a commercial teppanyaki grill, you do need:
 - Diced chicken, steak, or shrimp (pre-cooked)
 - Bean sprouts
 - Diced bell peppers
-- Mushrooms
+- Carrots and Broccoli
 
 ## The Step-by-Step Process
 
