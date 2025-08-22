@@ -924,6 +924,54 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
+      {/* Internal Links Section for SEO */}
+      <AnimateOnScroll direction="up">
+        <section className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
+                Explore Our Hibachi Services
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Discover everything we offer from menus to service areas across Southern California
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+              <Link href="/menu" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
+                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Hibachi Menu</h3>
+                <p className="text-sm text-gray-600">Packages & pricing</p>
+              </Link>
+              <Link href="/service-area" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
+                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Service Areas</h3>
+                <p className="text-sm text-gray-600">Where we serve</p>
+              </Link>
+              <Link href="/blog" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
+                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Hibachi Blog</h3>
+                <p className="text-sm text-gray-600">Tips & guides</p>
+              </Link>
+              <Link href="/gallery" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
+                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Gallery</h3>
+                <p className="text-sm text-gray-600">Recent events</p>
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Link href="/service-area/los-angeles" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
+                <span className="text-gray-700 hover:text-orange-600 font-medium">Los Angeles Hibachi</span>
+              </Link>
+              <Link href="/service-area/orange-county" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
+                <span className="text-gray-700 hover:text-orange-600 font-medium">Orange County Hibachi</span>
+              </Link>
+              <Link href="/service-area/san-bernardino" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
+                <span className="text-gray-700 hover:text-orange-600 font-medium">San Bernardino Hibachi</span>
+              </Link>
+              <Link href="/service-area/san-diego" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
+                <span className="text-gray-700 hover:text-orange-600 font-medium">San Diego Hibachi</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
       {/* Testimonials Section */}
       <TestimonialsSection />
     </div>

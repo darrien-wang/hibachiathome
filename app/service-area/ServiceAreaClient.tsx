@@ -50,6 +50,17 @@ export default function ServiceAreaClient() {
       featured: true
     },
     {
+      region: "San Bernardino",
+      cities: [
+        "San Bernardino", "Redlands", "Fontana", "Rialto", "Highland", "Loma Linda",
+        "Colton", "Grand Terrace", "Upland", "Rancho Cucamonga", "Ontario", "Chino",
+        "Chino Hills", "Montclair", "Claremont", "Pomona", "La Verne", "Crestline",
+        "Lake Arrowhead", "Big Bear Lake", "Running Springs", "Yucaipa", "Calimesa"
+      ],
+      color: "from-purple-500 to-blue-500",
+      featured: true
+    },
+    {
       region: "Palm Springs",
       cities: [
         "Palm Springs", "Cathedral City", "Rancho Mirage", "Palm Desert", "Indian Wells",
@@ -65,8 +76,7 @@ export default function ServiceAreaClient() {
       cities: [
         "Riverside", "Moreno Valley", "Corona", "Murrieta", "Temecula", "Hemet",
         "San Jacinto", "Perris", "Lake Elsinore", "Wildomar", "Menifee", "Beaumont",
-        "Banning", "Cabazon", "Cherry Valley", "Calimesa", "Yucaipa", "Redlands",
-        "Highland", "Fontana", "Rialto", "Colton", "Loma Linda", "Grand Terrace"
+        "Banning", "Desert Center", "Cabazon", "Cherry Valley", "Anza", "Idyllwild"
       ],
       color: "from-green-500 to-blue-500",
       featured: false
@@ -106,7 +116,7 @@ export default function ServiceAreaClient() {
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold mb-6">Our Service Area</h1>
           <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto">
-            Professional hibachi chef service covering Los Angeles, Orange County, San Diego, Palm Springs, and Riverside areas. 
+            Professional hibachi chef service covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside areas. 
             Bringing authentic Japanese teppanyaki experience directly to your location throughout Southern California.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -149,7 +159,7 @@ export default function ServiceAreaClient() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800">Areas We Serve</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               We provide premium hibachi at home service throughout Southern California, 
-              covering Los Angeles, Orange County, San Diego, Palm Springs, and Riverside areas.
+              covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside areas.
             </p>
           </div>
 
@@ -203,7 +213,7 @@ export default function ServiceAreaClient() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold mb-2">Service Radius</h3>
-                <p>We provide service throughout Southern California including LA, Orange County, San Diego, Palm Springs, and Riverside. Additional travel fees may apply for distant locations.</p>
+                <p>We provide service throughout Southern California including LA, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside. Additional travel fees may apply for distant locations.</p>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">Minimum Requirements</h3>

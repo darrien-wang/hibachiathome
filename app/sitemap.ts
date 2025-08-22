@@ -12,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/los-angeles", // Los Angeles service area
     "/service-area/orange-county", // Orange County service area
     "/service-area/san-diego", // San Diego service area
+    "/service-area/san-bernardino", // San Bernardino service area
     "/service-area/palm-springs", // Palm Springs service area
     "/service-area/riverside", // Riverside service area
     "/menu",

@@ -35,6 +35,11 @@ export const regions: Record<string, number> = {
   "332": 50,
   "328": 50,
   "329": 50,
+  // CA (San Bernardino County)
+  "917": 50,
+  "923": 50,
+  "924": 50,
+  "909": 50,
 }
 
 // Default travel fee

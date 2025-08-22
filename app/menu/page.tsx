@@ -3,6 +3,7 @@ import MenuDetails from "@/components/menu/menu-details"
 import PricingBanner from "@/components/menu/pricing-banner"
 import ServiceNotes from "@/components/menu/service-notes"
 import Testimonials from "@/components/menu/testimonials"
+import ServiceAreaLinks from "@/components/seo/service-area-links"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { pricing } from "@/config/pricing"
 import type { Metadata } from "next"
@@ -81,6 +82,15 @@ export default function MenuPage() {
 
         <AnimateOnScroll>
           <MenuDetails proteins={regularProteins} premiumProteins={premiumProteins} sides={sides} />
+        </AnimateOnScroll>
+
+        {/* Service Areas */}
+        <AnimateOnScroll direction="up">
+          <ServiceAreaLinks 
+            title="Available in Your Area"
+            description="We bring authentic hibachi dining to your home across Southern California"
+            className="mb-12"
+          />
         </AnimateOnScroll>
 
         <AnimateOnScroll direction="up">

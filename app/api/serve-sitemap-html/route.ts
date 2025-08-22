@@ -43,6 +43,7 @@ export async function GET() {
         { url: "/service-area/los-angeles", title: "Los Angeles Area Service", description: "Professional hibachi service in Los Angeles and surrounding areas" },
         { url: "/service-area/orange-county", title: "Orange County Area Service", description: "Hibachi at home service for Orange County communities" },
         { url: "/service-area/san-diego", title: "San Diego Area Service", description: "San Diego area hibachi service for coastal communities" },
+        { url: "/service-area/san-bernardino", title: "San Bernardino Area Service", description: "Mountain region hibachi service for San Bernardino County" },
         { url: "/service-area/palm-springs", title: "Palm Springs Area Service", description: "Desert resort hibachi service for Palm Springs and Coachella Valley" },
         { url: "/service-area/riverside", title: "Riverside Area Service", description: "Riverside and Inland Empire hibachi service" },
       ],
