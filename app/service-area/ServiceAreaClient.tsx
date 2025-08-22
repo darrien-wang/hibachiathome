@@ -184,12 +184,26 @@ export default function ServiceAreaClient() {
                     {area.cities.map((city, cityIndex) => {
                       const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
                       const isLosAngeles = area.region === "Los Angeles"
+                      const isOrangeCounty = area.region === "Orange County"
                       
                       if (isLosAngeles) {
                         return (
                           <Link 
                             key={cityIndex} 
                             href={`/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`}
+                          >
+                            <Badge variant="outline" className="text-sm justify-center hover:bg-orange-50 hover:border-orange-300 cursor-pointer transition-colors w-full">
+                              {city}
+                            </Badge>
+                          </Link>
+                        )
+                      }
+                      
+                      if (isOrangeCounty) {
+                        return (
+                          <Link 
+                            key={cityIndex} 
+                            href={`/service-area/orange-county/${citySlug}`}
                           >
                             <Badge variant="outline" className="text-sm justify-center hover:bg-orange-50 hover:border-orange-300 cursor-pointer transition-colors w-full">
                               {city}

@@ -4,6 +4,11 @@ import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
 
+// Ensure BASE_URL has protocol and www
+const normalizedBaseUrl = BASE_URL.startsWith('http') 
+  ? BASE_URL.replace('https://realhibachi.com', 'https://www.realhibachi.com')
+  : `https://www.realhibachi.com`
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Los Angeles cities for long-tail SEO
   const laCityPages = [
@@ -47,6 +52,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/compton"
   ]
 
+  // Orange County cities for long-tail SEO - all 31 cities
+  const ocCityPages = [
+    "/service-area/orange-county/irvine",
+    "/service-area/orange-county/newport-beach", 
+    "/service-area/orange-county/huntington-beach",
+    "/service-area/orange-county/costa-mesa",
+    "/service-area/orange-county/anaheim",
+    "/service-area/orange-county/fullerton",
+    "/service-area/orange-county/orange",
+    "/service-area/orange-county/santa-ana",
+    "/service-area/orange-county/tustin",
+    "/service-area/orange-county/mission-viejo",
+    "/service-area/orange-county/laguna-beach",
+    "/service-area/orange-county/dana-point",
+    "/service-area/orange-county/fountain-valley",
+    "/service-area/orange-county/westminster",
+    "/service-area/orange-county/garden-grove",
+    "/service-area/orange-county/san-juan-capistrano",
+    "/service-area/orange-county/lake-forest",
+    "/service-area/orange-county/aliso-viejo",
+    "/service-area/orange-county/laguna-hills",
+    "/service-area/orange-county/laguna-niguel",
+    "/service-area/orange-county/rancho-santa-margarita",
+    "/service-area/orange-county/brea",
+    "/service-area/orange-county/placentia",
+    "/service-area/orange-county/yorba-linda",
+    "/service-area/orange-county/cypress",
+    "/service-area/orange-county/los-alamitos",
+    "/service-area/orange-county/seal-beach",
+    "/service-area/orange-county/buena-park",
+    "/service-area/orange-county/la-palma",
+    "/service-area/orange-county/stanton",
+    "/service-area/orange-county/la-habra",
+    "/service-area/orange-county/villa-park"
+  ]
+
   const staticPages = [
     "", // Homepage
     "/locations/la-orange-county", // Los Angeles page - highest priority
@@ -58,6 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/palm-springs", // Palm Springs service area
     "/service-area/riverside", // Riverside service area
     ...laCityPages, // Add all LA city pages
+    ...ocCityPages, // Add all OC city pages
     "/menu",
     "/book",
     "/faq",
@@ -67,9 +109,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/privacy-policy",
     "/rentals",
   ].map((route) => ({
-    url: `${BASE_URL}${route}`,
+    url: `${normalizedBaseUrl}${route}`,
     lastModified: new Date().toISOString(),
-    changeFrequency: route === "" || route === "/locations/la-orange-county" || route === "/service-area" || route.startsWith("/service-area/") ? "daily" : "monthly",
+    changeFrequency: (route === "" || route === "/locations/la-orange-county" || route === "/service-area" || route.startsWith("/service-area/") ? "daily" : "monthly") as "daily" | "monthly",
     priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : route === "/service-area" ? 0.85 : route.startsWith("/service-area/") ? 0.75 : 0.7,
   }))
 
@@ -77,18 +119,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const blogPosts = await getBlogPosts() // Fetch your blog posts
     blogPostsSitemap = blogPosts.map((post) => ({
-      url: `${BASE_URL}/blog/${post.slug}`,
+      url: `${normalizedBaseUrl}/blog/${post.slug}`,
       lastModified: new Date(post.date).toISOString(),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.7,
     }))
   } catch (error) {
     console.error("Failed to fetch blog posts for sitemap:", error)
     // Optionally, you could add a default blog page if posts can't be fetched
     blogPostsSitemap.push({
-      url: `${BASE_URL}/blog`,
+      url: `${normalizedBaseUrl}/blog`,
       lastModified: new Date().toISOString(),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.7,
     })
   }
