@@ -23,7 +23,10 @@ const serviceAreas = [
         "Irvine", "Newport Beach", "Huntington Beach", "Costa Mesa", "Anaheim", "Fullerton",
         "Orange", "Santa Ana", "Tustin", "Mission Viejo", "Laguna Beach", "Dana Point", "Dove Canyon"
       ]},
-      { name: "San Diego", href: "/service-area/san-diego" },
+      { name: "San Diego", href: "/service-area/san-diego", cities: [
+        "San Diego", "La Jolla", "Del Mar", "Encinitas", "Carlsbad", "Oceanside",
+        "Vista", "Escondido", "Poway", "Coronado"
+      ]},
       { name: "San Bernardino", href: "/service-area/san-bernardino" },
       { name: "Riverside", href: "/service-area/riverside" },
       { name: "Palm Springs", href: "/service-area/palm-springs" }

@@ -359,8 +359,19 @@ export default function CityServiceTemplate({
                     'buena-park', 'la-palma', 'stanton', 'la-habra', 'villa-park'
                   ]
                   
+                  // San Diego cities that exist under /service-area/san-diego/
+                  const sdCities = [
+                    'san-diego-city', 'la-jolla', 'del-mar', 'encinitas', 'carlsbad', 'oceanside',
+                    'vista', 'escondido', 'poway', 'coronado', 'imperial-beach', 'chula-vista',
+                    'national-city', 'bonita', 'rancho-bernardo', 'mira-mesa', 'scripps-ranch',
+                    'mission-valley', 'hillcrest', 'point-loma', 'mission-beach', 'pacific-beach',
+                    'balboa-park', 'eastlake', 'otay-ranch', 'rancho-san-diego', 'el-cajon'
+                  ]
+                  
                   if (ocCities.includes(citySlug)) {
                     cityHref = `/service-area/orange-county/${citySlug}`
+                  } else if (sdCities.includes(citySlug) || (citySlug === 'san-diego' && sdCities.includes('san-diego-city'))) {
+                    cityHref = `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
                   }
                   
                   return (

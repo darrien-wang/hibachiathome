@@ -87,6 +87,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/orange-county/villa-park"
   ]
 
+  // San Diego cities for long-tail SEO
+  const sdCityPages = [
+    "/service-area/san-diego/san-diego-city",
+    "/service-area/san-diego/la-jolla",
+    "/service-area/san-diego/del-mar",
+    "/service-area/san-diego/encinitas",
+    "/service-area/san-diego/carlsbad",
+    "/service-area/san-diego/oceanside",
+    "/service-area/san-diego/vista",
+    "/service-area/san-diego/escondido",
+    "/service-area/san-diego/poway",
+    "/service-area/san-diego/coronado",
+    "/service-area/san-diego/imperial-beach",
+    "/service-area/san-diego/chula-vista",
+    "/service-area/san-diego/national-city",
+    "/service-area/san-diego/bonita",
+    "/service-area/san-diego/rancho-bernardo",
+    "/service-area/san-diego/mira-mesa",
+    "/service-area/san-diego/scripps-ranch",
+    "/service-area/san-diego/mission-valley",
+    "/service-area/san-diego/hillcrest",
+    "/service-area/san-diego/point-loma",
+    "/service-area/san-diego/mission-beach",
+    "/service-area/san-diego/pacific-beach",
+    "/service-area/san-diego/balboa-park",
+    "/service-area/san-diego/eastlake",
+    "/service-area/san-diego/otay-ranch",
+    "/service-area/san-diego/rancho-san-diego",
+    "/service-area/san-diego/el-cajon"
+  ]
+
   const staticPages = [
     "", // Homepage
     "/locations/la-orange-county", // Los Angeles page - highest priority
@@ -99,6 +130,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/riverside", // Riverside service area
     ...laCityPages, // Add all LA city pages
     ...ocCityPages, // Add all OC city pages
+    ...sdCityPages, // Add all San Diego city pages
     "/menu",
     "/book",
     "/faq",

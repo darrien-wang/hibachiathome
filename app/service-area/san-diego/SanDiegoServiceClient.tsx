@@ -6,8 +6,40 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Phone, Mail, MapPin, Clock, CheckCircle, Star, Users, Heart, Utensils, Calendar } from "lucide-react"
 import Link from "next/link"
+import { sanDiegoCities } from "@/config/san-diego-cities"
 
 export default function SanDiegoServiceClient() {
+  // Create city mapping for links - includes cities with dedicated pages
+  const cityLinkMap: { [key: string]: string } = {
+    "San Diego": "/service-area/san-diego/san-diego-city",
+    "La Jolla": "/service-area/san-diego/la-jolla", 
+    "Del Mar": "/service-area/san-diego/del-mar",
+    "Encinitas": "/service-area/san-diego/encinitas",
+    "Carlsbad": "/service-area/san-diego/carlsbad",
+    "Oceanside": "/service-area/san-diego/oceanside",
+    "Vista": "/service-area/san-diego/vista",
+    "Escondido": "/service-area/san-diego/escondido",
+    "Poway": "/service-area/san-diego/poway",
+    "Coronado": "/service-area/san-diego/coronado",
+    "Imperial Beach": "/service-area/san-diego/imperial-beach",
+    "Chula Vista": "/service-area/san-diego/chula-vista",
+    "National City": "/service-area/san-diego/national-city",
+    "Bonita": "/service-area/san-diego/bonita",
+    "Rancho Bernardo": "/service-area/san-diego/rancho-bernardo",
+    "Mira Mesa": "/service-area/san-diego/mira-mesa",
+    "Scripps Ranch": "/service-area/san-diego/scripps-ranch",
+    "Mission Valley": "/service-area/san-diego/mission-valley",
+    "Hillcrest": "/service-area/san-diego/hillcrest",
+    "Point Loma": "/service-area/san-diego/point-loma",
+    "Mission Beach": "/service-area/san-diego/mission-beach",
+    "Pacific Beach": "/service-area/san-diego/pacific-beach",
+    "Balboa Park": "/service-area/san-diego/balboa-park",
+    "Eastlake": "/service-area/san-diego/eastlake",
+    "Otay Ranch": "/service-area/san-diego/otay-ranch",
+    "Rancho San Diego": "/service-area/san-diego/rancho-san-diego",
+    "El Cajon": "/service-area/san-diego/el-cajon"
+  }
+  
   const sdCities = [
     "San Diego", "La Jolla", "Del Mar", "Encinitas", "Carlsbad", "Oceanside",
     "Vista", "Escondido", "Poway", "Rancho Bernardo", "Mira Mesa", "Scripps Ranch",
@@ -90,11 +122,28 @@ export default function SanDiegoServiceClient() {
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {sdCities.map((city, index) => (
-                <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-blue-50 transition-colors">
-                  {city}
-                </Badge>
-              ))}
+              {sdCities.map((city, index) => {
+                const cityLink = cityLinkMap[city]
+                
+                if (cityLink) {
+                  return (
+                    <Link key={index} href={cityLink}>
+                      <Badge 
+                        variant="outline" 
+                        className="text-center py-2 text-sm hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-colors w-full"
+                      >
+                        {city}
+                      </Badge>
+                    </Link>
+                  )
+                }
+                
+                return (
+                  <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-blue-50 transition-colors">
+                    {city}
+                  </Badge>
+                )
+              })}
             </div>
             <div className="mt-8 text-center">
               <p className="text-gray-600 mb-4">Experience Japanese hibachi in America's Finest City.</p>
