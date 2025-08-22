@@ -37,12 +37,23 @@ export default function InstagramVideosSection({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showAll, setShowAll] = useState(false)
   const [playingVideo, setPlayingVideo] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
   const carouselRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const latestVideos = getLatestVideos()
     setVideos(latestVideos)
+
+    // 检测是否为移动设备
+    const checkIsMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.innerWidth < 768
+      setIsMobile(isMobileDevice)
+    }
+    
+    checkIsMobile()
+    window.addEventListener('resize', checkIsMobile)
 
     // 加载Instagram嵌入脚本
     const loadInstagramScript = () => {
@@ -67,6 +78,10 @@ export default function InstagramVideosSection({
     if (hasEmbeddedVideos) {
       loadInstagramScript()
     }
+
+    return () => {
+      window.removeEventListener('resize', checkIsMobile)
+    }
   }, [])
 
   const displayedVideos = showAll ? videos : videos.slice(0, maxVisible)
@@ -87,14 +102,16 @@ export default function InstagramVideosSection({
   }
 
   const nextSlide = () => {
-    if (displayMode === "carousel") {
-      setCurrentIndex((prev) => (prev + 1) % videos.length)
+    if (displayMode === "carousel" && carouselRef.current) {
+      const scrollAmount = 320 // width of one card + gap
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
     }
   }
 
   const prevSlide = () => {
-    if (displayMode === "carousel") {
-      setCurrentIndex((prev) => (prev - 1 + videos.length) % videos.length)
+    if (displayMode === "carousel" && carouselRef.current) {
+      const scrollAmount = 320 // width of one card + gap
+      carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
     }
   }
 
@@ -165,8 +182,27 @@ export default function InstagramVideosSection({
           </>
         ) : (
           <AnimateOnScroll>
-            {/* 移动端优化：显示多卡片横向滑动 */}
             <div className="relative mx-auto px-4">
+              {/* Desktop navigation arrows */}
+              {!isMobile && (
+                <>
+                  <button
+                    onClick={prevSlide}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110"
+                    aria-label="Previous videos"
+                  >
+                    <ChevronLeft className="h-6 w-6 text-gray-700" />
+                  </button>
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110"
+                    aria-label="Next videos"
+                  >
+                    <ChevronRight className="h-6 w-6 text-gray-700" />
+                  </button>
+                </>
+              )}
+              
               <div 
                 ref={carouselRef}
                 className="overflow-x-auto scrollbar-hide"
@@ -195,9 +231,13 @@ export default function InstagramVideosSection({
                 </div>
               </div>
               
-              {/* 移动端提示 */}
+              {/* Navigation hints based on device type */}
               <div className="text-center mt-2">
-                <p className="text-sm text-gray-500">← Swipe to see more videos →</p>
+                {isMobile ? (
+                  <p className="text-sm text-gray-500">← Swipe to see more videos →</p>
+                ) : (
+                  <p className="text-sm text-gray-500">← Use arrow buttons or scroll to see more videos →</p>
+                )}
               </div>
             </div>
           </AnimateOnScroll>
