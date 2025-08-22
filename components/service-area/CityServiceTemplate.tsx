@@ -62,9 +62,9 @@ export default function CityServiceTemplate({
   ]
 
   return (
-    <div className="page-container min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 pt-20">
       {/* Hero Section */}
-      <div className="hero-section bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white pt-20 pb-16">
+      <div className="hero-section bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white pt-12 pb-16">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
