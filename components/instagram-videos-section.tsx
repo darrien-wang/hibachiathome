@@ -138,11 +138,11 @@ export default function InstagramVideosSection({
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Instagram className="h-8 w-8 text-pink-500" />
-              <h2 className="text-3xl md:text-4xl font-serif font-bold">
+              <h2 className="text-4xl md:text-5xl font-serif font-bold">
                 {title}
               </h2>
             </div>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               {subtitle}
             </p>
           </div>

@@ -203,7 +203,7 @@ export default function PackageSelection({
   return (
     <Card className="mb-10 border-amber-100 bg-gradient-to-b from-white to-amber-50/30">
       <CardHeader className="border-b border-amber-100 pb-4">
-        <CardTitle className="text-2xl text-amber-800">Choose a Package</CardTitle>
+        <CardTitle className="text-3xl text-amber-800">Choose a Package</CardTitle>
         <CardDescription className="text-amber-700/80">
           Select one of our popular packages or customize your own experience below
         </CardDescription>
@@ -265,7 +265,7 @@ export default function PackageSelection({
                 )}
 
                 <div className="p-6 flex flex-col h-full">
-                  <h3 className="text-xl font-bold mb-2">
+                  <h3 className="text-2xl font-bold mb-2">
                     {pkg.id === "basic"
                       ? "Basic Package"
                       : pkg.id === "premium"
@@ -276,7 +276,7 @@ export default function PackageSelection({
                   </h3>
 
                   <div className="mb-4">
-                    <p className="text-lg font-semibold text-amber-600">
+                    <p className="text-xl font-semibold text-amber-600">
                       {pkg.id && (
                         <>
                           <span className="text-gray-500 text-sm line-through mr-2">

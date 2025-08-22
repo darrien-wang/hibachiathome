@@ -245,10 +245,10 @@ export default function Home() {
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
+              <h2 className="text-4xl md:text-5xl font-serif font-bold text-center mb-6">
                 Our Popular <span className="text-primary">Packages</span>
               </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
+              <p className="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
                 Choose the perfect hibachi package for your event
               </p>
             </AnimateOnScroll>
@@ -271,9 +271,9 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Hibachi Show Package</h3>
+                    <h3 className="text-2xl font-bold mb-2">Hibachi Show Package</h3>
                     <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
+                      <p className="text-xl font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
                         $59.9
                         <span className="text-sm font-normal"> per person</span>
@@ -319,9 +319,9 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Show Up Package</h3>
+                    <h3 className="text-2xl font-bold mb-2">Show Up Package</h3>
                     <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
+                      <p className="text-xl font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$75</span>
                         $74.9
                         <span className="text-sm font-normal"> per person</span>

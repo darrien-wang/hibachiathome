@@ -29,7 +29,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
 
   return (
     <div className="mb-16">
-      <h2 className="text-3xl font-bold text-center mb-8">Menu Details</h2>
+      <h2 className="text-4xl font-bold text-center mb-8">Menu Details</h2>
 
       <Tabs defaultValue="proteins" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3 mb-8 h-auto">

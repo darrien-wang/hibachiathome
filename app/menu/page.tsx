@@ -60,8 +60,8 @@ export default function MenuPage() {
       <div className="max-w-6xl mx-auto">
         <AnimateOnScroll direction="down">
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold mb-4">Our Menu</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <h1 className="text-5xl font-bold mb-4">Our Menu</h1>
+            <p className="text-2xl text-gray-600 max-w-2xl mx-auto">
               Explore our hibachi menu options, featuring premium proteins, fresh vegetables, and authentic Japanese
               flavors.
             </p>
