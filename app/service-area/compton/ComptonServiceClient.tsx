@@ -13,7 +13,7 @@ export default function ComptonServiceClient() {
       popularVenues={["Community Centers","Cultural Venues","Family Homes","Local Event Spaces"]}
       cityHighlights={["Historic community with rich cultural heritage","Diverse urban neighborhoods","Strong community pride and resilience","Growing arts and music scene"]}
       storyContent="At a Compton community celebration, we brought hibachi at home pride to a neighborhood known for resilience and creativity. Our private chef's energetic performance style matched the community's dynamic spirit and cultural richness. The hibachi party became an uplifting celebration of good food, family, and community strength. This private birthday hibachi party honored Compton's legacy while creating positive new memories for all generations."
-      nearbyCities={["Carson","Gardena","Lynwood","Paramount","Willowbrook"]}
+      nearbyCities={["Carson","Gardena"]}
     />
   )
 }

@@ -19,7 +19,7 @@ export default function LongBeachServiceClient() {
         "Vibrant downtown area with entertainment venues"
       ]}
       storyContent="At a Long Beach waterfront home with harbor views, we brought hibachi at home excitement to a port city celebration. Our private chef prepared fresh seafood while ships passed in the distance, creating a unique maritime dining experience. The hibachi party guests enjoyed the coastal atmosphere and spectacular cooking performance. This private birthday hibachi party captured Long Beach's dynamic blend of urban energy and coastal charm."
-      nearbyCities={["Carson","Lakewood","Signal Hill","Seal Beach","Torrance"]}
+      nearbyCities={["Carson","Lakewood","Seal Beach","Torrance"]}
     />
   )
 }

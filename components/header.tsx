@@ -7,13 +7,41 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
-import { Menu } from "lucide-react"
+import { Menu, ChevronDown } from "lucide-react"
+
+// Service areas data for navigation menu
+const serviceAreas = [
+  {
+    region: "Southern California",
+    href: "/service-area",
+    cities: [
+      { name: "Los Angeles Area", href: "/service-area/los-angeles", cities: [
+        "Los Angeles", "Beverly Hills", "West Hollywood", "Santa Monica", "Venice", "Culver City",
+        "Manhattan Beach", "Hermosa Beach", "Redondo Beach", "Torrance", "El Segundo", "Burbank"
+      ]},
+      { name: "Orange County", href: "/service-area/orange-county", cities: [
+        "Irvine", "Newport Beach", "Huntington Beach", "Costa Mesa", "Anaheim", "Fullerton",
+        "Orange", "Santa Ana", "Tustin", "Mission Viejo", "Laguna Beach", "Dana Point", "Dove Canyon"
+      ]},
+      { name: "San Diego", href: "/service-area/san-diego" },
+      { name: "San Bernardino", href: "/service-area/san-bernardino" },
+      { name: "Riverside", href: "/service-area/riverside" },
+      { name: "Palm Springs", href: "/service-area/palm-springs" }
+    ]
+  }
+]
 
 const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
-  { name: "Blog", href: "/blog", disabled: false }, // 添加博客导航项
-  { name: "Service Area", href: "/service-area", disabled: false },
+  { name: "Blog", href: "/blog", disabled: false },
+  { 
+    name: "Service Area", 
+    href: "/service-area", 
+    disabled: false, 
+    hasDropdown: true,
+    dropdownItems: serviceAreas[0].cities
+  },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
   { name: "Equipment Rentals", href: "/rentals", disabled: true },
@@ -24,6 +52,53 @@ export function Header() {
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
   const [ticking, setTicking] = useState(false)
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const [mobileExpandedItem, setMobileExpandedItem] = useState<string | null>(null)
+  const [expandedAreas, setExpandedAreas] = useState<string[]>([])
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Toggle area expansion
+  const toggleAreaExpansion = (areaName: string) => {
+    setExpandedAreas(prev => 
+      prev.includes(areaName) 
+        ? prev.filter(name => name !== areaName)
+        : [...prev, areaName]
+    )
+  }
+
+  // Close mobile menu when link is clicked
+  const handleLinkClick = () => {
+    setMobileMenuOpen(false)
+    setMobileExpandedItem(null)
+    setExpandedAreas([])
+  }
+
+  // Handle dropdown hover with delay
+  const handleDropdownEnter = (itemName: string) => {
+    // Clear any existing timeout
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current)
+      dropdownTimeoutRef.current = null
+    }
+    setActiveDropdown(itemName)
+  }
+
+  const handleDropdownLeave = () => {
+    // Set a delay before closing
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null)
+      dropdownTimeoutRef.current = null
+    }, 300) // 300ms delay
+  }
+
+  const handleDropdownEnterKeep = () => {
+    // Clear timeout when mouse enters dropdown content
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current)
+      dropdownTimeoutRef.current = null
+    }
+  }
 
   // Throttled scroll handler
   const handleScroll = useCallback(() => {
@@ -92,6 +167,10 @@ export function Header() {
 
     return () => {
       window.removeEventListener("scroll", handleScroll)
+      // Clean up timeout on unmount
+      if (dropdownTimeoutRef.current) {
+        clearTimeout(dropdownTimeoutRef.current)
+      }
     }
   }, [handleScroll])
 
@@ -127,7 +206,7 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <div className="flex justify-end">
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
@@ -138,7 +217,7 @@ export function Header() {
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-[280px] max-w-[90vw] bg-stone-100/95">
+              <SheetContent className="w-[280px] max-w-[90vw] bg-stone-100/95 overflow-y-auto max-h-screen">
                 <VisuallyHidden>
                   <SheetTitle>Navigation Menu</SheetTitle>
                 </VisuallyHidden>
@@ -151,26 +230,112 @@ export function Header() {
                     className="h-auto hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
                   />
                 </div>
-                <nav className="flex flex-col mt-6">
+                <div className="flex flex-col h-full">
+                <nav className="flex flex-col mt-6 pb-20">
                   {navItems
                     .filter((item) => !item.disabled)
                     .map((item) => (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className="py-3 text-lg font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
-                      >
-                        {item.name}
-                      </Link>
+                      <div key={item.name}>
+                        {item.hasDropdown ? (
+                          <div>
+                            <button
+                              onClick={() => setMobileExpandedItem(
+                                mobileExpandedItem === item.name ? null : item.name
+                              )}
+                              className="w-full py-3 text-lg font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide flex items-center justify-between"
+                            >
+                              {item.name}
+                              <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${
+                                mobileExpandedItem === item.name ? 'rotate-180' : ''
+                              }`} />
+                            </button>
+                            
+                            {/* Mobile Dropdown Content */}
+                            {mobileExpandedItem === item.name && (
+                              <div className="pl-4 pb-2">
+                                <Link
+                                  href={item.href}
+                                  onClick={handleLinkClick}
+                                  className="block py-2 text-base text-gray-600 hover:text-[#F9A77C]"
+                                >
+                                  View All Areas
+                                </Link>
+                                {item.dropdownItems?.map((area, index) => (
+                                  <div key={index} className="mb-3">
+                                    <div className="flex items-center justify-between">
+                                      <Link
+                                        href={area.href}
+                                        onClick={handleLinkClick}
+                                        className="block py-1 font-medium text-gray-700 hover:text-[#F9A77C] flex-1"
+                                      >
+                                        {area.name}
+                                      </Link>
+                                      {area.cities && (
+                                        <button
+                                          onClick={() => toggleAreaExpansion(area.name)}
+                                          className="ml-2 p-1 text-gray-500 hover:text-[#F9A77C]"
+                                        >
+                                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                                            expandedAreas.includes(area.name) ? 'rotate-180' : ''
+                                          }`} />
+                                        </button>
+                                      )}
+                                    </div>
+                                    {area.cities && expandedAreas.includes(area.name) && (
+                                      <div className="pl-3 mt-1">
+                                        {area.cities.slice(0, 4).map((city, cityIndex) => {
+                                          const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
+                                          const cityHref = area.name === "Orange County" 
+                                            ? `/service-area/orange-county/${citySlug}`
+                                            : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
+                                          
+                                          return (
+                                            <Link
+                                              key={cityIndex}
+                                              href={cityHref}
+                                              onClick={handleLinkClick}
+                                              className="block py-1 text-sm text-gray-500 hover:text-[#F9A77C]"
+                                            >
+                                              {city}
+                                            </Link>
+                                          )
+                                        })}
+                                        {area.cities && area.cities.length > 4 && (
+                                          <Link
+                                            href={area.href}
+                                            onClick={handleLinkClick}
+                                            className="block py-1 text-xs text-[#F9A77C] hover:underline"
+                                          >
+                                            + {area.cities.length - 4} more cities...
+                                          </Link>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            onClick={handleLinkClick}
+                            className="py-3 text-lg font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide block"
+                          >
+                            {item.name}
+                          </Link>
+                        )}
+                      </div>
                     ))}
                   <Button
                     asChild
                     className="mt-6 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 border-2 border-amber-500"
                     size="default"
                   >
-                    <Link href="/book">Book Now</Link>
+                    <Link href="/book" onClick={handleLinkClick}>Book Now</Link>
                   </Button>
                 </nav>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -184,13 +349,66 @@ export function Header() {
               .filter((item) => !item.disabled)
               .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
               .map((item) => (
-                <Link
+                <div
                   key={item.name}
-                  href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
+                  className="relative"
+                  onMouseEnter={() => item.hasDropdown && handleDropdownEnter(item.name)}
+                  onMouseLeave={() => item.hasDropdown && handleDropdownLeave()}
                 >
-                  {item.name}
-                </Link>
+                  <Link
+                    href={item.href}
+                    className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1 flex items-center gap-1"
+                  >
+                    {item.name}
+                    {item.hasDropdown && (
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                        activeDropdown === item.name ? 'rotate-180' : ''
+                      }`} />
+                    )}
+                  </Link>
+                  
+                  {/* Dropdown Menu */}
+                  {item.hasDropdown && activeDropdown === item.name && (
+                    <div 
+                      className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                      onMouseEnter={handleDropdownEnterKeep}
+                      onMouseLeave={handleDropdownLeave}
+                    >
+                      {item.dropdownItems?.map((area, index) => (
+                        <div key={index}>
+                          <Link
+                            href={area.href}
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] font-medium"
+                          >
+                            {area.name}
+                          </Link>
+                          {area.cities && (
+                            <div className="px-4 pb-2">
+                              <div className="grid grid-cols-2 gap-1">
+                                {area.cities.map((city, cityIndex) => {
+                                  const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
+                                  const cityHref = area.name === "Orange County" 
+                                    ? `/service-area/orange-county/${citySlug}`
+                                    : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
+                                  
+                                  return (
+                                    <Link
+                                      key={cityIndex}
+                                      href={cityHref}
+                                      className="text-xs text-gray-500 hover:text-[#F9A77C] py-1"
+                                    >
+                                      {city}
+                                    </Link>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
           </nav>
 
@@ -214,13 +432,66 @@ export function Header() {
               .filter((item) => !item.disabled)
               .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
               .map((item) => (
-                <Link
+                <div
                   key={item.name}
-                  href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
+                  className="relative"
+                  onMouseEnter={() => item.hasDropdown && handleDropdownEnter(item.name)}
+                  onMouseLeave={() => item.hasDropdown && handleDropdownLeave()}
                 >
-                  {item.name}
-                </Link>
+                  <Link
+                    href={item.href}
+                    className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1 flex items-center gap-1"
+                  >
+                    {item.name}
+                    {item.hasDropdown && (
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                        activeDropdown === item.name ? 'rotate-180' : ''
+                      }`} />
+                    )}
+                  </Link>
+                  
+                  {/* Dropdown Menu */}
+                  {item.hasDropdown && activeDropdown === item.name && (
+                    <div 
+                      className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                      onMouseEnter={handleDropdownEnterKeep}
+                      onMouseLeave={handleDropdownLeave}
+                    >
+                      {item.dropdownItems?.map((area, index) => (
+                        <div key={index}>
+                          <Link
+                            href={area.href}
+                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] font-medium"
+                          >
+                            {area.name}
+                          </Link>
+                          {area.cities && (
+                            <div className="px-4 pb-2">
+                              <div className="grid grid-cols-2 gap-1">
+                                {area.cities.map((city, cityIndex) => {
+                                  const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
+                                  const cityHref = area.name === "Orange County" 
+                                    ? `/service-area/orange-county/${citySlug}`
+                                    : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
+                                  
+                                  return (
+                                    <Link
+                                      key={cityIndex}
+                                      href={cityHref}
+                                      className="text-xs text-gray-500 hover:text-[#F9A77C] py-1"
+                                    >
+                                      {city}
+                                    </Link>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             <div className="ml-auto">
               <Button

@@ -13,7 +13,7 @@ export default function ArcadiaServiceClient() {
       popularVenues={["Luxury Estates","Gated Communities","Country Club Venues","Foothill Properties"]}
       cityHighlights={["Upscale residential community in the San Gabriel foothills","Home to Santa Anita Park horse racing track","Beautiful tree-lined streets and luxury homes","Strong Asian community and cultural diversity"]}
       storyContent="At a beautiful Arcadia estate near Santa Anita Park, we delivered a hibachi at home experience as elegant as the surrounding horse country. Our private chef prepared wagyu beef with the same attention to quality that Arcadia residents expect. The hibachi party unfolded in their magnificent backyard with mountain views, creating an atmosphere of luxury and tranquility. This private birthday hibachi party felt like dining at an exclusive country club."
-      nearbyCities={["Pasadena","Monrovia","San Gabriel","Alhambra","Temple City"]}
+      nearbyCities={["Pasadena","Monrovia","San Gabriel","Alhambra"]}
     />
   )
 }

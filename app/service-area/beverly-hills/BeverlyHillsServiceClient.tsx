@@ -19,7 +19,7 @@ export default function BeverlyHillsServiceClient() {
         "Exclusive cultural events and galas"
       ]}
       storyContent="We recently catered an elegant hibachi at home celebration at a beautiful Beverly Hills mansion on Rodeo Drive. The host wanted a private chef experience for their anniversary, and our Japanese teppanyaki master didn't disappoint. Between the luxury setting and our entertaining hibachi party performance, guests felt like celebrities dining at an exclusive restaurant. The sizzling sounds and delicious aromas filled their gorgeous estate dining room."
-      nearbyCities={["West Hollywood","Los Angeles","Santa Monica","Culver City","Century City"]}
+      nearbyCities={["West Hollywood","Los Angeles","Santa Monica","Culver City"]}
     />
   )
 }

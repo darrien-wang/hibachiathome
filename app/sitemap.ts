@@ -64,6 +64,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/orange-county/mission-viejo",
     "/service-area/orange-county/laguna-beach",
     "/service-area/orange-county/dana-point",
+    "/service-area/orange-county/dove-canyon",
     "/service-area/orange-county/fountain-valley",
     "/service-area/orange-county/westminster",
     "/service-area/orange-county/garden-grove",

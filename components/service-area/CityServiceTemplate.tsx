@@ -345,10 +345,28 @@ export default function CityServiceTemplate({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {nearbyCities.map((nearbyCity, index) => {
                   const citySlug = nearbyCity.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
+                  
+                  // Determine correct path based on region and city
+                  let cityHref = `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
+                  
+                  // Orange County cities that exist under /service-area/orange-county/
+                  const ocCities = [
+                    'irvine', 'newport-beach', 'huntington-beach', 'costa-mesa', 'anaheim', 'fullerton',
+                    'orange', 'santa-ana', 'tustin', 'mission-viejo', 'laguna-beach', 'dana-point',
+                    'dove-canyon', 'fountain-valley', 'westminster', 'garden-grove', 'san-juan-capistrano',
+                    'lake-forest', 'aliso-viejo', 'laguna-hills', 'laguna-niguel', 'rancho-santa-margarita',
+                    'brea', 'placentia', 'yorba-linda', 'cypress', 'los-alamitos', 'seal-beach',
+                    'buena-park', 'la-palma', 'stanton', 'la-habra', 'villa-park'
+                  ]
+                  
+                  if (ocCities.includes(citySlug)) {
+                    cityHref = `/service-area/orange-county/${citySlug}`
+                  }
+                  
                   return (
                     <Link 
                       key={index} 
-                      href={`/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`}
+                      href={cityHref}
                     >
                       <Badge 
                         variant="outline" 

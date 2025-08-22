@@ -13,7 +13,7 @@ export default function NorwalkServiceClient() {
       popularVenues={["Family Homes","Community Centers","Cultural Venues","Local Event Spaces"]}
       cityHighlights={["Diverse suburban community","Family-oriented neighborhoods","Growing arts and cultural scene","Strong community programs and local events"]}
       storyContent="At a Norwalk community center gathering, we brought hibachi at home excitement to a neighborhood celebration. Our private chef's engaging personality matched the city's friendly, welcoming spirit. The hibachi party brought together families from throughout the community, creating new friendships over delicious food. This private birthday hibachi party demonstrated how shared meals strengthen community bonds."
-      nearbyCities={["Cerritos","Downey","Whittier","Bellflower","La Mirada"]}
+      nearbyCities={["Cerritos","Downey","Whittier","Bellflower"]}
     />
   )
 }

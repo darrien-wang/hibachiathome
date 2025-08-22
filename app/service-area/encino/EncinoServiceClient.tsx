@@ -13,7 +13,7 @@ export default function EncinoServiceClient() {
       popularVenues={["Luxury Estates","Gated Communities","Country Club venues","Executive Homes"]}
       cityHighlights={["Affluent San Fernando Valley community","Beautiful tree-lined residential streets","Upscale shopping and dining options","Family-friendly neighborhoods with excellent schools"]}
       storyContent="At a luxurious Encino estate with resort-style amenities, we created an upscale hibachi at home experience matching the sophisticated Valley lifestyle. Our private chef prepared premium ingredients with five-star presentation for successful business executives. The hibachi party felt like an exclusive members-only club gathering. This private birthday hibachi party epitomized Encino's blend of luxury, comfort, and California sophistication."
-      nearbyCities={["Sherman Oaks","Studio City","Tarzana","Woodland Hills","Van Nuys"]}
+      nearbyCities={["Sherman Oaks","Studio City","Tarzana","Woodland Hills"]}
     />
   )
 }

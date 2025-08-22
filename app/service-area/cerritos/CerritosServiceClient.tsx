@@ -13,7 +13,7 @@ export default function CerritosServiceClient() {
       popularVenues={["Modern Homes","Community Centers","Shopping Center venues","Cultural Venues"]}
       cityHighlights={["Well-planned suburban community","Large Asian-American population","Excellent schools and family amenities","Modern shopping and cultural facilities"]}
       storyContent="At a modern Cerritos home in this well-planned community, we delivered a hibachi at home experience that impressed the area's diverse, educated residents. Our private chef's international background resonated with families from around the world. The hibachi party showcased the global appreciation for quality food and entertainment. This private birthday hibachi party reflected Cerritos' reputation for embracing diverse cultures and excellence."
-      nearbyCities={["Lakewood","Norwalk","Bellflower","La Palma","Artesia"]}
+      nearbyCities={["Lakewood","Norwalk","Bellflower","La Palma"]}
     />
   )
 }

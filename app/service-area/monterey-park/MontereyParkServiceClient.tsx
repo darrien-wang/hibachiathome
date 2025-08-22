@@ -13,7 +13,7 @@ export default function MontereyParkServiceClient() {
       popularVenues={["Asian Family Homes","Community Centers","Cultural Event Spaces","Multi-family Residences"]}
       cityHighlights={["Large Chinese-American community","Authentic Asian cuisine and cultural experiences","Family-oriented residential neighborhoods","Cultural festivals and community events"]}
       storyContent="At a Monterey Park family reunion, we brought hibachi at home excitement to four generations of a Chinese-American family. Our private chef amazed grandparents who immigrated decades ago while entertaining American-born grandchildren. The hibachi party created bridges between traditional and modern dining experiences. This private birthday hibachi party became a cherished family memory spanning cultures and generations."
-      nearbyCities={["Alhambra","San Gabriel","Rosemead","East Los Angeles"]}
+      nearbyCities={["Alhambra","San Gabriel"]}
     />
   )
 }

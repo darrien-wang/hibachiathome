@@ -13,7 +13,7 @@ export default function WoodlandHillsServiceClient() {
       popularVenues={["Corporate Centers","Luxury Homes","Golf Course venues","Mountain View Properties"]}
       cityHighlights={["Upscale Valley community with mountain views","Warner Center business district","Beautiful parks and recreational facilities","Family-friendly suburban atmosphere"]}
       storyContent="At a Warner Center executive's Woodland Hills home, we provided a hibachi at home experience that impressed business leaders from the corporate district. Our private chef's professional presentation matched their high standards for entertaining clients. The hibachi party created the perfect atmosphere for relationship building and celebration. This private birthday hibachi party demonstrated why successful professionals choose our premium service."
-      nearbyCities={["Tarzana","Encino","Canoga Park","West Hills","Warner Center"]}
+      nearbyCities={["Tarzana","Encino"]}
     />
   )
 }
