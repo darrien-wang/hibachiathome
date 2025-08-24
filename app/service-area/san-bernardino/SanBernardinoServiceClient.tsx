@@ -80,12 +80,56 @@ export default function SanBernardinoServiceClient() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
-            {sanBernardinoCities.map((city) => (
-              <div key={city} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span className="text-gray-800">{city}</span>
-              </div>
-            ))}
+            {sanBernardinoCities.map((city) => {
+              // Create city mapping for links - includes cities with dedicated pages
+              const cityLinkMap: { [key: string]: string } = {
+                "San Bernardino": "/service-area/san-bernardino/san-bernardino-city",
+                "Redlands": "/service-area/san-bernardino/redlands",
+                "Fontana": "/service-area/san-bernardino/fontana",
+                "Rialto": "/service-area/san-bernardino/rialto",
+                "Highland": "/service-area/san-bernardino/highland",
+                "Loma Linda": "/service-area/san-bernardino/loma-linda",
+                "Colton": "/service-area/san-bernardino/colton",
+                "Grand Terrace": "/service-area/san-bernardino/grand-terrace",
+                "Upland": "/service-area/san-bernardino/upland",
+                "Rancho Cucamonga": "/service-area/san-bernardino/rancho-cucamonga",
+                "Ontario": "/service-area/san-bernardino/ontario",
+                "Chino": "/service-area/san-bernardino/chino",
+                "Chino Hills": "/service-area/san-bernardino/chino-hills",
+                "Montclair": "/service-area/san-bernardino/montclair",
+                "Claremont": "/service-area/san-bernardino/claremont",
+                "Pomona": "/service-area/san-bernardino/pomona",
+                "La Verne": "/service-area/san-bernardino/la-verne",
+                "Crestline": "/service-area/san-bernardino/crestline",
+                "Lake Arrowhead": "/service-area/san-bernardino/lake-arrowhead",
+                "Big Bear Lake": "/service-area/san-bernardino/big-bear-lake",
+                "Running Springs": "/service-area/san-bernardino/running-springs",
+                "Yucaipa": "/service-area/san-bernardino/yucaipa",
+                "Calimesa": "/service-area/san-bernardino/calimesa",
+                "Victorville": "/service-area/san-bernardino/victorville",
+                "Hesperia": "/service-area/san-bernardino/hesperia",
+                "Apple Valley": "/service-area/san-bernardino/apple-valley"
+              }
+              
+              const cityLink = cityLinkMap[city]
+              
+              if (cityLink) {
+                return (
+                  <Link key={city} href={cityLink}>
+                    <Badge variant="outline" className="text-sm justify-center hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-colors w-full">
+                      {city}
+                    </Badge>
+                  </Link>
+                )
+              }
+              
+              return (
+                <div key={city} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <span className="text-gray-800">{city}</span>
+                </div>
+              )
+            })}
           </div>
 
           <div className="text-center">

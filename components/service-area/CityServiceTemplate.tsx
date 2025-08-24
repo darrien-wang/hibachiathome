@@ -33,7 +33,7 @@ export default function CityServiceTemplate({
   const serviceFeatures = [
     {
       icon: Users,
-      title: "Professional Japanese Chefs",
+      title: "Professional Hibachi Chefs",
       description: `Experienced hibachi chefs serving ${cityName} with authentic teppanyaki skills`
     },
     {
@@ -282,7 +282,7 @@ export default function CityServiceTemplate({
             <CardHeader>
               <CardTitle className="text-2xl text-purple-800 text-center flex items-center justify-center gap-2">
                 <Heart className="h-6 w-6" />
-                Hibachi at Home Success Story in {cityName}
+                Real Hibachi at Home Success Story in {cityName}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
@@ -367,11 +367,22 @@ export default function CityServiceTemplate({
                     'mission-valley', 'hillcrest', 'point-loma', 'mission-beach', 'pacific-beach',
                     'balboa-park', 'eastlake', 'otay-ranch', 'rancho-san-diego', 'el-cajon'
                   ]
+
+                  // San Bernardino cities that exist under /service-area/san-bernardino/
+                  const sbCities = [
+                    'san-bernardino-city', 'redlands', 'fontana', 'rialto', 'highland', 'loma-linda',
+                    'colton', 'grand-terrace', 'upland', 'rancho-cucamonga', 'ontario', 'chino',
+                    'chino-hills', 'montclair', 'claremont', 'pomona', 'la-verne', 'crestline',
+                    'lake-arrowhead', 'big-bear-lake', 'running-springs', 'yucaipa', 'calimesa',
+                    'victorville', 'hesperia', 'apple-valley'
+                  ]
                   
                   if (ocCities.includes(citySlug)) {
                     cityHref = `/service-area/orange-county/${citySlug}`
                   } else if (sdCities.includes(citySlug) || (citySlug === 'san-diego' && sdCities.includes('san-diego-city'))) {
                     cityHref = `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
+                  } else if (sbCities.includes(citySlug) || (citySlug === 'san-bernardino' && sbCities.includes('san-bernardino-city'))) {
+                    cityHref = `/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`
                   }
                   
                   return (

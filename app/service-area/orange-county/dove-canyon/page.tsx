@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Dove Canyon, private chef Orange County, teppanyaki catering Dove Canyon CA, Japanese hibachi chef, in-home hibachi party, Orange County hibachi service",
   openGraph: {
     title: "Private Hibachi Chef Service in Dove Canyon, Orange County",
-    description: "Authentic hibachi at home experience in Dove Canyon. Professional Japanese chefs bring the excitement of teppanyaki cooking directly to your home.",
+    description: "Authentic hibachi at home experience in Dove Canyon. Professional Hibachi Chefs bring the excitement of teppanyaki cooking directly to your home.",
     url: "https://www.realhibachi.com/service-area/orange-county/dove-canyon",
     type: "website",
     locale: "en_US"

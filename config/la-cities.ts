@@ -350,5 +350,20 @@ export const laCitiesData: CityData[] = [
     neighborhoods: ["Downtown Compton", "East Compton", "West Compton", "Lynwood border"],
     popularVenues: ["Community Centers", "Cultural Venues", "Family Homes", "Local Event Spaces"],
     specialFeatures: ["Cultural bridge building", "Community celebration focus", "Authentic cultural exchange"]
+  },
+  {
+    name: "San Pedro",
+    slug: "san-pedro",
+    description: "Historic port community hibachi service in San Pedro, bringing authentic Japanese cuisine to LA's maritime district.",
+    zipCodes: ["90731", "90732"],
+    neighborhoods: ["Downtown San Pedro", "Cabrillo Beach", "Ports O' Call", "Angel's Gate", "Rancho San Pedro"],
+    popularVenues: ["Harbor View Homes", "Historic Properties", "Waterfront Venues", "Community Centers"],
+    cityHighlights: [
+      "Historic Port of Los Angeles and maritime heritage",
+      "Beautiful Cabrillo Beach and coastal recreation", 
+      "Rich fishing and shipping industry culture",
+      "Growing arts district and community revitalization",
+      "Gateway to Catalina Island ferry services"
+    ]
   }
 ]

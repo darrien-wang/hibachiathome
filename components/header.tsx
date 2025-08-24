@@ -17,7 +17,7 @@ const serviceAreas = [
     cities: [
       { name: "Los Angeles Area", href: "/service-area/los-angeles", cities: [
         "Los Angeles", "Beverly Hills", "West Hollywood", "Santa Monica", "Venice", "Culver City",
-        "Manhattan Beach", "Hermosa Beach", "Redondo Beach", "Torrance", "El Segundo", "Burbank"
+        "Manhattan Beach", "Hermosa Beach", "Redondo Beach", "Torrance", "El Segundo", "Burbank", "San Pedro"
       ]},
       { name: "Orange County", href: "/service-area/orange-county", cities: [
         "Irvine", "Newport Beach", "Huntington Beach", "Costa Mesa", "Anaheim", "Fullerton",
@@ -27,7 +27,10 @@ const serviceAreas = [
         "San Diego", "La Jolla", "Del Mar", "Encinitas", "Carlsbad", "Oceanside",
         "Vista", "Escondido", "Poway", "Coronado"
       ]},
-      { name: "San Bernardino", href: "/service-area/san-bernardino" },
+      { name: "San Bernardino", href: "/service-area/san-bernardino", cities: [
+        "San Bernardino", "Fontana", "Ontario", "Rancho Cucamonga", "Rialto", "Redlands",
+        "Highland", "Upland", "Chino", "Chino Hills"
+      ]},
       { name: "Riverside", href: "/service-area/riverside" },
       { name: "Palm Springs", href: "/service-area/palm-springs" }
     ]
@@ -390,9 +393,13 @@ export function Header() {
                               <div className="grid grid-cols-2 gap-1">
                                 {area.cities.map((city, cityIndex) => {
                                   const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
-                                  const cityHref = area.name === "Orange County" 
+                                  const cityHref = area.name === "Orange County"
                                     ? `/service-area/orange-county/${citySlug}`
-                                    : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
+                                    : area.name === "San Diego"
+                                      ? `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
+                                      : area.name === "San Bernardino"
+                                        ? `/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`
+                                        : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
                                   
                                   return (
                                     <Link
@@ -473,9 +480,13 @@ export function Header() {
                               <div className="grid grid-cols-2 gap-1">
                                 {area.cities.map((city, cityIndex) => {
                                   const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
-                                  const cityHref = area.name === "Orange County" 
+                                  const cityHref = area.name === "Orange County"
                                     ? `/service-area/orange-county/${citySlug}`
-                                    : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
+                                    : area.name === "San Diego"
+                                      ? `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
+                                      : area.name === "San Bernardino"
+                                        ? `/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`
+                                        : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
                                   
                                   return (
                                     <Link

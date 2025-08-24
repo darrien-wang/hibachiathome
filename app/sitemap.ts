@@ -47,7 +47,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/cerritos",
     "/service-area/norwalk",
     "/service-area/bellflower",
-    "/service-area/compton"
+    "/service-area/compton",
+    "/service-area/san-pedro"
   ]
 
   // Orange County cities for long-tail SEO - all 31 cities
@@ -118,6 +119,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/san-diego/el-cajon"
   ]
 
+  // San Bernardino cities for long-tail SEO
+  const sbCityPages = [
+    "/service-area/san-bernardino/san-bernardino-city",
+    "/service-area/san-bernardino/redlands",
+    "/service-area/san-bernardino/fontana",
+    "/service-area/san-bernardino/rialto",
+    "/service-area/san-bernardino/highland",
+    "/service-area/san-bernardino/loma-linda",
+    "/service-area/san-bernardino/colton",
+    "/service-area/san-bernardino/grand-terrace",
+    "/service-area/san-bernardino/upland",
+    "/service-area/san-bernardino/rancho-cucamonga",
+    "/service-area/san-bernardino/ontario",
+    "/service-area/san-bernardino/chino",
+    "/service-area/san-bernardino/chino-hills",
+    "/service-area/san-bernardino/montclair",
+    "/service-area/san-bernardino/claremont",
+    "/service-area/san-bernardino/pomona",
+    "/service-area/san-bernardino/la-verne",
+    "/service-area/san-bernardino/crestline",
+    "/service-area/san-bernardino/lake-arrowhead",
+    "/service-area/san-bernardino/big-bear-lake",
+    "/service-area/san-bernardino/running-springs",
+    "/service-area/san-bernardino/yucaipa",
+    "/service-area/san-bernardino/calimesa",
+    "/service-area/san-bernardino/victorville",
+    "/service-area/san-bernardino/hesperia",
+    "/service-area/san-bernardino/apple-valley"
+  ]
+
   const staticPages = [
     "", // Homepage
     "/locations/la-orange-county", // Los Angeles page - highest priority
@@ -131,6 +162,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...laCityPages, // Add all LA city pages
     ...ocCityPages, // Add all OC city pages
     ...sdCityPages, // Add all San Diego city pages
+    ...sbCityPages, // Add all San Bernardino city pages
     "/menu",
     "/book",
     "/faq",

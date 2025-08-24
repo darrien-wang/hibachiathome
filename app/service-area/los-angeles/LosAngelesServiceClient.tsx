@@ -21,7 +21,7 @@ export default function LosAngelesServiceClient() {
   const serviceFeatures = [
     {
       icon: Users,
-      title: "Professional Japanese Chefs",
+      title: "Professional Hibachi Chefs",
       description: "Experienced teppanyaki chefs providing authentic Japanese dining experience in Los Angeles area"
     },
     {
