@@ -157,11 +157,18 @@ export default function OrangeCountyServiceClient() {
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {ocCities.map((city, index) => (
-                <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-orange-50 transition-colors">
-                  {city}
-                </Badge>
-              ))}
+              {ocCities.map((city, index) => {
+                const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
+                const cityHref = `/service-area/orange-county/${citySlug}`
+                
+                return (
+                  <Link key={index} href={cityHref}>
+                    <Badge variant="outline" className="text-center py-2 text-sm hover:bg-orange-50 hover:border-orange-300 cursor-pointer transition-colors w-full">
+                      {city}
+                    </Badge>
+                  </Link>
+                )
+              })}
             </div>
             <div className="mt-8 text-center">
               <p className="text-gray-600 mb-4">Service covers the entire Orange County area, adding Japanese flavor to your special events.</p>
