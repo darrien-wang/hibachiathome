@@ -4,7 +4,7 @@ import ChinoServiceClient from "./ChinoServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Chino | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Chino. Professional Japanese teppanyaki chefs for home dining experiences. Agricultural heritage and family community service.",
-  keywords: "hibachi at home Chino, teppanyaki chef dairy farms, Japanese chef agricultural heritage, hibachi catering family communities, private chef Old Town Chino",
+  keywords: "hibachi at home Chino, teppanyaki chef dairy farms, Hibachi Chef agricultural heritage, hibachi catering family communities, private chef Old Town Chino",
   openGraph: {
     title: "Hibachi at Home Chino | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Chino. Professional Japanese teppanyaki chefs for agricultural heritage and family communities.",

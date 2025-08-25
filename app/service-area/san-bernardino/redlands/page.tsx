@@ -4,7 +4,7 @@ import RedlandsServiceClient from "./RedlandsServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Redlands | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Redlands. Professional Japanese teppanyaki chefs for home dining experiences. Historic Victorian and university community service.",
-  keywords: "hibachi at home Redlands, teppanyaki chef University of Redlands, Japanese chef Victorian homes, hibachi catering citrus heritage, private chef downtown Redlands",
+  keywords: "hibachi at home Redlands, teppanyaki chef University of Redlands, Hibachi Chef Victorian homes, hibachi catering citrus heritage, private chef downtown Redlands",
   openGraph: {
     title: "Hibachi at Home Redlands | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Redlands. Professional Japanese teppanyaki chefs for historic Victorian and university communities.",

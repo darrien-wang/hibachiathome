@@ -4,7 +4,7 @@ import GardenaServiceClient from "./GardenaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Gardena | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Multicultural hibachi experience in diverse Gardena, celebrating the area's Japanese heritage and modern diversity. Professional Japanese teppanyaki experience at your Gardena location.",
-  keywords: "hibachi at home Gardena, teppanyaki chef Gardena, Japanese chef Gardena, hibachi catering Gardena, private chef Gardena, hibachi party Gardena",
+  keywords: "hibachi at home Gardena, teppanyaki chef Gardena, Hibachi Chef Gardena, hibachi catering Gardena, private chef Gardena, hibachi party Gardena",
   openGraph: {
     title: "Hibachi at Home Gardena | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Gardena. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Gardena location.",

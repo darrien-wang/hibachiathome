@@ -4,7 +4,7 @@ import HawthorneServiceClient from "./HawthorneServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Hawthorne | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Neighborhood hibachi service in working-class Hawthorne, bringing affordable luxury to local families. Professional Japanese teppanyaki experience at your Hawthorne location.",
-  keywords: "hibachi at home Hawthorne, teppanyaki chef Hawthorne, Japanese chef Hawthorne, hibachi catering Hawthorne, private chef Hawthorne, hibachi party Hawthorne",
+  keywords: "hibachi at home Hawthorne, teppanyaki chef Hawthorne, Hibachi Chef Hawthorne, hibachi catering Hawthorne, private chef Hawthorne, hibachi party Hawthorne",
   openGraph: {
     title: "Hibachi at Home Hawthorne | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Hawthorne. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Hawthorne location.",

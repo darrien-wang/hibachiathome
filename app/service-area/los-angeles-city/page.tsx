@@ -4,7 +4,7 @@ import LosAngelesCityServiceClient from "./LosAngelesCityServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Los Angeles City | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Los Angeles City including Downtown, Hollywood, Koreatown, and surrounding neighborhoods. Professional Japanese teppanyaki experience at your location.",
-  keywords: "hibachi at home Los Angeles City, teppanyaki chef downtown LA, Japanese chef Hollywood, hibachi catering Koreatown, private chef Los Angeles, hibachi party LA city",
+  keywords: "hibachi at home Los Angeles City, teppanyaki chef downtown LA, Hibachi Chef Hollywood, hibachi catering Koreatown, private chef Los Angeles, hibachi party LA city",
   openGraph: {
     title: "Hibachi at Home Los Angeles City | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Los Angeles City. Professional Japanese teppanyaki chefs bringing the restaurant experience to downtown LA, Hollywood, and surrounding areas.",

@@ -4,7 +4,7 @@ import SanBernardinoServiceClient from "./SanBernardinoServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home San Bernardino | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in San Bernardino including Redlands, Fontana, Rialto, Highland, and mountain region communities. Professional Japanese teppanyaki experience.",
-  keywords: "hibachi at home San Bernardino, teppanyaki chef mountain region, Japanese chef Redlands, hibachi catering Fontana, private chef Rialto, hibachi party San Bernardino County",
+  keywords: "hibachi at home San Bernardino, teppanyaki chef mountain region, Hibachi Chef Redlands, hibachi catering Fontana, private chef Rialto, hibachi party San Bernardino County",
   openGraph: {
     title: "Hibachi at Home San Bernardino | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in San Bernardino and mountain region. Professional Japanese teppanyaki chefs for San Bernardino County communities.",

@@ -9,30 +9,16 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
 import { Menu, ChevronDown } from "lucide-react"
 
-// Service areas data for navigation menu
+// Service areas data for navigation menu - simplified to 4 main regions
 const serviceAreas = [
   {
     region: "Southern California",
     href: "/service-area",
     cities: [
-      { name: "Los Angeles Area", href: "/service-area/los-angeles", cities: [
-        "Los Angeles", "Beverly Hills", "West Hollywood", "Santa Monica", "Venice", "Culver City",
-        "Manhattan Beach", "Hermosa Beach", "Redondo Beach", "Torrance", "El Segundo", "Burbank", "San Pedro"
-      ]},
-      { name: "Orange County", href: "/service-area/orange-county", cities: [
-        "Irvine", "Newport Beach", "Huntington Beach", "Costa Mesa", "Anaheim", "Fullerton",
-        "Orange", "Santa Ana", "Tustin", "Mission Viejo", "Laguna Beach", "Dana Point", "Dove Canyon"
-      ]},
-      { name: "San Diego", href: "/service-area/san-diego", cities: [
-        "San Diego", "La Jolla", "Del Mar", "Encinitas", "Carlsbad", "Oceanside",
-        "Vista", "Escondido", "Poway", "Coronado"
-      ]},
-      { name: "San Bernardino", href: "/service-area/san-bernardino", cities: [
-        "San Bernardino", "Fontana", "Ontario", "Rancho Cucamonga", "Rialto", "Redlands",
-        "Highland", "Upland", "Chino", "Chino Hills"
-      ]},
-      { name: "Riverside", href: "/service-area/riverside" },
-      { name: "Palm Springs", href: "/service-area/palm-springs" }
+      { name: "Los Angeles Area", href: "/service-area/los-angeles" },
+      { name: "Orange County", href: "/service-area/orange-county" },
+      { name: "San Diego", href: "/service-area/san-diego" },
+      { name: "Inland Empire", href: "/service-area/san-bernardino", subtitle: "San Bernardino • Riverside • Palm Springs" }
     ]
   }
 ]
@@ -268,55 +254,16 @@ export function Header() {
                                 </Link>
                                 {item.dropdownItems?.map((area, index) => (
                                   <div key={index} className="mb-3">
-                                    <div className="flex items-center justify-between">
-                                      <Link
-                                        href={area.href}
-                                        onClick={handleLinkClick}
-                                        className="block py-1 font-medium text-gray-700 hover:text-[#F9A77C] flex-1"
-                                      >
-                                        {area.name}
-                                      </Link>
-                                      {area.cities && (
-                                        <button
-                                          onClick={() => toggleAreaExpansion(area.name)}
-                                          className="ml-2 p-1 text-gray-500 hover:text-[#F9A77C]"
-                                        >
-                                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
-                                            expandedAreas.includes(area.name) ? 'rotate-180' : ''
-                                          }`} />
-                                        </button>
+                                    <Link
+                                      href={area.href}
+                                      onClick={handleLinkClick}
+                                      className="block py-2 font-medium text-gray-700 hover:text-[#F9A77C]"
+                                    >
+                                      {area.name}
+                                      {area.subtitle && (
+                                        <div className="text-sm text-gray-500 mt-1">{area.subtitle}</div>
                                       )}
-                                    </div>
-                                    {area.cities && expandedAreas.includes(area.name) && (
-                                      <div className="pl-3 mt-1">
-                                        {area.cities.slice(0, 4).map((city, cityIndex) => {
-                                          const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
-                                          const cityHref = area.name === "Orange County" 
-                                            ? `/service-area/orange-county/${citySlug}`
-                                            : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
-                                          
-                                          return (
-                                            <Link
-                                              key={cityIndex}
-                                              href={cityHref}
-                                              onClick={handleLinkClick}
-                                              className="block py-1 text-sm text-gray-500 hover:text-[#F9A77C]"
-                                            >
-                                              {city}
-                                            </Link>
-                                          )
-                                        })}
-                                        {area.cities && area.cities.length > 4 && (
-                                          <Link
-                                            href={area.href}
-                                            onClick={handleLinkClick}
-                                            className="block py-1 text-xs text-[#F9A77C] hover:underline"
-                                          >
-                                            + {area.cities.length - 4} more cities...
-                                          </Link>
-                                        )}
-                                      </div>
-                                    )}
+                                    </Link>
                                   </div>
                                 ))}
                               </div>
@@ -376,7 +323,7 @@ export function Header() {
                   {/* Dropdown Menu */}
                   {item.hasDropdown && activeDropdown === item.name && (
                     <div 
-                      className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
                       onMouseEnter={handleDropdownEnterKeep}
                       onMouseLeave={handleDropdownLeave}
                     >
@@ -384,36 +331,13 @@ export function Header() {
                         <div key={index}>
                           <Link
                             href={area.href}
-                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] font-medium"
+                            className="block px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] transition-colors"
                           >
-                            {area.name}
+                            <div className="font-semibold text-base">{area.name}</div>
+                            {area.subtitle && (
+                              <div className="text-sm text-gray-500 mt-1">{area.subtitle}</div>
+                            )}
                           </Link>
-                          {area.cities && (
-                            <div className="px-4 pb-2">
-                              <div className="grid grid-cols-2 gap-1">
-                                {area.cities.map((city, cityIndex) => {
-                                  const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
-                                  const cityHref = area.name === "Orange County"
-                                    ? `/service-area/orange-county/${citySlug}`
-                                    : area.name === "San Diego"
-                                      ? `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
-                                      : area.name === "San Bernardino"
-                                        ? `/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`
-                                        : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
-                                  
-                                  return (
-                                    <Link
-                                      key={cityIndex}
-                                      href={cityHref}
-                                      className="text-xs text-gray-500 hover:text-[#F9A77C] py-1"
-                                    >
-                                      {city}
-                                    </Link>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -463,7 +387,7 @@ export function Header() {
                   {/* Dropdown Menu */}
                   {item.hasDropdown && activeDropdown === item.name && (
                     <div 
-                      className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                      className="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
                       onMouseEnter={handleDropdownEnterKeep}
                       onMouseLeave={handleDropdownLeave}
                     >
@@ -471,36 +395,13 @@ export function Header() {
                         <div key={index}>
                           <Link
                             href={area.href}
-                            className="flex items-center px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] font-medium"
+                            className="block px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] transition-colors"
                           >
-                            {area.name}
+                            <div className="font-semibold text-base">{area.name}</div>
+                            {area.subtitle && (
+                              <div className="text-sm text-gray-500 mt-1">{area.subtitle}</div>
+                            )}
                           </Link>
-                          {area.cities && (
-                            <div className="px-4 pb-2">
-                              <div className="grid grid-cols-2 gap-1">
-                                {area.cities.map((city, cityIndex) => {
-                                  const citySlug = city.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')
-                                  const cityHref = area.name === "Orange County"
-                                    ? `/service-area/orange-county/${citySlug}`
-                                    : area.name === "San Diego"
-                                      ? `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
-                                      : area.name === "San Bernardino"
-                                        ? `/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`
-                                        : `/service-area/${citySlug === 'los-angeles' ? 'los-angeles-city' : citySlug}`
-                                  
-                                  return (
-                                    <Link
-                                      key={cityIndex}
-                                      href={cityHref}
-                                      className="text-xs text-gray-500 hover:text-[#F9A77C] py-1"
-                                    >
-                                      {city}
-                                    </Link>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>

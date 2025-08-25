@@ -4,7 +4,7 @@ import RiversideServiceClient from "./RiversideServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Riverside | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Riverside including Corona, Temecula, Murrieta, Redlands, and Inland Empire communities. Professional Japanese teppanyaki experience.",
-  keywords: "hibachi at home Riverside, teppanyaki chef Inland Empire, Japanese chef Corona, hibachi catering Temecula, private chef Murrieta, hibachi party Riverside County",
+  keywords: "hibachi at home Riverside, teppanyaki chef Inland Empire, Hibachi Chef Corona, hibachi catering Temecula, private chef Murrieta, hibachi party Riverside County",
   openGraph: {
     title: "Hibachi at Home Riverside | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Riverside and Inland Empire. Professional Japanese teppanyaki chefs for Riverside County communities.",

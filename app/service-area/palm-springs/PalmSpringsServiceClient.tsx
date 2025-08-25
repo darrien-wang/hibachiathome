@@ -8,11 +8,14 @@ import { Phone, Mail, MapPin, Clock, CheckCircle, Star, Users, Heart, Utensils, 
 import Link from "next/link"
 
 export default function PalmSpringsServiceClient() {
+  // Only Tier 1 + Tier 2 cities with dedicated landing pages + Resort destinations
   const psCities = [
-    "Palm Springs", "Cathedral City", "Rancho Mirage", "Palm Desert", "Indian Wells",
-    "La Quinta", "Indio", "Coachella", "Desert Hot Springs", "Thousand Palms",
-    "Palm Canyon", "Sky Valley", "Cabazon", "Whitewater", "Snow Creek",
-    "Garnet", "Idyllwild", "Mountain Center"
+    // Tier 1: Premium desert resort destinations
+    "Palm Springs", "Palm Desert", "Rancho Mirage",
+    // Tier 2: Secondary markets with good potential
+    "Cathedral City", "Indian Wells", "La Quinta", "Indio", "Coachella",
+    // Resort/Spa destinations (always included)
+    "Desert Hot Springs"
   ]
 
   return (
@@ -89,16 +92,54 @@ export default function PalmSpringsServiceClient() {
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {psCities.map((city, index) => (
-                <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-yellow-50 transition-colors">
-                  {city}
-                </Badge>
-              ))}
+              {psCities.map((city, index) => {
+                // Create city mapping for links - Tier 1 + Tier 2 cities only
+                const cityLinkMap: { [key: string]: string } = {
+                  // Tier 1: Premium desert resort destinations  
+                  "Palm Springs": "/service-area/palm-springs/palm-springs-city",
+                  "Palm Desert": "/service-area/palm-springs/palm-desert",
+                  "Rancho Mirage": "/service-area/palm-springs/rancho-mirage",
+                  // Tier 2: Secondary markets with good potential
+                  "Cathedral City": "/service-area/palm-springs/cathedral-city",
+                  "Indian Wells": "/service-area/palm-springs/indian-wells",
+                  "La Quinta": "/service-area/palm-springs/la-quinta",
+                  "Indio": "/service-area/palm-springs/indio",
+                  "Coachella": "/service-area/palm-springs/coachella",
+                  // Resort/Spa destinations (always included)
+                  "Desert Hot Springs": "/service-area/palm-springs/desert-hot-springs"
+                }
+                
+                const cityLink = cityLinkMap[city]
+                
+                if (cityLink) {
+                  return (
+                    <Link key={index} href={cityLink}>
+                      <Badge 
+                        variant="outline" 
+                        className="text-center py-2 text-sm hover:bg-yellow-50 hover:border-yellow-300 cursor-pointer transition-colors w-full"
+                      >
+                        {city}
+                      </Badge>
+                    </Link>
+                  )
+                }
+                
+                return (
+                  <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-yellow-50 transition-colors">
+                    {city}
+                  </Badge>
+                )
+              })}
             </div>
             <div className="mt-8 text-center">
-              <p className="text-gray-600 mb-4">Bringing authentic Japanese hibachi experience to desert resort destinations.</p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-yellow-800 font-medium">
+                  🌵 Serving the Greater Coachella Valley
+                  <br />Including resort communities, spa destinations, and vacation rentals throughout the desert region
+                </p>
+              </div>
               <Button asChild>
-                <Link href="/book" className="bg-yellow-600 hover:bg-yellow-700">Book Now</Link>
+                <Link href="/book" className="bg-yellow-600 hover:bg-yellow-700">Book Desert Hibachi Experience</Link>
               </Button>
             </div>
           </CardContent>

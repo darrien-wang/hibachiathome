@@ -4,7 +4,7 @@ import DelMarServiceClient from "./DelMarServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Del Mar | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Del Mar including Del Mar Heights, Del Mar Village, Carmel Valley, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home Del Mar, teppanyaki chef Del Mar, Japanese chef Del Mar Village, hibachi catering Del Mar Heights, private chef Carmel Valley, hibachi party Del Mar",
+  keywords: "hibachi at home Del Mar, teppanyaki chef Del Mar, Hibachi Chef Del Mar Village, hibachi catering Del Mar Heights, private chef Carmel Valley, hibachi party Del Mar",
   openGraph: {
     title: "Hibachi at Home Del Mar | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Del Mar. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

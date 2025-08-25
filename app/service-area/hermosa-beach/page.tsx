@@ -4,7 +4,7 @@ import HermosaBeachServiceClient from "./HermosaBeachServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Hermosa Beach | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Fun and energetic hibachi service in party-loving Hermosa Beach, perfect for celebrations. Professional Japanese teppanyaki experience at your Hermosa Beach location.",
-  keywords: "hibachi at home Hermosa Beach, teppanyaki chef Hermosa Beach, Japanese chef Hermosa Beach, hibachi catering Hermosa Beach, private chef Hermosa Beach, hibachi party Hermosa Beach",
+  keywords: "hibachi at home Hermosa Beach, teppanyaki chef Hermosa Beach, Hibachi Chef Hermosa Beach, hibachi catering Hermosa Beach, private chef Hermosa Beach, hibachi party Hermosa Beach",
   openGraph: {
     title: "Hibachi at Home Hermosa Beach | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Hermosa Beach. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Hermosa Beach location.",

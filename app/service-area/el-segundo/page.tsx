@@ -4,7 +4,7 @@ import ElSegundoServiceClient from "./ElSegundoServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home El Segundo | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Professional hibachi catering in tech-savvy El Segundo, ideal for corporate and residential events. Professional Japanese teppanyaki experience at your El Segundo location.",
-  keywords: "hibachi at home El Segundo, teppanyaki chef El Segundo, Japanese chef El Segundo, hibachi catering El Segundo, private chef El Segundo, hibachi party El Segundo",
+  keywords: "hibachi at home El Segundo, teppanyaki chef El Segundo, Hibachi Chef El Segundo, hibachi catering El Segundo, private chef El Segundo, hibachi party El Segundo",
   openGraph: {
     title: "Hibachi at Home El Segundo | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in El Segundo. Professional Japanese teppanyaki chefs bringing the restaurant experience to your El Segundo location.",

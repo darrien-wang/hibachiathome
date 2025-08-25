@@ -4,7 +4,7 @@ import ChinoHillsServiceClient from "./ChinoHillsServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Chino Hills | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Chino Hills. Professional Japanese teppanyaki chefs for home dining experiences. Affluent communities and rolling hills service.",
-  keywords: "hibachi at home Chino Hills, teppanyaki chef Butterfield Ranch, Japanese chef rolling hills, hibachi catering golf communities, private chef master planned",
+  keywords: "hibachi at home Chino Hills, teppanyaki chef Butterfield Ranch, Hibachi Chef rolling hills, hibachi catering golf communities, private chef master planned",
   openGraph: {
     title: "Hibachi at Home Chino Hills | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Chino Hills. Professional Japanese teppanyaki chefs for affluent communities and rolling hills.",

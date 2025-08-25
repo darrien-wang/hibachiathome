@@ -4,7 +4,7 @@ import SanPedroServiceClient from "./SanPedroServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home San Pedro | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in San Pedro. Professional Japanese teppanyaki chefs for home dining experiences. Historic port community and maritime heritage service.",
-  keywords: "hibachi at home San Pedro, teppanyaki chef port community, Japanese chef harbor district, hibachi catering Cabrillo Beach, private chef maritime heritage",
+  keywords: "hibachi at home San Pedro, teppanyaki chef port community, Hibachi Chef harbor district, hibachi catering Cabrillo Beach, private chef maritime heritage",
   openGraph: {
     title: "Hibachi at Home San Pedro | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in San Pedro. Professional Japanese teppanyaki chefs for historic port community and maritime heritage.",
@@ -31,4 +31,10 @@ export const metadata: Metadata = {
 export default function SanPedroServicePage() {
   return <SanPedroServiceClient />
 }
+
+
+
+
+
+
 

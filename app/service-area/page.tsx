@@ -4,7 +4,7 @@ import ServiceAreaClient from "./ServiceAreaClient"
 export const metadata: Metadata = {
   title: "Service Area Southern California | Hibachi Chef at Home | Real Hibachi",
   description: "Professional hibachi at home service covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside areas. Premium Japanese teppanyaki experience throughout Southern California.",
-  keywords: "hibachi service area Southern California, teppanyaki at home Los Angeles Orange County San Diego San Bernardino, Japanese chef service areas CA, hibachi catering locations California, hibachi at home Palm Springs Riverside",
+  keywords: "hibachi service area Southern California, teppanyaki at home Los Angeles Orange County San Diego San Bernardino, Hibachi Chef service areas CA, hibachi catering locations California, hibachi at home Palm Springs Riverside",
   openGraph: {
     title: "Service Area Southern California | Hibachi Chef at Home | Real Hibachi",
     description: "Premium hibachi at home service covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside. Professional Japanese teppanyaki chefs serving Southern California.",

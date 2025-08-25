@@ -4,7 +4,7 @@ import OntarioServiceClient from "./OntarioServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Ontario | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Ontario. Professional Japanese teppanyaki chefs for home dining experiences. International Airport and business district service.",
-  keywords: "hibachi at home Ontario, teppanyaki chef Ontario, Japanese chef airport area, hibachi catering business district, private chef Model Colony",
+  keywords: "hibachi at home Ontario, teppanyaki chef Ontario, Hibachi Chef airport area, hibachi catering business district, private chef Model Colony",
   openGraph: {
     title: "Hibachi at Home Ontario | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Ontario. Professional Japanese teppanyaki chefs for airport area and business communities.",

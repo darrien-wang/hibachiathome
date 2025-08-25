@@ -4,7 +4,7 @@ import ShermanOaksServiceClient from "./ShermanOaksServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Sherman Oaks | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Sophisticated hibachi dining in upscale Sherman Oaks, bringing elegance to this prestigious Valley community. Professional Japanese teppanyaki experience at your Sherman Oaks location.",
-  keywords: "hibachi at home Sherman Oaks, teppanyaki chef Sherman Oaks, Japanese chef Sherman Oaks, hibachi catering Sherman Oaks, private chef Sherman Oaks, hibachi party Sherman Oaks",
+  keywords: "hibachi at home Sherman Oaks, teppanyaki chef Sherman Oaks, Hibachi Chef Sherman Oaks, hibachi catering Sherman Oaks, private chef Sherman Oaks, hibachi party Sherman Oaks",
   openGraph: {
     title: "Hibachi at Home Sherman Oaks | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Sherman Oaks. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Sherman Oaks location.",

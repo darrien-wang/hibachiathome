@@ -4,7 +4,7 @@ import FontanaServiceClient from "./FontanaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Fontana | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Fontana. Professional Japanese teppanyaki chefs for home dining experiences. Major logistics hub and family community service.",
-  keywords: "hibachi at home Fontana, teppanyaki chef Fontana, Japanese chef Route 66, hibachi catering family communities, private chef logistics district",
+  keywords: "hibachi at home Fontana, teppanyaki chef Fontana, Hibachi Chef Route 66, hibachi catering family communities, private chef logistics district",
   openGraph: {
     title: "Hibachi at Home Fontana | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Fontana. Professional Japanese teppanyaki chefs for family communities and logistics hub areas.",

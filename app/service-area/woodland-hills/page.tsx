@@ -4,7 +4,7 @@ import WoodlandHillsServiceClient from "./WoodlandHillsServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Woodland Hills | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Upscale hibachi catering in beautiful Woodland Hills, perfect for elegant gatherings in this scenic Valley locale. Professional Japanese teppanyaki experience at your Woodland Hills location.",
-  keywords: "hibachi at home Woodland Hills, teppanyaki chef Woodland Hills, Japanese chef Woodland Hills, hibachi catering Woodland Hills, private chef Woodland Hills, hibachi party Woodland Hills",
+  keywords: "hibachi at home Woodland Hills, teppanyaki chef Woodland Hills, Hibachi Chef Woodland Hills, hibachi catering Woodland Hills, private chef Woodland Hills, hibachi party Woodland Hills",
   openGraph: {
     title: "Hibachi at Home Woodland Hills | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Woodland Hills. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Woodland Hills location.",

@@ -88,65 +88,65 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/service-area/orange-county/villa-park"
   ]
 
-  // San Diego cities for long-tail SEO
+  // San Diego cities (Tier 1 + Tier 2 optimized)
   const sdCityPages = [
+    // Tier 1: Premium coastal cities
     "/service-area/san-diego/san-diego-city",
-    "/service-area/san-diego/la-jolla",
+    "/service-area/san-diego/la-jolla", 
     "/service-area/san-diego/del-mar",
-    "/service-area/san-diego/encinitas",
     "/service-area/san-diego/carlsbad",
+    // Tier 2: Strong secondary markets
+    "/service-area/san-diego/encinitas",
     "/service-area/san-diego/oceanside",
-    "/service-area/san-diego/vista",
-    "/service-area/san-diego/escondido",
-    "/service-area/san-diego/poway",
-    "/service-area/san-diego/coronado",
-    "/service-area/san-diego/imperial-beach",
     "/service-area/san-diego/chula-vista",
-    "/service-area/san-diego/national-city",
-    "/service-area/san-diego/bonita",
-    "/service-area/san-diego/rancho-bernardo",
-    "/service-area/san-diego/mira-mesa",
-    "/service-area/san-diego/scripps-ranch",
-    "/service-area/san-diego/mission-valley",
-    "/service-area/san-diego/hillcrest",
-    "/service-area/san-diego/point-loma",
+    "/service-area/san-diego/coronado",
     "/service-area/san-diego/mission-beach",
-    "/service-area/san-diego/pacific-beach",
-    "/service-area/san-diego/balboa-park",
-    "/service-area/san-diego/eastlake",
-    "/service-area/san-diego/otay-ranch",
-    "/service-area/san-diego/rancho-san-diego",
-    "/service-area/san-diego/el-cajon"
+    "/service-area/san-diego/pacific-beach"
   ]
 
-  // San Bernardino cities for long-tail SEO
+  // San Bernardino cities (Tier 1 + Tier 2 + Resort destinations)
   const sbCityPages = [
+    // Tier 1: Major inland empire cities
     "/service-area/san-bernardino/san-bernardino-city",
-    "/service-area/san-bernardino/redlands",
-    "/service-area/san-bernardino/fontana",
-    "/service-area/san-bernardino/rialto",
-    "/service-area/san-bernardino/highland",
-    "/service-area/san-bernardino/loma-linda",
-    "/service-area/san-bernardino/colton",
-    "/service-area/san-bernardino/grand-terrace",
-    "/service-area/san-bernardino/upland",
     "/service-area/san-bernardino/rancho-cucamonga",
     "/service-area/san-bernardino/ontario",
+    // Tier 2: Secondary markets with good potential
+    "/service-area/san-bernardino/redlands",
+    "/service-area/san-bernardino/fontana",
     "/service-area/san-bernardino/chino",
     "/service-area/san-bernardino/chino-hills",
-    "/service-area/san-bernardino/montclair",
-    "/service-area/san-bernardino/claremont",
-    "/service-area/san-bernardino/pomona",
-    "/service-area/san-bernardino/la-verne",
-    "/service-area/san-bernardino/crestline",
-    "/service-area/san-bernardino/lake-arrowhead",
+    // Resort destinations (always included)
     "/service-area/san-bernardino/big-bear-lake",
-    "/service-area/san-bernardino/running-springs",
-    "/service-area/san-bernardino/yucaipa",
-    "/service-area/san-bernardino/calimesa",
-    "/service-area/san-bernardino/victorville",
-    "/service-area/san-bernardino/hesperia",
-    "/service-area/san-bernardino/apple-valley"
+    "/service-area/san-bernardino/lake-arrowhead"
+  ]
+
+  // Riverside cities (Tier 1 + Tier 2 + Resort destinations)  
+  const riversideCityPages = [
+    // Tier 1: Major riverside county cities
+    "/service-area/riverside/riverside-city",
+    "/service-area/riverside/corona",
+    "/service-area/riverside/temecula",
+    // Tier 2: Secondary markets with good potential
+    "/service-area/riverside/moreno-valley",
+    "/service-area/riverside/murrieta",
+    // Resort/Arts destinations (always included)
+    "/service-area/riverside/idyllwild"
+  ]
+
+  // Palm Springs cities (Tier 1 + Tier 2 + Resort destinations)
+  const psCityPages = [
+    // Tier 1: Premium desert resort destinations
+    "/service-area/palm-springs/palm-springs-city",
+    "/service-area/palm-springs/palm-desert", 
+    "/service-area/palm-springs/rancho-mirage",
+    // Tier 2: Secondary markets with good potential
+    "/service-area/palm-springs/cathedral-city",
+    "/service-area/palm-springs/indian-wells",
+    "/service-area/palm-springs/la-quinta",
+    "/service-area/palm-springs/indio",
+    "/service-area/palm-springs/coachella",
+    // Resort/Spa destinations (always included)
+    "/service-area/palm-springs/desert-hot-springs"
   ]
 
   const staticPages = [
@@ -163,6 +163,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...ocCityPages, // Add all OC city pages
     ...sdCityPages, // Add all San Diego city pages
     ...sbCityPages, // Add all San Bernardino city pages
+    ...riversideCityPages, // Add all Riverside city pages
+    ...psCityPages, // Add all Palm Springs city pages
     "/menu",
     "/book",
     "/faq",

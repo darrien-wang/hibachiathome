@@ -4,7 +4,7 @@ import ChulaVistaServiceClient from "./ChulaVistaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Chula Vista | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Chula Vista including Eastlake, Otay Ranch, Rolling Hills Ranch, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home Chula Vista, teppanyaki chef Chula Vista, Japanese chef Eastlake, hibachi catering Otay Ranch, private chef Chula Vista, hibachi party Chula Vista",
+  keywords: "hibachi at home Chula Vista, teppanyaki chef Chula Vista, Hibachi Chef Eastlake, hibachi catering Otay Ranch, private chef Chula Vista, hibachi party Chula Vista",
   openGraph: {
     title: "Hibachi at Home Chula Vista | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Chula Vista. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

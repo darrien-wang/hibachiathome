@@ -4,7 +4,7 @@ import DowneyServiceClient from "./DowneyServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Downey | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Traditional community hibachi service in historic Downey, combining small-town charm with authentic cuisine. Professional Japanese teppanyaki experience at your Downey location.",
-  keywords: "hibachi at home Downey, teppanyaki chef Downey, Japanese chef Downey, hibachi catering Downey, private chef Downey, hibachi party Downey",
+  keywords: "hibachi at home Downey, teppanyaki chef Downey, Hibachi Chef Downey, hibachi catering Downey, private chef Downey, hibachi party Downey",
   openGraph: {
     title: "Hibachi at Home Downey | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Downey. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Downey location.",

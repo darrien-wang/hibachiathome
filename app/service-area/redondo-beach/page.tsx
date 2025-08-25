@@ -4,7 +4,7 @@ import RedondoBeachServiceClient from "./RedondoBeachServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Redondo Beach | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Relaxed hibachi dining experience in family-friendly Redondo Beach with coastal charm. Professional Japanese teppanyaki experience at your Redondo Beach location.",
-  keywords: "hibachi at home Redondo Beach, teppanyaki chef Redondo Beach, Japanese chef Redondo Beach, hibachi catering Redondo Beach, private chef Redondo Beach, hibachi party Redondo Beach",
+  keywords: "hibachi at home Redondo Beach, teppanyaki chef Redondo Beach, Hibachi Chef Redondo Beach, hibachi catering Redondo Beach, private chef Redondo Beach, hibachi party Redondo Beach",
   openGraph: {
     title: "Hibachi at Home Redondo Beach | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Redondo Beach. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Redondo Beach location.",

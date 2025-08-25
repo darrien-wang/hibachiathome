@@ -4,7 +4,7 @@ import CarsonServiceClient from "./CarsonServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Carson | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Family-oriented hibachi service in suburban Carson, perfect for community celebrations and family gatherings. Professional Japanese teppanyaki experience at your Carson location.",
-  keywords: "hibachi at home Carson, teppanyaki chef Carson, Japanese chef Carson, hibachi catering Carson, private chef Carson, hibachi party Carson",
+  keywords: "hibachi at home Carson, teppanyaki chef Carson, Hibachi Chef Carson, hibachi catering Carson, private chef Carson, hibachi party Carson",
   openGraph: {
     title: "Hibachi at Home Carson | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Carson. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Carson location.",

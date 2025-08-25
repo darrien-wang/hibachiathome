@@ -4,7 +4,7 @@ import WestHollywoodServiceClient from "./WestHollywoodServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home West Hollywood | Trendy Teppanyaki Chef Service | Real Hibachi",
   description: "Contemporary hibachi chef service in trendy West Hollywood including Sunset Strip and Design District. Perfect for stylish gatherings and modern events.",
-  keywords: "hibachi at home West Hollywood, teppanyaki chef Sunset Strip, Japanese chef WeHo, hibachi catering Design District, private chef West Hollywood, trendy hibachi party",
+  keywords: "hibachi at home West Hollywood, teppanyaki chef Sunset Strip, Hibachi Chef WeHo, hibachi catering Design District, private chef West Hollywood, trendy hibachi party",
   openGraph: {
     title: "Hibachi at Home West Hollywood | Trendy Teppanyaki Chef Service",
     description: "Experience contemporary hibachi at home in trendy West Hollywood. Professional Japanese teppanyaki chefs bringing stylish dining to your West Hollywood location.",

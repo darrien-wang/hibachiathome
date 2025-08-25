@@ -4,7 +4,7 @@ import RanchoCucamongaServiceClient from "./RanchoCucamongaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Rancho Cucamonga | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Rancho Cucamonga. Professional Japanese teppanyaki chefs for home dining experiences. Wine country and planned communities service.",
-  keywords: "hibachi at home Rancho Cucamonga, teppanyaki chef Alta Loma, Japanese chef wine country, hibachi catering Etiwanda, private chef Victoria Gardens",
+  keywords: "hibachi at home Rancho Cucamonga, teppanyaki chef Alta Loma, Hibachi Chef wine country, hibachi catering Etiwanda, private chef Victoria Gardens",
   openGraph: {
     title: "Hibachi at Home Rancho Cucamonga | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Rancho Cucamonga. Professional Japanese teppanyaki chefs for wine country and planned communities.",

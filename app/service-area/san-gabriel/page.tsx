@@ -4,7 +4,7 @@ import SanGabrielServiceClient from "./SanGabrielServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home San Gabriel | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Authentic Asian fusion hibachi in San Gabriel, honoring the area's rich Asian heritage and culture. Professional Japanese teppanyaki experience at your San Gabriel location.",
-  keywords: "hibachi at home San Gabriel, teppanyaki chef San Gabriel, Japanese chef San Gabriel, hibachi catering San Gabriel, private chef San Gabriel, hibachi party San Gabriel",
+  keywords: "hibachi at home San Gabriel, teppanyaki chef San Gabriel, Hibachi Chef San Gabriel, hibachi catering San Gabriel, private chef San Gabriel, hibachi party San Gabriel",
   openGraph: {
     title: "Hibachi at Home San Gabriel | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in San Gabriel. Professional Japanese teppanyaki chefs bringing the restaurant experience to your San Gabriel location.",

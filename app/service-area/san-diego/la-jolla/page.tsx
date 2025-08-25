@@ -4,7 +4,7 @@ import LaJollaServiceClient from "./LaJollaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home La Jolla | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in La Jolla including La Jolla Village, La Jolla Shores, La Jolla Cove, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home La Jolla, teppanyaki chef La Jolla, Japanese chef La Jolla Village, hibachi catering La Jolla Shores, private chef La Jolla Cove, hibachi party La Jolla",
+  keywords: "hibachi at home La Jolla, teppanyaki chef La Jolla, Hibachi Chef La Jolla Village, hibachi catering La Jolla Shores, private chef La Jolla Cove, hibachi party La Jolla",
   openGraph: {
     title: "Hibachi at Home La Jolla | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in La Jolla. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

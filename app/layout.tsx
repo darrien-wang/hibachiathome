@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   description:
     "Book a professional hibachi chef at your home in Los Angeles & Orange County. Flat-rate $59.9 per person, authentic Japanese teppanyaki experience. Reserve now!",
-  keywords: "Hibachi at home Los Angeles, private chef LA, hibachi catering Los Angeles, teppanyaki Orange County, Japanese chef Los Angeles, hibachi party catering LA, Real Hibachi",
+  keywords: "Hibachi at home Los Angeles, private chef LA, hibachi catering Los Angeles, teppanyaki Orange County, Hibachi Chef Los Angeles, hibachi party catering LA, Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],
   

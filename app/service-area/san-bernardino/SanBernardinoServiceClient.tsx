@@ -8,11 +8,14 @@ import { Phone, Mail, MapPin, Clock, CheckCircle, Star, Users, Heart, Utensils, 
 import Link from "next/link"
 
 export default function SanBernardinoServiceClient() {
+  // Only Tier 1 + Tier 2 cities with dedicated landing pages + Resort destinations
   const sanBernardinoCities = [
-    "San Bernardino", "Redlands", "Fontana", "Rialto", "Highland", "Loma Linda",
-    "Colton", "Grand Terrace", "Upland", "Rancho Cucamonga", "Ontario", "Chino",
-    "Chino Hills", "Montclair", "Claremont", "Pomona", "La Verne", "Crestline",
-    "Lake Arrowhead", "Big Bear Lake", "Running Springs", "Yucaipa", "Calimesa"
+    // Tier 1: Major inland empire cities
+    "San Bernardino", "Rancho Cucamonga", "Ontario",
+    // Tier 2: Secondary markets with good potential
+    "Redlands", "Fontana", "Chino", "Chino Hills",
+    // Resort destinations (always included)
+    "Big Bear Lake", "Lake Arrowhead"
   ]
 
   return (
@@ -133,9 +136,15 @@ export default function SanBernardinoServiceClient() {
           </div>
 
           <div className="text-center">
-            <p className="text-gray-600 mb-4">Don't see your city? We may still serve your area!</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-xl mx-auto mb-6">
+              <h3 className="text-lg font-semibold text-blue-800 mb-2">🏔️ Serving the Entire Inland Empire</h3>
+              <p className="text-blue-700">
+                These are our featured communities, but we serve throughout San Bernardino County! 
+                From mountain resort destinations to valley neighborhoods, we bring hibachi to your location.
+              </p>
+            </div>
             <Button asChild variant="outline" size="lg">
-              <Link href="/book">Check Availability</Link>
+              <Link href="/book">Check Availability in Your Area</Link>
             </Button>
           </div>
         </div>

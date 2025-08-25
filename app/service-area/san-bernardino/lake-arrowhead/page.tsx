@@ -2,12 +2,12 @@ import type { Metadata } from "next"
 import LakeArrowheadServiceClient from "./LakeArrowheadServiceClient"
 
 export const metadata: Metadata = {
-  title: "Hibachi at Home Lake Arrowhead | Professional Teppanyaki Chef Service | Real Hibachi",
-  description: "Premium hibachi chef service in Lake Arrowhead. Professional Japanese teppanyaki chefs for home dining experiences. Premier mountain resort and alpine lake service.",
-  keywords: "hibachi at home Lake Arrowhead, teppanyaki chef mountain resort, Japanese chef alpine lake, hibachi catering village shopping, private chef lakefront",
+  title: "Hibachi at Home Lake Arrowhead | Luxury Mountain Resort Teppanyaki Chef Service | Real Hibachi",
+  description: "Premium hibachi chef service in Lake Arrowhead. Professional Japanese teppanyaki chefs for luxury mountain homes, lakefront properties, and exclusive resort celebrations in this prestigious alpine community.",
+  keywords: "hibachi at home Lake Arrowhead, teppanyaki chef luxury mountain resort, Japanese chef lakefront property, hibachi catering exclusive community, private chef alpine retreat",
   openGraph: {
-    title: "Hibachi at Home Lake Arrowhead | Professional Teppanyaki Chef Service",
-    description: "Experience authentic hibachi at home in Lake Arrowhead. Professional Japanese teppanyaki chefs for premier mountain resort and alpine lake communities.",
+    title: "Hibachi at Home Lake Arrowhead | Luxury Mountain Resort Teppanyaki Chef Service",
+    description: "Experience authentic hibachi at home in Lake Arrowhead. Professional Japanese teppanyaki chefs for luxury mountain celebrations and lakefront gatherings.",
     url: "https://realhibachi.com/service-area/san-bernardino/lake-arrowhead",
     siteName: "Real Hibachi",
     type: "website",
@@ -16,14 +16,14 @@ export const metadata: Metadata = {
         url: 'https://realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
-        alt: 'Hibachi at Home Lake Arrowhead - Professional Teppanyaki Chef Service',
+        alt: 'Hibachi at Home Lake Arrowhead - Luxury Mountain Resort Teppanyaki Chef Service',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hibachi at Home Lake Arrowhead | Professional Teppanyaki Chef',
-    description: 'Premium hibachi chef service in Lake Arrowhead. Premier mountain resort and alpine lake service.',
+    title: 'Hibachi at Home Lake Arrowhead | Luxury Mountain Resort Teppanyaki Chef',
+    description: 'Premium hibachi chef service in Lake Arrowhead. Luxury mountain homes and lakefront celebrations.',
     images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
@@ -31,4 +31,8 @@ export const metadata: Metadata = {
 export default function LakeArrowheadServicePage() {
   return <LakeArrowheadServiceClient />
 }
+
+
+
+
 

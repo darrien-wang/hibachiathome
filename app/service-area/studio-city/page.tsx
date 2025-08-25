@@ -4,7 +4,7 @@ import StudioCityServiceClient from "./StudioCityServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Studio City | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Creative hibachi experiences in entertainment-focused Studio City, perfect for industry professionals. Professional Japanese teppanyaki experience at your Studio City location.",
-  keywords: "hibachi at home Studio City, teppanyaki chef Studio City, Japanese chef Studio City, hibachi catering Studio City, private chef Studio City, hibachi party Studio City",
+  keywords: "hibachi at home Studio City, teppanyaki chef Studio City, Hibachi Chef Studio City, hibachi catering Studio City, private chef Studio City, hibachi party Studio City",
   openGraph: {
     title: "Hibachi at Home Studio City | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Studio City. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Studio City location.",

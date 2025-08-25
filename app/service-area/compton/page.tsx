@@ -4,7 +4,7 @@ import ComptonServiceClient from "./ComptonServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Compton | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Community-focused hibachi service in historic Compton, bringing cultural appreciation through authentic dining experiences. Professional Japanese teppanyaki experience at your Compton location.",
-  keywords: "hibachi at home Compton, teppanyaki chef Compton, Japanese chef Compton, hibachi catering Compton, private chef Compton, hibachi party Compton",
+  keywords: "hibachi at home Compton, teppanyaki chef Compton, Hibachi Chef Compton, hibachi catering Compton, private chef Compton, hibachi party Compton",
   openGraph: {
     title: "Hibachi at Home Compton | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Compton. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Compton location.",

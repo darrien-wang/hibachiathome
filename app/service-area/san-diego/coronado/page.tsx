@@ -4,7 +4,7 @@ import CoronadoServiceClient from "./CoronadoServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Coronado | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Coronado including Coronado Village, Coronado Shores, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home Coronado, teppanyaki chef Coronado, Japanese chef Coronado Village, hibachi catering Coronado Shores, private chef Coronado, hibachi party Coronado",
+  keywords: "hibachi at home Coronado, teppanyaki chef Coronado, Hibachi Chef Coronado Village, hibachi catering Coronado Shores, private chef Coronado, hibachi party Coronado",
   openGraph: {
     title: "Hibachi at Home Coronado | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Coronado. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

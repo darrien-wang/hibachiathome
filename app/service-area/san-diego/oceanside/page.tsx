@@ -4,7 +4,7 @@ import OceansideServiceClient from "./OceansideServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Oceanside | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Oceanside including Downtown Oceanside, Fire Mountain, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home Oceanside, teppanyaki chef Oceanside, Japanese chef Oceanside, hibachi catering military family, private chef Oceanside, hibachi party Oceanside",
+  keywords: "hibachi at home Oceanside, teppanyaki chef Oceanside, Hibachi Chef Oceanside, hibachi catering military family, private chef Oceanside, hibachi party Oceanside",
   openGraph: {
     title: "Hibachi at Home Oceanside | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Oceanside. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

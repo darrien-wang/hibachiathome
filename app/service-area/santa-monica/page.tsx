@@ -4,7 +4,7 @@ import SantaMonicaServiceClient from "./SantaMonicaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Santa Monica | Beachside Teppanyaki Chef Service | Real Hibachi",
   description: "Beachside hibachi chef service in Santa Monica including Third Street Promenade and Santa Monica Pier areas. Ocean vibes with authentic Japanese teppanyaki cuisine.",
-  keywords: "hibachi at home Santa Monica, beachside teppanyaki chef, Japanese chef Santa Monica Pier, hibachi catering Third Street Promenade, private chef Santa Monica Beach, oceanside hibachi party",
+  keywords: "hibachi at home Santa Monica, beachside teppanyaki chef, Hibachi Chef Santa Monica Pier, hibachi catering Third Street Promenade, private chef Santa Monica Beach, oceanside hibachi party",
   openGraph: {
     title: "Hibachi at Home Santa Monica | Beachside Teppanyaki Chef Service",
     description: "Experience beachside hibachi at home in Santa Monica. Professional Japanese teppanyaki chefs combining ocean vibes with authentic cuisine at your Santa Monica location.",

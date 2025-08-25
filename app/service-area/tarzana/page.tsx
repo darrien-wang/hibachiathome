@@ -4,7 +4,7 @@ import TarzanaServiceClient from "./TarzanaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Tarzana | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Exclusive hibachi at home service in upscale Tarzana, bringing five-star dining to this prestigious Valley community. Professional Japanese teppanyaki experience at your Tarzana location.",
-  keywords: "hibachi at home Tarzana, teppanyaki chef Tarzana, Japanese chef Tarzana, hibachi catering Tarzana, private chef Tarzana, hibachi party Tarzana",
+  keywords: "hibachi at home Tarzana, teppanyaki chef Tarzana, Hibachi Chef Tarzana, hibachi catering Tarzana, private chef Tarzana, hibachi party Tarzana",
   openGraph: {
     title: "Hibachi at Home Tarzana | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Tarzana. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Tarzana location.",

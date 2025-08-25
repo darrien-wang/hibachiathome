@@ -4,7 +4,7 @@ import SanDiegoCityServiceClient from "./SanDiegoCityServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home San Diego City | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in San Diego including Downtown, Gaslamp Quarter, Little Italy, Hillcrest, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home San Diego, teppanyaki chef San Diego, Japanese chef downtown San Diego, hibachi catering Gaslamp Quarter, private chef Little Italy, hibachi party San Diego city",
+  keywords: "hibachi at home San Diego, teppanyaki chef San Diego, Hibachi Chef downtown San Diego, hibachi catering Gaslamp Quarter, private chef Little Italy, hibachi party San Diego city",
   openGraph: {
     title: "Hibachi at Home San Diego City | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in San Diego. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

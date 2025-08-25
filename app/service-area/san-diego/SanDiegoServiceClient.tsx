@@ -9,43 +9,23 @@ import Link from "next/link"
 import { sanDiegoCities } from "@/config/san-diego-cities"
 
 export default function SanDiegoServiceClient() {
-  // Create city mapping for links - includes cities with dedicated pages
+  // Create city mapping for links - Tier 1 + Tier 2 cities only
   const cityLinkMap: { [key: string]: string } = {
     "San Diego": "/service-area/san-diego/san-diego-city",
     "La Jolla": "/service-area/san-diego/la-jolla", 
     "Del Mar": "/service-area/san-diego/del-mar",
-    "Encinitas": "/service-area/san-diego/encinitas",
     "Carlsbad": "/service-area/san-diego/carlsbad",
+    "Encinitas": "/service-area/san-diego/encinitas",
     "Oceanside": "/service-area/san-diego/oceanside",
-    "Vista": "/service-area/san-diego/vista",
-    "Escondido": "/service-area/san-diego/escondido",
-    "Poway": "/service-area/san-diego/poway",
-    "Coronado": "/service-area/san-diego/coronado",
-    "Imperial Beach": "/service-area/san-diego/imperial-beach",
     "Chula Vista": "/service-area/san-diego/chula-vista",
-    "National City": "/service-area/san-diego/national-city",
-    "Bonita": "/service-area/san-diego/bonita",
-    "Rancho Bernardo": "/service-area/san-diego/rancho-bernardo",
-    "Mira Mesa": "/service-area/san-diego/mira-mesa",
-    "Scripps Ranch": "/service-area/san-diego/scripps-ranch",
-    "Mission Valley": "/service-area/san-diego/mission-valley",
-    "Hillcrest": "/service-area/san-diego/hillcrest",
-    "Point Loma": "/service-area/san-diego/point-loma",
+    "Coronado": "/service-area/san-diego/coronado",
     "Mission Beach": "/service-area/san-diego/mission-beach",
-    "Pacific Beach": "/service-area/san-diego/pacific-beach",
-    "Balboa Park": "/service-area/san-diego/balboa-park",
-    "Eastlake": "/service-area/san-diego/eastlake",
-    "Otay Ranch": "/service-area/san-diego/otay-ranch",
-    "Rancho San Diego": "/service-area/san-diego/rancho-san-diego",
-    "El Cajon": "/service-area/san-diego/el-cajon"
+    "Pacific Beach": "/service-area/san-diego/pacific-beach"
   }
   
   const sdCities = [
-    "San Diego", "La Jolla", "Del Mar", "Encinitas", "Carlsbad", "Oceanside",
-    "Vista", "Escondido", "Poway", "Rancho Bernardo", "Mira Mesa", "Scripps Ranch",
-    "Mission Valley", "Hillcrest", "Balboa Park", "Point Loma", "Mission Beach",
-    "Pacific Beach", "Coronado", "Chula Vista", "National City", "Imperial Beach",
-    "Bonita", "Eastlake", "Otay Ranch", "Rancho San Diego"
+    "San Diego", "La Jolla", "Del Mar", "Carlsbad", "Encinitas", "Oceanside",
+    "Chula Vista", "Coronado", "Mission Beach", "Pacific Beach"
   ]
 
   return (
@@ -115,12 +95,19 @@ export default function SanDiegoServiceClient() {
         {/* Cities Covered */}
         <Card className="mb-16 shadow-xl border-0">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-t-lg">
-            <CardTitle className="text-2xl text-center">San Diego County Service Cities</CardTitle>
+            <CardTitle className="text-2xl text-center">Featured San Diego County Cities</CardTitle>
             <CardDescription className="text-center text-blue-100 text-lg">
-              We provide professional at-home hibachi service to the following San Diego County cities
+              Our top-rated service areas throughout San Diego County
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
+            {/* Disclaimer */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-blue-800 font-medium text-center">
+                🏖️ Serving All of San Diego County
+                <br />From coastal communities to inland neighborhoods, we bring hibachi to your location throughout America's Finest City
+              </p>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {sdCities.map((city, index) => {
                 const cityLink = cityLinkMap[city]

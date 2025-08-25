@@ -4,7 +4,7 @@ import BellflowerServiceClient from "./BellflowerServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Bellflower | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Neighborhood hibachi service in close-knit Bellflower, bringing people together through authentic Japanese cuisine. Professional Japanese teppanyaki experience at your Bellflower location.",
-  keywords: "hibachi at home Bellflower, teppanyaki chef Bellflower, Japanese chef Bellflower, hibachi catering Bellflower, private chef Bellflower, hibachi party Bellflower",
+  keywords: "hibachi at home Bellflower, teppanyaki chef Bellflower, Hibachi Chef Bellflower, hibachi catering Bellflower, private chef Bellflower, hibachi party Bellflower",
   openGraph: {
     title: "Hibachi at Home Bellflower | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Bellflower. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Bellflower location.",

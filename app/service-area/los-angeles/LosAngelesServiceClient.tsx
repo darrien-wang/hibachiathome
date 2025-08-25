@@ -94,7 +94,7 @@ export default function LosAngelesServiceClient() {
                   </li>
                   <li className="flex items-center gap-3">
                     <CheckCircle className="h-6 w-6 text-green-300" />
-                    <span>Professional Japanese chef team</span>
+                    <span>Professional Hibachi Chef team</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <CheckCircle className="h-6 w-6 text-green-300" />

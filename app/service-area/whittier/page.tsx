@@ -4,7 +4,7 @@ import WhittierServiceClient from "./WhittierServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Whittier | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Community-centered hibachi service in friendly Whittier, perfect for celebrating life's special moments together. Professional Japanese teppanyaki experience at your Whittier location.",
-  keywords: "hibachi at home Whittier, teppanyaki chef Whittier, Japanese chef Whittier, hibachi catering Whittier, private chef Whittier, hibachi party Whittier",
+  keywords: "hibachi at home Whittier, teppanyaki chef Whittier, Hibachi Chef Whittier, hibachi catering Whittier, private chef Whittier, hibachi party Whittier",
   openGraph: {
     title: "Hibachi at Home Whittier | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Whittier. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Whittier location.",

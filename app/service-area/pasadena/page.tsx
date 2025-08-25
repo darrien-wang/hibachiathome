@@ -4,7 +4,7 @@ import PasadenaServiceClient from "./PasadenaServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Pasadena | Historic Charm Teppanyaki Chef Service | Real Hibachi",
   description: "Historic charm hibachi chef service in beautiful Pasadena including Old Pasadena and Rose Bowl area. Elegant gatherings in the City of Roses.",
-  keywords: "hibachi at home Pasadena, teppanyaki chef Old Pasadena, Japanese chef Rose Bowl, hibachi catering City of Roses, private chef Pasadena CA, historic venue hibachi",
+  keywords: "hibachi at home Pasadena, teppanyaki chef Old Pasadena, Hibachi Chef Rose Bowl, hibachi catering City of Roses, private chef Pasadena CA, historic venue hibachi",
   openGraph: {
     title: "Hibachi at Home Pasadena | Historic Charm Teppanyaki Chef Service",
     description: "Experience hibachi at home in historic Pasadena. Professional Japanese teppanyaki chefs bringing elegant dining to the City of Roses.",

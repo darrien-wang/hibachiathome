@@ -52,34 +52,41 @@ export default function ServiceAreaClient() {
     {
       region: "San Bernardino",
       cities: [
-        "San Bernardino", "Redlands", "Fontana", "Rialto", "Highland", "Loma Linda",
-        "Colton", "Grand Terrace", "Upland", "Rancho Cucamonga", "Ontario", "Chino",
-        "Chino Hills", "Montclair", "Claremont", "Pomona", "La Verne", "Crestline",
-        "Lake Arrowhead", "Big Bear Lake", "Running Springs", "Yucaipa", "Calimesa"
+        // Tier 1: Major inland empire cities
+        "San Bernardino", "Rancho Cucamonga", "Ontario",
+        // Tier 2: Secondary markets with good potential
+        "Redlands", "Fontana", "Chino", "Chino Hills",
+        // Resort destinations (always included)
+        "Big Bear Lake", "Lake Arrowhead"
       ],
       color: "from-purple-500 to-blue-500",
       featured: true
     },
     {
-      region: "Palm Springs",
-      cities: [
-        "Palm Springs", "Cathedral City", "Rancho Mirage", "Palm Desert", "Indian Wells",
-        "La Quinta", "Indio", "Coachella", "Desert Hot Springs", "Thousand Palms",
-        "Palm Canyon", "Sky Valley", "Cabazon", "Whitewater", "Snow Creek",
-        "Garnet", "Idyllwild", "Mountain Center"
-      ],
-      color: "from-yellow-500 to-orange-500",
-      featured: false
-    },
-    {
       region: "Riverside",
       cities: [
-        "Riverside", "Moreno Valley", "Corona", "Murrieta", "Temecula", "Hemet",
-        "San Jacinto", "Perris", "Lake Elsinore", "Wildomar", "Menifee", "Beaumont",
-        "Banning", "Desert Center", "Cabazon", "Cherry Valley", "Anza", "Idyllwild"
+        // Tier 1: Major riverside county cities
+        "Riverside", "Corona", "Temecula",
+        // Tier 2: Secondary markets with good potential
+        "Moreno Valley", "Murrieta",
+        // Resort/Arts destinations (always included)
+        "Idyllwild"
       ],
       color: "from-green-500 to-blue-500",
-      featured: false
+      featured: true
+    },
+    {
+      region: "Palm Springs",
+      cities: [
+        // Tier 1: Premium desert resort destinations
+        "Palm Springs", "Palm Desert", "Rancho Mirage",
+        // Tier 2: Secondary markets with good potential
+        "Cathedral City", "Indian Wells", "La Quinta", "Indio", "Coachella",
+        // Resort/Spa destinations (always included)
+        "Desert Hot Springs"
+      ],
+      color: "from-yellow-500 to-orange-500",
+      featured: true
     }
   ]
 
@@ -156,11 +163,17 @@ export default function ServiceAreaClient() {
         {/* Service Areas */}
         <div className="mb-16">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800">Areas We Serve</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800">Primary Service Areas</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
               We provide premium hibachi at home service throughout Southern California, 
               covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside areas.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
+              <p className="text-blue-700 font-medium">
+                📍 Don't see your city? We serve many additional communities! 
+                <br />Contact us to check availability in your specific area.
+              </p>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
@@ -186,6 +199,9 @@ export default function ServiceAreaClient() {
                       const isLosAngeles = area.region === "Los Angeles"
                       const isOrangeCounty = area.region === "Orange County"
                       const isSanDiego = area.region === "San Diego"
+                      const isSanBernardino = area.region === "San Bernardino"
+                      const isRiverside = area.region === "Riverside"
+                      const isPalmSprings = area.region === "Palm Springs"
                       
                       if (isLosAngeles) {
                         return (
@@ -220,6 +236,45 @@ export default function ServiceAreaClient() {
                             href={`/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`}
                           >
                             <Badge variant="outline" className="text-sm justify-center hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-colors w-full">
+                              {city}
+                            </Badge>
+                          </Link>
+                        )
+                      }
+                      
+                      if (isSanBernardino) {
+                        return (
+                          <Link 
+                            key={cityIndex} 
+                            href={`/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`}
+                          >
+                            <Badge variant="outline" className="text-sm justify-center hover:bg-purple-50 hover:border-purple-300 cursor-pointer transition-colors w-full">
+                              {city}
+                            </Badge>
+                          </Link>
+                        )
+                      }
+                      
+                      if (isRiverside) {
+                        return (
+                          <Link 
+                            key={cityIndex} 
+                            href={`/service-area/riverside/${citySlug === 'riverside' ? 'riverside-city' : citySlug}`}
+                          >
+                            <Badge variant="outline" className="text-sm justify-center hover:bg-green-50 hover:border-green-300 cursor-pointer transition-colors w-full">
+                              {city}
+                            </Badge>
+                          </Link>
+                        )
+                      }
+                      
+                      if (isPalmSprings) {
+                        return (
+                          <Link 
+                            key={cityIndex} 
+                            href={`/service-area/palm-springs/${citySlug === 'palm-springs' ? 'palm-springs-city' : citySlug}`}
+                          >
+                            <Badge variant="outline" className="text-sm justify-center hover:bg-yellow-50 hover:border-yellow-300 cursor-pointer transition-colors w-full">
                               {city}
                             </Badge>
                           </Link>

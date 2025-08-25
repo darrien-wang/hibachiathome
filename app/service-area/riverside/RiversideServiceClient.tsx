@@ -8,11 +8,14 @@ import { Phone, Mail, MapPin, Clock, CheckCircle, Star, Users, Heart, Utensils, 
 import Link from "next/link"
 
 export default function RiversideServiceClient() {
+  // Only Tier 1 + Tier 2 cities with dedicated landing pages + Resort destinations
   const riversideCities = [
-    "Riverside", "Moreno Valley", "Corona", "Murrieta", "Temecula", "Hemet",
-    "San Jacinto", "Perris", "Lake Elsinore", "Wildomar", "Menifee", "Beaumont",
-    "Banning", "Cabazon", "Cherry Valley", "Calimesa", "Yucaipa", "Redlands",
-    "Highland", "Fontana", "Rialto", "Colton", "Loma Linda", "Grand Terrace"
+    // Tier 1: Major riverside county cities
+    "Riverside", "Corona", "Temecula", 
+    // Tier 2: Secondary markets with good potential
+    "Moreno Valley", "Murrieta",
+    // Resort/Arts destinations (always included)
+    "Idyllwild"
   ]
 
   return (
@@ -89,16 +92,52 @@ export default function RiversideServiceClient() {
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {riversideCities.map((city, index) => (
-                <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-green-50 transition-colors">
-                  {city}
-                </Badge>
-              ))}
+              {riversideCities.map((city, index) => {
+                // Create city mapping for links - includes cities with dedicated pages
+                  // Only map Tier 1 + Tier 2 cities with dedicated landing pages
+  const cityLinkMap: { [key: string]: string } = {
+    // Tier 1: Major riverside county cities
+    "Riverside": "/service-area/riverside/riverside-city",
+    "Corona": "/service-area/riverside/corona",
+    "Temecula": "/service-area/riverside/temecula",
+    // Tier 2: Secondary markets with good potential
+    "Moreno Valley": "/service-area/riverside/moreno-valley",
+    "Murrieta": "/service-area/riverside/murrieta",
+    // Resort/Arts destinations (always included)
+    "Idyllwild": "/service-area/riverside/idyllwild"
+  }
+                
+                const cityLink = cityLinkMap[city]
+                
+                if (cityLink) {
+                  return (
+                    <Link key={index} href={cityLink}>
+                      <Badge 
+                        variant="outline" 
+                        className="text-center py-2 text-sm hover:bg-green-50 hover:border-green-300 cursor-pointer transition-colors w-full"
+                      >
+                        {city}
+                      </Badge>
+                    </Link>
+                  )
+                }
+                
+                return (
+                  <Badge key={index} variant="outline" className="text-center py-2 text-sm hover:bg-green-50 transition-colors">
+                    {city}
+                  </Badge>
+                )
+              })}
             </div>
             <div className="mt-8 text-center">
-              <p className="text-gray-600 mb-4">Bringing authentic Japanese hibachi experience to Inland Empire families and communities.</p>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p className="text-green-800 font-medium">
+                  🌿 Covering All of Riverside County
+                  <br />From wine country to mountain retreats, we serve communities throughout the region
+                </p>
+              </div>
               <Button asChild>
-                <Link href="/book" className="bg-green-600 hover:bg-green-700">Book Now</Link>
+                <Link href="/book" className="bg-green-600 hover:bg-green-700">Book Riverside Area Experience</Link>
               </Button>
             </div>
           </CardContent>

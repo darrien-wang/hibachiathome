@@ -4,7 +4,7 @@ import PacificBeachServiceClient from "./PacificBeachServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Pacific Beach | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Pacific Beach including Pacific Beach Proper, North Pacific Beach, Crown Point, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home Pacific Beach, teppanyaki chef Pacific Beach, Japanese chef Pacific Beach Proper, hibachi catering Crown Point, private chef Pacific Beach, hibachi party Pacific Beach",
+  keywords: "hibachi at home Pacific Beach, teppanyaki chef Pacific Beach, Hibachi Chef Pacific Beach Proper, hibachi catering Crown Point, private chef Pacific Beach, hibachi party Pacific Beach",
   openGraph: {
     title: "Hibachi at Home Pacific Beach | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Pacific Beach. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

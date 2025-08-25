@@ -4,7 +4,7 @@ import MontereyParkServiceClient from "./MontereyParkServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Monterey Park | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Authentic Asian community hibachi service in Monterey Park, blending Japanese and Chinese culinary traditions. Professional Japanese teppanyaki experience at your Monterey Park location.",
-  keywords: "hibachi at home Monterey Park, teppanyaki chef Monterey Park, Japanese chef Monterey Park, hibachi catering Monterey Park, private chef Monterey Park, hibachi party Monterey Park",
+  keywords: "hibachi at home Monterey Park, teppanyaki chef Monterey Park, Hibachi Chef Monterey Park, hibachi catering Monterey Park, private chef Monterey Park, hibachi party Monterey Park",
   openGraph: {
     title: "Hibachi at Home Monterey Park | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Monterey Park. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Monterey Park location.",

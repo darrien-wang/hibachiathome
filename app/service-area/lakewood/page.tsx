@@ -4,7 +4,7 @@ import LakewoodServiceClient from "./LakewoodServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Lakewood | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Suburban hibachi service in family-friendly Lakewood, bringing restaurant-quality dining to your neighborhood home. Professional Japanese teppanyaki experience at your Lakewood location.",
-  keywords: "hibachi at home Lakewood, teppanyaki chef Lakewood, Japanese chef Lakewood, hibachi catering Lakewood, private chef Lakewood, hibachi party Lakewood",
+  keywords: "hibachi at home Lakewood, teppanyaki chef Lakewood, Hibachi Chef Lakewood, hibachi catering Lakewood, private chef Lakewood, hibachi party Lakewood",
   openGraph: {
     title: "Hibachi at Home Lakewood | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Lakewood. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Lakewood location.",

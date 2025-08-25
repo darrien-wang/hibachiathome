@@ -4,7 +4,7 @@ import EncinitasServiceClient from "./EncinitasServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Encinitas | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Premium hibachi chef service in Encinitas including Downtown Encinitas, Leucadia, Cardiff, and surrounding areas. Professional Japanese teppanyaki experience at your home.",
-  keywords: "hibachi at home Encinitas, teppanyaki chef Encinitas, Japanese chef Leucadia, hibachi catering Cardiff, private chef Encinitas, hibachi party Encinitas",
+  keywords: "hibachi at home Encinitas, teppanyaki chef Encinitas, Hibachi Chef Leucadia, hibachi catering Cardiff, private chef Encinitas, hibachi party Encinitas",
   openGraph: {
     title: "Hibachi at Home Encinitas | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Encinitas. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",

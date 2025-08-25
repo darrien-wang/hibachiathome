@@ -102,7 +102,7 @@ export default function CityServiceTemplate({
                   </li>
                   <li className="flex items-center gap-3">
                     <CheckCircle className="h-6 w-6 text-green-300" />
-                    <span>Professional Japanese chef team</span>
+                    <span>Professional Hibachi Chef team</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <CheckCircle className="h-6 w-6 text-green-300" />
@@ -337,9 +337,14 @@ export default function CityServiceTemplate({
               <CardTitle className="text-2xl text-green-800 text-center">
                 We Also Serve Nearby Cities
               </CardTitle>
-              <CardDescription className="text-center text-green-600">
+              <CardDescription className="text-center text-green-600 mb-4">
                 Bringing hibachi at home experience to the greater {cityName} area
               </CardDescription>
+              <div className="bg-green-100 border border-green-300 rounded-lg p-3 max-w-lg mx-auto">
+                <p className="text-green-800 text-sm text-center">
+                  <span className="font-medium">💡 Don't see your city?</span> We serve additional communities throughout the region. Contact us to confirm availability!
+                </p>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -359,22 +364,40 @@ export default function CityServiceTemplate({
                     'buena-park', 'la-palma', 'stanton', 'la-habra', 'villa-park'
                   ]
                   
-                  // San Diego cities that exist under /service-area/san-diego/
+                  // San Diego cities (Tier 1 + Tier 2 optimized)
                   const sdCities = [
-                    'san-diego-city', 'la-jolla', 'del-mar', 'encinitas', 'carlsbad', 'oceanside',
-                    'vista', 'escondido', 'poway', 'coronado', 'imperial-beach', 'chula-vista',
-                    'national-city', 'bonita', 'rancho-bernardo', 'mira-mesa', 'scripps-ranch',
-                    'mission-valley', 'hillcrest', 'point-loma', 'mission-beach', 'pacific-beach',
-                    'balboa-park', 'eastlake', 'otay-ranch', 'rancho-san-diego', 'el-cajon'
+                    'san-diego-city', 'la-jolla', 'del-mar', 'carlsbad', 'encinitas', 'oceanside',
+                    'chula-vista', 'coronado', 'mission-beach', 'pacific-beach'
                   ]
 
-                  // San Bernardino cities that exist under /service-area/san-bernardino/
+                  // San Bernardino cities (Tier 1 + Tier 2 + Resort destinations)
                   const sbCities = [
-                    'san-bernardino-city', 'redlands', 'fontana', 'rialto', 'highland', 'loma-linda',
-                    'colton', 'grand-terrace', 'upland', 'rancho-cucamonga', 'ontario', 'chino',
-                    'chino-hills', 'montclair', 'claremont', 'pomona', 'la-verne', 'crestline',
-                    'lake-arrowhead', 'big-bear-lake', 'running-springs', 'yucaipa', 'calimesa',
-                    'victorville', 'hesperia', 'apple-valley'
+                    // Tier 1: Major inland empire cities
+                    'san-bernardino-city', 'rancho-cucamonga', 'ontario',
+                    // Tier 2: Secondary markets with good potential
+                    'redlands', 'fontana', 'chino', 'chino-hills',
+                    // Resort destinations (always included)
+                    'big-bear-lake', 'lake-arrowhead'
+                  ]
+
+                  // Riverside cities (Tier 1 + Tier 2 + Resort destinations)
+                  const rsCities = [
+                    // Tier 1: Major riverside county cities
+                    'riverside-city', 'corona', 'temecula',
+                    // Tier 2: Secondary markets with good potential
+                    'moreno-valley', 'murrieta',
+                    // Resort/Arts destinations (always included)
+                    'idyllwild'
+                  ]
+
+                  // Palm Springs cities (Tier 1 + Tier 2 + Resort destinations)
+                  const psCities = [
+                    // Tier 1: Premium desert resort destinations
+                    'palm-springs-city', 'palm-desert', 'rancho-mirage',
+                    // Tier 2: Secondary markets with good potential  
+                    'cathedral-city', 'indian-wells', 'la-quinta', 'indio', 'coachella',
+                    // Resort/Spa destinations (always included)
+                    'desert-hot-springs'
                   ]
                   
                   if (ocCities.includes(citySlug)) {
@@ -383,6 +406,10 @@ export default function CityServiceTemplate({
                     cityHref = `/service-area/san-diego/${citySlug === 'san-diego' ? 'san-diego-city' : citySlug}`
                   } else if (sbCities.includes(citySlug) || (citySlug === 'san-bernardino' && sbCities.includes('san-bernardino-city'))) {
                     cityHref = `/service-area/san-bernardino/${citySlug === 'san-bernardino' ? 'san-bernardino-city' : citySlug}`
+                  } else if (rsCities.includes(citySlug) || (citySlug === 'riverside' && rsCities.includes('riverside-city'))) {
+                    cityHref = `/service-area/riverside/${citySlug === 'riverside' ? 'riverside-city' : citySlug}`
+                  } else if (psCities.includes(citySlug) || (citySlug === 'palm-springs' && psCities.includes('palm-springs-city'))) {
+                    cityHref = `/service-area/palm-springs/${citySlug === 'palm-springs' ? 'palm-springs-city' : citySlug}`
                   }
                   
                   return (

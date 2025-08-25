@@ -4,7 +4,7 @@ import CerritosServiceClient from "./CerritosServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Cerritos | Professional Teppanyaki Chef Service | Real Hibachi",
   description: "Upscale suburban hibachi service in beautiful Cerritos, bringing premium dining to this well-planned community. Professional Japanese teppanyaki experience at your Cerritos location.",
-  keywords: "hibachi at home Cerritos, teppanyaki chef Cerritos, Japanese chef Cerritos, hibachi catering Cerritos, private chef Cerritos, hibachi party Cerritos",
+  keywords: "hibachi at home Cerritos, teppanyaki chef Cerritos, Hibachi Chef Cerritos, hibachi catering Cerritos, private chef Cerritos, hibachi party Cerritos",
   openGraph: {
     title: "Hibachi at Home Cerritos | Professional Teppanyaki Chef Service",
     description: "Experience authentic hibachi at home in Cerritos. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Cerritos location.",

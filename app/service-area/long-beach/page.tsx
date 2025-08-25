@@ -4,7 +4,7 @@ import LongBeachServiceClient from "./LongBeachServiceClient"
 export const metadata: Metadata = {
   title: "Hibachi at Home Long Beach | Coastal Teppanyaki Chef Service | Real Hibachi",
   description: "Coastal hibachi chef service in vibrant Long Beach including Belmont Shore and Downtown Long Beach. Oceanside dining experiences in this vibrant port city.",
-  keywords: "hibachi at home Long Beach, coastal teppanyaki chef, Japanese chef Belmont Shore, hibachi catering Downtown Long Beach, private chef Long Beach CA, waterfront hibachi party",
+  keywords: "hibachi at home Long Beach, coastal teppanyaki chef, Hibachi Chef Belmont Shore, hibachi catering Downtown Long Beach, private chef Long Beach CA, waterfront hibachi party",
   openGraph: {
     title: "Hibachi at Home Long Beach | Coastal Teppanyaki Chef Service",
     description: "Experience coastal hibachi at home in Long Beach. Professional Japanese teppanyaki chefs bringing oceanside dining to your Long Beach location.",
