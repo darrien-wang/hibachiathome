@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Glendale, teppanyaki chef Glendale, Hibachi Chef Glendale, hibachi catering Glendale, private chef Glendale, hibachi party Glendale",
   openGraph: {
     title: "Hibachi at Home Glendale | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/glendale",
+  },
     description: "Experience authentic hibachi at home in Glendale. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Glendale location.",
-    url: "https://realhibachi.com/service-area/glendale",
+    url: "https://www.realhibachi.com/service-area/glendale",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Glendale - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Glendale | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Glendale and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Manhattan Beach, teppanyaki chef Manhattan Beach, Hibachi Chef Manhattan Beach, hibachi catering Manhattan Beach, private chef Manhattan Beach, hibachi party Manhattan Beach",
   openGraph: {
     title: "Hibachi at Home Manhattan Beach | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/manhattan-beach",
+  },
     description: "Experience authentic hibachi at home in Manhattan Beach. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Manhattan Beach location.",
-    url: "https://realhibachi.com/service-area/manhattan-beach",
+    url: "https://www.realhibachi.com/service-area/manhattan-beach",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Manhattan Beach - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Manhattan Beach | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Manhattan Beach and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

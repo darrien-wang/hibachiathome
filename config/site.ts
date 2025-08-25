@@ -2,7 +2,7 @@
 export const siteConfig = {
   name: "Real Hibachi",
   description: "Bringing the hibachi experience directly to your home or venue.",
-  url: "https://realhibachi.com",
+  url: "https://www.realhibachi.com",
   ogImage: "https://realhibachi.com/og-image.jpg",
 
   // Logo configurations

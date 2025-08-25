@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Murrieta, teppanyaki chef Murrieta, Japanese chef Greer Ranch, hibachi catering family celebrations, private chef graduation parties",
   openGraph: {
     title: "Hibachi at Home Murrieta | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/riverside/murrieta",
+  },
     description: "Experience authentic hibachi at home in Murrieta. Professional Japanese teppanyaki chefs for family celebrations and graduation parties.",
-    url: "https://realhibachi.com/service-area/riverside/murrieta",
+    url: "https://www.realhibachi.com/service-area/riverside/murrieta",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Murrieta - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Murrieta | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Murrieta. Family communities and academic celebrations.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

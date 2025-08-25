@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Dana Point, private chef Orange County, Japanese teppanyaki Dana Point, hibachi catering OC, private birthday hibachi party Dana Point",
   openGraph: {
     title: "Hibachi at Home Dana Point | Orange County Private Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/orange-county/dana-point",
+  },
     description: "Create unforgettable memories with our hibachi at home experience in Dana Point. Professional private chef, authentic teppanyaki, and emotional celebrations that matter.",
-    url: "https://realhibachi.com/service-area/orange-county/dana-point",
+    url: "https://www.realhibachi.com/service-area/orange-county/dana-point",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Dana Point - Create Memories That Matter',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Dana Point | Memories That Matter',
     description: 'Transform your special moments with our hibachi at home experience in Dana Point, Orange County.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

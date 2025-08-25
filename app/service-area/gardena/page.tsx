@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Gardena, teppanyaki chef Gardena, Hibachi Chef Gardena, hibachi catering Gardena, private chef Gardena, hibachi party Gardena",
   openGraph: {
     title: "Hibachi at Home Gardena | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/gardena",
+  },
     description: "Experience authentic hibachi at home in Gardena. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Gardena location.",
-    url: "https://realhibachi.com/service-area/gardena",
+    url: "https://www.realhibachi.com/service-area/gardena",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Gardena - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Gardena | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Gardena and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

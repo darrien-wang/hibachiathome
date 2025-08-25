@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Del Mar, teppanyaki chef Del Mar, Hibachi Chef Del Mar Village, hibachi catering Del Mar Heights, private chef Carmel Valley, hibachi party Del Mar",
   openGraph: {
     title: "Hibachi at Home Del Mar | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/san-diego/del-mar",
+  },
     description: "Experience authentic hibachi at home in Del Mar. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",
-    url: "https://realhibachi.com/service-area/san-diego/del-mar",
+    url: "https://www.realhibachi.com/service-area/san-diego/del-mar",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Del Mar - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Del Mar | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service covering Del Mar Village, Del Mar Heights, and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

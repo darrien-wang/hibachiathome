@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Ontario, teppanyaki chef Ontario, Hibachi Chef airport area, hibachi catering business district, private chef Model Colony",
   openGraph: {
     title: "Hibachi at Home Ontario | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/san-bernardino/ontario",
+  },
     description: "Experience authentic hibachi at home in Ontario. Professional Japanese teppanyaki chefs for airport area and business communities.",
-    url: "https://realhibachi.com/service-area/san-bernardino/ontario",
+    url: "https://www.realhibachi.com/service-area/san-bernardino/ontario",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Ontario - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Ontario | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Ontario. Airport gateway and business hub service.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

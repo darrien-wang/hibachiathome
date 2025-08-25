@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Stanton, private chef Orange County, Japanese teppanyaki Stanton, hibachi catering OC, private birthday hibachi party Stanton",
   openGraph: {
     title: "Hibachi at Home Stanton | Orange County Private Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/orange-county/stanton",
+  },
     description: "Create unforgettable memories with our hibachi at home experience in Stanton. Professional private chef, authentic teppanyaki, and emotional celebrations that matter.",
-    url: "https://realhibachi.com/service-area/orange-county/stanton",
+    url: "https://www.realhibachi.com/service-area/orange-county/stanton",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Stanton - Create Memories That Matter',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Stanton | Memories That Matter',
     description: 'Transform your special moments with our hibachi at home experience in Stanton, Orange County.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

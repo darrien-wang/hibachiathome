@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Cathedral City, teppanyaki chef Cathedral City, Japanese chef desert community, hibachi catering golf communities, private chef family celebrations",
   openGraph: {
     title: "Hibachi at Home Cathedral City | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/palm-springs/cathedral-city",
+  },
     description: "Experience authentic hibachi at home in Cathedral City. Professional Japanese teppanyaki chefs for family celebrations and desert community gatherings.",
-    url: "https://realhibachi.com/service-area/palm-springs/cathedral-city",
+    url: "https://www.realhibachi.com/service-area/palm-springs/cathedral-city",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Cathedral City - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Cathedral City | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Cathedral City. Desert family communities and celebrations.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

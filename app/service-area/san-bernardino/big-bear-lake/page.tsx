@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Big Bear Lake, teppanyaki chef mountain resort, Japanese chef vacation rental, hibachi catering cabin party, private chef ski lodge",
   openGraph: {
     title: "Hibachi at Home Big Bear Lake | Mountain Resort Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/san-bernardino/big-bear-lake",
+  },
     description: "Experience authentic hibachi at home in Big Bear Lake. Professional Japanese teppanyaki chefs for mountain resort celebrations and vacation rental gatherings.",
-    url: "https://realhibachi.com/service-area/san-bernardino/big-bear-lake",
+    url: "https://www.realhibachi.com/service-area/san-bernardino/big-bear-lake",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Big Bear Lake - Mountain Resort Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Big Bear Lake | Mountain Resort Teppanyaki Chef',
     description: 'Premium hibachi chef service in Big Bear Lake. Mountain resort and vacation rental celebrations.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

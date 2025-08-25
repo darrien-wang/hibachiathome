@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Fullerton, private chef Orange County, Japanese teppanyaki Fullerton, hibachi catering OC, private birthday hibachi party Fullerton",
   openGraph: {
     title: "Hibachi at Home Fullerton | Orange County Private Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/orange-county/fullerton",
+  },
     description: "Create unforgettable memories with our hibachi at home experience in Fullerton. Professional private chef, authentic teppanyaki, and emotional celebrations that matter.",
-    url: "https://realhibachi.com/service-area/orange-county/fullerton",
+    url: "https://www.realhibachi.com/service-area/orange-county/fullerton",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Fullerton - Create Memories That Matter',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Fullerton | Memories That Matter',
     description: 'Transform your special moments with our hibachi at home experience in Fullerton, Orange County.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

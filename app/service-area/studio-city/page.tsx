@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Studio City, teppanyaki chef Studio City, Hibachi Chef Studio City, hibachi catering Studio City, private chef Studio City, hibachi party Studio City",
   openGraph: {
     title: "Hibachi at Home Studio City | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/studio-city",
+  },
     description: "Experience authentic hibachi at home in Studio City. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Studio City location.",
-    url: "https://realhibachi.com/service-area/studio-city",
+    url: "https://www.realhibachi.com/service-area/studio-city",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Studio City - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Studio City | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Studio City and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

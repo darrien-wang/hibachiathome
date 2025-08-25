@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Beverly Hills, luxury teppanyaki chef 90210, Hibachi Chef Beverly Hills Flats, hibachi catering Trousdale Estates, private chef Beverly Hills, luxury hibachi party",
   openGraph: {
     title: "Hibachi at Home Beverly Hills | Luxury Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/beverly-hills",
+  },
     description: "Experience luxury hibachi at home in Beverly Hills. Professional Japanese teppanyaki chefs bringing five-star dining to your prestigious Beverly Hills location.",
-    url: "https://realhibachi.com/service-area/beverly-hills",
+    url: "https://www.realhibachi.com/service-area/beverly-hills",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Beverly Hills - Luxury Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Beverly Hills | Luxury Teppanyaki Chef',
     description: 'Luxury hibachi chef service in prestigious Beverly Hills, Trousdale Estates, and surrounding luxury areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

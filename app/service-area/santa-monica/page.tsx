@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Santa Monica, beachside teppanyaki chef, Hibachi Chef Santa Monica Pier, hibachi catering Third Street Promenade, private chef Santa Monica Beach, oceanside hibachi party",
   openGraph: {
     title: "Hibachi at Home Santa Monica | Beachside Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/santa-monica",
+  },
     description: "Experience beachside hibachi at home in Santa Monica. Professional Japanese teppanyaki chefs combining ocean vibes with authentic cuisine at your Santa Monica location.",
-    url: "https://realhibachi.com/service-area/santa-monica",
+    url: "https://www.realhibachi.com/service-area/santa-monica",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Santa Monica - Beachside Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Santa Monica | Beachside Teppanyaki Chef',
     description: 'Beachside hibachi chef service in Santa Monica, Third Street Promenade, and ocean-view venues.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

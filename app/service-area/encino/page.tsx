@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Encino, teppanyaki chef Encino, Hibachi Chef Encino, hibachi catering Encino, private chef Encino, hibachi party Encino",
   openGraph: {
     title: "Hibachi at Home Encino | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/encino",
+  },
     description: "Experience authentic hibachi at home in Encino. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Encino location.",
-    url: "https://realhibachi.com/service-area/encino",
+    url: "https://www.realhibachi.com/service-area/encino",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Encino - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Encino | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Encino and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

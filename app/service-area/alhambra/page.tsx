@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Alhambra, teppanyaki chef Alhambra, Hibachi Chef Alhambra, hibachi catering Alhambra, private chef Alhambra, hibachi party Alhambra",
   openGraph: {
     title: "Hibachi at Home Alhambra | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/alhambra",
+  },
     description: "Experience authentic hibachi at home in Alhambra. Professional Japanese teppanyaki chefs bringing the restaurant experience to your Alhambra location.",
-    url: "https://realhibachi.com/service-area/alhambra",
+    url: "https://www.realhibachi.com/service-area/alhambra",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Alhambra - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Alhambra | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service in Alhambra and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 

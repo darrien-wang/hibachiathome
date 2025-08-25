@@ -7,13 +7,16 @@ export const metadata: Metadata = {
   keywords: "hibachi at home Encinitas, teppanyaki chef Encinitas, Hibachi Chef Leucadia, hibachi catering Cardiff, private chef Encinitas, hibachi party Encinitas",
   openGraph: {
     title: "Hibachi at Home Encinitas | Professional Teppanyaki Chef Service",
+  alternates: {
+    canonical: "https://www.realhibachi.com/service-area/san-diego/encinitas",
+  },
     description: "Experience authentic hibachi at home in Encinitas. Professional Japanese teppanyaki chefs bringing the restaurant experience to your location.",
-    url: "https://realhibachi.com/service-area/san-diego/encinitas",
+    url: "https://www.realhibachi.com/service-area/san-diego/encinitas",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Encinitas - Professional Teppanyaki Chef Service',
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Hibachi at Home Encinitas | Professional Teppanyaki Chef',
     description: 'Premium hibachi chef service covering Encinitas, Leucadia, Cardiff, and surrounding areas.',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 
