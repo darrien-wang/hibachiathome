@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next"
 import { siteConfig } from "@/config/site"
 import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog posts
+import { partyTypes } from "@/config/party-types"
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
 
@@ -173,6 +174,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/locations", // Main locations page
     "/privacy-policy",
     "/rentals",
+    "/parties", // Main parties page
+    ...partyTypes.map(party => party.href), // All party type pages
   ].map((route) => ({
     url: `${normalizedBaseUrl}${route}`,
     lastModified: new Date().toISOString(),

@@ -24,38 +24,33 @@ export const carouselConfig: CarouselConfig = {
 
 export const heroImages: HeroImage[] = [
   {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/ChatGPT%20Image%20May%2019%2C%202025%2C%2012_09_48%20AM-nfrN2RlFbVT5NJuQKq4AHsBN1fHiDp.png",
+    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner5-QXDgD4u9YK9SAwtGBCSDADdrM5YNG1.jpg",
     alt: "Hibachi chef cooking with flames",
     priority: 1, // Highest priority, ensures it's the first image
     duration: carouselConfig.firstSlideDuration, // Use the first slide duration from config
-  },
-  {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner5-QXDgD4u9YK9SAwtGBCSDADdrM5YNG1.jpg",
-    alt: "Hibachi chef cooking with flames",
-    priority: 2,
     timestamp: "2025-05-15",
   },
   {
     url: "https://live.staticflickr.com/65535/53336755436_3c614274cd_b.jpg",
     alt: "Hibachi chef cooking at home party",
-    priority: 3,
+    priority: 2,
   },
 
   // 4 additional carousel images
   {
     url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner-xN3z5y6ICfaVbAUl5fGRtovtIMuRem.jpg",
     alt: "Professional hibachi chef preparing meal",
-    priority: 5,
+    priority: 3,
   },
   {
     url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner2-gGtPpZjmEvOwNHxapy4YBFmbbbuhKk.jpg",
     alt: "Hibachi grill with delicious food",
-    priority: 6,
+    priority: 4,
   },
   {
     url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner4-gzupE1yCoJ0UA36Gm8v3BMNHdVfA5Q.jpg",
     alt: "Elegant hibachi dining experience",
-    priority: 8,
+    priority: 5,
   },
 ]
 

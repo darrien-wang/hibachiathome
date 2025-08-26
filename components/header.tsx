@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
+import { getPartyNavItems } from "@/config/party-types"
 import { Menu, ChevronDown } from "lucide-react"
 
 // Service areas data for navigation menu - simplified to 4 main regions
@@ -26,6 +27,13 @@ const serviceAreas = [
 const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
+  { 
+    name: "Parties", 
+    href: "/parties", 
+    disabled: false, 
+    hasDropdown: true,
+    dropdownItems: getPartyNavItems()
+  },
   { name: "Blog", href: "/blog", disabled: false },
   { 
     name: "Service Area", 
@@ -260,8 +268,8 @@ export function Header() {
                                       className="block py-2 font-medium text-gray-700 hover:text-[#F9A77C]"
                                     >
                                       {area.name}
-                                      {area.subtitle && (
-                                        <div className="text-sm text-gray-500 mt-1">{area.subtitle}</div>
+                                      {((area as any).subtitle || (area as any).description) && (
+                                        <div className="text-sm text-gray-500 mt-1">{(area as any).subtitle || (area as any).description}</div>
                                       )}
                                     </Link>
                                   </div>
@@ -334,8 +342,8 @@ export function Header() {
                             className="block px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] transition-colors"
                           >
                             <div className="font-semibold text-base">{area.name}</div>
-                            {area.subtitle && (
-                              <div className="text-sm text-gray-500 mt-1">{area.subtitle}</div>
+                            {((area as any).subtitle || (area as any).description) && (
+                              <div className="text-sm text-gray-500 mt-1">{(area as any).subtitle || (area as any).description}</div>
                             )}
                           </Link>
                         </div>
@@ -398,8 +406,8 @@ export function Header() {
                             className="block px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-[#F9A77C] transition-colors"
                           >
                             <div className="font-semibold text-base">{area.name}</div>
-                            {area.subtitle && (
-                              <div className="text-sm text-gray-500 mt-1">{area.subtitle}</div>
+                            {((area as any).subtitle || (area as any).description) && (
+                              <div className="text-sm text-gray-500 mt-1">{(area as any).subtitle || (area as any).description}</div>
                             )}
                           </Link>
                         </div>
