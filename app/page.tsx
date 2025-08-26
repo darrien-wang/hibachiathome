@@ -51,13 +51,16 @@ const testimonials = [
   },
 ]
 
-// 视频加载超时组件，iOS兼容性增强版
+// 视频加载超时组件，iOS兼容性增强版，支持外链视频优化
 function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
   const [showVideo, setShowVideo] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
+  // 检测是否为外链视频
+  const isExternalVideo = src.startsWith('http://') || src.startsWith('https://')
+  
   useEffect(() => {
     timerRef.current = setTimeout(() => {
       if (!loaded) setShowVideo(false)
@@ -68,14 +71,14 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
   }, [loaded])
 
   const handleLoadedData = () => {
-    console.log("Video loaded successfully")
+    console.log(`Video loaded successfully: ${isExternalVideo ? 'External' : 'Local'}`)
     setLoaded(true)
     setShowVideo(true)
     if (timerRef.current) clearTimeout(timerRef.current)
   }
 
   const handleError = (error: any) => {
-    console.error("Video loading error:", error)
+    console.error("Video loading error:", error, "Source:", src)
     setShowVideo(false)
   }
 
@@ -130,20 +133,24 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
     )
   }
 
+  // 为外链视频和本地视频使用不同的配置
+  const videoProps = {
+    ref: videoRef,
+    ...props,
+    onLoadedData: handleLoadedData,
+    onError: handleError,
+    onPlay: handlePlay,
+    poster: poster,
+    playsInline: true,
+    'webkit-playsinline': 'true',
+    'x-webkit-airplay': 'allow',
+    // 外链视频使用更宽松的配置
+    preload: isExternalVideo ? 'auto' : 'metadata',
+    ...(isExternalVideo ? {} : { controlsList: 'nodownload nofullscreen' })
+  }
+
   return (
-    <video 
-      ref={videoRef}
-      {...props} 
-      onLoadedData={handleLoadedData} 
-      onError={handleError}
-      onPlay={handlePlay}
-      poster={poster}
-      playsInline
-      webkit-playsinline="true"
-      x-webkit-airplay="allow"
-      preload="metadata"
-      controlsList="nodownload nofullscreen"
-    >
+    <video {...videoProps}>
       <source src={src} type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
       <source src={src} type="video/mp4" />
       Your browser does not support the video tag.
