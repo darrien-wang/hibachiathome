@@ -220,6 +220,12 @@ Video Status:
     if (videoRef.current) {
       const video = videoRef.current
       
+      // Ensure video source is set correctly
+      if (!video.src || video.src === '') {
+        console.log('Video src is empty, setting it...')
+        video.src = '/video/00ebf7a19327d6f30078329b3e163952.mp4'
+      }
+      
       if (isIOS || isMobileDevice) {
         console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
         
@@ -235,6 +241,13 @@ Video Status:
         video.preload = 'auto'
         video.muted = true
       }
+      
+      console.log('Video configuration:', {
+        src: video.src,
+        autoplay: video.autoplay,
+        preload: video.preload,
+        muted: video.muted
+      })
     }
     
     if ((isIOS || isMobileDevice) && videoRef.current) {
@@ -374,6 +387,7 @@ Video Status:
       >
         <video
           ref={videoRef}
+          src="/video/00ebf7a19327d6f30078329b3e163952.mp4"
           className="w-full h-full object-cover cursor-pointer"
           autoPlay={false}
           muted={isVideoMuted}
@@ -586,6 +600,47 @@ Video Status:
               className="bg-pink-600 px-2 py-1 rounded text-xs"
             >
               Test Video File
+            </button>
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  console.log('Fixing video source...')
+                  const video = videoRef.current
+                  video.src = '/video/00ebf7a19327d6f30078329b3e163952.mp4'
+                  video.load()
+                  updateDebugInfo()
+                }
+              }}
+              className="bg-orange-600 px-2 py-1 rounded text-xs"
+            >
+              Fix Video Source
+            </button>
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  const video = videoRef.current
+                  console.log('Complete video debug info:', {
+                    src: video.src,
+                    currentSrc: video.currentSrc,
+                    networkState: video.networkState,
+                    readyState: video.readyState,
+                    paused: video.paused,
+                    muted: video.muted,
+                    autoplay: video.autoplay,
+                    preload: video.preload,
+                    error: video.error,
+                    childNodes: Array.from(video.childNodes).map(node => ({
+                      type: node.nodeType,
+                      tagName: (node as Element).tagName,
+                      src: (node as HTMLSourceElement).src
+                    }))
+                  })
+                  updateDebugInfo()
+                }
+              }}
+              className="bg-indigo-600 px-2 py-1 rounded text-xs"
+            >
+              Full Debug
             </button>
             <button
               onClick={() => {
