@@ -812,12 +812,17 @@ export default function HibachiAtHomePage() {
           </div>
 
           <div className="mt-16 max-w-4xl mx-auto">
-            <img
-              src="/hibachi-group-selfie.jpg"
-              alt="Happy customers enjoying hibachi experience at home"
+            <video
+              src="/images/dance.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
               className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
-              loading="lazy"
-            />
+            >
+              <source src="/images/dance.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
       </section>

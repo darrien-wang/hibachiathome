@@ -7,6 +7,8 @@ export default function HeroSection() {
   const [isVideoMuted, setIsVideoMuted] = useState(true)
   const [userHasInteracted, setUserHasInteracted] = useState(false)
   const [showContent, setShowContent] = useState(true)
+  const [isRotating, setIsRotating] = useState(false)
+  const [isFadingIn, setIsFadingIn] = useState(false)
   const [currentVolume, setCurrentVolume] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
   const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -20,7 +22,15 @@ export default function HeroSection() {
     video.volume = 0
     setCurrentVolume(0)
     setIsVideoMuted(false)
-    setShowContent(false) // Hide content when sound is enabled
+    
+    // Reset fade-in state and start rotation animation
+    setIsFadingIn(false)
+    setIsRotating(true)
+    
+    // Hide content after rotation animation (1 second)
+    setTimeout(() => {
+      setShowContent(false)
+    }, 1000)
     
     // Clear previous timer
     if (fadeTimeoutRef.current) {
@@ -48,6 +58,11 @@ export default function HeroSection() {
     if (!videoRef.current) return
     
     const video = videoRef.current
+    
+    // Reset rotation state and start fade in animation
+    setIsRotating(false)
+    setIsFadingIn(true)
+    setShowContent(true)
     let volume = video.volume
     
     // Clear previous timer
@@ -132,6 +147,17 @@ export default function HeroSection() {
     }
   }, [])
 
+  // Reset fade-in state after animation completes
+  useEffect(() => {
+    if (isFadingIn) {
+      const timer = setTimeout(() => {
+        setIsFadingIn(false)
+      }, 800) // Match animation duration
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isFadingIn])
+
   // Cleanup timers
   useEffect(() => {
     return () => {
@@ -160,9 +186,13 @@ export default function HeroSection() {
           <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        {/* Slight dark overlay to make text clearer */}
+        {/* Dynamic dark overlay - hidden when sound is playing, shown when muted */}
         <div 
-          className="absolute inset-0 bg-black/40 cursor-pointer z-10" 
+          className={`absolute inset-0 cursor-pointer z-10 transition-all duration-1000 ${
+            !isVideoMuted && currentVolume > 0 
+              ? 'bg-black/0' 
+              : 'bg-black/40'
+          }`}
           onClick={handleVideoClick}
         ></div>
 
@@ -172,7 +202,11 @@ export default function HeroSection() {
       {/* Main content area - hidden after click */}
       {showContent && (
         <div 
-          className="container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-center items-center transition-all duration-1000"
+          className={`container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-center items-center ${
+            isRotating ? 'rotate-and-fade' : 
+            isFadingIn ? 'fade-in-up' : 
+            'transition-all duration-300'
+          }`}
         >
           {/* Main title area - centered display */}
           <div className="relative max-w-4xl mx-auto">
