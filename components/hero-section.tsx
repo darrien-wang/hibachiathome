@@ -135,7 +135,7 @@ export default function HeroSection() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  // Handle video audio state
+  // Handle video audio state and Safari compatibility
   useEffect(() => {
     if (videoRef.current) {
       const video = videoRef.current
@@ -144,6 +144,32 @@ export default function HeroSection() {
       video.volume = 0
       setIsVideoMuted(true)
       setCurrentVolume(0)
+      
+      // Safari specific fixes
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+      if (isSafari) {
+        // Force load the video
+        video.load()
+        
+        // Try to play after a short delay for Safari
+        const playVideo = async () => {
+          try {
+            await video.play()
+          } catch (error) {
+            console.log('Safari autoplay prevented:', error)
+            // Safari might prevent autoplay, this is expected
+          }
+        }
+        
+        // Add event listeners for Safari
+        video.addEventListener('loadeddata', playVideo)
+        video.addEventListener('canplay', playVideo)
+        
+        return () => {
+          video.removeEventListener('loadeddata', playVideo)
+          video.removeEventListener('canplay', playVideo)
+        }
+      }
     }
   }, [])
 
@@ -180,9 +206,13 @@ export default function HeroSection() {
           muted={isVideoMuted}
           loop
           playsInline
+          webkit-playsinline="true"
+          preload="auto"
           poster="/images/hibachi-dinner-party.jpg"
           onClick={handleVideoClick}
+          style={{ willChange: 'transform' }}
         >
+          <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
           <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>

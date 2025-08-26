@@ -179,7 +179,16 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
   }
 
   return (
-    <video {...props} onLoadedData={handleLoadedData} onError={handleError} poster={poster}>
+    <video 
+      {...props} 
+      onLoadedData={handleLoadedData} 
+      onError={handleError} 
+      poster={poster}
+      playsInline
+      webkit-playsinline="true"
+      preload="auto"
+    >
+      <source src={src} type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
       <source src={src} type="video/mp4" />
       Your browser does not support the video tag.
     </video>
@@ -818,8 +827,11 @@ export default function HibachiAtHomePage() {
               muted
               loop
               playsInline
+              webkit-playsinline="true"
+              preload="auto"
               className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
             >
+              <source src="/images/dance.mp4" type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
               <source src="/images/dance.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>

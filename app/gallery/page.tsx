@@ -104,8 +104,11 @@ export default function GalleryPage() {
           muted
           loop
           playsInline
+          webkit-playsinline="true"
+          preload="auto"
           poster="/images/hibachi-dinner-party.jpg"
         >
+          <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
           <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>

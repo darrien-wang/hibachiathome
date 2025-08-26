@@ -374,9 +374,13 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
                   controls
                   autoPlay
                   muted
+                  playsInline
+                  webkit-playsinline="true"
+                  preload="auto"
                   onLoadedData={() => setIsLoaded(true)}
                   poster={video.thumbnailUrl}
                 >
+                  <source src={video.videoUrl} type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
                   <source src={video.videoUrl} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
