@@ -41,17 +41,16 @@ export default function HowItWorksSection() {
   return (
     <section id="how-it-works" className="py-20 relative overflow-hidden">
       <video
-        className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60"
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
         autoPlay
         muted
         loop
         playsInline
         src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/smallfire-EtpxGU9GpXZMkOHfBSrfm4qWNxXChh.mp4"
       />
-      <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
-      <div className="container mx-auto px-4 relative z-20">
+      <div className="container mx-auto px-4 relative z-10">
         {/* Show Up Package Highlight Box */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 mb-12 shadow-lg border-l-4 border-amber-500 max-w-3xl mx-auto">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 mb-12 shadow-lg border-l-4 border-amber-500 max-w-3xl mx-auto border border-gray-100">
           <h3 className="text-2xl md:text-3xl font-bold mb-3 text-amber-700 font-serif">
             Show Up Package – We Handle Everything!
           </h3>
@@ -90,9 +89,13 @@ export default function HowItWorksSection() {
         </div>
 
         <AnimateOnScroll direction="down">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12 text-white">
-            🎉 <span className="text-amber-300">Book Your Party in 4 Easy Steps!</span>
-          </h2>
+          <div className="text-center mb-12">
+            <div className="inline-block bg-white/95 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-lg border border-gray-200">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">
+                🎉 <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Book Your Party in 4 Easy Steps!</span>
+              </h2>
+            </div>
+          </div>
         </AnimateOnScroll>
         {/* Desktop Timeline View */}
         <div className="hidden md:block relative">

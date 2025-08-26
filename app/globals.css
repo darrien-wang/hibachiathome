@@ -9,12 +9,12 @@
 
 /* Fixed header layout utilities */
 @layer components {
-  /* Main page container that accounts for fixed header */
-  .page-container {
-    @apply min-h-screen;
-    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
-    margin-top: 1rem !important;
-  }
+    /* Main page container that accounts for fixed header */
+    .page-container {
+      @apply min-h-screen;
+      padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+      margin-top: 1rem !important;
+    }
   
   /* Hero sections that should start right below the header */
   .hero-section {

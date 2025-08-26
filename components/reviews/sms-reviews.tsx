@@ -90,14 +90,18 @@ export default function SMSReviews() {
   }
 
   return (
-    <section className="py-16 bg-gradient-to-r from-blue-50 to-indigo-50">
-      <div className="container mx-auto px-4">
+    <section className="py-20 bg-white relative">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-stone-50/30 to-orange-50/20"></div>
+      <div className="container mx-auto px-4 relative z-10">
         <AnimateOnScroll>
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <MessageSquare className="w-8 h-8 text-blue-600" />
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="p-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl shadow-lg">
+                <MessageSquare className="w-8 h-8 text-white" />
+              </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Real Customer Reviews
+                Real Customer <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Reviews</span>
               </h2>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -119,7 +123,7 @@ export default function SMSReviews() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
             {getCurrentReviews().map((review, index) => (
               <AnimateOnScroll key={review.id} delay={index * 100}>
-                <Card className="group hover:shadow-xl transition-all duration-300 bg-white/90 backdrop-blur-sm overflow-hidden">
+                <Card className="group hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 bg-white overflow-hidden border border-gray-100 shadow-sm hover:shadow-orange-100/60 hover:border-orange-200/50">
                   <CardContent className="p-0">
                     {/* SMS Image */}
                     <div className="relative h-80 overflow-hidden">
@@ -131,7 +135,7 @@ export default function SMSReviews() {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                       {/* Date Badge */}
-                      <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                         {review.date}
                       </div>
                     </div>
@@ -175,7 +179,7 @@ export default function SMSReviews() {
                 size="sm"
                 onClick={prevPage}
                 disabled={smsReviews.length <= reviewsPerPage}
-                className="hover:bg-blue-50"
+                className="hover:bg-orange-50 border-gray-200 text-gray-600 hover:text-orange-600 hover:border-orange-300"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
@@ -186,8 +190,8 @@ export default function SMSReviews() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      i === currentPage ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      i === currentPage ? "bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg scale-110" : "bg-gray-300 hover:bg-orange-200 hover:scale-105"
                     }`}
                   />
                 ))}
@@ -198,7 +202,7 @@ export default function SMSReviews() {
                 size="sm"
                 onClick={nextPage}
                 disabled={smsReviews.length <= reviewsPerPage}
-                className="hover:bg-blue-50"
+                className="hover:bg-orange-50 border-gray-200 text-gray-600 hover:text-orange-600 hover:border-orange-300"
               >
                 Next
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -209,18 +213,18 @@ export default function SMSReviews() {
 
         {/* CTA */}
         <AnimateOnScroll delay={300}>
-          <div className="text-center mt-12">
-            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-8 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Experience the Same Quality Service
+          <div className="text-center mt-16">
+            <div className="bg-gradient-to-br from-gray-50 to-stone-100 rounded-3xl p-12 max-w-3xl mx-auto shadow-sm border border-gray-100">
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                Experience the Same <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Quality Service</span>
               </h3>
-              <p className="text-gray-600 mb-6">
-                Join our satisfied customers and enjoy professional hibachi at-home service
+              <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
+                Join our satisfied customers and enjoy professional hibachi at-home service with authentic flavors and exceptional presentation
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   size="lg" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
                   asChild
                 >
                   <a href="/book">Book Now</a>
@@ -228,7 +232,7 @@ export default function SMSReviews() {
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 px-8 py-3"
                   asChild
                 >
                   <a href="sms:2137707788">

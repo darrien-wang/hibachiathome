@@ -114,41 +114,58 @@ export default function ServiceAreaClient() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-gray-100 pt-20">
       {/* Hero Section */}
-      <div className="hero-section bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white pt-24 pb-16">
-        <div className="container mx-auto px-4 text-center">
-          <Badge variant="secondary" className="mb-4 text-lg px-6 py-2">
-            Premium Hibachi at Home Service
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">Our Service Area</h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto">
+      <div className="hero-section bg-gradient-to-br from-stone-50 via-white to-orange-50/30 relative overflow-hidden pt-24 pb-20">
+        {/* Subtle background elements */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-20 right-20 w-60 h-60 bg-orange-100/30 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 w-40 h-40 bg-amber-100/40 rounded-full blur-2xl"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-orange-100 mb-8">
+              <div className="w-3 h-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></div>
+              <span className="text-orange-600 font-medium">Premium Hibachi at Home Service</span>
+            </div>
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
+            Our <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Service Area</span>
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto text-gray-600">
             Professional hibachi chef service covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside areas. 
             Bringing authentic Japanese teppanyaki experience directly to your location throughout Southern California.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-gray-100">
+            <Button asChild size="lg" className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
               <Link href="/book">Book Your Experience</Link>
             </Button>
-            <div className="flex items-center gap-2 text-amber-100">
-              <Phone className="h-5 w-5" />
+            <div className="flex items-center gap-2 text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-200">
+              <Phone className="h-5 w-5 text-orange-600" />
               <span className="text-lg font-medium">(213) 770-7788</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-20 bg-white">
         {/* Service Features */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800">Why Choose Real Hibachi</h2>
+        <div className="text-center mb-20">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+            Why Choose <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Real Hibachi</span>
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-12">
+            Professional service backed by years of experience and commitment to excellence
+          </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {serviceFeatures.map((feature, index) => {
               const IconComponent = feature.icon
               return (
-                <Card key={index} className="text-center border-0 shadow-lg">
+                <Card key={index} className="text-center border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                   <CardContent className="p-6">
-                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="bg-gradient-to-r from-orange-500 to-amber-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                       <IconComponent className="h-8 w-8 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold mb-2 text-gray-800">{feature.title}</h3>
@@ -161,34 +178,38 @@ export default function ServiceAreaClient() {
         </div>
 
         {/* Service Areas */}
-        <div className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800">Primary Service Areas</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
+        <div className="mb-20">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              Primary <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Service Areas</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
               We provide premium hibachi at home service throughout Southern California, 
               covering Los Angeles, Orange County, San Diego, San Bernardino, Palm Springs, and Riverside areas.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
-              <p className="text-blue-700 font-medium">
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-6 max-w-2xl mx-auto">
+              <p className="text-orange-700 font-medium">
                 📍 Don't see your city? We serve many additional communities! 
                 <br />Contact us to check availability in your specific area.
               </p>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+          <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-16">
             {serviceAreas.map((area, index) => (
-              <Card key={index} className={`shadow-xl border-0 ${area.featured ? 'ring-2 ring-orange-500' : ''}`}>
-                <CardHeader className={`bg-gradient-to-r ${area.color} text-white rounded-t-lg`}>
+              <Card key={index} className={`shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${area.featured ? 'ring-2 ring-orange-200' : ''}`}>
+                <CardHeader className="bg-gradient-to-br from-white to-gray-50 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-2xl font-bold">{area.region}</CardTitle>
-                      <CardDescription className="text-white/90 text-lg">
+                      <CardTitle className="text-2xl font-bold text-gray-900">{area.region}</CardTitle>
+                      <CardDescription className="text-gray-600 text-lg">
                         {area.cities.length} cities covered
                       </CardDescription>
                     </div>
                     {area.featured && (
-                      <Star className="h-8 w-8 text-yellow-300 fill-current" />
+                      <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
+                        <Star className="h-6 w-6 text-white fill-current" />
+                      </div>
                     )}
                   </div>
                 </CardHeader>
@@ -288,11 +309,11 @@ export default function ServiceAreaClient() {
                       )
                     })}
                   </div>
-                  <div className="flex gap-2">
-                    <Button asChild className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
+                  <div className="flex gap-3">
+                    <Button asChild className="flex-1 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-md hover:shadow-lg transition-all duration-300">
                       <Link href="/book">Book in {area.region}</Link>
                     </Button>
-                    <Button asChild variant="outline" className="flex-1">
+                    <Button asChild variant="outline" className="flex-1 border-gray-200 text-gray-600 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600 transition-all duration-300">
                       <Link href={`/service-area/${area.region.toLowerCase().replace(/\s+/g, '-')}`}>Learn More</Link>
                     </Button>
                   </div>
@@ -303,14 +324,16 @@ export default function ServiceAreaClient() {
         </div>
 
         {/* Travel Information */}
-        <Card className="mb-16 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <Card className="mb-20 bg-gradient-to-br from-gray-50 to-stone-100 border border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-2xl text-blue-800 flex items-center gap-2">
-              <MapPin className="h-6 w-6" />
+            <CardTitle className="text-2xl text-gray-900 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
+                <MapPin className="h-6 w-6 text-white" />
+              </div>
               Travel & Service Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-blue-700">
+          <CardContent className="space-y-4 text-gray-700">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold mb-2">Service Radius</h3>
@@ -333,36 +356,44 @@ export default function ServiceAreaClient() {
         </Card>
 
         {/* Contact Information */}
-        <Card className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
-          <CardContent className="p-8 text-center">
-            <h2 className="text-3xl font-bold mb-6">Ready to Book Your Hibachi Experience?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Contact us today to check availability in your area and reserve your date!
+        <Card className="bg-gradient-to-br from-gray-50 to-stone-100 border border-gray-200 shadow-sm">
+          <CardContent className="p-12 text-center">
+            <h2 className="text-3xl font-bold mb-4 text-gray-900">
+              Ready to Book Your <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Hibachi Experience?</span>
+            </h2>
+            <p className="text-xl mb-10 text-gray-600 max-w-2xl mx-auto">
+              Contact us today to check availability in your area and reserve your date for an unforgettable culinary experience!
             </p>
             
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="grid md:grid-cols-3 gap-8 mb-10">
               <div className="flex flex-col items-center">
-                <Phone className="h-8 w-8 mb-2" />
-                <h3 className="font-semibold mb-1">Call Us</h3>
-                <p className="text-lg">(213) 770-7788</p>
+                <div className="p-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl mb-4 shadow-lg">
+                  <Phone className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="font-semibold mb-2 text-gray-900">Call Us</h3>
+                <p className="text-lg text-gray-600">(213) 770-7788</p>
               </div>
               <div className="flex flex-col items-center">
-                <Mail className="h-8 w-8 mb-2" />
-                <h3 className="font-semibold mb-1">Email Us</h3>
-                <p className="text-lg">realhibachiathome@gmail.com</p>
+                <div className="p-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl mb-4 shadow-lg">
+                  <Mail className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="font-semibold mb-2 text-gray-900">Email Us</h3>
+                <p className="text-lg text-gray-600">realhibachiathome@gmail.com</p>
               </div>
               <div className="flex flex-col items-center">
-                <MapPin className="h-8 w-8 mb-2" />
-                <h3 className="font-semibold mb-1">Service Area</h3>
-                <p className="text-lg">Southern California</p>
+                <div className="p-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl mb-4 shadow-lg">
+                  <MapPin className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="font-semibold mb-2 text-gray-900">Service Area</h3>
+                <p className="text-lg text-gray-600">Southern California</p>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-gray-100">
+              <Button asChild size="lg" className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3">
                 <Link href="/book">Book Online Now</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white hover:text-orange-600">
+              <Button asChild size="lg" variant="outline" className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 px-8 py-3">
                 <Link href="/menu">View Menu</Link>
               </Button>
             </div>
