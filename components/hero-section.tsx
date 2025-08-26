@@ -177,9 +177,9 @@ export default function HeroSection() {
           {/* Main title area - centered display */}
           <div className="relative max-w-4xl mx-auto">
             {/* Main welcome message */}
-            <div className="mb-16">
+            <div className="mb-8 relative">
               <h1 
-                className="text-5xl md:text-7xl font-black mb-6 cursor-pointer transition-all duration-500 hover:scale-105 group relative pointer-events-auto"
+                className="text-5xl md:text-7xl font-black mb-8 cursor-pointer transition-all duration-500 hover:scale-105 group relative pointer-events-auto"
                 onClick={handleVideoClick}
                 style={{
                   textShadow: "3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 4px 4px 8px rgba(0,0,0,0.5)",
@@ -202,21 +202,10 @@ export default function HeroSection() {
                 }}>
                   at Home
                 </span>
-                
-                {/* 播放图标 - 减小尺寸 */}
-                <span className="inline-flex items-center ml-2 group-hover:scale-110 transition-transform duration-300" style={{
-                  transform: "translateY(-4px)"
-                }}>
-                  <div className="bg-orange-500/20 hover:bg-orange-500/40 rounded-full p-1.5 border border-orange-400/60 group-hover:border-orange-300 transition-all duration-300 backdrop-blur-sm">
-                    <Play 
-                      className="w-3 h-3 md:w-4 md:h-4 text-orange-300 group-hover:text-orange-200 transition-colors duration-300" 
-                      fill="currentColor"
-                    />
-                  </div>
-                </span>
-                
-           
               </h1>
+
+
+
               <p className="text-xl md:text-2xl drop-shadow-lg" style={{
                 color: "hsl(24.6, 60%, 85%)"
               }}>
@@ -224,15 +213,19 @@ export default function HeroSection() {
               </p>
             </div>
 
-            {/* Call-to-action banner */}
-            <div
-              className="bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 text-white py-2 px-4 md:py-4 md:px-8 rounded-md md:rounded-lg transform hover:rotate-[-0.5deg] hover:scale-105 transition-all duration-300 shadow-2xl border-2 border-yellow-300"
-              style={{
-                backgroundImage: "linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #d97706 100%)",
-                boxShadow: "0 8px 16px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 215, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
-              }}
-            >
-              <p className="text-lg md:text-2xl lg:text-3xl font-bold tracking-wide text-yellow-50">🎉 Want a Party? One Call, That's All! 🎉</p>
+            {/* Call-to-action buttons group */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              {/* Watch Video Button */}
+              <button
+                onClick={handleVideoClick}
+                className="bg-black/60 hover:bg-black/80 text-white py-3 px-6 rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-orange-400 hover:border-orange-300 backdrop-blur-sm flex items-center gap-2"
+              >
+                <Play 
+                  className="w-4 h-4 text-orange-300 hover:text-orange-200 transition-colors duration-300" 
+                  fill="currentColor"
+                />
+                <span className="text-sm md:text-base font-medium">Watch Video</span>
+              </button>
             </div>
 
 
