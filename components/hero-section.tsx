@@ -11,47 +11,14 @@ export default function HeroSection() {
   const [isRotating, setIsRotating] = useState(false)
   const [isFadingIn, setIsFadingIn] = useState(false)
   const [currentVolume, setCurrentVolume] = useState(0)
-  const [debugInfo, setDebugInfo] = useState('')
-  const [showDebug, setShowDebug] = useState(false)
+
   const [videoFailed, setVideoFailed] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Debug function
-  const updateDebugInfo = () => {
-    if (videoRef.current) {
-      const video = videoRef.current
-      const info = `
-Video Status:
-- Paused: ${video.paused}
-- Muted: ${video.muted}
-- Volume: ${video.volume}
-- ReadyState: ${video.readyState}
-- Current Time: ${video.currentTime.toFixed(2)}
-- Duration: ${video.duration || 'Unknown'}
-- User Interacted: ${userHasInteracted}
-- Show Content: ${showContent}
-- Is Mobile: ${isMobile}
-- User Agent: ${navigator.userAgent.substring(0, 50)}...
-- Network State: ${video.networkState} (0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE)
-- Error Code: ${video.error?.code || 'None'} (1=ABORTED, 2=NETWORK, 3=DECODE, 4=SRC_NOT_SUPPORTED)
-- Video Src: ${video.src}
-- Current Src: ${video.currentSrc}
-- Base URL: ${window.location.origin}
-- Video Failed: ${videoFailed} (iOS Fallback Mode)
-      `.trim()
-      setDebugInfo(info)
-    }
-  }
 
-  // Update debug info periodically
-  useEffect(() => {
-    if (showDebug) {
-      updateDebugInfo()
-      const interval = setInterval(updateDebugInfo, 1000)
-      return () => clearInterval(interval)
-    }
-  }, [showDebug, userHasInteracted, showContent, isMobile])
+
+
 
   // Combined mobile detection and video configuration to avoid race conditions
   useEffect(() => {
@@ -108,8 +75,7 @@ Video Status:
       })
     }
     
-    // Force update debug info after mobile detection
-    setTimeout(updateDebugInfo, 100)
+
   }, [])
 
   // Volume fade functions
@@ -306,15 +272,15 @@ Video Status:
       const handleLoadStart = () => console.log('Mobile: loadstart event')
       const handleLoadedMetadata = () => {
         console.log('Mobile: loadedmetadata event, ReadyState:', video.readyState)
-        updateDebugInfo()
+    
       }
       const handleLoadedData = () => {
         console.log('Mobile: loadeddata event, ReadyState:', video.readyState)
-        updateDebugInfo()
+    
       }
       const handleCanPlay = () => {
         console.log('Mobile: canplay event, ReadyState:', video.readyState)
-        updateDebugInfo()
+    
       }
       
       // Add special mobile event handlers
@@ -326,7 +292,7 @@ Video Status:
             video.preload = 'auto' // Now load full video
             await video.play()
             console.log('Mobile: Video playing successfully')
-            updateDebugInfo()
+        
           }
         } catch (error) {
           console.error('Mobile: Video play failed:', error)
@@ -569,13 +535,7 @@ Video Status:
                 <span className="text-sm md:text-base font-medium">Watch Video</span>
               </button>
               
-              {/* Debug button for mobile troubleshooting */}
-              <button
-                onClick={() => setShowDebug(!showDebug)}
-                className="mt-4 bg-red-600/60 hover:bg-red-700/80 text-white py-2 px-4 rounded-full text-xs"
-              >
-                {showDebug ? 'Hide' : 'Show'} Debug Info
-              </button>
+
             </div>
 
 
@@ -583,166 +543,7 @@ Video Status:
         </div>
       )}
 
-      {/* Debug Panel for Mobile */}
-      {showDebug && (
-        <div className="fixed top-4 right-4 bg-black/90 text-white p-4 rounded-lg max-w-sm text-xs z-50 max-h-96 overflow-y-auto">
-          <h3 className="font-bold mb-2 text-yellow-400">Video Debug Info</h3>
-          <pre className="whitespace-pre-wrap font-mono">{debugInfo}</pre>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={async () => {
-                if (videoRef.current) {
-                  console.log('Force Play clicked')
-                  try {
-                    videoRef.current.muted = true
-                    await videoRef.current.play()
-                    updateDebugInfo()
-                  } catch (error) {
-                    console.error('Force play failed:', error)
-                  }
-                }
-              }}
-              className="bg-green-600 px-2 py-1 rounded text-xs"
-            >
-              Force Play
-            </button>
-            <button
-              onClick={() => {
-                if (videoRef.current) {
-                  console.log('Reload Video clicked')
-                  videoRef.current.load()
-                  updateDebugInfo()
-                }
-              }}
-              className="bg-blue-600 px-2 py-1 rounded text-xs"
-            >
-              Reload Video
-            </button>
-            <button
-              onClick={() => {
-                if (videoRef.current) {
-                  console.log('Auto Preload clicked')
-                  videoRef.current.preload = 'auto'
-                  videoRef.current.load()
-                  updateDebugInfo()
-                }
-              }}
-              className="bg-purple-600 px-2 py-1 rounded text-xs"
-            >
-              Auto Preload
-            </button>
-            <button
-              onClick={() => {
-                if (videoRef.current) {
-                  console.log('Enable Autoplay clicked')
-                  videoRef.current.autoplay = true
-                  videoRef.current.muted = true
-                  videoRef.current.load()
-                  updateDebugInfo()
-                }
-              }}
-              className="bg-yellow-600 px-2 py-1 rounded text-xs"
-            >
-              Enable Autoplay
-            </button>
-            <button
-              onClick={async () => {
-                console.log('Testing video file accessibility...')
-                try {
-                  const response = await fetch('/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4', { method: 'HEAD' })
-                  console.log('Video file test:', {
-                    status: response.status,
-                    headers: Object.fromEntries(response.headers.entries()),
-                    ok: response.ok
-                  })
-                } catch (error) {
-                  console.error('Video file test failed:', error)
-                }
-              }}
-              className="bg-pink-600 px-2 py-1 rounded text-xs"
-            >
-              Test Video File
-            </button>
-            <button
-              onClick={() => {
-                if (videoRef.current) {
-                  console.log('Fixing video source...')
-                  const video = videoRef.current
-                  const baseUrl = window.location.origin
-                  const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`
-                  console.log('Setting complete video URL:', videoSrc)
-                  video.src = videoSrc
-                  video.load()
-                  console.log('Video src after fix:', video.src)
-                  updateDebugInfo()
-                }
-              }}
-              className="bg-orange-600 px-2 py-1 rounded text-xs"
-            >
-              Fix Video Source
-            </button>
-            <button
-              onClick={() => {
-                if (videoRef.current) {
-                  const video = videoRef.current
-                  console.log('Complete video debug info:', {
-                    src: video.src,
-                    currentSrc: video.currentSrc,
-                    networkState: video.networkState,
-                    readyState: video.readyState,
-                    paused: video.paused,
-                    muted: video.muted,
-                    autoplay: video.autoplay,
-                    preload: video.preload,
-                    error: video.error,
-                    childNodes: Array.from(video.childNodes).map(node => ({
-                      type: node.nodeType,
-                      tagName: (node as Element).tagName,
-                      src: (node as HTMLSourceElement).src
-                    }))
-                  })
-                  updateDebugInfo()
-                }
-              }}
-              className="bg-indigo-600 px-2 py-1 rounded text-xs"
-            >
-              Full Debug
-            </button>
-            <button
-              onClick={() => {
-                console.log('Testing iOS fallback mode...')
-                setVideoFailed(true)
-                updateDebugInfo()
-              }}
-              className="bg-purple-600 px-2 py-1 rounded text-xs"
-            >
-              Test iOS Fallback
-            </button>
-            <button
-              onClick={() => {
-                console.log('Resetting fallback mode...')
-                setVideoFailed(false)
-                updateDebugInfo()
-              }}
-              className="bg-green-600 px-2 py-1 rounded text-xs"
-            >
-              Reset Fallback
-            </button>
-            <button
-              onClick={() => {
-                if (videoRef.current) {
-                  console.log('Trying poster as video...')
-                  videoRef.current.src = '/images/hibachi-dinner-party.jpg'
-                  updateDebugInfo()
-                }
-              }}
-              className="bg-gray-600 px-2 py-1 rounded text-xs"
-            >
-              Try Poster
-            </button>
-          </div>
-        </div>
-      )}
+
 
     </section>
   )
