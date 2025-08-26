@@ -1,248 +1,259 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
+import { Volume2, VolumeX, Play } from "lucide-react"
 
 export default function HeroSection() {
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [imagesLoaded, setImagesLoaded] = useState(false)
-  const [imageTimestamps, setImageTimestamps] = useState<string[]>([])
-  const [autoplayEnabled, setAutoplayEnabled] = useState(false)
-  const [userInteracted, setUserInteracted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const firstSlideTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const [touchStart, setTouchStart] = useState(0)
-  const [isSwiping, setIsSwiping] = useState(false)
-  const [swipeDistance, setSwipeDistance] = useState(0)
-  const swipeThreshold = 50
+  const [isVideoMuted, setIsVideoMuted] = useState(true)
+  const [userHasInteracted, setUserHasInteracted] = useState(false)
+  const [showContent, setShowContent] = useState(true)
+  const [currentVolume, setCurrentVolume] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Fix: Correctly initialize heroImagesRef with a computed value, not a function
-  const heroImagesRef = useRef(
-    getSortedHeroImages()
-      .filter((_, index) => index !== 0 && index !== 4)
-      .concat({
-        url: "/images/hibachi-dinner-party.jpg",
-        alt: "Hibachi dinner party with friends enjoying a meal outdoors",
-        priority: 10, // Lower priority to ensure it's added at the end
-      }),
-  )
+  // Volume fade functions
+  const fadeVolumeIn = () => {
+    if (!videoRef.current) return
+    
+    const video = videoRef.current
+    video.muted = false
+    video.volume = 0
+    setCurrentVolume(0)
+    setIsVideoMuted(false)
+    setShowContent(false) // Hide content when sound is enabled
+    
+    // Clear previous timer
+    if (fadeTimeoutRef.current) {
+      clearInterval(fadeTimeoutRef.current)
+    }
+    
+    // Gradually increase volume
+    let volume = 0
+    const targetVolume = 0.7 // Target volume, not too loud
+    const fadeStep = 0.02 // Volume increase per step
+    const fadeInterval = 50 // Increase every 50ms
+    
+    fadeTimeoutRef.current = setInterval(() => {
+      volume += fadeStep
+      if (volume >= targetVolume) {
+        volume = targetVolume
+        clearInterval(fadeTimeoutRef.current!)
+      }
+      video.volume = volume
+      setCurrentVolume(volume)
+    }, fadeInterval)
+  }
 
-  const sortedHeroImages = heroImagesRef.current
-  const carouselIntervalOverride = 3000 // 3 seconds instead of default
-  const videoEnded = true
+  const fadeVolumeOut = () => {
+    if (!videoRef.current) return
+    
+    const video = videoRef.current
+    let volume = video.volume
+    
+    // Clear previous timer
+    if (fadeTimeoutRef.current) {
+      clearInterval(fadeTimeoutRef.current)
+    }
+    
+    // Gradually decrease volume
+    const fadeStep = 0.05 // Volume decrease per step
+    const fadeInterval = 30 // Decrease every 30ms
+    
+    fadeTimeoutRef.current = setInterval(() => {
+      volume -= fadeStep
+      if (volume <= 0) {
+        volume = 0
+        video.muted = true
+        setIsVideoMuted(true)
+        setShowContent(true) // Restore content display when sound is muted
+        clearInterval(fadeTimeoutRef.current!)
+      }
+      video.volume = volume
+      setCurrentVolume(volume)
+    }, fadeInterval)
+  }
 
-  const handleUserInteraction = () => {
-    if (!userInteracted) {
-      setUserInteracted(true)
-      if (carouselConfig.autoplayAfterInteraction) {
-        setAutoplayEnabled(true)
+  const toggleVideoAudio = () => {
+    if (videoRef.current) {
+      if (isVideoMuted) {
+        fadeVolumeIn()
+      } else {
+        fadeVolumeOut()
       }
     }
   }
 
+
+
   const handleFirstInteraction = () => {
-    handleUserInteraction()
-  }
-
-  const nextSlide = () => {
-    handleUserInteraction()
-    setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
-  }
-
-  const prevSlide = () => {
-    handleUserInteraction()
-    setCurrentSlide((prev) => (prev - 1 + sortedHeroImages.length) % sortedHeroImages.length)
-  }
-
-  // 检测移动端
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768) // md breakpoint
+    if (!userHasInteracted) {
+      setUserHasInteracted(true)
+      
+      // First click: enable sound (fadeVolumeIn will handle hiding content)
+      fadeVolumeIn()
     }
-    
-    if (typeof window !== "undefined") {
-      checkMobile()
-      window.addEventListener('resize', checkMobile)
-      return () => window.removeEventListener('resize', checkMobile)
+  }
+
+  const handleVideoClick = () => {
+    if (!userHasInteracted) {
+      // First click: hide content and enable sound
+      handleFirstInteraction()
+    } else {
+      // Subsequent clicks: toggle sound on/off
+      toggleVideoAudio()
+    }
+  }
+
+  // Detect mobile devices
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    // Set initial value
+    handleResize()
+
+    // Add event listener
+    window.addEventListener("resize", handleResize)
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  // Handle video audio state
+  useEffect(() => {
+    if (videoRef.current) {
+      const video = videoRef.current
+      // Initialize video as muted
+      video.muted = true
+      video.volume = 0
+      setIsVideoMuted(true)
+      setCurrentVolume(0)
     }
   }, [])
 
+  // Cleanup timers
   useEffect(() => {
-    // Preload images
-    const loadImagesOnce = async () => {
-      if (sortedHeroImages.length > 0 && !imagesLoaded) {
-        const promises = sortedHeroImages.map((image) => {
-          return new Promise((resolve) => {
-            const img = new window.Image()
-            img.src = image.url
-            img.onload = resolve
-          })
-        })
-        await Promise.all(promises)
-        setImagesLoaded(true)
-      }
-    }
-
-    if (typeof window !== "undefined") {
-      loadImagesOnce()
-    }
-  }, [imagesLoaded]) // Remove sortedHeroImages from dependencies
-
-  useEffect(() => {
-    if (sortedHeroImages.length > 0 && imageTimestamps.length === 0) {
-      // Get current date
-      const currentDate = new Date()
-      const currentYear = currentDate.getFullYear()
-      const currentMonth = currentDate.getMonth() + 1 // JavaScript months are 0-indexed
-      const currentDay = currentDate.getDate()
-
-      const timestamps = sortedHeroImages.map((image, index) => {
-        // Use image timestamp if available
-        if (image.timestamp) return image.timestamp
-
-        // Generate a random past date within the last 3 months
-        const randomMonthsAgo = Math.floor(Math.random() * 3) // 0-2 months ago
-        const randomDaysAgo = Math.floor(Math.random() * 28) + 1 // 1-28 days
-
-        let dateMonth = currentMonth - randomMonthsAgo
-        let dateYear = currentYear
-
-        // Handle month rollover
-        if (dateMonth <= 0) {
-          dateMonth += 12
-          dateYear -= 1
-        }
-
-        // Ensure day doesn't exceed current day for current month
-        let dateDay = randomDaysAgo
-        if (dateMonth === currentMonth && dateDay > currentDay) {
-          dateDay = Math.min(currentDay, randomDaysAgo)
-        }
-
-        return `${dateYear}-${String(dateMonth).padStart(2, "0")}-${String(dateDay).padStart(2, "0")}`
-      })
-
-      setImageTimestamps(timestamps)
-    }
-  }, [imageTimestamps.length]) // Remove sortedHeroImages from dependencies
-
-  useEffect(() => {
-    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration && videoEnded && !userInteracted) {
-      // Clear any existing timer
-      if (firstSlideTimerRef.current) {
-        clearTimeout(firstSlideTimerRef.current)
-      }
-
-      // Set new timer
-      firstSlideTimerRef.current = setTimeout(() => {
-        setCurrentSlide(0)
-      }, 5000) // Use a default duration since the first image with duration is now removed
-    }
-
     return () => {
-      if (firstSlideTimerRef.current) {
-        clearTimeout(firstSlideTimerRef.current)
+      if (fadeTimeoutRef.current) {
+        clearInterval(fadeTimeoutRef.current)
       }
     }
-  }, [userInteracted, videoEnded]) // Remove sortedHeroImages from dependencies
-
-  useEffect(() => {
-    if (sortedHeroImages.length > 0 && autoplayEnabled && videoEnded) {
-      if (autoplayTimerRef.current) {
-        clearInterval(autoplayTimerRef.current)
-      }
-      autoplayTimerRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
-      }, carouselIntervalOverride) // Use the faster interval override
-    }
-
-    return () => {
-      if (autoplayTimerRef.current) {
-        clearInterval(autoplayTimerRef.current)
-      }
-    }
-  }, [autoplayEnabled, videoEnded]) // Remove sortedHeroImages from dependencies
+  }, [])
 
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center">
-      {/* 移动端视频背景 */}
-      {isMobile ? (
-        <div className="absolute inset-0 overflow-hidden bg-black z-0">
-          <video
-            className="w-full h-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/images/hibachi-dinner-party.jpg"
-          >
-            <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-          {/* 视频遮罩层 */}
-          <div className="absolute inset-0 bg-black/30"></div>
-        </div>
-      ) : (
-        /* 桌面端Instagram Stories风格视频 */
-        <div className="absolute inset-0 overflow-hidden bg-black z-0">
-          {/* 模糊背景视频 */}
-          <video
-            className="absolute inset-0 w-full h-full object-cover blur-lg scale-110"
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/images/hibachi-dinner-party.jpg"
-          >
-            <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
-          </video>
-          
-          {/* 深色遮罩 */}
-          <div className="absolute inset-0 bg-black/50"></div>
-          
-          {/* 中心清晰视频 */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative h-full max-w-[500px] w-full max-h-[90vh] aspect-[9/16] bg-black rounded-lg overflow-hidden shadow-2xl">
-              <video
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster="/images/hibachi-dinner-party.jpg"
+      {/* Full-screen flame video background */}
+      <div 
+        className="absolute inset-0 overflow-hidden bg-black z-0"
+      >
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover cursor-pointer"
+          autoPlay
+          muted={isVideoMuted}
+          loop
+          playsInline
+          poster="/images/hibachi-dinner-party.jpg"
+          onClick={handleVideoClick}
+        >
+          <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        {/* Slight dark overlay to make text clearer */}
+        <div 
+          className="absolute inset-0 bg-black/40 cursor-pointer" 
+          onClick={handleVideoClick}
+        ></div>
+      </div>
+
+      {/* Video control area - only shown after user interaction */}
+      {userHasInteracted && (
+        <button
+          onClick={toggleVideoAudio}
+          className="fixed top-20 right-4 z-40 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-300 backdrop-blur-sm border border-white/10 shadow-lg"
+          aria-label={isVideoMuted ? "Enable video sound" : "Mute video sound"}
+        >
+          {isVideoMuted ? (
+            <VolumeX className="w-4 h-4" />
+          ) : (
+            <Volume2 className="w-4 h-4" />
+          )}
+        </button>
+      )}
+
+      {/* Main content area - hidden after click */}
+      {showContent && (
+        <div 
+          className="container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-center items-center transition-all duration-1000"
+        >
+          {/* Main title area - centered display */}
+          <div className="relative max-w-4xl mx-auto">
+            {/* Main welcome message */}
+            <div className="mb-16">
+              <h1 
+                className="text-5xl md:text-7xl font-black mb-6 cursor-pointer transition-all duration-500 hover:scale-105 group relative pointer-events-auto"
+                onClick={handleVideoClick}
+                style={{
+                  textShadow: "3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 4px 4px 8px rgba(0,0,0,0.5)",
+                  animation: "gentlePulse 4s ease-in-out infinite"
+                }}
               >
-                <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              
-              {/* 轻微的边框效果 */}
-              <div className="absolute inset-0 border border-white/10 rounded-lg pointer-events-none"></div>
+                <span className="text-orange-500 font-handwritten group-hover:text-orange-400 transition-colors duration-300" style={{
+                  fontWeight: "700",
+                  transform: "rotate(-2deg)",
+                  display: "inline-block"
+                }}>
+                  Hibachi
+                </span>{" "}
+                <span className="font-handwritten group-hover:text-orange-200 transition-colors duration-300" style={{
+                  color: "#F5E3CB",
+                  fontWeight: "700",
+                  transform: "rotate(1deg)",
+                  display: "inline-block",
+                  textShadow: "2px 2px 0px hsl(24.6, 85%, 35%), -1px -1px 0px hsl(24.6, 85%, 35%), 1px -1px 0px hsl(24.6, 85%, 35%), -1px 1px 0px hsl(24.6, 85%, 35%)"
+                }}>
+                  at Home
+                </span>
+                
+                {/* 播放图标 - 减小尺寸 */}
+                <span className="inline-flex items-center ml-2 group-hover:scale-110 transition-transform duration-300" style={{
+                  transform: "translateY(-4px)"
+                }}>
+                  <div className="bg-orange-500/20 hover:bg-orange-500/40 rounded-full p-1.5 border border-orange-400/60 group-hover:border-orange-300 transition-all duration-300 backdrop-blur-sm">
+                    <Play 
+                      className="w-3 h-3 md:w-4 md:h-4 text-orange-300 group-hover:text-orange-200 transition-colors duration-300" 
+                      fill="currentColor"
+                    />
+                  </div>
+                </span>
+                
+           
+              </h1>
+              <p className="text-xl md:text-2xl drop-shadow-lg" style={{
+                color: "hsl(24.6, 60%, 85%)"
+              }}>
+                Professional hibachi chefs bring the restaurant experience to your home
+              </p>
             </div>
+
+            {/* Call-to-action banner */}
+            <div
+              className="bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 text-white py-2 px-4 md:py-4 md:px-8 rounded-md md:rounded-lg transform hover:rotate-[-0.5deg] hover:scale-105 transition-all duration-300 shadow-2xl border-2 border-yellow-300"
+              style={{
+                backgroundImage: "linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #d97706 100%)",
+                boxShadow: "0 8px 16px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 215, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+              }}
+            >
+              <p className="text-lg md:text-2xl lg:text-3xl font-bold tracking-wide text-yellow-50">🎉 Want a Party? One Call, That's All! 🎉</p>
+            </div>
+
+
           </div>
         </div>
       )}
 
-      {/* Remove the full overlay div */}
 
-      <div
-        className={`container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
-      >
-        <div className="relative max-w-3xl mx-auto" style={{ marginTop: isMobile ? "calc(25vh - 100px)" : "calc(15vh - 50px)" }}>
-          <div
-            className="bg-red-600 text-white py-3 px-6 rounded-md transform rotate-[-1deg] shadow-lg border-2 border-yellow-400"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #e53e3e 0%, #c53030 100%)",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 215, 0, 0.3)",
-            }}
-          >
-            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 Want a Party? One Call, That's All. 🎉</p>
-          </div>
-        </div>
-
-        <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative"></div>
-      </div>
-
-      {/* 桌面端不再需要轮播控制 - 现在统一使用视频 */}
     </section>
   )
 }

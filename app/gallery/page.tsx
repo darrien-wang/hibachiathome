@@ -4,70 +4,7 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
 import { siteConfig } from "@/config/site"
-
-// Gallery data with actual blob images
-const galleryImages = [
-  {
-    id: "img1",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg",
-    alt: "Hibachi chef cooking with flames",
-  },
-  {
-    id: "img2",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg",
-    alt: "Fresh hibachi food being prepared",
-  },
-  {
-    id: "img3",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg",
-    alt: "Family enjoying hibachi at home",
-  },
-  {
-    id: "img4",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/4-SfqZqyg2PR4QVtatCRbequgR4WEoED.jpg",
-    alt: "Chef performing tricks",
-  },
-  {
-    id: "img5",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg",
-    alt: "Seafood hibachi",
-  },
-  {
-    id: "img6",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/7-TDZQrw5MJ7F6E1PmyHBDTtVPfNotpU.jpg",
-    alt: "Backyard party with hibachi",
-  },
-  {
-    id: "img7",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/9-qHeyNSeSAqYXM7I48CSkphbX7otGg4.jpg",
-    alt: "Chef preparing food for guests",
-  },
-  {
-    id: "img8",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/10-J7UoyKbxWTbhf21D1MIAUmZDztkwuY.jpg",
-    alt: "Indoor hibachi setup",
-  },
-  {
-    id: "img9",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/12-iIr42kDF4rQun91qqi0fabY58OlvAa.jpg",
-    alt: "Hibachi chef in action",
-  },
-  {
-    id: "img10",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/13-DOajRn24VwHuGDHsSSquxCmhKZqwwz.jpg",
-    alt: "Hibachi cooking demonstration",
-  },
-  {
-    id: "img11",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/15-YiS8DnJX7ucNCKnwemQ63i2HLwp8FH.jpg",
-    alt: "Hibachi dinner party",
-  },
-  {
-    id: "img12",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/21-0VdJxRFuoOsjk8mAAP0E1uKNupLa1E.jpg",
-    alt: "Hibachi chef preparing meal",
-  },
-]
+import { galleryImages } from "@/config/gallery-images"
 
 // Video data with YouTube embeds
 const galleryVideos = [
@@ -158,31 +95,51 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="gallery-page-safe container mx-auto px-4 py-12">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Gallery</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Browse our collection of hibachi photos and instructional videos. Learn professional techniques and get
-            inspired for your next hibachi experience.
-          </p>
-        </div>
+    <div className="gallery-page-safe">
+      {/* 火焰视频背景 */}
+      <div className="fixed inset-0 z-0">
+        <video
+          className="w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/images/hibachi-dinner-party.jpg"
+        >
+          <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        {/* 深色遮罩层，让文字更清晰 */}
+        <div className="absolute inset-0 bg-black/60"></div>
+      </div>
 
-        <Tabs defaultValue="photos" className="mb-12">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="videos">Videos</TabsTrigger>
-          </TabsList>
+      {/* 内容区域 */}
+      <div className="relative z-10 container mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold mb-4 text-white drop-shadow-lg">Gallery</h1>
+            <p className="text-xl text-gray-200 max-w-2xl mx-auto drop-shadow">
+              Browse our collection of hibachi photos and instructional videos. Learn professional techniques and get
+              inspired for your next hibachi experience.
+            </p>
+          </div>
 
-          {/* Photos Tab */}
-          <TabsContent value="photos">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {galleryImages.map((image) => (
-                <div
-                  key={image.id}
-                  className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
-                  onClick={() => !imageLoadErrors[image.id] && openLightbox(image.id)}
-                >
+          <Tabs defaultValue="photos" className="mb-12">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/90 backdrop-blur-sm">
+              <TabsTrigger value="photos" className="data-[state=active]:bg-white data-[state=active]:text-black">Photos</TabsTrigger>
+              <TabsTrigger value="videos" className="data-[state=active]:bg-white data-[state=active]:text-black">Videos</TabsTrigger>
+            </TabsList>
+
+            {/* Photos Tab */}
+            <TabsContent value="photos">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {galleryImages.map((image) => (
+                    <div
+                      key={image.id}
+                      className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
+                      onClick={() => !imageLoadErrors[image.id] && openLightbox(image.id)}
+                    >
                   {!imageLoadErrors[image.id] ? (
                     <Image
                       src={image.src}
@@ -198,56 +155,59 @@ export default function GalleryPage() {
                     <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
                       <span className="text-sm">Image unavailable</span>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Videos Tab */}
-          <TabsContent value="videos">
-            <div className="mb-8 max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold mb-3">Hibachi Cooking Tutorials</h2>
-              <p className="text-gray-600 mb-4">
-                Explore our collection of high-quality Hibachi cooking tutorials. Learn everything from basic ingredient
-                preparation to professional cooking techniques, all demonstrated by expert chefs. Recreate
-                restaurant-quality Hibachi experiences at home!
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {galleryVideos
-                .filter((video) => video.isAvailable !== false) // 过滤掉不可用的视频
-                .map((video) => (
-                  <div key={video.id} className="rounded-lg overflow-hidden border shadow-md">
-                    <div className="relative aspect-video bg-gray-100">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${video.youtubeId}`}
-                        title={video.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="absolute inset-0 w-full h-full"
-                      ></iframe>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-medium text-lg mb-1">{video.title}</h3>
-                      <p className="text-sm text-gray-600">{video.description}</p>
-                    </div>
+                    )}
                   </div>
                 ))}
+              </div>
             </div>
+            </TabsContent>
 
-            <div className="mt-10 text-center text-sm text-gray-500 max-w-2xl mx-auto border-t border-gray-200 pt-6">
-              <p className="mb-2">
-                <strong>Disclaimer:</strong> All videos featured on this page are sourced from public platforms. Rights
-                belong to their respective creators and are shared for educational purposes only.
-              </p>
-              <p>If you're the original creator and have concerns, please contact us at {siteConfig.contact.email}</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+            {/* Videos Tab */}
+            <TabsContent value="videos">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                <div className="mb-8 max-w-3xl mx-auto">
+                  <h2 className="text-2xl font-bold mb-3 text-gray-800">Hibachi Cooking Tutorials</h2>
+                  <p className="text-gray-700 mb-4">
+                    Explore our collection of high-quality Hibachi cooking tutorials. Learn everything from basic ingredient
+                    preparation to professional cooking techniques, all demonstrated by expert chefs. Recreate
+                    restaurant-quality Hibachi experiences at home!
+                  </p>
+                </div>
 
-        {/* Lightbox */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {galleryVideos
+                    .filter((video) => video.isAvailable !== false) // 过滤掉不可用的视频
+                    .map((video) => (
+                      <div key={video.id} className="rounded-lg overflow-hidden border shadow-md">
+                        <div className="relative aspect-video bg-gray-100">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${video.youtubeId}`}
+                            title={video.title}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 w-full h-full"
+                          ></iframe>
+                        </div>
+                        <div className="p-4">
+                          <h3 className="font-medium text-lg mb-1">{video.title}</h3>
+                          <p className="text-sm text-gray-600">{video.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="mt-10 text-center text-sm text-gray-500 max-w-2xl mx-auto border-t border-gray-200 pt-6">
+                  <p className="mb-2">
+                    <strong>Disclaimer:</strong> All videos featured on this page are sourced from public platforms. Rights
+                    belong to their respective creators and are shared for educational purposes only.
+                  </p>
+                  <p>If you're the original creator and have concerns, please contact us at {siteConfig.contact.email}</p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Lightbox */}
         {selectedImage && !imageLoadErrors[selectedImage] && (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center" onClick={closeLightbox}>
             <div className="relative max-w-5xl w-full h-full max-h-[80vh] p-4">
@@ -272,8 +232,9 @@ export default function GalleryPage() {
                 &times;
               </button>
             </div>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

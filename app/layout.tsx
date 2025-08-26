@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Montserrat, Poppins } from "next/font/google"
+import { Playfair_Display, Montserrat, Poppins, Dancing_Script } from "next/font/google"
 import Script from "next/script"
 import "./globals.css"
 import { Header } from "@/components/header"
@@ -23,6 +23,11 @@ const playfair = Playfair_Display({
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-montserrat",
+})
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  variable: "--font-dancing-script",
 })
 
 export const metadata: Metadata = {
@@ -139,7 +144,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${playfair.variable} ${montserrat.variable}`}>
+    <html lang="en" className={`${poppins.variable} ${playfair.variable} ${montserrat.variable} ${dancingScript.variable}`}>
       <head>
         {/* Structured Data */}
         <script

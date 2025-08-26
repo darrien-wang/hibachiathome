@@ -23,6 +23,7 @@ const config = {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         montserrat: ["var(--font-montserrat)"],
+        handwritten: ["var(--font-dancing-script)"],
       },
       colors: {
         border: "hsl(var(--border))",

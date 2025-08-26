@@ -56,3 +56,5 @@ export default function PartyPage({ params }: PartyPageProps) {
   return <PartyPageLayout partyType={partyType} />
 }
 
+
+

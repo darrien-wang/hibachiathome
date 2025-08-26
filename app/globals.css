@@ -159,12 +159,32 @@
 
 @keyframes slideUp {
   from {
-    opacity: 0;
     transform: translateY(20px);
+    opacity: 0;
   }
   to {
-    opacity: 1;
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Gentle pulse animation for title */
+@keyframes gentlePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/* Glow effect for interactive elements */
+@keyframes glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(251, 146, 60, 0.6));
   }
 }
 

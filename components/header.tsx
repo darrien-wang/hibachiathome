@@ -182,7 +182,7 @@ export function Header() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 lg:py-8 relative">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 lg:py-8 relative">
         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-[120px] h-[120px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
 
 
@@ -304,9 +304,9 @@ export function Header() {
         </div>
 
         {/* Desktop Layout */}
-        <div className="hidden md:flex items-center justify-between max-w-5xl mx-auto">
+        <div className="hidden md:grid grid-cols-[1fr_auto_1fr] items-center max-w-[90vw] xl:max-w-[1400px] mx-auto">
           {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-end flex-1">
+          <nav className="flex items-center justify-end">
             {navItems
               .filter((item) => !item.disabled)
               .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -319,7 +319,7 @@ export function Header() {
                 >
                   <Link
                     href={item.href}
-                    className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1 flex items-center gap-1"
+                    className="px-3 lg:px-4 py-2 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1.5 lg:mx-3 xl:mx-4 flex items-center gap-1"
                   >
                     {item.name}
                     {item.hasDropdown && (
@@ -355,9 +355,9 @@ export function Header() {
               ))}
           </nav>
 
-          {/* Logo in Center - Desktop remains unchanged */}
-          <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
-            <Link href="/" className="block relative w-full h-full">
+          {/* Logo in Center - Grid center column ensures perfect centering */}
+          <div className="flex items-center justify-center relative h-[50px] z-10">
+            <Link href="/" className="block relative">
               <Image
                 src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
                 alt={siteConfig.logo.alt}
@@ -370,7 +370,7 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-start flex-1">
+          <div className="flex items-center justify-start">
             {navItems
               .filter((item) => !item.disabled)
               .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -383,7 +383,7 @@ export function Header() {
                 >
                   <Link
                     href={item.href}
-                    className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1 flex items-center gap-1"
+                    className="px-3 lg:px-4 py-2 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1.5 lg:mx-3 xl:mx-4 flex items-center gap-1"
                   >
                     {item.name}
                     {item.hasDropdown && (
@@ -417,7 +417,7 @@ export function Header() {
                   )}
                 </div>
               ))}
-            <div className="ml-auto">
+            <div className="ml-4 lg:ml-6 xl:ml-8">
               <Button
                 asChild
                 className="bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 text-base border-2 border-amber-500"
