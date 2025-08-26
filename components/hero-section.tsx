@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { Play } from "lucide-react"
 
 export default function HeroSection() {
+  // Start with false to avoid hydration mismatch, detect properly in useEffect
   const [isMobile, setIsMobile] = useState(false)
   const [isVideoMuted, setIsVideoMuted] = useState(true)
   const [userHasInteracted, setUserHasInteracted] = useState(false)
@@ -31,6 +32,9 @@ Video Status:
 - Show Content: ${showContent}
 - Is Mobile: ${isMobile}
 - User Agent: ${navigator.userAgent.substring(0, 50)}...
+- Network State: ${video.networkState} (0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE)
+- Error Code: ${video.error?.code || 'None'} (1=ABORTED, 2=NETWORK, 3=DECODE, 4=SRC_NOT_SUPPORTED)
+- Video Src: ${video.src}
       `.trim()
       setDebugInfo(info)
     }
@@ -44,6 +48,27 @@ Video Status:
       return () => clearInterval(interval)
     }
   }, [showDebug, userHasInteracted, showContent, isMobile])
+
+  // Client-side mobile detection to avoid hydration issues
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    const isMobileScreen = window.innerWidth < 768
+    const shouldBeMobile = isMobileDevice || isMobileScreen
+    
+    console.log('Client-side mobile detection:', { 
+      isIOS, 
+      isMobileDevice, 
+      isMobileScreen, 
+      shouldBeMobile,
+      userAgent: navigator.userAgent 
+    })
+    
+    setIsMobile(shouldBeMobile)
+    
+    // Force update debug info after mobile detection
+    setTimeout(updateDebugInfo, 100)
+  }, [])
 
   // Volume fade functions
   const fadeVolumeIn = () => {
@@ -175,32 +200,45 @@ Video Status:
     }
   }
 
-  // Detect mobile devices and iOS
+  // Configure video and mobile handling after mobile detection
   useEffect(() => {
-    const handleResize = () => {
-      const isMobileScreen = window.innerWidth < 768
-      const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      setIsMobile(isMobileScreen || isMobileDevice)
-    }
-    
-    // iOS specific detection
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    console.log('Device detection:', { 
-      isIOS, 
-      isMobile: window.innerWidth < 768,
-      isMobileDevice,
-      userAgent: navigator.userAgent 
-    })
+    
+    const handleResize = () => {
+      const newIsMobileScreen = window.innerWidth < 768
+      const newShouldBeMobile = isMobileDevice || newIsMobileScreen
+      setIsMobile(newShouldBeMobile)
+      console.log('Resize detected:', { 
+        newIsMobileScreen, 
+        isMobileDevice, 
+        newShouldBeMobile 
+      })
+    }
+    
+    // Configure video based on device type after mounting
+    if (videoRef.current) {
+      const video = videoRef.current
+      
+      if (isIOS || isMobileDevice) {
+        console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
+        
+        // Force video to be ready for mobile
+        video.muted = true
+        video.autoplay = false // Disable autoplay for iOS
+        video.preload = 'metadata' // Only load metadata first
+      } else {
+        console.log('Desktop detected, enabling autoplay...')
+        
+        // Desktop: enable autoplay
+        video.autoplay = true
+        video.preload = 'auto'
+        video.muted = true
+      }
+    }
     
     if ((isIOS || isMobileDevice) && videoRef.current) {
       const video = videoRef.current
-      console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
-      
-      // Force video to be ready for mobile
-      video.muted = true
-      video.autoplay = false // Disable autoplay for iOS
-      video.preload = 'metadata' // Only load metadata first
       
       // Force load the video
       console.log('Forcing video load...')
@@ -261,15 +299,12 @@ Video Status:
       }
     }
 
-    // Set initial value and add resize listener
-    handleResize()
-
-    // Add event listener
+    // Add resize event listener
     window.addEventListener("resize", handleResize)
 
     // Cleanup
     return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  }, [isMobile]) // Re-run when mobile state changes
 
   // Handle video audio state and Safari compatibility
   useEffect(() => {
@@ -340,25 +375,47 @@ Video Status:
         <video
           ref={videoRef}
           className="w-full h-full object-cover cursor-pointer"
-          autoPlay={!isMobile}
+          autoPlay={false}
           muted={isVideoMuted}
           loop
           playsInline
           webkit-playsinline="true"
-          preload={isMobile ? "metadata" : "auto"}
+          preload="metadata"
           controls={false}
           poster="/images/hibachi-dinner-party.jpg"
           onClick={handleVideoClick}
+          suppressHydrationWarning
           onLoadStart={() => console.log('Video load started')}
           onLoadedData={() => console.log('Video data loaded')}
           onCanPlay={() => console.log('Video can play')}
           onPlay={() => console.log('Video started playing')}
           onPause={() => console.log('Video paused')}
-          onError={(e) => console.error('Video error:', e.target)}
+          onError={(e) => {
+            const video = e.target as HTMLVideoElement
+            console.error('Video error details:', {
+              error: e,
+              target: video,
+              networkState: video.networkState,
+              readyState: video.readyState,
+              src: video.src,
+              currentSrc: video.currentSrc,
+              errorCode: video.error?.code,
+              errorMessage: video.error?.message,
+              lastErrorEvent: e
+            })
+          }}
           style={{ willChange: 'transform' }}
         >
-          <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
-          <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+          <source 
+            src="/video/00ebf7a19327d6f30078329b3e163952.mp4" 
+            type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'"
+            onError={(e) => console.error('First source failed:', e.target)}
+          />
+          <source 
+            src="/video/00ebf7a19327d6f30078329b3e163952.mp4" 
+            type="video/mp4"
+            onError={(e) => console.error('Second source failed:', e.target)}
+          />
           Your browser does not support the video tag.
         </video>
         {/* Dynamic dark overlay - hidden when sound is playing, shown when muted */}
@@ -511,6 +568,36 @@ Video Status:
               className="bg-yellow-600 px-2 py-1 rounded text-xs"
             >
               Enable Autoplay
+            </button>
+            <button
+              onClick={async () => {
+                console.log('Testing video file accessibility...')
+                try {
+                  const response = await fetch('/video/00ebf7a19327d6f30078329b3e163952.mp4', { method: 'HEAD' })
+                  console.log('Video file test:', {
+                    status: response.status,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    ok: response.ok
+                  })
+                } catch (error) {
+                  console.error('Video file test failed:', error)
+                }
+              }}
+              className="bg-pink-600 px-2 py-1 rounded text-xs"
+            >
+              Test Video File
+            </button>
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  console.log('Trying poster as video...')
+                  videoRef.current.src = '/images/hibachi-dinner-party.jpg'
+                  updateDebugInfo()
+                }
+              }}
+              className="bg-gray-600 px-2 py-1 rounded text-xs"
+            >
+              Try Poster
             </button>
           </div>
         </div>
