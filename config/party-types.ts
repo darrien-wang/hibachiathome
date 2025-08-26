@@ -26,7 +26,7 @@ export interface PartyType {
 
 export const partyTypes: PartyType[] = [
   {
-    id: "birthday-party",
+    id: "birthday",
     name: "Birthday Parties",
     href: "/parties/birthday",
     title: "Unforgettable Birthday Hibachi Parties",
@@ -65,7 +65,7 @@ export const partyTypes: PartyType[] = [
     ]
   },
   {
-    id: "graduation-party",
+    id: "graduation",
     name: "Graduation Parties",
     href: "/parties/graduation",
     title: "Celebrate Success with Hibachi Graduation Parties",
@@ -96,7 +96,7 @@ export const partyTypes: PartyType[] = [
     ]
   },
   {
-    id: "anniversary-party",
+    id: "anniversary",
     name: "Anniversary Celebrations",
     href: "/parties/anniversary",
     title: "Romantic Hibachi Anniversary Celebrations",
@@ -127,7 +127,7 @@ export const partyTypes: PartyType[] = [
     ]
   },
   {
-    id: "corporate-event",
+    id: "corporate",
     name: "Corporate Events",
     href: "/parties/corporate",
     title: "Professional Hibachi Corporate Events",
@@ -159,7 +159,7 @@ export const partyTypes: PartyType[] = [
     ]
   },
   {
-    id: "family-gathering",
+    id: "family",
     name: "Family Gatherings",
     href: "/parties/family",
     title: "Heartwarming Hibachi Family Gatherings",
@@ -191,7 +191,7 @@ export const partyTypes: PartyType[] = [
     ]
   },
   {
-    id: "holiday-party",
+    id: "holiday",
     name: "Holiday Parties",
     href: "/parties/holiday",
     title: "Festive Hibachi Holiday Celebrations",

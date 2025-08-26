@@ -7,7 +7,6 @@ import { PartyType } from "@/config/party-types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Instagram, Facebook, Play, Check, Star, Phone, Mail } from "lucide-react"
 
 interface PartyPageLayoutProps {
@@ -98,34 +97,14 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {partyType.galleryImages.map((image, index) => (
-              <Dialog key={index}>
-                <DialogTrigger asChild>
-                  <div className="relative h-64 cursor-pointer group overflow-hidden rounded-lg">
-                    <Image
-                      src={image}
-                      alt={`${partyType.name} gallery ${index + 1}`}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                        <Play className="w-6 h-6 text-gray-900" />
-                      </div>
-                    </div>
-                  </div>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl">
-                  <div className="relative h-96">
-                    <Image
-                      src={image}
-                      alt={`${partyType.name} gallery ${index + 1}`}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <div key={index} className="relative h-64 overflow-hidden rounded-lg">
+                <Image
+                  src={image}
+                  alt={`${partyType.name} gallery ${index + 1}`}
+                  fill
+                  className="object-cover"
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -180,15 +159,15 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
               </div>
             </div>
 
-            {/* Video Content */}
-            <div>
-              <h3 className="text-2xl font-semibold mb-6">Watch Our Work</h3>
-              <p className="text-gray-300 mb-6">
-                Check out these videos from recent {partyType.name.toLowerCase()} we've catered. 
-                See the excitement, entertainment, and delicious food that awaits your celebration.
-              </p>
-              
-              {partyType.videoLinks && partyType.videoLinks.length > 0 ? (
+            {/* Video Content - Only show if videos exist */}
+            {partyType.videoLinks && partyType.videoLinks.length > 0 && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-6">Watch Our Work</h3>
+                <p className="text-gray-300 mb-6">
+                  Check out these videos from recent {partyType.name.toLowerCase()} we've catered. 
+                  See the excitement, entertainment, and delicious food that awaits your celebration.
+                </p>
+                
                 <div className="space-y-4">
                   {partyType.videoLinks.map((videoLink, index) => (
                     <Link
@@ -208,15 +187,43 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
                     </Link>
                   ))}
                 </div>
-              ) : (
-                <div className="bg-white/10 rounded-lg p-6 text-center">
-                  <Play className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-300">
-                    Videos coming soon! Follow us on social media to see our latest {partyType.name.toLowerCase()}.
-                  </p>
+              </div>
+            )}
+
+            {/* Social Media Content - Show when no videos available */}
+            {(!partyType.videoLinks || partyType.videoLinks.length === 0) && partyType.socialMediaLinks && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-6">Follow Our Latest Work</h3>
+                <p className="text-gray-300 mb-6">
+                  See more of our {partyType.name.toLowerCase()} on social media for the latest photos and updates.
+                </p>
+                
+                <div className="flex gap-4">
+                  {partyType.socialMediaLinks.instagram && (
+                    <Link
+                      href={partyType.socialMediaLinks.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                    >
+                      <Instagram className="w-6 h-6 text-pink-400" />
+                      <span>Follow on Instagram</span>
+                    </Link>
+                  )}
+                  {partyType.socialMediaLinks.facebook && (
+                    <Link
+                      href={partyType.socialMediaLinks.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                    >
+                      <Facebook className="w-6 h-6 text-blue-400" />
+                      <span>Follow on Facebook</span>
+                    </Link>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
