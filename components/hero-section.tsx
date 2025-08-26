@@ -178,45 +178,86 @@ Video Status:
   // Detect mobile devices and iOS
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
+      const isMobileScreen = window.innerWidth < 768
+      const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      setIsMobile(isMobileScreen || isMobileDevice)
     }
     
     // iOS specific detection
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     console.log('Device detection:', { 
       isIOS, 
       isMobile: window.innerWidth < 768,
+      isMobileDevice,
       userAgent: navigator.userAgent 
     })
     
-    if (isIOS && videoRef.current) {
+    if ((isIOS || isMobileDevice) && videoRef.current) {
       const video = videoRef.current
-      console.log('iOS detected, setting up special handling...')
+      console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
       
-      // Force video to be ready for iOS
-      video.load()
+      // Force video to be ready for mobile
       video.muted = true
+      video.autoplay = false // Disable autoplay for iOS
+      video.preload = 'metadata' // Only load metadata first
       
-      // Add special iOS event handlers
-      const iosPlayHandler = async () => {
+      // Force load the video
+      console.log('Forcing video load...')
+      video.load()
+      
+      // Add comprehensive event listeners
+      const handleLoadStart = () => console.log('Mobile: loadstart event')
+      const handleLoadedMetadata = () => {
+        console.log('Mobile: loadedmetadata event, ReadyState:', video.readyState)
+        updateDebugInfo()
+      }
+      const handleLoadedData = () => {
+        console.log('Mobile: loadeddata event, ReadyState:', video.readyState)
+        updateDebugInfo()
+      }
+      const handleCanPlay = () => {
+        console.log('Mobile: canplay event, ReadyState:', video.readyState)
+        updateDebugInfo()
+      }
+      
+      // Add special mobile event handlers
+      const mobilePlayHandler = async (event: Event) => {
+        console.log('Mobile: User interaction detected, type:', event.type)
         try {
           if (video.paused) {
-            console.log('iOS: Attempting to play video...')
+            console.log('Mobile: Attempting to play video...')
+            video.preload = 'auto' // Now load full video
             await video.play()
-            console.log('iOS: Video playing successfully')
+            console.log('Mobile: Video playing successfully')
+            updateDebugInfo()
           }
         } catch (error) {
-          console.error('iOS: Video play failed:', error)
+          console.error('Mobile: Video play failed:', error)
         }
       }
       
-      // Try multiple approaches for iOS
-      video.addEventListener('touchstart', iosPlayHandler)
-      video.addEventListener('click', iosPlayHandler)
+      // Add event listeners
+      video.addEventListener('loadstart', handleLoadStart)
+      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      video.addEventListener('loadeddata', handleLoadedData)
+      video.addEventListener('canplay', handleCanPlay)
+      video.addEventListener('touchstart', mobilePlayHandler)
+      video.addEventListener('click', mobilePlayHandler)
+      
+      // Try to load metadata immediately
+      setTimeout(() => {
+        console.log('Delayed load attempt...')
+        video.load()
+      }, 100)
       
       return () => {
-        video.removeEventListener('touchstart', iosPlayHandler)
-        video.removeEventListener('click', iosPlayHandler)
+        video.removeEventListener('loadstart', handleLoadStart)
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        video.removeEventListener('loadeddata', handleLoadedData)
+        video.removeEventListener('canplay', handleCanPlay)
+        video.removeEventListener('touchstart', mobilePlayHandler)
+        video.removeEventListener('click', mobilePlayHandler)
       }
     }
 
@@ -299,12 +340,12 @@ Video Status:
         <video
           ref={videoRef}
           className="w-full h-full object-cover cursor-pointer"
-          autoPlay
+          autoPlay={!isMobile}
           muted={isVideoMuted}
           loop
           playsInline
           webkit-playsinline="true"
-          preload="auto"
+          preload={isMobile ? "metadata" : "auto"}
           controls={false}
           poster="/images/hibachi-dinner-party.jpg"
           onClick={handleVideoClick}
@@ -414,11 +455,18 @@ Video Status:
         <div className="fixed top-4 right-4 bg-black/90 text-white p-4 rounded-lg max-w-sm text-xs z-50 max-h-96 overflow-y-auto">
           <h3 className="font-bold mb-2 text-yellow-400">Video Debug Info</h3>
           <pre className="whitespace-pre-wrap font-mono">{debugInfo}</pre>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (videoRef.current) {
-                  videoRef.current.play().catch(console.error)
+                  console.log('Force Play clicked')
+                  try {
+                    videoRef.current.muted = true
+                    await videoRef.current.play()
+                    updateDebugInfo()
+                  } catch (error) {
+                    console.error('Force play failed:', error)
+                  }
                 }
               }}
               className="bg-green-600 px-2 py-1 rounded text-xs"
@@ -428,12 +476,41 @@ Video Status:
             <button
               onClick={() => {
                 if (videoRef.current) {
+                  console.log('Reload Video clicked')
                   videoRef.current.load()
+                  updateDebugInfo()
                 }
               }}
               className="bg-blue-600 px-2 py-1 rounded text-xs"
             >
               Reload Video
+            </button>
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  console.log('Auto Preload clicked')
+                  videoRef.current.preload = 'auto'
+                  videoRef.current.load()
+                  updateDebugInfo()
+                }
+              }}
+              className="bg-purple-600 px-2 py-1 rounded text-xs"
+            >
+              Auto Preload
+            </button>
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  console.log('Enable Autoplay clicked')
+                  videoRef.current.autoplay = true
+                  videoRef.current.muted = true
+                  videoRef.current.load()
+                  updateDebugInfo()
+                }
+              }}
+              className="bg-yellow-600 px-2 py-1 rounded text-xs"
+            >
+              Enable Autoplay
             </button>
           </div>
         </div>
