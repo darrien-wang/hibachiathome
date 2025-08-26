@@ -60,8 +60,8 @@ export const partyTypes: PartyType[] = [
       facebook: "https://facebook.com/realhibachiathome"
     },
     videoLinks: [
-      "https://www.instagram.com/p/example1/",
-      "https://www.instagram.com/p/example2/"
+      "https://www.instagram.com/p/DNBj1r7yWvq/",
+      "https://www.tiktok.com/@real.hibachi/video/7541290219983703351"
     ]
   },
   {
@@ -90,6 +90,10 @@ export const partyTypes: PartyType[] = [
       "/images/20250825183449_576_50.jpg", // 厨师烹饪
       "/images/20250825183502_578_50.jpg", // 室内火焰表演
       "/images/20250825183355_569_50.jpg"  // 室内设置
+    ],
+    videoLinks: [
+      "https://www.instagram.com/p/DNBj1r7yWvq/",
+      "https://www.tiktok.com/@real.hibachi/video/7541290219983703351"
     ]
   },
   {
@@ -119,6 +123,10 @@ export const partyTypes: PartyType[] = [
       "/images/20250825183502_578_50.jpg", // 火焰表演
       "/images/20250825183558_585_50.jpg", // 晚餐设置
       "/images/20250825183403_570_50.jpg"  // SAKE主题
+    ],
+    videoLinks: [
+      "https://www.instagram.com/p/DNBj1r7yWvq/",
+      "https://www.tiktok.com/@real.hibachi/video/7541290219983703351"
     ]
   },
   {
@@ -151,6 +159,10 @@ export const partyTypes: PartyType[] = [
       "/images/20250825183605_586_50.jpg", // 大型聚会
       "/images/20250825183624_589_50.jpg", // 食物展示
       "/images/20250825183632_590_50.jpg"  // 室外火焰表演
+    ],
+    videoLinks: [
+      "https://www.instagram.com/p/DNBj1r7yWvq/",
+      "https://www.tiktok.com/@real.hibachi/video/7541290219983703351"
     ]
   },
   {
@@ -183,6 +195,10 @@ export const partyTypes: PartyType[] = [
       "/images/20250825183525_581_50.jpg", // 绿色桌布聚会
       "/images/20250825183534_582_50.jpg", // 绿色桌布聚会2
       "/images/20250825183517_580_50.jpg"  // 后院聚会
+    ],
+    videoLinks: [
+      "https://www.instagram.com/p/DNBj1r7yWvq/",
+      "https://www.tiktok.com/@real.hibachi/video/7541290219983703351"
     ]
   },
   {
@@ -215,6 +231,10 @@ export const partyTypes: PartyType[] = [
       "/images/20250825183424_573_50.jpg", // 室外设置
       "/images/20250825183431_574_50.jpg", // 室外聚会
       "/images/20250825183438_575_50.jpg"  // 食物展示
+    ],
+    videoLinks: [
+      "https://www.instagram.com/p/DNBj1r7yWvq/",
+      "https://www.tiktok.com/@real.hibachi/video/7541290219983703351"
     ]
   }
 ]

@@ -53,21 +53,21 @@ export default function BookingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
               {
-                title: "WhatsApp",
-                description: "Fastest response",
-                icon: <MessageSquare className="h-5 w-5" />,
-                buttonText: "Open WhatsApp",
-                href: `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
-                external: true,
-                primary: true
-              },
-              {
                 title: "Text Message",
                 description: "Send us a text",
                 icon: <MessageSquare className="h-5 w-5" />,
                 buttonText: "Send Message",
                 href: `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`,
                 external: false,
+                primary: true
+              },
+              {
+                title: "WhatsApp",
+                description: "Quick response",
+                icon: <MessageSquare className="h-5 w-5" />,
+                buttonText: "Open WhatsApp",
+                href: `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
+                external: true,
                 primary: false
               },
               {
@@ -127,7 +127,7 @@ export default function BookingPage() {
               </div>
               <h4 className="text-lg font-medium text-gray-900 mb-2">Contact us</h4>
               <p className="text-gray-600 text-base leading-relaxed">
-                Reach out via WhatsApp, text, or phone to book your date
+                Reach out via text, WhatsApp, or phone to book your date
               </p>
             </div>
             <div className="text-center">

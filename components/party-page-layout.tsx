@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Instagram, Facebook, Play, Check, Star, Phone, Mail } from "lucide-react"
+import { siteConfig } from "@/config/site"
 
 interface PartyPageLayoutProps {
   partyType: PartyType
@@ -127,35 +128,31 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
               </p>
               
               <div className="space-y-4">
-                {partyType.socialMediaLinks?.instagram && (
-                  <Link
-                    href={partyType.socialMediaLinks.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-4 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-                  >
-                    <Instagram className="w-8 h-8 text-pink-400" />
-                    <div>
-                      <div className="font-semibold">Follow us on Instagram</div>
-                      <div className="text-sm text-gray-300">See our latest {partyType.name.toLowerCase()} photos & videos</div>
-                    </div>
-                  </Link>
-                )}
+                <Link
+                  href={siteConfig.social.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  <Instagram className="w-8 h-8 text-pink-400" />
+                  <div>
+                    <div className="font-semibold">Follow us on Instagram</div>
+                    <div className="text-sm text-gray-300">See our latest {partyType.name.toLowerCase()} photos & videos</div>
+                  </div>
+                </Link>
                 
-                {partyType.socialMediaLinks?.facebook && (
-                  <Link
-                    href={partyType.socialMediaLinks.facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-4 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-                  >
-                    <Facebook className="w-8 h-8 text-blue-400" />
-                    <div>
-                      <div className="font-semibold">Like us on Facebook</div>
-                      <div className="text-sm text-gray-300">Join our community and see event updates</div>
-                    </div>
-                  </Link>
-                )}
+                <Link
+                  href={siteConfig.social.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  <Facebook className="w-8 h-8 text-blue-400" />
+                  <div>
+                    <div className="font-semibold">Like us on Facebook</div>
+                    <div className="text-sm text-gray-300">Join our community and see event updates</div>
+                  </div>
+                </Link>
               </div>
             </div>
 
@@ -191,7 +188,7 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
             )}
 
             {/* Social Media Content - Show when no videos available */}
-            {(!partyType.videoLinks || partyType.videoLinks.length === 0) && partyType.socialMediaLinks && (
+            {(!partyType.videoLinks || partyType.videoLinks.length === 0) && (
               <div>
                 <h3 className="text-2xl font-semibold mb-6">Follow Our Latest Work</h3>
                 <p className="text-gray-300 mb-6">
@@ -199,28 +196,24 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
                 </p>
                 
                 <div className="flex gap-4">
-                  {partyType.socialMediaLinks.instagram && (
-                    <Link
-                      href={partyType.socialMediaLinks.instagram}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-                    >
-                      <Instagram className="w-6 h-6 text-pink-400" />
-                      <span>Follow on Instagram</span>
-                    </Link>
-                  )}
-                  {partyType.socialMediaLinks.facebook && (
-                    <Link
-                      href={partyType.socialMediaLinks.facebook}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-                    >
-                      <Facebook className="w-6 h-6 text-blue-400" />
-                      <span>Follow on Facebook</span>
-                    </Link>
-                  )}
+                  <Link
+                    href={siteConfig.social.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                  >
+                    <Instagram className="w-6 h-6 text-pink-400" />
+                    <span>Follow on Instagram</span>
+                  </Link>
+                  <Link
+                    href={siteConfig.social.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                  >
+                    <Facebook className="w-6 h-6 text-blue-400" />
+                    <span>Follow on Facebook</span>
+                  </Link>
                 </div>
               </div>
             )}
@@ -280,11 +273,11 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-sm opacity-90">
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              <span>Call for immediate booking: (555) 123-4567</span>
+              <span>Call for immediate booking: {siteConfig.contact.phone}</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
-              <span>Email: bookings@realhibachiathome.com</span>
+              <span>Email: {siteConfig.contact.email}</span>
             </div>
           </div>
         </div>
