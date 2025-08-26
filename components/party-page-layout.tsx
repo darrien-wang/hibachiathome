@@ -46,7 +46,7 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
               <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50">
                 <Link href="/book">Book This Party Type</Link>
               </Button>
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
+              <Button variant="outline" size="lg" className="border-white bg-white/10 text-white hover:bg-white hover:text-orange-600 transition-all duration-300">
                 <Link href="/menu">View Menu Options</Link>
               </Button>
             </div>
@@ -272,7 +272,7 @@ export default function PartyPageLayout({ partyType }: PartyPageLayoutProps) {
             <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50">
               <Link href="/book">Book Now</Link>
             </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
+            <Button variant="outline" size="lg" className="border-white bg-white/10 text-white hover:bg-white hover:text-orange-600 transition-all duration-300">
               <Link href="/faq">View FAQ</Link>
             </Button>
           </div>

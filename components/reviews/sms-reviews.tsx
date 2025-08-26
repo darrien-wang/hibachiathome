@@ -221,26 +221,6 @@ export default function SMSReviews() {
               <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
                 Join our satisfied customers and enjoy professional hibachi at-home service with authentic flavors and exceptional presentation
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
-                  asChild
-                >
-                  <a href="/book">Book Now</a>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 px-8 py-3"
-                  asChild
-                >
-                  <a href="sms:2137707788">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Text for Quote
-                  </a>
-                </Button>
-              </div>
             </div>
           </div>
         </AnimateOnScroll>

@@ -68,14 +68,6 @@ export default function ReviewsPage() {
             <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
               Join our satisfied customers and enjoy authentic hibachi at-home experience
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-orange-50 font-semibold shadow-lg">
-                <Link href="/book">Book Now</Link>
-              </Button>
-              <Button asChild size="lg" className="bg-white/20 backdrop-blur-sm border-white border-2 text-white hover:bg-white hover:text-orange-600 font-semibold">
-                <Link href="/menu">View Menu</Link>
-              </Button>
-            </div>
           </AnimateOnScroll>
         </div>
       </section>

@@ -10,8 +10,40 @@ export default function HeroSection() {
   const [isRotating, setIsRotating] = useState(false)
   const [isFadingIn, setIsFadingIn] = useState(false)
   const [currentVolume, setCurrentVolume] = useState(0)
+  const [debugInfo, setDebugInfo] = useState('')
+  const [showDebug, setShowDebug] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debug function
+  const updateDebugInfo = () => {
+    if (videoRef.current) {
+      const video = videoRef.current
+      const info = `
+Video Status:
+- Paused: ${video.paused}
+- Muted: ${video.muted}
+- Volume: ${video.volume}
+- ReadyState: ${video.readyState}
+- Current Time: ${video.currentTime.toFixed(2)}
+- Duration: ${video.duration || 'Unknown'}
+- User Interacted: ${userHasInteracted}
+- Show Content: ${showContent}
+- Is Mobile: ${isMobile}
+- User Agent: ${navigator.userAgent.substring(0, 50)}...
+      `.trim()
+      setDebugInfo(info)
+    }
+  }
+
+  // Update debug info periodically
+  useEffect(() => {
+    if (showDebug) {
+      updateDebugInfo()
+      const interval = setInterval(updateDebugInfo, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [showDebug, userHasInteracted, showContent, isMobile])
 
   // Volume fade functions
   const fadeVolumeIn = () => {
@@ -109,7 +141,31 @@ export default function HeroSection() {
     }
   }
 
-  const handleVideoClick = () => {
+  const handleVideoClick = async () => {
+    console.log('Video clicked! User has interacted:', userHasInteracted)
+    
+    if (videoRef.current) {
+      const video = videoRef.current
+      console.log('Video state:', {
+        paused: video.paused,
+        muted: video.muted,
+        readyState: video.readyState,
+        currentTime: video.currentTime,
+        duration: video.duration
+      })
+      
+      // If video is paused, try to play it first (important for iOS)
+      if (video.paused) {
+        try {
+          console.log('Video is paused, attempting to play...')
+          await video.play()
+          console.log('Video play successful after click')
+        } catch (error) {
+          console.error('Failed to play video after click:', error)
+        }
+      }
+    }
+    
     if (!userHasInteracted) {
       // First click: hide content and enable sound
       handleFirstInteraction()
@@ -119,13 +175,52 @@ export default function HeroSection() {
     }
   }
 
-  // Detect mobile devices
+  // Detect mobile devices and iOS
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
+    
+    // iOS specific detection
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    console.log('Device detection:', { 
+      isIOS, 
+      isMobile: window.innerWidth < 768,
+      userAgent: navigator.userAgent 
+    })
+    
+    if (isIOS && videoRef.current) {
+      const video = videoRef.current
+      console.log('iOS detected, setting up special handling...')
+      
+      // Force video to be ready for iOS
+      video.load()
+      video.muted = true
+      
+      // Add special iOS event handlers
+      const iosPlayHandler = async () => {
+        try {
+          if (video.paused) {
+            console.log('iOS: Attempting to play video...')
+            await video.play()
+            console.log('iOS: Video playing successfully')
+          }
+        } catch (error) {
+          console.error('iOS: Video play failed:', error)
+        }
+      }
+      
+      // Try multiple approaches for iOS
+      video.addEventListener('touchstart', iosPlayHandler)
+      video.addEventListener('click', iosPlayHandler)
+      
+      return () => {
+        video.removeEventListener('touchstart', iosPlayHandler)
+        video.removeEventListener('click', iosPlayHandler)
+      }
+    }
 
-    // Set initial value
+    // Set initial value and add resize listener
     handleResize()
 
     // Add event listener
@@ -154,9 +249,11 @@ export default function HeroSection() {
         // Try to play after a short delay for Safari
         const playVideo = async () => {
           try {
-            await video.play()
-          } catch (error) {
-            console.log('Safari autoplay prevented:', error)
+            console.log('Attempting to play video on Safari...')
+            const playPromise = await video.play()
+            console.log('Video play successful:', playPromise)
+          } catch (error: any) {
+            console.error('Safari autoplay failed:', error.name, error.message)
             // Safari might prevent autoplay, this is expected
           }
         }
@@ -178,7 +275,7 @@ export default function HeroSection() {
     if (isFadingIn) {
       const timer = setTimeout(() => {
         setIsFadingIn(false)
-      }, 800) // Match animation duration
+      }, 600) // Match animation duration
       
       return () => clearTimeout(timer)
     }
@@ -208,8 +305,15 @@ export default function HeroSection() {
           playsInline
           webkit-playsinline="true"
           preload="auto"
+          controls={false}
           poster="/images/hibachi-dinner-party.jpg"
           onClick={handleVideoClick}
+          onLoadStart={() => console.log('Video load started')}
+          onLoadedData={() => console.log('Video data loaded')}
+          onCanPlay={() => console.log('Video can play')}
+          onPlay={() => console.log('Video started playing')}
+          onPause={() => console.log('Video paused')}
+          onError={(e) => console.error('Video error:', e.target)}
           style={{ willChange: 'transform' }}
         >
           <source src="/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
@@ -290,6 +394,14 @@ export default function HeroSection() {
                 />
                 <span className="text-sm md:text-base font-medium">Watch Video</span>
               </button>
+              
+              {/* Debug button for mobile troubleshooting */}
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="mt-4 bg-red-600/60 hover:bg-red-700/80 text-white py-2 px-4 rounded-full text-xs"
+              >
+                {showDebug ? 'Hide' : 'Show'} Debug Info
+              </button>
             </div>
 
 
@@ -297,6 +409,35 @@ export default function HeroSection() {
         </div>
       )}
 
+      {/* Debug Panel for Mobile */}
+      {showDebug && (
+        <div className="fixed top-4 right-4 bg-black/90 text-white p-4 rounded-lg max-w-sm text-xs z-50 max-h-96 overflow-y-auto">
+          <h3 className="font-bold mb-2 text-yellow-400">Video Debug Info</h3>
+          <pre className="whitespace-pre-wrap font-mono">{debugInfo}</pre>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch(console.error)
+                }
+              }}
+              className="bg-green-600 px-2 py-1 rounded text-xs"
+            >
+              Force Play
+            </button>
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  videoRef.current.load()
+                }
+              }}
+              className="bg-blue-600 px-2 py-1 rounded text-xs"
+            >
+              Reload Video
+            </button>
+          </div>
+        </div>
+      )}
 
     </section>
   )

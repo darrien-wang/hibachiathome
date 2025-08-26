@@ -73,12 +73,9 @@ export const partyTypes: PartyType[] = [
     shortDescription: "Celebrate academic achievements with impressive hibachi entertainment",
     heroImage: "/images/20250825183449_576_50.jpg", // 厨师烹饪照片
     features: [
-      "Congratulatory chef performance",
-      "Diploma-themed food presentations",
       "Customizable menu options",
       "Group entertainment & interaction",
       "Professional photography moments",
-      "Special graduation toast coordination"
     ],
     seoTitle: "Graduation Party Hibachi Catering | Los Angeles Teppanyaki Chef",
     seoDescription: "Celebrate graduation with hibachi catering in Los Angeles. Professional teppanyaki chefs create memorable graduation party entertainment for your special day.",
@@ -107,9 +104,7 @@ export const partyTypes: PartyType[] = [
       "Romantic ambiance with entertainment",
       "Heart-shaped food presentations",
       "Couples cooking demonstrations",
-      "Anniversary song performance",
       "Photo-worthy moments",
-      "Customizable romantic menu"
     ],
     seoTitle: "Anniversary Party Hibachi Catering Los Angeles | Romantic Dining",
     seoDescription: "Celebrate your anniversary with romantic hibachi catering in Los Angeles. Interactive teppanyaki chefs create intimate and entertaining anniversary experiences.",
