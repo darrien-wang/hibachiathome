@@ -51,11 +51,12 @@ const testimonials = [
   },
 ]
 
-// 视频加载超时组件
+// 视频加载超时组件，iOS兼容性增强版
 function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
   const [showVideo, setShowVideo] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     timerRef.current = setTimeout(() => {
@@ -77,6 +78,35 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
     console.error("Video loading error:", error)
     setShowVideo(false)
   }
+
+  // 处理视频播放开始，暂停其他正在播放的视频
+  const handlePlay = () => {
+    if (typeof window !== 'undefined') {
+      const allVideos = document.querySelectorAll('video')
+      allVideos.forEach((video) => {
+        if (video !== videoRef.current && !video.paused) {
+          video.pause()
+        }
+      })
+    }
+  }
+
+  // iOS特定的处理
+  useEffect(() => {
+    const video = videoRef.current
+    if (video) {
+      // 添加iOS特定的事件监听器
+      const handleStalled = () => {
+        console.log("Video stalled, attempting to reload")
+        video.load()
+      }
+
+      video.addEventListener('stalled', handleStalled)
+      return () => {
+        video.removeEventListener('stalled', handleStalled)
+      }
+    }
+  }, [])
 
   if (!showVideo) {
     return (
@@ -102,13 +132,17 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
 
   return (
     <video 
+      ref={videoRef}
       {...props} 
       onLoadedData={handleLoadedData} 
-      onError={handleError} 
+      onError={handleError}
+      onPlay={handlePlay}
       poster={poster}
       playsInline
       webkit-playsinline="true"
-      preload="auto"
+      x-webkit-airplay="allow"
+      preload="metadata"
+      controlsList="nodownload nofullscreen"
     >
       <source src={src} type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
       <source src={src} type="video/mp4" />
@@ -716,20 +750,15 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <video
+                  <TimeoutVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
                     autoPlay
                     muted
                     loop
                     poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                  >
-                    <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
-                      type="video/mp4"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
+                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                  />
                 </div>
               </div>
             </AnimateOnScroll>
@@ -923,20 +952,15 @@ export default function Home() {
 
             <AnimateOnScroll direction="up" delay={600}>
               <div className="mt-16 max-w-4xl mx-auto">
-                <video
-                  src="/images/dance.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  webkit-playsinline="true"
-                  preload="auto"
-                  className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
-                >
-                  <source src="/images/dance.mp4" type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
-                  <source src="/images/dance.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+                <div className="relative">
+                  <TimeoutVideo
+                    src="/images/dance.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
+                  />
+                </div>
               </div>
             </AnimateOnScroll>
           </div>
