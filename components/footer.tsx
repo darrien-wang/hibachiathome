@@ -197,11 +197,112 @@ export default function Footer() {
             </div>
             <div className="space-y-2">
               <p className="text-[14px] text-[#A1A1A1]">
-                Proudly serving Los Angeles, Orange County, Beverly Hills, Santa Monica, Irvine, Pasadena, and all of
-                Southern California
+                Proudly serving{" "}
+                <Link href="/service-area/los-angeles" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Los Angeles
+                </Link>
+                {", "}
+                <Link href="/service-area/orange-county" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Orange County
+                </Link>
+                {", "}
+                <Link href="/service-area/beverly-hills" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Beverly Hills
+                </Link>
+                {", "}
+                <Link href="/service-area/santa-monica" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Santa Monica
+                </Link>
+                {", "}
+                <Link href="/service-area/orange-county/irvine" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Irvine
+                </Link>
+                {", "}
+                <Link href="/service-area/pasadena" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Pasadena
+                </Link>
+                {", "}
+                <Link href="/service-area/long-beach" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Long Beach
+                </Link>
+                {", "}
+                <Link href="/service-area/riverside" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Riverside
+                </Link>
+                {", "}
+                <Link href="/service-area/san-diego" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  San Diego
+                </Link>
+                {", and all of "}
+                <Link href="/service-area" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Southern California
+                </Link>
               </p>
               <p className="text-[14px] text-[#A1A1A1]">
-                Also available in New York: {siteConfig.contact.locations?.join(", ")} areas
+                Also serving{" "}
+                <Link href="/service-area/burbank" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Burbank
+                </Link>
+                {", "}
+                <Link href="/service-area/glendale" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Glendale
+                </Link>
+                {", "}
+                <Link href="/service-area/orange-county/newport-beach" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Newport Beach
+                </Link>
+                {", "}
+                <Link href="/service-area/orange-county/anaheim" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Anaheim
+                </Link>
+                {", "}
+                <Link href="/service-area/orange-county/huntington-beach" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Huntington Beach
+                </Link>
+                {", "}
+                <Link href="/service-area/san-bernardino/rancho-cucamonga" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Rancho Cucamonga
+                </Link>
+                {", "}
+                <Link href="/service-area/san-bernardino/ontario" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Ontario
+                </Link>
+                {", "}
+                <Link href="/service-area/palm-springs" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Palm Springs
+                </Link>
+                {" areas"}
+              </p>
+              <p className="text-[14px] text-[#A1A1A1]">
+                Additionally covering{" "}
+                <Link href="/service-area/san-diego/chula-vista" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Chula Vista
+                </Link>
+                {", "}
+                <Link href="/service-area/san-diego/escondido" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Escondido
+                </Link>
+                {", "}
+                <Link href="/service-area/san-diego/carlsbad" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Carlsbad
+                </Link>
+                {", "}
+                <Link href="/service-area/san-bernardino/corona" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Corona
+                </Link>
+                {", "}
+                <Link href="/service-area/riverside/moreno-valley" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Moreno Valley
+                </Link>
+                {", "}
+                <Link href="/service-area/san-bernardino/fontana" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  Fontana
+                </Link>
+                {", "}
+                <Link href="/service-area/san-bernardino/san-bernardino-city" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
+                  San Bernardino
+                </Link>
+                {" and surrounding communities"}
               </p>
             </div>
           </div>
