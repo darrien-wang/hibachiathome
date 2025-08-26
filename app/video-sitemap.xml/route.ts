@@ -9,7 +9,7 @@ export async function GET() {
       pageUrl: `${BASE_URL}`,
       videoTitle: "Real Hibachi at Home Experience",
       videoDescription: "Professional Japanese hibachi chef cooking authentic teppanyaki at home. Watch our skilled chefs perform amazing cooking tricks while preparing delicious hibachi meals in the comfort of your own home.",
-      videoContentLoc: `${BASE_URL}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`,
+      videoContentLoc: `${BASE_URL}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`,
       videoThumbnailLoc: `${BASE_URL}/images/hibachi-dinner-party.jpg`,
       videoDuration: "120", // 2 minutes estimated
       videoExpirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 1 year from now

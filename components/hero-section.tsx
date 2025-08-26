@@ -77,7 +77,7 @@ Video Status:
       // Force set video source to prevent hydration issues - use absolute URL for iOS
       console.log('Setting video src to prevent hydration loss...')
       const baseUrl = window.location.origin
-      const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`
+      const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`
       console.log('Base URL:', baseUrl)
       console.log('Setting video src to:', videoSrc)
       video.src = videoSrc
@@ -266,7 +266,7 @@ Video Status:
       if (!video.src || video.src === '') {
         console.log('Video src is empty, setting it...')
         const baseUrl = window.location.origin
-        const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`
+        const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`
         video.src = videoSrc
         console.log('Fixed empty video src to:', video.src)
       }
@@ -443,7 +443,7 @@ Video Status:
         
         <video
           ref={videoRef}
-          src="/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4"
+          src="/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4"
           className="w-full h-full object-cover cursor-pointer"
           autoPlay={false}
           muted={isVideoMuted}
@@ -483,12 +483,12 @@ Video Status:
           style={{ willChange: 'transform' }}
         >
           <source 
-            src="/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4" 
+            src="/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4" 
             type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'"
             onError={(e) => console.error('First source (H.264) failed:', e.target)}
           />
           <source 
-            src="/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4" 
+            src="/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4" 
             type="video/mp4"
             onError={(e) => console.error('Second source (MP4) failed:', e.target)}
           />
@@ -649,7 +649,7 @@ Video Status:
               onClick={async () => {
                 console.log('Testing video file accessibility...')
                 try {
-                  const response = await fetch('/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4', { method: 'HEAD' })
+                  const response = await fetch('/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4', { method: 'HEAD' })
                   console.log('Video file test:', {
                     status: response.status,
                     headers: Object.fromEntries(response.headers.entries()),
@@ -669,7 +669,7 @@ Video Status:
                   console.log('Fixing video source...')
                   const video = videoRef.current
                   const baseUrl = window.location.origin
-                  const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`
+                  const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`
                   console.log('Setting complete video URL:', videoSrc)
                   video.src = videoSrc
                   video.load()
