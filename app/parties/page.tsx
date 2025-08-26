@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Hibachi Party Catering for All Occasions | Los Angeles",
     description: "Make every celebration unforgettable with our hibachi party catering. Interactive teppanyaki entertainment for birthdays, graduations, corporate events & more.",
-    images: ["/hibachi-party.png"],
+    images: ["/images/20250825183415_572_50.jpg"],
   },
   alternates: {
     canonical: "https://realhibachiathome.com/parties"

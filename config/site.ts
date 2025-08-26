@@ -24,6 +24,6 @@ export const siteConfig = {
   social: {
     facebook: "https://www.facebook.com/profile.php?id=61576199137704",
     instagram: "https://www.instagram.com/realhibachi/",
-    twitter: "#", // Assuming twitter remains unchanged or is a placeholder
+    tiktok: "https://www.tiktok.com/@real.hibachi",
   },
 }

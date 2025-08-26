@@ -17,6 +17,8 @@ import HowItWorksSection from "@/components/how-it-works-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
 
+import SMSReviews from "@/components/reviews/sms-reviews"
+
 // Testimonial data with ratings
 const testimonials = [
   {
@@ -974,6 +976,32 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <TestimonialsSection />
+
+      {/* SMS Reviews Section */}
+      <SMSReviews />
+      
+{/* Yelp CTA Section - Temporarily hidden until we have reviews */}
+      {/* 
+      <AnimateOnScroll>
+        <section className="py-16 bg-gradient-to-r from-red-50 to-orange-50">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              See What Our Customers Say
+            </h2>
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              Check out our authentic reviews on Yelp from real customers who experienced 
+              our hibachi catering services firsthand.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <YelpButton showReviews size="lg" />
+              <Button asChild size="lg" className="bg-orange-600 hover:bg-orange-700 text-white">
+                <Link href="/book">Book Your Event</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+      */}
     </div>
   )
 }

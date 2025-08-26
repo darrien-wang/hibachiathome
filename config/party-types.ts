@@ -32,7 +32,7 @@ export const partyTypes: PartyType[] = [
     title: "Unforgettable Birthday Hibachi Parties",
     description: "Make birthdays magical with our interactive hibachi birthday party experience. Our skilled chefs will create an entertaining and delicious celebration that your guests will never forget.",
     shortDescription: "Interactive hibachi entertainment for memorable birthday celebrations",
-    heroImage: "/images/微信图片_20250825183415_572_50.jpg", // 生日聚会设置
+    heroImage: "/images/20250825183415_572_50.jpg", // 生日聚会设置
     features: [
       "Interactive teppanyaki cooking show",
       "Birthday song & special celebration",
@@ -51,9 +51,9 @@ export const partyTypes: PartyType[] = [
       "Family birthday gatherings"
     ],
     galleryImages: [
-      "/images/微信图片_20250825183415_572_50.jpg", // 生日聚会
-      "/images/微信图片_20250825183410_571_50.jpg", // 泳池边聚会
-      "/images/微信图片_20250825183349_567_50.jpg"  // 团体照
+      "/images/20250825183415_572_50.jpg", // 生日聚会
+      "/images/20250825183410_571_50.jpg", // 泳池边聚会
+      "/images/20250825183349_567_50.jpg"  // 团体照
     ],
     socialMediaLinks: {
       instagram: "https://instagram.com/realhibachiathome",
@@ -71,7 +71,7 @@ export const partyTypes: PartyType[] = [
     title: "Celebrate Success with Hibachi Graduation Parties",
     description: "Honor your graduate's achievement with an exciting hibachi graduation party. Our chefs will create an impressive culinary show that matches the magnitude of their accomplishment.",
     shortDescription: "Celebrate academic achievements with impressive hibachi entertainment",
-    heroImage: "/images/微信图片_20250825183449_576_50.jpg", // 厨师烹饪照片
+    heroImage: "/images/20250825183449_576_50.jpg", // 厨师烹饪照片
     features: [
       "Congratulatory chef performance",
       "Diploma-themed food presentations",
@@ -90,9 +90,9 @@ export const partyTypes: PartyType[] = [
       "Academic achievement recognition"
     ],
     galleryImages: [
-      "/images/微信图片_20250825183449_576_50.jpg", // 厨师烹饪
-      "/images/微信图片_20250825183502_578_50.jpg", // 室内火焰表演
-      "/images/微信图片_20250825183355_569_50.jpg"  // 室内设置
+      "/images/20250825183449_576_50.jpg", // 厨师烹饪
+      "/images/20250825183502_578_50.jpg", // 室内火焰表演
+      "/images/20250825183355_569_50.jpg"  // 室内设置
     ]
   },
   {
@@ -102,7 +102,7 @@ export const partyTypes: PartyType[] = [
     title: "Romantic Hibachi Anniversary Celebrations",
     description: "Create a romantic and entertaining anniversary celebration with our hibachi experience. Perfect for intimate gatherings or larger family celebrations of love and commitment.",
     shortDescription: "Romantic hibachi experiences for celebrating love and commitment",
-    heroImage: "/images/微信图片_20250825183502_578_50.jpg", // 火焰表演
+    heroImage: "/images/20250825183502_578_50.jpg", // 火焰表演
     features: [
       "Romantic ambiance with entertainment",
       "Heart-shaped food presentations",
@@ -121,9 +121,9 @@ export const partyTypes: PartyType[] = [
       "Family anniversary gatherings"
     ],
     galleryImages: [
-      "/images/微信图片_20250825183502_578_50.jpg", // 火焰表演
-      "/images/微信图片_20250825183558_585_50.jpg", // 晚餐设置
-      "/images/微信图片_20250825183403_570_50.jpg"  // SAKE主题
+      "/images/20250825183502_578_50.jpg", // 火焰表演
+      "/images/20250825183558_585_50.jpg", // 晚餐设置
+      "/images/20250825183403_570_50.jpg"  // SAKE主题
     ]
   },
   {
@@ -133,7 +133,7 @@ export const partyTypes: PartyType[] = [
     title: "Professional Hibachi Corporate Events",
     description: "Impress clients and boost team morale with our professional hibachi corporate catering. Perfect for team building, client entertainment, and company celebrations.",
     shortDescription: "Professional hibachi catering for corporate team building and client entertainment",
-    heroImage: "/images/微信图片_20250825183605_586_50.jpg", // 大型聚会设置
+    heroImage: "/images/20250825183605_586_50.jpg", // 大型聚会设置
     features: [
       "Professional presentation style",
       "Team building cooking activities",
@@ -153,9 +153,9 @@ export const partyTypes: PartyType[] = [
       "Executive retreats"
     ],
     galleryImages: [
-      "/images/微信图片_20250825183605_586_50.jpg", // 大型聚会
-      "/images/微信图片_20250825183624_589_50.jpg", // 食物展示
-      "/images/微信图片_20250825183632_590_50.jpg"  // 室外火焰表演
+      "/images/20250825183605_586_50.jpg", // 大型聚会
+      "/images/20250825183624_589_50.jpg", // 食物展示
+      "/images/20250825183632_590_50.jpg"  // 室外火焰表演
     ]
   },
   {
@@ -165,7 +165,7 @@ export const partyTypes: PartyType[] = [
     title: "Heartwarming Hibachi Family Gatherings",
     description: "Bring the family together with our entertaining hibachi family gathering experience. Perfect for reunions, holidays, and special family moments that create lasting memories.",
     shortDescription: "Interactive hibachi entertainment for memorable family moments and reunions",
-    heroImage: "/images/微信图片_20250825183525_581_50.jpg", // 家庭聚会绿色桌布
+    heroImage: "/images/20250825183525_581_50.jpg", // 家庭聚会绿色桌布
     features: [
       "Multi-generational entertainment",
       "Family-friendly cooking show",
@@ -185,9 +185,9 @@ export const partyTypes: PartyType[] = [
       "Sunday family dinners"
     ],
     galleryImages: [
-      "/images/微信图片_20250825183525_581_50.jpg", // 绿色桌布聚会
-      "/images/微信图片_20250825183534_582_50.jpg", // 绿色桌布聚会2
-      "/images/微信图片_20250825183517_580_50.jpg"  // 后院聚会
+      "/images/20250825183525_581_50.jpg", // 绿色桌布聚会
+      "/images/20250825183534_582_50.jpg", // 绿色桌布聚会2
+      "/images/20250825183517_580_50.jpg"  // 后院聚会
     ]
   },
   {
@@ -197,7 +197,7 @@ export const partyTypes: PartyType[] = [
     title: "Festive Hibachi Holiday Celebrations",
     description: "Add excitement to your holiday celebrations with our festive hibachi holiday party experience. From Christmas to New Year's, we make every holiday memorable with delicious food and entertainment.",
     shortDescription: "Festive hibachi entertainment for memorable holiday celebrations",
-    heroImage: "/images/微信图片_20250825183424_573_50.jpg", // 室外hibachi设置
+    heroImage: "/images/20250825183424_573_50.jpg", // 室外hibachi设置
     features: [
       "Holiday-themed presentations",
       "Seasonal menu adaptations",
@@ -217,9 +217,9 @@ export const partyTypes: PartyType[] = [
       "Halloween events"
     ],
     galleryImages: [
-      "/images/微信图片_20250825183424_573_50.jpg", // 室外设置
-      "/images/微信图片_20250825183431_574_50.jpg", // 室外聚会
-      "/images/微信图片_20250825183438_575_50.jpg"  // 食物展示
+      "/images/20250825183424_573_50.jpg", // 室外设置
+      "/images/20250825183431_574_50.jpg", // 室外聚会
+      "/images/20250825183438_575_50.jpg"  // 食物展示
     ]
   }
 ]

@@ -43,6 +43,7 @@ const navItems = [
     dropdownItems: serviceAreas[0].cities
   },
   { name: "Gallery", href: "/gallery", disabled: false },
+  { name: "Reviews", href: "/reviews", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
   { name: "Equipment Rentals", href: "/rentals", disabled: true },
 ]
