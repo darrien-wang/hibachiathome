@@ -189,7 +189,7 @@ export function Header() {
     >
       {/* Logo positioned to overflow entire header - Only on home page */}
       {isHomePage && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-40" style={{ top: 'calc(100% - 48px)' }}>
+        <div className="absolute left-1/2 -translate-x-1/2 z-40" style={{ top: 'calc(100% - 60px)' }}>
           <Link href="/" className="block relative">
             <Image
               src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
