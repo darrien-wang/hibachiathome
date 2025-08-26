@@ -13,6 +13,7 @@ export default function HeroSection() {
   const [currentVolume, setCurrentVolume] = useState(0)
   const [debugInfo, setDebugInfo] = useState('')
   const [showDebug, setShowDebug] = useState(false)
+  const [videoFailed, setVideoFailed] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -35,6 +36,9 @@ Video Status:
 - Network State: ${video.networkState} (0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE)
 - Error Code: ${video.error?.code || 'None'} (1=ABORTED, 2=NETWORK, 3=DECODE, 4=SRC_NOT_SUPPORTED)
 - Video Src: ${video.src}
+- Current Src: ${video.currentSrc}
+- Base URL: ${window.location.origin}
+- Video Failed: ${videoFailed} (iOS Fallback Mode)
       `.trim()
       setDebugInfo(info)
     }
@@ -49,7 +53,7 @@ Video Status:
     }
   }, [showDebug, userHasInteracted, showContent, isMobile])
 
-  // Client-side mobile detection to avoid hydration issues
+  // Combined mobile detection and video configuration to avoid race conditions
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -65,6 +69,44 @@ Video Status:
     })
     
     setIsMobile(shouldBeMobile)
+    
+    // CRITICAL: Configure video immediately to prevent src loss
+    if (videoRef.current) {
+      const video = videoRef.current
+      
+      // Force set video source to prevent hydration issues - use absolute URL for iOS
+      console.log('Setting video src to prevent hydration loss...')
+      const baseUrl = window.location.origin
+      const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`
+      console.log('Base URL:', baseUrl)
+      console.log('Setting video src to:', videoSrc)
+      video.src = videoSrc
+      console.log('Video src after setting:', video.src)
+      console.log('Video currentSrc after setting:', video.currentSrc)
+      
+      if (isIOS || isMobileDevice) {
+        console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
+        
+        // Force video to be ready for mobile
+        video.muted = true
+        video.autoplay = false // Disable autoplay for iOS
+        video.preload = 'metadata' // Only load metadata first
+      } else {
+        console.log('Desktop detected, enabling autoplay...')
+        
+        // Desktop: enable autoplay
+        video.autoplay = true
+        video.preload = 'auto'
+        video.muted = true
+      }
+      
+      console.log('Video configuration set:', {
+        src: video.src,
+        autoplay: video.autoplay,
+        preload: video.preload,
+        muted: video.muted
+      })
+    }
     
     // Force update debug info after mobile detection
     setTimeout(updateDebugInfo, 100)
@@ -223,7 +265,10 @@ Video Status:
       // Ensure video source is set correctly
       if (!video.src || video.src === '') {
         console.log('Video src is empty, setting it...')
-        video.src = '/video/00ebf7a19327d6f30078329b3e163952.mp4'
+        const baseUrl = window.location.origin
+        const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`
+        video.src = videoSrc
+        console.log('Fixed empty video src to:', video.src)
       }
       
       if (isIOS || isMobileDevice) {
@@ -385,9 +430,20 @@ Video Status:
       <div 
         className="absolute inset-0 overflow-hidden bg-black z-0"
       >
+        {/* iOS Safari Fallback: 静态背景图片 */}
+        {videoFailed && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: 'url(/images/hibachi-dinner-party.jpg)',
+              zIndex: 1
+            }}
+          />
+        )}
+        
         <video
           ref={videoRef}
-          src="/video/00ebf7a19327d6f30078329b3e163952.mp4"
+          src="/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4"
           className="w-full h-full object-cover cursor-pointer"
           autoPlay={false}
           muted={isVideoMuted}
@@ -417,18 +473,24 @@ Video Status:
               errorMessage: video.error?.message,
               lastErrorEvent: e
             })
+            
+            // iOS Safari fallback: 如果视频无法播放，标记为失败
+            if (video.error?.code === 4) { // SRC_NOT_SUPPORTED
+              console.log('iOS video playback failed, enabling fallback mode...')
+              setVideoFailed(true)
+            }
           }}
           style={{ willChange: 'transform' }}
         >
           <source 
-            src="/video/00ebf7a19327d6f30078329b3e163952.mp4" 
+            src="/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4" 
             type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'"
-            onError={(e) => console.error('First source failed:', e.target)}
+            onError={(e) => console.error('First source (H.264) failed:', e.target)}
           />
           <source 
-            src="/video/00ebf7a19327d6f30078329b3e163952.mp4" 
+            src="/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4" 
             type="video/mp4"
-            onError={(e) => console.error('Second source failed:', e.target)}
+            onError={(e) => console.error('Second source (MP4) failed:', e.target)}
           />
           Your browser does not support the video tag.
         </video>
@@ -587,7 +649,7 @@ Video Status:
               onClick={async () => {
                 console.log('Testing video file accessibility...')
                 try {
-                  const response = await fetch('/video/00ebf7a19327d6f30078329b3e163952.mp4', { method: 'HEAD' })
+                  const response = await fetch('/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4', { method: 'HEAD' })
                   console.log('Video file test:', {
                     status: response.status,
                     headers: Object.fromEntries(response.headers.entries()),
@@ -606,8 +668,12 @@ Video Status:
                 if (videoRef.current) {
                   console.log('Fixing video source...')
                   const video = videoRef.current
-                  video.src = '/video/00ebf7a19327d6f30078329b3e163952.mp4'
+                  const baseUrl = window.location.origin
+                  const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_fixed.mp4`
+                  console.log('Setting complete video URL:', videoSrc)
+                  video.src = videoSrc
                   video.load()
+                  console.log('Video src after fix:', video.src)
                   updateDebugInfo()
                 }
               }}
@@ -641,6 +707,26 @@ Video Status:
               className="bg-indigo-600 px-2 py-1 rounded text-xs"
             >
               Full Debug
+            </button>
+            <button
+              onClick={() => {
+                console.log('Testing iOS fallback mode...')
+                setVideoFailed(true)
+                updateDebugInfo()
+              }}
+              className="bg-purple-600 px-2 py-1 rounded text-xs"
+            >
+              Test iOS Fallback
+            </button>
+            <button
+              onClick={() => {
+                console.log('Resetting fallback mode...')
+                setVideoFailed(false)
+                updateDebugInfo()
+              }}
+              className="bg-green-600 px-2 py-1 rounded text-xs"
+            >
+              Reset Fallback
             </button>
             <button
               onClick={() => {
