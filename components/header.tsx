@@ -135,13 +135,15 @@ export function Header() {
   // 添加一个 ref 来引用 header 元素
   const headerRef = useRef<HTMLElement>(null)
 
-  // 添加一个 effect 来设置CSS变量而不是body padding
+  // 添加一个 effect 来设置CSS变量，考虑logo溢出
   useEffect(() => {
     // 函数来更新header高度CSS变量
     const updateHeaderHeight = () => {
       if (headerRef.current) {
         const headerHeight = headerRef.current.offsetHeight
-        document.documentElement.style.setProperty("--header-height", `${headerHeight}px`)
+        // logo完全溢出header，所以需要额外添加logo高度约64px
+        const totalHeight = headerHeight + 64
+        document.documentElement.style.setProperty("--header-height", `${totalHeight}px`)
         // 移除body padding，让hero可以无缝连接
         document.body.style.paddingTop = "0"
       }
@@ -182,7 +184,21 @@ export function Header() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 lg:py-8 relative">
+      {/* Logo positioned to overflow entire header */}
+      <div className="absolute left-1/2 -translate-x-1/2 z-40" style={{ top: 'calc(100% - 48px)' }}>
+        <Link href="/" className="block relative">
+          <Image
+            src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+            alt={siteConfig.logo.alt}
+            width={siteConfig.logo.width * 0.8}
+            height={siteConfig.logo.height * 0.8}
+            className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
+            priority
+          />
+        </Link>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-2 lg:py-4 relative">
         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-[120px] h-[120px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
 
 
@@ -191,19 +207,8 @@ export function Header() {
           {/* Empty div for left side spacing */}
           <div></div>
 
-          {/* Centered Logo - Now positioned lower on mobile */}
-          <div className="flex items-center justify-center relative h-[50px] z-10 overflow-visible mx-auto max-w-[120px]">
-            <Link href="/" className="block relative">
-              <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width * 0.8}
-                height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[96px] sm:w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
-                priority
-              />
-            </Link>
-          </div>
+          {/* Empty div for center (logo is now positioned absolutely) */}
+          <div></div>
 
           {/* Mobile Menu Button */}
           <div className="flex justify-end">
@@ -303,10 +308,11 @@ export function Header() {
           </div>
         </div>
 
-        {/* Desktop Layout */}
-        <div className="hidden md:grid grid-cols-[1fr_auto_1fr] items-center max-w-[90vw] xl:max-w-[1400px] mx-auto">
+        {/* Desktop Layout - Fixed centering with absolute positioning */}
+        <div className="hidden md:relative md:flex md:items-center max-w-[90vw] xl:max-w-[1400px] mx-auto">
+
           {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-end">
+          <nav className="flex items-center justify-start flex-1 pr-[80px] md:pr-[100px] lg:pr-[120px]">
             {navItems
               .filter((item) => !item.disabled)
               .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -355,22 +361,8 @@ export function Header() {
               ))}
           </nav>
 
-          {/* Logo in Center - Grid center column ensures perfect centering */}
-          <div className="flex items-center justify-center relative h-[50px] z-10">
-            <Link href="/" className="block relative">
-              <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width * 0.8}
-                height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
-                priority
-              />
-            </Link>
-          </div>
-
           {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-end flex-1 pl-[80px] md:pl-[100px] lg:pl-[120px]">
             {navItems
               .filter((item) => !item.disabled)
               .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))

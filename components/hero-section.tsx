@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import { Volume2, VolumeX, Play } from "lucide-react"
+import { Play } from "lucide-react"
 
 export default function HeroSection() {
   const [isMobile, setIsMobile] = useState(false)
@@ -162,25 +162,12 @@ export default function HeroSection() {
         </video>
         {/* Slight dark overlay to make text clearer */}
         <div 
-          className="absolute inset-0 bg-black/40 cursor-pointer" 
+          className="absolute inset-0 bg-black/40 cursor-pointer z-10" 
           onClick={handleVideoClick}
         ></div>
-      </div>
 
-      {/* Video control area - only shown after user interaction */}
-      {userHasInteracted && (
-        <button
-          onClick={toggleVideoAudio}
-          className="fixed top-20 right-4 z-40 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-300 backdrop-blur-sm border border-white/10 shadow-lg"
-          aria-label={isVideoMuted ? "Enable video sound" : "Mute video sound"}
-        >
-          {isVideoMuted ? (
-            <VolumeX className="w-4 h-4" />
-          ) : (
-            <Volume2 className="w-4 h-4" />
-          )}
-        </button>
-      )}
+
+      </div>
 
       {/* Main content area - hidden after click */}
       {showContent && (
