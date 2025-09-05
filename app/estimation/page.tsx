@@ -836,6 +836,7 @@ function EstimationContent() {
       console.log("🟠 Parent: handleDateTimeSelect called with:", { dateString, time, price, originalPrice })
 
       if (!dateString || !time) {
+        console.log("🟠 Parent: Setting incomplete selection:", { dateString, time })
         setSelectedDateTime({
           dateString: dateString,
           time: time,
@@ -845,17 +846,22 @@ function EstimationContent() {
         return
       }
 
+      console.log("🟠 Parent: Setting complete selection - updating formData and selectedDateTime")
+      
       // 更新 formData 中的日期和时间
       dispatch({ type: "SET_DATE_TIME", date: dateString, time })
 
-      setSelectedDateTime({
+      const newSelectedDateTime = {
         dateString,
         time,
         price,
         originalPrice,
-      })
+      }
+      
+      setSelectedDateTime(newSelectedDateTime)
+      console.log("🟠 Parent: Updated selectedDateTime:", newSelectedDateTime)
     },
-    [],
+    [], // 移除依赖，避免无限循环
   )
 
   // 修复表单验证函数
@@ -864,29 +870,46 @@ function EstimationContent() {
     [formData.adults, formData.kids, formData.zipcode],
   )
 
-  const isOrderFormValid = useMemo(
-    () =>
-      Boolean(
-        formData.name &&
-          formData.email &&
-          formData.phone &&
-          formData.address &&
-          formData.estimatedGuests &&
-          selectedDateTime.dateString &&
-          selectedDateTime.time &&
-          formData.agreeToTerms,
-      ),
-    [
-      formData.name,
-      formData.email,
-      formData.phone,
-      formData.estimatedGuests,
-      formData.address,
-      formData.agreeToTerms,
-      selectedDateTime.dateString,
-      selectedDateTime.time,
-    ],
-  )
+  const isOrderFormValid = useMemo(() => {
+    const hasDateTime = selectedDateTime.dateString && selectedDateTime.time || formData.eventDate && formData.eventTime
+    
+    const valid = Boolean(
+      formData.name &&
+        formData.email &&
+        formData.phone &&
+        formData.address &&
+        formData.estimatedGuests &&
+        hasDateTime &&
+        formData.agreeToTerms,
+    )
+    
+    console.log("🟢 Validation: isOrderFormValid =", valid, {
+      name: !!formData.name,
+      email: !!formData.email,
+      phone: !!formData.phone,
+      address: !!formData.address,
+      estimatedGuests: !!formData.estimatedGuests,
+      hasDateTime,
+      selectedDateTimeDate: selectedDateTime.dateString,
+      selectedDateTimeTime: selectedDateTime.time,
+      formDataEventDate: formData.eventDate,
+      formDataEventTime: formData.eventTime,
+      agreeToTerms: formData.agreeToTerms,
+    })
+    
+    return valid
+  }, [
+    formData.name,
+    formData.email,
+    formData.phone,
+    formData.estimatedGuests,
+    formData.address,
+    formData.agreeToTerms,
+    selectedDateTime.dateString,
+    selectedDateTime.time,
+    formData.eventDate,
+    formData.eventTime,
+  ])
 
   // 添加详细的验证错误信息
   const getValidationErrors = useMemo(() => {
@@ -897,8 +920,13 @@ function EstimationContent() {
     if (!formData.phone) errors.push("Phone Number is required")
     if (!formData.address) errors.push("Full Address is required")
     if (!formData.estimatedGuests) errors.push("Estimated Guest Count is required")
-    if (!selectedDateTime.dateString) errors.push("Event Date is required")
-    if (!selectedDateTime.time) errors.push("Event Time is required")
+    
+    // 检查日期时间，支持两种数据源
+    const hasDate = selectedDateTime.dateString || formData.eventDate
+    const hasTime = selectedDateTime.time || formData.eventTime
+    
+    if (!hasDate) errors.push("Event Date is required")
+    if (!hasTime) errors.push("Event Time is required")
     if (!formData.agreeToTerms) errors.push("You must agree to Terms & Conditions")
     
     return errors
@@ -910,6 +938,8 @@ function EstimationContent() {
     formData.estimatedGuests,
     selectedDateTime.dateString,
     selectedDateTime.time,
+    formData.eventDate,
+    formData.eventTime,
     formData.agreeToTerms,
   ])
 
@@ -926,6 +956,27 @@ function EstimationContent() {
     setOrderError("")
 
     /* ---------- 1. 表单校验 ---------- */
+    console.log("🔴 Submit: Starting validation")
+    console.log("🔴 Submit: Current selectedDateTime:", selectedDateTime)
+    console.log("🔴 Submit: Current formData datetime:", { eventDate: formData.eventDate, eventTime: formData.eventTime })
+    
+    // 验证时间数据
+    if (!selectedDateTime.dateString && !formData.eventDate) {
+      const msg = "请选择活动日期"
+      console.error("🔴 Submit: Missing date:", { selectedDateTime, formData })
+      setOrderError(msg)
+      setIsSubmitting(false)
+      return { success: false, error: msg }
+    }
+    
+    if (!selectedDateTime.time && !formData.eventTime) {
+      const msg = "请选择活动时间"
+      console.error("🔴 Submit: Missing time:", { selectedDateTime, formData })
+      setOrderError(msg)
+      setIsSubmitting(false)
+      return { success: false, error: msg }
+    }
+    
     const numericFields = [
       formData.adults,
       formData.kids,
@@ -1064,6 +1115,16 @@ function EstimationContent() {
       })
 
       /* ---------- 4. 更新本地状态 ---------- */
+      console.log("🔵 Submit: Creating order data with datetime info:")
+      console.log("🔵 Submit: selectedDateTime:", selectedDateTime)
+      console.log("🔵 Submit: formData.eventDate:", formData.eventDate)
+      console.log("🔵 Submit: formData.eventTime:", formData.eventTime)
+      
+      const orderEventDate = selectedDateTime.dateString || formData.eventDate
+      const orderEventTime = selectedDateTime.time || formData.eventTime
+      
+      console.log("🔵 Submit: Final order datetime:", { orderEventDate, orderEventTime })
+      
       setOrderData({
         id: newOrderId,
         full_name: formData.name,
@@ -1074,8 +1135,8 @@ function EstimationContent() {
         city: formData.city,
         state: formData.state,
         zipcode: formData.zipcode,
-        event_date: selectedDateTime.dateString || formData.eventDate,
-        event_time: selectedDateTime.time || formData.eventTime,
+        event_date: orderEventDate,
+        event_time: orderEventTime,
         total_amount: costs.total,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,
