@@ -229,20 +229,25 @@ export default function Home() {
       <HeroSection />
 
       {/* Temporary Notice Banner - 9/30 */}
-      <div className="bg-amber-500 text-white py-3 px-4">
+      <div className="bg-amber-500 text-white py-4 px-4">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center md:text-left">
-            <span className="font-semibold">📢 Important Notice (9/30):</span>
-            <span className="text-sm md:text-base">
-              For any questions today, please contact us at{" "}
-              <a href="mailto:realhibachiathome@gmail.com" className="underline font-medium hover:text-amber-100">
-                realhibachiathome@gmail.com
-              </a>{" "}
-              or text{" "}
-              <a href="sms:5627134832" className="underline font-medium hover:text-amber-100">
-                562-713-4832
-              </a>
-            </span>
+            <span className="font-semibold text-lg">📢 Important Notice (9/30 Only):</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm md:text-base">
+                <strong>Today only:</strong> For any questions, please contact{" "}
+                <a href="mailto:realhibachiathome@gmail.com" className="underline font-medium hover:text-amber-100">
+                  realhibachiathome@gmail.com
+                </a>{" "}
+                or text{" "}
+                <a href="sms:5627134832" className="underline font-medium hover:text-amber-100">
+                  562-713-4832
+                </a>
+              </span>
+              <span className="text-xs md:text-sm text-amber-100">
+                ⚠️ Regular phone number (213-770-7788) will resume tomorrow
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -533,7 +538,7 @@ export default function Home() {
             </AnimateOnScroll>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
+              <AnimateOnScroll delay={100} direction="left">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-blue-600 text-xl">🦐</span>
