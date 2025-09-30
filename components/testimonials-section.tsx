@@ -176,7 +176,7 @@ export default function TestimonialsSection() {
             <div className="flex justify-center">
               <div className="relative w-full max-w-4xl rounded-xl overflow-hidden shadow-lg">
                 <img
-                  src="/images/20250825183349_567_50.jpg"
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/15480838bcc52a968ca3f740d29ca13.jpg-cBE9Ir9LiFjc3QgvFfUtuznTow315t.jpeg"
                   alt="Hibachi chef taking selfie with happy customers celebrating in background"
                   className="w-full h-auto object-cover"
                 />

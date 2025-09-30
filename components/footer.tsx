@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Facebook, Instagram, Phone, Mail, MessageSquare, Star } from "lucide-react"
+import { Facebook, Instagram, Twitter, Phone, Mail, MessageSquare } from "lucide-react"
 import { siteConfig } from "@/config/site"
 
 // Helper function to format phone number for WhatsApp link
@@ -58,11 +58,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/parties" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Parties
-                </Link>
-              </li>
-              <li>
                 <Link href="/gallery" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
                   Gallery
                 </Link>
@@ -89,8 +84,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/service-area" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Service Area
+                <Link href="/contact" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
+                  Contact Us
                 </Link>
               </li>
             </ul>
@@ -121,29 +116,14 @@ export default function Footer() {
                 <span className="sr-only">Instagram</span>
               </a>
               <a
-                href={siteConfig.social?.tiktok ?? "#"}
+                href={siteConfig.social?.twitter ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-[#F1691B] transition-colors duration-200"
-                aria-label="TikTok"
+                aria-label="Twitter"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-                </svg>
-                <span className="sr-only">TikTok</span>
-              </a>
-              <a
-                href="https://www.yelp.com/biz/real-hibachi-at-home-baldwin-park"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[#F1691B] transition-colors duration-200 flex items-center gap-1"
-                aria-label="Yelp Reviews"
-              >
-                <div className="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                  Yelp
-                </div>
-                <Star size={20} fill="currentColor" />
-                <span className="sr-only">Yelp Reviews</span>
+                <Twitter size={24} />
+                <span className="sr-only">Twitter</span>
               </a>
             </div>
             <div className="space-y-3 mb-4">
@@ -197,112 +177,11 @@ export default function Footer() {
             </div>
             <div className="space-y-2">
               <p className="text-[14px] text-[#A1A1A1]">
-                Proudly serving{" "}
-                <Link href="/service-area/los-angeles" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Los Angeles
-                </Link>
-                {", "}
-                <Link href="/service-area/orange-county" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Orange County
-                </Link>
-                {", "}
-                <Link href="/service-area/beverly-hills" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Beverly Hills
-                </Link>
-                {", "}
-                <Link href="/service-area/santa-monica" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Santa Monica
-                </Link>
-                {", "}
-                <Link href="/service-area/orange-county/irvine" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Irvine
-                </Link>
-                {", "}
-                <Link href="/service-area/pasadena" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Pasadena
-                </Link>
-                {", "}
-                <Link href="/service-area/long-beach" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Long Beach
-                </Link>
-                {", "}
-                <Link href="/service-area/riverside" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Riverside
-                </Link>
-                {", "}
-                <Link href="/service-area/san-diego" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  San Diego
-                </Link>
-                {", and all of "}
-                <Link href="/service-area" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Southern California
-                </Link>
+                Proudly serving Los Angeles, Orange County, Beverly Hills, Santa Monica, Irvine, Pasadena, and all of
+                Southern California
               </p>
               <p className="text-[14px] text-[#A1A1A1]">
-                Also serving{" "}
-                <Link href="/service-area/burbank" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Burbank
-                </Link>
-                {", "}
-                <Link href="/service-area/glendale" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Glendale
-                </Link>
-                {", "}
-                <Link href="/service-area/orange-county/newport-beach" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Newport Beach
-                </Link>
-                {", "}
-                <Link href="/service-area/orange-county/anaheim" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Anaheim
-                </Link>
-                {", "}
-                <Link href="/service-area/orange-county/huntington-beach" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Huntington Beach
-                </Link>
-                {", "}
-                <Link href="/service-area/san-bernardino/rancho-cucamonga" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Rancho Cucamonga
-                </Link>
-                {", "}
-                <Link href="/service-area/san-bernardino/ontario" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Ontario
-                </Link>
-                {", "}
-                <Link href="/service-area/palm-springs" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Palm Springs
-                </Link>
-                {" areas"}
-              </p>
-              <p className="text-[14px] text-[#A1A1A1]">
-                Additionally covering{" "}
-                <Link href="/service-area/san-diego/chula-vista" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Chula Vista
-                </Link>
-                {", "}
-                <Link href="/service-area/san-diego/escondido" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Escondido
-                </Link>
-                {", "}
-                <Link href="/service-area/san-diego/carlsbad" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Carlsbad
-                </Link>
-                {", "}
-                <Link href="/service-area/san-bernardino/corona" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Corona
-                </Link>
-                {", "}
-                <Link href="/service-area/riverside/moreno-valley" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Moreno Valley
-                </Link>
-                {", "}
-                <Link href="/service-area/san-bernardino/fontana" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  Fontana
-                </Link>
-                {", "}
-                <Link href="/service-area/san-bernardino/san-bernardino-city" className="text-[#F1691B] hover:text-[#e55a0f] transition-colors duration-200">
-                  San Bernardino
-                </Link>
-                {" and surrounding communities"}
+                Also available in New York: {siteConfig.contact.locations?.join(", ")} areas
               </p>
             </div>
           </div>

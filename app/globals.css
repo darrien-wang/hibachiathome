@@ -9,12 +9,12 @@
 
 /* Fixed header layout utilities */
 @layer components {
-    /* Main page container that accounts for fixed header */
-    .page-container {
-      @apply min-h-screen;
-      padding-top: calc(var(--header-height, 120px) + 6rem) !important;
-      margin-top: 1rem !important;
-    }
+  /* Main page container that accounts for fixed header */
+  .page-container {
+    @apply min-h-screen;
+    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    margin-top: 1rem !important;
+  }
   
   /* Hero sections that should start right below the header */
   .hero-section {
@@ -159,32 +159,12 @@
 
 @keyframes slideUp {
   from {
-    transform: translateY(20px);
     opacity: 0;
+    transform: translateY(20px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
-  }
-}
-
-/* Gentle pulse animation for title */
-@keyframes gentlePulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
-}
-
-/* Glow effect for interactive elements */
-@keyframes glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.3));
-  }
-  50% {
-    filter: drop-shadow(0 0 16px rgba(251, 146, 60, 0.6));
+    transform: translateY(0);
   }
 }
 
@@ -448,56 +428,4 @@
   .video-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-}
-
-/* 隐藏滚动条 - 适用于轮播组件 */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
-}
-
-/* 简洁的螺旋消失动画 - 更自然的效果 */
-@keyframes spiralOut {
-  0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  70% {
-    transform: scale(0.3) rotate(270deg);
-    opacity: 0.3;
-    filter: blur(1px);
-  }
-  100% {
-    transform: scale(0) rotate(360deg);
-    opacity: 0;
-    filter: blur(2px);
-  }
-}
-
-.rotate-and-fade {
-  animation: spiralOut 1s ease-out forwards;
-  transform-origin: center center;
-}
-
-/* 简洁的淡入动画 - 用于暂停时文字重新出现 */
-@keyframes fadeInUp {
-  0% {
-    transform: translateY(15px) scale(0.95);
-    opacity: 0;
-    filter: blur(1px);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-    filter: blur(0px);
-  }
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
 }

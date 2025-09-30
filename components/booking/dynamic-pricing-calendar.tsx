@@ -150,18 +150,7 @@ export default function DynamicPricingCalendar({
       const selectedSlot = timeSlots.find(slot => slot.time === selectedTime)
       const price = selectedSlot?.price || basePrice
       console.log("🟣 Calendar: Confirming selection - Date:", selectedDateString, "Time:", selectedTime, "Price:", price)
-      console.log("🟣 Calendar: Calling onSelectDateTime with:", {
-        dateString: selectedDateString,
-        time: selectedTime,
-        price,
-        basePrice
-      })
       onSelectDateTime(selectedDateString, selectedTime, price, basePrice)
-    } else {
-      console.warn("🟣 Calendar: Cannot confirm - missing date or time:", {
-        selectedDateString,
-        selectedTime
-      })
     }
   }
 

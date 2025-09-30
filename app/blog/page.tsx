@@ -4,16 +4,8 @@ import { blogPosts } from "@/config/blog-posts"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 export const metadata = {
-  title: "Hibachi Blog Los Angeles | Cooking Tips & Japanese Cuisine Guide | Real Hibachi",
-  description: "Expert hibachi cooking tips, Japanese cuisine guides, and teppanyaki techniques from professional chefs in Los Angeles. Learn authentic recipes and cooking methods.",
-  keywords: "hibachi cooking tips, Japanese cuisine blog, teppanyaki recipes, hibachi techniques Los Angeles, Japanese cooking blog, hibachi recipes, teppanyaki cooking guide",
-  openGraph: {
-    title: "Hibachi Blog Los Angeles | Cooking Tips & Japanese Cuisine",
-    description: "Expert hibachi cooking tips and Japanese cuisine guides from professional chefs in Los Angeles.",
-    url: "https://realhibachi.com/blog",
-    siteName: "Real Hibachi",
-    type: "website",
-  },
+  title: "Blog | Hibachi Catering",
+  description: "Read our latest articles about hibachi cooking, catering tips, and Japanese cuisine.",
 }
 
 export default function BlogPage() {
@@ -26,7 +18,7 @@ export default function BlogPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {blogPosts.map((post) => (
           <Link key={post.id} href={`/blog/${post.slug}`} className="group">
             <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -68,29 +60,6 @@ export default function BlogPage() {
             </Card>
           </Link>
         ))}
-      </div>
-
-      {/* Related Services Section */}
-      <div className="bg-gray-50 rounded-2xl p-8">
-        <h2 className="text-2xl font-bold text-center mb-8">Explore Our Hibachi Services</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link href="/menu" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center group">
-            <h3 className="font-semibold text-gray-800 group-hover:text-orange-600">Hibachi Menu</h3>
-            <p className="text-sm text-gray-600">View our packages</p>
-          </Link>
-          <Link href="/service-area" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center group">
-            <h3 className="font-semibold text-gray-800 group-hover:text-orange-600">Service Areas</h3>
-            <p className="text-sm text-gray-600">Where we serve</p>
-          </Link>
-          <Link href="/gallery" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center group">
-            <h3 className="font-semibold text-gray-800 group-hover:text-orange-600">Gallery</h3>
-            <p className="text-sm text-gray-600">See our work</p>
-          </Link>
-          <Link href="/book" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-center group">
-            <h3 className="font-semibold text-gray-800 group-hover:text-orange-600">Book Now</h3>
-            <p className="text-sm text-gray-600">Reserve your chef</p>
-          </Link>
-        </div>
       </div>
     </div>
   )

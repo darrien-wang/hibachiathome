@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
                   })}
                 </p>
                 <div className="flex justify-center space-x-4">
-                  <a href="/service-area" className="text-orange-600 hover:text-orange-700 font-medium">
+                  <a href="/contact" className="text-orange-600 hover:text-orange-700 font-medium">
                     Contact Us
                   </a>
                   <span className="text-gray-300">|</span>

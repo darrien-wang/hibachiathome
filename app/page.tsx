@@ -15,9 +15,6 @@ import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import HowItWorksSection from "@/components/how-it-works-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
-import PromotionalCard from "@/components/promotional-card"
-
-import SMSReviews from "@/components/reviews/sms-reviews"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -51,16 +48,12 @@ const testimonials = [
   },
 ]
 
-// 视频加载超时组件，iOS兼容性增强版，支持外链视频优化
+// 视频加载超时组件
 function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
   const [showVideo, setShowVideo] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
 
-  // 检测是否为外链视频
-  const isExternalVideo = src.startsWith('http://') || src.startsWith('https://')
-  
   useEffect(() => {
     timerRef.current = setTimeout(() => {
       if (!loaded) setShowVideo(false)
@@ -71,45 +64,16 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
   }, [loaded])
 
   const handleLoadedData = () => {
-    console.log(`Video loaded successfully: ${isExternalVideo ? 'External' : 'Local'}`)
+    console.log("Video loaded successfully")
     setLoaded(true)
     setShowVideo(true)
     if (timerRef.current) clearTimeout(timerRef.current)
   }
 
   const handleError = (error: any) => {
-    console.error("Video loading error:", error, "Source:", src)
+    console.error("Video loading error:", error)
     setShowVideo(false)
   }
-
-  // 处理视频播放开始，暂停其他正在播放的视频
-  const handlePlay = () => {
-    if (typeof window !== 'undefined') {
-      const allVideos = document.querySelectorAll('video')
-      allVideos.forEach((video) => {
-        if (video !== videoRef.current && !video.paused) {
-          video.pause()
-        }
-      })
-    }
-  }
-
-  // iOS特定的处理
-  useEffect(() => {
-    const video = videoRef.current
-    if (video) {
-      // 添加iOS特定的事件监听器
-      const handleStalled = () => {
-        console.log("Video stalled, attempting to reload")
-        video.load()
-      }
-
-      video.addEventListener('stalled', handleStalled)
-      return () => {
-        video.removeEventListener('stalled', handleStalled)
-      }
-    }
-  }, [])
 
   if (!showVideo) {
     return (
@@ -133,25 +97,8 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
     )
   }
 
-  // 为外链视频和本地视频使用不同的配置
-  const videoProps = {
-    ref: videoRef,
-    ...props,
-    onLoadedData: handleLoadedData,
-    onError: handleError,
-    onPlay: handlePlay,
-    poster: poster,
-    playsInline: true,
-    'webkit-playsinline': 'true',
-    'x-webkit-airplay': 'allow',
-    // 外链视频使用更宽松的配置
-    preload: isExternalVideo ? 'auto' : 'metadata',
-    ...(isExternalVideo ? {} : { controlsList: 'nodownload nofullscreen' })
-  }
-
   return (
-    <video {...videoProps}>
-      <source src={src} type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
+    <video {...props} onLoadedData={handleLoadedData} onError={handleError} poster={poster}>
       <source src={src} type="video/mp4" />
       Your browser does not support the video tag.
     </video>
@@ -233,24 +180,18 @@ export default function Home() {
   }
 
   const handleWhatsApp = () => {
-    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
-    const url = `https://wa.me/${phoneNumber}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
     trackConversion("conversion_event_whatsapp_contact", url)
-    window.open(url, '_blank')
   }
 
   const handleSMS = () => {
-    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
-    const url = `sms:${phoneNumber}?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
     trackConversion("conversion_event_sms_contact", url)
-    window.location.href = url
   }
 
   const handlePhone = () => {
-    const phoneNumber = siteConfig.contact.phone?.replace(/-/g, '') || "12137707788"
-    const url = `tel:${phoneNumber}`
+    const url = `tel:${siteConfig.contact.phone || "12137707788"}`
     trackConversion("conversion_event_phone_contact", url)
-    window.location.href = url
   }
 
   const cardItems: CardItem[] = [
@@ -276,7 +217,7 @@ export default function Home() {
       title: "Phone",
       description: "Speak with us",
       icon: null,
-      buttonText: siteConfig.contact.phone || "(213) 770-7788",
+      buttonText: siteConfig.contact.phone || "12137707788",
       onClick: handlePhone,
       variant: "outline",
       className: "bg-white/20 border-white/30",
@@ -287,20 +228,46 @@ export default function Home() {
     <div>
       <HeroSection />
 
+      {/* Temporary Notice Banner - 9/30 */}
+      <div className="bg-amber-500 text-white py-3 px-4">
+        <div className="container mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center md:text-left">
+            <span className="font-semibold">📢 Important Notice (9/30):</span>
+            <span className="text-sm md:text-base">
+              For any questions today, please contact us at{" "}
+              <a href="mailto:realhibachiathome@gmail.com" className="underline font-medium hover:text-amber-100">
+                realhibachiathome@gmail.com
+              </a>{" "}
+              or text{" "}
+              <a href="sms:5627134832" className="underline font-medium hover:text-amber-100">
+                562-713-4832
+              </a>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* How It Works Section */}
       <HowItWorksSection />
 
-
+      {/* Instagram Videos Section */}
+      <InstagramVideosSection
+        displayMode="grid"
+        maxVisible={6}
+        showViewAll={true}
+        title="Real Events, Real Moments"
+        subtitle="See our recent hibachi experiences from satisfied customers across Los Angeles"
+      />
 
       {/* Package Options Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-4xl md:text-5xl font-serif font-bold text-center mb-6">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
                 Our Popular <span className="text-primary">Packages</span>
               </h2>
-              <p className="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
+              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
                 Choose the perfect hibachi package for your event
               </p>
             </AnimateOnScroll>
@@ -323,9 +290,9 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-2xl font-bold mb-2">Hibachi Show Package</h3>
+                    <h3 className="text-xl font-bold mb-2">Hibachi Show Package</h3>
                     <div className="mb-4">
-                      <p className="text-xl font-semibold text-amber-600">
+                      <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
                         $59.9
                         <span className="text-sm font-normal"> per person</span>
@@ -371,9 +338,9 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-2xl font-bold mb-2">Show Up Package</h3>
+                    <h3 className="text-xl font-bold mb-2">Show Up Package</h3>
                     <div className="mb-4">
-                      <p className="text-xl font-semibold text-amber-600">
+                      <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$75</span>
                         $74.9
                         <span className="text-sm font-normal"> per person</span>
@@ -692,7 +659,7 @@ export default function Home() {
           <Button
             asChild
             variant="outline"
-            className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+            className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 bg-transparent"
             onClick={handleViewMenu}
           >
             <Link href="/menu">See Full Menu</Link>
@@ -757,15 +724,20 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <TimeoutVideo
+                  <video
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
                     autoPlay
                     muted
                     loop
                     poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
-                  />
+                  >
+                    <source
+                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </AnimateOnScroll>
@@ -819,15 +791,6 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
-
-      {/* Instagram Videos Section - Before FAQ */}
-      <InstagramVideosSection
-        displayMode="carousel"
-        maxVisible={3}
-        showViewAll={false}
-        title="Real Events, Real Moments"
-        subtitle="Swipe to see our recent hibachi experiences from satisfied customers"
-      />
 
       {/* FAQ Section */}
       <AnimateOnScroll>
@@ -886,7 +849,7 @@ export default function Home() {
                 <Button
                   asChild
                   variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 bg-transparent"
                   onClick={handleViewFAQ}
                 >
                   <Link href="/faq">View All FAQs</Link>
@@ -913,7 +876,6 @@ export default function Home() {
 
             <AnimateOnScroll direction="up" delay={200}>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-
                 {cardItems.map((card, index) => (
                   <Card key={index} className={`text-center flex flex-col ${card.className}`}>
                     <CardHeader className="h-[100px] flex flex-col justify-center">
@@ -959,97 +921,20 @@ export default function Home() {
 
             <AnimateOnScroll direction="up" delay={600}>
               <div className="mt-16 max-w-4xl mx-auto">
-                <div className="relative">
-                  <TimeoutVideo
-                    src="/images/dance.mp4"
-                    autoPlay
-                    muted
-                    loop
-                    className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
-                  />
-                </div>
+                <img
+                  src="/hibachi-group-selfie.jpg"
+                  alt="Happy customers enjoying hibachi experience at home"
+                  className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
+                  loading="lazy"
+                />
               </div>
             </AnimateOnScroll>
           </div>
         </section>
       </AnimateOnScroll>
 
-      {/* Internal Links Section for SEO */}
-      <AnimateOnScroll direction="up">
-        <section className="py-16 bg-gray-50">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
-                Explore Our Hibachi Services
-              </h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                Discover everything we offer from menus to service areas across Southern California
-              </p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-              <Link href="/menu" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
-                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Hibachi Menu</h3>
-                <p className="text-sm text-gray-600">Packages & pricing</p>
-              </Link>
-              <Link href="/service-area" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
-                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Service Areas</h3>
-                <p className="text-sm text-gray-600">Where we serve</p>
-              </Link>
-              <Link href="/blog" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
-                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Hibachi Blog</h3>
-                <p className="text-sm text-gray-600">Tips & guides</p>
-              </Link>
-              <Link href="/gallery" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all group">
-                <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 mb-2">Gallery</h3>
-                <p className="text-sm text-gray-600">Recent events</p>
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Link href="/service-area/los-angeles" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
-                <span className="text-gray-700 hover:text-orange-600 font-medium">Los Angeles Hibachi</span>
-              </Link>
-              <Link href="/service-area/orange-county" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
-                <span className="text-gray-700 hover:text-orange-600 font-medium">Orange County Hibachi</span>
-              </Link>
-              <Link href="/service-area/san-bernardino" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
-                <span className="text-gray-700 hover:text-orange-600 font-medium">San Bernardino Hibachi</span>
-              </Link>
-              <Link href="/service-area/san-diego" className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all text-center">
-                <span className="text-gray-700 hover:text-orange-600 font-medium">San Diego Hibachi</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
       {/* Testimonials Section */}
       <TestimonialsSection />
-
-      {/* SMS Reviews Section */}
-      <SMSReviews />
-      
-{/* Yelp CTA Section - Temporarily hidden until we have reviews */}
-      {/* 
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-red-50 to-orange-50">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              See What Our Customers Say
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Check out our authentic reviews on Yelp from real customers who experienced 
-              our hibachi catering services firsthand.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <YelpButton showReviews size="lg" />
-              <Button asChild size="lg" className="bg-orange-600 hover:bg-orange-700 text-white">
-                <Link href="/book">Book Your Event</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-      */}
     </div>
   )
 }

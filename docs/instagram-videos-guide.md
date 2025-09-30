@@ -28,7 +28,7 @@
 
 ## 📂 文件结构
 
-```
+\`\`\`
 config/
 ├── instagram-videos.ts          # 视频数据配置
 components/
@@ -37,14 +37,14 @@ examples/
 ├── instagram-carousel-example.tsx # 轮播模式示例
 docs/
 ├── instagram-videos-guide.md    # 本使用指南
-```
+\`\`\`
 
 ## 🔧 添加新视频
 
 ### 1. 编辑配置文件
 打开 `config/instagram-videos.ts`，在 `instagramVideos` 数组中添加新视频：
 
-```typescript
+\`\`\`typescript
 {
   id: "7", // 唯一ID
   videoUrl: "你的视频URL",
@@ -56,7 +56,7 @@ docs/
   likes: 156,
   views: 890
 }
-```
+\`\`\`
 
 ### 2. 支持的活动类型
 - Birthday Party
@@ -69,28 +69,28 @@ docs/
 ## 🎨 自定义样式
 
 ### 修改显示数量
-```tsx
+\`\`\`tsx
 <InstagramVideosSection
   maxVisible={8}  // 改为显示8个视频
 />
-```
+\`\`\`
 
 ### 更改标题
-```tsx
+\`\`\`tsx
 <InstagramVideosSection
   title="我们的精彩时刻"
   subtitle="看看我们为客户创造的美好回忆"
 />
-```
+\`\`\`
 
 ### 切换到轮播模式
-```tsx
+\`\`\`tsx
 <InstagramVideosSection
   displayMode="carousel"
   maxVisible={3}
   showViewAll={false}
 />
-```
+\`\`\`
 
 ## 📊 展示模式对比
 
@@ -111,7 +111,7 @@ docs/
 - 按活动类型筛选
 
 ### 分页加载
-```typescript
+\`\`\`typescript
 // 获取最新6个视频
 const latestVideos = getLatestVideos(6)
 
@@ -120,7 +120,7 @@ const popularVideos = getPopularVideos(4)
 
 // 按类型筛选
 const birthdayVideos = getVideosByEventType("Birthday Party")
-```
+\`\`\`
 
 ### 懒加载优化
 - 图片懒加载减少初始页面加载时间
@@ -183,4 +183,3 @@ A: 不会，系统采用懒加载策略，只有用户看到或点击时才加�
 2. 调整组件参数改变显示效果
 3. 根据需要切换网格/轮播模式
 4. 联系开发团队进行高级定制
-

@@ -1,4 +1,4 @@
-// Regional fee mapping table
+// 区域费用映射表
 export const regions: Record<string, number> = {
   // TX (Austin, Dallas, Houston, San Antonio)
   "737": 50,
@@ -35,20 +35,15 @@ export const regions: Record<string, number> = {
   "332": 50,
   "328": 50,
   "329": 50,
-  // CA (San Bernardino County)
-  "917": 50,
-  "923": 50,
-  "924": 50,
-  "909": 50,
 }
 
-// Default travel fee
+// 默认旅行费用
 export const DEFAULT_TRAVEL_FEE = 50
 
 /**
- * Calculate travel fee based on zipcode
- * @param zipcode Postal code
- * @returns Travel fee amount
+ * 根据邮编计算旅行费用
+ * @param zipcode 邮编
+ * @returns 旅行费用金额
  */
 export const calculateTravelFee = (zipcode: string): number => {
   if (!zipcode || zipcode.length < 5) return 0

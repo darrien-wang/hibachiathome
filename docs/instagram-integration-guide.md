@@ -22,7 +22,7 @@
 ### 2. 更新配置文件
 编辑 `config/instagram-videos.ts`，添加新视频：
 
-```typescript
+\`\`\`typescript
 {
   id: "real-2", // 唯一ID
   videoUrl: "", // Instagram嵌入时留空
@@ -36,7 +36,7 @@
   isEmbedded: true, // 设置为true表示这是Instagram嵌入
   embedUrl: "https://www.instagram.com/reel/YOUR_REEL_ID/" // Instagram链接
 }
-```
+\`\`\`
 
 ### 3. 获取缩略图
 你可以：
@@ -63,19 +63,19 @@
 
 ### 修改Instagram徽章
 在 `components/instagram-videos-section.tsx` 中修改：
-```typescript
+\`\`\`typescript
 {video.eventType && (
   <div className="absolute top-3 left-3 bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
     📱 {video.eventType}
   </div>
 )}
-```
+\`\`\`
 
 ### 调整Modal大小
 在 `components/instagram-embed-modal.tsx` 中修改：
-```typescript
+\`\`\`typescript
 <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
-```
+\`\`\`
 
 ## 🔄 下一步建议
 

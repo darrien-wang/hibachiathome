@@ -85,18 +85,18 @@ export const instagramVideos: InstagramVideo[] = [
   }
 ]
 
-// Sort by date (newest first)
+// 按日期排序（最新在前）
 export const getLatestVideos = (count?: number) => {
   const sorted = [...instagramVideos].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   return count ? sorted.slice(0, count) : sorted
 }
 
-// Filter by location
+// 按地点筛选
 export const getVideosByLocation = (location: string) => {
   return instagramVideos.filter(video => video.location?.includes(location))
 }
 
-// Get popular videos (sorted by date, newest videos are considered popular)
+// 获取热门视频（按日期排序，最新的视频被认为是热门的）
 export const getPopularVideos = (count?: number) => {
   const sorted = [...instagramVideos].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   return count ? sorted.slice(0, count) : sorted

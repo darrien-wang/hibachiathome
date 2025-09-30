@@ -22,13 +22,6 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
   goToPreviousStep,
   onStartNew,
 }) => {
-  // 添加调试日志
-  console.log("🟡 Step7: orderData received:", orderData)
-  console.log("🟡 Step7: Time fields:", {
-    event_date: orderData?.event_date,
-    event_time: orderData?.event_time
-  })
-  
   return (
     <div className="space-y-6">
       {/* Progress Indicator */}

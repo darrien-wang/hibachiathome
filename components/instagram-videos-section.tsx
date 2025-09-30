@@ -37,23 +37,12 @@ export default function InstagramVideosSection({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showAll, setShowAll] = useState(false)
   const [playingVideo, setPlayingVideo] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
   const carouselRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const latestVideos = getLatestVideos()
     setVideos(latestVideos)
-
-    // 检测是否为移动设备
-    const checkIsMobile = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        window.innerWidth < 768
-      setIsMobile(isMobileDevice)
-    }
-    
-    checkIsMobile()
-    window.addEventListener('resize', checkIsMobile)
 
     // 加载Instagram嵌入脚本
     const loadInstagramScript = () => {
@@ -78,10 +67,6 @@ export default function InstagramVideosSection({
     if (hasEmbeddedVideos) {
       loadInstagramScript()
     }
-
-    return () => {
-      window.removeEventListener('resize', checkIsMobile)
-    }
   }, [])
 
   const displayedVideos = showAll ? videos : videos.slice(0, maxVisible)
@@ -102,16 +87,14 @@ export default function InstagramVideosSection({
   }
 
   const nextSlide = () => {
-    if (displayMode === "carousel" && carouselRef.current) {
-      const scrollAmount = 320 // width of one card + gap
-      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    if (displayMode === "carousel") {
+      setCurrentIndex((prev) => (prev + 1) % videos.length)
     }
   }
 
   const prevSlide = () => {
-    if (displayMode === "carousel" && carouselRef.current) {
-      const scrollAmount = 320 // width of one card + gap
-      carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+    if (displayMode === "carousel") {
+      setCurrentIndex((prev) => (prev - 1 + videos.length) % videos.length)
     }
   }
 
@@ -138,11 +121,11 @@ export default function InstagramVideosSection({
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Instagram className="h-8 w-8 text-pink-500" />
-              <h2 className="text-4xl md:text-5xl font-serif font-bold">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold">
                 {title}
               </h2>
             </div>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
               {subtitle}
             </p>
           </div>
@@ -182,42 +165,17 @@ export default function InstagramVideosSection({
           </>
         ) : (
           <AnimateOnScroll>
-            <div className="relative mx-auto px-4">
-              {/* Desktop navigation arrows */}
-              {!isMobile && (
-                <>
-                  <button
-                    onClick={prevSlide}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110"
-                    aria-label="Previous videos"
-                  >
-                    <ChevronLeft className="h-6 w-6 text-gray-700" />
-                  </button>
-                  <button
-                    onClick={nextSlide}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110"
-                    aria-label="Next videos"
-                  >
-                    <ChevronRight className="h-6 w-6 text-gray-700" />
-                  </button>
-                </>
-              )}
-              
+            <div className="relative max-w-4xl mx-auto">
               <div 
                 ref={carouselRef}
-                className="overflow-x-auto scrollbar-hide"
-                style={{ 
-                  scrollBehavior: 'smooth',
-                  scrollSnapType: 'x mandatory'
-                }}
+                className="overflow-hidden rounded-xl"
               >
-                <div className="flex gap-4 pb-4 md:gap-6">
+                <div 
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
                   {videos.map((video, index) => (
-                    <div 
-                      key={video.id} 
-                      className="w-[280px] sm:w-[320px] md:w-[350px] flex-shrink-0"
-                      style={{ scrollSnapAlign: 'start' }}
-                    >
+                    <div key={video.id} className="w-full flex-shrink-0">
                       <VideoCard
                         video={video}
                         index={index}
@@ -231,13 +189,37 @@ export default function InstagramVideosSection({
                 </div>
               </div>
               
-              {/* Navigation hints based on device type */}
-              <div className="text-center mt-2">
-                {isMobile ? (
-                  <p className="text-sm text-gray-500">← Swipe to see more videos →</p>
-                ) : (
-                  <p className="text-sm text-gray-500">← Use arrow buttons or scroll to see more videos →</p>
-                )}
+              {videos.length > 1 && (
+                <>
+                  <Button
+                    onClick={prevSlide}
+                    variant="outline"
+                    size="icon"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={nextSlide}
+                    variant="outline"
+                    size="icon"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+              
+              <div className="flex justify-center gap-2 mt-6">
+                {videos.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentIndex(index)}
+                    className={`w-3 h-3 rounded-full transition-colors ${
+                      index === currentIndex ? "bg-amber-500" : "bg-gray-300"
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           </AnimateOnScroll>
@@ -299,15 +281,11 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
 
   return (
     <AnimateOnScroll delay={isCarousel ? 0 : index * 100} direction="up">
-      <Card className={`overflow-hidden hover:shadow-xl transition-all duration-300 group ${
-        isCarousel ? 'h-[380px] sm:h-[400px]' : ''
-      }`}>
+      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
         <CardContent className="p-0">
           {video.isEmbedded ? (
             // Instagram直接嵌入
-            <div className={`relative bg-white ${
-              isCarousel ? 'h-[280px] sm:h-[300px]' : ''
-            }`} style={{ minHeight: isCarousel ? 'auto' : '400px' }}>
+            <div className="relative bg-white" style={{ minHeight: '400px' }}>
               <blockquote 
                 className="instagram-media" 
                 data-instgrm-captioned 
@@ -364,9 +342,7 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
             </div>
           ) : (
             // 普通视频显示
-            <div className={`relative bg-gray-100 ${
-              isCarousel ? 'h-[280px] sm:h-[300px]' : 'aspect-[4/5]'
-            }`}>
+            <div className="relative aspect-[4/5] bg-gray-100">
               {showVideo ? (
                 <video
                   ref={(ref) => onVideoRef(video.id, ref)}
@@ -374,13 +350,9 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
                   controls
                   autoPlay
                   muted
-                  playsInline
-                  webkit-playsinline="true"
-                  preload="auto"
                   onLoadedData={() => setIsLoaded(true)}
                   poster={video.thumbnailUrl}
                 >
-                  <source src={video.videoUrl} type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'" />
                   <source src={video.videoUrl} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>

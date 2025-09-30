@@ -7,7 +7,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Hibachi at Home Service Locations | Los Angeles & Orange County | Real Hibachi",
   description: "Professional hibachi at home service in Los Angeles and Orange County. Authentic Japanese teppanyaki chefs serving Beverly Hills, Santa Monica, Irvine, and surrounding areas.",
-  keywords: "hibachi service locations Los Angeles, teppanyaki at home Orange County, Hibachi Chef service areas LA, hibachi catering locations California",
+  keywords: "hibachi service locations Los Angeles, teppanyaki at home Orange County, Japanese chef service areas LA, hibachi catering locations California",
   openGraph: {
     title: "Hibachi at Home Service Locations | Los Angeles & Orange County",
     description: "Premium hibachi at home service covering Los Angeles and Orange County. Professional Japanese teppanyaki chefs at your location.",
@@ -91,7 +91,7 @@ export default function LocationsPage() {
             We're expanding our service areas regularly. Contact us to check if we can accommodate your location.
           </p>
           <Button asChild>
-            <Link href="/service-area">View Service Area</Link>
+            <Link href="/contact">Contact Us</Link>
           </Button>
         </div>
       </div>

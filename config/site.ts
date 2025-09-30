@@ -2,7 +2,7 @@
 export const siteConfig = {
   name: "Real Hibachi",
   description: "Bringing the hibachi experience directly to your home or venue.",
-  url: "https://www.realhibachi.com",
+  url: "https://realhibachi.com",
   ogImage: "https://realhibachi.com/og-image.jpg",
 
   // Logo configurations
@@ -24,6 +24,6 @@ export const siteConfig = {
   social: {
     facebook: "https://www.facebook.com/profile.php?id=61576199137704",
     instagram: "https://www.instagram.com/realhibachi/",
-    tiktok: "https://www.tiktok.com/@real.hibachi",
+    twitter: "#", // Assuming twitter remains unchanged or is a placeholder
   },
 }

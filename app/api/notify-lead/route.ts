@@ -204,9 +204,6 @@ export async function POST(request: Request) {
     console.log("- Customer Name:", data.customer?.name);
     console.log("- Customer Email:", data.customer?.email);
     console.log("- Total Guests:", data.order?.guests?.total);
-    console.log("- Selected Date:", data.order?.scheduling?.selected_date);
-    console.log("- Selected Time:", data.order?.scheduling?.selected_time);
-    console.log("- Full scheduling data:", data.order?.scheduling);
 
     // 根据标签选择邮件模板
     const html = tag === 'order_confirmation' 

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description:
     "Professional hibachi at home service in Los Angeles, Orange County & surrounding areas. Private hibachi chef brings authentic Japanese teppanyaki experience to your location. Book today!",
   keywords:
-    "hibachi at home los angeles, private hibachi chef LA, hibachi catering los angeles, teppanyaki at home, Hibachi Chef los angeles, hibachi party catering, private chef los angeles, hibachi grill rental LA",
+    "hibachi at home los angeles, private hibachi chef LA, hibachi catering los angeles, teppanyaki at home, japanese chef los angeles, hibachi party catering, private chef los angeles, hibachi grill rental LA",
   openGraph: {
     title: "Hibachi at Home Los Angeles | Private Chef Service",
     description:

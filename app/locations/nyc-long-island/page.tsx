@@ -271,7 +271,7 @@ export default function NycLongIslandHibachiPage() {
               size="lg"
               className="border-primary text-primary hover:bg-primary/10 py-3 px-8 text-lg rounded-full"
             >
-              <Link href="/service-area">Inquire About Discounts</Link>
+              <Link href="/contact">Inquire About Discounts</Link>
             </Button>
           </div>
         </section>

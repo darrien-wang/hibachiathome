@@ -1,550 +1,248 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import { Play } from "lucide-react"
+import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
 export default function HeroSection() {
-  // Start with false to avoid hydration mismatch, detect properly in useEffect
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [imageTimestamps, setImageTimestamps] = useState<string[]>([])
+  const [autoplayEnabled, setAutoplayEnabled] = useState(false)
+  const [userInteracted, setUserInteracted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [isVideoMuted, setIsVideoMuted] = useState(true)
-  const [userHasInteracted, setUserHasInteracted] = useState(false)
-  const [showContent, setShowContent] = useState(true)
-  const [isRotating, setIsRotating] = useState(false)
-  const [isFadingIn, setIsFadingIn] = useState(false)
-  const [currentVolume, setCurrentVolume] = useState(0)
+  const firstSlideTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [touchStart, setTouchStart] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const [swipeDistance, setSwipeDistance] = useState(0)
+  const swipeThreshold = 50
 
-  const [videoFailed, setVideoFailed] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // Fix: Correctly initialize heroImagesRef with a computed value, not a function
+  const heroImagesRef = useRef(
+    getSortedHeroImages()
+      .filter((_, index) => index !== 0 && index !== 4)
+      .concat({
+        url: "/images/hibachi-dinner-party.jpg",
+        alt: "Hibachi dinner party with friends enjoying a meal outdoors",
+        priority: 10, // Lower priority to ensure it's added at the end
+      }),
+  )
 
+  const sortedHeroImages = heroImagesRef.current
+  const carouselIntervalOverride = 3000 // 3 seconds instead of default
+  const videoEnded = true
 
-
-
-
-  // Combined mobile detection and video configuration to avoid race conditions
-  useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    const isMobileScreen = window.innerWidth < 768
-    const shouldBeMobile = isMobileDevice || isMobileScreen
-    
-    console.log('Client-side mobile detection:', { 
-      isIOS, 
-      isMobileDevice, 
-      isMobileScreen, 
-      shouldBeMobile,
-      userAgent: navigator.userAgent 
-    })
-    
-    setIsMobile(shouldBeMobile)
-    
-    // CRITICAL: Configure video immediately to prevent src loss
-    if (videoRef.current) {
-      const video = videoRef.current
-      
-      // Force set video source to prevent hydration issues - use absolute URL for iOS
-      console.log('Setting video src to prevent hydration loss...')
-      const baseUrl = window.location.origin
-      const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`
-      console.log('Base URL:', baseUrl)
-      console.log('Setting video src to:', videoSrc)
-      video.src = videoSrc
-      console.log('Video src after setting:', video.src)
-      console.log('Video currentSrc after setting:', video.currentSrc)
-      
-      if (isIOS || isMobileDevice) {
-        console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
-        
-        // Force video to be ready for mobile
-        video.muted = true
-        video.autoplay = false // Disable autoplay for iOS
-        video.preload = 'metadata' // Only load metadata first
-      } else {
-        console.log('Desktop detected, enabling autoplay...')
-        
-        // Desktop: enable autoplay
-        video.autoplay = true
-        video.preload = 'auto'
-        video.muted = true
-      }
-      
-      console.log('Video configuration set:', {
-        src: video.src,
-        autoplay: video.autoplay,
-        preload: video.preload,
-        muted: video.muted
-      })
-    }
-    
-
-  }, [])
-
-  // Volume fade functions
-  const fadeVolumeIn = () => {
-    if (!videoRef.current) return
-    
-    const video = videoRef.current
-    video.muted = false
-    video.volume = 0
-    setCurrentVolume(0)
-    setIsVideoMuted(false)
-    
-    // Reset fade-in state and start rotation animation
-    setIsFadingIn(false)
-    setIsRotating(true)
-    
-    // Hide content after rotation animation (1 second)
-    setTimeout(() => {
-      setShowContent(false)
-    }, 1000)
-    
-    // Clear previous timer
-    if (fadeTimeoutRef.current) {
-      clearInterval(fadeTimeoutRef.current)
-    }
-    
-    // Gradually increase volume
-    let volume = 0
-    const targetVolume = 0.7 // Target volume, not too loud
-    const fadeStep = 0.02 // Volume increase per step
-    const fadeInterval = 50 // Increase every 50ms
-    
-    fadeTimeoutRef.current = setInterval(() => {
-      volume += fadeStep
-      if (volume >= targetVolume) {
-        volume = targetVolume
-        clearInterval(fadeTimeoutRef.current!)
-      }
-      video.volume = volume
-      setCurrentVolume(volume)
-    }, fadeInterval)
-  }
-
-  const fadeVolumeOut = () => {
-    if (!videoRef.current) return
-    
-    const video = videoRef.current
-    
-    // Reset rotation state and start fade in animation
-    setIsRotating(false)
-    setIsFadingIn(true)
-    setShowContent(true)
-    let volume = video.volume
-    
-    // Clear previous timer
-    if (fadeTimeoutRef.current) {
-      clearInterval(fadeTimeoutRef.current)
-    }
-    
-    // Gradually decrease volume
-    const fadeStep = 0.05 // Volume decrease per step
-    const fadeInterval = 30 // Decrease every 30ms
-    
-    fadeTimeoutRef.current = setInterval(() => {
-      volume -= fadeStep
-      if (volume <= 0) {
-        volume = 0
-        video.muted = true
-        setIsVideoMuted(true)
-        setShowContent(true) // Restore content display when sound is muted
-        clearInterval(fadeTimeoutRef.current!)
-      }
-      video.volume = volume
-      setCurrentVolume(volume)
-    }, fadeInterval)
-  }
-
-  const toggleVideoAudio = () => {
-    if (videoRef.current) {
-      if (isVideoMuted) {
-        fadeVolumeIn()
-      } else {
-        fadeVolumeOut()
+  const handleUserInteraction = () => {
+    if (!userInteracted) {
+      setUserInteracted(true)
+      if (carouselConfig.autoplayAfterInteraction) {
+        setAutoplayEnabled(true)
       }
     }
   }
-
-
 
   const handleFirstInteraction = () => {
-    if (!userHasInteracted) {
-      setUserHasInteracted(true)
-      
-      // First click: enable sound (fadeVolumeIn will handle hiding content)
-      fadeVolumeIn()
-    }
+    handleUserInteraction()
   }
 
-  const handleVideoClick = async () => {
-    console.log('Video clicked! User has interacted:', userHasInteracted)
-    
-    if (videoRef.current) {
-      const video = videoRef.current
-      console.log('Video state:', {
-        paused: video.paused,
-        muted: video.muted,
-        readyState: video.readyState,
-        currentTime: video.currentTime,
-        duration: video.duration
-      })
-      
-      // If video is paused, try to play it first (important for iOS)
-      if (video.paused) {
-        try {
-          console.log('Video is paused, attempting to play...')
-          await video.play()
-          console.log('Video play successful after click')
-        } catch (error) {
-          console.error('Failed to play video after click:', error)
-        }
-      }
-    }
-    
-    if (!userHasInteracted) {
-      // First click: hide content and enable sound
-      handleFirstInteraction()
-    } else {
-      // Subsequent clicks: toggle sound on/off
-      toggleVideoAudio()
-    }
+  const nextSlide = () => {
+    handleUserInteraction()
+    setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
   }
 
-  // Configure video and mobile handling after mobile detection
+  const prevSlide = () => {
+    handleUserInteraction()
+    setCurrentSlide((prev) => (prev - 1 + sortedHeroImages.length) % sortedHeroImages.length)
+  }
+
+  // 检测移动端
   useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    
-    const handleResize = () => {
-      const newIsMobileScreen = window.innerWidth < 768
-      const newShouldBeMobile = isMobileDevice || newIsMobileScreen
-      setIsMobile(newShouldBeMobile)
-      console.log('Resize detected:', { 
-        newIsMobileScreen, 
-        isMobileDevice, 
-        newShouldBeMobile 
-      })
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768) // md breakpoint
     }
     
-    // Configure video based on device type after mounting
-    if (videoRef.current) {
-      const video = videoRef.current
-      
-      // Ensure video source is set correctly
-      if (!video.src || video.src === '') {
-        console.log('Video src is empty, setting it...')
-        const baseUrl = window.location.origin
-        const videoSrc = `${baseUrl}/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4`
-        video.src = videoSrc
-        console.log('Fixed empty video src to:', video.src)
-      }
-      
-      if (isIOS || isMobileDevice) {
-        console.log('Mobile device detected, setting up special handling...', { isIOS, isMobileDevice })
-        
-        // Force video to be ready for mobile
-        video.muted = true
-        video.autoplay = false // Disable autoplay for iOS
-        video.preload = 'metadata' // Only load metadata first
-      } else {
-        console.log('Desktop detected, enabling autoplay...')
-        
-        // Desktop: enable autoplay
-        video.autoplay = true
-        video.preload = 'auto'
-        video.muted = true
-      }
-      
-      console.log('Video configuration:', {
-        src: video.src,
-        autoplay: video.autoplay,
-        preload: video.preload,
-        muted: video.muted
-      })
-    }
-    
-    if ((isIOS || isMobileDevice) && videoRef.current) {
-      const video = videoRef.current
-      
-      // Force load the video
-      console.log('Forcing video load...')
-      video.load()
-      
-      // Add comprehensive event listeners
-      const handleLoadStart = () => console.log('Mobile: loadstart event')
-      const handleLoadedMetadata = () => {
-        console.log('Mobile: loadedmetadata event, ReadyState:', video.readyState)
-    
-      }
-      const handleLoadedData = () => {
-        console.log('Mobile: loadeddata event, ReadyState:', video.readyState)
-    
-      }
-      const handleCanPlay = () => {
-        console.log('Mobile: canplay event, ReadyState:', video.readyState)
-    
-      }
-      
-      // Add special mobile event handlers
-      const mobilePlayHandler = async (event: Event) => {
-        console.log('Mobile: User interaction detected, type:', event.type)
-        try {
-          if (video.paused) {
-            console.log('Mobile: Attempting to play video...')
-            video.preload = 'auto' // Now load full video
-            await video.play()
-            console.log('Mobile: Video playing successfully')
-        
-          }
-        } catch (error) {
-          console.error('Mobile: Video play failed:', error)
-        }
-      }
-      
-      // Add event listeners
-      video.addEventListener('loadstart', handleLoadStart)
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
-      video.addEventListener('loadeddata', handleLoadedData)
-      video.addEventListener('canplay', handleCanPlay)
-      video.addEventListener('touchstart', mobilePlayHandler)
-      video.addEventListener('click', mobilePlayHandler)
-      
-      // Try to load metadata immediately
-      setTimeout(() => {
-        console.log('Delayed load attempt...')
-        video.load()
-      }, 100)
-      
-      return () => {
-        video.removeEventListener('loadstart', handleLoadStart)
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-        video.removeEventListener('loadeddata', handleLoadedData)
-        video.removeEventListener('canplay', handleCanPlay)
-        video.removeEventListener('touchstart', mobilePlayHandler)
-        video.removeEventListener('click', mobilePlayHandler)
-      }
-    }
-
-    // Add resize event listener
-    window.addEventListener("resize", handleResize)
-
-    // Cleanup
-    return () => window.removeEventListener("resize", handleResize)
-  }, [isMobile]) // Re-run when mobile state changes
-
-  // Handle video audio state and Safari compatibility
-  useEffect(() => {
-    if (videoRef.current) {
-      const video = videoRef.current
-      // Initialize video as muted
-      video.muted = true
-      video.volume = 0
-      setIsVideoMuted(true)
-      setCurrentVolume(0)
-      
-      // Safari specific fixes
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-      if (isSafari) {
-        // Force load the video
-        video.load()
-        
-        // Try to play after a short delay for Safari
-        const playVideo = async () => {
-          try {
-            console.log('Attempting to play video on Safari...')
-            const playPromise = await video.play()
-            console.log('Video play successful:', playPromise)
-          } catch (error: any) {
-            console.error('Safari autoplay failed:', error.name, error.message)
-            // Safari might prevent autoplay, this is expected
-          }
-        }
-        
-        // Add event listeners for Safari
-        video.addEventListener('loadeddata', playVideo)
-        video.addEventListener('canplay', playVideo)
-        
-        return () => {
-          video.removeEventListener('loadeddata', playVideo)
-          video.removeEventListener('canplay', playVideo)
-        }
-      }
+    if (typeof window !== "undefined") {
+      checkMobile()
+      window.addEventListener('resize', checkMobile)
+      return () => window.removeEventListener('resize', checkMobile)
     }
   }, [])
 
-  // Reset fade-in state after animation completes
   useEffect(() => {
-    if (isFadingIn) {
-      const timer = setTimeout(() => {
-        setIsFadingIn(false)
-      }, 600) // Match animation duration
-      
-      return () => clearTimeout(timer)
+    // Preload images
+    const loadImagesOnce = async () => {
+      if (sortedHeroImages.length > 0 && !imagesLoaded) {
+        const promises = sortedHeroImages.map((image) => {
+          return new Promise((resolve) => {
+            const img = new window.Image()
+            img.src = image.url
+            img.onload = resolve
+          })
+        })
+        await Promise.all(promises)
+        setImagesLoaded(true)
+      }
     }
-  }, [isFadingIn])
 
-  // Cleanup timers
+    if (typeof window !== "undefined") {
+      loadImagesOnce()
+    }
+  }, [imagesLoaded]) // Remove sortedHeroImages from dependencies
+
   useEffect(() => {
+    if (sortedHeroImages.length > 0 && imageTimestamps.length === 0) {
+      // Get current date
+      const currentDate = new Date()
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth() + 1 // JavaScript months are 0-indexed
+      const currentDay = currentDate.getDate()
+
+      const timestamps = sortedHeroImages.map((image, index) => {
+        // Use image timestamp if available
+        if (image.timestamp) return image.timestamp
+
+        // Generate a random past date within the last 3 months
+        const randomMonthsAgo = Math.floor(Math.random() * 3) // 0-2 months ago
+        const randomDaysAgo = Math.floor(Math.random() * 28) + 1 // 1-28 days
+
+        let dateMonth = currentMonth - randomMonthsAgo
+        let dateYear = currentYear
+
+        // Handle month rollover
+        if (dateMonth <= 0) {
+          dateMonth += 12
+          dateYear -= 1
+        }
+
+        // Ensure day doesn't exceed current day for current month
+        let dateDay = randomDaysAgo
+        if (dateMonth === currentMonth && dateDay > currentDay) {
+          dateDay = Math.min(currentDay, randomDaysAgo)
+        }
+
+        return `${dateYear}-${String(dateMonth).padStart(2, "0")}-${String(dateDay).padStart(2, "0")}`
+      })
+
+      setImageTimestamps(timestamps)
+    }
+  }, [imageTimestamps.length]) // Remove sortedHeroImages from dependencies
+
+  useEffect(() => {
+    if (sortedHeroImages.length > 0 && sortedHeroImages[0].duration && videoEnded && !userInteracted) {
+      // Clear any existing timer
+      if (firstSlideTimerRef.current) {
+        clearTimeout(firstSlideTimerRef.current)
+      }
+
+      // Set new timer
+      firstSlideTimerRef.current = setTimeout(() => {
+        setCurrentSlide(0)
+      }, 5000) // Use a default duration since the first image with duration is now removed
+    }
+
     return () => {
-      if (fadeTimeoutRef.current) {
-        clearInterval(fadeTimeoutRef.current)
+      if (firstSlideTimerRef.current) {
+        clearTimeout(firstSlideTimerRef.current)
       }
     }
-  }, [])
+  }, [userInteracted, videoEnded]) // Remove sortedHeroImages from dependencies
+
+  useEffect(() => {
+    if (sortedHeroImages.length > 0 && autoplayEnabled && videoEnded) {
+      if (autoplayTimerRef.current) {
+        clearInterval(autoplayTimerRef.current)
+      }
+      autoplayTimerRef.current = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % sortedHeroImages.length)
+      }, carouselIntervalOverride) // Use the faster interval override
+    }
+
+    return () => {
+      if (autoplayTimerRef.current) {
+        clearInterval(autoplayTimerRef.current)
+      }
+    }
+  }, [autoplayEnabled, videoEnded]) // Remove sortedHeroImages from dependencies
 
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center">
-      {/* Full-screen flame video background */}
-      <div 
-        className="absolute inset-0 overflow-hidden bg-black z-0"
-      >
-        {/* iOS Safari Fallback: 静态背景图片 */}
-        {videoFailed && (
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: 'url(/images/hibachi-dinner-party.jpg)',
-              zIndex: 1
-            }}
-          />
-        )}
-        
-        <video
-          ref={videoRef}
-          src="/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4"
-          className="w-full h-full object-cover cursor-pointer"
-          autoPlay={false}
-          muted={isVideoMuted}
-          loop
-          playsInline
-          webkit-playsinline="true"
-          preload="metadata"
-          controls={false}
-          poster="/images/hibachi-dinner-party.jpg"
-          onClick={handleVideoClick}
-          suppressHydrationWarning
-          onLoadStart={() => console.log('Video load started')}
-          onLoadedData={() => console.log('Video data loaded')}
-          onCanPlay={() => console.log('Video can play')}
-          onPlay={() => console.log('Video started playing')}
-          onPause={() => console.log('Video paused')}
-          onError={(e) => {
-            const video = e.target as HTMLVideoElement
-            console.error('Video error details:', {
-              error: e,
-              target: video,
-              networkState: video.networkState,
-              readyState: video.readyState,
-              src: video.src,
-              currentSrc: video.currentSrc,
-              errorCode: video.error?.code,
-              errorMessage: video.error?.message,
-              lastErrorEvent: e
-            })
-            
-            // iOS Safari fallback: 如果视频无法播放，标记为失败
-            if (video.error?.code === 4) { // SRC_NOT_SUPPORTED
-              console.log('iOS video playback failed, enabling fallback mode...')
-              setVideoFailed(true)
-            }
-          }}
-          style={{ willChange: 'transform' }}
-        >
-          <source 
-            src="/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4" 
-            type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'"
-            onError={(e) => console.error('First source (H.264) failed:', e.target)}
-          />
-          <source 
-            src="/video/00ebf7a19327d6f30078329b3e163952_ios_ultra_compatible.mp4" 
-            type="video/mp4"
-            onError={(e) => console.error('Second source (MP4) failed:', e.target)}
-          />
-          Your browser does not support the video tag.
-        </video>
-        {/* Dynamic dark overlay - hidden when sound is playing, shown when muted */}
-        <div 
-          className={`absolute inset-0 cursor-pointer z-10 transition-all duration-1000 ${
-            !isVideoMuted && currentVolume > 0 
-              ? 'bg-black/0' 
-              : 'bg-black/40'
-          }`}
-          onClick={handleVideoClick}
-        ></div>
-
-
-      </div>
-
-      {/* Main content area - hidden after click */}
-      {showContent && (
-        <div 
-          className={`container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-center items-center ${
-            isRotating ? 'rotate-and-fade' : 
-            isFadingIn ? 'fade-in-up' : 
-            'transition-all duration-300'
-          }`}
-        >
-          {/* Main title area - centered display */}
-          <div className="relative max-w-4xl mx-auto">
-            {/* Main welcome message */}
-            <div className="mb-8 relative">
-              <h1 
-                className="text-5xl md:text-7xl font-black mb-8 cursor-pointer transition-all duration-500 hover:scale-105 group relative pointer-events-auto"
-                onClick={handleVideoClick}
-                style={{
-                  textShadow: "3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 4px 4px 8px rgba(0,0,0,0.5)",
-                  animation: "gentlePulse 4s ease-in-out infinite"
-                }}
+      {/* 移动端视频背景 */}
+      {isMobile ? (
+        <div className="absolute inset-0 overflow-hidden bg-black z-0">
+          <video
+            className="w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/images/hibachi-dinner-party.jpg"
+          >
+            <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_uq6V65eQcr9o6oIao946e8dPfR9o/1FpnWn5XCebSoLHXdVLIqc/public/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          {/* 视频遮罩层 */}
+          <div className="absolute inset-0 bg-black/30"></div>
+        </div>
+      ) : (
+        /* 桌面端Instagram Stories风格视频 */
+        <div className="absolute inset-0 overflow-hidden bg-black z-0">
+          {/* 模糊背景视频 */}
+          <video
+            className="absolute inset-0 w-full h-full object-cover blur-lg scale-110"
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/images/hibachi-dinner-party.jpg"
+          >
+            <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_uq6V65eQcr9o6oIao946e8dPfR9o/1FpnWn5XCebSoLHXdVLIqc/public/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+          </video>
+          
+          {/* 深色遮罩 */}
+          <div className="absolute inset-0 bg-black/50"></div>
+          
+          {/* 中心清晰视频 */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative h-full max-w-[500px] w-full max-h-[90vh] aspect-[9/16] bg-black rounded-lg overflow-hidden shadow-2xl">
+              <video
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster="/images/hibachi-dinner-party.jpg"
               >
-                <span className="text-orange-500 font-handwritten group-hover:text-orange-400 transition-colors duration-300" style={{
-                  fontWeight: "700",
-                  transform: "rotate(-2deg)",
-                  display: "inline-block"
-                }}>
-                  Hibachi
-                </span>{" "}
-                <span className="font-handwritten group-hover:text-orange-200 transition-colors duration-300" style={{
-                  color: "#F5E3CB",
-                  fontWeight: "700",
-                  transform: "rotate(1deg)",
-                  display: "inline-block",
-                  textShadow: "2px 2px 0px hsl(24.6, 85%, 35%), -1px -1px 0px hsl(24.6, 85%, 35%), 1px -1px 0px hsl(24.6, 85%, 35%), -1px 1px 0px hsl(24.6, 85%, 35%)"
-                }}>
-                  at Home
-                </span>
-              </h1>
-
-
-
-              <p className="text-xl md:text-2xl drop-shadow-lg" style={{
-                color: "hsl(24.6, 60%, 85%)"
-              }}>
-                Professional hibachi chefs bring the restaurant experience to your home
-              </p>
-            </div>
-
-            {/* Call-to-action buttons group */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              {/* Watch Video Button */}
-              <button
-                onClick={handleVideoClick}
-                className="bg-black/60 hover:bg-black/80 text-white py-3 px-6 rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-orange-400 hover:border-orange-300 backdrop-blur-sm flex items-center gap-2"
-              >
-                <Play 
-                  className="w-4 h-4 text-orange-300 hover:text-orange-200 transition-colors duration-300" 
-                  fill="currentColor"
-                />
-                <span className="text-sm md:text-base font-medium">Watch Video</span>
-              </button>
+                <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_uq6V65eQcr9o6oIao946e8dPfR9o/1FpnWn5XCebSoLHXdVLIqc/public/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
               
-
+              {/* 轻微的边框效果 */}
+              <div className="absolute inset-0 border border-white/10 rounded-lg pointer-events-none"></div>
             </div>
-
-
           </div>
         </div>
       )}
 
+      {/* Remove the full overlay div */}
 
+      <div
+        className={`container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
+      >
+        <div className="relative max-w-3xl mx-auto" style={{ marginTop: isMobile ? "calc(25vh - 100px)" : "calc(15vh - 50px)" }}>
+          <div
+            className="bg-red-600 text-white py-3 px-6 rounded-md transform rotate-[-1deg] shadow-lg border-2 border-yellow-400"
+            style={{
+              backgroundImage: "linear-gradient(135deg, #e53e3e 0%, #c53030 100%)",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 215, 0, 0.3)",
+            }}
+          >
+            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 Want a Party? One Call, That's All. 🎉</p>
+          </div>
+        </div>
 
+        <div className="mt-auto mb-12 md:mb-20 animate-slideUp relative"></div>
+      </div>
+
+      {/* 桌面端不再需要轮播控制 - 现在统一使用视频 */}
     </section>
   )
 }
