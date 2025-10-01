@@ -15,6 +15,7 @@ import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import HowItWorksSection from "@/components/how-it-works-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
+import PromotionalCard from "@/components/promotional-card"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -227,30 +228,6 @@ export default function Home() {
   return (
     <div>
       <HeroSection />
-
-      {/* Temporary Notice Banner - 9/30 */}
-      <div className="bg-amber-500 text-white py-4 px-4">
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center md:text-left">
-            <span className="font-semibold text-lg">📢 Important Notice (9/30 Only):</span>
-            <div className="flex flex-col gap-1">
-              <span className="text-sm md:text-base">
-                <strong>Today only:</strong> For any questions, please contact{" "}
-                <a href="mailto:realhibachiathome@gmail.com" className="underline font-medium hover:text-amber-100">
-                  realhibachiathome@gmail.com
-                </a>{" "}
-                or text{" "}
-                <a href="sms:5627134832" className="underline font-medium hover:text-amber-100">
-                  562-713-4832
-                </a>
-              </span>
-              <span className="text-xs md:text-sm text-amber-100">
-                ⚠️ Regular phone number (213-770-7788) will resume tomorrow
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* How It Works Section */}
       <HowItWorksSection />
@@ -538,7 +515,7 @@ export default function Home() {
             </AnimateOnScroll>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <AnimateOnScroll delay={100} direction="left">
+              <AnimateOnScroll delay={100} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-blue-600 text-xl">🦐</span>
@@ -664,7 +641,7 @@ export default function Home() {
           <Button
             asChild
             variant="outline"
-            className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 bg-transparent"
+            className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
             onClick={handleViewMenu}
           >
             <Link href="/menu">See Full Menu</Link>
@@ -854,7 +831,7 @@ export default function Home() {
                 <Button
                   asChild
                   variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 bg-transparent"
+                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
                   onClick={handleViewFAQ}
                 >
                   <Link href="/faq">View All FAQs</Link>
@@ -881,6 +858,7 @@ export default function Home() {
 
             <AnimateOnScroll direction="up" delay={200}>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+
                 {cardItems.map((card, index) => (
                   <Card key={index} className={`text-center flex flex-col ${card.className}`}>
                     <CardHeader className="h-[100px] flex flex-col justify-center">
