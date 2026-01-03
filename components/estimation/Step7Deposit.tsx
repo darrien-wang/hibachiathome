@@ -153,7 +153,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
           <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-6 flex flex-col items-center hover:shadow-xl hover:scale-105 transition-all duration-300 transform animate-fade-in-up"
                style={{ animationDelay: '0.4s' }}>
             <img
-              src="https://cdn.iconscout.com/icon/free/png-256/venmo-2-569346.png"
+              src="/images/design-mode/venmo-2-569346.png"
               alt="Venmo"
               className="h-8 w-8 mb-2"
             />

@@ -231,16 +231,6 @@ export default function Home() {
 
       {/* How It Works Section */}
       <HowItWorksSection />
-
-      {/* Instagram Videos Section */}
-      <InstagramVideosSection
-        displayMode="grid"
-        maxVisible={6}
-        showViewAll={true}
-        title="Real Events, Real Moments"
-        subtitle="See our recent hibachi experiences from satisfied customers across Los Angeles"
-      />
-
       {/* Package Options Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
@@ -265,7 +255,7 @@ export default function Home() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+                      src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg"
                       alt="Basic Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
@@ -313,7 +303,7 @@ export default function Home() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3ce446cf6f67fa9ee6ef2bbdb81de44-v6JRJjtRTudV3D6zJCWCEoOXtgw4NU.png"
+                      src="/images/design-mode/3ce446cf6f67fa9ee6ef2bbdb81de44.png"
                       alt="Show Up Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
@@ -361,7 +351,7 @@ export default function Home() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                      src="/images/design-mode/filetchickenshrimp-Hibachi-Catering-LA.jpg"
                       alt="Buffet Style Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
@@ -405,6 +395,7 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
+     
 
       {/* Signature Fried Rice Section */}
       <AnimateOnScroll>
@@ -689,6 +680,15 @@ export default function Home() {
           </div>
         </section>
       </AnimateOnScroll>
+ {/* Instagram Videos Section */}
+      <InstagramVideosSection
+        displayMode="grid"
+        maxVisible={6}
+        showViewAll={true}
+        title="Real Events, Real Moments"
+        subtitle="See our recent hibachi experiences from satisfied customers across Los Angeles"
+      />
+
 
       {/* Customer Atmosphere Video Section */}
       <AnimateOnScroll>
@@ -902,16 +902,6 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <AnimateOnScroll direction="up" delay={600}>
-              <div className="mt-16 max-w-4xl mx-auto">
-                <img
-                  src="/hibachi-group-selfie.jpg"
-                  alt="Happy customers enjoying hibachi experience at home"
-                  className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
-                  loading="lazy"
-                />
-              </div>
-            </AnimateOnScroll>
           </div>
         </section>
       </AnimateOnScroll>

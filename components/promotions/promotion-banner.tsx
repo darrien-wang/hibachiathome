@@ -39,7 +39,7 @@ export function PromotionBanner() {
           </div>
           <div className="md:w-1/3 relative h-48 md:h-auto">
             <Image
-              src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/fried-rice-dd0ZNLUf3VD2DtCoDCve7WnNkUyOgt.jpg"
+              src="/images/design-mode/fried-rice.jpg"
               alt="Sea Urchin Fried Rice"
               fill
               className="object-cover"

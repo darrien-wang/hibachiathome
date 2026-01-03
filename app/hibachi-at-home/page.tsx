@@ -323,7 +323,7 @@ export default function HibachiAtHomePage() {
           {/* Image Background instead of Video */}
           <div className="absolute inset-0 w-full h-full z-0">
             <img
-              src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+              src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg"
               alt="Los Angeles hibachi catering background"
               className="w-full h-full object-cover"
             />
@@ -416,7 +416,7 @@ export default function HibachiAtHomePage() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg"
+                      src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg"
                       alt="Basic Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
@@ -467,7 +467,7 @@ export default function HibachiAtHomePage() {
                   </div>
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                      src="/images/design-mode/filetchickenshrimp-Hibachi-Catering-LA.jpg"
                       alt="Buffet Style Package"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"

@@ -116,7 +116,7 @@ export function Header() {
           <div className="flex items-center justify-center relative h-[50px] z-10 overflow-visible mx-auto max-w-[120px]">
             <Link href="/" className="block relative">
               <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+                src="/images/design-mode/realhibachiathome.png"
                 alt={siteConfig.logo.alt}
                 width={siteConfig.logo.width * 0.8}
                 height={siteConfig.logo.height * 0.8}
@@ -145,7 +145,7 @@ export function Header() {
                 </VisuallyHidden>
                 <div className="flex justify-center mb-6 mt-4">
                   <Image
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+                    src="/images/design-mode/realhibachiathome.png"
                     alt={siteConfig.logo.alt}
                     width={112}
                     height={35}
@@ -199,7 +199,7 @@ export function Header() {
           <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
             <Link href="/" className="block relative w-full h-full">
               <Image
-                src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+                src="/images/design-mode/realhibachiathome.png"
                 alt={siteConfig.logo.alt}
                 width={siteConfig.logo.width * 0.8}
                 height={siteConfig.logo.height * 0.8}
