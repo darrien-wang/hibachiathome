@@ -16,6 +16,7 @@ import TestimonialsSection from "@/components/testimonials-section"
 import HowItWorksSection from "@/components/how-it-works-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
+import { trackEvent } from "@/lib/tracking"
 
 // Testimonial data with ratings
 const testimonials = [
@@ -106,39 +107,6 @@ function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string;
   )
 }
 
-// Add Google Analytics event tracking types and helper
-declare global {
-  interface Window {
-    gtag: (
-      command: string,
-      action: string,
-      params?: {
-        event_callback?: () => void
-        event_timeout?: number
-        [key: string]: any
-      },
-    ) => void
-  }
-}
-
-// Helper function for conversion tracking
-const trackConversion = (eventName: string, url?: string) => {
-  if (typeof window !== "undefined" && window.gtag) {
-    const callback = () => {
-      if (url) {
-        window.location.href = url
-      }
-    }
-
-    window.gtag("event", eventName, {
-      event_callback: callback,
-      event_timeout: 2000,
-    })
-    return false
-  }
-  return true
-}
-
 // Type definitions for card items
 type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost"
 
@@ -161,38 +129,41 @@ export default function Home() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
 
   const handleOnlineBooking = () => {
-    trackConversion("conversion_event_submit_lead_form_1")
+    trackEvent("lead_start")
     router.push("/estimation?source=booking")
   }
 
   const handleBookNow = (packageType: string) => {
-    trackConversion("conversion_event_submit_lead_form_1")
+    trackEvent("lead_start")
     router.push(`/book?package=${packageType}`)
   }
 
   const handleViewMenu = () => {
-    trackConversion("conversion_event_view_menu")
+    trackEvent("menu_view")
     router.push("/menu")
   }
 
   const handleViewFAQ = () => {
-    trackConversion("conversion_event_view_faq")
+    trackEvent("faq_view")
     router.push("/faq")
   }
 
   const handleWhatsApp = () => {
     const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
-    trackConversion("conversion_event_whatsapp_contact", url)
+    trackEvent("contact_whatsapp_click")
+    window.location.href = url
   }
 
   const handleSMS = () => {
     const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
-    trackConversion("conversion_event_sms_contact", url)
+    trackEvent("contact_sms_click")
+    window.location.href = url
   }
 
   const handlePhone = () => {
     const url = `tel:${siteConfig.contact.phone || "12137707788"}`
-    trackConversion("conversion_event_phone_contact", url)
+    trackEvent("contact_call_click")
+    window.location.href = url
   }
 
   const cardItems: CardItem[] = [

@@ -8,6 +8,7 @@ import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { FloatingContactButtons } from "@/components/floating-contact-buttons"
+import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -82,23 +83,23 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID
+
   return (
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet" />
-        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17018331447"></script>
-
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-     window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'AW-17018331447');
-        `}
-        </Script>
+        {gtmId ? (
+          <Script id="gtm-base" strategy="beforeInteractive">
+            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${gtmId}');`}
+          </Script>
+        ) : null}
         <link
           rel="icon"
           href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
@@ -110,14 +111,17 @@ export default function RootLayout({
         />
       </head>
       <body className={`${poppins.variable} ${playfair.variable} ${montserrat.variable} font-sans`}>
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-WQZNBK82"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          ></iframe>
-        </noscript>
+        {gtmId ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            ></iframe>
+          </noscript>
+        ) : null}
+        <TrackingBootstrap />
         <Suspense>
           <Header />
           <main>{children}</main>
