@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trackingImprovementSpec project="RealHibachi" version="1.2-tracking-only">
+  <goal>
+    Establish a single measurement system that captures real leads and deposits and supports Google Ads optimization
+    without double counting or configuration drift.
+  </goal>
+
+  <designPrinciples>
+    <principle id="1">Single source of truth: business events are defined once and emitted once from code via dataLayer.</principle>
+    <principle id="2">Control plane separation: vendor tags (GA4/Ads) are configured in GTM, not hardcoded in app code.</principle>
+    <principle id="3">Deterministic contracts: event names and parameters are explicit and testable.</principle>
+    <principle id="4">No double counting: Google Ads conversions must have exactly one counting path.</principle>
+  </designPrinciples>
+
+  <currentIssues>
+    <issue id="1">Mixed setup: Google Ads gtag exists; GTM is only partially installed; GA4 configuration is unclear.</issue>
+    <issue id="2">Conversion events are not governed by a documented event dictionary and parameter schema.</issue>
+    <issue id="3">Client-side navigation may occur immediately after event intent, risking missed delivery if vendor calls exist in-page.</issue>
+    <issue id="4">No tracking documentation exists (docs/tracking.md), despite being required.</issue>
+  </currentIssues>
+
+  <targetArchitecture>
+    <item id="1">Install GTM (head script + noscript iframe) as the only tag entry point in the codebase.</item>
+    <item id="2">Emit business events from the app via dataLayer only (no direct gtag calls in pages/components).</item>
+    <item id="3">Configure GA4 and Google Ads conversion tags inside GTM.</item>
+    <item id="4">Persist attribution (UTM + click IDs) and inject attribution context into events.</item>
+    <item id="5">Deduplicate monetary conversions (deposit_completed) using transaction_id.</item>
+    <item id="6">Document event dictionary + GTM mapping + QA steps in docs/tracking.md.</item>
+  </targetArchitecture>
+
+  <decisionRecord>
+    <conversionCountingPath id="1">
+      <name>Google Ads conversion counting path</name>
+      <allowedValues>GA4_IMPORT_ONLY|GTM_WEBSITE_ONLY</allowedValues>
+      <selectedValue>GTM_WEBSITE_ONLY</selectedValue>
+      <rule>
+        Exactly one counting path is allowed. If GA4_IMPORT_ONLY is selected, disable/remove Ads conversion tags in GTM.
+        If GTM_WEBSITE_ONLY is selected, disable/remove GA4-imported Ads conversions.
+      </rule>
+    </conversionCountingPath>
+  </decisionRecord>
+
+  <configurationInputs>
+    <input key="NEXT_PUBLIC_GTM_ID" required="true">GTM-WQZNBK82</input>
+    <input key="NEXT_PUBLIC_TRACKING_DEBUG" required="false">true|false</input>
+  </configurationInputs>
+
+  <implementationRequirements>
+    <requirement id="1">
+      Replace hardcoded vendor scripts in app/layout.tsx with full GTM installation (head + noscript) using NEXT_PUBLIC_GTM_ID.
+    </requirement>
+
+    <requirement id="2">
+      Remove all direct Google Ads and GA4/gtag scripts/config from the codebase once GTM is live.
+      <note>App code must not call window.gtag directly anywhere.</note>
+    </requirement>
+
+    <requirement id="3">
+      Add lib/tracking.ts with trackEvent(name, params) that pushes a normalized payload into window.dataLayer.
+      <note>All events must flow through lib/tracking.ts.</note>
+    </requirement>
+
+    <requirement id="4">
+      <eventNormalization>
+        <event>lead_start</event>
+        <event>lead_submit</event>
+        <event>contact_whatsapp_click</event>
+        <event>contact_sms_click</event>
+        <event>contact_call_click</event>
+        <event>menu_view</event>
+        <event>faq_view</event>
+        <event>deposit_started</event>
+        <event>deposit_completed</event>
+      </eventNormalization>
+    </requirement>
+
+    <requirement id="5">
+      Reliability rules:
+      <rule>CTA clicks must synchronously push dataLayer intent before navigation occurs.</rule>
+      <rule>For deposit_completed, emit only after server-confirmed payment result is available.</rule>
+    </requirement>
+
+    <requirement id="6">
+      <attributionPersistence>
+        <captureOnLanding>Persist attribution on first landing (UTM + click IDs) and reuse on subsequent events.</captureOnLanding>
+        <fields>
+          <field>utm_source</field>
+          <field>utm_medium</field>
+          <field>utm_campaign</field>
+          <field>utm_term</field>
+          <field>utm_content</field>
+          <field>gclid</field>
+          <field>wbraid</field>
+          <field>gbraid</field>
+        </fields>
+        <storagePreferred>cookie</storagePreferred>
+        <storageFallback>localStorage</storageFallback>
+        <cookieTtlDays>90</cookieTtlDays>
+      </attributionPersistence>
+    </requirement>
+
+    <requirement id="7">
+      <gtmContainerConfig>
+        <tag>GA4 Configuration tag on all pages</tag>
+        <tag>GA4 Event tags for defined events (triggered by dataLayer events)</tag>
+        <tag>Google Ads conversion tags for key conversion events ONLY if counting path = GTM_WEBSITE_ONLY</tag>
+      </gtmContainerConfig>
+    </requirement>
+
+    <requirement id="8">
+      Create docs/tracking.md containing:
+      <item>Event dictionary (names, definitions, trigger points)</item>
+      <item>Event parameter schema (required/optional, types)</item>
+      <item>Attribution persistence keys and TTL</item>
+      <item>GTM variables and triggers mapping</item>
+      <item>Ads conversion actions mapping (only one counting path)</item>
+      <item>QA checklist and evidence requirements</item>
+    </requirement>
+  </implementationRequirements>
+
+  <dataLayerContract>
+    <field>event (string)</field>
+    <field>page_path (string)</field>
+    <field>page_title (string)</field>
+
+    <field>utm_source (string, optional)</field>
+    <field>utm_medium (string, optional)</field>
+    <field>utm_campaign (string, optional)</field>
+    <field>utm_term (string, optional)</field>
+    <field>utm_content (string, optional)</field>
+
+    <field>gclid (string, optional)</field>
+    <field>wbraid (string, optional)</field>
+    <field>gbraid (string, optional)</field>
+
+    <field>value (number, optional)</field>
+    <field>currency (string, optional; default USD when value present)</field>
+
+    <field>transaction_id (string, required for deposit_completed)</field>
+
+    <field>event_id (string, recommended unique per event)</field>
+    <field>debug_mode (boolean, optional)</field>
+  </dataLayerContract>
+
+  <eventParameterContract>
+    <event name="lead_start">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="lead_submit">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,value,currency,event_id,debug_mode</optional>
+      <googleAdsConversion>true</googleAdsConversion>
+      <conversionCountingPath>GTM_WEBSITE_ONLY</conversionCountingPath>
+      <gtmMapping>Google Ads Conversion tag -> Lead Submit</gtmMapping>
+    </event>
+
+    <event name="contact_whatsapp_click">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="contact_sms_click">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="contact_call_click">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="menu_view">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="faq_view">
+      <required>event,page_path,page_title</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="deposit_started">
+      <required>event,page_path,page_title,value,currency</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>false</googleAdsConversion>
+    </event>
+
+    <event name="deposit_completed">
+      <required>event,page_path,page_title,value,currency,transaction_id</required>
+      <optional>utm_source,utm_medium,utm_campaign,utm_term,utm_content,gclid,wbraid,gbraid,event_id,debug_mode</optional>
+      <googleAdsConversion>true</googleAdsConversion>
+      <conversionCountingPath>GTM_WEBSITE_ONLY</conversionCountingPath>
+      <gtmMapping>Google Ads Conversion tag -> Deposit Completed (dedup by transaction_id)</gtmMapping>
+    </event>
+  </eventParameterContract>
+
+  <conversionValueRules>
+    <rule id="1">lead_submit: value optional; default 0 unless Ads strategy uses an estimated lead value.</rule>
+    <rule id="2">deposit_started: value equals intended deposit amount shown to user; currency fixed to USD.</rule>
+    <rule id="3">deposit_completed: value equals confirmed paid amount from server-confirmed payment result; currency USD.</rule>
+  </conversionValueRules>
+
+  <deduplicationAndAttribution>
+    <rule id="1">deposit_completed must include transaction_id and must be deduplicated at the business logic level (idempotency).</rule>
+    <rule id="2">Ads conversions must be fired from GTM only when conversionCountingPath = GTM_WEBSITE_ONLY.</rule>
+    <rule id="3">If conversionCountingPath = GA4_IMPORT_ONLY, disable/remove all Ads conversion tags in GTM and use GA4 conversions imported into Ads.</rule>
+    <rule id="4">Persist UTM/click IDs on first landing and inject into subsequent events.</rule>
+  </deduplicationAndAttribution>
+
+  <testingPlan>
+    <test id="1">GTM Preview (Tag Assistant): verify each dataLayer event triggers intended GA4/Ads tags.</test>
+    <test id="2">GA4 DebugView: confirm event receipt and parameters match contract.</test>
+    <test id="3">Google Ads conversion diagnostics: verify conversions are received without duplicates.</test>
+    <test id="4">Regression: home CTA, multi-step estimate flow, deposit flow, phone/sms/whatsapp CTAs.</test>
+    <test id="5">Attribution: first landing captures UTM/gclid; subsequent events include persisted attribution fields.</test>
+    <test id="6">Dedup: refresh/retry payment callback does not create duplicate deposit_completed.</test>
+  </testingPlan>
+
+  <acceptanceCriteria>
+    <criterion id="1">Only one tracking entry point in code: GTM install only; no direct vendor gtag scripts remain.</criterion>
+    <criterion id="2">All tracking events are emitted through lib/tracking.ts into dataLayer.</criterion>
+    <criterion id="3">GA4 receives all defined events with consistent names and parameters per contract.</criterion>
+    <criterion id="4">Exactly one Google Ads conversion counting path is enabled (GA4_IMPORT_ONLY or GTM_WEBSITE_ONLY), never both.</criterion>
+    <criterion id="5">deposit_completed includes value/currency/transaction_id; duplicates are prevented using transaction_id.</criterion>
+    <criterion id="6">Attribution persistence works: UTM/click IDs captured and propagated to events.</criterion>
+    <criterion id="7">docs/tracking.md exists and includes event map, GTM mappings, and QA checklist.</criterion>
+  </acceptanceCriteria>
+
+  <deliverables>
+    <deliverable id="1">Code: GTM install + lib/tracking.ts + CTA integrations + attribution persistence.</deliverable>
+    <deliverable id="2">GTM: GA4 config + GA4 event tags + Ads conversion tags (per counting path).</deliverable>
+    <deliverable id="3">docs/tracking.md: event map + schema + GTM mapping + QA checklist.</deliverable>
+  </deliverables>
+</trackingImprovementSpec>
