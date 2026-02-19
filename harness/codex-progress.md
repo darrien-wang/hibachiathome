@@ -93,3 +93,68 @@
 - Regressions found/fixed:
 - Evidence files (screenshots/logs):
 - Next highest-priority item:
+
+## 2026-02-19 (TRK-002 canonical page path + baseline recheck)
+
+- Completed:
+  - Re-ran session bootstrap via `bash harness/scripts/codex-session-start.sh`.
+  - Implemented `trackEvent(...)` page context normalization in `lib/tracking.ts`:
+    - `page_path` now uses canonical `window.location.pathname` (query string removed).
+    - `page_title` now trims whitespace and falls back to `"Real Hibachi"` when blank.
+  - Added deterministic verification harness script:
+    - `harness/scripts/verify-tracking-page-view.mjs`
+    - transpiles `lib/tracking.ts` and validates payload behavior with mocked browser globals.
+- Feature status transition:
+  - `TRK-002` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - Baseline recheck (`TRK-001` intent-level contract) via tracking harness script.
+  - New `TRK-002` canonical path/title assertions via tracking harness script.
+  - `bash harness/scripts/codex-verify.sh` passes (lint + build).
+- Regressions/blockers:
+  - Blocker (environment): Playwright UI verification is currently blocked in this sandbox due local loopback/network restrictions (`connect EPERM 127.0.0.1:3000`) and missing browser shared-lib path integration for MCP Chromium.
+  - Captured failed Playwright reverify attempt as evidence; used deterministic code-level harness verification for this session.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-002/reverify-trk-001.log`
+  - `harness/verification/2026-02-19-trk-002/reverify-trk-001.exit`
+  - `harness/verification/2026-02-19-trk-002/verify-trk-001-trk-002.log`
+  - `harness/verification/2026-02-19-trk-002/verify-trk-001-trk-002.exit`
+  - `harness/verification/2026-02-19-trk-002/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-19-trk-002/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-002/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-003` (route navigation emits a new `page_view` for `/book`) once Playwright loopback restriction is resolved, or add a route-state harness test that can prove `TrackingBootstrap` navigation behavior without localhost networking.
+
+## 2026-02-19 (TRK-003 home->book page_view + UI verification unblocked)
+
+- Completed:
+  - Re-verified previously passing baseline contracts (`TRK-001`, `TRK-002`) via `harness/scripts/verify-tracking-page-view.mjs`.
+  - Added `TRK-003` Playwright coverage in `e2e/smoke.spec.ts`:
+    - starts on `/`
+    - clicks header **Book Now** CTA
+    - waits for `/book`
+    - asserts a new `page_view` exists with `page_path: "/book"`.
+  - Improved `harness/scripts/run-e2e.sh` to reuse existing Playwright Chromium when present (skip redundant install step that stalled this environment).
+- Feature status transition:
+  - `TRK-003` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-003"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No functional regressions observed in this scope.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-003/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-02-19-trk-003/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-02-19-trk-003/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-19-trk-003/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-003/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-003/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-003/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-003/trk-003-e2e.log`
+  - `harness/verification/2026-02-19-trk-003/trk-003-e2e.exit`
+  - `harness/verification/2026-02-19-trk-003/trk-003-navigation-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-003/trk-003-book.png`
+  - `harness/verification/2026-02-19-trk-003/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-003/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-004` (no duplicate `page_view` on single route load/hydration).

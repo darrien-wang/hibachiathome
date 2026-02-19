@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOCAL_LIB_ROOT="$ROOT_DIR/.cache/playwright-libs"
 LOCAL_LIB_DIR="$LOCAL_LIB_ROOT/usr/lib/x86_64-linux-gnu"
+PLAYWRIGHT_CACHE_DIR="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
 
 needs_local_nss_libs=0
 if command -v ldconfig >/dev/null 2>&1; then
@@ -32,5 +33,19 @@ if [ "$needs_local_nss_libs" = "1" ]; then
 fi
 
 cd "$ROOT_DIR"
-pnpm exec playwright install chromium
+
+should_install_playwright=1
+if [ "${CODEX_SKIP_PLAYWRIGHT_INSTALL:-0}" = "1" ]; then
+  should_install_playwright=0
+elif compgen -G "$PLAYWRIGHT_CACHE_DIR/chromium-*" >/dev/null 2>&1 \
+  && compgen -G "$PLAYWRIGHT_CACHE_DIR/chromium_headless_shell-*" >/dev/null 2>&1; then
+  should_install_playwright=0
+fi
+
+if [ "$should_install_playwright" = "1" ]; then
+  pnpm exec playwright install chromium
+else
+  echo "[run-e2e] Reusing existing Playwright Chromium from $PLAYWRIGHT_CACHE_DIR"
+fi
+
 pnpm exec playwright test "$@"

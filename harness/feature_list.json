@@ -22,7 +22,7 @@
       "Capture page_view payload from dataLayer.",
       "Validate route and title fields are present and non-empty."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-003",
@@ -35,7 +35,7 @@
       "Inspect dataLayer push history.",
       "Verify second page_view event contains /book path."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-004",

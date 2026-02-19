@@ -111,6 +111,16 @@ function readStoredAttribution(): AttributionFields {
   }
 }
 
+function normalizePagePath(pathname: string | undefined): string {
+  if (!pathname) return "/"
+  return pathname.startsWith("/") ? pathname : `/${pathname}`
+}
+
+function resolvePageTitle(title: string | undefined): string {
+  const normalizedTitle = title?.trim() ?? ""
+  return normalizedTitle.length > 0 ? normalizedTitle : "Real Hibachi"
+}
+
 export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 
@@ -140,8 +150,8 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
   if (typeof window === "undefined") return
 
   const storedAttribution = readStoredAttribution()
-  const pagePath = window.location.pathname + window.location.search
-  const pageTitle = document.title || ""
+  const pagePath = normalizePagePath(window.location.pathname)
+  const pageTitle = resolvePageTitle(document.title)
 
   const payload: DataLayerPayload = {
     event: name,
