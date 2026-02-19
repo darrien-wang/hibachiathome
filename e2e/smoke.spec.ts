@@ -100,3 +100,41 @@ test("TRK-004: hydration does not emit duplicate page_view on single home load",
   writeFileSync(`${EVIDENCE_DIR}/trk-004-hydration-page-view-events.json`, JSON.stringify(pageViewEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-004-home.png`, fullPage: true })
 })
+
+test("TRK-005: booking funnel start event fires on first booking interaction", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.goto("/book", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.getByRole("button", { name: "Get Estimate" }).click()
+  await page.waitForURL(/\/estimation\?source=booking$/, { timeout: 20_000 })
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "booking_funnel_start")
+  })
+
+  const bookingFunnelEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "booking_funnel_start")
+  })
+
+  await expect(bookingFunnelEvents.length).toBeGreaterThan(0)
+  await expect(bookingFunnelEvents[0]?.page_path).toBe("/book")
+  await expect(typeof bookingFunnelEvents[0]?.page_title).toBe("string")
+  await expect((bookingFunnelEvents[0]?.page_title as string).length).toBeGreaterThan(0)
+
+  writeFileSync(
+    `${EVIDENCE_DIR}/trk-005-booking-funnel-start-events.json`,
+    JSON.stringify(bookingFunnelEvents, null, 2),
+    "utf-8",
+  )
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-005-booking-start.png`, fullPage: true })
+})

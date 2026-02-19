@@ -60,7 +60,7 @@
       "Inspect dataLayer event stream.",
       "Verify booking_funnel_start event is present."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-006",

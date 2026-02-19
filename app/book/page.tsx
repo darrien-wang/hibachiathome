@@ -6,11 +6,13 @@ import { MessageSquare, Calculator } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PromotionBanner } from "@/components/promotions/promotion-banner"
 import { siteConfig } from "@/config/site"
+import { trackEvent } from "@/lib/tracking"
 
 export default function BookingPage() {
   const router = useRouter()
 
   const handleEstimation = () => {
+    trackEvent("booking_funnel_start")
     router.push("/estimation?source=booking")
   }
 

@@ -189,3 +189,34 @@
   - `harness/verification/2026-02-19-trk-004/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-005` (booking funnel start event on first actionable booking interaction).
+
+## 2026-02-19 (TRK-005 booking funnel start on /book first action)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added `booking_funnel_start` support in `lib/tracking.ts` event union.
+  - Instrumented `/book` first-step CTA (`Get Estimate`) to emit `booking_funnel_start` before navigation.
+  - Added Playwright coverage for TRK-005 in `e2e/smoke.spec.ts`.
+- Feature status transition:
+  - `TRK-005` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-005"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+  - Note: backlog currently uses `booking_funnel_start`, which extends beyond the XML spec's normalized event list; retain for backlog conformance and revisit harmonization in later cleanup/doc pass.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-005/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-005/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-005/trk-005-e2e.log`
+  - `harness/verification/2026-02-19-trk-005/trk-005-e2e.exit`
+  - `harness/verification/2026-02-19-trk-005/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-005/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-005/trk-005-booking-funnel-start-events.json`
+  - `harness/verification/2026-02-19-trk-005/trk-005-booking-start.png`
+  - `harness/verification/2026-02-19-trk-005/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-005/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-006` (booking submit event payload completeness and no undefined values).
