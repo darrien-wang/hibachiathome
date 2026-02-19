@@ -440,3 +440,43 @@ test("TRK-010: package selection emits package_selected with package metadata", 
   )
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-010-package-selected.png`, fullPage: true })
 })
+
+test("TRK-011: promo banner CTA click emits promotion_click with campaign id", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.goto("/book", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.getByRole("button", { name: "Contact Us" }).click()
+  await page.waitForURL(/\/contact$/, { timeout: 20_000 })
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "promotion_click" && entry.campaign_id === "seasonal-menu")
+  })
+
+  const promotionClickEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "promotion_click")
+  })
+
+  await expect(promotionClickEvents.length).toBeGreaterThan(0)
+  const latestEvent = promotionClickEvents[promotionClickEvents.length - 1] as Record<string, unknown>
+
+  await expect(latestEvent.campaign_id).toBe("seasonal-menu")
+  await expect(typeof latestEvent.campaign_name).toBe("string")
+  await expect(latestEvent.campaign_destination).toBe("/contact")
+
+  writeFileSync(
+    `${EVIDENCE_DIR}/trk-011-promotion-click-events.json`,
+    JSON.stringify(promotionClickEvents, null, 2),
+    "utf-8",
+  )
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-011-promotion-click.png`, fullPage: true })
+})

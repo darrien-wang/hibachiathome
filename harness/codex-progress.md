@@ -383,3 +383,36 @@
   - `harness/verification/2026-02-19-trk-010/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-011` (promo banner click `promotion_click` with campaign identifier).
+
+## 2026-02-19 (TRK-011 promotion_click campaign identifier)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added `promotion_click` event support in tracking union.
+  - Completed promo banner CTA wiring:
+    - added CTA button rendering in `components/promotions/promotion-banner.tsx`
+    - emits `promotion_click` with campaign metadata before route navigation
+    - re-enabled banner on `/book` page (`app/book/page.tsx`).
+  - Added Playwright TRK-011 test asserting `promotion_click` payload includes campaign identifier.
+- Feature status transition:
+  - `TRK-011` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-011"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Initial TRK-011 test failed due strict title assertion mismatch; updated assertion to site-level title pattern and re-ran to pass.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-011/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-011/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-011/trk-011-e2e.log`
+  - `harness/verification/2026-02-19-trk-011/trk-011-e2e.exit`
+  - `harness/verification/2026-02-19-trk-011/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-011/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-011/trk-011-promotion-click-events.json`
+  - `harness/verification/2026-02-19-trk-011/trk-011-promotion-click.png`
+  - `harness/verification/2026-02-19-trk-011/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-011/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-012` (Instagram video interaction `social_video_engagement`).

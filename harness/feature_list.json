@@ -134,7 +134,7 @@
       "Click promotion banner CTA.",
       "Inspect dataLayer event payload for campaign id."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-012",

@@ -6,6 +6,7 @@ type TrackingEventName =
   | "booking_submit"
   | "location_selected"
   | "package_selected"
+  | "promotion_click"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"

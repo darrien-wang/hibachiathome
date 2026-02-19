@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { trackEvent } from "@/lib/tracking"
 
 export function PromotionBanner() {
   const router = useRouter()
@@ -16,6 +17,16 @@ export function PromotionBanner() {
       "We're excited to introduce our new seasonal specialty: Sea Urchin Fried Rice. This premium dish features fresh sea urchin in our signature fried rice. To upgrade your package with this exclusive item, please contact our booking manager.",
     buttonText: "Contact Us",
     buttonLink: "/contact",
+  }
+
+  const handlePromotionClick = () => {
+    trackEvent("promotion_click", {
+      campaign_id: promotion.id,
+      campaign_name: promotion.title,
+      campaign_destination: promotion.buttonLink,
+    })
+
+    router.push(promotion.buttonLink)
   }
 
   return (
@@ -35,7 +46,11 @@ export function PromotionBanner() {
             <CardContent className="px-0">
               <p className="text-lg text-amber-900">{promotion.description}</p>
             </CardContent>
-        
+            <CardFooter className="px-0 pb-0">
+              <Button onClick={handlePromotionClick} className="bg-amber-600 hover:bg-amber-700 text-white">
+                {promotion.buttonText}
+              </Button>
+            </CardFooter>
           </div>
           <div className="md:w-1/3 relative h-48 md:h-auto">
             <Image

@@ -1,0 +1,10 @@
+[
+  {
+    "event": "promotion_click",
+    "page_path": "/book",
+    "page_title": "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
+    "campaign_id": "seasonal-menu",
+    "campaign_name": "Seasonal New Menu Item: Sea Urchin Fried Rice",
+    "campaign_destination": "/contact"
+  }
+]

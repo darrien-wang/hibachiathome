@@ -133,7 +133,7 @@ export default function BookingPage() {
           </div>
         </div>
 
-        {/* <PromotionBanner /> */}
+        <PromotionBanner />
       </div>
     </div>
   )
