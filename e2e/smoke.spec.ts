@@ -265,3 +265,55 @@ test("TRK-007: deposit CTA click emits conversion-intent event", async ({ page }
   writeFileSync(`${EVIDENCE_DIR}/trk-007-deposit-started-events.json`, JSON.stringify(depositStartedEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-007-deposit.png`, fullPage: true })
 })
+
+test("TRK-008: contact form submit emits lead_submit with channel metadata", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.route("**/api/contact", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true }),
+    })
+  })
+
+  await page.goto("/contact", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Contact Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.locator('input[name="name"]').fill("TRK Contact User")
+  await page.locator('input[name="email"]').fill("trk008@example.com")
+  await page.locator('input[name="phone"]').fill("2135550108")
+  await page.locator('input[name="company"]').fill("TRK Co")
+  await page.locator('input[name="serviceType"]').fill("Photography")
+  await page.locator('textarea[name="message"]').fill("Interested in partnership opportunities.")
+
+  await page.getByRole("button", { name: "Submit Application" }).click()
+  await expect(page.getByText("Thank you for your application! We will contact you within 24 hours.")).toBeVisible()
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "lead_submit")
+  })
+
+  const leadSubmitEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "lead_submit")
+  })
+
+  await expect(leadSubmitEvents.length).toBeGreaterThan(0)
+  const latestEvent = leadSubmitEvents[leadSubmitEvents.length - 1] as Record<string, unknown>
+
+  await expect(latestEvent.lead_channel).toBe("contact_form")
+  await expect(latestEvent.lead_source).toBe("contact_page")
+  await expect(latestEvent.lead_type).toBe("partner_application")
+  await expect(latestEvent.service_type).toBe("Photography")
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-008-lead-submit-events.json`, JSON.stringify(leadSubmitEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-008-contact-submit.png`, fullPage: true })
+})

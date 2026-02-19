@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Phone, Mail, MapPin, Users, Utensils, Calendar, Truck, Music, Camera, Flower } from "lucide-react"
+import { trackEvent } from "@/lib/tracking"
 
 export default function ContactPageClient() {
   const [formData, setFormData] = useState({
@@ -54,6 +55,12 @@ export default function ContactPageClient() {
       })
 
       if (response.ok) {
+        trackEvent("lead_submit", {
+          lead_channel: "contact_form",
+          lead_source: "contact_page",
+          lead_type: "partner_application",
+          service_type: formData.serviceType || "unspecified",
+        })
         setSubmitStatus("success")
         setFormData({
           name: "",

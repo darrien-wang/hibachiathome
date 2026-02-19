@@ -98,7 +98,7 @@
       "Submit form.",
       "Verify lead_submit event includes source/channel fields."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-009",

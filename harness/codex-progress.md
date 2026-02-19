@@ -283,3 +283,37 @@
   - `harness/verification/2026-02-19-trk-007/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-008` (contact form `lead_submit` with channel/source metadata).
+
+## 2026-02-19 (TRK-008 contact lead_submit metadata)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Instrumented contact partner application form success path to emit `lead_submit`.
+  - Added channel/source metadata on event payload:
+    - `lead_channel: "contact_form"`
+    - `lead_source: "contact_page"`
+    - `lead_type: "partner_application"`
+    - `service_type` (form-derived).
+  - Added Playwright TRK-008 test with `/api/contact` stub to verify successful submit event payload deterministically.
+- Feature status transition:
+  - `TRK-008` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-008"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-008/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-008/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-008/trk-008-e2e.log`
+  - `harness/verification/2026-02-19-trk-008/trk-008-e2e.exit`
+  - `harness/verification/2026-02-19-trk-008/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-008/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-008/trk-008-lead-submit-events.json`
+  - `harness/verification/2026-02-19-trk-008/trk-008-contact-submit.png`
+  - `harness/verification/2026-02-19-trk-008/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-008/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-009` (Google Places selection `location_selected` with `place_id`).

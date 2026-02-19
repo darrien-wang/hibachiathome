@@ -1,0 +1,11 @@
+[
+  {
+    "event": "lead_submit",
+    "page_path": "/contact",
+    "page_title": "Contact Real Hibachi Los Angeles | Book Hibachi Chef at Home - Real Hibachi LA",
+    "lead_channel": "contact_form",
+    "lead_source": "contact_page",
+    "lead_type": "partner_application",
+    "service_type": "Photography"
+  }
+]
