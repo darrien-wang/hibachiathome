@@ -194,7 +194,7 @@
       "Interact with at least two tracked CTAs.",
       "Confirm no runtime exception is thrown and UI remains functional."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-017",

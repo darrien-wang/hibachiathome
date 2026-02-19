@@ -680,3 +680,59 @@ test("TRK-015: estimate completion emits estimate_completed with numeric total v
   )
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-015-estimate-completed.png`, fullPage: true })
 })
+
+test("TRK-016: tracking remains resilient when GTM/dataLayer is unavailable", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  const runtimeErrors: string[] = []
+  page.on("pageerror", (error) => {
+    runtimeErrors.push(error.message)
+  })
+
+  await page.route("**://www.googletagmanager.com/**", async (route) => {
+    await route.abort()
+  })
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.evaluate(() => {
+    ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
+    ;(window as Window & { dataLayer?: unknown }).dataLayer = undefined
+  })
+
+  const floatingBar = page.locator("div.fixed.bottom-0.left-0.right-0").first()
+  await floatingBar.getByRole("button", { name: "Book Now" }).click()
+  await floatingBar.getByRole("button", { name: "Call Us" }).click()
+  await floatingBar.getByRole("button", { name: "Call Now" }).click()
+  await floatingBar.getByRole("button", { name: "Send Text" }).click()
+  await floatingBar.getByRole("button", { name: "Send SMS" }).click()
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    const hasPhoneClick = dataLayer.some((entry) => entry.event === "phone_click")
+    const hasSmsClick = dataLayer.some((entry) => entry.event === "sms_click")
+    return hasPhoneClick && hasSmsClick
+  })
+
+  const eventSummary = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return {
+      dataLayerIsArray: Array.isArray(dataLayer),
+      phoneClickEvents: dataLayer.filter((entry) => entry.event === "phone_click"),
+      smsClickEvents: dataLayer.filter((entry) => entry.event === "sms_click"),
+    }
+  })
+
+  await expect(runtimeErrors).toHaveLength(0)
+  await expect(eventSummary.dataLayerIsArray).toBeTruthy()
+  await expect(eventSummary.phoneClickEvents.length).toBeGreaterThan(0)
+  await expect(eventSummary.smsClickEvents.length).toBeGreaterThan(0)
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-016-runtime-errors.json`, JSON.stringify(runtimeErrors, null, 2), "utf-8")
+  writeFileSync(`${EVIDENCE_DIR}/trk-016-event-summary.json`, JSON.stringify(eventSummary, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-016-tracking-resilience.png`, fullPage: true })
+})

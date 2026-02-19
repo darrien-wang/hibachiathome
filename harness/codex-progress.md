@@ -561,3 +561,39 @@
   - `harness/verification/2026-02-19-trk-015/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-016` (tracking resilience when GTM/dataLayer is unavailable).
+
+## 2026-02-19 (TRK-016 tracking resilience without GTM)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Hardened tracking runtime in `lib/tracking.ts`:
+    - if `window.dataLayer` is missing or not an array, normalize to `[]` before push.
+  - Added Playwright TRK-016 test in `e2e/smoke.spec.ts` to verify resilience when GTM is unavailable:
+    - block `googletagmanager.com` requests
+    - explicitly unset `window.dataLayer`
+    - interact with two tracked CTAs (`phone_click`, `sms_click`)
+    - assert no `pageerror` runtime exceptions
+    - assert tracking events are still recorded and UI remains usable.
+- Feature status transition:
+  - `TRK-016` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-016 pnpm test:e2e --grep "TRK-001"` ✅
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-016 pnpm test:e2e --grep "TRK-016"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Initial TRK-016 run timed out because the test attempted mobile-only floating CTA selectors on desktop viewport; fixed by setting mobile viewport and re-ran to pass.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-016/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-016/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-016/trk-016-e2e.log`
+  - `harness/verification/2026-02-19-trk-016/trk-016-e2e.exit`
+  - `harness/verification/2026-02-19-trk-016/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-016/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-016/trk-016-runtime-errors.json`
+  - `harness/verification/2026-02-19-trk-016/trk-016-event-summary.json`
+  - `harness/verification/2026-02-19-trk-016/trk-016-tracking-resilience.png`
+  - `harness/verification/2026-02-19-trk-016/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-016/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-017` (tracking bootstrap visual-regression check on home/book pages).

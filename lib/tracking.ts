@@ -194,6 +194,9 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
 
   const normalizedPayload = removeUndefinedFields(payload)
 
-  window.dataLayer = window.dataLayer || []
+  if (!Array.isArray(window.dataLayer)) {
+    window.dataLayer = []
+  }
+
   window.dataLayer.push(normalizedPayload)
 }
