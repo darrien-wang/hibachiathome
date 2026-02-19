@@ -1,6 +1,7 @@
 "use client"
 
 type TrackingEventName =
+  | "page_view"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"

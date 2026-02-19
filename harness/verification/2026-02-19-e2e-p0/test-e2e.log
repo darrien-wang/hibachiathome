@@ -1,0 +1,10 @@
+
+> my-v0-project@0.1.0 test:e2e /home/darrien/projects/realhibachi-marketing
+> bash ./harness/scripts/run-e2e.sh
+
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/smoke.spec.ts:6:5 › TRK-001: home load emits exactly one page_view via dataLayer (2.5s)
+
+  1 passed (8.0s)

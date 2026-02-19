@@ -1,0 +1,247 @@
+[
+  {
+    "id": "TRK-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Page view event is emitted once on home page load through GTM dataLayer.",
+    "steps": [
+      "Start the app in development mode.",
+      "Open the home page in a browser with devtools.",
+      "Inspect dataLayer entries after first render.",
+      "Verify exactly one page_view event for initial load."
+    ],
+    "passes": true
+  },
+  {
+    "id": "TRK-002",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Page view event includes canonical route path and page title.",
+    "steps": [
+      "Load home page.",
+      "Capture page_view payload from dataLayer.",
+      "Validate route and title fields are present and non-empty."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Navigation from home page to book page emits a new page_view event.",
+    "steps": [
+      "Open home page.",
+      "Navigate to /book from UI.",
+      "Inspect dataLayer push history.",
+      "Verify second page_view event contains /book path."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-004",
+    "priority": "P0",
+    "category": "functional",
+    "description": "No duplicate page_view event is emitted on hydration for single route load.",
+    "steps": [
+      "Open home page with network and console logs enabled.",
+      "Count page_view pushes in dataLayer.",
+      "Confirm only one event exists before user interaction."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-005",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Booking funnel start event is fired when user begins booking interaction.",
+    "steps": [
+      "Open booking flow page.",
+      "Trigger first actionable booking step from UI.",
+      "Inspect dataLayer event stream.",
+      "Verify booking_funnel_start event is present."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-006",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Booking submit event includes required payload fields without undefined values.",
+    "steps": [
+      "Complete booking form with valid test input.",
+      "Submit booking form.",
+      "Capture booking_submit payload from dataLayer.",
+      "Validate required keys exist and are not undefined."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-007",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Deposit page CTA click emits conversion-intent tracking event.",
+    "steps": [
+      "Open /deposit page.",
+      "Click primary deposit CTA.",
+      "Verify matching CTA click event in dataLayer."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-008",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Contact form submission emits lead_submit event and includes channel metadata.",
+    "steps": [
+      "Open contact page.",
+      "Fill required fields with test data.",
+      "Submit form.",
+      "Verify lead_submit event includes source/channel fields."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-009",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Google Places selection emits location_selected event with place identifier.",
+    "steps": [
+      "Open booking flow where address autocomplete is available.",
+      "Select one autocomplete result.",
+      "Validate location_selected event payload has place_id."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-010",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Menu package selection emits package_selected event with package name and price tier.",
+    "steps": [
+      "Open menu or estimate flow.",
+      "Choose a package option.",
+      "Verify package_selected event contains package metadata."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-011",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Promo banner click emits promotion_click event with campaign identifier.",
+    "steps": [
+      "Load page containing promotion banner.",
+      "Click promotion banner CTA.",
+      "Inspect dataLayer event payload for campaign id."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-012",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Instagram video interaction emits social_video_engagement event.",
+    "steps": [
+      "Open section with Instagram videos.",
+      "Trigger interaction (open modal or play).",
+      "Verify social_video_engagement event appears in dataLayer."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-013",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Phone click from floating contact buttons emits phone_click event.",
+    "steps": [
+      "Open a page containing floating contact buttons.",
+      "Click call button.",
+      "Confirm phone_click event was emitted."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-014",
+    "priority": "P1",
+    "category": "functional",
+    "description": "SMS click from floating contact buttons emits sms_click event.",
+    "steps": [
+      "Open a page containing floating contact buttons.",
+      "Click SMS button.",
+      "Confirm sms_click event was emitted."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-015",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Quote estimation completion emits estimate_completed event with total estimate value.",
+    "steps": [
+      "Go through estimation steps with valid selections.",
+      "Reach completion screen.",
+      "Verify estimate_completed event with numeric estimate value."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-016",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Tracking utility is resilient when GTM is unavailable and does not crash UI.",
+    "steps": [
+      "Load app without GTM script or with blocked GTM network calls.",
+      "Interact with at least two tracked CTAs.",
+      "Confirm no runtime exception is thrown and UI remains functional."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-017",
+    "priority": "P2",
+    "category": "style",
+    "description": "No visual regressions introduced by tracking bootstrap component in layout.",
+    "steps": [
+      "Load home page and booking page.",
+      "Take screenshots for baseline comparison.",
+      "Verify no layout shift or flicker caused by tracking bootstrap."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-018",
+    "priority": "P2",
+    "category": "style",
+    "description": "Core pages remain interactive and responsive after tracking instrumentation is enabled.",
+    "steps": [
+      "Open home, book, and contact pages.",
+      "Interact with major controls on desktop and mobile viewport.",
+      "Verify there is no delayed click response from tracking hooks."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-019",
+    "priority": "P2",
+    "category": "functional",
+    "description": "Route changes via browser back/forward produce consistent page_view events.",
+    "steps": [
+      "Navigate across at least three routes.",
+      "Use browser back then forward.",
+      "Verify page_view events map correctly to active route each time."
+    ],
+    "passes": false
+  },
+  {
+    "id": "TRK-020",
+    "priority": "P2",
+    "category": "functional",
+    "description": "Tracking event naming conventions are consistent and documented.",
+    "steps": [
+      "List all event names emitted by core flows.",
+      "Compare against naming convention (snake_case and domain prefix where required).",
+      "Document mismatches in codex-progress.md."
+    ],
+    "passes": false
+  }
+]

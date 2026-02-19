@@ -1,0 +1,17 @@
+model = "gpt-5-codex"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+profile = "coding"
+model_instructions_file = "instructions/coding_agent.md"
+project_doc_fallback_filenames = ["AGENTS.md", "README.md"]
+project_doc_max_bytes = 65536
+
+[sandbox_workspace_write]
+network_access = false
+
+[profiles.coding]
+model_instructions_file = "instructions/coding_agent.md"
+
+[profiles.initializer]
+model_instructions_file = "instructions/initializer_agent.md"

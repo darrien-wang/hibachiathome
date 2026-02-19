@@ -6,8 +6,12 @@ import { Resend } from "resend"
 import PaymentConfirmationEmail from "@/components/emails/payment-confirmation"
 import RefundConfirmationEmail from "@/components/emails/refund-confirmation"
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null
+  }
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 export async function processPayment(request: PaymentRequest): Promise<PaymentResponse> {
   try {
@@ -102,21 +106,24 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
 
     // 5. Send confirmation email
     try {
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
-        to: booking.email,
-        subject: "Hibachi Catering - Deposit Payment Confirmation",
-        react: PaymentConfirmationEmail({
-          customerName: booking.full_name,
-          bookingId: booking.id,
-          eventDate: booking.event_date,
-          eventTime: booking.event_time,
-          depositAmount: request.amount,
-          paymentMethod: request.method,
-          transactionId: transactionId,
-          paymentDate: new Date().toISOString(),
-        }),
-      })
+      const resend = getResendClient()
+      if (resend) {
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
+          to: booking.email,
+          subject: "Hibachi Catering - Deposit Payment Confirmation",
+          react: PaymentConfirmationEmail({
+            customerName: booking.full_name,
+            bookingId: booking.id,
+            eventDate: booking.event_date,
+            eventTime: booking.event_time,
+            depositAmount: request.amount,
+            paymentMethod: request.method,
+            transactionId: transactionId,
+            paymentDate: new Date().toISOString(),
+          }),
+        })
+      }
     } catch (emailError) {
       // Log the error but don't fail the payment process
       console.error("Error sending confirmation email:", emailError)
@@ -223,7 +230,8 @@ export async function confirmDeposit(depositId: string) {
     // 3. Send confirmation email
     try {
       const booking = (deposit as any).bookings
-      if (booking && booking.email) {
+      const resend = getResendClient()
+      if (booking && booking.email && resend) {
         await resend.emails.send({
           from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
           to: booking.email,
@@ -324,7 +332,8 @@ export async function refundDeposit(depositId: string) {
     // 4. Send refund confirmation email
     try {
       const booking = (deposit as any).bookings
-      if (booking && booking.email) {
+      const resend = getResendClient()
+      if (booking && booking.email && resend) {
         await resend.emails.send({
           from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
           to: booking.email,

@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Montserrat, Poppins } from "next/font/google"
 import Script from "next/script"
 import "./globals.css"
 import { Header } from "@/components/header"
@@ -9,22 +8,6 @@ import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { FloatingContactButtons } from "@/components/floating-contact-buttons"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-sans",
-})
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-serif",
-})
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  variable: "--font-montserrat",
-})
 
 export const metadata: Metadata = {
   title: {
@@ -110,7 +93,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
         />
       </head>
-      <body className={`${poppins.variable} ${playfair.variable} ${montserrat.variable} font-sans`}>
+      <body className="font-sans">
         {gtmId ? (
           <noscript>
             <iframe

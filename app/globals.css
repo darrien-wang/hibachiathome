@@ -5,6 +5,9 @@
 /* Header height variable - automatically updated by header component */
 :root {
   --header-height: 120px; /* Increased default fallback for safety */
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-montserrat: "Montserrat", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Fixed header layout utilities */

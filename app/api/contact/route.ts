@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
-// Initialize Resend with API key from environment variable
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(request: Request) {
   try {
     // Parse the request body
@@ -50,6 +47,7 @@ export async function POST(request: Request) {
     console.log("To:", process.env.EMAIL_TO || "darrien.wang+hibachi@gmail.com")
 
     try {
+      const resend = new Resend(process.env.RESEND_API_KEY)
       // Send the email
       const { data, error } = await resend.emails.send({
         from: process.env.EMAIL_FROM || "Hibachi at Home <onboarding@resend.dev>",

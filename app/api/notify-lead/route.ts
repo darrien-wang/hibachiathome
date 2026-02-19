@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // 格式化菜品数量，只显示数量大于0的
 const formatItems = (items: any) => {
   if (!items || typeof items !== 'object') {
@@ -221,6 +219,7 @@ export async function POST(request: Request) {
     console.log("- Subject:", subject);
 
     try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
       console.log("Attempting to send email with Resend...");
       const { data: emailData, error: emailError } = await resend.emails.send({
         from: "Real Hibachi Team <notify@realhibachi.com>",
