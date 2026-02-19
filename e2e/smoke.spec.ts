@@ -480,3 +480,57 @@ test("TRK-011: promo banner CTA click emits promotion_click with campaign id", a
   )
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-011-promotion-click.png`, fullPage: true })
 })
+
+test("TRK-012: Instagram video interaction emits social_video_engagement event", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.evaluate(() => {
+    window.open = () => null
+  })
+
+  const playButtons = page.locator('button[aria-label^="Play Instagram video"]')
+  const openButtons = page.locator('button[aria-label^="Open Instagram post"]')
+  let expectedInteractionType: "play" | "open_instagram" = "play"
+
+  if (await playButtons.count()) {
+    await expect(playButtons.first()).toBeVisible({ timeout: 20_000 })
+    await playButtons.first().click()
+  } else {
+    expectedInteractionType = "open_instagram"
+    await expect(openButtons.first()).toBeVisible({ timeout: 20_000 })
+    await openButtons.first().click()
+  }
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "social_video_engagement")
+  })
+
+  const socialVideoEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "social_video_engagement")
+  })
+
+  await expect(socialVideoEvents.length).toBeGreaterThan(0)
+  const latestEvent = socialVideoEvents[socialVideoEvents.length - 1] as Record<string, unknown>
+
+  await expect(latestEvent.interaction_type).toBe(expectedInteractionType)
+  await expect(typeof latestEvent.video_id).toBe("string")
+  await expect(latestEvent.video_source).toBe("instagram_section")
+
+  writeFileSync(
+    `${EVIDENCE_DIR}/trk-012-social-video-engagement-events.json`,
+    JSON.stringify(socialVideoEvents, null, 2),
+    "utf-8",
+  )
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-012-social-video-engagement.png`, fullPage: true })
+})

@@ -7,6 +7,7 @@ type TrackingEventName =
   | "location_selected"
   | "package_selected"
   | "promotion_click"
+  | "social_video_engagement"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"

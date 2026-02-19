@@ -416,3 +416,37 @@
   - `harness/verification/2026-02-19-trk-011/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-012` (Instagram video interaction `social_video_engagement`).
+
+## 2026-02-19 (TRK-012 social_video_engagement on Instagram interaction)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added `social_video_engagement` event support in tracking union.
+  - Instrumented Instagram video interactions in `components/instagram-videos-section.tsx`:
+    - play overlay clicks
+    - Instagram external-open clicks
+    with metadata (`video_id`, `interaction_type`, `video_source`, `is_embedded`).
+  - Added accessibility labels for video interaction buttons to support deterministic UI automation.
+  - Added Playwright TRK-012 test to trigger video interaction and assert event payload.
+- Feature status transition:
+  - `TRK-012` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-012"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Initial test assumption expected non-embedded play button; updated test to support both interaction paths (`play` or `open_instagram`) and re-ran to pass.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-012/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-012/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-012/trk-012-e2e.log`
+  - `harness/verification/2026-02-19-trk-012/trk-012-e2e.exit`
+  - `harness/verification/2026-02-19-trk-012/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-012/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-012/trk-012-social-video-engagement-events.json`
+  - `harness/verification/2026-02-19-trk-012/trk-012-social-video-engagement.png`
+  - `harness/verification/2026-02-19-trk-012/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-012/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-013` (floating contact phone click `phone_click` event).

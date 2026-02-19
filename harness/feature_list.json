@@ -146,7 +146,7 @@
       "Trigger interaction (open modal or play).",
       "Verify social_video_engagement event appears in dataLayer."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-013",

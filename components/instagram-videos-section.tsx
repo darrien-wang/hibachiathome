@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Play, MapPin, Calendar, ChevronLeft, ChevronRight, Instagram, ExternalLink } from "lucide-react"
 import { getLatestVideos, type InstagramVideo } from "@/config/instagram-videos"
+import { trackEvent } from "@/lib/tracking"
 
 interface InstagramVideosSectionProps {
   displayMode?: "grid" | "carousel"
@@ -255,6 +256,13 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
   }, [video.isEmbedded])
 
   const handlePlayClick = () => {
+    trackEvent("social_video_engagement", {
+      video_id: video.id,
+      interaction_type: "play",
+      video_source: "instagram_section",
+      is_embedded: Boolean(video.isEmbedded),
+    })
+
     if (video.isEmbedded) {
       // Instagram嵌入视频直接跳转到Instagram
       if (video.embedUrl) {
@@ -267,6 +275,13 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
   }
 
   const handleInstagramClick = () => {
+    trackEvent("social_video_engagement", {
+      video_id: video.id,
+      interaction_type: "open_instagram",
+      video_source: "instagram_section",
+      is_embedded: Boolean(video.isEmbedded),
+    })
+
     if (video.embedUrl) {
       window.open(video.embedUrl, '_blank')
     }
@@ -372,6 +387,7 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
                   <button
                     onClick={handlePlayClick}
+                    aria-label={`Play Instagram video ${video.id}`}
                     className="absolute inset-0 flex items-center justify-center group"
                   >
                     <div className="bg-white/90 rounded-full p-4 group-hover:bg-white group-hover:scale-110 transition-all duration-300 shadow-lg">
@@ -408,6 +424,7 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
               {video.isEmbedded ? (
                 <button
                   onClick={handleInstagramClick}
+                  aria-label={`Open Instagram post ${video.id}`}
                   className="flex items-center gap-1 text-xs text-pink-500 hover:text-pink-600 transition-colors"
                 >
                   <Instagram className="h-3 w-3" />
