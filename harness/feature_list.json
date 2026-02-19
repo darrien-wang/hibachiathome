@@ -218,7 +218,7 @@
       "Interact with major controls on desktop and mobile viewport.",
       "Verify there is no delayed click response from tracking hooks."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-019",

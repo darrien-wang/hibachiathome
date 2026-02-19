@@ -780,3 +780,101 @@ test("TRK-017: tracking bootstrap introduces no visual layout shift on home and 
 
   writeFileSync(`${EVIDENCE_DIR}/trk-017-layout-metrics.json`, JSON.stringify(layoutMetrics, null, 2), "utf-8")
 })
+
+test("TRK-018: core pages stay interactive on desktop and mobile after tracking hooks", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(120_000)
+
+  const runtimeErrors: string[] = []
+  page.on("pageerror", (error) => {
+    runtimeErrors.push(error.message)
+  })
+
+  const interactionLatency: Record<string, number> = {}
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  let start = Date.now()
+  await page.locator("header").getByRole("link", { name: "Book Now" }).first().click()
+  await page.waitForURL(/\/book(?:\?.*)?$/, { timeout: 20_000 })
+  interactionLatency.desktop_home_to_book_ms = Date.now() - start
+
+  start = Date.now()
+  await page.getByRole("button", { name: "Get Estimate" }).click()
+  await page.waitForURL(/\/estimation\?source=booking$/, { timeout: 20_000 })
+  interactionLatency.desktop_book_to_estimation_ms = Date.now() - start
+
+  const infoModalClose = page.getByRole("button", { name: "Close" })
+  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  start = Date.now()
+  await page.getByPlaceholder("Your full name").fill("TRK018 Desktop User")
+  await expect(page.getByPlaceholder("Your full name")).toHaveValue("TRK018 Desktop User")
+  interactionLatency.desktop_estimation_input_ms = Date.now() - start
+
+  start = Date.now()
+  await page.goto("/contact", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveURL(/\/contact(?:\?.*)?$/)
+  interactionLatency.desktop_estimation_to_contact_ms = Date.now() - start
+
+  await page.locator('input[name="name"]').fill("TRK018 Contact User")
+  await page.locator('input[name="email"]').fill("trk018@example.com")
+  await page.locator('input[name="phone"]').fill("2135550118")
+  await expect(page.locator('input[name="name"]')).toHaveValue("TRK018 Contact User")
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.evaluate(() => {
+    ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
+  })
+
+  const floatingBar = page.locator("div.fixed.bottom-0.left-0.right-0").first()
+
+  start = Date.now()
+  await floatingBar.getByRole("button", { name: "Book Now" }).click()
+  await expect(floatingBar.getByRole("button", { name: "Call Us" })).toBeVisible({ timeout: 10_000 })
+  interactionLatency.mobile_expand_contact_ms = Date.now() - start
+
+  start = Date.now()
+  await floatingBar.getByRole("button", { name: "Call Us" }).click()
+  await expect(floatingBar.getByRole("button", { name: "Call Now" })).toBeVisible({ timeout: 10_000 })
+  interactionLatency.mobile_open_call_panel_ms = Date.now() - start
+
+  start = Date.now()
+  await floatingBar.getByRole("button", { name: "Call Now" }).click()
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "phone_click")
+  })
+  interactionLatency.mobile_call_click_ms = Date.now() - start
+
+  start = Date.now()
+  await floatingBar.getByRole("button", { name: "Send Text" }).click()
+  await expect(floatingBar.getByRole("button", { name: "Send SMS" })).toBeVisible({ timeout: 10_000 })
+  interactionLatency.mobile_open_sms_panel_ms = Date.now() - start
+
+  start = Date.now()
+  await floatingBar.getByRole("button", { name: "Send SMS" }).click()
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "sms_click")
+  })
+  interactionLatency.mobile_sms_click_ms = Date.now() - start
+
+  for (const [metric, value] of Object.entries(interactionLatency)) {
+    await expect(value, `${metric} should stay responsive`).toBeLessThan(5_000)
+  }
+
+  await expect(runtimeErrors).toHaveLength(0)
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-018-interaction-latency.json`, JSON.stringify(interactionLatency, null, 2), "utf-8")
+  writeFileSync(`${EVIDENCE_DIR}/trk-018-runtime-errors.json`, JSON.stringify(runtimeErrors, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-018-mobile-interactions.png`, fullPage: true })
+})

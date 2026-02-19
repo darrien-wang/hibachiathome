@@ -1,0 +1,11 @@
+{
+  "desktop_home_to_book_ms": 1303,
+  "desktop_book_to_estimation_ms": 1545,
+  "desktop_estimation_input_ms": 86,
+  "desktop_estimation_to_contact_ms": 808,
+  "mobile_expand_contact_ms": 425,
+  "mobile_open_call_panel_ms": 187,
+  "mobile_call_click_ms": 163,
+  "mobile_open_sms_panel_ms": 150,
+  "mobile_sms_click_ms": 55
+}
