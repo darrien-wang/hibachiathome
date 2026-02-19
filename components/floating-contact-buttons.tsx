@@ -41,6 +41,14 @@ export function FloatingContactButtons() {
   }
 
   const handleSMS = () => {
+    trackEvent("sms_click", {
+      contact_surface: "floating_contact_buttons",
+    })
+
+    if ((window as any).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
+
     window.location.href = `sms:${smsNumber}`
   }
 

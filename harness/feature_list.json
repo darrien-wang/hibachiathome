@@ -170,7 +170,7 @@
       "Click SMS button.",
       "Confirm sms_click event was emitted."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-015",

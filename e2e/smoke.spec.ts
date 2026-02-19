@@ -574,3 +574,43 @@ test("TRK-013: floating contact phone click emits phone_click event", async ({ p
   writeFileSync(`${EVIDENCE_DIR}/trk-013-phone-click-events.json`, JSON.stringify(phoneClickEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-013-phone-click.png`, fullPage: true })
 })
+
+test("TRK-014: floating contact SMS click emits sms_click event", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.evaluate(() => {
+    ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
+  })
+
+  const floatingBar = page.locator("div.fixed.bottom-0.left-0.right-0").first()
+  await floatingBar.getByRole("button", { name: "Book Now" }).click()
+  await floatingBar.getByRole("button", { name: "Send Text" }).click()
+  await floatingBar.getByRole("button", { name: "Send SMS" }).click()
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "sms_click")
+  })
+
+  const smsClickEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "sms_click")
+  })
+
+  await expect(smsClickEvents.length).toBeGreaterThan(0)
+  const latestEvent = smsClickEvents[smsClickEvents.length - 1] as Record<string, unknown>
+  await expect(latestEvent.contact_surface).toBe("floating_contact_buttons")
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-014-sms-click-events.json`, JSON.stringify(smsClickEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-014-sms-click.png`, fullPage: true })
+})
