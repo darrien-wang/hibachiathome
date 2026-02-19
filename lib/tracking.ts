@@ -8,6 +8,8 @@ type TrackingEventName =
   | "package_selected"
   | "promotion_click"
   | "social_video_engagement"
+  | "phone_click"
+  | "sms_click"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"

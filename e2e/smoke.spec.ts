@@ -534,3 +534,43 @@ test("TRK-012: Instagram video interaction emits social_video_engagement event",
   )
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-012-social-video-engagement.png`, fullPage: true })
 })
+
+test("TRK-013: floating contact phone click emits phone_click event", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.evaluate(() => {
+    ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
+  })
+
+  const floatingBar = page.locator("div.fixed.bottom-0.left-0.right-0").first()
+  await floatingBar.getByRole("button", { name: "Book Now" }).click()
+  await floatingBar.getByRole("button", { name: "Call Us" }).click()
+  await floatingBar.getByRole("button", { name: "Call Now" }).click()
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "phone_click")
+  })
+
+  const phoneClickEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "phone_click")
+  })
+
+  await expect(phoneClickEvents.length).toBeGreaterThan(0)
+  const latestEvent = phoneClickEvents[phoneClickEvents.length - 1] as Record<string, unknown>
+  await expect(latestEvent.contact_surface).toBe("floating_contact_buttons")
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-013-phone-click-events.json`, JSON.stringify(phoneClickEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-013-phone-click.png`, fullPage: true })
+})

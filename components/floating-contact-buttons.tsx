@@ -4,6 +4,7 @@ import { Phone, MessageCircle, Mail, Copy, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
+import { trackEvent } from "@/lib/tracking"
 
 export function FloatingContactButtons() {
   const phoneNumber = "2137707788"
@@ -28,6 +29,14 @@ export function FloatingContactButtons() {
   }
 
   const handleCall = () => {
+    trackEvent("phone_click", {
+      contact_surface: "floating_contact_buttons",
+    })
+
+    if ((window as any).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
+
     window.location.href = `tel:${phoneNumber}`
   }
 

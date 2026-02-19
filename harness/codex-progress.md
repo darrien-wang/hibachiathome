@@ -450,3 +450,40 @@
   - `harness/verification/2026-02-19-trk-012/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-013` (floating contact phone click `phone_click` event).
+
+## 2026-02-19 (TRK-013 floating contact phone_click event)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on current branch.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added `phone_click` and `sms_click` to the shared tracking event union in `lib/tracking.ts`.
+  - Instrumented floating contact call action in `components/floating-contact-buttons.tsx` to emit:
+    - `phone_click`
+    - metadata: `contact_surface: "floating_contact_buttons"`
+  - Added a test-only navigation guard (`window.__REALHIBACHI_DISABLE_NAVIGATION__`) so Playwright can assert tracking without leaving the page via `tel:` navigation.
+  - Added Playwright TRK-013 coverage in `e2e/smoke.spec.ts` to:
+    - open mobile viewport
+    - expand floating contact UI
+    - click `Call Now`
+    - assert `phone_click` payload appears in `dataLayer`.
+- Feature status transition:
+  - `TRK-013` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-013 pnpm test:e2e --grep "TRK-001"` ✅
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-013 pnpm test:e2e --grep "TRK-013"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-013/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-013/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-013/trk-013-e2e.log`
+  - `harness/verification/2026-02-19-trk-013/trk-013-e2e.exit`
+  - `harness/verification/2026-02-19-trk-013/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-013/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-013/trk-013-phone-click-events.json`
+  - `harness/verification/2026-02-19-trk-013/trk-013-phone-click.png`
+  - `harness/verification/2026-02-19-trk-013/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-013/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-014` (floating contact SMS click `sms_click` event).

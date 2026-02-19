@@ -158,7 +158,7 @@
       "Click call button.",
       "Confirm phone_click event was emitted."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-014",
