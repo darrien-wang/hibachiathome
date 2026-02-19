@@ -158,3 +158,34 @@
   - `harness/verification/2026-02-19-trk-003/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-004` (no duplicate `page_view` on single route load/hydration).
+
+## 2026-02-19 (TRK-004 no duplicate page_view on hydration)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified a previously passing core flow (`TRK-001`) before new work.
+  - Added dedicated Playwright assertion for `TRK-004` in `e2e/smoke.spec.ts`:
+    - load `/`
+    - wait for hydration settle window
+    - assert `dataLayer` contains exactly one `page_view` before any user interaction.
+- Feature status transition:
+  - `TRK-004` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-004"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-004/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-004/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-004/trk-004-e2e.log`
+  - `harness/verification/2026-02-19-trk-004/trk-004-e2e.exit`
+  - `harness/verification/2026-02-19-trk-004/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-004/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-004/trk-004-hydration-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-004/trk-004-home.png`
+  - `harness/verification/2026-02-19-trk-004/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-004/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-005` (booking funnel start event on first actionable booking interaction).

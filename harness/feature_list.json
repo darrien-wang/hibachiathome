@@ -47,7 +47,7 @@
       "Count page_view pushes in dataLayer.",
       "Confirm only one event exists before user interaction."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-005",

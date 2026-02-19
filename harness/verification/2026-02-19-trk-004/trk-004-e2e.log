@@ -1,0 +1,21 @@
+
+> my-v0-project@0.1.0 test:e2e /home/darrien/projects/realhibachi-marketing
+> bash ./harness/scripts/run-e2e.sh --grep TRK-004
+
+[run-e2e] Reusing existing Playwright Chromium from /home/darrien/.cache/ms-playwright
+[2m[WebServer] [22m(node:294402) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:294415) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:294432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:294478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:294478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/smoke.spec.ts:76:5 › TRK-004: hydration does not emit duplicate page_view on single home load (4.6s)
+
+  1 passed (11.3s)

@@ -72,3 +72,31 @@ test("TRK-003: navigation from home to /book emits a new page_view event", async
   writeFileSync(`${EVIDENCE_DIR}/trk-003-navigation-page-view-events.json`, JSON.stringify(pageViewEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-003-book.png`, fullPage: true })
 })
+
+test("TRK-004: hydration does not emit duplicate page_view on single home load", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.waitForTimeout(2_000)
+
+  const pageViewEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "page_view")
+  })
+
+  await expect(pageViewEvents).toHaveLength(1)
+  await expect(pageViewEvents[0]?.page_path).toBe("/")
+  await expect(typeof pageViewEvents[0]?.page_title).toBe("string")
+  await expect((pageViewEvents[0]?.page_title as string).length).toBeGreaterThan(0)
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-004-hydration-page-view-events.json`, JSON.stringify(pageViewEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-004-home.png`, fullPage: true })
+})
