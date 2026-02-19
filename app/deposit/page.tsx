@@ -11,6 +11,7 @@ import Link from "next/link"
 import { getBookingDetails } from "@/app/actions/booking"
 import type { PaymentMethod } from "@/types/payment"
 import { paymentConfig } from "@/config/ui"
+import { trackEvent } from "@/lib/tracking"
 
 export default function DepositPaymentPage() {
   const searchParams = useSearchParams()
@@ -157,6 +158,19 @@ export default function DepositPaymentPage() {
 
   const totalAmount = calculateTotalAmount(booking)
   const depositAmount = calculateDepositAmount()
+  const handleDepositCtaClick = () => {
+    trackEvent("deposit_started", {
+      booking_id: booking?.id || bookingId,
+      value: depositAmount,
+      currency: "USD",
+    })
+
+    if ((window as any).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
+
+    window.location.href = paymentConfig.stripePaymentLink
+  }
 
   if (paymentSuccess) {
     return (
@@ -285,7 +299,7 @@ export default function DepositPaymentPage() {
 
           <CardFooter className="flex flex-col space-y-4">
             <Button
-              onClick={() => (window.location.href = paymentConfig.stripePaymentLink)}
+              onClick={handleDepositCtaClick}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-3"
             >
               <div className="flex items-center justify-center">

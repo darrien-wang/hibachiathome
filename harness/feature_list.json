@@ -85,7 +85,7 @@
       "Click primary deposit CTA.",
       "Verify matching CTA click event in dataLayer."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-008",

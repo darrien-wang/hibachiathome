@@ -252,3 +252,34 @@
   - `harness/verification/2026-02-19-trk-006/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-007` (deposit page primary CTA conversion-intent tracking event).
+
+## 2026-02-19 (TRK-007 deposit CTA conversion intent)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Instrumented `/deposit` primary Stripe CTA to emit `deposit_started` with `booking_id`, `value`, and `currency`.
+  - Added navigation guard flag for testability (`__REALHIBACHI_DISABLE_NAVIGATION__`) so tracking can be asserted without external redirect during E2E.
+  - Added Playwright TRK-007 test to click primary deposit CTA and assert `deposit_started` payload in `dataLayer`.
+- Feature status transition:
+  - `TRK-007` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-007"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+  - `getBookingDetails` logs expected fallback errors in env without Supabase credentials; page fallback data remains functional for tracking validation.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-007/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-007/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-007/trk-007-e2e.log`
+  - `harness/verification/2026-02-19-trk-007/trk-007-e2e.exit`
+  - `harness/verification/2026-02-19-trk-007/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-007/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-007/trk-007-deposit-started-events.json`
+  - `harness/verification/2026-02-19-trk-007/trk-007-deposit.png`
+  - `harness/verification/2026-02-19-trk-007/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-007/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-008` (contact form `lead_submit` with channel/source metadata).

@@ -226,3 +226,42 @@ test("TRK-006: booking submit event includes required payload without undefined 
   writeFileSync(`${EVIDENCE_DIR}/trk-006-booking-submit-events.json`, JSON.stringify(bookingSubmitEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-006-booking-submit.png`, fullPage: true })
 })
+
+test("TRK-007: deposit CTA click emits conversion-intent event", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.goto("/deposit?id=TRK007", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  await page.evaluate(() => {
+    ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
+  })
+
+  await page.getByRole("button", { name: /Pay Securely with Stripe/i }).click()
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "deposit_started")
+  })
+
+  const depositStartedEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "deposit_started")
+  })
+
+  await expect(depositStartedEvents.length).toBeGreaterThan(0)
+  const latestEvent = depositStartedEvents[depositStartedEvents.length - 1] as Record<string, unknown>
+
+  await expect(latestEvent.page_path).toBe("/deposit")
+  await expect(latestEvent.currency).toBe("USD")
+  await expect(typeof latestEvent.value).toBe("number")
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-007-deposit-started-events.json`, JSON.stringify(depositStartedEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-007-deposit.png`, fullPage: true })
+})
