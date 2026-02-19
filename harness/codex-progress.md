@@ -696,3 +696,38 @@
   - `harness/verification/2026-02-19-trk-019/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-020` (tracking event naming consistency + docs audit).
+
+## 2026-02-19 (TRK-020 tracking event naming consistency + documentation)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added naming audit automation script:
+    - `harness/scripts/audit-tracking-event-names.mjs`
+    - audits declared `TrackingEventName` union vs emitted `trackEvent(...)` callsites
+    - enforces `snake_case` naming for declared/emitted events
+    - outputs machine-readable JSON report for evidence.
+  - Updated tracking documentation in `harness/docs/tracking.md`:
+    - expanded full event dictionary to current implemented events
+    - documented naming convention and TRK-020 audit procedure/command.
+- Feature status transition:
+  - `TRK-020` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-020 pnpm test:e2e --grep "TRK-001"` ✅
+  - `node harness/scripts/audit-tracking-event-names.mjs --output harness/verification/2026-02-19-trk-020/trk-020-event-name-audit.json` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Naming audit result: no non-snake event names and no undeclared emitted events.
+  - One documented declared-but-not-emitted event remains: `deposit_completed` (reserved for server-confirmed callback path; not emitted by current client-side flow in this repo snapshot).
+- Evidence:
+  - `harness/verification/2026-02-19-trk-020/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-020/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-020/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-020/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-020/trk-020-event-name-audit.log`
+  - `harness/verification/2026-02-19-trk-020/trk-020-event-name-audit.exit`
+  - `harness/verification/2026-02-19-trk-020/trk-020-event-name-audit.json`
+  - `harness/verification/2026-02-19-trk-020/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-020/codex-verify.exit`
+- Next highest-priority action:
+  - Backlog complete (`TRK-001` to `TRK-020` all passing). Optional next step: bundle and push branch for review.

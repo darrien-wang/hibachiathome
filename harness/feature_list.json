@@ -242,6 +242,6 @@
       "Compare against naming convention (snake_case and domain prefix where required).",
       "Document mismatches in codex-progress.md."
     ],
-    "passes": false
+    "passes": true
   }
 ]

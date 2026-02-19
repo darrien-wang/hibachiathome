@@ -1,6 +1,6 @@
 # Tracking System Contract (GTM + dataLayer)
 
-Last updated: 2026-02-18
+Last updated: 2026-02-19
 Source spec: `harness/prompts/tracking-improvement-spec.xml`
 
 ## 1) Architecture
@@ -12,17 +12,33 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 
 ## 2) Event Dictionary
 
-| Event | Definition | Trigger point | Ads conversion |
+| Event | Definition | Primary trigger point | Ads conversion |
 | --- | --- | --- | --- |
-| `lead_start` | User starts lead/booking intent | Primary booking CTA intent before navigation | No |
-| `lead_submit` | User submits lead/contact form | Successful form submit callback | Yes |
-| `contact_whatsapp_click` | WhatsApp contact intent | WhatsApp CTA click before navigation | No |
-| `contact_sms_click` | SMS contact intent | SMS CTA click before navigation | No |
-| `contact_call_click` | Call contact intent | Phone CTA click before navigation | No |
-| `menu_view` | User opens menu intent | Menu CTA click/open action | No |
-| `faq_view` | User opens FAQ intent | FAQ CTA click/open action | No |
-| `deposit_started` | Deposit initiation | Deposit flow starts with amount known | No |
-| `deposit_completed` | Confirmed deposit success | Server-confirmed payment success | Yes (dedup by `transaction_id`) |
+| `page_view` | Route-level page view in SPA navigation | Tracking bootstrap on initial load + route changes | No |
+| `lead_start` | User starts booking/lead intent | Primary booking CTA before navigation | No |
+| `lead_submit` | User submits lead/contact form | Contact form successful submit path | Yes |
+| `booking_funnel_start` | User enters estimation from booking page | `/book` Get Estimate CTA | No |
+| `estimate_completed` | User reaches estimate result step | Estimation step transition into Step 5 | No |
+| `booking_submit` | User submits booking details | Estimation order submission | Yes (import-eligible) |
+| `location_selected` | Address/place selected from autocomplete | Google Places selection callback | No |
+| `package_selected` | User chooses package CTA | Home / Hibachi-at-home package cards | No |
+| `promotion_click` | User clicks promo banner CTA | Promotion banner button on booking funnel page | No |
+| `social_video_engagement` | User interacts with Instagram videos | Play/open interactions in Instagram section | No |
+| `phone_click` | User taps floating phone CTA | Floating contact: `Call Now` | No |
+| `sms_click` | User taps floating SMS CTA | Floating contact: `Send SMS` | No |
+| `contact_whatsapp_click` | User clicks WhatsApp CTA | Home/Hibachi contact row | No |
+| `contact_sms_click` | User clicks SMS CTA | Home/Hibachi contact row | No |
+| `contact_call_click` | User clicks call CTA | Home/Hibachi contact row | No |
+| `menu_view` | User opens menu intent | Home/Hibachi “View Menu” action | No |
+| `faq_view` | User opens FAQ intent | Home/Hibachi “FAQ” action | No |
+| `deposit_started` | Deposit initiation intent | Deposit page Stripe CTA click | No |
+| `deposit_completed` | Confirmed deposit success | Server-confirmed payment success callback | Yes (dedup by `transaction_id`) |
+
+### Event naming convention
+
+- Required format: `snake_case`.
+- Domain-style prefixes are used where meaningful (`contact_*`).
+- CTA interaction suffixes should remain verb-first and stable (`*_click`, `*_view`, `*_submit`, `*_started`, `*_completed`).
 
 ## 3) Parameter Schema
 
@@ -61,14 +77,10 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 
 ### Triggers
 
-- Custom Event triggers named exactly:
-  - `lead_start`
+- Custom Event triggers named exactly as the event dictionary entries above.
+- Minimum required GTM triggers for conversion-critical flows:
   - `lead_submit`
-  - `contact_whatsapp_click`
-  - `contact_sms_click`
-  - `contact_call_click`
-  - `menu_view`
-  - `faq_view`
+  - `booking_submit` (if mapped to Ads/GA4 conversion path)
   - `deposit_started`
   - `deposit_completed`
 
@@ -102,3 +114,17 @@ For each release/session, store artifacts under `verification/<date>/`:
    - phone/sms/whatsapp CTA
 5. Dedup proof: repeated callback/refresh does not duplicate `deposit_completed`.
 6. Attribution proof: landing UTM/click IDs persist into subsequent events.
+
+## 8) Naming Audit Procedure (TRK-020)
+
+- Audit script: `harness/scripts/audit-tracking-event-names.mjs`
+- Command:
+
+  ```bash
+  node harness/scripts/audit-tracking-event-names.mjs --output harness/verification/<date>/trk-020-event-name-audit.json
+  ```
+
+- Pass criteria:
+  - no emitted event names outside `TrackingEventName` union
+  - no non-`snake_case` event names
+  - mismatches or planned exceptions must be documented in `harness/codex-progress.md`

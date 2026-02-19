@@ -1,0 +1,194 @@
+{
+  "generated_at": "2026-02-19T20:29:26.658Z",
+  "tracking_file": "lib/tracking.ts",
+  "naming_rule": "snake_case",
+  "declared_events": [
+    "booking_funnel_start",
+    "booking_submit",
+    "contact_call_click",
+    "contact_sms_click",
+    "contact_whatsapp_click",
+    "deposit_completed",
+    "deposit_started",
+    "estimate_completed",
+    "faq_view",
+    "lead_start",
+    "lead_submit",
+    "location_selected",
+    "menu_view",
+    "package_selected",
+    "page_view",
+    "phone_click",
+    "promotion_click",
+    "sms_click",
+    "social_video_engagement"
+  ],
+  "emitted_events": [
+    "booking_funnel_start",
+    "booking_submit",
+    "contact_call_click",
+    "contact_sms_click",
+    "contact_whatsapp_click",
+    "deposit_started",
+    "estimate_completed",
+    "faq_view",
+    "lead_start",
+    "lead_submit",
+    "location_selected",
+    "menu_view",
+    "package_selected",
+    "page_view",
+    "phone_click",
+    "promotion_click",
+    "sms_click",
+    "social_video_engagement"
+  ],
+  "undeclared_emitted_events": [],
+  "declared_but_not_emitted_events": [
+    "deposit_completed"
+  ],
+  "non_snake_case_declared_events": [],
+  "non_snake_case_emitted_events": [],
+  "emitted_event_callsites": [
+    {
+      "event": "booking_funnel_start",
+      "file": "app/book/page.tsx",
+      "line": 15
+    },
+    {
+      "event": "lead_submit",
+      "file": "app/contact/ContactPageClient.tsx",
+      "line": 58
+    },
+    {
+      "event": "deposit_started",
+      "file": "app/deposit/page.tsx",
+      "line": 162
+    },
+    {
+      "event": "estimate_completed",
+      "file": "app/estimation/page.tsx",
+      "line": 710
+    },
+    {
+      "event": "booking_submit",
+      "file": "app/estimation/page.tsx",
+      "line": 966
+    },
+    {
+      "event": "lead_start",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 215
+    },
+    {
+      "event": "package_selected",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 223
+    },
+    {
+      "event": "lead_start",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 230
+    },
+    {
+      "event": "menu_view",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 235
+    },
+    {
+      "event": "faq_view",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 240
+    },
+    {
+      "event": "contact_whatsapp_click",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 246
+    },
+    {
+      "event": "contact_sms_click",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 252
+    },
+    {
+      "event": "contact_call_click",
+      "file": "app/hibachi-at-home/page.tsx",
+      "line": 258
+    },
+    {
+      "event": "lead_start",
+      "file": "app/page.tsx",
+      "line": 137
+    },
+    {
+      "event": "package_selected",
+      "file": "app/page.tsx",
+      "line": 145
+    },
+    {
+      "event": "lead_start",
+      "file": "app/page.tsx",
+      "line": 152
+    },
+    {
+      "event": "menu_view",
+      "file": "app/page.tsx",
+      "line": 157
+    },
+    {
+      "event": "faq_view",
+      "file": "app/page.tsx",
+      "line": 162
+    },
+    {
+      "event": "contact_whatsapp_click",
+      "file": "app/page.tsx",
+      "line": 168
+    },
+    {
+      "event": "contact_sms_click",
+      "file": "app/page.tsx",
+      "line": 174
+    },
+    {
+      "event": "contact_call_click",
+      "file": "app/page.tsx",
+      "line": 180
+    },
+    {
+      "event": "phone_click",
+      "file": "components/floating-contact-buttons.tsx",
+      "line": 32
+    },
+    {
+      "event": "sms_click",
+      "file": "components/floating-contact-buttons.tsx",
+      "line": 44
+    },
+    {
+      "event": "location_selected",
+      "file": "components/google-places-autocomplete.tsx",
+      "line": 53
+    },
+    {
+      "event": "social_video_engagement",
+      "file": "components/instagram-videos-section.tsx",
+      "line": 259
+    },
+    {
+      "event": "social_video_engagement",
+      "file": "components/instagram-videos-section.tsx",
+      "line": 278
+    },
+    {
+      "event": "promotion_click",
+      "file": "components/promotions/promotion-banner.tsx",
+      "line": 23
+    },
+    {
+      "event": "page_view",
+      "file": "components/tracking-bootstrap.tsx",
+      "line": 29
+    }
+  ]
+}
