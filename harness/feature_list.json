@@ -110,7 +110,7 @@
       "Select one autocomplete result.",
       "Validate location_selected event payload has place_id."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-010",

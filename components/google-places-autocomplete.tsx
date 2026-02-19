@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { trackEvent } from "@/lib/tracking"
 
 // 在文件顶部添加以下类型声明：
 declare global {
@@ -23,6 +24,12 @@ interface GooglePlacesAutocompleteProps {
   required?: boolean
 }
 
+type GooglePlaceDetails = {
+  formatted_address?: string
+  place_id?: string
+  address_components?: Array<any>
+}
+
 const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   value,
   onChange,
@@ -34,6 +41,23 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   const autocompleteRef = useRef<any>(null)
   const [scriptLoaded, setScriptLoaded] = useState(false)
   const [inputValue, setInputValue] = useState(value)
+
+  const handlePlaceSelection = useCallback(
+    (place: GooglePlaceDetails | undefined) => {
+      if (!place?.formatted_address) return
+
+      setInputValue(place.formatted_address)
+      onChange(place.formatted_address, place)
+
+      if (place.place_id) {
+        trackEvent("location_selected", {
+          place_id: place.place_id,
+          location_source: "google_places_autocomplete",
+        })
+      }
+    },
+    [onChange],
+  )
 
   // Load Google Maps script
   useEffect(() => {
@@ -83,7 +107,7 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
     if (scriptLoaded && inputRef.current && !autocompleteRef.current && window.google?.maps?.places) {
       const options = {
         componentRestrictions: { country: "us" },
-        fields: ["address_components", "formatted_address", "geometry", "name"],
+        fields: ["address_components", "formatted_address", "geometry", "name", "place_id"],
         types: ["address"],
       }
 
@@ -91,14 +115,23 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
 
       // Add listener for place selection
       autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current?.getPlace()
-        if (place?.formatted_address) {
-          setInputValue(place.formatted_address)
-          onChange(place.formatted_address, place) // 传递完整的地点详情
-        }
+        const place = autocompleteRef.current?.getPlace() as GooglePlaceDetails | undefined
+        handlePlaceSelection(place)
       })
     }
-  }, [scriptLoaded, onChange])
+  }, [scriptLoaded, handlePlaceSelection])
+
+  useEffect(() => {
+    const handleMockPlaceSelect = (event: Event) => {
+      const customEvent = event as CustomEvent<GooglePlaceDetails>
+      handlePlaceSelection(customEvent.detail)
+    }
+
+    window.addEventListener("realhibachi:mock-place-select", handleMockPlaceSelect)
+    return () => {
+      window.removeEventListener("realhibachi:mock-place-select", handleMockPlaceSelect)
+    }
+  }, [handlePlaceSelection])
 
   // Update local input value when prop value changes
   useEffect(() => {

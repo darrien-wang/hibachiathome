@@ -317,3 +317,36 @@
   - `harness/verification/2026-02-19-trk-008/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-009` (Google Places selection `location_selected` with `place_id`).
+
+## 2026-02-19 (TRK-009 location_selected with place_id)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Extended Google Places autocomplete tracking:
+    - added `place_id` request field from Places API
+    - emits `location_selected` on place selection with `place_id` + source metadata.
+  - Added test hook event (`realhibachi:mock-place-select`) in `GooglePlacesAutocomplete` to enable deterministic E2E selection simulation without external Google UI dependency.
+  - Added Playwright TRK-009 test through estimation flow step 6, dispatching mock place selection and asserting `location_selected` payload.
+- Feature status transition:
+  - `TRK-009` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-009"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+  - Known env log noise (`RESEND_API_KEY` missing) during estimation flow remains non-blocking for tracking checks.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-009/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-009/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-009/trk-009-e2e.log`
+  - `harness/verification/2026-02-19-trk-009/trk-009-e2e.exit`
+  - `harness/verification/2026-02-19-trk-009/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-009/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-009/trk-009-location-selected-events.json`
+  - `harness/verification/2026-02-19-trk-009/trk-009-location-selected.png`
+  - `harness/verification/2026-02-19-trk-009/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-009/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-010` (menu package selection `package_selected` with package metadata).

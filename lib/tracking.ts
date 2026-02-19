@@ -4,6 +4,7 @@ type TrackingEventName =
   | "page_view"
   | "booking_funnel_start"
   | "booking_submit"
+  | "location_selected"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"

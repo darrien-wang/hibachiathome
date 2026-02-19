@@ -317,3 +317,85 @@ test("TRK-008: contact form submit emits lead_submit with channel metadata", asy
   writeFileSync(`${EVIDENCE_DIR}/trk-008-lead-submit-events.json`, JSON.stringify(leadSubmitEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-008-contact-submit.png`, fullPage: true })
 })
+
+test("TRK-009: Google Places selection emits location_selected with place_id", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(120_000)
+
+  await page.goto("/estimation", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.evaluate(() => {
+    window.localStorage.removeItem("hibachi_estimation_form_data")
+    window.localStorage.removeItem("hibachi_estimation_order_data")
+  })
+  await page.reload({ waitUntil: "domcontentloaded" })
+
+  const infoModalClose = page.getByRole("button", { name: "Close" })
+  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  await page.getByPlaceholder("Your full name").fill("TRK Place User")
+  await page.getByPlaceholder("your.email@example.com").fill("trk009@example.com")
+  await page.getByPlaceholder("(123) 456-7890").fill("2135550109")
+  await page.getByPlaceholder("Example: 10001").fill("90001")
+
+  if (await infoModalClose.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  await page.getByPlaceholder("Your full name").fill("TRK Place User")
+  await page.getByRole("button", { name: "Increase adult count" }).click()
+  await page.getByRole("button", { name: "Next Step" }).click()
+
+  await page.getByRole("button", { name: "I don't need appetizers, skip" }).click()
+  await page.getByRole("button", { name: "No upgrades needed, skip" }).click()
+  await page.getByRole("button", { name: "No thanks, skip" }).click()
+  await page.getByRole("button", { name: "Yes, I want to book this!" }).click()
+
+  await expect(page.getByPlaceholder("Street Address")).toBeVisible({ timeout: 20_000 })
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new CustomEvent("realhibachi:mock-place-select", {
+        detail: {
+          place_id: "test-place-009",
+          formatted_address: "123 Test St, Los Angeles, CA 90001, USA",
+          address_components: [
+            { long_name: "123", short_name: "123", types: ["street_number"] },
+            { long_name: "Test St", short_name: "Test St", types: ["route"] },
+            { long_name: "Los Angeles", short_name: "Los Angeles", types: ["locality"] },
+            { long_name: "California", short_name: "CA", types: ["administrative_area_level_1"] },
+            { long_name: "90001", short_name: "90001", types: ["postal_code"] },
+          ],
+        },
+      }),
+    )
+  })
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "location_selected" && entry.place_id === "test-place-009")
+  })
+
+  const locationSelectedEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "location_selected")
+  })
+
+  await expect(locationSelectedEvents.length).toBeGreaterThan(0)
+  const latestEvent = locationSelectedEvents[locationSelectedEvents.length - 1] as Record<string, unknown>
+  await expect(latestEvent.place_id).toBe("test-place-009")
+  await expect(latestEvent.location_source).toBe("google_places_autocomplete")
+
+  await expect(page.getByPlaceholder("Street Address")).toHaveValue(/123 Test St/)
+
+  writeFileSync(
+    `${EVIDENCE_DIR}/trk-009-location-selected-events.json`,
+    JSON.stringify(locationSelectedEvents, null, 2),
+    "utf-8",
+  )
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-009-location-selected.png`, fullPage: true })
+})
