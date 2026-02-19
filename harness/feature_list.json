@@ -206,7 +206,7 @@
       "Take screenshots for baseline comparison.",
       "Verify no layout shift or flicker caused by tracking bootstrap."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-018",

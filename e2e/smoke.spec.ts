@@ -736,3 +736,47 @@ test("TRK-016: tracking remains resilient when GTM/dataLayer is unavailable", as
   writeFileSync(`${EVIDENCE_DIR}/trk-016-event-summary.json`, JSON.stringify(eventSummary, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-016-tracking-resilience.png`, fullPage: true })
 })
+
+test("TRK-017: tracking bootstrap introduces no visual layout shift on home and book pages", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(90_000)
+
+  const layoutMetrics: Array<Record<string, unknown>> = []
+
+  const measurePage = async (path: string, screenshotName: string) => {
+    await page.goto(path, { waitUntil: "domcontentloaded" })
+    await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+    const anchor = page.getByRole("link", { name: "Home" }).first()
+    await expect(anchor).toBeVisible({ timeout: 20_000 })
+
+    const before = await anchor.boundingBox()
+    await page.waitForTimeout(1_500)
+    const after = await anchor.boundingBox()
+
+    await expect(before).not.toBeNull()
+    await expect(after).not.toBeNull()
+
+    const deltaY = Math.abs((after?.y ?? 0) - (before?.y ?? 0))
+    const deltaHeight = Math.abs((after?.height ?? 0) - (before?.height ?? 0))
+
+    await expect(deltaY).toBeLessThan(2)
+    await expect(deltaHeight).toBeLessThan(2)
+
+    layoutMetrics.push({
+      path,
+      before,
+      after,
+      deltaY,
+      deltaHeight,
+    })
+
+    await page.screenshot({ path: `${EVIDENCE_DIR}/${screenshotName}`, fullPage: true })
+  }
+
+  await measurePage("/", "trk-017-home-layout.png")
+  await measurePage("/book", "trk-017-book-layout.png")
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-017-layout-metrics.json`, JSON.stringify(layoutMetrics, null, 2), "utf-8")
+})

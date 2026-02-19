@@ -597,3 +597,37 @@
   - `harness/verification/2026-02-19-trk-016/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-017` (tracking bootstrap visual-regression check on home/book pages).
+
+## 2026-02-19 (TRK-017 visual regression guard for tracking bootstrap)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added Playwright TRK-017 coverage in `e2e/smoke.spec.ts`:
+    - loads `/` and `/book`
+    - captures page screenshots for visual baselines
+    - measures a stable layout anchor (`Home` nav link) before/after settle delay
+    - asserts no meaningful Y-position or height shift (layout stability)
+    - writes structured layout metrics JSON for audit.
+- Feature status transition:
+  - `TRK-017` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-017 pnpm test:e2e --grep "TRK-001"` ✅
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-017 pnpm test:e2e --grep "TRK-017"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Initial TRK-017 attempt used `h1` as anchor and failed on pages without a guaranteed `h1`; switched to persistent header nav anchor and re-ran successfully.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-017/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-017/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-017/trk-017-e2e.log`
+  - `harness/verification/2026-02-19-trk-017/trk-017-e2e.exit`
+  - `harness/verification/2026-02-19-trk-017/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-017/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-017/trk-017-home-layout.png`
+  - `harness/verification/2026-02-19-trk-017/trk-017-book-layout.png`
+  - `harness/verification/2026-02-19-trk-017/trk-017-layout-metrics.json`
+  - `harness/verification/2026-02-19-trk-017/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-017/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-018` (core page interactivity/responsiveness after tracking hooks).
