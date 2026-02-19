@@ -73,7 +73,7 @@
       "Capture booking_submit payload from dataLayer.",
       "Validate required keys exist and are not undefined."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-007",

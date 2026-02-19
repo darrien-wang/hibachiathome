@@ -1,0 +1,15 @@
+[
+  {
+    "event": "booking_submit",
+    "page_path": "/estimation",
+    "page_title": "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
+    "booking_id": "b704021d-1468-4844-b1c2-6900972ef672",
+    "guest_count": 10,
+    "adults": 1,
+    "kids": 0,
+    "event_date": "2026-02-19",
+    "event_time": "13:00",
+    "value": 599,
+    "currency": "USD"
+  }
+]

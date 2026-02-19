@@ -3,6 +3,7 @@
 type TrackingEventName =
   | "page_view"
   | "booking_funnel_start"
+  | "booking_submit"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"
@@ -24,13 +25,15 @@ type AttributionFields = {
   gbraid?: string
 }
 
+type TrackingParamValue = string | number | boolean
+
 type TrackEventParams = AttributionFields & {
   value?: number
   currency?: string
   transaction_id?: string
   event_id?: string
   debug_mode?: boolean
-}
+} & Record<string, TrackingParamValue | undefined>
 
 type DataLayerPayload = AttributionFields & {
   event: TrackingEventName
@@ -41,7 +44,7 @@ type DataLayerPayload = AttributionFields & {
   transaction_id?: string
   event_id?: string
   debug_mode?: boolean
-}
+} & Record<string, TrackingParamValue | undefined>
 
 const ATTRIBUTION_KEYS = [
   "utm_source",
@@ -122,6 +125,11 @@ function resolvePageTitle(title: string | undefined): string {
   return normalizedTitle.length > 0 ? normalizedTitle : "Real Hibachi"
 }
 
+function removeUndefinedFields<T extends Record<string, unknown>>(input: T): T {
+  const entries = Object.entries(input).filter(([, value]) => value !== undefined)
+  return Object.fromEntries(entries) as T
+}
+
 export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 
@@ -177,6 +185,8 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
     payload.debug_mode = true
   }
 
+  const normalizedPayload = removeUndefinedFields(payload)
+
   window.dataLayer = window.dataLayer || []
-  window.dataLayer.push(payload)
+  window.dataLayer.push(normalizedPayload)
 }

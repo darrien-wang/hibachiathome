@@ -14,6 +14,7 @@ import Step5Estimate from "@/components/estimation/Step5Estimate"
 import Step6BookingForm from "@/components/estimation/Step6BookingForm"
 import Step7Deposit from "@/components/estimation/Step7Deposit"
 import { Button } from "@/components/ui/button"
+import { trackEvent } from "@/lib/tracking"
 
 // 动态导入大型组件，添加预加载提示
 const DynamicPricingCalendar = dynamic(() => import("@/components/booking/dynamic-pricing-calendar"), {
@@ -946,6 +947,19 @@ function EstimationContent() {
     try {
       /* ---------- 2. 生成订单 ID & 结构化数据 ---------- */
       const newOrderId = crypto.randomUUID()
+      const eventDate = selectedDateTime.dateString || formData.eventDate || ""
+      const eventTime = selectedDateTime.time || formData.eventTime || ""
+      const guestCount = Number(formData.estimatedGuests || totalGuests)
+
+      trackEvent("booking_submit", {
+        booking_id: newOrderId,
+        guest_count: guestCount,
+        adults: formData.adults,
+        kids: formData.kids,
+        event_date: eventDate,
+        event_time: eventTime,
+        value: costs.total,
+      })
 
       const orderAnalytics = {
         metadata: {
@@ -1038,8 +1052,8 @@ function EstimationContent() {
             total: costs.total,
           },
           scheduling: {
-            selected_date: selectedDateTime.dateString,
-            selected_time: selectedDateTime.time,
+            selected_date: eventDate,
+            selected_time: eventTime,
             original_price: selectedDateTime.originalPrice,
             final_price: selectedDateTime.price,
             discount: selectedDateTime.originalPrice - selectedDateTime.price,
@@ -1074,8 +1088,8 @@ function EstimationContent() {
         city: formData.city,
         state: formData.state,
         zipcode: formData.zipcode,
-        event_date: selectedDateTime.dateString || formData.eventDate,
-        event_time: selectedDateTime.time || formData.eventTime,
+        event_date: eventDate,
+        event_time: eventTime,
         total_amount: costs.total,
         message: formData.message,
         agreeToTerms: formData.agreeToTerms,

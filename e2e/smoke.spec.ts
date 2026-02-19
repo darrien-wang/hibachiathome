@@ -138,3 +138,91 @@ test("TRK-005: booking funnel start event fires on first booking interaction", a
   )
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-005-booking-start.png`, fullPage: true })
 })
+
+test("TRK-006: booking submit event includes required payload without undefined values", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(120_000)
+
+  await page.goto("/estimation", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.evaluate(() => {
+    window.localStorage.removeItem("hibachi_estimation_form_data")
+    window.localStorage.removeItem("hibachi_estimation_order_data")
+  })
+  await page.reload({ waitUntil: "domcontentloaded" })
+
+  const infoModalClose = page.getByRole("button", { name: "Close" })
+  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  await page.getByPlaceholder("Your full name").fill("TRK Test User")
+  await page.getByPlaceholder("your.email@example.com").fill("trk006@example.com")
+  await page.getByPlaceholder("(123) 456-7890").fill("2135550106")
+  await page.getByPlaceholder("Example: 10001").fill("90001")
+
+  if (await infoModalClose.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  await page.getByPlaceholder("Your full name").fill("TRK Test User")
+  await page.getByRole("button", { name: "Increase adult count" }).click()
+  await page.getByRole("button", { name: "Next Step" }).click()
+
+  await page.getByRole("button", { name: "I don't need appetizers, skip" }).click()
+  await page.getByRole("button", { name: "No upgrades needed, skip" }).click()
+  await page.getByRole("button", { name: "No thanks, skip" }).click()
+  await page.getByRole("button", { name: "Yes, I want to book this!" }).click()
+
+  await page.getByLabel(/Estimated Guest Count/i).fill("10")
+  await page.getByPlaceholder("Street Address").fill("123 Test St")
+  await page.getByPlaceholder("City").fill("Los Angeles")
+  await page.getByPlaceholder("State").fill("CA")
+  await page.getByPlaceholder("ZIP").fill("90001")
+
+  await page.waitForFunction(() => {
+    const dayButtons = Array.from(document.querySelectorAll("button[type='button']"))
+      .map((el) => el.textContent?.trim() ?? "")
+      .filter((text) => /^\d+$/.test(text))
+    return dayButtons.length > 0
+  })
+  await page.locator("button[type='button']").filter({ hasText: /^\d+$/ }).first().click()
+
+  const timeSelect = page.locator("select").first()
+  await expect(timeSelect).toBeVisible({ timeout: 20_000 })
+  await page.waitForFunction(() => {
+    const select = document.querySelector("select")
+    return !!select && select.options.length > 1
+  })
+  await timeSelect.selectOption({ index: 1 })
+
+  await page.getByRole("checkbox").first().click()
+  await page.getByRole("button", { name: "Book My Hibachi Party" }).click()
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "booking_submit")
+  })
+
+  const bookingSubmitEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "booking_submit")
+  })
+
+  await expect(bookingSubmitEvents.length).toBeGreaterThan(0)
+  const latestEvent = bookingSubmitEvents[bookingSubmitEvents.length - 1] as Record<string, unknown>
+  const requiredKeys = ["event", "page_path", "page_title", "booking_id", "guest_count", "event_date", "event_time", "value", "currency"]
+
+  for (const key of requiredKeys) {
+    await expect(Object.prototype.hasOwnProperty.call(latestEvent, key)).toBeTruthy()
+    await expect(latestEvent[key]).not.toBeUndefined()
+  }
+
+  const undefinedEntries = Object.entries(latestEvent).filter(([, value]) => value === undefined)
+  await expect(undefinedEntries).toHaveLength(0)
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-006-booking-submit-events.json`, JSON.stringify(bookingSubmitEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-006-booking-submit.png`, fullPage: true })
+})

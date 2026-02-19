@@ -220,3 +220,35 @@
   - `harness/verification/2026-02-19-trk-005/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-006` (booking submit event payload completeness and no undefined values).
+
+## 2026-02-19 (TRK-006 booking_submit payload completeness)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new work.
+  - Added `booking_submit` event support in `lib/tracking.ts`.
+  - Enhanced tracking payload normalization to remove undefined fields before `dataLayer.push(...)`.
+  - Instrumented estimation submit flow (`app/estimation/page.tsx`) to emit `booking_submit` with booking/guest/date/time/value fields.
+  - Added Playwright TRK-006 test covering full estimation -> booking submit path and asserting required payload keys have no undefined values.
+- Feature status transition:
+  - `TRK-006` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-006"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Initial TRK-006 automation failed due modal/step gating; fixed selectors and modal dismissal flow, then re-ran successfully.
+  - `/api/notify-lead` returns expected error logs in test env when `RESEND_API_KEY` is absent; does not block tracking assertions.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-006/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-006/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-006/trk-006-e2e.log`
+  - `harness/verification/2026-02-19-trk-006/trk-006-e2e.exit`
+  - `harness/verification/2026-02-19-trk-006/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-006/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-006/trk-006-booking-submit-events.json`
+  - `harness/verification/2026-02-19-trk-006/trk-006-booking-submit.png`
+  - `harness/verification/2026-02-19-trk-006/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-006/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-007` (deposit page primary CTA conversion-intent tracking event).
