@@ -10,6 +10,7 @@ type TrackingEventName =
   | "social_video_engagement"
   | "phone_click"
   | "sms_click"
+  | "estimate_completed"
   | "lead_start"
   | "lead_submit"
   | "contact_whatsapp_click"

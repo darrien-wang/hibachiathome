@@ -182,7 +182,7 @@
       "Reach completion screen.",
       "Verify estimate_completed event with numeric estimate value."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-016",

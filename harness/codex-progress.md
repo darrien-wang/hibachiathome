@@ -523,3 +523,41 @@
   - `harness/verification/2026-02-19-trk-014/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-015` (estimate completion `estimate_completed` event with total value).
+
+## 2026-02-19 (TRK-015 estimate_completed with total estimate value)
+
+- Completed:
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added `estimate_completed` to the tracking event union (`lib/tracking.ts`).
+  - Instrumented estimation progression in `app/estimation/page.tsx`:
+    - emits `estimate_completed` when advancing into Step 5 (estimate results screen)
+    - includes numeric value fields:
+      - `value` (for analytics currency handling)
+      - `estimate_total`
+      - `estimate_subtotal`
+      - `travel_fee`
+      - guest metadata (`guest_count`, `adults`, `kids`)
+  - Added Playwright TRK-015 test in `e2e/smoke.spec.ts` to complete estimation steps through Step 5 and assert `estimate_completed` payload has numeric total.
+  - Hardened TRK-015 e2e step-1 field filling to re-assert required fields before clicking `Next Step` to avoid flaky empty-field states.
+- Feature status transition:
+  - `TRK-015` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-015 pnpm test:e2e --grep "TRK-001"` ✅
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-015 pnpm test:e2e --grep "TRK-015"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - Initial TRK-015 run timed out on disabled Step-1 `Next Step` button because some required fields were intermittently blank; updated test to re-fill all required fields immediately before continuing, then re-ran successfully.
+  - Known non-blocking `RESEND_API_KEY` missing error is still emitted in dev logs from `/api/notify-lead`.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-015/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-015/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-015/trk-015-e2e.log`
+  - `harness/verification/2026-02-19-trk-015/trk-015-e2e.exit`
+  - `harness/verification/2026-02-19-trk-015/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-015/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-015/trk-015-estimate-completed-events.json`
+  - `harness/verification/2026-02-19-trk-015/trk-015-estimate-completed.png`
+  - `harness/verification/2026-02-19-trk-015/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-015/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-016` (tracking resilience when GTM/dataLayer is unavailable).

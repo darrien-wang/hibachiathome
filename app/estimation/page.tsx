@@ -706,6 +706,18 @@ function EstimationContent() {
   const goToNextStep = useCallback(() => {
     const nextStep = Math.min(currentStep + 1, totalSteps)
 
+    if (nextStep === 5) {
+      trackEvent("estimate_completed", {
+        value: costs.total,
+        estimate_total: costs.total,
+        estimate_subtotal: costs.subtotal,
+        travel_fee: costs.travelFee,
+        guest_count: Math.max(1, formData.adults + formData.kids),
+        adults: formData.adults,
+        kids: formData.kids,
+      })
+    }
+
     // 当进入第6步时，清空zipcode状态
     if (nextStep === 6) {
       dispatch({ type: "UPDATE_FIELD", field: "zipcode", value: "" })
@@ -724,7 +736,7 @@ function EstimationContent() {
         })
       }
     }, 100)
-  }, [currentStep])
+  }, [costs.subtotal, costs.total, costs.travelFee, currentStep, formData.adults, formData.kids])
 
   const goToPreviousStep = useCallback(() => {
     // 如果当前在第7步，且 orderData 存在，返回上一步时清空 orderData 并跳转到第6步

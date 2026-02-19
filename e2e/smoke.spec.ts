@@ -614,3 +614,69 @@ test("TRK-014: floating contact SMS click emits sms_click event", async ({ page 
   writeFileSync(`${EVIDENCE_DIR}/trk-014-sms-click-events.json`, JSON.stringify(smsClickEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-014-sms-click.png`, fullPage: true })
 })
+
+test("TRK-015: estimate completion emits estimate_completed with numeric total value", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(120_000)
+
+  await page.goto("/estimation", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.evaluate(() => {
+    window.localStorage.removeItem("hibachi_estimation_form_data")
+    window.localStorage.removeItem("hibachi_estimation_order_data")
+  })
+  await page.reload({ waitUntil: "domcontentloaded" })
+
+  const infoModalClose = page.getByRole("button", { name: "Close" })
+  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  await page.getByPlaceholder("Your full name").fill("TRK Estimate User")
+  await page.getByPlaceholder("your.email@example.com").fill("trk015@example.com")
+  await page.getByPlaceholder("(123) 456-7890").fill("2135550115")
+  await page.getByPlaceholder("Example: 10001").fill("90001")
+
+  if (await infoModalClose.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await infoModalClose.click()
+  }
+
+  await page.getByPlaceholder("Your full name").fill("TRK Estimate User")
+  await page.getByPlaceholder("your.email@example.com").fill("trk015@example.com")
+  await page.getByPlaceholder("(123) 456-7890").fill("2135550115")
+  await page.getByPlaceholder("Example: 10001").fill("90001")
+  await page.getByRole("button", { name: "Increase adult count" }).click()
+  await page.getByRole("button", { name: "Next Step" }).click()
+
+  await page.getByRole("button", { name: "I don't need appetizers, skip" }).click()
+  await page.getByRole("button", { name: "No upgrades needed, skip" }).click()
+  await page.getByRole("button", { name: "No thanks, skip" }).click()
+
+  await expect(page.getByRole("heading", { name: "Your Estimated Price" }).first()).toBeVisible({ timeout: 20_000 })
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "estimate_completed")
+  })
+
+  const estimateCompletedEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "estimate_completed")
+  })
+
+  await expect(estimateCompletedEvents.length).toBeGreaterThan(0)
+  const latestEvent = estimateCompletedEvents[estimateCompletedEvents.length - 1] as Record<string, unknown>
+
+  await expect(typeof latestEvent.value).toBe("number")
+  await expect(Number(latestEvent.value)).toBeGreaterThan(0)
+  await expect(Number(latestEvent.estimate_total)).toBeGreaterThan(0)
+
+  writeFileSync(
+    `${EVIDENCE_DIR}/trk-015-estimate-completed-events.json`,
+    JSON.stringify(estimateCompletedEvents, null, 2),
+    "utf-8",
+  )
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-015-estimate-completed.png`, fullPage: true })
+})
