@@ -878,3 +878,61 @@ test("TRK-018: core pages stay interactive on desktop and mobile after tracking 
   writeFileSync(`${EVIDENCE_DIR}/trk-018-runtime-errors.json`, JSON.stringify(runtimeErrors, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-018-mobile-interactions.png`, fullPage: true })
 })
+
+test("TRK-019: browser back/forward keeps page_view events consistent with active route", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(90_000)
+
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  const assertLatestPageViewPath = async (expectedPath: string) => {
+    await page.waitForFunction((path) => {
+      const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+      const pageViews = dataLayer.filter((entry) => entry.event === "page_view")
+      const latest = pageViews[pageViews.length - 1]
+      return latest?.page_path === path
+    }, expectedPath)
+  }
+
+  await assertLatestPageViewPath("/")
+
+  await page.locator("header").getByRole("link", { name: "Menu" }).first().click()
+  await page.waitForURL(/\/menu(?:\?.*)?$/, { timeout: 20_000 })
+  await assertLatestPageViewPath("/menu")
+
+  await page.locator("header").getByRole("link", { name: "FAQ" }).first().click()
+  await page.waitForURL(/\/faq(?:\?.*)?$/, { timeout: 20_000 })
+  await assertLatestPageViewPath("/faq")
+
+  await page.goBack()
+  await page.waitForURL(/\/menu(?:\?.*)?$/, { timeout: 20_000 })
+  await assertLatestPageViewPath("/menu")
+
+  await page.goBack()
+  await page.waitForURL(/\/(?:\?.*)?$/, { timeout: 20_000 })
+  await assertLatestPageViewPath("/")
+
+  await page.goForward()
+  await page.waitForURL(/\/menu(?:\?.*)?$/, { timeout: 20_000 })
+  await assertLatestPageViewPath("/menu")
+
+  await page.goForward()
+  await page.waitForURL(/\/faq(?:\?.*)?$/, { timeout: 20_000 })
+  await assertLatestPageViewPath("/faq")
+
+  const pageViewEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "page_view")
+  })
+
+  await expect(pageViewEvents.length).toBeGreaterThanOrEqual(7)
+
+  writeFileSync(`${EVIDENCE_DIR}/trk-019-page-view-history.json`, JSON.stringify(pageViewEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-019-faq-after-history-nav.png`, fullPage: true })
+})

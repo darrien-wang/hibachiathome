@@ -230,7 +230,7 @@
       "Use browser back then forward.",
       "Verify page_view events map correctly to active route each time."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-020",

@@ -664,3 +664,35 @@
   - `harness/verification/2026-02-19-trk-018/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-019` (back/forward route-change page_view consistency).
+
+## 2026-02-19 (TRK-019 browser back/forward page_view consistency)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added Playwright TRK-019 test in `e2e/smoke.spec.ts`:
+    - navigates `/` -> `/menu` -> `/faq`
+    - uses browser `back` twice then `forward` twice
+    - validates the latest `page_view.page_path` always matches the active route after each transition
+    - captures full page_view history for audit.
+- Feature status transition:
+  - `TRK-019` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-019 pnpm test:e2e --grep "TRK-001"` ✅
+  - `TRACKING_EVIDENCE_DIR=harness/verification/2026-02-19-trk-019 pnpm test:e2e --grep "TRK-019"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-019/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-019/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-019/trk-019-e2e.log`
+  - `harness/verification/2026-02-19-trk-019/trk-019-e2e.exit`
+  - `harness/verification/2026-02-19-trk-019/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-019/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-019/trk-019-page-view-history.json`
+  - `harness/verification/2026-02-19-trk-019/trk-019-faq-after-history-nav.png`
+  - `harness/verification/2026-02-19-trk-019/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-019/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-020` (tracking event naming consistency + docs audit).
