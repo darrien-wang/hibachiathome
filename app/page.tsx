@@ -125,6 +125,11 @@ interface CardItem {
 
 export default function Home() {
   const router = useRouter()
+  const packageSelectionMetadata: Record<string, { name: string; price_tier: string }> = {
+    show: { name: "Hibachi Show Package", price_tier: "59.9_per_person" },
+    buffet: { name: "Buffet Style Package", price_tier: "59.9_per_person" },
+    party: { name: "Party Experience Package", price_tier: "custom_party" },
+  }
 
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
 
@@ -134,6 +139,16 @@ export default function Home() {
   }
 
   const handleBookNow = (packageType: string) => {
+    const packageSelection = packageSelectionMetadata[packageType]
+
+    if (packageSelection) {
+      trackEvent("package_selected", {
+        package_name: packageSelection.name,
+        price_tier: packageSelection.price_tier,
+        package_type: packageType,
+      })
+    }
+
     trackEvent("lead_start")
     router.push(`/book?package=${packageType}`)
   }

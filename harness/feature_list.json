@@ -122,7 +122,7 @@
       "Choose a package option.",
       "Verify package_selected event contains package metadata."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TRK-011",

@@ -350,3 +350,36 @@
   - `harness/verification/2026-02-19-trk-009/codex-verify.exit`
 - Next highest-priority action:
   - Implement and verify `TRK-010` (menu package selection `package_selected` with package metadata).
+
+## 2026-02-19 (TRK-010 package_selected package metadata)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`) on clean tree.
+  - Re-verified previously passing core flow (`TRK-001`) before new scope.
+  - Added `package_selected` event support in tracking event union.
+  - Instrumented package CTA flows on:
+    - `app/hibachi-at-home/page.tsx`
+    - `app/page.tsx`
+    to emit `package_selected` with `package_name`, `price_tier`, `package_type` before navigation.
+  - Added Playwright TRK-010 coverage clicking package CTA in “Our Popular Packages” and asserting payload metadata.
+- Feature status transition:
+  - `TRK-010` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `pnpm test:e2e --grep "TRK-001"` ✅
+  - `pnpm test:e2e --grep "TRK-010"` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - No regressions observed in this scope.
+- Evidence:
+  - `harness/verification/2026-02-19-trk-010/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-19-trk-010/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-19-trk-010/trk-010-e2e.log`
+  - `harness/verification/2026-02-19-trk-010/trk-010-e2e.exit`
+  - `harness/verification/2026-02-19-trk-010/trk-001-home.png`
+  - `harness/verification/2026-02-19-trk-010/trk-001-page-view-events.json`
+  - `harness/verification/2026-02-19-trk-010/trk-010-package-selected-events.json`
+  - `harness/verification/2026-02-19-trk-010/trk-010-package-selected.png`
+  - `harness/verification/2026-02-19-trk-010/codex-verify.log`
+  - `harness/verification/2026-02-19-trk-010/codex-verify.exit`
+- Next highest-priority action:
+  - Implement and verify `TRK-011` (promo banner click `promotion_click` with campaign identifier).

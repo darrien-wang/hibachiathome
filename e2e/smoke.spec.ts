@@ -399,3 +399,44 @@ test("TRK-009: Google Places selection emits location_selected with place_id", a
   )
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-009-location-selected.png`, fullPage: true })
 })
+
+test("TRK-010: package selection emits package_selected with package metadata", async ({ page }) => {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+
+  test.setTimeout(60_000)
+
+  await page.goto("/hibachi-at-home", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Hibachi/i, { timeout: 20_000 })
+
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
+
+  const packageSection = page.locator("section").filter({ hasText: "Our Popular Packages" }).first()
+  await packageSection.getByRole("button", { name: "Book Now" }).first().click()
+  await page.waitForURL(/\/book\?package=show$/, { timeout: 20_000 })
+
+  await page.waitForFunction(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.some((entry) => entry.event === "package_selected" && entry.package_type === "show")
+  })
+
+  const packageSelectedEvents = await page.evaluate(() => {
+    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
+    return dataLayer.filter((entry) => entry.event === "package_selected")
+  })
+
+  await expect(packageSelectedEvents.length).toBeGreaterThan(0)
+  const latestEvent = packageSelectedEvents[packageSelectedEvents.length - 1] as Record<string, unknown>
+
+  await expect(latestEvent.package_type).toBe("show")
+  await expect(latestEvent.package_name).toBe("Hibachi Show Package")
+  await expect(latestEvent.price_tier).toBe("59.9_per_person")
+
+  writeFileSync(
+    `${EVIDENCE_DIR}/trk-010-package-selected-events.json`,
+    JSON.stringify(packageSelectedEvents, null, 2),
+    "utf-8",
+  )
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-010-package-selected.png`, fullPage: true })
+})
