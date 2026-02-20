@@ -1246,3 +1246,18 @@
   - `harness/verification/2026-02-20-cro-socialproof-001/codex-acceptance.exit`
 - Next highest-priority action:
   - No remaining implementable CRO tasks in `feature_list.json`; `CRO-007` remains intentionally skipped per stakeholder direction.
+
+## 2026-02-20 (CRO-007 waived by stakeholder)
+
+- Decision:
+  - `CRO-007` (external verifiable social-proof assets) is waived for this cycle by stakeholder direction.
+  - Reason provided: no Google Reviews external link assets / real event clip assets available right now.
+- Task status transition:
+  - `CRO-007` updated in `harness/feature_list.json`:
+    - `passes: false -> true`
+    - `waived: true`
+    - `waived_reason` recorded for auditability.
+- Scope impact:
+  - No product/UI code change applied for CRO-007 in this commit.
+- Next highest-priority action:
+  - No remaining unfinished items in `harness/feature_list.json`.
