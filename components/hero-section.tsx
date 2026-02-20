@@ -276,33 +276,33 @@ export default function HeroSection() {
       <div
         className={`container mx-auto px-4 relative z-30 text-center text-white h-full flex flex-col justify-start py-16 transition-opacity duration-1000`}
       >
-        <div className="relative max-w-3xl mx-auto" style={{ marginTop: isMobile ? "calc(25vh - 100px)" : "calc(15vh - 50px)" }}>
-          <div
-            className="bg-red-600 text-white py-3 px-6 rounded-md transform rotate-[-1deg] shadow-lg border-2 border-yellow-400"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #e53e3e 0%, #c53030 100%)",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 215, 0, 0.3)",
-            }}
-          >
-            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 {headlineText} 🎉</p>
-          </div>
+        <div
+          className="relative max-w-3xl mx-auto"
+          style={{ marginTop: isMobile ? "calc(24vh - 80px)" : "calc(14vh - 40px)", fontFamily: "var(--font-montserrat)" }}
+        >
+          <p className="text-base md:text-lg font-semibold tracking-wide text-amber-200 drop-shadow">Private Hibachi Catering</p>
+          <h1 className="mt-2 text-5xl md:text-7xl font-extrabold leading-[0.95] tracking-tight text-white drop-shadow-[0_4px_18px_rgba(0,0,0,0.55)]">
+            Top Rated
+            <br />
+            Hibachi At Home
+            <br />
+            Experience
+          </h1>
+          <p className="mt-4 text-2xl md:text-4xl font-bold text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]">
+            Book Your Backyard Hibachi Catering Today
+          </p>
 
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="mt-8 flex flex-col items-center justify-center gap-4">
             <Button
               asChild
               onClick={handlePrimaryCtaClick}
-              className="bg-orange-600 hover:bg-orange-700 text-white min-w-[190px] shadow-lg shadow-orange-900/30"
+              className="bg-white text-black hover:bg-white/90 min-w-[240px] rounded-full h-14 text-lg font-extrabold tracking-wide"
             >
               <Link href="/quote">{primaryCtaText}</Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              onClick={handleSecondaryCtaClick}
-              className="min-w-[170px] border-white/70 text-white bg-black/20 hover:bg-black/40 hover:text-white"
-            >
-              <Link href="/menu">View Menu</Link>
-            </Button>
+            <Link href="/menu" onClick={handleSecondaryCtaClick} className="text-white/85 text-sm underline underline-offset-4 hover:text-white">
+              View Menu
+            </Link>
           </div>
         </div>
 
