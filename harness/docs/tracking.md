@@ -17,6 +17,8 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 | `page_view` | Route-level page view in SPA navigation | Tracking bootstrap on initial load + route changes | No |
 | `quote_started` | User begins quote builder input | `/quote` first meaningful input | No |
 | `quote_completed` | Quote builder shows estimate-ready state | `/quote` after required inputs present and range computed | No |
+| `ab_test_exposure` | User is assigned/exposed to experiment variant | Hero experiment assignment | No |
+| `ab_test_conversion` | User converts under a specific experiment variant | Hero primary CTA click | No |
 | `lead_start` | User starts booking/lead intent | Primary booking CTA before navigation | No |
 | `lead_submit` | User submits lead/contact form | Contact form successful submit path | Yes |
 | `booking_funnel_start` | User enters estimation from booking page | `/book` Get Estimate CTA | No |

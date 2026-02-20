@@ -1083,3 +1083,46 @@
   - `harness/verification/2026-02-20-cro-006/codex-acceptance.exit`
 - Next highest-priority action:
   - Implement `CRO-007` (verifiable social proof links and real-event evidence blocks).
+
+## 2026-02-20 (CRO-008 CRO baseline: tracking + A/B + funnel report)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-008`
+  - Added A/B assignment utility:
+    - `lib/ab-testing.ts`
+    - persistent variant assignment for:
+      - `hero_headline`
+      - `primary_cta_copy`.
+  - Implemented two initial A/B tests on hero surface:
+    - `components/hero-section.tsx`
+    - experiment 1: headline variant copy
+    - experiment 2: primary CTA copy variant
+    - emits `ab_test_exposure` and `ab_test_conversion` events with experiment/variant metadata.
+  - Added weekly funnel reporting baseline (visit -> click -> submit -> close):
+    - `harness/scripts/generate-funnel-report.mjs`
+    - CLI output report for exportable JSON.
+  - Added deterministic CRO-008 verification harness:
+    - `harness/scripts/verify-cro-008.mjs`
+    - validates funnel step aggregation and A/B winner output.
+  - Updated tracking contract documentation for A/B events:
+    - `harness/docs/tracking.md`.
+- Feature status transition:
+  - `CRO-008` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-cro-008.mjs harness/verification/2026-02-20-cro-008` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-008/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-008/cro-008-funnel-report.json`
+  - `harness/verification/2026-02-20-cro-008/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-008/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-008/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-008/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-008/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-008/codex-acceptance.exit`
+- Next highest-priority action:
+  - `CRO-007` marked as not required by stakeholder in this session. Next implementable item: `CRO-BRAND-001` (chef-led brand story section).

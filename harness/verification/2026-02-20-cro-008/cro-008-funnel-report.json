@@ -1,0 +1,49 @@
+{
+  "window_days": 7,
+  "generated_at": "2026-02-20T00:41:08.556Z",
+  "funnel": {
+    "visit": 2,
+    "click": 2,
+    "submit": 2,
+    "close": 1,
+    "visit_to_click_rate": 100,
+    "click_to_submit_rate": 100,
+    "submit_to_close_rate": 50
+  },
+  "ab_tests": [
+    {
+      "experiment": "hero_headline",
+      "winning_variant": "chef_story",
+      "winning_rate": 100,
+      "variants": {
+        "control": {
+          "exposures": 1,
+          "conversions": 0,
+          "conversion_rate": 0
+        },
+        "chef_story": {
+          "exposures": 1,
+          "conversions": 1,
+          "conversion_rate": 100
+        }
+      }
+    },
+    {
+      "experiment": "primary_cta_copy",
+      "winning_variant": "value_focused",
+      "winning_rate": 100,
+      "variants": {
+        "control": {
+          "exposures": 1,
+          "conversions": 0,
+          "conversion_rate": 0
+        },
+        "value_focused": {
+          "exposures": 1,
+          "conversions": 1,
+          "conversion_rate": 100
+        }
+      }
+    }
+  ]
+}

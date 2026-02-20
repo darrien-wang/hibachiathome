@@ -350,7 +350,7 @@
       "Verify weekly funnel reporting is available (visit -> click -> submit -> close).",
       "Verify at least one test result is produced each month."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-BRAND-001",

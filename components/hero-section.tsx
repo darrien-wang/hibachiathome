@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { getOrAssignVariant } from "@/lib/ab-testing"
+import { trackEvent } from "@/lib/tracking"
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
 export default function HeroSection() {
@@ -16,6 +18,8 @@ export default function HeroSection() {
   const [touchStart, setTouchStart] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [swipeDistance, setSwipeDistance] = useState(0)
+  const [headlineVariant, setHeadlineVariant] = useState<string>("control")
+  const [ctaVariant, setCtaVariant] = useState<string>("control")
   const swipeThreshold = 50
 
   // Fix: Correctly initialize heroImagesRef with a computed value, not a function
@@ -67,6 +71,25 @@ export default function HeroSection() {
       window.addEventListener('resize', checkMobile)
       return () => window.removeEventListener('resize', checkMobile)
     }
+  }, [])
+
+  useEffect(() => {
+    const assignedHeadlineVariant = getOrAssignVariant("hero_headline")
+    const assignedCtaVariant = getOrAssignVariant("primary_cta_copy")
+
+    setHeadlineVariant(assignedHeadlineVariant)
+    setCtaVariant(assignedCtaVariant)
+
+    trackEvent("ab_test_exposure", {
+      experiment_id: "hero_headline",
+      variant_id: assignedHeadlineVariant,
+      experiment_surface: "hero_section",
+    })
+    trackEvent("ab_test_exposure", {
+      experiment_id: "primary_cta_copy",
+      variant_id: assignedCtaVariant,
+      experiment_surface: "hero_section",
+    })
   }, [])
 
   useEffect(() => {
@@ -165,6 +188,26 @@ export default function HeroSection() {
     }
   }, [autoplayEnabled, videoEnded]) // Remove sortedHeroImages from dependencies
 
+  const headlineText =
+    headlineVariant === "chef_story"
+      ? "Private Chef. Live Hibachi Show. Zero Cleanup."
+      : "Want a Party? One Call, That's All."
+  const primaryCtaText = ctaVariant === "value_focused" ? "See Instant Pricing" : "Get Instant Quote"
+
+  const handlePrimaryCtaClick = () => {
+    trackEvent("ab_test_conversion", {
+      experiment_id: "hero_headline",
+      variant_id: headlineVariant,
+      conversion_event: "hero_primary_cta_click",
+    })
+    trackEvent("ab_test_conversion", {
+      experiment_id: "primary_cta_copy",
+      variant_id: ctaVariant,
+      conversion_event: "hero_primary_cta_click",
+    })
+    trackEvent("lead_start", { contact_surface: "hero_primary_cta" })
+  }
+
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center">
       {/* 移动端视频背景 */}
@@ -237,12 +280,12 @@ export default function HeroSection() {
               boxShadow: "0 4px 6px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 215, 0, 0.3)",
             }}
           >
-            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 Want a Party? One Call, That's All. 🎉</p>
+            <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 {headlineText} 🎉</p>
           </div>
 
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white min-w-[170px]">
-              <Link href="/quote">Get Instant Quote</Link>
+            <Button asChild onClick={handlePrimaryCtaClick} className="bg-orange-600 hover:bg-orange-700 text-white min-w-[170px]">
+              <Link href="/quote">{primaryCtaText}</Link>
             </Button>
             <Button
               asChild

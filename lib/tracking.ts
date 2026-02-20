@@ -4,6 +4,8 @@ type TrackingEventName =
   | "page_view"
   | "quote_started"
   | "quote_completed"
+  | "ab_test_exposure"
+  | "ab_test_conversion"
   | "booking_funnel_start"
   | "booking_submit"
   | "location_selected"
