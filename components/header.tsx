@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
-import { Menu } from "lucide-react"
+import { Menu, MessageSquare } from "lucide-react"
+import { trackEvent } from "@/lib/tracking"
 
 const navItems = [
   { name: "Home", href: "/", disabled: false },
@@ -96,6 +97,10 @@ export function Header() {
     }
   }, [handleScroll])
 
+  const handleHeaderSMSClick = () => {
+    trackEvent("sms_click", { contact_surface: "mobile_header" })
+  }
+
   return (
     <header
       ref={headerRef}
@@ -109,8 +114,18 @@ export function Header() {
 
         {/* Mobile Layout */}
         <div className="md:hidden grid grid-cols-3 items-center gap-1">
-          {/* Empty div for left side spacing */}
-          <div></div>
+          <div className="flex justify-start">
+            <Button
+              asChild
+              onClick={handleHeaderSMSClick}
+              className="h-9 px-3 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded-full"
+            >
+              <a href={`sms:${siteConfig.contact.phone}?body=Hi%20Real%20Hibachi%2C%20I%20have%20a%20quick%20question.`}>
+                <MessageSquare className="mr-1 h-4 w-4" />
+                Text Us
+              </a>
+            </Button>
+          </div>
 
           {/* Centered Logo - Now positioned lower on mobile */}
           <div className="flex items-center justify-center relative h-[50px] z-10 overflow-visible mx-auto max-w-[120px]">

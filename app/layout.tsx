@@ -6,7 +6,6 @@ import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
-import { FloatingContactButtons } from "@/components/floating-contact-buttons"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { SocialProofToast } from "@/components/social-proof-toast"
 
@@ -108,10 +107,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <TrackingBootstrap />
         <Suspense>
           <Header />
-          <main className="pb-16 md:pb-0">{children}</main>
+          <main>{children}</main>
           <Footer />
           <SocialProofToast />
-          <FloatingContactButtons />
           <Analytics />
           {/* 在生产环境中取消注释下面这行 */}
           {/* <SpeedInsights /> */}

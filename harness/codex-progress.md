@@ -1435,3 +1435,22 @@
 - Evidence:
   - `harness/verification/2026-02-20-hero-single-cta-sms-footer/codex-verify.log`
   - `harness/verification/2026-02-20-hero-single-cta-sms-footer/codex-verify.exit`
+
+## 2026-02-20 (Move quick text action to top header)
+
+- Completed:
+  - Added mobile top-header quick action button:
+    - `components/header.tsx`
+    - left side now includes `Text Us` button linking to SMS.
+    - tracked as `sms_click` with `contact_surface: mobile_header`.
+  - Kept one dedicated navigation-activation button in header:
+    - right side hamburger menu button remains the only menu trigger.
+  - Removed bottom floating contact bar mount to avoid duplicate CTA competition:
+    - `app/layout.tsx` no longer renders `FloatingContactButtons`.
+  - Removed extra bottom spacing reserved for old floating bar:
+    - `app/layout.tsx` main wrapper no longer uses `pb-16`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-mobile-top-sms-nav/codex-verify.log`
+  - `harness/verification/2026-02-20-mobile-top-sms-nav/codex-verify.exit`
