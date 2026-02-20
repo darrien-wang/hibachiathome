@@ -254,7 +254,7 @@ export default function Home() {
                     <ChefHat className="h-6 w-6 text-amber-700" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Chef Ken (Lead Hibachi Chef)</p>
+                    <p className="font-semibold text-gray-900">Chef Bling (Lead Hibachi Chef)</p>
                     <p className="text-sm text-gray-600">Teppanyaki specialist focused on private events</p>
                   </div>
                 </div>

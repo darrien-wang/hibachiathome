@@ -1487,3 +1487,18 @@
 - Evidence:
   - `harness/verification/2026-02-20-mobile-header-sms-call-text/codex-verify.log`
   - `harness/verification/2026-02-20-mobile-header-sms-call-text/codex-verify.exit`
+
+## 2026-02-20 (Chef name and phone display format update)
+
+- Completed:
+  - Updated chef profile display in homepage brand-story block:
+    - `app/page.tsx`
+    - `Chef Ken` -> `Chef Bling`.
+  - Updated mobile header phone text display format:
+    - `components/header.tsx`
+    - `2137707788` -> `213-770-7788` (display only).
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-chef-bling-phone-format/codex-verify.log`
+  - `harness/verification/2026-02-20-chef-bling-phone-format/codex-verify.exit`
