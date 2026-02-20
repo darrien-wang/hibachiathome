@@ -3,7 +3,6 @@ import MenuDetails from "@/components/menu/menu-details"
 import PricingBanner from "@/components/menu/pricing-banner"
 import PriceTransparency from "@/components/menu/price-transparency"
 import ServiceNotes from "@/components/menu/service-notes"
-import Testimonials from "@/components/menu/testimonials"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { pricing } from "@/config/pricing"
 import type { Metadata } from "next"
@@ -30,31 +29,6 @@ export const metadata: Metadata = {
 }
 
 export default function MenuPage() {
-  // 示例评价数据
-  const testimonials = [
-    {
-      name: "Sarah M.",
-      rating: 5,
-      comment: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious.",
-    },
-    {
-      name: "Michael T.",
-      rating: 5,
-      comment: "We booked for our anniversary and it exceeded all expectations. Restaurant-quality hibachi at home!",
-    },
-    {
-      name: "Jennifer L.",
-      rating: 5,
-      comment:
-        "Our family gathering was transformed into an unforgettable event. The chef was professional and friendly, and put on an amazing show!",
-    },
-    {
-      name: "David W.",
-      rating: 5,
-      comment: "Perfect for our office party. Everyone was impressed with both the performance and the food quality.",
-    },
-  ]
-
   return (
     <div className="menu-page-safe container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
@@ -88,12 +62,6 @@ export default function MenuPage() {
           <MenuDetails proteins={regularProteins} premiumProteins={premiumProteins} sides={sides} />
         </AnimateOnScroll>
 
-        <AnimateOnScroll direction="up">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold mb-4">What Our Customers Say</h2>
-            <Testimonials testimonials={testimonials} />
-          </div>
-        </AnimateOnScroll>
       </div>
     </div>
   )
