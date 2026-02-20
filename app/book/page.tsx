@@ -104,7 +104,7 @@ export default function BookingPage() {
                 {card.onClick ? (
                   <>
                     <Button
-                      className={`w-full mx-auto h-11 text-sm ${card.title === "Instant Quote" ? "bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)]" : "border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] bg-white hover:bg-[hsl(24_79%_96%)]"}`}
+                      className={`w-full mx-auto h-auto min-h-11 text-sm leading-tight whitespace-normal break-words px-3 py-2 ${card.title === "Instant Quote" ? "bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)]" : "border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] bg-white hover:bg-[hsl(24_79%_96%)]"}`}
                       variant={card.title === "Instant Quote" ? "default" : "outline"}
                       onClick={card.onClick}
                     >
@@ -120,7 +120,7 @@ export default function BookingPage() {
                 ) : (
                   <>
                     <Button
-                      className="w-full mx-auto h-11 text-sm border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] bg-white hover:bg-[hsl(24_79%_96%)]"
+                      className="w-full mx-auto h-auto min-h-11 text-sm leading-tight whitespace-normal break-words px-3 py-2 border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] bg-white hover:bg-[hsl(24_79%_96%)]"
                       variant="outline"
                       asChild
                     >
