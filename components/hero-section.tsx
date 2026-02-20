@@ -192,7 +192,7 @@ export default function HeroSection() {
     headlineVariant === "chef_story"
       ? "Private Chef. Live Hibachi Show. Easy Hosting."
       : "Want a Party? One Call, That's All."
-  const primaryCtaText = ctaVariant === "value_focused" ? "See Instant Pricing" : "Get Instant Quote"
+  const primaryCtaText = "Get Instant Quote"
 
   const handlePrimaryCtaClick = () => {
     trackEvent("ab_test_conversion", {
@@ -206,6 +206,10 @@ export default function HeroSection() {
       conversion_event: "hero_primary_cta_click",
     })
     trackEvent("lead_start", { contact_surface: "hero_primary_cta" })
+  }
+
+  const handleSecondaryCtaClick = () => {
+    trackEvent("menu_view", { cta_surface: "hero_secondary_cta" })
   }
 
   return (
@@ -284,15 +288,20 @@ export default function HeroSection() {
           </div>
 
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button asChild onClick={handlePrimaryCtaClick} className="bg-orange-600 hover:bg-orange-700 text-white min-w-[170px]">
+            <Button
+              asChild
+              onClick={handlePrimaryCtaClick}
+              className="bg-orange-600 hover:bg-orange-700 text-white min-w-[190px] shadow-lg shadow-orange-900/30"
+            >
               <Link href="/quote">{primaryCtaText}</Link>
             </Button>
             <Button
               asChild
               variant="outline"
-              className="min-w-[170px] border-white text-white bg-black/30 hover:bg-black/50 hover:text-white"
+              onClick={handleSecondaryCtaClick}
+              className="min-w-[170px] border-white/70 text-white bg-black/20 hover:bg-black/40 hover:text-white"
             >
-              <Link href="/book">Book Now</Link>
+              <Link href="/menu">View Menu</Link>
             </Button>
           </div>
         </div>

@@ -1418,3 +1418,20 @@
 - Evidence:
   - `harness/verification/2026-02-20-contact-channel-priority/codex-verify.log`
   - `harness/verification/2026-02-20-contact-channel-priority/codex-verify.exit`
+
+## 2026-02-20 (Hero single primary CTA + SMS-only bottom bar)
+
+- Completed:
+  - Updated hero CTA hierarchy in `components/hero-section.tsx`:
+    - primary CTA fixed to `Get Instant Quote` (solid/high-contrast).
+    - secondary CTA changed to lower-pressure `View Menu` (outline style).
+    - removed hero `Book Now` as co-equal action on first screen.
+  - Updated mobile bottom sticky bar in `components/floating-contact-buttons.tsx`:
+    - removed multi-entry competition.
+    - now shows only one channel CTA: `SMS`.
+    - added helper copy: `Questions? Text us`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-hero-single-cta-sms-footer/codex-verify.log`
+  - `harness/verification/2026-02-20-hero-single-cta-sms-footer/codex-verify.exit`
