@@ -359,7 +359,7 @@ export default function QuoteBuilderClient() {
               </div>
 
               {!result.hasCoreInputs && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                <p className="text-xs text-[hsl(24_79%_42%)] bg-[hsl(24_79%_96%)] border border-[hsl(24_79%_84%)] rounded-md p-2">
                   Add date, location, and guest count to enable one-click contact actions.
                 </p>
               )}
@@ -368,7 +368,7 @@ export default function QuoteBuilderClient() {
                 <Button
                   onClick={onSmsClick}
                   disabled={contactDisabled}
-                  className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-orange-300 text-xs sm:text-sm"
+                  className="h-auto min-h-12 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] disabled:bg-[hsl(24_79%_80%)] disabled:text-white/90 text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   SMS {displayPhone}
@@ -376,7 +376,7 @@ export default function QuoteBuilderClient() {
                 <Button
                   onClick={onCallClick}
                   disabled={contactDisabled}
-                  className="bg-amber-600 text-white hover:bg-amber-700 disabled:bg-amber-300 text-xs sm:text-sm"
+                  className="h-auto min-h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <Phone className="mr-2 h-4 w-4" />
                   Call {displayPhone}
@@ -384,7 +384,7 @@ export default function QuoteBuilderClient() {
                 <Button
                   onClick={onEmailClick}
                   disabled={contactDisabled}
-                  className="bg-orange-700 text-white hover:bg-orange-800 disabled:bg-orange-300 text-xs sm:text-sm"
+                  className="h-auto min-h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   Email {displayEmail}
