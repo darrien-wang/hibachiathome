@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { FloatingContactButtons } from "@/components/floating-contact-buttons"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
+import { SocialProofToast } from "@/components/social-proof-toast"
 
 export const metadata: Metadata = {
   title: {
@@ -109,6 +110,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           <Header />
           <main className="pb-16 md:pb-0">{children}</main>
           <Footer />
+          <SocialProofToast />
           <FloatingContactButtons />
           <Analytics />
           {/* 在生产环境中取消注释下面这行 */}

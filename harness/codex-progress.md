@@ -1207,3 +1207,42 @@
   - `harness/verification/2026-02-20-cro-track-001/codex-acceptance.exit`
 - Next highest-priority action:
   - `CRO-007` remains intentionally skipped per stakeholder direction. Next implementable item: `CRO-SOCIALPROOF-001` (real-time booking social-proof toast).
+
+## 2026-02-20 (CRO-SOCIALPROOF-001 real-time booking social-proof toast)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-socialproof-001`
+  - Added global social-proof toast component:
+    - `components/social-proof-toast.tsx`
+    - bottom-right recent-booking notice with rotating examples.
+  - Rotation behavior:
+    - rotates every randomized 20-40 seconds.
+  - Dismiss behavior:
+    - user can dismiss via close button.
+    - dismissal persists for current session via `sessionStorage`.
+  - Mobile safety:
+    - toast sits above sticky CTA bar (`bottom-24` on mobile) to avoid blocking primary actions.
+  - Mounted globally:
+    - `app/layout.tsx` now renders `<SocialProofToast />`.
+  - Added deterministic verifier:
+    - `harness/scripts/verify-cro-socialproof-001.mjs`.
+- Feature status transition:
+  - `CRO-SOCIALPROOF-001` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-cro-socialproof-001.mjs harness/verification/2026-02-20-cro-socialproof-001` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-socialproof-001/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-socialproof-001/cro-socialproof-001-toast-check.json`
+  - `harness/verification/2026-02-20-cro-socialproof-001/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-socialproof-001/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-socialproof-001/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-socialproof-001/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-socialproof-001/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-socialproof-001/codex-acceptance.exit`
+- Next highest-priority action:
+  - No remaining implementable CRO tasks in `feature_list.json`; `CRO-007` remains intentionally skipped per stakeholder direction.

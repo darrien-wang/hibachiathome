@@ -378,7 +378,7 @@
       "Verify popup does not interfere with form inputs or navigation.",
       "Verify dismissed popup stays hidden for the current session."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-COPY-001",

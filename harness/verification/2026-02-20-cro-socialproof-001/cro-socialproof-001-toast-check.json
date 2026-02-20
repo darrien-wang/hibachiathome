@@ -1,0 +1,15 @@
+{
+  "task": "CRO-SOCIALPROOF-001",
+  "checked_at": "2026-02-20T00:53:39.397Z",
+  "checks": {
+    "mounted_in_layout": true,
+    "session_dismiss_persistence": true,
+    "rotation_20_to_40_seconds": true,
+    "mobile_safe_placement": true,
+    "recent_booking_content": true
+  },
+  "files": {
+    "toast_component": "components/social-proof-toast.tsx",
+    "root_layout": "app/layout.tsx"
+  }
+}
