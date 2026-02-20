@@ -285,9 +285,11 @@ export default function Home() {
               />
 
               <div className="px-6 md:px-8 py-8 text-center">
-                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-amber-800 mb-3">WEST COAST</h3>
+                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-amber-800 mb-3">
+                  SOUTH CALIFORNIA
+                </h3>
                 <p className="text-stone-600 mb-6">
-                  Arizona, California, Colorado, Nevada, New Mexico, Oregon, Utah, Washington.
+                  LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County
                 </p>
 
                 <Button
