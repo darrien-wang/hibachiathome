@@ -353,21 +353,6 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <div className="mt-10 max-w-2xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🍚</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Signature Fried Rice</h3>
-                  <p className="text-gray-600">Garlic butter base, hibachi seasoning, live chef technique.</p>
-                </div>
-              </AnimateOnScroll>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-gray-600 text-sm mt-2">Included in every hibachi package.</p>
-            </div>
           </div>
         </section>
       </AnimateOnScroll>
@@ -401,21 +386,6 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <div className="mt-10 max-w-2xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-blue-600 text-xl">🦐</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Hibachi Shrimp</h3>
-                  <p className="text-gray-600">Fresh jumbo shrimp, quick sear, clean seasoning.</p>
-                </div>
-              </AnimateOnScroll>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-gray-600 text-sm mt-2">Available in all hibachi packages.</p>
-            </div>
           </div>
         </section>
       </AnimateOnScroll>
@@ -449,21 +419,6 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <div className="mt-10 max-w-2xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-red-600 text-xl">🥩</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Hibachi Steak</h3>
-                  <p className="text-gray-600">Selected cuts, high-heat sear, doneness by request.</p>
-                </div>
-              </AnimateOnScroll>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-gray-600 text-sm mt-2">Included in protein selections for all packages.</p>
-            </div>
           </div>
         </section>
       </AnimateOnScroll>
