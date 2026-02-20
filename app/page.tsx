@@ -285,7 +285,7 @@ export default function Home() {
               />
 
               <div className="px-6 md:px-8 py-8 text-center">
-                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-amber-800 mb-3">
+                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-[hsl(24_79%_55%)] mb-3">
                   SOUTH CALIFORNIA
                 </h3>
                 <p className="text-stone-600 mb-6">
@@ -294,7 +294,7 @@ export default function Home() {
 
                 <Button
                   asChild
-                  className="rounded-full bg-amber-600 text-white px-8 min-w-[230px] h-12 hover:bg-amber-700"
+                  className="rounded-full bg-[hsl(24_79%_55%)] text-white px-8 min-w-[230px] h-12 hover:bg-[hsl(24_79%_48%)]"
                 >
                   <Link href="/quote">GET INSTANT QUOTE</Link>
                 </Button>
@@ -302,7 +302,7 @@ export default function Home() {
                 <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
                 <a
                   href="tel:2137707788"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-amber-600 text-amber-700 px-8 min-w-[230px] h-12 font-semibold hover:bg-amber-50 transition-colors"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] px-8 min-w-[230px] h-12 font-semibold hover:bg-[hsl(24_79%_96%)] transition-colors"
                 >
                   213-770-7788
                 </a>
