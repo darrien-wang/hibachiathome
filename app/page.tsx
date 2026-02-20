@@ -230,8 +230,8 @@ export default function Home() {
 
             <div className="grid gap-5 md:grid-cols-3 max-w-5xl mx-auto">
               <AnimateOnScroll direction="up">
-                <div className="rounded-3xl bg-white border border-[#eadfcd] p-6 text-gray-700 shadow-md">
-                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-[#B3261E]">Pricing</h3>
+                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-6 text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)]">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-amber-800">Pricing</h3>
                   <div className="space-y-2 text-sm md:text-base text-center">
                     <p>$59.90 per adult</p>
                     <p>$29.95 per child (under 13, food portion)</p>
@@ -242,8 +242,8 @@ export default function Home() {
               </AnimateOnScroll>
 
               <AnimateOnScroll direction="up" delay={120}>
-                <div className="rounded-3xl bg-white border border-[#eadfcd] p-6 text-gray-700 shadow-md">
-                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-[#B3261E]">Protein Choices</h3>
+                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-6 text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)]">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-amber-800">Protein Choices</h3>
                   <div className="space-y-2 text-sm md:text-base text-center">
                     <p>2 regular proteins included per guest</p>
                     <p>Chicken, Steak, Shrimp, Salmon, Tofu</p>
@@ -254,8 +254,8 @@ export default function Home() {
               </AnimateOnScroll>
 
               <AnimateOnScroll direction="up" delay={240}>
-                <div className="rounded-3xl bg-white border border-[#eadfcd] p-6 text-gray-700 shadow-md">
-                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-[#B3261E]">Included</h3>
+                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-6 text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)]">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-amber-800">Included</h3>
                   <div className="space-y-2 text-sm md:text-base text-center">
                     <p>Fried rice, fresh vegetables, house salad</p>
                     <p>Chef performance and on-site grill cooking</p>
