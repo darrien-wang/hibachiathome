@@ -1,0 +1,16 @@
+{
+  "checks": [
+    {
+      "id": "home_zero_mess_banner",
+      "pass": true
+    },
+    {
+      "id": "book_zero_mess_banner",
+      "pass": true
+    },
+    {
+      "id": "faq_zero_mess_banner",
+      "pass": true
+    }
+  ]
+}

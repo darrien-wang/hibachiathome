@@ -122,6 +122,11 @@ export default function FAQClientPage() {
           Everything you need to know about our hibachi service.
         </p>
       </div>
+      <div className="mx-auto w-full max-w-[980px] rounded-lg bg-black px-4 py-3 text-center">
+        <p className="text-sm md:text-base font-bold text-white">
+          ZERO MESS GUARANTEE: WE CLEAN UP EVERYTHING AFTER EVERY EVENT.
+        </p>
+      </div>
       <Accordion type="single" collapsible className="w-full max-w-[980px]">
         {faqItems.map((item, index) => (
           <AccordionItem value={`item-${index}`} key={index}>

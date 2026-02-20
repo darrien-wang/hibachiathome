@@ -896,3 +896,35 @@
   - `harness/verification/2026-02-20-cro-003/codex-acceptance.exit`
 - Next highest-priority action:
   - Implement `CRO-COPY-001` (surface Zero Mess Guarantee prominently on home + book + FAQ).
+
+## 2026-02-20 (CRO-COPY-001 Zero Mess Guarantee visibility)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-copy-001`
+  - Added high-contrast guarantee messaging on Home and Book pages:
+    - Home top banner under hero in `app/page.tsx`
+    - `Show Up Package` card badge copy in `app/page.tsx`
+    - Book page banner near top in `app/book/page.tsx`
+  - Repeated guarantee on FAQ page:
+    - high-contrast guarantee block in `app/faq/FAQClientPage.tsx`.
+- Feature status transition:
+  - `CRO-COPY-001` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+  - structural guarantee copy checks:
+    - `harness/verification/2026-02-20-cro-copy-001/cro-copy-001-structure-check.json` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-copy-001/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-copy-001/cro-copy-001-structure-check.json`
+  - `harness/verification/2026-02-20-cro-copy-001/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-copy-001/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-copy-001/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-copy-001/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-copy-001/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-copy-001/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-QUOTE-002` (configurable one-click contact templates with quote context).

@@ -214,6 +214,13 @@ export default function Home() {
   return (
     <div>
       <HeroSection />
+      <section className="bg-black text-white py-4 px-4">
+        <div className="container mx-auto text-center">
+          <p className="text-base md:text-lg font-bold tracking-wide">
+            SHOW UP PACKAGE GUARANTEE: ZERO MESS, WE CLEAN UP EVERYTHING.
+          </p>
+        </div>
+      </section>
 
       {/* How It Works Section */}
       <HowItWorksSection />
@@ -297,6 +304,9 @@ export default function Home() {
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-bold mb-2">Show Up Package</h3>
+                    <p className="mb-3 inline-block rounded bg-black px-3 py-1 text-xs font-bold text-white">
+                      Zero Mess Guarantee: We Clean Up Everything
+                    </p>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$75</span>
