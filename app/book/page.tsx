@@ -21,14 +21,14 @@ export default function BookingPage() {
 
   return (
     <div className="page-container container mx-auto px-4 py-12">
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Book Your Hibachi Experience</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Get a free estimate first, then contact us directly to book your experience.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5 mb-10 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5 mb-10 w-full mx-auto">
           {[
             {
               title: "Instant Quote",
