@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
-import { Menu, Phone } from "lucide-react"
+import { Menu } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
 
 const navItems = [
@@ -124,8 +124,7 @@ export function Header() {
                 SMS
               </a>
               <span>/</span>
-              <a href="tel:2137707788" onClick={handleHeaderPhoneClick} className="inline-flex items-center gap-1 hover:text-[#F1691B]">
-                <Phone className="h-4 w-4" />
+              <a href="tel:2137707788" onClick={handleHeaderPhoneClick} className="hover:text-[#F1691B]">
                 Call
               </a>
               <span>2137707788</span>
