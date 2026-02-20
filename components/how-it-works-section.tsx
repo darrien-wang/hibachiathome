@@ -52,7 +52,7 @@ export default function HowItWorksSection() {
       <div className="container mx-auto px-4 relative z-20">
         <AnimateOnScroll direction="down">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12 text-white">
-            🎉 <span className="text-amber-300">Book Your Party in 4 Easy Steps!</span>
+            🎉 <span className="text-amber-300">Book in 4 Simple Themes</span>
           </h2>
           <p className="text-center text-amber-100 mb-8 text-sm">Need custom details? Ask support directly and we will guide you.</p>
         </AnimateOnScroll>
@@ -74,7 +74,7 @@ export default function HowItWorksSection() {
                   <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 font-serif text-center">Check Availability</h3>
                   <div className="flex-1 flex flex-col justify-between">
                     <p className="text-foreground/80 font-sans tracking-wide text-center mb-4 md:mb-6 text-sm md:text-base">
-                      Text us your preferred date to check availability quickly. We'll respond within minutes to confirm your booking
+                      Theme: Date & Availability
                     </p>
                     <div className="text-center">
                     <Button
@@ -107,7 +107,7 @@ export default function HowItWorksSection() {
                   <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 font-serif text-center">Choose Your Details</h3>
                   <div className="flex-1 flex flex-col justify-between">
                     <p className="text-foreground/80 font-sans tracking-wide text-center mb-4 md:mb-6 text-sm md:text-base">
-                      Select guest count and menu preferences. We support adjustments until 2 days before your party
+                      Theme: Guests & Menu
                     </p>
                     <div className="text-center">
                     <Button
@@ -140,7 +140,7 @@ export default function HowItWorksSection() {
                   <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 font-serif text-center">Secure with Deposit</h3>
                   <div className="flex-1 flex flex-col justify-between">
                     <p className="text-foreground/80 font-sans tracking-wide text-center mb-4 md:mb-6 text-sm md:text-base">
-                      Reserve your date with a deposit. Recommended even if menu isn't finalized yet
+                      Theme: Deposit & Confirmation
                     </p>
                     <div className="text-center">
                     <Button
@@ -173,7 +173,7 @@ export default function HowItWorksSection() {
                   <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 font-serif text-center">Enjoy the Experience</h3>
                   <div className="flex-1 flex flex-col justify-between">
                     <p className="text-foreground/80 font-sans tracking-wide text-center mb-4 md:mb-6 text-sm md:text-base">
-                      Relax while our chef arrives and creates an amazing hibachi experience for you and your guests
+                      Theme: Event Day Experience
                     </p>
                     <div className="text-center">
                     <div className="inline-flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full animate-breathe">
@@ -208,9 +208,7 @@ export default function HowItWorksSection() {
                     <h3 className="text-xl font-bold mb-2 font-serif">Check Availability</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide mt-2">
-                  Text us your preferred date to check availability quickly. We'll respond within minutes to confirm your booking.
-                </p>
+                <p className="text-foreground/80 font-sans tracking-wide mt-2">Theme: Date & Availability</p>
                 <div className="mt-4">
                   <Button
                     asChild
@@ -240,9 +238,7 @@ export default function HowItWorksSection() {
                     <h3 className="text-xl font-bold mb-2 font-serif">Choose Your Details</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide mt-2">
-                  Select guest count and menu preferences. We support adjustments until 2 days before your party.
-                </p>
+                <p className="text-foreground/80 font-sans tracking-wide mt-2">Theme: Guests & Menu</p>
                 <div className="mt-4">
                   <Button
                     asChild
@@ -273,9 +269,7 @@ export default function HowItWorksSection() {
                     <h3 className="text-xl font-bold mb-2 font-serif">Secure with Deposit</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide mt-2">
-                  Reserve your date with a deposit. Recommended even if menu isn't finalized yet.
-                </p>
+                <p className="text-foreground/80 font-sans tracking-wide mt-2">Theme: Deposit & Confirmation</p>
                 <div className="mt-4">
                   <Button
                     asChild
@@ -306,9 +300,7 @@ export default function HowItWorksSection() {
                     <h3 className="text-xl font-bold mb-2 font-serif">Enjoy the Experience</h3>
                   </div>
                 </div>
-                <p className="text-foreground/80 font-sans tracking-wide mt-2">
-                  Relax while our chef arrives and creates an amazing hibachi experience for you and your guests.
-                </p>
+                <p className="text-foreground/80 font-sans tracking-wide mt-2">Theme: Event Day Experience</p>
                 <div className="mt-4 flex justify-center">
                   <div className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full animate-breathe">
                     <ChefHat className="h-4 w-4 text-amber-600" />
