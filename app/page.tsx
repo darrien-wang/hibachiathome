@@ -274,33 +274,33 @@ export default function Home() {
      
       {/* Service Area Map */}
       <AnimateOnScroll>
-        <section className="py-12 bg-[#f7f4ec]">
+        <section className="py-12 bg-gradient-to-b from-[#f8f4ea] to-[#f3ecdf]">
           <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-md overflow-hidden border border-[#eadfcd]">
+            <div className="max-w-3xl mx-auto bg-[#fffdf8] rounded-3xl overflow-hidden border border-[#e7dbc6] shadow-[0_10px_30px_rgba(120,80,20,0.08)]">
               <img
                 src="/socal-map.png"
                 alt="West coast map with Southern California highlighted"
-                className="w-full h-auto"
+                className="w-full h-auto bg-[#f7f2e7]"
                 loading="lazy"
               />
 
               <div className="px-6 md:px-8 py-8 text-center">
-                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-gray-900 mb-3">WEST COAST</h3>
-                <p className="text-gray-600 mb-6">
+                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-amber-800 mb-3">WEST COAST</h3>
+                <p className="text-stone-600 mb-6">
                   Arizona, California, Colorado, Nevada, New Mexico, Oregon, Utah, Washington.
                 </p>
 
                 <Button
                   asChild
-                  className="rounded-full bg-[#B3261E] text-white px-8 min-w-[230px] h-12 hover:bg-[#9a2019]"
+                  className="rounded-full bg-amber-600 text-white px-8 min-w-[230px] h-12 hover:bg-amber-700"
                 >
                   <Link href="/quote">GET INSTANT QUOTE</Link>
                 </Button>
 
-                <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-gray-700">OR CALL TO BOOK</p>
+                <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
                 <a
                   href="tel:2137707788"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-[#B3261E] text-[#B3261E] px-8 min-w-[230px] h-12 font-semibold hover:bg-[#fff4f2] transition-colors"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-amber-600 text-amber-700 px-8 min-w-[230px] h-12 font-semibold hover:bg-amber-50 transition-colors"
                 >
                   213-770-7788
                 </a>
