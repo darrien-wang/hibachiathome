@@ -272,6 +272,40 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
      
+      {/* Service Area Map */}
+      <AnimateOnScroll>
+        <section className="py-12 bg-[#f7f4ec]">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-md p-6 md:p-8">
+              <h3 className="text-2xl md:text-3xl font-serif font-bold text-center text-[#B3261E] mb-2">
+                Southern California Service Area
+              </h3>
+              <p className="text-center text-gray-600 mb-6">Serving Los Angeles, Orange County, and nearby cities.</p>
+
+              <div className="rounded-2xl border border-[#eadfcd] bg-[#faf7f0] p-4">
+                <svg viewBox="0 0 420 280" className="w-full h-auto" role="img" aria-label="West coast map with Southern California highlighted">
+                  <rect x="28" y="32" width="62" height="56" rx="4" className="fill-[#b3261e]" />
+                  <rect x="28" y="90" width="62" height="78" rx="4" className="fill-[#b3261e]" />
+                  <rect x="92" y="90" width="72" height="78" rx="4" className="fill-[#b3261e]" />
+                  <rect x="92" y="170" width="72" height="62" rx="4" className="fill-[#b3261e]" />
+                  <rect x="166" y="116" width="70" height="64" rx="4" className="fill-[#b3261e]" />
+                  <rect x="238" y="116" width="84" height="64" rx="4" className="fill-[#b3261e]" />
+                  <rect x="166" y="182" width="70" height="50" rx="4" className="fill-[#b3261e]" />
+                  <rect x="238" y="182" width="84" height="50" rx="4" className="fill-[#b3261e]" />
+
+                  <circle cx="108" cy="196" r="10" className="fill-[#ffd24d]" />
+                  <circle cx="108" cy="196" r="5.5" className="fill-[#B3261E]" />
+                  <line x1="116" y1="188" x2="168" y2="156" className="stroke-[#B3261E] stroke-2" />
+                  <text x="176" y="160" className="fill-[#111827] text-[13px] font-semibold">
+                    Southern California
+                  </text>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
 
       {/* Signature Fried Rice Section */}
       <AnimateOnScroll>
