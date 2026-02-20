@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
-import HowItWorksSection from "@/components/how-it-works-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
 import { trackEvent } from "@/lib/tracking"
@@ -277,8 +276,6 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
-      {/* How It Works Section */}
-      <HowItWorksSection />
       {/* Package Options Section */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
