@@ -1454,3 +1454,17 @@
 - Evidence:
   - `harness/verification/2026-02-20-mobile-top-sms-nav/codex-verify.log`
   - `harness/verification/2026-02-20-mobile-top-sms-nav/codex-verify.exit`
+
+## 2026-02-20 (Mobile header left button set to direct phone number)
+
+- Completed:
+  - Updated mobile top-left quick action in `components/header.tsx`:
+    - replaced `Text Us` SMS button with direct phone number `2137707788`.
+    - action now uses `tel:2137707788` for one-tap calling.
+    - tracking updated from `sms_click` to `phone_click` with `contact_surface: mobile_header`.
+  - Right-side menu trigger remains unchanged.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-mobile-header-phone/codex-verify.log`
+  - `harness/verification/2026-02-20-mobile-header-phone/codex-verify.exit`

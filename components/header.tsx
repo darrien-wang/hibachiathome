@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { siteConfig } from "@/config/site"
-import { Menu, MessageSquare } from "lucide-react"
+import { Menu, Phone } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
 
 const navItems = [
@@ -97,8 +97,8 @@ export function Header() {
     }
   }, [handleScroll])
 
-  const handleHeaderSMSClick = () => {
-    trackEvent("sms_click", { contact_surface: "mobile_header" })
+  const handleHeaderPhoneClick = () => {
+    trackEvent("phone_click", { contact_surface: "mobile_header" })
   }
 
   return (
@@ -117,12 +117,12 @@ export function Header() {
           <div className="flex justify-start">
             <Button
               asChild
-              onClick={handleHeaderSMSClick}
+              onClick={handleHeaderPhoneClick}
               className="h-9 px-3 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded-full"
             >
-              <a href={`sms:${siteConfig.contact.phone}?body=Hi%20Real%20Hibachi%2C%20I%20have%20a%20quick%20question.`}>
-                <MessageSquare className="mr-1 h-4 w-4" />
-                Text Us
+              <a href="tel:2137707788">
+                <Phone className="mr-1 h-4 w-4" />
+                2137707788
               </a>
             </Button>
           </div>
