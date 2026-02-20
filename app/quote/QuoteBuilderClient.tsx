@@ -26,7 +26,7 @@ const DEFAULT_INPUT: QuoteInput = {
   location: "",
   adults: 10,
   kids: 0,
-  tablewareRental: true,
+  tablewareRental: false,
   budget: undefined,
   addOns: {
     steak: false,
