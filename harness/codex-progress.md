@@ -1322,3 +1322,32 @@
   - `harness/verification/2026-02-20-cro-quote-travel-fee-api/cro-quote-travel-fee-api-check.json`
   - `harness/verification/2026-02-20-cro-quote-travel-fee-api/codex-verify.log`
   - `harness/verification/2026-02-20-cro-quote-travel-fee-api/codex-verify.exit`
+
+## 2026-02-20 (Quote UI color alignment + contact template completeness)
+
+- Completed:
+  - Improved quote-page visual alignment with brand palette:
+    - `app/quote/QuoteBuilderClient.tsx`
+    - estimate card now uses amber/orange gradient and typography aligned to existing site theme.
+    - SMS/Call/Email primary buttons unified to orange-family tones.
+    - secondary actions (`Place Deposit`, `Request Manual Confirmation`) styled with orange outline system.
+  - Strengthened default contact templates so SMS/Email include full filled details:
+    - `config/quote-contact-templates.ts`
+    - SMS now explicitly includes:
+      - adults/kids split
+      - full setup selection
+      - upgrade summary
+      - estimate range.
+    - call script default now includes kids count and full setup state.
+  - Added call script fallback safety for custom templates:
+    - `lib/quote-builder.ts`
+    - if custom call template omits kids or setup info, generated script appends them automatically.
+- Verified:
+  - `node harness/scripts/verify-cro-quote-builder.mjs harness/verification/2026-02-20-cro-quote-ui-template-polish` ✅
+  - `node harness/scripts/verify-cro-quote-travel-fee-api.mjs harness/verification/2026-02-20-cro-quote-ui-template-polish` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-cro-quote-ui-template-polish/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-cro-quote-ui-template-polish/cro-quote-travel-fee-api-check.json`
+  - `harness/verification/2026-02-20-cro-quote-ui-template-polish/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-quote-ui-template-polish/codex-verify.exit`

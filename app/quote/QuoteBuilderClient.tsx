@@ -342,9 +342,9 @@ export default function QuoteBuilderClient() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-                <p className="text-sm text-amber-800">Estimated Total</p>
-                <p className="text-3xl font-bold text-amber-900">
+              <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 p-4">
+                <p className="text-sm font-medium text-amber-800">Estimated Total</p>
+                <p className="text-3xl font-bold text-orange-800">
                   ${result.totalRange.low.toFixed(0)} - ${result.totalRange.high.toFixed(0)}
                 </p>
               </div>
@@ -376,25 +376,37 @@ export default function QuoteBuilderClient() {
               )}
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <Button onClick={onSmsClick} disabled={contactDisabled} className="bg-sky-600 hover:bg-sky-700">
+                <Button
+                  onClick={onSmsClick}
+                  disabled={contactDisabled}
+                  className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-orange-300"
+                >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   SMS
                 </Button>
-                <Button onClick={onCallClick} disabled={contactDisabled} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button
+                  onClick={onCallClick}
+                  disabled={contactDisabled}
+                  className="bg-amber-600 text-white hover:bg-amber-700 disabled:bg-amber-300"
+                >
                   <Phone className="mr-2 h-4 w-4" />
                   Call
                 </Button>
-                <Button onClick={onEmailClick} disabled={contactDisabled} className="bg-indigo-600 hover:bg-indigo-700">
+                <Button
+                  onClick={onEmailClick}
+                  disabled={contactDisabled}
+                  className="bg-orange-700 text-white hover:bg-orange-800 disabled:bg-orange-300"
+                >
                   <Mail className="mr-2 h-4 w-4" />
                   Email
                 </Button>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
                   <Link href="/deposit">Place Deposit</Link>
                 </Button>
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
                   <Link
                     href={`/contact?reason=Manual confirmation request&eventDate=${encodeUrlComponent(input.eventDate)}&guestCount=${result.guestCount}&cityOrZip=${encodeUrlComponent(input.location)}&estimateLow=${result.totalRange.low}&estimateHigh=${result.totalRange.high}`}
                   >

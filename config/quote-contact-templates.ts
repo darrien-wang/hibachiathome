@@ -3,7 +3,15 @@ export type QuoteContactTemplateKeys = "sms" | "emailSubject" | "emailBody" | "c
 export type QuoteContactTemplateMap = Record<QuoteContactTemplateKeys, string>
 
 export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
-  sms: "Hi Real Hibachi, I completed a quote and want to book. {{quote_summary}}",
+  sms: [
+    "Hi Real Hibachi, I completed a quote and want to book.",
+    "Date: {{event_date}}",
+    "Location: {{location}}",
+    "Guests: {{guest_count}} (Adults {{adults}}, Kids {{kids}})",
+    "Full setup (tables/chairs/utensils): {{tableware_rental}}",
+    "Upgrades: {{upgrades}}",
+    "Estimated total: {{estimate_low}} - {{estimate_high}}",
+  ].join(" "),
   emailSubject: "Quote Request - {{event_date}} - {{location}}",
   emailBody: [
     "Hi Real Hibachi team,",
@@ -22,7 +30,7 @@ export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
     "Thank you.",
   ].join("\n"),
   callScript:
-    "Hi, I am calling about a quote for {{event_date}} in {{location}} for {{guest_count}} guests. My estimate range is {{estimate_low}} to {{estimate_high}}.",
+    "Hi, I am calling about a quote for {{event_date}} in {{location}}. We have {{guest_count}} guests (Adults {{adults}}, Kids {{kids}}), full setup is {{tableware_rental}}, and my estimate range is {{estimate_low}} to {{estimate_high}}.",
 }
 
 function normalizeTemplateValue(value: string | undefined, fallback: string): string {

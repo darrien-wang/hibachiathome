@@ -158,7 +158,7 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Date: ${input.eventDate || "TBD"}`,
     `Location: ${input.location || "TBD"}`,
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids ${input.kids || 0})`,
-    `Tableware rental: ${input.tablewareRental ? "yes" : "no"}`,
+    `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
     `Upgrades: ${formatAddOnSummary(input.addOns)}`,
     `Budget: ${input.budget ? formatCurrency(input.budget) : "not provided"}`,
     `Estimated total: ${formatCurrency(result.totalRange.low)} - ${formatCurrency(result.totalRange.high)}`,
@@ -200,5 +200,9 @@ export function buildEmailPayload(
 
 export function buildCallScript(input: QuoteInput, result: QuoteResult, template: string): string {
   const context = createQuoteTemplateContext(input, result)
-  return interpolateTemplate(template, context)
+  const interpolated = interpolateTemplate(template, context)
+  const withKids = interpolated.includes("Kids") ? interpolated : `${interpolated} Kids: ${context.kids}.`
+  return withKids.includes("tables/chairs/utensils") || withKids.includes("full setup")
+    ? withKids
+    : `${withKids} Full setup (tables/chairs/utensils): ${context.tableware_rental}.`
 }
