@@ -50,6 +50,7 @@ export default function BookingPage() {
               variant: "default",
               className: "bg-primary/5 border-primary/20",
               isRecommended: true,
+              hidden: true,
             },
             {
               title: "WhatsApp",
@@ -78,7 +79,7 @@ export default function BookingPage() {
               external: false,
               variant: "outline",
             },
-          ].map((card, index) => (
+          ].filter((card) => !card.hidden).map((card, index) => (
             <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
               <CardHeader className="h-[120px] flex flex-col justify-center">
                 <CardTitle>{card.title}</CardTitle>
