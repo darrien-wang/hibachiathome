@@ -323,11 +323,7 @@ export default function Home() {
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Chef performance included</span>
+                        <span>Fried rice, vegetables & house salad</span>
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
