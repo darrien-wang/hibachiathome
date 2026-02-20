@@ -101,6 +101,10 @@ export function Header() {
     trackEvent("phone_click", { contact_surface: "mobile_header" })
   }
 
+  const handleHeaderSMSClick = () => {
+    trackEvent("sms_click", { contact_surface: "mobile_header" })
+  }
+
   return (
     <header
       ref={headerRef}
@@ -115,16 +119,17 @@ export function Header() {
         {/* Mobile Layout */}
         <div className="md:hidden grid grid-cols-3 items-center gap-1">
           <div className="flex justify-start">
-            <Button
-              asChild
-              onClick={handleHeaderPhoneClick}
-              className="h-9 px-3 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded-full"
-            >
-              <a href="tel:2137707788">
-                <Phone className="mr-1 h-4 w-4" />
-                2137707788
+            <div className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 select-text">
+              <a href="sms:2137707788" onClick={handleHeaderSMSClick} className="hover:text-[#F1691B]">
+                SMS
               </a>
-            </Button>
+              <span>/</span>
+              <a href="tel:2137707788" onClick={handleHeaderPhoneClick} className="inline-flex items-center gap-1 hover:text-[#F1691B]">
+                <Phone className="h-4 w-4" />
+                Call
+              </a>
+              <span>2137707788</span>
+            </div>
           </div>
 
           {/* Centered Logo - Now positioned lower on mobile */}

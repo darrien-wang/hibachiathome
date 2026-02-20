@@ -1468,3 +1468,22 @@
 - Evidence:
   - `harness/verification/2026-02-20-mobile-header-phone/codex-verify.log`
   - `harness/verification/2026-02-20-mobile-header-phone/codex-verify.exit`
+
+## 2026-02-20 (Mobile header text links for SMS/Call same number)
+
+- Completed:
+  - Updated mobile header left area in `components/header.tsx`:
+    - changed from single phone action to plain text links:
+      - `SMS`
+      - `Call`
+      - shared number display `2137707788`
+    - removed button-style appearance; now normal selectable/copyable text-style links.
+  - Tracking:
+    - `sms_click` for SMS link.
+    - `phone_click` for Call link.
+    - both with `contact_surface: mobile_header`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-mobile-header-sms-call-text/codex-verify.log`
+  - `harness/verification/2026-02-20-mobile-header-sms-call-text/codex-verify.exit`
