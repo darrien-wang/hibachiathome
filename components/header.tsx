@@ -198,7 +198,7 @@ export function Header() {
         {/* Desktop Layout */}
         <div className="hidden md:flex items-center justify-between w-full max-w-7xl mx-auto">
           {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-between flex-1 pr-8">
+          <nav className="flex items-center justify-between flex-1 pr-14">
             {navItems
               .filter((item) => !item.disabled)
               .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -214,7 +214,7 @@ export function Header() {
           </nav>
 
           {/* Logo in Center - Desktop remains unchanged */}
-          <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-4">
+          <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-6">
             <Link href="/" className="block relative w-full h-full">
               <Image
                 src="/images/design-mode/realhibachiathome.png"
@@ -228,7 +228,7 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-between flex-1 pl-8">
+          <div className="flex items-center justify-between flex-1 pl-14">
             <div className="flex items-center justify-between flex-1">
               {navItems
                 .filter((item) => !item.disabled)
