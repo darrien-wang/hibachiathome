@@ -114,6 +114,24 @@ If using credit card, payment must be settled at least 72 hours before your even
 ]
 
 export default function FAQClientPage() {
+  const topObjections = [
+    {
+      title: "What if weather changes on event day?",
+      answer:
+        "If weather is uncertain, please provide covered outdoor space (tent/canopy). For weather-related cancellations, notify us at least 48 hours in advance.",
+    },
+    {
+      title: "How does cancellation/reschedule work?",
+      answer:
+        "You can cancel or reschedule with at least 48 hours notice. Late changes may include a fee because staff and ingredients are already allocated.",
+    },
+    {
+      title: "Can you handle allergies and dietary restrictions?",
+      answer:
+        "Yes. We can accommodate common dietary restrictions when informed in advance. Please include allergy details during booking so the chef can prepare safely.",
+    },
+  ]
+
   return (
     <section className="page-container container grid items-center justify-center gap-6 pb-10">
       <div className="mx-auto max-w-[980px] text-center">
@@ -127,6 +145,17 @@ export default function FAQClientPage() {
           ZERO MESS GUARANTEE: WE CLEAN UP EVERYTHING AFTER EVERY EVENT.
         </p>
       </div>
+
+      <div className="w-full max-w-[980px] space-y-3">
+        <h2 className="text-2xl font-bold">Top Booking Concerns (Answered)</h2>
+        {topObjections.map((item) => (
+          <div key={item.title} className="rounded-lg border bg-white p-4">
+            <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
+            <p className="text-gray-700 text-sm">{item.answer}</p>
+          </div>
+        ))}
+      </div>
+
       <Accordion type="single" collapsible className="w-full max-w-[980px]">
         {faqItems.map((item, index) => (
           <AccordionItem value={`item-${index}`} key={index}>

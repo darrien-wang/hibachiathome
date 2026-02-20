@@ -1,0 +1,12 @@
+{
+  "checks": [
+    {
+      "id": "faq_has_top_objection_module",
+      "pass": true
+    },
+    {
+      "id": "book_repeats_key_policies",
+      "pass": true
+    }
+  ]
+}

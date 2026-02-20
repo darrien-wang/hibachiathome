@@ -152,6 +152,28 @@ export default function BookingPage() {
           </div>
         </div>
 
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-10">
+          <h3 className="text-lg font-semibold text-amber-900 mb-3">Important Policies Before You Book</h3>
+          <div className="grid gap-3 text-sm text-amber-900 md:grid-cols-2">
+            <div className="rounded bg-white/70 p-3 border border-amber-100">
+              <p className="font-semibold mb-1">Cancellation</p>
+              <p>Cancel or reschedule with at least 48 hours notice to avoid late-change fees.</p>
+            </div>
+            <div className="rounded bg-white/70 p-3 border border-amber-100">
+              <p className="font-semibold mb-1">Weather</p>
+              <p>Cooking is outdoors. Please provide cover (tent/canopy) when weather is uncertain.</p>
+            </div>
+            <div className="rounded bg-white/70 p-3 border border-amber-100">
+              <p className="font-semibold mb-1">Arrival Timing</p>
+              <p>Chef typically arrives shortly before your selected start time for quick setup.</p>
+            </div>
+            <div className="rounded bg-white/70 p-3 border border-amber-100">
+              <p className="font-semibold mb-1">Allergies & Dietary Needs</p>
+              <p>Tell us in advance so we can prepare ingredients and cooking flow safely.</p>
+            </div>
+          </div>
+        </div>
+
         <PromotionBanner />
       </div>
     </div>

@@ -324,7 +324,7 @@
       "Verify users can see key answers without extra clicks.",
       "Verify booking pages cover major objections before contact."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-007",

@@ -1044,3 +1044,42 @@
   - `harness/verification/2026-02-20-cro-005/codex-acceptance.exit`
 - Next highest-priority action:
   - Implement `CRO-006` (objection-handling FAQ module and key policy repetition on booking flow).
+
+## 2026-02-20 (CRO-006 objection-handling FAQ module + booking policy repetition)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-006`
+  - Upgraded FAQ from click-heavy structure to objection-first module:
+    - `app/faq/FAQClientPage.tsx`
+    - added top "Top Booking Concerns (Answered)" section with three default-visible objection answers:
+      - weather contingency
+      - cancellation/reschedule policy
+      - allergy/dietary accommodation.
+  - Repeated critical policies on booking page:
+    - `app/book/page.tsx`
+    - added "Important Policies Before You Book" block covering:
+      - cancellation
+      - weather
+      - arrival timing
+      - allergies/dietary needs.
+- Feature status transition:
+  - `CRO-006` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - objection-module structure checks:
+    - `harness/verification/2026-02-20-cro-006/cro-006-objection-module-check.json` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-006/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-006/cro-006-objection-module-check.json`
+  - `harness/verification/2026-02-20-cro-006/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-006/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-006/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-006/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-006/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-006/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-007` (verifiable social proof links and real-event evidence blocks).
