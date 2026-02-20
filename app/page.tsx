@@ -276,19 +276,34 @@ export default function Home() {
       <AnimateOnScroll>
         <section className="py-12 bg-[#f7f4ec]">
           <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-md p-6 md:p-8">
-              <h3 className="text-2xl md:text-3xl font-serif font-bold text-center text-[#B3261E] mb-2">
-                Southern California Service Area
-              </h3>
-              <p className="text-center text-gray-600 mb-6">Serving Los Angeles, Orange County, and nearby cities.</p>
+            <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-md overflow-hidden border border-[#eadfcd]">
+              <img
+                src="/socal-map.png"
+                alt="West coast map with Southern California highlighted"
+                className="w-full h-auto"
+                loading="lazy"
+              />
 
-              <div className="rounded-2xl border border-[#eadfcd] bg-[#faf7f0] p-4">
-                <img
-                  src="/socal-map.png"
-                  alt="West coast map with Southern California highlighted"
-                  className="w-full h-auto rounded-xl"
-                  loading="lazy"
-                />
+              <div className="px-6 md:px-8 py-8 text-center">
+                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-gray-900 mb-3">WEST COAST</h3>
+                <p className="text-gray-600 mb-6">
+                  Arizona, California, Colorado, Nevada, New Mexico, Oregon, Utah, Washington.
+                </p>
+
+                <Button
+                  asChild
+                  className="rounded-full bg-[#B3261E] text-white px-8 min-w-[230px] h-12 hover:bg-[#9a2019]"
+                >
+                  <Link href="/quote">GET INSTANT QUOTE</Link>
+                </Button>
+
+                <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-gray-700">OR CALL TO BOOK</p>
+                <a
+                  href="tel:2137707788"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-[#B3261E] text-[#B3261E] px-8 min-w-[230px] h-12 font-semibold hover:bg-[#fff4f2] transition-colors"
+                >
+                  213-770-7788
+                </a>
               </div>
             </div>
           </div>
