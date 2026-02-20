@@ -147,9 +147,12 @@ export default function QuoteBuilderClient() {
     }))
   }
 
-  const phoneRaw = siteConfig.contact.phone.replace(/\D/g, "")
+  const displayPhone = "213-770-7788"
+  const phoneRaw = "2137707788"
+  const displayEmail = "realhibachiathome@gmail.com"
+  const emailTo = "realhibachiathome@gmail.com"
   const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBody)}`
-  const emailHref = `mailto:${siteConfig.contact.email}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
+  const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
 
   const onSmsClick = () => {
@@ -365,26 +368,26 @@ export default function QuoteBuilderClient() {
                 <Button
                   onClick={onSmsClick}
                   disabled={contactDisabled}
-                  className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-orange-300"
+                  className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-orange-300 text-xs sm:text-sm"
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  SMS
+                  SMS {displayPhone}
                 </Button>
                 <Button
                   onClick={onCallClick}
                   disabled={contactDisabled}
-                  className="bg-amber-600 text-white hover:bg-amber-700 disabled:bg-amber-300"
+                  className="bg-amber-600 text-white hover:bg-amber-700 disabled:bg-amber-300 text-xs sm:text-sm"
                 >
                   <Phone className="mr-2 h-4 w-4" />
-                  Call
+                  Call {displayPhone}
                 </Button>
                 <Button
                   onClick={onEmailClick}
                   disabled={contactDisabled}
-                  className="bg-orange-700 text-white hover:bg-orange-800 disabled:bg-orange-300"
+                  className="bg-orange-700 text-white hover:bg-orange-800 disabled:bg-orange-300 text-xs sm:text-sm"
                 >
                   <Mail className="mr-2 h-4 w-4" />
-                  Email
+                  Email {displayEmail}
                 </Button>
               </div>
 
