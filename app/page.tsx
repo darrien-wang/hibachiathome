@@ -280,19 +280,26 @@ export default function Home() {
       <AnimateOnScroll>
         <section className="py-12 bg-gradient-to-b from-[#f8f4ea] to-[#f3ecdf]">
           <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto bg-[#fffdf8] rounded-3xl overflow-hidden border border-[#e7dbc6] shadow-[0_10px_30px_rgba(120,80,20,0.08)]">
+            <div className="text-center mb-6">
+              <h3 className="text-4xl md:text-5xl font-serif font-bold text-gray-900">Book Your Hibachi Party</h3>
+              <p className="mt-2 text-2xl md:text-3xl font-serif font-bold text-[hsl(24_79%_42%)]">
+                Select Your Region To Start
+              </p>
+            </div>
+
+            <div className="max-w-2xl mx-auto bg-[#fffdf8] rounded-3xl overflow-hidden border border-[#e7dbc6] shadow-[0_10px_30px_rgba(120,80,20,0.08)]">
               <img
                 src="/socal-map.png"
                 alt="West coast map with Southern California highlighted"
-                className="w-full h-auto bg-[#f7f2e7]"
+                className="w-full max-h-[460px] object-contain bg-[#f7f2e7]"
                 loading="lazy"
               />
 
-              <div className="px-6 md:px-8 py-8 text-center">
-                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-[hsl(24_79%_55%)] mb-3">
+              <div className="px-6 md:px-8 py-7 text-center">
+                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-[hsl(24_79%_55%)] mb-2">
                   SOUTH CALIFORNIA
                 </h3>
-                <p className="text-stone-600 mb-6">
+                <p className="text-stone-600 mb-5 text-sm md:text-base">
                   LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County
                 </p>
 
