@@ -18,6 +18,7 @@ import {
   buildQuoteSummary,
   calculateQuote,
   type QuoteInput,
+  type QuoteRange,
 } from "@/lib/quote-builder"
 
 const DEFAULT_INPUT: QuoteInput = {
@@ -40,10 +41,12 @@ function encodeUrlComponent(value: string): string {
 
 export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
+  const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
+  const [distanceMiles, setDistanceMiles] = useState<number | null>(null)
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
 
-  const result = useMemo(() => calculateQuote(input), [input])
+  const result = useMemo(() => calculateQuote(input, travelFeeRange), [input, travelFeeRange])
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
   const smsBody = useMemo(() => buildSmsBody(input, result, contactTemplates.sms), [input, result, contactTemplates.sms])
@@ -59,6 +62,46 @@ export default function QuoteBuilderClient() {
     () => buildCallScript(input, result, contactTemplates.callScript),
     [input, result, contactTemplates.callScript],
   )
+
+  useEffect(() => {
+    const destination = input.location.trim()
+    if (!destination) {
+      setTravelFeeRange({ low: 0, high: 0 })
+      setDistanceMiles(null)
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/quote/travel-fee?destination=${encodeURIComponent(destination)}`, {
+          method: "GET",
+          signal: controller.signal,
+          cache: "no-store",
+        })
+        if (!response.ok) return
+
+        const data = await response.json()
+        const low = Number(data?.travel_fee_range?.low)
+        const high = Number(data?.travel_fee_range?.high)
+        const miles = Number(data?.distance_miles)
+
+        if (Number.isFinite(low) && Number.isFinite(high)) {
+          setTravelFeeRange({ low, high })
+        }
+        if (Number.isFinite(miles)) {
+          setDistanceMiles(miles)
+        }
+      } catch {
+        // keep current fee range on transient network errors
+      }
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [input.location])
 
   useEffect(() => {
     const hasAnyInput = Boolean(input.eventDate || input.location || input.adults > 0 || input.kids > 0)
@@ -314,6 +357,7 @@ export default function QuoteBuilderClient() {
                 <p>
                   Travel fee range: ${result.travelFeeRange.low.toFixed(0)} - ${result.travelFeeRange.high.toFixed(0)}
                 </p>
+                <p>Distance from 91748: {distanceMiles !== null ? `${distanceMiles.toFixed(1)} miles` : "calculating..."}</p>
                 <p>Full setup (tables/chairs/utensils): ${result.tablewareFee.toFixed(0)}</p>
                 <p>
                   Premium upgrades impact: ${result.addOnTotalRange.low.toFixed(0)} - ${result.addOnTotalRange.high.toFixed(0)}

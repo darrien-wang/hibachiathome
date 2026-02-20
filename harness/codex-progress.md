@@ -1289,3 +1289,36 @@
   - `harness/verification/2026-02-20-cro-quote-rules-adjust/cro-quote-001-quote-builder-evidence.json`
   - `harness/verification/2026-02-20-cro-quote-rules-adjust/codex-verify.log`
   - `harness/verification/2026-02-20-cro-quote-rules-adjust/codex-verify.exit`
+
+## 2026-02-20 (Quote travel fee API by distance to 91748)
+
+- Completed:
+  - Added dedicated quote travel-fee API:
+    - `app/api/quote/travel-fee/route.ts`
+    - computes distance from origin ZIP `91748` to user destination via Google Distance Matrix API.
+    - returns `distance_miles` and `travel_fee_range`.
+  - Added distance-tier fee mapping in API response:
+    - <=10mi: `$25-$40`
+    - <=20mi: `$40-$60`
+    - <=35mi: `$60-$90`
+    - <=50mi: `$90-$130`
+    - >50mi: `$130-$180`
+  - Integrated quote page with dynamic API lookup:
+    - `app/quote/QuoteBuilderClient.tsx`
+    - fetches `/api/quote/travel-fee?destination=...` when location changes.
+    - shows `Distance from 91748` and uses API `travel_fee_range` in estimate calculation.
+  - Updated quote calculator function signature for runtime travel-fee override:
+    - `lib/quote-builder.ts` `calculateQuote(input, travelFeeRangeOverride?)`.
+  - Added deterministic integration verifier:
+    - `harness/scripts/verify-cro-quote-travel-fee-api.mjs`.
+- Verified:
+  - `node harness/scripts/verify-cro-quote-builder.mjs harness/verification/2026-02-20-cro-quote-travel-fee-api` ✅
+  - `node harness/scripts/verify-cro-quote-travel-fee-api.mjs harness/verification/2026-02-20-cro-quote-travel-fee-api` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Environment note:
+  - Live external Google API call validation is blocked in current sandbox network (`TypeError: fetch failed`), so runtime wiring is verified via static/integration checks.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-quote-travel-fee-api/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-cro-quote-travel-fee-api/cro-quote-travel-fee-api-check.json`
+  - `harness/verification/2026-02-20-cro-quote-travel-fee-api/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-quote-travel-fee-api/codex-verify.exit`

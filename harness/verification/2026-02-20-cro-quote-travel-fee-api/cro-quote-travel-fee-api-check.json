@@ -1,0 +1,14 @@
+{
+  "task": "quote_travel_fee_api_integration",
+  "checked_at": "2026-02-20T01:10:38.297Z",
+  "checks": {
+    "api_origin_zip_91748": true,
+    "api_distance_matrix_call_present": true,
+    "quote_page_api_fetch_present": true,
+    "quote_page_distance_display_present": true
+  },
+  "files": {
+    "api_route": "app/api/quote/travel-fee/route.ts",
+    "quote_client": "app/quote/QuoteBuilderClient.tsx"
+  }
+}

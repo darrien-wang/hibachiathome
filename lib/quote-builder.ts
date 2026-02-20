@@ -72,7 +72,7 @@ export function getTravelFeeRange(location: string): QuoteRange {
   return { low: 0, high: 0 }
 }
 
-export function calculateQuote(input: QuoteInput): QuoteResult {
+export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: QuoteRange): QuoteResult {
   const adults = normalizeGuests(input.adults)
   const kids = normalizeGuests(input.kids)
   const guestCount = adults + kids
@@ -82,7 +82,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   const tablewareFee = input.tablewareRental ? roundCurrency(guestCount * FULL_SETUP_PER_GUEST) : 0
   const packageSubtotal = roundCurrency(baseSubtotal + tablewareFee)
 
-  const travelFeeRange = getTravelFeeRange(input.location)
+  const travelFeeRange = travelFeeRangeOverride ?? getTravelFeeRange(input.location)
 
   const selectedUpgradeUnitPrice =
     (input.addOns.steak ? ADD_ON_PER_GUEST.steak : 0) +
