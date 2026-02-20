@@ -104,7 +104,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             ></iframe>
           </noscript>
         ) : null}
-        <TrackingBootstrap />
+        <Suspense fallback={null}>
+          <TrackingBootstrap />
+        </Suspense>
         <Suspense>
           <Header />
           <main>{children}</main>
