@@ -22,7 +22,6 @@ export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
     "- Guests: {{guest_count}} (Adults {{adults}}, Kids {{kids}})",
     "- Tableware rental: {{tableware_rental}}",
     "- Upgrades: {{upgrades}}",
-    "- Budget: {{budget}}",
     "- Estimated total range: {{estimate_low}} - {{estimate_high}}",
     "",
     "Please confirm availability and next steps.",

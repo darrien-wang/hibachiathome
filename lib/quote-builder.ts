@@ -160,7 +160,6 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids ${input.kids || 0})`,
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
     `Upgrades: ${formatAddOnSummary(input.addOns)}`,
-    `Budget: ${input.budget ? formatCurrency(input.budget) : "not provided"}`,
     `Estimated total: ${formatCurrency(result.totalRange.low)} - ${formatCurrency(result.totalRange.high)}`,
   ].join(" | ")
 }

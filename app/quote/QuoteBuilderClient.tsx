@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,10 +32,6 @@ const DEFAULT_INPUT: QuoteInput = {
     shrimp: false,
     lobster: false,
   },
-}
-
-function encodeUrlComponent(value: string): string {
-  return encodeURIComponent(value)
 }
 
 export default function QuoteBuilderClient() {
@@ -266,19 +261,6 @@ export default function QuoteBuilderClient() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Budget (Optional)</label>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 1500"
-                  value={input.budget ?? ""}
-                  onChange={(e) =>
-                    handleFieldChange("budget", e.target.value ? Number(e.target.value) : undefined)
-                  }
-                />
-              </div>
-
               <div className="space-y-3">
                 <label className="text-sm font-medium">Tableware Rental</label>
                 <div className="flex items-center gap-2">
@@ -402,18 +384,6 @@ export default function QuoteBuilderClient() {
                 </Button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button asChild variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
-                  <Link href="/deposit">Place Deposit</Link>
-                </Button>
-                <Button asChild variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
-                  <Link
-                    href={`/contact?reason=Manual confirmation request&eventDate=${encodeUrlComponent(input.eventDate)}&guestCount=${result.guestCount}&cityOrZip=${encodeUrlComponent(input.location)}&estimateLow=${result.totalRange.low}&estimateHigh=${result.totalRange.high}`}
-                  >
-                    Request Manual Confirmation
-                  </Link>
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>

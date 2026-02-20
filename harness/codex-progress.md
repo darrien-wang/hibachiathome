@@ -1539,3 +1539,22 @@
 - Evidence:
   - `harness/verification/2026-02-20-home-simplify-more/codex-verify.log`
   - `harness/verification/2026-02-20-home-simplify-more/codex-verify.exit`
+
+## 2026-02-20 (Instant quote simplification: remove budget and secondary actions)
+
+- Completed:
+  - Removed `Budget (Optional)` field from instant quote form UI:
+    - `app/quote/QuoteBuilderClient.tsx`
+  - Removed bottom secondary actions from instant quote result panel:
+    - `Place Deposit`
+    - `Request Manual Confirmation`
+  - Removed budget mention from generated contact content:
+    - `config/quote-contact-templates.ts` (email body default)
+    - `lib/quote-builder.ts` (quote summary string)
+- Verified:
+  - `node harness/scripts/verify-cro-quote-builder.mjs harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions/codex-verify.exit`
