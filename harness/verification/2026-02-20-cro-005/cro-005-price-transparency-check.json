@@ -1,0 +1,16 @@
+{
+  "checks": [
+    {
+      "id": "menu_has_price_transparency_section",
+      "pass": true
+    },
+    {
+      "id": "example_cards_10_15_20",
+      "pass": true
+    },
+    {
+      "id": "cost_breakdown_lists_tax_travel_equipment_addons",
+      "pass": true
+    }
+  ]
+}

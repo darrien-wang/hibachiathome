@@ -311,7 +311,7 @@
       "Verify users can understand expected total cost within 30 seconds.",
       "Verify pricing-clarity objections decrease in inbound messages."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-006",

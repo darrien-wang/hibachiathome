@@ -1009,3 +1009,38 @@
   - `harness/verification/2026-02-20-cro-004/codex-acceptance.exit`
 - Next highest-priority action:
   - Implement `CRO-005` (price transparency with total-price examples and cost breakdown clarity).
+
+## 2026-02-20 (CRO-005 price transparency examples + cost breakdown)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-005`
+  - Added dedicated price transparency module:
+    - `components/menu/price-transparency.tsx`
+  - Added total-price example cards for common party sizes:
+    - 10 / 15 / 20 guests examples with estimated total ranges.
+  - Added clear cost breakdown copy:
+    - estimated tax, travel fee range, tableware/equipment rental, premium add-ons
+    - explicit included-vs-additional cost explanation.
+  - Integrated module into menu page:
+    - `app/menu/page.tsx`.
+- Feature status transition:
+  - `CRO-005` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - price transparency structure checks:
+    - `harness/verification/2026-02-20-cro-005/cro-005-price-transparency-check.json` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-005/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-005/cro-005-price-transparency-check.json`
+  - `harness/verification/2026-02-20-cro-005/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-005/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-005/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-005/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-005/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-005/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-006` (objection-handling FAQ module and key policy repetition on booking flow).

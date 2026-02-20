@@ -1,6 +1,7 @@
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import MenuDetails from "@/components/menu/menu-details"
 import PricingBanner from "@/components/menu/pricing-banner"
+import PriceTransparency from "@/components/menu/price-transparency"
 import ServiceNotes from "@/components/menu/service-notes"
 import Testimonials from "@/components/menu/testimonials"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
@@ -73,6 +74,10 @@ export default function MenuPage() {
             childPrice={pricing.children.basic}
             minimumTotal={pricing.packages.basic.minimum}
           />
+        </AnimateOnScroll>
+
+        <AnimateOnScroll>
+          <PriceTransparency />
         </AnimateOnScroll>
 
         <AnimateOnScroll>
