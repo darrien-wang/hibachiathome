@@ -28,7 +28,7 @@ export default function BookingPage() {
             Get a free estimate first, then contact us directly to book your experience.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5 mb-10 max-w-6xl mx-auto">
           {[
             {
               title: "Instant Quote",
@@ -88,10 +88,15 @@ export default function BookingPage() {
               variant: "outline",
             },
           ].filter((card) => !card.hidden).map((card, index) => (
-            <Card key={index} className={`text-center flex flex-col ${card.className || ""}`}>
-              <CardHeader className="h-[120px] flex flex-col justify-center">
-                <CardTitle>{card.title}</CardTitle>
-                <CardDescription className="h-[40px] flex items-center justify-center">
+            <Card
+              key={index}
+              className={`text-center flex flex-col rounded-2xl border border-[#e7dbc6] bg-[#fffdf8] shadow-[0_8px_24px_rgba(120,80,20,0.08)] transition-transform duration-200 hover:-translate-y-0.5 ${card.title === "Instant Quote" ? "xl:col-span-4 bg-[hsl(24_79%_96%)] border-[hsl(24_79%_55%)]" : "xl:col-span-2"}`}
+            >
+              <CardHeader className="h-[130px] flex flex-col justify-center">
+                <CardTitle className={`${card.title === "Instant Quote" ? "text-[hsl(24_79%_55%)]" : "text-gray-900"}`}>
+                  {card.title}
+                </CardTitle>
+                <CardDescription className="h-[44px] flex items-center justify-center text-gray-600">
                   {card.description}
                 </CardDescription>
               </CardHeader>
@@ -99,8 +104,8 @@ export default function BookingPage() {
                 {card.onClick ? (
                   <>
                     <Button
-                      className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden"
-                      variant={card.variant}
+                      className={`w-full mx-auto h-11 text-sm ${card.title === "Instant Quote" ? "bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)]" : "border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] bg-white hover:bg-[hsl(24_79%_96%)]"}`}
+                      variant={card.title === "Instant Quote" ? "default" : "outline"}
                       onClick={card.onClick}
                     >
                       {card.icon}
@@ -115,8 +120,8 @@ export default function BookingPage() {
                 ) : (
                   <>
                     <Button
-                      className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden"
-                      variant={card.variant}
+                      className="w-full mx-auto h-11 text-sm border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] bg-white hover:bg-[hsl(24_79%_96%)]"
+                      variant="outline"
                       asChild
                     >
                       <a
