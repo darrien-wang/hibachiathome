@@ -1,0 +1,5 @@
+Checking quote layout classes
+210:      <div className="max-w-6xl mx-auto">
+221:        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
+367:              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+398:                    <span className="block break-all">{displayEmail}</span>

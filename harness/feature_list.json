@@ -423,5 +423,31 @@
       "Verify top-performing traffic sources can be identified reliably."
     ],
     "passes": true
+  },
+  {
+    "id": "AI-SPEC-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "新增 AI Agent 服务平台演进规格文件，覆盖 Prompt/Workflow/Tool/RAG/Eval 的目标与验收标准。",
+    "steps": [
+      "创建 ai-agent-platform-evolution-spec.xml，定义目标、架构模块、领域模型与需求分级。",
+      "在规格中明确客服、报价、预约、销售跟进链路与 Tool Calling、人工接管策略。",
+      "在规格中定义交付阶段、北极星指标与验收标准，确保可执行与可验证。",
+      "验证 spec 文件存在且包含关键章节（platformModules、functionalRequirements、acceptanceCriteria）。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-UI-001",
+    "priority": "P1",
+    "category": "style",
+    "description": "Quote Builder超宽屏下Instant Estimate Range区域需保证三种联系方式按钮完整展示。",
+    "steps": [
+      "在/quote页面为右侧Instant Estimate Range区域分配更大宽度，避免按钮区域被压缩。",
+      "将联系方式按钮布局调整为响应式（中屏2列，超宽屏3列）。",
+      "保证Email按钮文本可换行展示，不出现超出按钮边界。",
+      "验证关键样式类存在并通过静态质量门禁。"
+    ],
+    "passes": true
   }
 ]

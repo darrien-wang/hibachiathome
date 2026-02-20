@@ -1,0 +1,6 @@
+SPEC_FILE harness/prompts/ai-agent-platform-evolution-spec.xml
+EXISTS yes
+2:<aiAgentPlatformSpec project="RealHibachi" version="1.0">
+16:  <platformModules>
+81:  <functionalRequirements>
+138:  <acceptanceCriteria>

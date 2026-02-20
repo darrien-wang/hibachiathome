@@ -207,7 +207,7 @@ export default function QuoteBuilderClient() {
 
   return (
     <div className="page-container container mx-auto px-4 py-12">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <Badge variant="secondary" className="mb-4">
             One-Page Quote Builder
@@ -218,7 +218,7 @@ export default function QuoteBuilderClient() {
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -364,30 +364,39 @@ export default function QuoteBuilderClient() {
                 </p>
               )}
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <Button
                   onClick={onSmsClick}
                   disabled={contactDisabled}
-                  className="h-auto min-h-12 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] disabled:bg-[hsl(24_79%_80%)] disabled:text-white/90 text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                  className="h-auto min-h-12 min-w-0 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] disabled:bg-[hsl(24_79%_80%)] disabled:text-white/90 text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  SMS {displayPhone}
+                  <span className="leading-tight">
+                    <span className="block font-medium">SMS</span>
+                    <span className="block">{displayPhone}</span>
+                  </span>
                 </Button>
                 <Button
                   onClick={onCallClick}
                   disabled={contactDisabled}
-                  className="h-auto min-h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <Phone className="mr-2 h-4 w-4" />
-                  Call {displayPhone}
+                  <span className="leading-tight">
+                    <span className="block font-medium">Call</span>
+                    <span className="block">{displayPhone}</span>
+                  </span>
                 </Button>
                 <Button
                   onClick={onEmailClick}
                   disabled={contactDisabled}
-                  className="h-auto min-h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <Mail className="mr-2 h-4 w-4" />
-                  Email {displayEmail}
+                  <span className="leading-tight">
+                    <span className="block font-medium">Email</span>
+                    <span className="block break-all">{displayEmail}</span>
+                  </span>
                 </Button>
               </div>
 

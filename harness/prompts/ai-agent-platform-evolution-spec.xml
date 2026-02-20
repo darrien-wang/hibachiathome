@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiAgentPlatformSpec project="RealHibachi" version="1.0">
+  <goal>
+    将现有营销站升级为可编排 AI Agent 服务平台，覆盖客服、报价、预约与销售跟进全链路，
+    并形成可复用的 Prompt/Workflow/Tools/Rules 平台能力，对齐 AI 应用平台岗位能力要求。
+  </goal>
+
+  <northStarMetrics>
+    <metric id="1">线索响应时延 P95 小于 10 秒</metric>
+    <metric id="2">报价自动化覆盖率大于 70%</metric>
+    <metric id="3">预约转化率较基线提升 20%</metric>
+    <metric id="4">人工接管率低于 30%</metric>
+    <metric id="5">单次会话成本可观测且可按渠道分解</metric>
+  </northStarMetrics>
+
+  <platformModules>
+    <module id="1" name="Prompt Studio">
+      版本化提示词模板、变量管理、灰度发布、回滚。
+    </module>
+    <module id="2" name="Workflow Builder">
+      可视化节点编排（意图识别、RAG 检索、工具调用、报价计算、预约确认、人工接管）。
+    </module>
+    <module id="3" name="Agent Runtime">
+      会话状态管理、函数调用调度、重试与超时、幂等与审计。
+    </module>
+    <module id="4" name="Tool Hub">
+      标准化工具注册与权限控制：查档期、算价格、创建预约、发送短信/邮件。
+    </module>
+    <module id="5" name="Knowledge &amp; RAG">
+      FAQ/菜单/价格策略文档入库、向量检索、知识版本管理与生效策略。
+    </module>
+    <module id="6" name="Eval &amp; Observability">
+      质量评测、延迟与成本监控、转化漏斗、幻觉检测、可追踪日志。
+    </module>
+  </platformModules>
+
+  <domainModel>
+    <entity name="Agent">
+      <field>agent_id</field>
+      <field>name</field>
+      <field>role (customer_service|quote|booking|sales_followup)</field>
+      <field>active_prompt_version</field>
+      <field>active_workflow_version</field>
+    </entity>
+    <entity name="PromptTemplate">
+      <field>prompt_id</field>
+      <field>version</field>
+      <field>template</field>
+      <field>variables_schema</field>
+      <field>status (draft|staging|prod)</field>
+    </entity>
+    <entity name="Workflow">
+      <field>workflow_id</field>
+      <field>version</field>
+      <field>nodes</field>
+      <field>edges</field>
+      <field>entrypoint</field>
+    </entity>
+    <entity name="Tool">
+      <field>tool_name</field>
+      <field>input_schema</field>
+      <field>output_schema</field>
+      <field>permission_scope</field>
+      <field>timeout_ms</field>
+    </entity>
+    <entity name="Rule">
+      <field>rule_id</field>
+      <field>trigger</field>
+      <field>constraint</field>
+      <field>action (block|rewrite|handoff)</field>
+    </entity>
+    <entity name="ConversationSession">
+      <field>session_id</field>
+      <field>user_id_or_lead_id</field>
+      <field>channel (web|sms|whatsapp|email)</field>
+      <field>state</field>
+      <field>handoff_status</field>
+    </entity>
+  </domainModel>
+
+  <functionalRequirements>
+    <requirement id="FR-001" priority="P0">支持客服 Agent 的 Prompt 编排与版本发布。</requirement>
+    <requirement id="FR-002" priority="P0">支持报价 Agent 的工作流编排（含分支条件与失败重试）。</requirement>
+    <requirement id="FR-003" priority="P0">支持工具调用：价格计算、档期查询、预约创建、消息发送。</requirement>
+    <requirement id="FR-004" priority="P0">支持人工接管：触发条件、转人工队列、上下文透传。</requirement>
+    <requirement id="FR-005" priority="P1">支持知识库检索增强（RAG）并返回引用来源。</requirement>
+    <requirement id="FR-006" priority="P1">支持对话级别审计日志与事件回放。</requirement>
+    <requirement id="FR-007" priority="P1">支持多渠道统一线索写入（Web/SMS/WhatsApp/Email）。</requirement>
+    <requirement id="FR-008" priority="P1">支持评测任务：准确率、拒答率、幻觉率、成本、延迟。</requirement>
+    <requirement id="FR-009" priority="P2">支持 Workflow 与 Prompt 的模板市场（导入/导出）。</requirement>
+  </functionalRequirements>
+
+  <nonFunctionalRequirements>
+    <requirement id="NFR-001">接口可用性 SLO：99.9%（月）</requirement>
+    <requirement id="NFR-002">关键 API P95 小于 800ms（不含模型生成耗时）</requirement>
+    <requirement id="NFR-003">所有 Tool 调用具备幂等键与审计追踪 ID</requirement>
+    <requirement id="NFR-004">数据最小化与敏感字段脱敏（PII）</requirement>
+    <requirement id="NFR-005">支持 RBAC、租户隔离与操作审计</requirement>
+  </nonFunctionalRequirements>
+
+  <apiContracts>
+    <endpoint method="POST" path="/api/agents/:agentId/sessions">
+      创建会话并返回初始上下文。
+    </endpoint>
+    <endpoint method="POST" path="/api/agents/:agentId/respond">
+      输入用户消息，输出模型回复、工具调用轨迹、置信度与建议动作。
+    </endpoint>
+    <endpoint method="POST" path="/api/workflows/:workflowId/publish">
+      发布工作流版本并记录变更审计。
+    </endpoint>
+    <endpoint method="POST" path="/api/prompts/:promptId/publish">
+      发布提示词版本并支持灰度比例。
+    </endpoint>
+    <endpoint method="POST" path="/api/evals/run">
+      执行离线评测任务并产出报告。
+    </endpoint>
+  </apiContracts>
+
+  <deliveryPlan>
+    <phase id="Phase-1" duration="2 weeks">
+      <target>MVP 跑通：客服+报价+预约单工作流</target>
+      <exitCriteria>可在单页面完成询价并自动生成预约建议</exitCriteria>
+    </phase>
+    <phase id="Phase-2" duration="2 weeks">
+      <target>可视化 Prompt/Workflow 编排器上线</target>
+      <exitCriteria>非研发成员可配置模板并发布到 staging</exitCriteria>
+    </phase>
+    <phase id="Phase-3" duration="2 weeks">
+      <target>RAG + Tool Hub + 人工接管</target>
+      <exitCriteria>复杂问题可检索回答，异常场景自动转人工</exitCriteria>
+    </phase>
+    <phase id="Phase-4" duration="2 weeks">
+      <target>评测与可观测平台</target>
+      <exitCriteria>可输出周报：转化、成本、延迟、质量与问题样本</exitCriteria>
+    </phase>
+  </deliveryPlan>
+
+  <acceptanceCriteria>
+    <criterion id="AC-001">具备 Prompt 与 Workflow 的可视化编排能力，并支持版本回滚。</criterion>
+    <criterion id="AC-002">客服报价预约链路支持 Tool Calling，且失败可重试与追踪。</criterion>
+    <criterion id="AC-003">核心场景支持人工接管并保留完整对话上下文。</criterion>
+    <criterion id="AC-004">具备 RAG 检索能力且回答可返回来源引用。</criterion>
+    <criterion id="AC-005">具备质量/成本/延迟监控与漏斗分析看板。</criterion>
+    <criterion id="AC-006">提供可复用 API/Webhook，支持开放平台集成。</criterion>
+  </acceptanceCriteria>
+
+  <deliverables>
+    <deliverable id="1">spec: ai-agent-platform-evolution-spec.xml</deliverable>
+    <deliverable id="2">MVP backend services + workflow runtime</deliverable>
+    <deliverable id="3">Prompt/Workflow console pages</deliverable>
+    <deliverable id="4">Eval dashboard and weekly report template</deliverable>
+  </deliverables>
+</aiAgentPlatformSpec>

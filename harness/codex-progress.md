@@ -1558,3 +1558,58 @@
   - `harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions/cro-quote-001-quote-builder-evidence.json`
   - `harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions/codex-verify.log`
   - `harness/verification/2026-02-20-quote-remove-budget-and-secondary-actions/codex-verify.exit`
+
+## 2026-02-20 (AI-SPEC-001 ai-agent-platform-evolution spec)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`).
+  - Added new spec file: `harness/prompts/ai-agent-platform-evolution-spec.xml`.
+  - Spec defines platform modules, domain model, functional/non-functional requirements, API contracts, phased delivery plan, and acceptance criteria for evolving the marketing site into a configurable AI Agent platform (客服/报价/预约/销售跟进).
+  - Added backlog item `AI-SPEC-001` with `passes: true` in `harness/feature_list.json`.
+- Verified flows:
+  - Re-verified previously passing baseline tracking contracts (`TRK-001`, `TRK-002`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Verified spec structure evidence checks (required sections + counts).
+  - Ran static quality gates via `bash harness/scripts/codex-verify.sh` (pass).
+- Regressions/blockers:
+  - Playwright baseline recheck (`pnpm test:e2e --grep "TRK-001"`) is currently blocked in this environment due `Process from config.webServer exited early`.
+  - Used deterministic tracking harness verification for baseline requirement in this session.
+- Evidence:
+  - `harness/verification/2026-02-20-ai-spec-file/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-ai-spec-file/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-ai-spec-file/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-02-20-ai-spec-file/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-02-20-ai-spec-file/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-ai-spec-file/ai-spec-content-check.log`
+  - `harness/verification/2026-02-20-ai-spec-file/ai-spec-structure-check.log`
+  - `harness/verification/2026-02-20-ai-spec-file/ai-spec-structure-check.exit`
+  - `harness/verification/2026-02-20-ai-spec-file/codex-verify.log`
+  - `harness/verification/2026-02-20-ai-spec-file/codex-verify.exit`
+- Next highest-priority action:
+  - Implement Phase-1 runtime foundation from the new spec: `Agent Runtime` service skeleton + `Tool Hub` contracts for quote/booking workflows.
+
+## 2026-02-20 (CRO-QUOTE-UI-001 widen Instant Estimate Range actions area)
+
+- Completed:
+  - Re-verified previously passing core tracking contracts (`TRK-001`, `TRK-002`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated `app/quote/QuoteBuilderClient.tsx` to improve ultra-wide layout behavior on `/quote`:
+    - Increased main quote container from `max-w-5xl` to `max-w-6xl`.
+    - Changed two-column layout to weighted columns (`lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]`) so the right **Instant Estimate Range** panel is wider.
+    - Updated contact CTA grid to `sm:grid-cols-2 xl:grid-cols-3` to reduce squeeze on medium widths while keeping 3-up buttons on wide screens.
+    - Refined button label structure (two-line label/value) and added `break-all` for email text to prevent overflow clipping.
+  - Added backlog item `CRO-QUOTE-UI-001` in `harness/feature_list.json` with `passes: true`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build pass).
+  - Static class presence checks for new layout classes in quote page component.
+- Regressions/blockers:
+  - UI screenshot automation via Playwright is currently blocked in this sandbox (Chromium launch fails with `sandbox_host_linux.cc` permission error), so visual evidence is captured via deterministic class checks + static gates this session.
+- Evidence:
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/quote-layout-class-check.log`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/quote-wide-ui-check.log`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/quote-wide-ui-check.exit`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-instant-estimate-width/codex-verify.exit`
+- Next highest-priority action:
+  - Add a deterministic UI regression assertion for `/quote` contact CTA width/overflow behavior that can run without sandboxed browser dependencies.
