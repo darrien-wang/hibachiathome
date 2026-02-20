@@ -350,34 +350,14 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="mt-10 max-w-2xl mx-auto">
               <AnimateOnScroll delay={100} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-blue-600 text-xl">🦐</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Quality Jumbo Shrimp</h3>
-                  <p className="text-gray-600">Fresh jumbo shrimp for every event.</p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={200} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-blue-600 text-xl">🔥</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Expertly Cooked</h3>
-                  <p className="text-gray-600">Quick sear keeps texture tender and juicy.</p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-blue-600 text-xl">🍋</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Enhanced Flavor</h3>
-                  <p className="text-gray-600">Light seasoning to highlight natural sweetness.</p>
+                  <h3 className="font-bold text-lg mb-2">Hibachi Shrimp</h3>
+                  <p className="text-gray-600">Fresh jumbo shrimp, quick sear, clean seasoning.</p>
                 </div>
               </AnimateOnScroll>
             </div>
@@ -418,34 +398,14 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="mt-10 max-w-2xl mx-auto">
               <AnimateOnScroll delay={100} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
                   <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-red-600 text-xl">🥩</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Quality Beef</h3>
-                  <p className="text-gray-600">Selected beef cuts for hibachi grilling.</p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={200} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-red-600 text-xl">🔥</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Optimal Searing</h3>
-                  <p className="text-gray-600">High heat creates clean sear and flavor.</p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center border border-gray-100">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-red-600 text-xl">👨‍🍳</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Skilled Preparation</h3>
-                  <p className="text-gray-600">Chef adjusts doneness for each guest.</p>
+                  <h3 className="font-bold text-lg mb-2">Hibachi Steak</h3>
+                  <p className="text-gray-600">Selected cuts, high-heat sear, doneness by request.</p>
                 </div>
               </AnimateOnScroll>
             </div>
