@@ -928,3 +928,45 @@
   - `harness/verification/2026-02-20-cro-copy-001/codex-acceptance.exit`
 - Next highest-priority action:
   - Implement `CRO-QUOTE-002` (configurable one-click contact templates with quote context).
+
+## 2026-02-20 (CRO-QUOTE-002 configurable one-click contact templates)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-quote-002`
+  - Added configurable quote contact templates:
+    - new config module `config/quote-contact-templates.ts`
+    - default templates for SMS, email subject/body, and call script
+    - environment override support (no page logic changes required):
+      - `NEXT_PUBLIC_QUOTE_SMS_TEMPLATE`
+      - `NEXT_PUBLIC_QUOTE_EMAIL_SUBJECT_TEMPLATE`
+      - `NEXT_PUBLIC_QUOTE_EMAIL_BODY_TEMPLATE`
+      - `NEXT_PUBLIC_QUOTE_CALL_SCRIPT_TEMPLATE`
+  - Updated quote template rendering pipeline:
+    - `lib/quote-builder.ts` now supports tokenized template interpolation with structured context keys.
+    - `/quote` page consumes templates from config and renders contact actions from configured content.
+  - Preserved structured quote context in all channels:
+    - SMS, Call, Email all include event date, location, guest count, rental, budget, and estimate range context.
+  - Extended deterministic quote verification harness to assert template interpolation behavior:
+    - `harness/scripts/verify-cro-quote-builder.mjs`.
+- Feature status transition:
+  - `CRO-QUOTE-002` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-cro-quote-builder.mjs harness/verification/2026-02-20-cro-quote-002` ✅
+  - template-config checks:
+    - `harness/verification/2026-02-20-cro-quote-002/cro-quote-002-template-config-check.json` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-quote-002/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-cro-quote-002/cro-quote-002-template-config-check.json`
+  - `harness/verification/2026-02-20-cro-quote-002/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-quote-002/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-quote-002/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-quote-002/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-quote-002/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-quote-002/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-004` (service-area copy consistency audit and correction).

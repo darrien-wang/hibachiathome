@@ -1,0 +1,12 @@
+{
+  "checks": [
+    {
+      "id": "env_override_supported",
+      "pass": true
+    },
+    {
+      "id": "default_templates_defined",
+      "pass": true
+    }
+  ]
+}

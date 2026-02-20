@@ -32,6 +32,20 @@ export type QuoteResult = {
   budgetFit: "within_budget" | "above_budget" | "not_provided"
 }
 
+export type QuoteTemplateContext = {
+  event_date: string
+  location: string
+  adults: string
+  kids: string
+  guest_count: string
+  tableware_rental: string
+  upgrades: string
+  budget: string
+  estimate_low: string
+  estimate_high: string
+  quote_summary: string
+}
+
 const ADULT_PRICE = 59.9
 const KID_PRICE = 29.9
 const MINIMUM_SPEND = 599
@@ -140,6 +154,12 @@ function formatAddOnSummary(addOns: QuoteAddOns): string {
   return labels.length > 0 ? labels.join(", ") : "none"
 }
 
+function interpolateTemplate(template: string, context: QuoteTemplateContext): string {
+  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (match, key: keyof QuoteTemplateContext) => {
+    return context[key] ?? match
+  })
+}
+
 export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): string {
   return [
     `Date: ${input.eventDate || "TBD"}`,
@@ -152,33 +172,40 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
   ].join(" | ")
 }
 
-export function buildSmsBody(input: QuoteInput, result: QuoteResult): string {
-  return `Hi Real Hibachi, I completed a quote and want to book. ${buildQuoteSummary(input, result)}`
-}
-
-export function buildEmailPayload(input: QuoteInput, result: QuoteResult): { subject: string; body: string } {
+export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResult): QuoteTemplateContext {
   return {
-    subject: `Quote Request - ${input.eventDate || "TBD Date"} - ${input.location || "TBD Location"}`,
-    body: [
-      "Hi Real Hibachi team,",
-      "",
-      "I would like a confirmation for this event:",
-      `- Event date: ${input.eventDate || "TBD"}`,
-      `- Location: ${input.location || "TBD"}`,
-      `- Adults: ${input.adults || 0}`,
-      `- Kids: ${input.kids || 0}`,
-      `- Tableware rental: ${input.tablewareRental ? "Yes" : "No"}`,
-      `- Upgrades: ${formatAddOnSummary(input.addOns)}`,
-      `- Budget: ${input.budget ? formatCurrency(input.budget) : "Not provided"}`,
-      `- Estimated total range: ${formatCurrency(result.totalRange.low)} - ${formatCurrency(result.totalRange.high)}`,
-      "",
-      "Please confirm availability and next steps.",
-      "",
-      "Thank you.",
-    ].join("\n"),
+    event_date: input.eventDate || "TBD",
+    location: input.location || "TBD",
+    adults: String(input.adults || 0),
+    kids: String(input.kids || 0),
+    guest_count: String(result.guestCount),
+    tableware_rental: input.tablewareRental ? "Yes" : "No",
+    upgrades: formatAddOnSummary(input.addOns),
+    budget: input.budget ? formatCurrency(input.budget) : "Not provided",
+    estimate_low: formatCurrency(result.totalRange.low),
+    estimate_high: formatCurrency(result.totalRange.high),
+    quote_summary: buildQuoteSummary(input, result),
   }
 }
 
-export function buildCallScript(input: QuoteInput, result: QuoteResult): string {
-  return `Hi, I am calling about a quote for ${input.eventDate || "my event"} in ${input.location || "my area"} for ${result.guestCount} guests. My estimate range is ${formatCurrency(result.totalRange.low)} to ${formatCurrency(result.totalRange.high)}.`
+export function buildSmsBody(input: QuoteInput, result: QuoteResult, template: string): string {
+  const context = createQuoteTemplateContext(input, result)
+  return interpolateTemplate(template, context)
+}
+
+export function buildEmailPayload(
+  input: QuoteInput,
+  result: QuoteResult,
+  templates: { subject: string; body: string },
+): { subject: string; body: string } {
+  const context = createQuoteTemplateContext(input, result)
+  return {
+    subject: interpolateTemplate(templates.subject, context),
+    body: interpolateTemplate(templates.body, context),
+  }
+}
+
+export function buildCallScript(input: QuoteInput, result: QuoteResult, template: string): string {
+  const context = createQuoteTemplateContext(input, result)
+  return interpolateTemplate(template, context)
 }

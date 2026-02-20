@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Phone, MessageSquare, Mail, Calculator } from "lucide-react"
 import { siteConfig } from "@/config/site"
+import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { trackEvent } from "@/lib/tracking"
 import {
   buildCallScript,
@@ -44,9 +45,20 @@ export default function QuoteBuilderClient() {
 
   const result = useMemo(() => calculateQuote(input), [input])
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
-  const smsBody = useMemo(() => buildSmsBody(input, result), [input, result])
-  const emailPayload = useMemo(() => buildEmailPayload(input, result), [input, result])
-  const callScript = useMemo(() => buildCallScript(input, result), [input, result])
+  const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
+  const smsBody = useMemo(() => buildSmsBody(input, result, contactTemplates.sms), [input, result, contactTemplates.sms])
+  const emailPayload = useMemo(
+    () =>
+      buildEmailPayload(input, result, {
+        subject: contactTemplates.emailSubject,
+        body: contactTemplates.emailBody,
+      }),
+    [input, result, contactTemplates.emailBody, contactTemplates.emailSubject],
+  )
+  const callScript = useMemo(
+    () => buildCallScript(input, result, contactTemplates.callScript),
+    [input, result, contactTemplates.callScript],
+  )
 
   useEffect(() => {
     const hasAnyInput = Boolean(input.eventDate || input.location || input.adults > 0 || input.kids > 0)

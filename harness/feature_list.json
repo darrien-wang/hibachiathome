@@ -407,7 +407,7 @@
       "Verify SMS, Call, and Email all carry structured quote context.",
       "Verify message templates can be configured without code changes."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-TRACK-001",

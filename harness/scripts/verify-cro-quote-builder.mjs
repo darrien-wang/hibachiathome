@@ -57,9 +57,14 @@ function main() {
   }
 
   const result = calculateQuote(input)
-  const smsBody = buildSmsBody(input, result)
-  const emailPayload = buildEmailPayload(input, result)
-  const callScript = buildCallScript(input, result)
+  const smsTemplate = "SMS {{event_date}} {{location}} {{guest_count}} {{quote_summary}}"
+  const emailSubjectTemplate = "SUBJ {{event_date}} {{location}}"
+  const emailBodyTemplate = "BODY {{tableware_rental}} {{estimate_low}} {{estimate_high}}"
+  const callTemplate = "CALL {{guest_count}} {{estimate_low}} {{estimate_high}}"
+
+  const smsBody = buildSmsBody(input, result, smsTemplate)
+  const emailPayload = buildEmailPayload(input, result, { subject: emailSubjectTemplate, body: emailBodyTemplate })
+  const callScript = buildCallScript(input, result, callTemplate)
 
   assert.equal(result.hasCoreInputs, true, "Quote should be considered complete with core inputs.")
   assert.equal(result.minimumSpend, 599, "Minimum spend must remain consistent with pricing rules.")
@@ -69,8 +74,8 @@ function main() {
 
   assert.ok(smsBody.includes("Irvine"), "SMS template must include location.")
   assert.ok(smsBody.includes("2026-04-20"), "SMS template must include event date.")
-  assert.ok(emailPayload.body.includes("Estimated total range"), "Email template must include estimate range.")
-  assert.ok(callScript.includes("16 guests"), "Call script must include guest count.")
+  assert.ok(emailPayload.body.includes("$"), "Email template must include estimate values.")
+  assert.ok(callScript.includes("16"), "Call script must include guest count.")
 
   const evidence = {
     checks: {

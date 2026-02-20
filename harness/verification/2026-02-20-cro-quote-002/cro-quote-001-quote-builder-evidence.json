@@ -1,0 +1,48 @@
+{
+  "checks": {
+    "quote_calculation_core": "pass",
+    "minimum_spend_logic": "pass",
+    "travel_fee_range": "pass",
+    "contact_template_prefill": "pass"
+  },
+  "sample_input": {
+    "eventDate": "2026-04-20",
+    "location": "Irvine 92620",
+    "adults": 12,
+    "kids": 4,
+    "tablewareRental": true,
+    "budget": 1800,
+    "addOns": {
+      "steak": true,
+      "shrimp": false,
+      "lobster": true
+    }
+  },
+  "sample_result": {
+    "hasCoreInputs": true,
+    "guestCount": 16,
+    "baseSubtotal": 838.4,
+    "minimumSpend": 599,
+    "effectiveBase": 838.4,
+    "travelFeeRange": {
+      "low": 25,
+      "high": 60
+    },
+    "tablewareFee": 40,
+    "addOnTotalRange": {
+      "low": 374.4,
+      "high": 457.6
+    },
+    "totalRange": {
+      "low": 1277.8,
+      "high": 1396
+    },
+    "budgetFit": "within_budget"
+  },
+  "sample_templates": {
+    "smsBody": "SMS 2026-04-20 Irvine 92620 16 Date: 2026-04-20 | Location: Irvine 92620 | Guests: 16 (Adults 12, Kids 4) | Tableware rental: yes | Upgrades: steak, lobster | Budget: $1,800 | Estimated total: $1,278 - $1,396",
+    "emailSubject": "SUBJ 2026-04-20 Irvine 92620",
+    "emailBody": "BODY Yes $1,278 $1,396",
+    "callScript": "CALL 16 $1,278 $1,396"
+  }
+}
