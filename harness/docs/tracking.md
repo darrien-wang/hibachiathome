@@ -33,6 +33,7 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 | `contact_whatsapp_click` | User clicks WhatsApp CTA | Home/Hibachi contact row | No |
 | `contact_sms_click` | User clicks SMS CTA | Home/Hibachi contact row | No |
 | `contact_call_click` | User clicks call CTA | Home/Hibachi contact row | No |
+| `contact_email_click` | User clicks email CTA | Quote/contact channel rows | No |
 | `menu_view` | User opens menu intent | Home/Hibachi “View Menu” action | No |
 | `faq_view` | User opens FAQ intent | Home/Hibachi “FAQ” action | No |
 | `deposit_started` | Deposit initiation intent | Deposit page Stripe CTA click | No |
@@ -132,3 +133,20 @@ For each release/session, store artifacts under `verification/<date>/`:
   - no emitted event names outside `TrackingEventName` union
   - no non-`snake_case` event names
   - mismatches or planned exceptions must be documented in `harness/codex-progress.md`
+
+## 9) CRO Funnel Reporting (CRO-TRACK-001)
+
+- Weekly export script:
+
+  ```bash
+  node harness/scripts/generate-funnel-report.mjs \
+    --input <events.json> \
+    --output harness/verification/<date>/cro-track-001-weekly-report.json \
+    --window-days 7
+  ```
+
+- Report includes:
+  - headline funnel (`visit -> click -> submit -> close`)
+  - quote funnel stage counts (`quote_started`, `quote_completed`, SMS/Call/Email clicks)
+  - segment breakdowns by `city_or_zip`, `tableware_rental`, and selected add-ons
+  - top traffic sources (`utm_source`, with fallbacks to click IDs when available)

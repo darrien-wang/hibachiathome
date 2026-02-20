@@ -9,6 +9,7 @@ const CLICK_EVENTS = new Set([
   "contact_whatsapp_click",
   "contact_sms_click",
   "contact_call_click",
+  "contact_email_click",
   "phone_click",
   "sms_click",
 ])
@@ -44,6 +45,18 @@ function pct(numerator, denominator) {
   return Math.round((numerator / denominator) * 10000) / 100
 }
 
+function pickSource(event) {
+  if (event.utm_source) return String(event.utm_source)
+  if (event.gclid) return "google_ads_gclid"
+  if (event.wbraid) return "google_ads_wbraid"
+  if (event.gbraid) return "google_ads_gbraid"
+  return "direct_or_unknown"
+}
+
+function boolKey(value) {
+  return value ? "yes" : "no"
+}
+
 export function buildFunnelReport(events, windowDays = 7) {
   const windowStart = Date.now() - windowDays * 24 * 60 * 60 * 1000
   const recent = events.filter((event) => toTimestamp(event) >= windowStart)
@@ -54,6 +67,23 @@ export function buildFunnelReport(events, windowDays = 7) {
   let close = 0
 
   const ab = {}
+  const sourceCounts = {}
+  const segmentByCity = {}
+  const segmentByRental = { yes: 0, no: 0, unknown: 0 }
+  const segmentByAddOns = {
+    steak: 0,
+    shrimp: 0,
+    lobster: 0,
+    none: 0,
+  }
+
+  const quoteFunnel = {
+    quote_started: 0,
+    quote_completed: 0,
+    sms_click: 0,
+    call_click: 0,
+    email_click: 0,
+  }
 
   for (const event of recent) {
     const eventName = event.event
@@ -61,6 +91,41 @@ export function buildFunnelReport(events, windowDays = 7) {
     if (CLICK_EVENTS.has(eventName)) click += 1
     if (SUBMIT_EVENTS.has(eventName)) submit += 1
     if (CLOSE_EVENTS.has(eventName)) close += 1
+
+    if (eventName === "quote_started") quoteFunnel.quote_started += 1
+    if (eventName === "quote_completed") quoteFunnel.quote_completed += 1
+    if (eventName === "contact_sms_click") quoteFunnel.sms_click += 1
+    if (eventName === "contact_call_click") quoteFunnel.call_click += 1
+    if (eventName === "contact_email_click" || (eventName === "lead_submit" && event.lead_channel === "email")) {
+      quoteFunnel.email_click += 1
+    }
+
+    if (
+      eventName === "quote_completed" ||
+      eventName === "contact_sms_click" ||
+      eventName === "contact_call_click" ||
+      eventName === "contact_email_click"
+    ) {
+      const source = pickSource(event)
+      sourceCounts[source] = (sourceCounts[source] || 0) + 1
+
+      const city = String(event.city_or_zip || "unspecified")
+      segmentByCity[city] = (segmentByCity[city] || 0) + 1
+
+      if (typeof event.tableware_rental === "boolean") {
+        segmentByRental[boolKey(event.tableware_rental)] += 1
+      } else {
+        segmentByRental.unknown += 1
+      }
+
+      const hasSteak = Boolean(event.add_on_steak)
+      const hasShrimp = Boolean(event.add_on_shrimp)
+      const hasLobster = Boolean(event.add_on_lobster)
+      if (hasSteak) segmentByAddOns.steak += 1
+      if (hasShrimp) segmentByAddOns.shrimp += 1
+      if (hasLobster) segmentByAddOns.lobster += 1
+      if (!hasSteak && !hasShrimp && !hasLobster) segmentByAddOns.none += 1
+    }
 
     if (eventName === "ab_test_exposure" || eventName === "ab_test_conversion") {
       const experiment = String(event.experiment_id || "unknown")
@@ -92,6 +157,11 @@ export function buildFunnelReport(events, windowDays = 7) {
     }
   })
 
+  const topSources = Object.entries(sourceCounts)
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
   return {
     window_days: windowDays,
     generated_at: new Date().toISOString(),
@@ -104,6 +174,13 @@ export function buildFunnelReport(events, windowDays = 7) {
       click_to_submit_rate: pct(submit, click),
       submit_to_close_rate: pct(close, submit),
     },
+    quote_funnel: quoteFunnel,
+    quote_segments: {
+      by_city_or_zip: segmentByCity,
+      by_tableware_rental: segmentByRental,
+      by_add_on: segmentByAddOns,
+    },
+    top_traffic_sources: topSources,
     ab_tests: abWinners,
   }
 }

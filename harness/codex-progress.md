@@ -1161,3 +1161,49 @@
   - `harness/verification/2026-02-20-cro-brand-001/codex-acceptance.exit`
 - Next highest-priority action:
   - `CRO-007` remains intentionally skipped per stakeholder direction. Next implementable item: `CRO-TRACK-001` (quote funnel segmentation + weekly exportability).
+
+## 2026-02-20 (CRO-TRACK-001 quote funnel segmentation + weekly source reporting)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-track-001`
+  - Added Quote Builder contact event coverage:
+    - `lib/tracking.ts`
+    - added `contact_email_click` event name to tracking contract.
+  - Extended Quote Builder click payload segmentation:
+    - `app/quote/QuoteBuilderClient.tsx`
+    - SMS/Call click events now include:
+      - `city_or_zip`
+      - `tableware_rental`
+      - `add_on_steak`
+      - `add_on_shrimp`
+      - `add_on_lobster`
+    - Email action now emits `contact_email_click` before `lead_submit`.
+  - Extended weekly funnel export with segmentation and source breakdown:
+    - `harness/scripts/generate-funnel-report.mjs`
+    - adds quote step counts (`quote_started`, `quote_completed`, sms/call/email clicks)
+    - adds segment aggregation by city/rental/add-ons
+    - adds top-source summary from `utm_source` and click-id fallback fields.
+  - Added deterministic verifier for CRO-TRACK-001 outputs:
+    - `harness/scripts/verify-cro-track-001.mjs`.
+  - Updated tracking docs:
+    - `harness/docs/tracking.md` with `contact_email_click` and CRO-TRACK-001 funnel reporting notes.
+- Feature status transition:
+  - `CRO-TRACK-001` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-cro-track-001.mjs harness/verification/2026-02-20-cro-track-001` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-track-001/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-track-001/cro-track-001-funnel-segmentation-report.json`
+  - `harness/verification/2026-02-20-cro-track-001/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-track-001/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-track-001/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-track-001/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-track-001/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-track-001/codex-acceptance.exit`
+- Next highest-priority action:
+  - `CRO-007` remains intentionally skipped per stakeholder direction. Next implementable item: `CRO-SOCIALPROOF-001` (real-time booking social-proof toast).

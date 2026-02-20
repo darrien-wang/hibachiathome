@@ -1,0 +1,52 @@
+{
+  "window_days": 7,
+  "generated_at": "2026-02-20T00:51:25.739Z",
+  "funnel": {
+    "visit": 1,
+    "click": 4,
+    "submit": 1,
+    "close": 0,
+    "visit_to_click_rate": 400,
+    "click_to_submit_rate": 25,
+    "submit_to_close_rate": 0
+  },
+  "quote_funnel": {
+    "quote_started": 1,
+    "quote_completed": 1,
+    "sms_click": 1,
+    "call_click": 1,
+    "email_click": 1
+  },
+  "quote_segments": {
+    "by_city_or_zip": {
+      "Irvine": 2,
+      "Pasadena": 2
+    },
+    "by_tableware_rental": {
+      "yes": 2,
+      "no": 2,
+      "unknown": 0
+    },
+    "by_add_on": {
+      "steak": 2,
+      "shrimp": 1,
+      "lobster": 2,
+      "none": 1
+    }
+  },
+  "top_traffic_sources": [
+    {
+      "source": "google",
+      "count": 2
+    },
+    {
+      "source": "instagram",
+      "count": 1
+    },
+    {
+      "source": "google_ads_gclid",
+      "count": 1
+    }
+  ],
+  "ab_tests": []
+}

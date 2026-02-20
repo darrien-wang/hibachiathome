@@ -420,6 +420,6 @@
       "Verify weekly exportable funnel reports are available.",
       "Verify top-performing traffic sources can be identified reliably."
     ],
-    "passes": false
+    "passes": true
   }
 ]

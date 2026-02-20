@@ -20,6 +20,7 @@ type TrackingEventName =
   | "contact_whatsapp_click"
   | "contact_sms_click"
   | "contact_call_click"
+  | "contact_email_click"
   | "menu_view"
   | "faq_view"
   | "deposit_started"

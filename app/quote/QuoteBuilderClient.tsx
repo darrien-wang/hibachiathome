@@ -115,6 +115,11 @@ export default function QuoteBuilderClient() {
     trackEvent("contact_sms_click", {
       contact_surface: "quote_builder",
       quote_summary: quoteSummary,
+      city_or_zip: input.location || "unspecified",
+      tableware_rental: input.tablewareRental,
+      add_on_steak: input.addOns.steak,
+      add_on_shrimp: input.addOns.shrimp,
+      add_on_lobster: input.addOns.lobster,
     })
     window.location.href = smsHref
   }
@@ -124,12 +129,26 @@ export default function QuoteBuilderClient() {
     trackEvent("contact_call_click", {
       contact_surface: "quote_builder",
       quote_summary: quoteSummary,
+      city_or_zip: input.location || "unspecified",
+      tableware_rental: input.tablewareRental,
+      add_on_steak: input.addOns.steak,
+      add_on_shrimp: input.addOns.shrimp,
+      add_on_lobster: input.addOns.lobster,
     })
     window.location.href = `tel:${phoneRaw}`
   }
 
   const onEmailClick = () => {
     if (contactDisabled) return
+    trackEvent("contact_email_click", {
+      contact_surface: "quote_builder",
+      quote_summary: quoteSummary,
+      city_or_zip: input.location || "unspecified",
+      tableware_rental: input.tablewareRental,
+      add_on_steak: input.addOns.steak,
+      add_on_shrimp: input.addOns.shrimp,
+      add_on_lobster: input.addOns.lobster,
+    })
     trackEvent("lead_submit", {
       lead_channel: "email",
       lead_source: "quote_builder",
