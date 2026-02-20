@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Calculator, Phone, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { PromotionBanner } from "@/components/promotions/promotion-banner"
 import { siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
 
@@ -141,21 +140,6 @@ export default function BookingPage() {
           ))}
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-10">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">How It Works</h3>
-          <div className="text-blue-800 space-y-2">
-            <p>
-              <strong>Step 1:</strong> Use our free estimate calculator to get your pricing
-            </p>
-            <p>
-              <strong>Step 2:</strong> Contact us in this order: SMS, phone, email, then WhatsApp
-            </p>
-            <p>
-              <strong>Step 3:</strong> We'll confirm details and arrange payment (cash, Zelle, Venmo)
-            </p>
-          </div>
-        </div>
-
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-10">
           <h3 className="text-lg font-semibold text-amber-900 mb-3">Important Policies Before You Book</h3>
           <div className="grid gap-3 text-sm text-amber-900 md:grid-cols-2">
@@ -178,7 +162,6 @@ export default function BookingPage() {
           </div>
         </div>
 
-        <PromotionBanner />
       </div>
     </div>
   )

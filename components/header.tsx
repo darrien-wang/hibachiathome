@@ -127,7 +127,6 @@ export function Header() {
               <a href="tel:2137707788" onClick={handleHeaderPhoneClick} className="hover:text-[#F1691B]">
                 Call
               </a>
-              <span>213-770-7788</span>
             </div>
           </div>
 
