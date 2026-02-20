@@ -204,6 +204,9 @@ export default function Footer() {
         {/* Bottom Section: Sitemap Links and Copyright */}
         <div className="border-t border-[#21212A] pt-6 mt-6 text-center">
           <div className="mb-4">
+            <Link href="/blog" className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]">
+              <strong>Blog (SEO Articles)</strong>
+            </Link>
             <a
               href="https://www.realhibachi.com/sitemap.html" // Assuming this is the correct public URL
               title="Hibachi at home in NY - HTML Sitemap"
