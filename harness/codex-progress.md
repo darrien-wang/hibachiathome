@@ -731,3 +731,168 @@
   - `harness/verification/2026-02-19-trk-020/codex-verify.exit`
 - Next highest-priority action:
   - Backlog complete (`TRK-001` to `TRK-020` all passing). Optional next step: bundle and push branch for review.
+
+## 2026-02-19 (CRO task-list archival for stakeholder review)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`).
+  - Re-verified previously passing core flow contract via deterministic harness (`node harness/scripts/verify-tracking-page-view.mjs`).
+  - Saved two stakeholder-facing CRO task lists as JSON artifacts:
+    - `harness/verification/2026-02-19-cro-task-lists/task-list-1-site-review.json`
+    - `harness/verification/2026-02-19-cro-task-lists/task-list-2-user-priority.json`
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-19-cro-task-lists` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` failed in this environment with `Process from config.webServer exited early`; captured as evidence and used deterministic harness reverify for baseline.
+- Evidence:
+  - `harness/verification/2026-02-19-cro-task-lists/reverify-trk-001.log`
+  - `harness/verification/2026-02-19-cro-task-lists/reverify-trk-001.exit`
+  - `harness/verification/2026-02-19-cro-task-lists/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-02-19-cro-task-lists/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-02-19-cro-task-lists/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-19-cro-task-lists/codex-verify.log`
+  - `harness/verification/2026-02-19-cro-task-lists/codex-verify.exit`
+  - `harness/verification/2026-02-19-cro-task-lists/task-list-1-site-review.json`
+  - `harness/verification/2026-02-19-cro-task-lists/task-list-2-user-priority.json`
+- Feature backlog status:
+  - No `harness/feature_list.json` status transitions in this archival-only task.
+- Update (2026-02-19): Added merged stakeholder task artifact `harness/verification/2026-02-19-cro-task-lists/task-list-merged.json` combining both CRO lists into a single `tasks` array with `source_list` tracing.
+- Update (2026-02-19): De-duplicated merged CRO artifact per stakeholder direction:
+  - Removed duplicate `CRO-002`/`CRO-QUOTE-001` overlap by merging into final `CRO-QUOTE-001`.
+  - Kept `CRO-QUOTE-002` as dependent follow-up.
+  - Updated `harness/verification/2026-02-19-cro-task-lists/task-list-merged.json` total tasks `14 -> 13` and added `merged_from` traceability.
+- Update (2026-02-19): Generated `harness/verification/2026-02-19-cro-task-lists/feature_list-cro.json` in the same schema as `harness/feature_list.json` (`id`, `priority`, `category`, `description`, `steps`, `passes`) from `task-list-merged.json` for direct backlog-style use.
+- Update (2026-02-19): Converted `harness/verification/2026-02-19-cro-task-lists/feature_list-cro.json` to fully English content (descriptions + steps), preserving `feature_list.json` schema and keeping all task IDs unchanged.
+
+## 2026-02-20 (CRO-001 contact intent split: customer contact vs partner recruitment)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`).
+  - Re-verified baseline tracking contract with deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-001`
+  - Reworked `/contact` into a customer-facing contact experience:
+    - quick-access customer channels: Call, WhatsApp, SMS
+    - short event request form (name, phone, email, event date, guest count, city/ZIP, message)
+    - contact form success tracking now emits `lead_submit` with `lead_type: "customer_inquiry"` and contextual metadata.
+  - Split partner recruitment into a dedicated route:
+    - added `app/partner-opportunities/page.tsx`
+    - added `app/partner-opportunities/PartnerOpportunitiesPageClient.tsx`
+    - retained partner application form and tracking under the new route.
+  - Moved partner recruitment discovery to footer navigation:
+    - added `Partner Opportunities` link in `components/footer.tsx`.
+  - Updated sitemap coverage:
+    - added `/partner-opportunities` in `app/sitemap.ts`.
+- Feature status transition:
+  - `CRO-001` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + compile build pass)
+  - structural contract check for CRO-001 split:
+    - `harness/verification/2026-02-20-cro-001/cro-001-structure-check.json` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-001/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-001/cro-001-structure-check.json`
+  - `harness/verification/2026-02-20-cro-001/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-001/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-001/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-001/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-001/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-001/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-QUOTE-001` (one-page Quote Builder MVP with instant estimate and contact actions).
+
+## 2026-02-20 (CRO-QUOTE-001 one-page Quote Builder MVP)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`).
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-quote-001`
+  - Added one-page quote builder route:
+    - `app/quote/page.tsx`
+    - `app/quote/QuoteBuilderClient.tsx`
+  - Implemented quote MVP behavior on a single page:
+    - core inputs (Date, City/ZIP, Adults/Kids, Tableware Rental default on, Budget optional)
+    - instant estimate range with minimum-spend logic, travel fee range, and add-on upgrades (steak/shrimp/lobster)
+    - primary one-click actions (SMS, Call, Email) with quote-context prefill
+    - secondary actions (Place Deposit, Request Manual Confirmation).
+  - Added reusable quote calculation + template generation module:
+    - `lib/quote-builder.ts`
+  - Added quote funnel event tracking:
+    - new tracking event names in `lib/tracking.ts`: `quote_started`, `quote_completed`
+    - quote page emits `quote_started` on first meaningful input
+    - quote page emits `quote_completed` when required inputs produce estimate-ready output
+    - contact actions emit measurable click/lead events with quote context.
+  - Added discoverability entry-point from booking page:
+    - `app/book/page.tsx` adds `Get Instant Quote` CTA card without replacing legacy estimation flow.
+  - Added contact-page query prefill support for manual confirmation handoff:
+    - `app/contact/ContactPageClient.tsx` reads quote params and pre-fills reason/message fields.
+  - Added sitemap coverage:
+    - `/quote` in `app/sitemap.ts`.
+  - Added deterministic verification script for quote logic/templates:
+    - `harness/scripts/verify-cro-quote-builder.mjs`.
+  - Updated tracking contract docs for new quote events:
+    - `harness/docs/tracking.md`.
+  - Updated TRK-008 e2e spec to match the new customer-focused contact form contract:
+    - `e2e/smoke.spec.ts`.
+- Feature status transition:
+  - `CRO-QUOTE-001` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-cro-quote-builder.mjs harness/verification/2026-02-20-cro-quote-001` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-quote-001/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-quote-001/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-cro-quote-001/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-quote-001/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-quote-001/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-quote-001/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-quote-001/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-quote-001/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-003` (unify and strengthen primary CTA, including mobile sticky CTA bar).
+
+## 2026-02-20 (CRO-003 primary CTA unification + mobile sticky CTA bar)
+
+- Completed:
+  - Re-verified baseline tracking contract with deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-003`
+  - Implemented mobile sticky CTA bar with one-tap access:
+    - `components/floating-contact-buttons.tsx`
+    - mobile-only bottom bar (`md:hidden`) with `Book`, `Call`, `WhatsApp`, `SMS`
+    - preserved tracking semantics for click events (`lead_start`, `phone_click`, `contact_whatsapp_click`, `sms_click`)
+    - hides on deposit confirmation-critical flows (`/deposit`, `/after-deposit`) to avoid checkout obstruction.
+  - Added layout spacing to prevent sticky bar overlap on content:
+    - `app/layout.tsx` (`main` gets mobile bottom padding).
+  - Strengthened primary CTA clarity above-the-fold and near end of key pages:
+    - `components/hero-section.tsx` adds primary CTA pair: `Get Instant Quote` + `Book Now`.
+    - `app/page.tsx` CTA section now repeats `Get Instant Quote` + `Book Now` before contact option cards.
+    - `app/book/page.tsx` already includes `Get Instant Quote` card as recommended first step.
+  - Standardized key CTA copy instance:
+    - `app/hibachi-at-home/page.tsx` changed `Book Online` -> `Book Now`.
+    - `components/footer.tsx` changed quick link `Book Online` -> `Book Now`.
+- Feature status transition:
+  - `CRO-003` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+  - structural CTA checks:
+    - `harness/verification/2026-02-20-cro-003/cro-003-structure-check.json` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` still fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-003/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-003/cro-003-structure-check.json`
+  - `harness/verification/2026-02-20-cro-003/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-003/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-003/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-003/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-003/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-003/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-COPY-001` (surface Zero Mess Guarantee prominently on home + book + FAQ).

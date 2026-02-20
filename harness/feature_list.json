@@ -243,5 +243,183 @@
       "Document mismatches in codex-progress.md."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Fix Contact page intent so customer inquiries are separated from partner recruitment.",
+    "steps": [
+      "Create a customer-facing Contact page with Phone, WhatsApp, SMS, and a short form.",
+      "Rename the current partner recruitment page to Partner Opportunities and move it to footer navigation.",
+      "Verify users who click Contact can immediately request a booking or ask a question.",
+      "Verify partner recruitment no longer interrupts normal customer flow."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Launch a one-page Quote Builder MVP so users can get pricing context before contacting you.",
+    "steps": [
+      "Collect 4+1 inputs in under 30 seconds: Date, Zip/City, Adults/Kids, Tableware rental (default selected), Budget (optional).",
+      "Show instant estimate range with minimum-spend logic, travel fee range, and upgrade options (steak/shrimp/lobster).",
+      "Provide primary actions: one-click SMS, one-click Call, and one-click Email with auto-filled lead details.",
+      "Provide a secondary action to place deposit or request manual confirmation.",
+      "Add event tracking for quote_started, quote_completed, and contact clicks.",
+      "Verify users can complete the core quote flow on a single page.",
+      "Verify contact templates are prefilled with captured quote parameters.",
+      "Verify quote completion rate and post-quote contact rate are measurable."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Unify and strengthen the primary CTA so users always know the next action.",
+    "steps": [
+      "Standardize primary CTA copy across the site to Book Now or Get Instant Quote.",
+      "Add a mobile sticky CTA bar with Call, WhatsApp, and Book actions.",
+      "Verify every key page has one clear primary CTA above the fold and near page end.",
+      "Verify mobile users can reach booking in one tap from all core pages."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-004",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Fix inconsistent service-area copy to improve trust and clarity.",
+    "steps": [
+      "Audit all pages for city/state copy mismatches and fix inconsistencies.",
+      "Create or refine city-specific landing pages and add internal links.",
+      "Verify service-area statements are consistent and factually correct site-wide.",
+      "Verify users can clearly understand where services are available."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-005",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Improve price transparency to reduce hesitation before contact.",
+    "steps": [
+      "Add total-price example cards for common party sizes (e.g., 10/15/20 guests).",
+      "Clearly explain taxes, travel, equipment, and add-on costs.",
+      "Verify users can understand expected total cost within 30 seconds.",
+      "Verify pricing-clarity objections decrease in inbound messages."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-006",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Upgrade FAQ from a list of questions into a conversion objection-handling module.",
+    "steps": [
+      "Expand the top three high-frequency objections by default.",
+      "Repeat critical policy answers on the Book page (cancellation, weather, arrival timing, allergies).",
+      "Verify users can see key answers without extra clicks.",
+      "Verify booking pages cover major objections before contact."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-007",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Strengthen social-proof authenticity with verifiable external evidence.",
+    "steps": [
+      "Add a clickable Google Reviews widget or a View all reviews link.",
+      "Add real event video snippets with customer name/city tags where possible.",
+      "Verify users can open third-party review sources directly.",
+      "Verify each core landing page shows at least three verifiable social-proof elements."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-008",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Build a conversion tracking and A/B testing baseline for continuous CRO iteration.",
+    "steps": [
+      "Track CTA clicks, form submits, WhatsApp clicks, and phone clicks.",
+      "Run two initial A/B tests: hero headline and primary CTA copy.",
+      "Verify weekly funnel reporting is available (visit -> click -> submit -> close).",
+      "Verify at least one test result is produced each month."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-BRAND-001",
+    "priority": "P1",
+    "category": "style",
+    "description": "Add a chef-led brand story section to reduce template feel and improve trust.",
+    "steps": [
+      "Add a Why Real Hibachi story block near the top of the homepage.",
+      "Include chef profile, years of experience, event count, and brand promise.",
+      "Optionally add a 30-60 second intro video.",
+      "Verify users can see brand story within the first three scrolls.",
+      "Verify the section includes a clear conversion CTA."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-SOCIALPROOF-001",
+    "priority": "P2",
+    "category": "style",
+    "description": "Add a real-time booking notification pop-up to increase urgency and confidence.",
+    "steps": [
+      "Show a small bottom-right social-proof toast with recent booking examples.",
+      "Rotate every 20-40 seconds and allow users to dismiss it.",
+      "Ensure mobile rendering does not block core CTA buttons.",
+      "Verify popup does not interfere with form inputs or navigation.",
+      "Verify dismissed popup stays hidden for the current session."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-COPY-001",
+    "priority": "P0",
+    "category": "style",
+    "description": "Highlight Zero Mess Guarantee to address top in-home service anxiety.",
+    "steps": [
+      "Add high-contrast copy in Show Up Package: Zero Mess, We Clean Up Everything.",
+      "Repeat the cleanliness guarantee on FAQ and Book pages.",
+      "Optionally add before/after cleanup visuals.",
+      "Verify guarantee message is visible on home and booking pages.",
+      "Verify guarantee is visible above the fold on mobile where practical."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-QUOTE-002",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Enable one-click contact channels with auto-filled templates to improve lead quality.",
+    "steps": [
+      "Respect dependency on CRO-QUOTE-001.",
+      "Prefill SMS message with date, location, guest count, rental need, and estimate range.",
+      "Provide a suggested call script aligned to quote details.",
+      "Prefill email subject and body with captured lead parameters.",
+      "Verify SMS, Call, and Email all carry structured quote context.",
+      "Verify message templates can be configured without code changes."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-TRACK-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Implement Quote Builder funnel analytics for measurable ROI optimization.",
+    "steps": [
+      "Track quote_started, quote_completed, and SMS/Call/Email click events.",
+      "Segment funnel performance by city, rental selection, and add-on choices.",
+      "Verify weekly exportable funnel reports are available.",
+      "Verify top-performing traffic sources can be identified reliably."
+    ],
+    "passes": false
   }
 ]
