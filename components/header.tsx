@@ -196,9 +196,9 @@ export function Header() {
         </div>
 
         {/* Desktop Layout */}
-        <div className="hidden md:flex items-center justify-between max-w-5xl mx-auto">
+        <div className="hidden md:flex items-center justify-between w-full max-w-7xl mx-auto">
           {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-end flex-1">
+          <nav className="flex items-center justify-between flex-1 pr-8">
             {navItems
               .filter((item) => !item.disabled)
               .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -206,7 +206,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
+                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
                 >
                   {item.name}
                 </Link>
@@ -228,20 +228,22 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-start flex-1">
-            {navItems
-              .filter((item) => !item.disabled)
-              .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
-              .map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide mx-1"
-                >
-                  {item.name}
-                </Link>
-              ))}
-            <div className="ml-auto">
+          <div className="flex items-center justify-between flex-1 pl-8">
+            <div className="flex items-center justify-between flex-1">
+              {navItems
+                .filter((item) => !item.disabled)
+                .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
+                .map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+            </div>
+            <div className="ml-6">
               <Button
                 asChild
                 className="bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 text-base border-2 border-amber-500"
