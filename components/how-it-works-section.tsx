@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
-import { CheckCircle, MessageSquare, Calendar, CreditCard, ChefHat } from "lucide-react"
+import { MessageSquare, Calendar, CreditCard, ChefHat } from "lucide-react"
 
 export default function HowItWorksSection() {
   const [animatedSteps, setAnimatedSteps] = useState([false, false, false, false])
@@ -50,49 +50,11 @@ export default function HowItWorksSection() {
       />
       <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
       <div className="container mx-auto px-4 relative z-20">
-        {/* Package + Setup Add-On Highlight Box */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 mb-12 shadow-lg border-l-4 border-amber-500 max-w-3xl mx-auto">
-          <h3 className="text-2xl md:text-3xl font-bold mb-3 text-amber-700 font-serif">
-            One Package, Optional Full Setup
-          </h3>
-          <p className="text-gray-700 mb-6 text-lg">
-            Just show up and enjoy! We bring the chef, food, equipment, tables, and even clean up afterward.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Chef & Food</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Grill & Equipment</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Tables & Chairs</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Plates & Utensils</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Setup & Cleanup</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span className="text-gray-800">Full Service</span>
-            </div>
-          </div>
-          <p className="text-gray-700 font-bold text-center text-lg border-t border-gray-200 pt-4 text-amber-700">
-            You literally just show up and enjoy your party!
-          </p>
-        </div>
-
         <AnimateOnScroll direction="down">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12 text-white">
             🎉 <span className="text-amber-300">Book Your Party in 4 Easy Steps!</span>
           </h2>
+          <p className="text-center text-amber-100 mb-8 text-sm">Need custom details? Ask support directly and we will guide you.</p>
         </AnimateOnScroll>
         {/* Desktop Timeline View */}
         <div className="hidden md:block relative">

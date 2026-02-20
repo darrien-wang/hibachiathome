@@ -1519,3 +1519,23 @@
 - Evidence:
   - `harness/verification/2026-02-20-single-package-simplify/codex-verify.log`
   - `harness/verification/2026-02-20-single-package-simplify/codex-verify.exit`
+
+## 2026-02-20 (Homepage simplification pass: remove extra detail cards)
+
+- Completed:
+  - Removed additional setup detail card from homepage package section:
+    - `app/page.tsx`
+    - deleted `Optional Setup Add-On` card block.
+  - Simplified package intro copy:
+    - now positions one package and explicitly routes edge-case details to support.
+  - Reduced package detail density in the card:
+    - tightened bullet list and moved uncommon detail to short support hint.
+  - Removed large top detail block from `How It Works` section:
+    - `components/how-it-works-section.tsx`
+    - section now starts directly with the 4-step flow.
+    - added compact line encouraging users to ask support for custom details.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-home-simplify-more/codex-verify.log`
+  - `harness/verification/2026-02-20-home-simplify-more/codex-verify.exit`

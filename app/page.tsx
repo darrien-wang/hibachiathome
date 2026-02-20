@@ -288,11 +288,11 @@ export default function Home() {
                 Our Signature <span className="text-primary">Package</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                One core hibachi package, with optional table/chair/utensil add-on when needed.
+                One core hibachi package. For setup add-ons or edge-case details, message support directly.
               </p>
             </AnimateOnScroll>
 
-            <div className="flex flex-col gap-8 max-w-3xl mx-auto justify-center items-center">
+            <div className="flex flex-col max-w-3xl mx-auto justify-center items-center">
               {/* Basic Package Card */}
               <AnimateOnScroll direction="left" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
@@ -319,7 +319,7 @@ export default function Home() {
                       </p>
                       <p className="text-xs text-gray-600">($599 minimum)</p>
                     </div>
-                    <ul className="space-y-1 mb-6 text-sm">
+                    <ul className="space-y-1 mb-4 text-sm">
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
                         <span>2 proteins of your choice</span>
@@ -334,19 +334,11 @@ export default function Home() {
                       </li>
                       <li className="flex items-start">
                         <span className="text-amber-500 mr-2">•</span>
-                        <span>Perfect for intimate gatherings</span>
+                        <span>Chef performance included</span>
                       </li>
                     </ul>
+                    <p className="text-xs text-gray-600">Need setup or special requests? Ask support and we will tailor it.</p>
                   </div>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll direction="up" className="w-full max-w-md mx-auto">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-                  <h3 className="text-lg font-bold text-amber-900 mb-2">Optional Setup Add-On</h3>
-                  <p className="text-sm text-amber-900">
-                    Need us to bring tables, chairs, and utensils? Add full setup for <strong>+$15 per guest</strong>.
-                  </p>
                 </div>
               </AnimateOnScroll>
 
