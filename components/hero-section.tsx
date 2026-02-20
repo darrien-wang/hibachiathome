@@ -190,7 +190,7 @@ export default function HeroSection() {
 
   const headlineText =
     headlineVariant === "chef_story"
-      ? "Private Chef. Live Hibachi Show. Zero Cleanup."
+      ? "Private Chef. Live Hibachi Show. Easy Hosting."
       : "Want a Party? One Call, That's All."
   const primaryCtaText = ctaVariant === "value_focused" ? "See Instant Pricing" : "Get Instant Quote"
 

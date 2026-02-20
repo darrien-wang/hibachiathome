@@ -214,14 +214,6 @@ export default function Home() {
   return (
     <div>
       <HeroSection />
-      <section className="bg-black text-white py-4 px-4">
-        <div className="container mx-auto text-center">
-          <p className="text-base md:text-lg font-bold tracking-wide">
-            SHOW UP PACKAGE GUARANTEE: ZERO MESS, WE CLEAN UP EVERYTHING.
-          </p>
-        </div>
-      </section>
-
       <AnimateOnScroll>
         <section className="py-14 bg-gradient-to-r from-stone-50 to-amber-50 border-b border-amber-100">
           <div className="container mx-auto px-4">
@@ -276,9 +268,7 @@ export default function Home() {
                     <p>Performance-driven format that balances entertainment with food quality.</p>
                   </div>
                   <div className="rounded-md bg-amber-50 border border-amber-100 p-3">
-                    <p className="font-medium text-amber-900">
-                      “Zero Mess Guarantee” applies: we clean up the cooking area before leaving.
-                    </p>
+                    <p className="font-medium text-amber-900">Service promise: clear communication and smooth hosting support.</p>
                   </div>
                 </div>
               </div>
@@ -369,9 +359,6 @@ export default function Home() {
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-bold mb-2">Show Up Package</h3>
-                    <p className="mb-3 inline-block rounded bg-black px-3 py-1 text-xs font-bold text-white">
-                      Zero Mess Guarantee: We Clean Up Everything
-                    </p>
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$75</span>

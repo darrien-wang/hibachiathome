@@ -82,7 +82,7 @@ const reviews = [
     name: "Linda",
     location: "NY",
     rating: 5,
-    text: "The best experience we've had at home. Fun, delicious, and zero cleanup.",
+    text: "The best experience we've had at home. Fun, delicious, and easy to host.",
   },
   {
     name: "Michael",

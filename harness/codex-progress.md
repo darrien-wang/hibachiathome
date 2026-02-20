@@ -1351,3 +1351,26 @@
   - `harness/verification/2026-02-20-cro-quote-ui-template-polish/cro-quote-travel-fee-api-check.json`
   - `harness/verification/2026-02-20-cro-quote-ui-template-polish/codex-verify.log`
   - `harness/verification/2026-02-20-cro-quote-ui-template-polish/codex-verify.exit`
+
+## 2026-02-20 (Remove zero-mess guarantee copy)
+
+- Completed:
+  - Removed explicit `Zero Mess Guarantee` messaging from key pages:
+    - `app/page.tsx` (homepage guarantee strip, guarantee badge copy, and guarantee callout text removed/replaced)
+    - `app/book/page.tsx` (guarantee banner removed)
+    - `app/faq/FAQClientPage.tsx` (guarantee banner removed)
+  - Removed related headline phrasing from hero variant:
+    - `components/hero-section.tsx`
+    - `Zero Cleanup` -> neutral hosting wording.
+  - Removed remaining zero-cleanup claim from hibachi-at-home testimonial copy:
+    - `app/hibachi-at-home/page.tsx`.
+- Verified:
+  - keyword scan for removed terms written to:
+    - `harness/verification/2026-02-20-remove-zero-mess-copy/zero-mess-scan.log`
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-remove-zero-mess-copy/zero-mess-scan.log`
+  - `harness/verification/2026-02-20-remove-zero-mess-copy/zero-mess-scan.exit`
+  - `harness/verification/2026-02-20-remove-zero-mess-copy/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-remove-zero-mess-copy/codex-verify.log`
+  - `harness/verification/2026-02-20-remove-zero-mess-copy/codex-verify.exit`

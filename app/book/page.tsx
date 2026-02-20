@@ -29,12 +29,6 @@ export default function BookingPage() {
             Get a free estimate first, then contact us directly to book your experience.
           </p>
         </div>
-        <div className="mb-8 rounded-lg bg-black px-4 py-3 text-center">
-          <p className="text-sm md:text-base font-bold text-white">
-            ZERO MESS GUARANTEE: WE CLEAN UP EVERYTHING AFTER THE SHOW.
-          </p>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10 max-w-6xl mx-auto">
           {[
             {

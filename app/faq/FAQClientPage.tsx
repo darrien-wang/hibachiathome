@@ -140,12 +140,6 @@ export default function FAQClientPage() {
           Everything you need to know about our hibachi service.
         </p>
       </div>
-      <div className="mx-auto w-full max-w-[980px] rounded-lg bg-black px-4 py-3 text-center">
-        <p className="text-sm md:text-base font-bold text-white">
-          ZERO MESS GUARANTEE: WE CLEAN UP EVERYTHING AFTER EVERY EVENT.
-        </p>
-      </div>
-
       <div className="w-full max-w-[980px] space-y-3">
         <h2 className="text-2xl font-bold">Top Booking Concerns (Answered)</h2>
         {topObjections.map((item) => (
