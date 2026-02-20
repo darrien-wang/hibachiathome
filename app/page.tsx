@@ -282,8 +282,7 @@ export default function Home() {
                 Our Signature <span className="text-primary">Garlic Butter Fried Rice</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Experience our chefs preparing delicious hibachi fried rice with aromatic garlic butter and fresh
-                vegetables right before your eyes.
+                Fresh garlic butter fried rice, cooked live by our chef.
               </p>
             </AnimateOnScroll>
 
@@ -310,9 +309,7 @@ export default function Home() {
                     <span className="text-amber-600 text-xl">🧄</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Aromatic Garlic Butter</h3>
-                  <p className="text-gray-600">
-                    Our special garlic butter creates a flavorful base for our signature fried rice.
-                  </p>
+                  <p className="text-gray-600">House garlic butter builds the base flavor.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -322,9 +319,7 @@ export default function Home() {
                     <span className="text-amber-600 text-xl">🍚</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Delicious Fried Rice</h3>
-                  <p className="text-gray-600">
-                    Each grain is seasoned and cooked to achieve an authentic hibachi taste.
-                  </p>
+                  <p className="text-gray-600">Seasoned fried rice with classic hibachi taste.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -334,18 +329,13 @@ export default function Home() {
                     <span className="text-amber-600 text-xl">👨‍🍳</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Skilled Chef's Technique</h3>
-                  <p className="text-gray-600">
-                    Watch our skilled chefs demonstrate traditional hibachi cooking techniques.
-                  </p>
+                  <p className="text-gray-600">Cooked with live hibachi technique and timing.</p>
                 </div>
               </AnimateOnScroll>
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium text-lg">Every grain offers authentic Japanese flavors! 🍚✨</p>
-              <p className="text-gray-600 text-sm mt-2">
-                Our garlic butter fried rice is included in all hibachi packages.
-              </p>
+              <p className="text-gray-600 text-sm mt-2">Included in every hibachi package.</p>
             </div>
           </div>
         </section>
@@ -360,8 +350,7 @@ export default function Home() {
                 Sizzling <span className="text-primary">Hibachi Shrimp</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Watch our chefs prepare succulent jumbo shrimp with flair. These delicious seafood items are cooked to
-                perfection right before your eyes.
+                Jumbo shrimp grilled live with hibachi style.
               </p>
             </AnimateOnScroll>
 
@@ -388,9 +377,7 @@ export default function Home() {
                     <span className="text-blue-600 text-xl">🦐</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Quality Jumbo Shrimp</h3>
-                  <p className="text-gray-600">
-                    We use fresh, high-quality jumbo shrimp for a great hibachi experience.
-                  </p>
+                  <p className="text-gray-600">Fresh jumbo shrimp for every event.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -400,9 +387,7 @@ export default function Home() {
                     <span className="text-blue-600 text-xl">🔥</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Expertly Cooked</h3>
-                  <p className="text-gray-600">
-                    Our cooking technique creates a good sear while keeping the shrimp tender and juicy.
-                  </p>
+                  <p className="text-gray-600">Quick sear keeps texture tender and juicy.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -412,18 +397,13 @@ export default function Home() {
                     <span className="text-blue-600 text-xl">🍋</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Enhanced Flavor</h3>
-                  <p className="text-gray-600">
-                    A hint of lemon and our seasoning blend enhances the natural sweetness of the shrimp.
-                  </p>
+                  <p className="text-gray-600">Light seasoning to highlight natural sweetness.</p>
                 </div>
               </AnimateOnScroll>
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-red-600 font-medium text-lg">Delicious shrimp, prepared with care! 🦐✨</p>
-              <p className="text-gray-600 text-sm mt-2">
-                Available as a regular protein option in all hibachi packages.
-              </p>
+              <p className="text-gray-600 text-sm mt-2">Available in all hibachi packages.</p>
             </div>
           </div>
         </section>
@@ -438,8 +418,7 @@ export default function Home() {
                 Delicious <span className="text-primary">Hibachi Steak</span> Experience
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Watch our chefs prepare seasoned hibachi steak with precision. Each cut is grilled to your preference on
-                our hibachi grill, delivering a great taste at your home.
+                Steak grilled live and cooked to your preferred doneness.
               </p>
             </AnimateOnScroll>
 
@@ -466,7 +445,7 @@ export default function Home() {
                     <span className="text-red-600 text-xl">🥩</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Quality Beef</h3>
-                  <p className="text-gray-600">We use selected cuts of beef, prepared for hibachi cooking.</p>
+                  <p className="text-gray-600">Selected beef cuts for hibachi grilling.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -476,9 +455,7 @@ export default function Home() {
                     <span className="text-red-600 text-xl">🔥</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Optimal Searing</h3>
-                  <p className="text-gray-600">
-                    Our hibachi grills reach the right temperature for a good sear and flavor.
-                  </p>
+                  <p className="text-gray-600">High heat creates clean sear and flavor.</p>
                 </div>
               </AnimateOnScroll>
 
@@ -488,16 +465,13 @@ export default function Home() {
                     <span className="text-red-600 text-xl">👨‍🍳</span>
                   </div>
                   <h3 className="font-bold text-lg mb-2">Skilled Preparation</h3>
-                  <p className="text-gray-600">Our chefs know how to cook each steak to your preferred doneness.</p>
+                  <p className="text-gray-600">Chef adjusts doneness for each guest.</p>
                 </div>
               </AnimateOnScroll>
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-red-600 font-medium text-lg">Steak cooked just right, every time! 🥩🔥</p>
-              <p className="text-gray-600 text-sm mt-2">
-                Available as part of our protein selections in all hibachi packages.
-              </p>
+              <p className="text-gray-600 text-sm mt-2">Included in protein selections for all packages.</p>
             </div>
           </div>
         </section>
