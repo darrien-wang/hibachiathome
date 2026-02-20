@@ -281,107 +281,52 @@ export default function Home() {
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Our Signature <span className="text-primary">Package</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                One core hibachi package. For setup add-ons or edge-case details, message support directly.
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-3 text-[#B3261E]">How It Works</h2>
+              <p className="text-4xl md:text-5xl font-serif font-bold text-center text-gray-900 max-w-4xl mx-auto leading-tight mb-5">
+                We Bring Our Hibachi Grill + Chef to Your Backyard.
+              </p>
+              <p className="text-base md:text-lg text-center text-gray-700 max-w-3xl mx-auto mb-12">
+                You pick the date and headcount. We handle the chef and cooking experience. For custom setup details,
+                message support directly.
               </p>
             </AnimateOnScroll>
 
-            <div className="flex flex-col max-w-3xl mx-auto justify-center items-center">
-              {/* Basic Package Card */}
-              <AnimateOnScroll direction="left" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
-                      Most Popular
-                    </span>
-                  </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg"
-                      alt="Basic Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Hibachi Show Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $59.9
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($599 minimum)</p>
-                    </div>
-                    <ul className="space-y-1 mb-4 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>2 proteins of your choice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice, vegetables & house salad</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Chef performance included</span>
-                      </li>
-                    </ul>
-                    <p className="text-xs text-gray-600">Need setup or special requests? Ask support and we will tailor it.</p>
+            <div className="grid gap-5 md:grid-cols-3 max-w-5xl mx-auto">
+              <AnimateOnScroll direction="up">
+                <div className="rounded-3xl bg-[#B3261E] p-6 text-white shadow-lg">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center">Pricing</h3>
+                  <div className="space-y-2 text-sm md:text-base text-center">
+                    <p>$59.90 per adult</p>
+                    <p>$29.95 per child (under 13, food portion)</p>
+                    <p>$599 minimum for all events</p>
+                    <p>Optional full setup: +$15 per guest</p>
                   </div>
                 </div>
               </AnimateOnScroll>
 
-              {/* Buffet Style Package Card */}
-              {/* <AnimateOnScroll direction="right">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
-                      Self-Service
-                    </span>
-                  </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="/images/design-mode/filetchickenshrimp-Hibachi-Catering-LA.jpg"
-                      alt="Buffet Style Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Buffet Style Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $59.9
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($1497 minimum)</p>
-                    </div>
-                    <ul className="space-y-1 mb-6 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Self-service buffet style</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fixed menu (3 proteins included)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Same price, larger portions & more food</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Minimum 30 people required</span>
-                      </li>
-                    </ul>
+              <AnimateOnScroll direction="up" delay={120}>
+                <div className="rounded-3xl bg-[#B3261E] p-6 text-white shadow-lg">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center">Protein Choices</h3>
+                  <div className="space-y-2 text-sm md:text-base text-center">
+                    <p>2 regular proteins included per guest</p>
+                    <p>Chicken, Steak, Shrimp, Salmon, Tofu</p>
+                    <p>Premium upgrades:</p>
+                    <p>Scallops +$6, Filet Mignon +$8, Lobster Tail +$12</p>
                   </div>
                 </div>
-              </AnimateOnScroll> */}
+              </AnimateOnScroll>
+
+              <AnimateOnScroll direction="up" delay={240}>
+                <div className="rounded-3xl bg-[#B3261E] p-6 text-white shadow-lg">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center">Included</h3>
+                  <div className="space-y-2 text-sm md:text-base text-center">
+                    <p>Fried rice, fresh vegetables, house salad</p>
+                    <p>Chef performance and on-site grill cooking</p>
+                    <p>Outdoor cooking setup only</p>
+                    <p>Need custom details? Ask support.</p>
+                  </div>
+                </div>
+              </AnimateOnScroll>
             </div>
 
             {/* Promotional Card - Added after package cards  */}
