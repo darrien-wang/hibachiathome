@@ -1,0 +1,107 @@
+[codex:verify] Running lint...
+
+> my-v0-project@0.1.0 lint /home/darrien/projects/realhibachi-marketing
+> next lint
+
+
+./app/deposit/page.tsx
+306:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/estimation/page.tsx
+692:6  Warning: React Hook useEffect has a missing dependency: 'step5DurationTimerRef'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/hibachi-at-home/page.tsx
+311:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+404:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+455:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+795:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/layout.tsx
+76:9  Warning: Custom fonts not added in `pages/_document.js` will only load for a single page. This is discouraged. See: https://nextjs.org/docs/messages/no-page-custom-font  @next/next/no-page-custom-font
+
+./app/page.tsx
+243:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+291:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+732:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/rentals/page.tsx
+67:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/booking/dynamic-pricing-calendar.tsx
+143:6  Warning: React Hook useEffect has a missing dependency: 'selectedDateTime.dateString'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/estimation/Step7Deposit.tsx
+134:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+155:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+188:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/hero-section.tsx
+89:6  Warning: React Hook useEffect has a missing dependency: 'sortedHeroImages'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+127:6  Warning: React Hook useEffect has a missing dependency: 'sortedHeroImages'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+147:6  Warning: React Hook useEffect has a missing dependency: 'sortedHeroImages'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+164:6  Warning: React Hook useEffect has a missing dependency: 'sortedHeroImages.length'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/instagram-videos-section.tsx
+376:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/payment/apple-payment-sheet.tsx
+157:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/testimonials-section.tsx
+110:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+154:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+177:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+[codex:verify] Running build...
+   ▲ Next.js 15.2.8
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Collecting page data ...
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /after-deposit
+├ ƒ /api/availability
+├ ƒ /api/booking/create
+├ ƒ /api/booking/timeslots
+├ ƒ /api/calendar
+├ ƒ /api/calendar/manual
+├ ƒ /api/contact
+├ ƒ /api/google-maps-script
+├ ƒ /api/notify-lead
+├ ƒ /api/serve-sitemap-html
+├ ƒ /blog
+├ ƒ /blog/[slug]
+├ ƒ /book
+├ ƒ /booking-confirmation
+├ ƒ /contact
+├ ƒ /deposit
+├ ƒ /estimation
+├ ƒ /faq
+├ ƒ /gallery
+├ ƒ /hibachi-at-home
+├ ƒ /locations
+├ ƒ /locations/la-orange-county
+├ ƒ /locations/nyc-long-island
+├ ƒ /menu
+├ ƒ /partner-opportunities
+├ ƒ /privacy-policy
+├ ƒ /quote
+├ ƒ /rentals
+├ ƒ /robots.txt
+└ ƒ /sitemap.xml
++ First Load JS shared by all             101 kB
+  ├ chunks/24cdbf2e-4879f4995f5ed485.js  53.3 kB
+  ├ chunks/3409-2c8b55c7bb36ad8a.js      45.6 kB
+  └ other shared chunks (total)          2.03 kB
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
+[codex:verify] Completed static gates (lint + build).

@@ -289,12 +289,14 @@ test("TRK-008: contact form submit emits lead_submit with channel metadata", asy
   await page.locator('input[name="name"]').fill("TRK Contact User")
   await page.locator('input[name="email"]').fill("trk008@example.com")
   await page.locator('input[name="phone"]').fill("2135550108")
-  await page.locator('input[name="company"]').fill("TRK Co")
-  await page.locator('input[name="serviceType"]').fill("Photography")
-  await page.locator('textarea[name="message"]').fill("Interested in partnership opportunities.")
+  await page.locator('input[name="eventDate"]').fill("2026-04-15")
+  await page.locator('input[name="guestCount"]').fill("18")
+  await page.locator('input[name="cityOrZip"]').fill("Irvine")
+  await page.locator('input[name="reason"]').fill("Birthday booking")
+  await page.locator('textarea[name="message"]').fill("Looking for a private hibachi birthday dinner.")
 
-  await page.getByRole("button", { name: "Submit Application" }).click()
-  await expect(page.getByText("Thank you for your application! We will contact you within 24 hours.")).toBeVisible()
+  await page.getByRole("button", { name: "Send Request" }).click()
+  await expect(page.getByText("Thanks. Your request is in and we will contact you shortly.")).toBeVisible()
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
@@ -311,8 +313,8 @@ test("TRK-008: contact form submit emits lead_submit with channel metadata", asy
 
   await expect(latestEvent.lead_channel).toBe("contact_form")
   await expect(latestEvent.lead_source).toBe("contact_page")
-  await expect(latestEvent.lead_type).toBe("partner_application")
-  await expect(latestEvent.service_type).toBe("Photography")
+  await expect(latestEvent.lead_type).toBe("customer_inquiry")
+  await expect(latestEvent.inquiry_reason).toBe("Birthday booking")
 
   writeFileSync(`${EVIDENCE_DIR}/trk-008-lead-submit-events.json`, JSON.stringify(leadSubmitEvents, null, 2), "utf-8")
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-008-contact-submit.png`, fullPage: true })

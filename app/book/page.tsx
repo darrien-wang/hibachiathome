@@ -16,6 +16,10 @@ export default function BookingPage() {
     router.push("/estimation?source=booking")
   }
 
+  const handleInstantQuote = () => {
+    router.push("/quote")
+  }
+
   return (
     <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
@@ -26,8 +30,18 @@ export default function BookingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10 max-w-6xl mx-auto">
           {[
+            {
+              title: "Instant Quote",
+              description: "One-page quote in under 30 seconds",
+              icon: <Calculator className="mr-2 h-4 w-4 flex-shrink-0" />,
+              buttonText: "Get Instant Quote",
+              onClick: handleInstantQuote,
+              variant: "default",
+              className: "bg-emerald-50 border-emerald-200",
+              isRecommended: true,
+            },
             {
               title: "Free Estimate",
               description: "Calculate your price first",

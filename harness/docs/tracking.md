@@ -15,6 +15,8 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 | Event | Definition | Primary trigger point | Ads conversion |
 | --- | --- | --- | --- |
 | `page_view` | Route-level page view in SPA navigation | Tracking bootstrap on initial load + route changes | No |
+| `quote_started` | User begins quote builder input | `/quote` first meaningful input | No |
+| `quote_completed` | Quote builder shows estimate-ready state | `/quote` after required inputs present and range computed | No |
 | `lead_start` | User starts booking/lead intent | Primary booking CTA before navigation | No |
 | `lead_submit` | User submits lead/contact form | Contact form successful submit path | Yes |
 | `booking_funnel_start` | User enters estimation from booking page | `/book` Get Estimate CTA | No |

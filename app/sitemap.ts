@@ -10,7 +10,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/locations/la-orange-county", // Los Angeles page - highest priority
     "/menu",
     "/book",
+    "/quote",
     "/contact",
+    "/partner-opportunities",
     "/faq",
     "/gallery",
     "/estimation",
