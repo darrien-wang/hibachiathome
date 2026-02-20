@@ -364,7 +364,7 @@
       "Verify users can see brand story within the first three scrolls.",
       "Verify the section includes a clear conversion CTA."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-SOCIALPROOF-001",

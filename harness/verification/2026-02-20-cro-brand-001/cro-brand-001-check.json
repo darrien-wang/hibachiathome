@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "id": "why_real_hibachi_section_near_top",
+      "pass": true
+    },
+    {
+      "id": "chef_profile_included",
+      "pass": true
+    },
+    {
+      "id": "experience_event_count_brand_promise",
+      "pass": true
+    },
+    {
+      "id": "brand_story_has_cta",
+      "pass": true
+    }
+  ]
+}

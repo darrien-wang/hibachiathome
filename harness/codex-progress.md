@@ -1126,3 +1126,38 @@
   - `harness/verification/2026-02-20-cro-008/codex-acceptance.exit`
 - Next highest-priority action:
   - `CRO-007` marked as not required by stakeholder in this session. Next implementable item: `CRO-BRAND-001` (chef-led brand story section).
+
+## 2026-02-20 (CRO-BRAND-001 chef-led brand story section)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-brand-001`
+  - Added `Why Real Hibachi` brand-story block near top of homepage:
+    - `app/page.tsx` (positioned before `How It Works`, within early scroll depth).
+  - Added chef-led trust content:
+    - chef profile card (`Chef Ken`, lead hibachi chef)
+    - years of experience metric
+    - total events served metric
+    - explicit brand promise statement.
+  - Included clear conversion CTA in the story block:
+    - `Get Instant Quote` button.
+- Feature status transition:
+  - `CRO-BRAND-001` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - brand-story structure checks:
+    - `harness/verification/2026-02-20-cro-brand-001/cro-brand-001-check.json` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-brand-001/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-brand-001/cro-brand-001-check.json`
+  - `harness/verification/2026-02-20-cro-brand-001/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-brand-001/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-brand-001/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-brand-001/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-brand-001/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-brand-001/codex-acceptance.exit`
+- Next highest-priority action:
+  - `CRO-007` remains intentionally skipped per stakeholder direction. Next implementable item: `CRO-TRACK-001` (quote funnel segmentation + weekly exportability).

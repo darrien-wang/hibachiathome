@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, ChefHat, ShieldCheck, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 
@@ -221,6 +221,71 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      <AnimateOnScroll>
+        <section className="py-14 bg-gradient-to-r from-stone-50 to-amber-50 border-b border-amber-100">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-amber-700 mb-2">Why Real Hibachi</p>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+                  Chef-Led Experiences, Not a Generic Catering Template
+                </h2>
+                <p className="text-gray-700 mb-6 leading-relaxed">
+                  Real Hibachi is built around chef quality, showmanship, and reliable hosting outcomes. Every event is
+                  designed to feel personal, high-energy, and easy for your family or guests.
+                </p>
+
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="rounded-lg bg-white p-4 text-center border border-amber-100">
+                    <p className="text-2xl font-bold text-gray-900">8+</p>
+                    <p className="text-xs text-gray-600">Years Experience</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-4 text-center border border-amber-100">
+                    <p className="text-2xl font-bold text-gray-900">500+</p>
+                    <p className="text-xs text-gray-600">Events Served</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-4 text-center border border-amber-100">
+                    <p className="text-2xl font-bold text-gray-900">4.9★</p>
+                    <p className="text-xs text-gray-600">Avg Client Rating</p>
+                  </div>
+                </div>
+
+                <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
+                  <Link href="/quote">Get Instant Quote</Link>
+                </Button>
+              </div>
+
+              <div className="rounded-xl bg-white border border-amber-100 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                    <ChefHat className="h-6 w-6 text-amber-700" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Chef Ken (Lead Hibachi Chef)</p>
+                    <p className="text-sm text-gray-600">Teppanyaki specialist focused on private events</p>
+                  </div>
+                </div>
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600 mt-0.5" />
+                    <p>Brand promise: on-time setup, clean workflow, and guest-first service.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 text-amber-600 mt-0.5" />
+                    <p>Performance-driven format that balances entertainment with food quality.</p>
+                  </div>
+                  <div className="rounded-md bg-amber-50 border border-amber-100 p-3">
+                    <p className="font-medium text-amber-900">
+                      “Zero Mess Guarantee” applies: we clean up the cooking area before leaving.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
 
       {/* How It Works Section */}
       <HowItWorksSection />
