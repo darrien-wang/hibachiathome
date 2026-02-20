@@ -302,34 +302,14 @@ export default function Home() {
               </div>
             </AnimateOnScroll>
 
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="mt-10 max-w-2xl mx-auto">
               <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🧄</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Aromatic Garlic Butter</h3>
-                  <p className="text-gray-600">House garlic butter builds the base flavor.</p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={200} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center">
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-amber-600 text-xl">🍚</span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">Delicious Fried Rice</h3>
-                  <p className="text-gray-600">Seasoned fried rice with classic hibachi taste.</p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">👨‍🍳</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Skilled Chef's Technique</h3>
-                  <p className="text-gray-600">Cooked with live hibachi technique and timing.</p>
+                  <h3 className="font-bold text-lg mb-2">Signature Fried Rice</h3>
+                  <p className="text-gray-600">Garlic butter base, hibachi seasoning, live chef technique.</p>
                 </div>
               </AnimateOnScroll>
             </div>
