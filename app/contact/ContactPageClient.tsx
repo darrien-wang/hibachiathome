@@ -7,19 +7,17 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Phone, Mail, MapPin, MessageSquare } from "lucide-react"
+import { Phone, Mail, MapPin } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
 import { siteConfig } from "@/config/site"
 
 export default function ContactPageClient() {
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
-    reason: "",
     eventDate: "",
     guestCount: "",
     cityOrZip: "",
@@ -29,8 +27,9 @@ export default function ContactPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
 
+  const reason = searchParams.get("reason") ?? ""
+
   useEffect(() => {
-    const reason = searchParams.get("reason") ?? ""
     const eventDate = searchParams.get("eventDate") ?? ""
     const guestCount = searchParams.get("guestCount") ?? ""
     const cityOrZip = searchParams.get("cityOrZip") ?? ""
@@ -46,13 +45,12 @@ export default function ContactPageClient() {
 
     setFormData((prev) => ({
       ...prev,
-      reason: reason || prev.reason,
       eventDate: eventDate || prev.eventDate,
       guestCount: guestCount || prev.guestCount,
       cityOrZip: cityOrZip || prev.cityOrZip,
       message: prev.message || [estimateLine, "Please confirm availability and next steps."].filter(Boolean).join(" "),
     }))
-  }, [searchParams])
+  }, [reason, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,10 +63,10 @@ export default function ContactPageClient() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formData.name,
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
           email: formData.email,
           phone: formData.phone,
-          reason: formData.reason || "Post-Event Feedback / Support",
+          reason: reason || "Post-Event Feedback / Support",
           message: [
             `Event Date: ${formData.eventDate || "Not provided"}`,
             `Guest Count: ${formData.guestCount || "Not provided"}`,
@@ -84,16 +82,16 @@ export default function ContactPageClient() {
           lead_channel: "contact_form",
           lead_source: "contact_page",
           lead_type: "customer_feedback",
-          inquiry_reason: formData.reason || "post_event_feedback_support",
+          inquiry_reason: reason || "post_event_feedback_support",
           guest_count: formData.guestCount || "unspecified",
           location_hint: formData.cityOrZip || "unspecified",
         })
         setSubmitStatus("success")
         setFormData({
-          name: "",
+          firstName: "",
+          lastName: "",
           email: "",
           phone: "",
-          reason: "",
           eventDate: "",
           guestCount: "",
           cityOrZip: "",
@@ -102,7 +100,7 @@ export default function ContactPageClient() {
       } else {
         setSubmitStatus("error")
       }
-    } catch (error) {
+    } catch {
       setSubmitStatus("error")
     } finally {
       setIsSubmitting(false)
@@ -114,253 +112,119 @@ export default function ContactPageClient() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleCallClick = () => {
-    trackEvent("contact_call_click", { contact_surface: "contact_page" })
-    window.location.href = `tel:${siteConfig.contact.phone}`
-  }
-
-  const handleSMSClick = () => {
-    trackEvent("contact_sms_click", { contact_surface: "contact_page" })
-    window.location.href = `sms:${siteConfig.contact.phone}?body=Hi%20Real%20Hibachi%2C%20I%20want%20a%20quick%20quote.`
-  }
-
-  const handleWhatsAppClick = () => {
-    trackEvent("contact_whatsapp_click", { contact_surface: "contact_page" })
-    const whatsappNumber = siteConfig.contact.phone.replace(/\D/g, "")
-    window.location.href = `https://wa.me/${whatsappNumber}?text=Hi%20Real%20Hibachi%2C%20I%20want%20a%20quick%20quote.`
-  }
-
-  const handleEmailClick = () => {
-    trackEvent("contact_email_click", { contact_surface: "contact_page" })
-    window.location.href = `mailto:${siteConfig.contact.email}?subject=Real%20Hibachi%20Feedback%20and%20Support`
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      <div className="hero-section bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white pb-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">Feedback & Post-Event Support</h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-            Share your event experience or ask for follow-up support. Call, text, WhatsApp, or submit a short request.
-          </p>
-          <Badge variant="secondary" className="text-lg px-6 py-2">
-            After-Sales Channel · Fast Follow-Up
-          </Badge>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-16">
+    <div className="page-container bg-[#f7f4ec]">
+      <div className="container mx-auto px-4 py-14">
         <div className="grid lg:grid-cols-2 gap-12">
-          <div>
-            <h2 className="text-3xl font-bold mb-8 text-gray-800">Reach Support In One Tap</h2>
-            <div className="grid gap-4">
-              <Card className="border-l-4 border-l-sky-500 hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">SMS</h3>
-                    <p className="text-gray-600">Fastest way to send quick feedback and get an update.</p>
-                  </div>
-                  <Button onClick={handleSMSClick} className="bg-sky-600 hover:bg-sky-700">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Text Us
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">Call Now</h3>
-                    <p className="text-gray-600">Best for urgent follow-up after your event.</p>
-                  </div>
-                  <Button onClick={handleCallClick} className="bg-orange-600 hover:bg-orange-700">
-                    <Phone className="mr-2 h-4 w-4" />
-                    {siteConfig.contact.phone}
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">Email</h3>
-                    <p className="text-gray-600">Best for detailed feedback, attachments, and follow-up notes.</p>
-                  </div>
-                  <Button onClick={handleEmailClick} className="bg-amber-600 hover:bg-amber-700">
-                    <Mail className="mr-2 h-4 w-4" />
-                    Email Us
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">WhatsApp</h3>
-                    <p className="text-gray-600">Alternative channel if SMS/call/email is not convenient.</p>
-                  </div>
-                  <Button onClick={handleWhatsAppClick} className="bg-green-600 hover:bg-green-700">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    WhatsApp
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-8 grid gap-4">
-              <div className="flex items-center gap-3 text-gray-700">
-                <Phone className="h-5 w-5 text-orange-500" />
-                <span>{siteConfig.contact.phone}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <Mail className="h-5 w-5 text-orange-500" />
-                <span>{siteConfig.contact.email}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <MapPin className="h-5 w-5 text-orange-500" />
-                <span>Service Areas: Southern California and NYC/Long Island</span>
-              </div>
-              <div className="text-sm text-gray-700">
-                <a href="/locations/la-orange-county" className="text-orange-600 hover:underline">
-                  LA & Orange County service details
-                </a>{" "}
-                ·{" "}
-                <a href="/locations/nyc-long-island" className="text-orange-600 hover:underline">
-                  NYC & Long Island service details
+          <div className="space-y-8">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900">Contact Us</h1>
+            <div>
+              <h2 className="text-4xl font-serif font-bold text-[hsl(24_79%_42%)] mb-6">Text Or Call Us</h2>
+              <div className="space-y-5 text-2xl text-gray-800">
+                <a href="tel:2137707788" className="flex items-center gap-3 hover:text-[hsl(24_79%_42%)]">
+                  <Phone className="h-6 w-6 text-[hsl(24_79%_42%)]" />
+                  <span>West Coast - 213-770-7788</span>
                 </a>
+                <a
+                  href={`mailto:${siteConfig.contact.email}`}
+                  className="flex items-center gap-3 hover:text-[hsl(24_79%_42%)]"
+                >
+                  <Mail className="h-6 w-6 text-[hsl(24_79%_42%)]" />
+                  <span>{siteConfig.contact.email}</span>
+                </a>
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-6 w-6 text-[hsl(24_79%_42%)]" />
+                  <span>Southern California Service Area</span>
+                </div>
               </div>
             </div>
           </div>
 
           <div>
-            <Card className="shadow-xl border-0 bg-white">
-              <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
-                <CardTitle className="text-2xl">Quick Feedback Request</CardTitle>
-                <CardDescription className="text-amber-100">
-                  30-second form. We will follow up on your feedback or support request.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8">
-                {submitStatus === "success" && (
-                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-green-800">Thanks. Your feedback request is in and we will contact you shortly.</p>
-                  </div>
-                )}
+            <h3 className="text-4xl font-serif font-bold mb-6 text-gray-900">Name</h3>
+            <div className="space-y-6">
+              {submitStatus === "success" && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800">Thanks. Your feedback request is in and we will contact you shortly.</p>
+                </div>
+              )}
 
-                {submitStatus === "error" && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-800">Submission failed. Please try again later or contact us directly.</p>
-                  </div>
-                )}
+              {submitStatus === "error" && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800">Submission failed. Please try again later or contact us directly.</p>
+                </div>
+              )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-                      <Input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                        className="focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
-                      <Input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        required
-                        className="focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                      <Input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        className="focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
-                      <Input
-                        type="date"
-                        name="eventDate"
-                        value={formData.eventDate}
-                        onChange={handleInputChange}
-                        className="focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Guest Count</label>
-                      <Input
-                        type="number"
-                        min={1}
-                        name="guestCount"
-                        value={formData.guestCount}
-                        onChange={handleInputChange}
-                        placeholder="e.g. 15"
-                        className="focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">City or ZIP</label>
-                      <Input
-                        type="text"
-                        name="cityOrZip"
-                        value={formData.cityOrZip}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Irvine / 92620"
-                        className="focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                  </div>
-
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">What do you need help with?</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name (required)</label>
                     <Input
                       type="text"
-                      name="reason"
-                      value={formData.reason}
+                      name="firstName"
+                      value={formData.firstName}
                       onChange={handleInputChange}
-                      placeholder="Feedback, issue follow-up, refund/support request..."
-                      className="focus:ring-orange-500 focus:border-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Message *</label>
-                    <Textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      rows={4}
                       required
-                      placeholder="Tell us your event type and any menu preferences."
-                      className="focus:ring-orange-500 focus:border-orange-500"
+                      className="h-12 bg-white border-gray-300"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name (required)</label>
+                    <Input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                      className="h-12 bg-white border-gray-300"
+                    />
+                  </div>
+                </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 text-lg"
-                  >
-                    {isSubmitting ? "Submitting..." : "Send Request"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email (required)</label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="h-12 bg-white border-gray-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="h-12 bg-white border-gray-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Message (required)</label>
+                  <Textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    required
+                    rows={6}
+                    className="bg-white border-gray-300"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="rounded-full px-10 h-14 bg-[#B3261E] hover:bg-[#9f2019] text-white text-lg font-semibold"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit"}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
