@@ -970,3 +970,42 @@
   - `harness/verification/2026-02-20-cro-quote-002/codex-acceptance.exit`
 - Next highest-priority action:
   - Implement `CRO-004` (service-area copy consistency audit and correction).
+
+## 2026-02-20 (CRO-004 service-area copy consistency)
+
+- Completed:
+  - Re-verified baseline tracking contract via deterministic harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-02-20-cro-004`
+  - Added shared service-area source of truth:
+    - `config/service-areas.ts`
+    - defines Southern California and NYC/Long Island region labels and city lists.
+  - Fixed site-wide service-area copy inconsistency:
+    - `components/footer.tsx` now shows correct NYC/Long Island city list (instead of incorrectly reusing LA cities).
+    - added footer internal link to `/locations` for area discovery.
+  - Refined service-area landing structure:
+    - `app/locations/page.tsx` now includes both regional landing entries:
+      - Southern California (`/locations/la-orange-county`)
+      - NYC & Long Island (`/locations/nyc-long-island`)
+    - updated metadata copy from LA-only scope to multi-region scope.
+  - Added internal service-area links from customer contact flow:
+    - `app/contact/ContactPageClient.tsx` includes links to both city-specific landing pages.
+- Feature status transition:
+  - `CRO-004` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - service-area consistency checks:
+    - `harness/verification/2026-02-20-cro-004/cro-004-service-area-check.json` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Regressions/blockers:
+  - `pnpm test:e2e --grep "TRK-001"` still fails in this environment with `Process from config.webServer exited early`.
+  - `bash harness/scripts/codex-acceptance.sh` fails at Gate 2/3 for the same webServer startup issue.
+- Evidence:
+  - `harness/verification/2026-02-20-cro-004/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-02-20-cro-004/cro-004-service-area-check.json`
+  - `harness/verification/2026-02-20-cro-004/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-004/codex-verify.exit`
+  - `harness/verification/2026-02-20-cro-004/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-cro-004/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-cro-004/codex-acceptance.log`
+  - `harness/verification/2026-02-20-cro-004/codex-acceptance.exit`
+- Next highest-priority action:
+  - Implement `CRO-005` (price transparency with total-price examples and cost breakdown clarity).

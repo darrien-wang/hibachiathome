@@ -198,7 +198,16 @@ export default function ContactPageClient() {
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <MapPin className="h-5 w-5 text-orange-500" />
-                <span>Service Area: LA, Orange County, and nearby Southern California cities</span>
+                <span>Service Areas: Southern California and NYC/Long Island</span>
+              </div>
+              <div className="text-sm text-gray-700">
+                <a href="/locations/la-orange-county" className="text-orange-600 hover:underline">
+                  LA & Orange County service details
+                </a>{" "}
+                ·{" "}
+                <a href="/locations/nyc-long-island" className="text-orange-600 hover:underline">
+                  NYC & Long Island service details
+                </a>
               </div>
             </div>
           </div>

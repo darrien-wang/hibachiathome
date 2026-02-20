@@ -298,7 +298,7 @@
       "Verify service-area statements are consistent and factually correct site-wide.",
       "Verify users can clearly understand where services are available."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-005",

@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Instagram, Twitter, Phone, Mail, MessageSquare } from "lucide-react"
 import { siteConfig } from "@/config/site"
+import { serviceAreas } from "@/config/service-areas"
 
 // Helper function to format phone number for WhatsApp link
 function formatPhoneForWhatsApp(phone: string) {
@@ -185,11 +186,16 @@ export default function Footer() {
             </div>
             <div className="space-y-2">
               <p className="text-[14px] text-[#A1A1A1]">
-                Proudly serving Los Angeles, Orange County, Beverly Hills, Santa Monica, Irvine, Pasadena, and all of
-                Southern California
+                Proudly serving {serviceAreas.southernCalifornia.cities.join(", ")} and nearby{" "}
+                {serviceAreas.southernCalifornia.label} cities.
               </p>
               <p className="text-[14px] text-[#A1A1A1]">
-                Also available in New York: {siteConfig.contact.locations?.join(", ")} areas
+                Also available in {serviceAreas.newYorkMetro.shortLabel}: {serviceAreas.newYorkMetro.cities.join(", ")}.
+              </p>
+              <p className="text-[14px]">
+                <Link href="/locations" className="text-[#F1691B] hover:underline">
+                  View all service areas
+                </Link>
               </p>
             </div>
           </div>

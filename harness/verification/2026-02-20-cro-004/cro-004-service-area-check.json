@@ -1,0 +1,16 @@
+{
+  "checks": [
+    {
+      "id": "footer_ny_copy_fixed",
+      "pass": true
+    },
+    {
+      "id": "locations_page_has_two_regions",
+      "pass": true
+    },
+    {
+      "id": "contact_has_location_internal_links",
+      "pass": true
+    }
+  ]
+}

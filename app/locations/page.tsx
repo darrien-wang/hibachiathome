@@ -5,12 +5,15 @@ import { MapPin } from "lucide-react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Hibachi at Home Service Locations | Los Angeles & Orange County | Real Hibachi",
-  description: "Professional hibachi at home service in Los Angeles and Orange County. Authentic Japanese teppanyaki chefs serving Beverly Hills, Santa Monica, Irvine, and surrounding areas.",
-  keywords: "hibachi service locations Los Angeles, teppanyaki at home Orange County, Japanese chef service areas LA, hibachi catering locations California",
+  title: "Hibachi at Home Service Locations | Southern California & NYC | Real Hibachi",
+  description:
+    "Professional hibachi at home service in Southern California and NYC/Long Island. Authentic Japanese teppanyaki chefs for private events and parties.",
+  keywords:
+    "hibachi service locations, Los Angeles hibachi, Orange County hibachi, NYC hibachi, Long Island hibachi, private teppanyaki chef areas",
   openGraph: {
-    title: "Hibachi at Home Service Locations | Los Angeles & Orange County",
-    description: "Premium hibachi at home service covering Los Angeles and Orange County. Professional Japanese teppanyaki chefs at your location.",
+    title: "Hibachi at Home Service Locations | Southern California & NYC",
+    description:
+      "Premium hibachi at home service in Southern California and NYC/Long Island. Professional Japanese teppanyaki chefs at your location.",
     url: "https://realhibachi.com/locations",
     siteName: "Real Hibachi",
     type: "website",
@@ -19,10 +22,10 @@ export const metadata: Metadata = {
 
 const locations = [
   {
-    id: "los-angeles",
-    name: "Los Angeles",
+    id: "southern-california",
+    name: "Southern California",
     state: "CA",
-    description: "Serving Los Angeles, Orange County and surrounding areas within a 50-mile radius",
+    description: "Serving Los Angeles, Orange County and surrounding areas",
     areas: [
       "Los Angeles",
       "Orange County",
@@ -38,6 +41,16 @@ const locations = [
       "West Hollywood",
     ],
     featured: true,
+    learnMoreHref: "/locations/la-orange-county",
+  },
+  {
+    id: "nyc-long-island",
+    name: "NYC & Long Island",
+    state: "NY",
+    description: "Serving Manhattan, Brooklyn, Queens, The Bronx, Staten Island, and Long Island",
+    areas: ["Manhattan", "Brooklyn", "Queens", "The Bronx", "Staten Island", "Long Island"],
+    featured: true,
+    learnMoreHref: "/locations/nyc-long-island",
   },
 ]
 
@@ -48,7 +61,8 @@ export default function LocationsPage() {
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Hibachi at Home Service Locations</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Currently serving Southern California with premium hibachi at home service in Los Angeles and Orange County. Our professional chefs bring authentic Japanese teppanyaki experience directly to your location.
+            We currently serve Southern California and NYC/Long Island. Our professional chefs bring authentic Japanese
+            teppanyaki experiences directly to your location.
           </p>
         </div>
 
@@ -72,7 +86,7 @@ export default function LocationsPage() {
                   ))}
                 </ul>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/locations/la-orange-county">Learn More About {location.name} Service</Link>
+                  <Link href={location.learnMoreHref}>Learn More About {location.name} Service</Link>
                 </Button>
               </CardContent>
             </Card>
