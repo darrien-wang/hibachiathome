@@ -1374,3 +1374,47 @@
   - `harness/verification/2026-02-20-remove-zero-mess-copy/cro-quote-001-quote-builder-evidence.json`
   - `harness/verification/2026-02-20-remove-zero-mess-copy/codex-verify.log`
   - `harness/verification/2026-02-20-remove-zero-mess-copy/codex-verify.exit`
+
+## 2026-02-20 (Rename Contact to Feedback for post-event channel)
+
+- Completed:
+  - Updated top navigation label:
+    - `components/header.tsx`
+    - `Contact` -> `Feedback` (route remains `/contact` for compatibility).
+  - Updated footer quick link label:
+    - `components/footer.tsx`
+    - `Contact Us` -> `Feedback`.
+  - Reframed contact page metadata to feedback/support intent:
+    - `app/contact/page.tsx`
+    - title/description/keywords/open graph updated.
+  - Reframed contact page UX copy as post-event support channel:
+    - `app/contact/ContactPageClient.tsx`
+    - hero headline/description/badge, support card text, form title/placeholder, success copy.
+  - Updated default form reason and tracking semantics:
+    - default reason -> `Post-Event Feedback / Support`
+    - `lead_type` -> `customer_feedback`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-contact-to-feedback/codex-verify.log`
+  - `harness/verification/2026-02-20-contact-to-feedback/codex-verify.exit`
+
+## 2026-02-20 (Contact channel priority reorder)
+
+- Completed:
+  - Reordered support channel priority to:
+    - `SMS` -> `Phone` -> `Email` -> `WhatsApp`.
+  - `app/contact/ContactPageClient.tsx`:
+    - added dedicated Email quick-action button and click handler.
+    - reordered quick-action cards to match required priority.
+    - WhatsApp copy downgraded to backup/alternative channel.
+  - `app/book/page.tsx`:
+    - card order updated to SMS, Phone, Email, WhatsApp (after Instant Quote).
+    - updated helper text to reflect priority order.
+  - `components/floating-contact-buttons.tsx`:
+    - mobile sticky order changed to `Book | SMS | Call | WA`.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-contact-channel-priority/codex-verify.log`
+  - `harness/verification/2026-02-20-contact-channel-priority/codex-verify.exit`

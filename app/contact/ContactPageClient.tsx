@@ -68,7 +68,7 @@ export default function ContactPageClient() {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          reason: formData.reason || "Booking / Pricing Inquiry",
+          reason: formData.reason || "Post-Event Feedback / Support",
           message: [
             `Event Date: ${formData.eventDate || "Not provided"}`,
             `Guest Count: ${formData.guestCount || "Not provided"}`,
@@ -83,8 +83,8 @@ export default function ContactPageClient() {
         trackEvent("lead_submit", {
           lead_channel: "contact_form",
           lead_source: "contact_page",
-          lead_type: "customer_inquiry",
-          inquiry_reason: formData.reason || "booking_pricing",
+          lead_type: "customer_feedback",
+          inquiry_reason: formData.reason || "post_event_feedback_support",
           guest_count: formData.guestCount || "unspecified",
           location_hint: formData.cityOrZip || "unspecified",
         })
@@ -130,16 +130,21 @@ export default function ContactPageClient() {
     window.location.href = `https://wa.me/${whatsappNumber}?text=Hi%20Real%20Hibachi%2C%20I%20want%20a%20quick%20quote.`
   }
 
+  const handleEmailClick = () => {
+    trackEvent("contact_email_click", { contact_surface: "contact_page" })
+    window.location.href = `mailto:${siteConfig.contact.email}?subject=Real%20Hibachi%20Feedback%20and%20Support`
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       <div className="hero-section bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white pb-16">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">Contact Real Hibachi</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">Feedback & Post-Event Support</h1>
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-            Need pricing fast? Call, text, WhatsApp, or send a short request and we will confirm availability quickly.
+            Share your event experience or ask for follow-up support. Call, text, WhatsApp, or submit a short request.
           </p>
           <Badge variant="secondary" className="text-lg px-6 py-2">
-            Booking Questions · Instant Support
+            After-Sales Channel · Fast Follow-Up
           </Badge>
         </div>
       </div>
@@ -147,13 +152,25 @@ export default function ContactPageClient() {
       <div className="container mx-auto px-4 py-16">
         <div className="grid lg:grid-cols-2 gap-12">
           <div>
-            <h2 className="text-3xl font-bold mb-8 text-gray-800">Talk To Us In One Tap</h2>
+            <h2 className="text-3xl font-bold mb-8 text-gray-800">Reach Support In One Tap</h2>
             <div className="grid gap-4">
+              <Card className="border-l-4 border-l-sky-500 hover:shadow-lg transition-shadow">
+                <CardContent className="p-6 flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-800">SMS</h3>
+                    <p className="text-gray-600">Fastest way to send quick feedback and get an update.</p>
+                  </div>
+                  <Button onClick={handleSMSClick} className="bg-sky-600 hover:bg-sky-700">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Text Us
+                  </Button>
+                </CardContent>
+              </Card>
               <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
                 <CardContent className="p-6 flex items-center justify-between gap-4">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-800">Call Now</h3>
-                    <p className="text-gray-600">Best for immediate date and pricing checks.</p>
+                    <p className="text-gray-600">Best for urgent follow-up after your event.</p>
                   </div>
                   <Button onClick={handleCallClick} className="bg-orange-600 hover:bg-orange-700">
                     <Phone className="mr-2 h-4 w-4" />
@@ -164,24 +181,24 @@ export default function ContactPageClient() {
               <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
                 <CardContent className="p-6 flex items-center justify-between gap-4">
                   <div>
+                    <h3 className="text-xl font-semibold text-gray-800">Email</h3>
+                    <p className="text-gray-600">Best for detailed feedback, attachments, and follow-up notes.</p>
+                  </div>
+                  <Button onClick={handleEmailClick} className="bg-amber-600 hover:bg-amber-700">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Email Us
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+                <CardContent className="p-6 flex items-center justify-between gap-4">
+                  <div>
                     <h3 className="text-xl font-semibold text-gray-800">WhatsApp</h3>
-                    <p className="text-gray-600">Send your event details and get a quick reply.</p>
+                    <p className="text-gray-600">Alternative channel if SMS/call/email is not convenient.</p>
                   </div>
                   <Button onClick={handleWhatsAppClick} className="bg-green-600 hover:bg-green-700">
                     <MessageSquare className="mr-2 h-4 w-4" />
                     WhatsApp
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card className="border-l-4 border-l-sky-500 hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">SMS</h3>
-                    <p className="text-gray-600">Prefer text? We can quote you by message.</p>
-                  </div>
-                  <Button onClick={handleSMSClick} className="bg-sky-600 hover:bg-sky-700">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Text Us
                   </Button>
                 </CardContent>
               </Card>
@@ -215,15 +232,15 @@ export default function ContactPageClient() {
           <div>
             <Card className="shadow-xl border-0 bg-white">
               <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
-                <CardTitle className="text-2xl">Quick Event Request</CardTitle>
+                <CardTitle className="text-2xl">Quick Feedback Request</CardTitle>
                 <CardDescription className="text-amber-100">
-                  30-second form. We will follow up with options and pricing.
+                  30-second form. We will follow up on your feedback or support request.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8">
                 {submitStatus === "success" && (
                   <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-green-800">Thanks. Your request is in and we will contact you shortly.</p>
+                    <p className="text-green-800">Thanks. Your feedback request is in and we will contact you shortly.</p>
                   </div>
                 )}
 
@@ -316,7 +333,7 @@ export default function ContactPageClient() {
                       name="reason"
                       value={formData.reason}
                       onChange={handleInputChange}
-                      placeholder="Booking, pricing, menu questions..."
+                      placeholder="Feedback, issue follow-up, refund/support request..."
                       className="focus:ring-orange-500 focus:border-orange-500"
                     />
                   </div>

@@ -50,17 +50,17 @@ export function FloatingContactButtons() {
         <Button asChild onClick={handleBook} className="h-10 bg-orange-600 hover:bg-orange-700 text-white">
           <Link href="/book">Book</Link>
         </Button>
+        <Button onClick={handleSMS} variant="outline" className="h-10 border-orange-300 text-orange-700">
+          <MessageCircle className="mr-1 h-4 w-4" />
+          SMS
+        </Button>
         <Button onClick={handleCall} className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white">
           <Phone className="mr-1 h-4 w-4" />
           Call
         </Button>
         <Button onClick={handleWhatsApp} className="h-10 bg-green-600 hover:bg-green-700 text-white">
           <MessageCircle className="mr-1 h-4 w-4" />
-          WhatsApp
-        </Button>
-        <Button onClick={handleSMS} variant="outline" className="h-10 border-orange-300 text-orange-700">
-          <MessageCircle className="mr-1 h-4 w-4" />
-          SMS
+          WA
         </Button>
       </div>
     </div>

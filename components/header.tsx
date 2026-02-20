@@ -17,7 +17,7 @@ const navItems = [
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
   { name: "Equipment Rentals", href: "/rentals", disabled: true },
-  { name: "Contact", href: "/contact", disabled: false },
+  { name: "Feedback", href: "/contact", disabled: false },
 ]
 
 export function Header() {

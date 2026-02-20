@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, Calculator } from "lucide-react"
+import { MessageSquare, Calculator, Phone, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PromotionBanner } from "@/components/promotions/promotion-banner"
 import { siteConfig } from "@/config/site"
@@ -53,17 +53,8 @@ export default function BookingPage() {
               hidden: true,
             },
             {
-              title: "WhatsApp",
-              description: "Fastest response time",
-              icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-              buttonText: "WhatsApp",
-              href: `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
-              external: true,
-              variant: "outline",
-            },
-            {
               title: "SMS",
-              description: "Text us directly",
+              description: "First-priority support channel",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "SMS",
               href: `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`,
@@ -72,11 +63,29 @@ export default function BookingPage() {
             },
             {
               title: "Phone",
-              description: "Speak with us",
-              icon: null,
+              description: "Second-priority direct call",
+              icon: <Phone className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: siteConfig.contact.phone || "12137707788",
               href: `tel:${siteConfig.contact.phone || "12137707788"}`,
               external: false,
+              variant: "outline",
+            },
+            {
+              title: "Email",
+              description: "Third-priority detailed support",
+              icon: <Mail className="mr-2 h-4 w-4 flex-shrink-0" />,
+              buttonText: "Email",
+              href: `mailto:${siteConfig.contact.email}?subject=Real%20Hibachi%20Feedback%20and%20Support`,
+              external: false,
+              variant: "outline",
+            },
+            {
+              title: "WhatsApp",
+              description: "Last-priority backup channel",
+              icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
+              buttonText: "WhatsApp",
+              href: `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
+              external: true,
               variant: "outline",
             },
           ].filter((card) => !card.hidden).map((card, index) => (
@@ -139,7 +148,7 @@ export default function BookingPage() {
               <strong>Step 1:</strong> Use our free estimate calculator to get your pricing
             </p>
             <p>
-              <strong>Step 2:</strong> Contact us via WhatsApp, SMS, or phone to book
+              <strong>Step 2:</strong> Contact us in this order: SMS, phone, email, then WhatsApp
             </p>
             <p>
               <strong>Step 3:</strong> We'll confirm details and arrange payment (cash, Zelle, Venmo)
