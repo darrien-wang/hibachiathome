@@ -51,9 +51,6 @@ export default function HowItWorksSection() {
       <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
       <div className="container mx-auto px-4 relative z-20">
         <AnimateOnScroll direction="down">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-12 text-white">
-            🎉 <span className="text-amber-300">Book in 4 Simple Themes</span>
-          </h2>
           <p className="text-center text-amber-100 mb-8 text-sm">Need custom details? Ask support directly and we will guide you.</p>
         </AnimateOnScroll>
         {/* Desktop Timeline View */}

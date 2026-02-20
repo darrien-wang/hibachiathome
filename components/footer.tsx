@@ -205,7 +205,7 @@ export default function Footer() {
         <div className="border-t border-[#21212A] pt-6 mt-6 text-center">
           <div className="mb-4">
             <Link href="/blog" className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]">
-              <strong>Blog (SEO Articles)</strong>
+              <strong>Blog </strong>
             </Link>
             <a
               href="https://www.realhibachi.com/sitemap.html" // Assuming this is the correct public URL

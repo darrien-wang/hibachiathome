@@ -1,0 +1,288 @@
+{
+  "project": "realhibachi.com CRO merged tasks",
+  "date": "2026-02-19",
+  "sources": [
+    "harness/verification/2026-02-19-cro-task-lists/task-list-1-site-review.json",
+    "harness/verification/2026-02-19-cro-task-lists/task-list-2-user-priority.json"
+  ],
+  "summary": {
+    "total_tasks": 13,
+    "from_list_1": 8,
+    "from_list_2": 6,
+    "deduped_items": 1,
+    "notes": "CRO-002 merged into CRO-QUOTE-001; CRO-QUOTE-002 kept as follow-up task."
+  },
+  "tasks": [
+    {
+      "id": "CRO-001",
+      "标题": "修正 Contact 页面意图（顾客联系 vs 合作招募）",
+      "问题": "导航“Contact”目前是合作伙伴招募内容，不是顾客咨询/预订联系页。",
+      "建议动作": [
+        "新增真正的顾客联系页（电话/WhatsApp/SMS/表单）。",
+        "把现有合作招募页改名为“Partner/合作招募”，从主导航降级到页脚。"
+      ],
+      "优先级": "P0",
+      "预估转化影响": "高",
+      "实施成本": "S",
+      "验收标准": [
+        "用户从“Contact”进入后可直接咨询或预约。",
+        "合作招募入口不再干扰普通顾客。"
+      ],
+      "可采纳": true,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-QUOTE-001",
+      "title": "上线 Quote Builder（一页报价漏斗）MVP（去重合并版）",
+      "priority": "P0",
+      "roi": "最高",
+      "effort": "M",
+      "goal": "把“联系你”变成“先报价再联系”的主路径，并在一页内完成核心决策。",
+      "scope": [
+        "4+1字段（30秒）：Date、Zip/City、Adults/Kids、桌椅餐具（默认勾选）、预算（可选）",
+        "即时结果：预计总价区间（含minimum逻辑）、Travel fee估算区间、升级项（steak/shrimp/lobster）",
+        "结果页主CTA：一键SMS / 一键拨号 / 一键邮件（自动带入用户参数）",
+        "结果页次级CTA：支付定金或人工确认（可选）",
+        "埋点：开始报价、完成报价、联系点击（SMS/Call/Email）"
+      ],
+      "acceptance_criteria": [
+        "用户可在1个页面完成主要提交并看到价格区间",
+        "结果页支持一键联系且模板自动带入参数",
+        "可追踪报价完成率与后续联系率"
+      ],
+      "kpi": [
+        "报价完成率 >= 35%",
+        "报价后联系率提升 >= 20%"
+      ],
+      "adopt": null,
+      "source_list": [
+        "task-list-1-site-review",
+        "task-list-2-user-priority"
+      ],
+      "merged_from": [
+        "CRO-002",
+        "CRO-QUOTE-001"
+      ]
+    },
+    {
+      "id": "CRO-003",
+      "标题": "统一并强化主CTA（Book Now）",
+      "问题": "页面有多个CTA文案与动作不一致，用户决策成本高。",
+      "建议动作": [
+        "全站主按钮统一为“Book Now / Get Instant Quote”。",
+        "移动端加底部悬浮CTA（电话+WhatsApp+预订）。"
+      ],
+      "优先级": "P0",
+      "预估转化影响": "高",
+      "实施成本": "S",
+      "验收标准": [
+        "首屏和页尾都有清晰单一主CTA。",
+        "移动端任意页面都能1次点击进入预订。"
+      ],
+      "可采纳": null,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-004",
+      "标题": "修复文案与地域信息不一致问题",
+      "问题": "页脚出现地区描述不一致（如NY段落含LA城市），影响信任。",
+      "建议动作": [
+        "逐页检查并统一服务区域文案。",
+        "按城市建立独立落地页并互链。"
+      ],
+      "优先级": "P1",
+      "预估转化影响": "中高",
+      "实施成本": "S",
+      "验收标准": [
+        "所有页面地域信息一致且可验证。",
+        "用户不会对“服务范围”产生歧义。"
+      ],
+      "可采纳": null,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-005",
+      "标题": "增强价格透明度与下单信心",
+      "问题": "有起步价/最低消费，但费用结构与最终价格预期不够清晰。",
+      "建议动作": [
+        "增加“总价示例卡”（如10人/15人/20人）。",
+        "明确写出是否含税、交通费、设备费、加购项。"
+      ],
+      "优先级": "P1",
+      "预估转化影响": "中高",
+      "实施成本": "S",
+      "验收标准": [
+        "用户可在30秒内理解大致总价。",
+        "咨询中“价格不清楚”类问题下降。"
+      ],
+      "可采纳": null,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-006",
+      "标题": "把FAQ从“问题列表”升级为“异议消除模块”",
+      "问题": "FAQ对核心顾虑（取消、天气、过敏、室内外限制）的可见解答不够强。",
+      "建议动作": [
+        "默认展开前3个高频问题答案。",
+        "在Book页重复展示取消政策、到达时间、雨天方案。"
+      ],
+      "优先级": "P1",
+      "预估转化影响": "中",
+      "实施成本": "S",
+      "验收标准": [
+        "FAQ可直接看到关键答案。",
+        "预订页异议信息完整。"
+      ],
+      "可采纳": null,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-007",
+      "标题": "加强社证真实性（可点击外部评价）",
+      "问题": "已展示评分与评价，但外部可验证性可继续加强。",
+      "建议动作": [
+        "接入可点击的Google Reviews组件或“查看全部评价”链接。",
+        "增加真实活动短视频+客户姓名/城市标签。"
+      ],
+      "优先级": "P1",
+      "预估转化影响": "中",
+      "实施成本": "S",
+      "验收标准": [
+        "用户可一键查看第三方评价来源。",
+        "关键落地页至少展示3条可验证社证。"
+      ],
+      "可采纳": null,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-008",
+      "标题": "建立转化追踪与A/B测试基础",
+      "问题": "若无事件埋点，很难判断哪个页面/按钮真正带来订单。",
+      "建议动作": [
+        "埋点：CTA点击、表单提交、WhatsApp点击、电话点击。",
+        "先做2个A/B测试：主标题版本、CTA文案版本。"
+      ],
+      "优先级": "P1",
+      "预估转化影响": "中（持续复利）",
+      "实施成本": "M",
+      "验收标准": [
+        "每周可看到漏斗数据（访问-点击-提交-成交）。",
+        "每月至少完成1轮A/B结论。"
+      ],
+      "可采纳": null,
+      "source_list": "task-list-1-site-review"
+    },
+    {
+      "id": "CRO-BRAND-001",
+      "title": "增加品牌故事与主厨人格化模块",
+      "priority": "P1",
+      "roi": "中高",
+      "effort": "S",
+      "goal": "降低模板感，提升信任与记忆点",
+      "scope": [
+        "首页首屏下方新增“Why Real Hibachi / 主厨故事”区块",
+        "加入主厨照片、服务年限、服务场次、品牌承诺",
+        "加1段30-60秒短视频（可选）"
+      ],
+      "acceptance_criteria": [
+        "用户在首页3屏内能看到品牌故事",
+        "故事区块含明确CTA（Book Now / Get Quote）"
+      ],
+      "kpi": [
+        "首页到预订页点击率提升 >= 10%"
+      ],
+      "adopt": null,
+      "source_list": "task-list-2-user-priority"
+    },
+    {
+      "id": "CRO-SOCIALPROOF-001",
+      "title": "加入实时预订提醒弹窗（Social Proof Pop-up）",
+      "priority": "P2",
+      "roi": "中",
+      "effort": "S",
+      "goal": "营造生意火爆感，提升行动率",
+      "scope": [
+        "右下角小弹窗，示例：刚刚有人预订了下周六 Beverly Hills",
+        "每20-40秒轮播，支持关闭",
+        "移动端不遮挡主CTA"
+      ],
+      "acceptance_criteria": [
+        "弹窗不影响核心操作",
+        "关闭后当次会话不再弹出"
+      ],
+      "kpi": [
+        "Book页进入率提升 >= 5%"
+      ],
+      "adopt": null,
+      "source_list": "task-list-2-user-priority"
+    },
+    {
+      "id": "CRO-COPY-001",
+      "title": "强化“清洁保障”卖点（Zero Mess Guarantee）",
+      "priority": "P0",
+      "roi": "高",
+      "effort": "S",
+      "goal": "消除“弄脏家里”的核心顾虑",
+      "scope": [
+        "在Show Up Package模块增加高对比文案：Zero Mess, We Clean Up Everything",
+        "在FAQ与Book页重复呈现清洁承诺",
+        "加清洁前后对比图1组（可选）"
+      ],
+      "acceptance_criteria": [
+        "首页、Book页都能看到清洁承诺",
+        "文案在移动端首屏内可见"
+      ],
+      "kpi": [
+        "咨询中“会不会弄脏”相关问题占比下降"
+      ],
+      "adopt": null,
+      "source_list": "task-list-2-user-priority"
+    },
+    {
+      "id": "CRO-QUOTE-002",
+      "title": "打通一键联系（自动带参数消息模板）",
+      "priority": "P0",
+      "roi": "高",
+      "effort": "S",
+      "goal": "提升线索质量，减少反复沟通",
+      "depends_on": [
+        "CRO-QUOTE-001"
+      ],
+      "scope": [
+        "SMS按钮：预填日期/城市/人数/设备需求/估价",
+        "Call按钮：显示建议通话脚本",
+        "Email按钮：预填主题与正文"
+      ],
+      "acceptance_criteria": [
+        "三种联系方式都自动带入用户参数",
+        "消息模板可在后台配置"
+      ],
+      "kpi": [
+        "高质量线索占比提升 >= 25%"
+      ],
+      "adopt": null,
+      "source_list": "task-list-2-user-priority"
+    },
+    {
+      "id": "CRO-TRACK-001",
+      "title": "为Quote Builder建立转化埋点",
+      "priority": "P1",
+      "roi": "中高",
+      "effort": "S",
+      "goal": "可量化优化ROI",
+      "scope": [
+        "埋点：开始报价、完成报价、点击SMS/Call/Email",
+        "按城市、设备勾选、升级项拆分漏斗"
+      ],
+      "acceptance_criteria": [
+        "每周可导出报价漏斗报表",
+        "可识别最高转化流量来源"
+      ],
+      "kpi": [
+        "可稳定追踪核心漏斗4步数据"
+      ],
+      "adopt": null,
+      "source_list": "task-list-2-user-priority"
+    }
+  ]
+}
