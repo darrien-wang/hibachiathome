@@ -88,6 +88,14 @@ export default function Footer() {
                   Contact Us
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/partner-opportunities"
+                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
+                >
+                  Partner Opportunities
+                </Link>
+              </li>
             </ul>
           </div>
 

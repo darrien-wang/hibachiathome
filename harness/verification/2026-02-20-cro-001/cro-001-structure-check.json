@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "id": "contact_customer_intent",
+      "pass": true
+    },
+    {
+      "id": "partner_page_exists",
+      "pass": true
+    },
+    {
+      "id": "footer_partner_link",
+      "pass": true
+    },
+    {
+      "id": "contact_no_partner_application",
+      "pass": true
+    }
+  ]
+}
