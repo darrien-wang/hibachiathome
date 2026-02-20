@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { getSortedHeroImages, carouselConfig } from "@/config/hero-images"
 
 export default function HeroSection() {
@@ -236,6 +238,19 @@ export default function HeroSection() {
             }}
           >
             <p className="text-xl md:text-2xl font-bold tracking-wide">🎉 Want a Party? One Call, That's All. 🎉</p>
+          </div>
+
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white min-w-[170px]">
+              <Link href="/quote">Get Instant Quote</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="min-w-[170px] border-white text-white bg-black/30 hover:bg-black/50 hover:text-white"
+            >
+              <Link href="/book">Book Now</Link>
+            </Button>
           </div>
         </div>
 

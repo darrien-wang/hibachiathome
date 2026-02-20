@@ -840,6 +840,18 @@ export default function Home() {
                 Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home.
                 Our chefs are ready to create a great show and delicious meal for you and your guests.
               </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
+                <Button asChild className="bg-white text-amber-700 hover:bg-amber-50 min-w-[170px]">
+                  <Link href="/quote">Get Instant Quote</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="min-w-[170px] border-white text-white bg-transparent hover:bg-white/10 hover:text-white"
+                >
+                  <Link href="/book">Book Now</Link>
+                </Button>
+              </div>
             </AnimateOnScroll>
 
             <AnimateOnScroll direction="up" delay={200}>

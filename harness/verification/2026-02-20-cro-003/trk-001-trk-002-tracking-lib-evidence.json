@@ -1,0 +1,22 @@
+{
+  "checks": {
+    "trk_001_reverify": "pass",
+    "trk_002": "pass"
+  },
+  "events": [
+    {
+      "event": "page_view",
+      "page_path": "/",
+      "page_title": "Real Hibachi | Home",
+      "utm_source": "google",
+      "utm_medium": "cpc"
+    },
+    {
+      "event": "page_view",
+      "page_path": "/book",
+      "page_title": "Book Real Hibachi",
+      "utm_source": "google",
+      "utm_medium": "cpc"
+    }
+  ]
+}

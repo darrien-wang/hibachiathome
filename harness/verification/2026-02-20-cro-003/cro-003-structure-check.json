@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "id": "mobile_sticky_cta_has_book_call_whatsapp",
+      "pass": true
+    },
+    {
+      "id": "hero_above_fold_primary_cta",
+      "pass": true
+    },
+    {
+      "id": "home_near_end_primary_cta",
+      "pass": true
+    },
+    {
+      "id": "book_page_primary_quote_cta",
+      "pass": true
+    }
+  ]
+}

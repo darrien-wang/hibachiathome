@@ -49,7 +49,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/book" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Book Online
+                  Book Now
                 </Link>
               </li>
               <li>

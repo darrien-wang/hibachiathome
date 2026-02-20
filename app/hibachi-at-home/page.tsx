@@ -264,7 +264,7 @@ export default function HibachiAtHomePage() {
       title: "Online Booking",
       description: "Book at your convenience",
       icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "Book Online",
+      buttonText: "Book Now",
       onClick: handleOnlineBooking,
       variant: "default",
       className: "bg-white/20 border-white/30",
