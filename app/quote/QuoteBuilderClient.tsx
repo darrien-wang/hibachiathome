@@ -34,6 +34,10 @@ const DEFAULT_INPUT: QuoteInput = {
   },
 }
 
+function encodeUrlComponent(value: string): string {
+  return encodeURIComponent(value)
+}
+
 export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
   const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
