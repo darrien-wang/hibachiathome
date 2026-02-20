@@ -251,7 +251,7 @@ export default function QuoteBuilderClient() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-medium">Upgrade Options</p>
+                <p className="text-sm font-medium">Premium Upgrade Options (optional)</p>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -260,7 +260,7 @@ export default function QuoteBuilderClient() {
                       onCheckedChange={(checked) => handleAddOnToggle("steak", Boolean(checked))}
                     />
                     <label htmlFor="add-on-steak" className="text-sm">
-                      Steak
+                      Filet Mignon (+$8)
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function QuoteBuilderClient() {
                       onCheckedChange={(checked) => handleAddOnToggle("shrimp", Boolean(checked))}
                     />
                     <label htmlFor="add-on-shrimp" className="text-sm">
-                      Shrimp
+                      Scallops (+$6)
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -280,10 +280,13 @@ export default function QuoteBuilderClient() {
                       onCheckedChange={(checked) => handleAddOnToggle("lobster", Boolean(checked))}
                     />
                     <label htmlFor="add-on-lobster" className="text-sm">
-                      Lobster
+                      Lobster Tail (+$12)
                     </label>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500">
+                  Quick estimate assumes selected premium upgrades could be chosen by up to all guests.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -292,7 +295,7 @@ export default function QuoteBuilderClient() {
             <CardHeader>
               <CardTitle>Instant Estimate Range</CardTitle>
               <CardDescription>
-                Includes minimum-spend logic, travel fee range, and selected upgrade options.
+                Includes $599 minimum-spend logic, full-setup selection, and premium-upgrade impact.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -311,9 +314,9 @@ export default function QuoteBuilderClient() {
                 <p>
                   Travel fee range: ${result.travelFeeRange.low.toFixed(0)} - ${result.travelFeeRange.high.toFixed(0)}
                 </p>
-                <p>Tableware rental: ${result.tablewareFee.toFixed(0)}</p>
+                <p>Full setup (tables/chairs/utensils): ${result.tablewareFee.toFixed(0)}</p>
                 <p>
-                  Add-ons impact: ${result.addOnTotalRange.low.toFixed(0)} - ${result.addOnTotalRange.high.toFixed(0)}
+                  Premium upgrades impact: ${result.addOnTotalRange.low.toFixed(0)} - ${result.addOnTotalRange.high.toFixed(0)}
                 </p>
               </div>
 

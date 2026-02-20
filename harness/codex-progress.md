@@ -1261,3 +1261,31 @@
   - No product/UI code change applied for CRO-007 in this commit.
 - Next highest-priority action:
   - No remaining unfinished items in `harness/feature_list.json`.
+
+## 2026-02-20 (Quote Builder rule calibration to Bling pricing prompt)
+
+- Completed:
+  - Updated `Instant Estimate Range` pricing logic to follow the provided business prompt in:
+    - `lib/quote-builder.ts`
+  - Rule adjustments applied:
+    - children food price corrected to **$29.95**
+    - minimum spend remains **$599**
+    - full setup (when selected) calculated as **$15 per guest**
+    - premium upgrade unit prices aligned to prompt:
+      - Filet Mignon +$8
+      - Scallops +$6
+      - Lobster Tail +$12
+    - quote upgrade range now reflects selection uncertainty:
+      - low assumes no guest selects premium upgrade
+      - high assumes all guests select chosen premium upgrades
+    - removed legacy travel-fee heuristics from instant estimate calculation baseline (`$0-$0` placeholder range).
+  - Updated quote UI wording in:
+    - `app/quote/QuoteBuilderClient.tsx`
+    - labels now reflect premium upgrade names and full-setup wording.
+- Verified:
+  - `node harness/scripts/verify-cro-quote-builder.mjs harness/verification/2026-02-20-cro-quote-rules-adjust` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-cro-quote-rules-adjust/cro-quote-001-quote-builder-evidence.json`
+  - `harness/verification/2026-02-20-cro-quote-rules-adjust/codex-verify.log`
+  - `harness/verification/2026-02-20-cro-quote-rules-adjust/codex-verify.exit`

@@ -47,13 +47,14 @@ export type QuoteTemplateContext = {
 }
 
 const ADULT_PRICE = 59.9
-const KID_PRICE = 29.9
+const KID_FOOD_PRICE = 29.95
+const FULL_SETUP_PER_GUEST = 15
 const MINIMUM_SPEND = 599
 
 const ADD_ON_PER_GUEST = {
   steak: 8,
-  shrimp: 10,
-  lobster: 18,
+  shrimp: 6,
+  lobster: 12,
 } as const
 
 function roundCurrency(value: number): number {
@@ -66,29 +67,9 @@ function normalizeGuests(input: number): number {
 }
 
 export function getTravelFeeRange(location: string): QuoteRange {
-  const normalizedLocation = location.trim().toLowerCase()
-
-  if (!normalizedLocation) return { low: 30, high: 90 }
-
-  if (
-    normalizedLocation.includes("los angeles") ||
-    normalizedLocation.includes("orange county") ||
-    normalizedLocation.includes("irvine") ||
-    normalizedLocation.includes("anaheim") ||
-    normalizedLocation.includes("santa monica") ||
-    normalizedLocation.includes("pasadena")
-  ) {
-    return { low: 25, high: 60 }
-  }
-
-  const zipMatch = normalizedLocation.match(/\b(\d{5})\b/)
-  if (zipMatch) {
-    const zip = Number.parseInt(zipMatch[1], 10)
-    if (zip >= 90000 && zip <= 93999) return { low: 25, high: 60 }
-    if (zip >= 94000 && zip <= 96199) return { low: 50, high: 110 }
-  }
-
-  return { low: 60, high: 140 }
+  const normalizedLocation = location.trim()
+  if (!normalizedLocation) return { low: 0, high: 0 }
+  return { low: 0, high: 0 }
 }
 
 export function calculateQuote(input: QuoteInput): QuoteResult {
@@ -97,26 +78,38 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   const guestCount = adults + kids
   const hasCoreInputs = Boolean(input.eventDate && input.location.trim() && guestCount > 0)
 
-  const baseSubtotal = roundCurrency(adults * ADULT_PRICE + kids * KID_PRICE)
-  const effectiveBase = Math.max(baseSubtotal, MINIMUM_SPEND)
+  const baseSubtotal = roundCurrency(adults * ADULT_PRICE + kids * KID_FOOD_PRICE)
+  const tablewareFee = input.tablewareRental ? roundCurrency(guestCount * FULL_SETUP_PER_GUEST) : 0
+  const packageSubtotal = roundCurrency(baseSubtotal + tablewareFee)
 
   const travelFeeRange = getTravelFeeRange(input.location)
-  const tablewareFee = input.tablewareRental ? Math.max(guestCount * 2.5, 30) : 0
 
-  const selectedAddOnUnitPrice =
+  const selectedUpgradeUnitPrice =
     (input.addOns.steak ? ADD_ON_PER_GUEST.steak : 0) +
     (input.addOns.shrimp ? ADD_ON_PER_GUEST.shrimp : 0) +
     (input.addOns.lobster ? ADD_ON_PER_GUEST.lobster : 0)
 
-  const addOnBase = guestCount * selectedAddOnUnitPrice
+  const addOnBaseHigh = guestCount * selectedUpgradeUnitPrice
   const addOnTotalRange: QuoteRange = {
-    low: roundCurrency(addOnBase * 0.9),
-    high: roundCurrency(addOnBase * 1.1),
+    low: 0,
+    high: roundCurrency(addOnBaseHigh),
   }
 
+  const subtotalRange: QuoteRange = {
+    low: roundCurrency(packageSubtotal + addOnTotalRange.low),
+    high: roundCurrency(packageSubtotal + addOnTotalRange.high),
+  }
+
+  const totalBeforeTravelRange: QuoteRange = {
+    low: Math.max(subtotalRange.low, MINIMUM_SPEND),
+    high: Math.max(subtotalRange.high, MINIMUM_SPEND),
+  }
+
+  const effectiveBase = Math.max(packageSubtotal, MINIMUM_SPEND)
+
   const totalRange: QuoteRange = {
-    low: roundCurrency(effectiveBase + tablewareFee + travelFeeRange.low + addOnTotalRange.low),
-    high: roundCurrency(effectiveBase + tablewareFee + travelFeeRange.high + addOnTotalRange.high),
+    low: roundCurrency(totalBeforeTravelRange.low + travelFeeRange.low),
+    high: roundCurrency(totalBeforeTravelRange.high + travelFeeRange.high),
   }
 
   const budgetFit =
@@ -133,7 +126,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     minimumSpend: MINIMUM_SPEND,
     effectiveBase,
     travelFeeRange,
-    tablewareFee: roundCurrency(tablewareFee),
+    tablewareFee,
     addOnTotalRange,
     totalRange,
     budgetFit,
@@ -148,9 +141,9 @@ function formatCurrency(value: number): string {
 
 function formatAddOnSummary(addOns: QuoteAddOns): string {
   const labels: string[] = []
-  if (addOns.steak) labels.push("steak")
-  if (addOns.shrimp) labels.push("shrimp")
-  if (addOns.lobster) labels.push("lobster")
+  if (addOns.steak) labels.push("filet mignon")
+  if (addOns.shrimp) labels.push("scallops")
+  if (addOns.lobster) labels.push("lobster tail")
   return labels.length > 0 ? labels.join(", ") : "none"
 }
 
