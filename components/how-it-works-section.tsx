@@ -50,10 +50,10 @@ export default function HowItWorksSection() {
       />
       <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
       <div className="container mx-auto px-4 relative z-20">
-        {/* Show Up Package Highlight Box */}
+        {/* Package + Setup Add-On Highlight Box */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 mb-12 shadow-lg border-l-4 border-amber-500 max-w-3xl mx-auto">
           <h3 className="text-2xl md:text-3xl font-bold mb-3 text-amber-700 font-serif">
-            Show Up Package – We Handle Everything!
+            One Package, Optional Full Setup
           </h3>
           <p className="text-gray-700 mb-6 text-lg">
             Just show up and enjoy! We bring the chef, food, equipment, tables, and even clean up afterward.

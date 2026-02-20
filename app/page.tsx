@@ -285,14 +285,14 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Our Popular <span className="text-primary">Packages</span>
+                Our Signature <span className="text-primary">Package</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Choose the perfect hibachi package for your event
+                One core hibachi package, with optional table/chair/utensil add-on when needed.
               </p>
             </AnimateOnScroll>
 
-            <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto justify-center items-center md:items-start">
+            <div className="flex flex-col gap-8 max-w-3xl mx-auto justify-center items-center">
               {/* Basic Package Card */}
               <AnimateOnScroll direction="left" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
                 <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
@@ -341,51 +341,12 @@ export default function Home() {
                 </div>
               </AnimateOnScroll>
 
-              {/* Show Up Package Card */}
-              <AnimateOnScroll direction="up" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-green-300/50 hover:border-green-300">
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 border-green-200">
-                      All-Inclusive
-                    </span>
-                  </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="/images/design-mode/3ce446cf6f67fa9ee6ef2bbdb81de44.png"
-                      alt="Show Up Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Show Up Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$75</span>
-                        $74.9
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($599 minimum)</p>
-                    </div>
-                    <ul className="space-y-1 mb-6 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-green-500 mr-2">•</span>
-                        <span>2 proteins of your choice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-green-500 mr-2">•</span>
-                        <span>Tables, chairs & utensils included</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-green-500 mr-2">•</span>
-                        <span>Chef performance included</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-green-500 mr-2">•</span>
-                        <span>Everything ready to go!</span>
-                      </li>
-                    </ul>
-                  </div>
+              <AnimateOnScroll direction="up" className="w-full max-w-md mx-auto">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+                  <h3 className="text-lg font-bold text-amber-900 mb-2">Optional Setup Add-On</h3>
+                  <p className="text-sm text-amber-900">
+                    Need us to bring tables, chairs, and utensils? Add full setup for <strong>+$15 per guest</strong>.
+                  </p>
                 </div>
               </AnimateOnScroll>
 

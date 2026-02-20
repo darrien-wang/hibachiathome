@@ -1502,3 +1502,20 @@
 - Evidence:
   - `harness/verification/2026-02-20-chef-bling-phone-format/codex-verify.log`
   - `harness/verification/2026-02-20-chef-bling-phone-format/codex-verify.exit`
+
+## 2026-02-20 (Simplify package positioning to one core package)
+
+- Completed:
+  - Simplified homepage package section from two package cards to one core package plus add-on explanation:
+    - `app/page.tsx`
+    - section title changed to singular package positioning.
+    - removed separate `Show Up Package` card.
+    - added concise setup add-on block: full setup `+$15/guest`.
+  - Aligned supporting highlight wording in process section:
+    - `components/how-it-works-section.tsx`
+    - `Show Up Package` wording replaced with single-package + optional-setup phrasing.
+- Verified:
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-single-package-simplify/codex-verify.log`
+  - `harness/verification/2026-02-20-single-package-simplify/codex-verify.exit`
