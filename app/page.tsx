@@ -215,14 +215,14 @@ export default function Home() {
       <HeroSection />
       {/* Package Options Section */}
       <AnimateOnScroll>
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-[#f7f4ec]">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-3 text-[#B3261E]">How It Works</h2>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-3 text-amber-700">How It Works</h2>
               <p className="text-4xl md:text-5xl font-serif font-bold text-center text-gray-900 max-w-4xl mx-auto leading-tight mb-5">
                 We Bring Our Hibachi Grill + Chef to Your Backyard.
               </p>
-              <p className="text-base md:text-lg text-center text-gray-700 max-w-3xl mx-auto mb-12">
+              <p className="text-base md:text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
                 You pick the date and headcount. We handle the chef and cooking experience. For custom setup details,
                 message support directly.
               </p>
@@ -230,8 +230,8 @@ export default function Home() {
 
             <div className="grid gap-5 md:grid-cols-3 max-w-5xl mx-auto">
               <AnimateOnScroll direction="up">
-                <div className="rounded-3xl bg-[#B3261E] p-6 text-white shadow-lg">
-                  <h3 className="text-3xl font-serif font-bold mb-4 text-center">Pricing</h3>
+                <div className="rounded-3xl bg-white border border-[#eadfcd] p-6 text-gray-700 shadow-md">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-[#B3261E]">Pricing</h3>
                   <div className="space-y-2 text-sm md:text-base text-center">
                     <p>$59.90 per adult</p>
                     <p>$29.95 per child (under 13, food portion)</p>
@@ -242,8 +242,8 @@ export default function Home() {
               </AnimateOnScroll>
 
               <AnimateOnScroll direction="up" delay={120}>
-                <div className="rounded-3xl bg-[#B3261E] p-6 text-white shadow-lg">
-                  <h3 className="text-3xl font-serif font-bold mb-4 text-center">Protein Choices</h3>
+                <div className="rounded-3xl bg-white border border-[#eadfcd] p-6 text-gray-700 shadow-md">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-[#B3261E]">Protein Choices</h3>
                   <div className="space-y-2 text-sm md:text-base text-center">
                     <p>2 regular proteins included per guest</p>
                     <p>Chicken, Steak, Shrimp, Salmon, Tofu</p>
@@ -254,8 +254,8 @@ export default function Home() {
               </AnimateOnScroll>
 
               <AnimateOnScroll direction="up" delay={240}>
-                <div className="rounded-3xl bg-[#B3261E] p-6 text-white shadow-lg">
-                  <h3 className="text-3xl font-serif font-bold mb-4 text-center">Included</h3>
+                <div className="rounded-3xl bg-white border border-[#eadfcd] p-6 text-gray-700 shadow-md">
+                  <h3 className="text-3xl font-serif font-bold mb-4 text-center text-[#B3261E]">Included</h3>
                   <div className="space-y-2 text-sm md:text-base text-center">
                     <p>Fried rice, fresh vegetables, house salad</p>
                     <p>Chef performance and on-site grill cooking</p>
