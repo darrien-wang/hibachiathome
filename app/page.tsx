@@ -232,9 +232,9 @@ export default function Home() {
 
             <div className="grid gap-6 md:grid-cols-3 max-w-7xl mx-auto">
               <AnimateOnScroll direction="up">
-                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[360px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)]">
+                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[420px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)] flex flex-col">
                   <h3 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-center text-[hsl(24_79%_55%)]">Pricing</h3>
-                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center">
+                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center flex-1 flex flex-col justify-center">
                     <p>$59.90 per adult</p>
                     <p>$29.95 per child (under 13, food portion)</p>
                     <p>$599 minimum for all events</p>
@@ -244,11 +244,11 @@ export default function Home() {
               </AnimateOnScroll>
 
               <AnimateOnScroll direction="up" delay={120}>
-                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[360px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)]">
+                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[420px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)] flex flex-col">
                   <h3 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-center text-[hsl(24_79%_55%)]">
                     Protein Choices
                   </h3>
-                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center">
+                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center flex-1 flex flex-col justify-center">
                     <p>2 regular proteins included per guest</p>
                     <p>Chicken, Steak, Shrimp, Salmon, Tofu</p>
                     <p>Premium upgrades:</p>
@@ -258,9 +258,9 @@ export default function Home() {
               </AnimateOnScroll>
 
               <AnimateOnScroll direction="up" delay={240}>
-                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[360px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)]">
+                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[420px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)] flex flex-col">
                   <h3 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-center text-[hsl(24_79%_55%)]">Included</h3>
-                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center">
+                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center flex-1 flex flex-col justify-center">
                     <p>Fried rice, fresh vegetables, house salad</p>
                     <p>Chef performance and on-site grill cooking</p>
                     <p>Outdoor cooking setup only</p>
