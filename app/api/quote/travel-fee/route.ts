@@ -9,11 +9,9 @@ function clampNumber(value: number, min: number, max: number): number {
 }
 
 function mapTravelFeeRangeByMiles(distanceMiles: number): FeeRange {
-  if (distanceMiles <= 10) return { low: 25, high: 40 }
-  if (distanceMiles <= 20) return { low: 40, high: 60 }
-  if (distanceMiles <= 35) return { low: 60, high: 90 }
-  if (distanceMiles <= 50) return { low: 90, high: 130 }
-  return { low: 130, high: 180 }
+  if (distanceMiles <= 20) return { low: 0, high: 0 }
+  const fee = Math.round(distanceMiles * 1)
+  return { low: fee, high: fee }
 }
 
 function fallbackFeeRange(destination: string): { distanceMiles: number; feeRange: FeeRange } {
