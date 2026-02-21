@@ -1613,3 +1613,278 @@
   - `harness/verification/2026-02-20-quote-instant-estimate-width/codex-verify.exit`
 - Next highest-priority action:
   - Add a deterministic UI regression assertion for `/quote` contact CTA width/overflow behavior that can run without sandboxed browser dependencies.
+
+## 2026-02-20 (CRO-QUOTE-AB-ROUTES-001 quoteA/quoteB route split)
+
+- Completed:
+  - Re-ran session bootstrap (`bash harness/scripts/codex-session-start.sh`).
+  - Re-verified a previously passing baseline flow (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Split quote experience into two dedicated routes with separate pages:
+    - Added `/quoteA` (`app/quoteA/page.tsx`) and `/quoteB` (`app/quoteB/page.tsx`).
+    - Converted legacy `/quote` page to a redirect to `/quoteA`.
+  - Updated quote CTA destinations in core surfaces (`/`, hero CTA, `/book`) to point to `/quoteA` default variant.
+  - Extended quote builder variant handling:
+    - `QuoteBuilderClient` now accepts variant prop (`A|B`).
+    - Emits `ab_test_exposure` and variant-aware `quote_surface` / `lead_source` values.
+    - Added Variant B urgency block with deterministic remaining-slot message based on selected date/location.
+  - Updated sitemap static URLs to include `/quoteA` and `/quoteB`.
+- Feature status transition:
+  - Added `CRO-QUOTE-AB-ROUTES-001` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+  - Build route manifest now includes `/quoteA` and `/quoteB` ✅
+- Regressions/blockers:
+  - UI/browser flow re-verification remains blocked in this sandbox due localhost bind restriction (`listen EPERM 127.0.0.1:3000`), so verification relied on static gates and build route output.
+- Evidence:
+  - `harness/verification/2026-02-20-quote-ab-routes/reverify-trk-001-e2e.log`
+  - `harness/verification/2026-02-20-quote-ab-routes/reverify-trk-001-e2e.exit`
+  - `harness/verification/2026-02-20-quote-ab-routes/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-ab-routes/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-ab-routes/dev-startup.log`
+  - `harness/verification/2026-02-20-quote-ab-routes/dev-startup.exit`
+  - `harness/verification/2026-02-20-quote-ab-routes/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-ab-routes/codex-verify.exit`
+- Next highest-priority action:
+  - When localhost bind restrictions are lifted, run Playwright UI verification for `/quoteA` and `/quoteB` to capture visual/interaction evidence and variant event payload checks.
+
+## 2026-02-20 (CRO-QUOTE-AB-ROUTES-002 add deposit lock CTA in Quote B urgency block)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated `app/quote/QuoteBuilderClient.tsx` Variant B urgency module:
+    - urgency copy now includes explicit `Pay deposit to lock` language.
+    - added `Pay Deposit to Lock` button inside the urgency panel.
+  - Added deposit lock click behavior:
+    - emits `deposit_started` with `value`, `currency`, and quote context.
+    - emits `ab_test_conversion` for experiment `quote_route_split_v1`.
+    - navigates user to `/deposit` with generated quote booking id.
+- Feature status transition:
+  - Added `CRO-QUOTE-AB-ROUTES-002` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅
+- Evidence:
+  - `harness/verification/2026-02-20-quote-b-deposit-lock-cta/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-b-deposit-lock-cta/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-b-deposit-lock-cta/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-b-deposit-lock-cta/codex-verify.exit`
+- Next highest-priority action:
+  - Add UI-level Playwright assertions for Quote B urgency CTA once localhost bind restrictions are lifted in this sandbox.
+
+## 2026-02-20 (CRO-QUOTE-DEPOSIT-001 align Quote->Deposit data and estimate range)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated `app/quote/QuoteBuilderClient.tsx`:
+    - added `Customer Name` and `Event Time` inputs in quote form.
+    - made Quote B `Pay Deposit to Lock` CTA require name/time + core quote fields before enabling.
+    - passed quote context into `/deposit` query params (`customer_name`, `event_date`, `event_time`, `location`, `adults`, `kids`, `estimate_low`, `estimate_high`).
+    - kept A/B experiment conversion tracking on deposit-lock click.
+  - Updated `app/deposit/page.tsx`:
+    - detects quote-origin sessions (`source=quoteA|quoteB`) and hydrates booking details from quote params.
+    - renders `Total Estimate` using instant-quote range instead of mismatched static/demo totals when quote range exists.
+    - shows supporting note that estimate range comes from Instant Quote and final total is confirmed later.
+- Feature status transition:
+  - Added `CRO-QUOTE-DEPOSIT-001` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Regressions/blockers:
+  - UI Playwright route-flow validation remains blocked in sandbox due localhost bind restrictions; static gates and route-level build verification used for this pass.
+- Evidence:
+  - `harness/verification/2026-02-20-quote-deposit-estimate-range/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-deposit-estimate-range/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-deposit-estimate-range/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-deposit-estimate-range/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level Quote B -> Deposit E2E assertion for query payload and estimate-range rendering once localhost restrictions are lifted.
+
+## 2026-02-20 (CRO-QUOTE-DEPOSIT-002 fixed Event Time dropdown options)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated `app/quote/QuoteBuilderClient.tsx` Event Time field from free-form time input to a fixed dropdown.
+  - Added fixed slots exactly as requested: `16:00`, `19:00`, `12:00`, `14:00`.
+  - Kept Event Time as required for Quote B deposit-lock CTA enablement logic.
+- Feature status transition:
+  - Added `CRO-QUOTE-DEPOSIT-002` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Evidence:
+  - `harness/verification/2026-02-20-quote-event-time-dropdown/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-event-time-dropdown/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-event-time-dropdown/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-event-time-dropdown/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level E2E assertion for Quote B time dropdown option set once sandbox localhost restrictions are lifted.
+
+## 2026-02-20 (CRO-QUOTE-UI-002 tableware copy adds limited free canopy note)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated Quote Builder tableware label copy in `app/quote/QuoteBuilderClient.tsx` to include:
+    - `Include tableware rental (recommended) · limited Free canopy`
+- Feature status transition:
+  - Added `CRO-QUOTE-UI-002` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Evidence:
+  - `harness/verification/2026-02-20-quote-tableware-canopy-copy/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-tableware-canopy-copy/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-tableware-canopy-copy/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-tableware-canopy-copy/codex-verify.exit`
+- Next highest-priority action:
+  - Add UI-level assertion for key quote form helper copy once sandbox browser constraints are lifted.
+
+## 2026-02-20 (CRO-QUOTE-WEATHER-001 add default-on 10'x10' rainy day tent option)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated Quote form in `app/quote/QuoteBuilderClient.tsx`:
+    - added `10'x10' tent (rainy day option)` checkbox directly under Tableware Rental.
+    - default state is checked (`tent10x10: true`).
+  - Extended quote data model and downstream context:
+    - `lib/quote-builder.ts` now includes `tent10x10` in `QuoteInput` and quote summary/template context.
+    - `config/quote-contact-templates.ts` now includes `10'x10' tent: {{tent_10x10}}` in SMS/email/call templates.
+    - Quote -> Deposit query payload now includes `tent_10x10`; deposit page renders this field for quote-origin sessions.
+- Feature status transition:
+  - Added `CRO-QUOTE-WEATHER-001` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Evidence:
+  - `harness/verification/2026-02-20-quote-rain-tent-option/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-rain-tent-option/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-rain-tent-option/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-rain-tent-option/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level Quote form assertion for tent default checked state once sandbox localhost constraints are lifted.
+
+## 2026-02-20 (CRO-QUOTE-UI-003 icon tooltip trigger for tableware detail)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated Quote Builder tableware helper interaction in `app/quote/QuoteBuilderClient.tsx`:
+    - replaced text `?` trigger with icon-based trigger (`CircleHelp`).
+    - improved trigger hit-area and hover/focus interaction styling.
+    - kept details in tooltip: `Includes: table, chairs, tableware, table cloth · $15 per person`.
+- Feature status transition:
+  - Added `CRO-QUOTE-UI-003` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Evidence:
+  - `harness/verification/2026-02-20-quote-tooltip-icon/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-20-quote-tooltip-icon/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-20-quote-tooltip-icon/codex-verify.log`
+  - `harness/verification/2026-02-20-quote-tooltip-icon/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level assertion for icon tooltip visibility/keyboard focus behavior once sandbox localhost constraints are lifted.
+
+## 2026-02-21 (CRO-QUOTE-UI-004 weather snapshot card in Instant Estimate Range)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated `app/quote/QuoteBuilderClient.tsx` to add a weather snapshot card in the right-side **Instant Estimate Range** panel.
+  - Weather card now appears after date + location are selected and includes:
+    - Sunset time (Sunset icon)
+    - Rain status + rain chance (CloudSun/CloudRain icon)
+    - Temperature °F (Thermometer icon)
+  - Styled the weather panel as a gradient card with icon tiles to avoid plain-text presentation.
+- Feature status transition:
+  - Added `CRO-QUOTE-UI-004` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Regressions/blockers:
+  - Browser/UI screenshot automation still blocked by localhost restrictions in this sandbox; verification completed via static gates.
+- Evidence:
+  - `harness/verification/2026-02-21-quote-weather-card/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-21-quote-weather-card/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-21-quote-weather-card/codex-verify.log`
+  - `harness/verification/2026-02-21-quote-weather-card/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level assertion for weather card render/visual behavior once localhost constraints are lifted.
+
+## 2026-02-21 (CRO-QUOTE-WEATHER-API-001 live weather API for quote weather card)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Added new API route: `app/api/quote/weather/route.ts`.
+    - Uses Open-Meteo geocoding + forecast APIs to return event-day:
+      - sunset time
+      - rain chance / will-rain flag
+      - temperature (°F)
+    - Includes robust fallback payload generation when geocode/weather calls fail.
+  - Updated `app/quote/QuoteBuilderClient.tsx` weather card data source:
+    - replaced local deterministic-only preview with live fetch to `/api/quote/weather` based on selected date + location.
+    - keeps designed icon card UI and adds loading/empty-state handling.
+- Feature status transition:
+  - Added `CRO-QUOTE-WEATHER-API-001` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+  - Build route manifest includes `/api/quote/weather` ✅
+- Regressions/blockers:
+  - Browser UI screenshot verification remains blocked by localhost restrictions in this sandbox; static gates used.
+- Evidence:
+  - `harness/verification/2026-02-21-quote-weather-card/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-21-quote-weather-card/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-21-quote-weather-card/codex-verify.log`
+  - `harness/verification/2026-02-21-quote-weather-card/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level assertion for live weather-card response rendering once localhost constraints are lifted.
+
+## 2026-02-21 (CRO-QUOTE-WEATHER-API-002 event-time weather support)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Enhanced `app/api/quote/weather/route.ts` to support `eventTime` input:
+    - fetches hourly forecast arrays (`temperature_2m`, `precipitation_probability`) from Open-Meteo.
+    - resolves nearest hourly datapoint to requested event time.
+    - returns `event_time` and `event_time_label` alongside sunset/rain/temp values.
+    - fallback payload now also respects requested event time.
+  - Updated `app/quote/QuoteBuilderClient.tsx`:
+    - sends selected Event Time to `/api/quote/weather`.
+    - binds weather badge and card copy to event-time context (e.g., "At 7:00 PM", "chance at event time").
+- Feature status transition:
+  - Added `CRO-QUOTE-WEATHER-API-002` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Regressions/blockers:
+  - Browser-level UI verification remains blocked by localhost restrictions in sandbox; static gates used for this pass.
+- Evidence:
+  - `harness/verification/2026-02-21-quote-weather-card/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-21-quote-weather-card/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-21-quote-weather-card/codex-verify.log`
+  - `harness/verification/2026-02-21-quote-weather-card/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level assertion that changing Event Time updates weather-card values when localhost constraints are lifted.
+
+## 2026-02-21 (CRO-QUOTE-CTA-BOOKONLINE-001 add Book Online CTA beside SMS/Call/Email)
+
+- Completed:
+  - Re-verified previously passing baseline tracking contract (`TRK-001`) via `node harness/scripts/verify-tracking-page-view.mjs`.
+  - Updated quote action area in `app/quote/QuoteBuilderClient.tsx`:
+    - expanded action grid to support four actions on large screens.
+    - added new `Book Online` button with `Pay Deposit` sublabel.
+    - button routes directly to `/deposit` with quote context query params (same payload model as existing deposit flow).
+    - button remains disabled until required quote details are complete.
+- Feature status transition:
+  - Added `CRO-QUOTE-CTA-BOOKONLINE-001` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs` ✅
+  - `bash harness/scripts/codex-verify.sh` ✅ (lint + build)
+- Regressions/blockers:
+  - Browser UI interaction verification remains blocked by localhost restrictions in sandbox; static gates used.
+- Evidence:
+  - `harness/verification/2026-02-21-quote-book-online-cta/reverify-trk-001-lib.log`
+  - `harness/verification/2026-02-21-quote-book-online-cta/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-02-21-quote-book-online-cta/codex-verify.log`
+  - `harness/verification/2026-02-21-quote-book-online-cta/codex-verify.exit`
+- Next highest-priority action:
+  - Add browser-level assertion for Book Online button routing and disabled/enabled state when localhost constraints are lifted.

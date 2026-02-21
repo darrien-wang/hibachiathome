@@ -16,6 +16,8 @@ import { trackEvent } from "@/lib/tracking"
 export default function DepositPaymentPage() {
   const searchParams = useSearchParams()
   const bookingId = searchParams.get("id") || "DEMO123"
+  const source = searchParams.get("source") || ""
+  const isQuoteSource = source === "quoteA" || source === "quoteB"
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,11 +26,43 @@ export default function DepositPaymentPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false)
+  const quoteCustomerName = searchParams.get("customer_name")?.trim() || ""
+  const quoteEventDate = searchParams.get("event_date") || ""
+  const quoteEventTime = searchParams.get("event_time") || ""
+  const quoteLocation = searchParams.get("location") || ""
+  const quoteAdults = Number(searchParams.get("adults") || "0")
+  const quoteKids = Number(searchParams.get("kids") || "0")
+  const quoteTent10x10Param = (searchParams.get("tent_10x10") || "").toLowerCase()
+  const quoteTent10x10 = quoteTent10x10Param === "yes" || quoteTent10x10Param === "true" || quoteTent10x10Param === "1"
+  const quoteEstimateLow = Number(searchParams.get("estimate_low") || "")
+  const quoteEstimateHigh = Number(searchParams.get("estimate_high") || "")
+  const hasQuoteEstimateRange =
+    Number.isFinite(quoteEstimateLow) &&
+    Number.isFinite(quoteEstimateHigh) &&
+    quoteEstimateLow > 0 &&
+    quoteEstimateHigh >= quoteEstimateLow
 
   useEffect(() => {
     async function fetchBookingDetails() {
       if (!bookingId) {
         setError("Booking ID is missing. Please check if your link is complete.")
+        setLoading(false)
+        return
+      }
+
+      if (isQuoteSource) {
+        setBooking({
+          id: bookingId,
+          full_name: quoteCustomerName || "Quote Guest",
+          event_date: quoteEventDate || "TBD",
+          event_time: quoteEventTime || "TBD",
+          location: quoteLocation || "TBD",
+          guest_adults: Number.isFinite(quoteAdults) ? quoteAdults : 0,
+          guest_kids: Number.isFinite(quoteKids) ? quoteKids : 0,
+          tent_10x10: quoteTent10x10,
+          estimate_low: hasQuoteEstimateRange ? quoteEstimateLow : undefined,
+          estimate_high: hasQuoteEstimateRange ? quoteEstimateHigh : undefined,
+        })
         setLoading(false)
         return
       }
@@ -71,7 +105,20 @@ export default function DepositPaymentPage() {
     }
 
     fetchBookingDetails()
-  }, [bookingId])
+  }, [
+    bookingId,
+    hasQuoteEstimateRange,
+    isQuoteSource,
+    quoteAdults,
+    quoteCustomerName,
+    quoteEstimateHigh,
+    quoteEstimateLow,
+    quoteEventDate,
+    quoteEventTime,
+    quoteKids,
+    quoteLocation,
+    quoteTent10x10,
+  ])
 
   const handlePayment = async () => {
     setIsPaymentSheetOpen(true)
@@ -121,6 +168,10 @@ export default function DepositPaymentPage() {
     return paymentConfig.depositAmount || 100
   }
 
+  const formatRange = (low: number, high: number) => {
+    return `$${low.toFixed(0)} - $${high.toFixed(0)}`
+  }
+
   if (loading) {
     return (
       <div className="page-container container mx-auto px-4 py-12">
@@ -158,6 +209,14 @@ export default function DepositPaymentPage() {
 
   const totalAmount = calculateTotalAmount(booking)
   const depositAmount = calculateDepositAmount()
+  const hasBookingEstimateRange =
+    Number.isFinite(Number(booking?.estimate_low)) &&
+    Number.isFinite(Number(booking?.estimate_high)) &&
+    Number(booking?.estimate_low) > 0 &&
+    Number(booking?.estimate_high) >= Number(booking?.estimate_low)
+  const totalEstimateText = hasBookingEstimateRange
+    ? formatRange(Number(booking.estimate_low), Number(booking.estimate_high))
+    : `$${totalAmount.toFixed(2)}`
   const handleDepositCtaClick = () => {
     trackEvent("deposit_started", {
       booking_id: booking?.id || bookingId,
@@ -271,6 +330,20 @@ export default function DepositPaymentPage() {
                 </div>
               </div>
 
+              {booking?.location && (
+                <div>
+                  <p className="text-sm text-gray-500">City or ZIP</p>
+                  <p className="font-medium">{booking.location}</p>
+                </div>
+              )}
+
+              {typeof booking?.tent_10x10 === "boolean" && (
+                <div>
+                  <p className="text-sm text-gray-500">10'x10' Tent</p>
+                  <p className="font-medium">{booking.tent_10x10 ? "Yes" : "No"}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Number of Adults</p>
@@ -286,14 +359,20 @@ export default function DepositPaymentPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Total Amount</p>
-                  <p className="font-medium">${totalAmount.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">Total Estimate</p>
+                  <p className="font-medium">{totalEstimateText}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Deposit Amount</p>
                   <p className="font-bold text-lg text-primary">${paymentConfig.depositAmount.toFixed(2)}</p>
                 </div>
               </div>
+
+              {hasBookingEstimateRange && (
+                <p className="text-xs text-gray-500">
+                  This estimate range is from your Instant Quote selections and will be finalized during confirmation.
+                </p>
+              )}
             </div>
           </CardContent>
 
@@ -315,15 +394,7 @@ export default function DepositPaymentPage() {
 
             <div className="text-sm text-gray-600 mt-4 space-y-4">
               <p className="text-center font-medium">
-                By paying the deposit, you agree to our{" "}
-                <Link href="/terms" className="text-primary hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/cancellation-policy" className="text-primary hover:underline">
-                  Cancellation Policy
-                </Link>
-                .
+                By paying the deposit, you agree to our Terms of Service and Cancellation Policy.
               </p>
 
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs">

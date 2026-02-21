@@ -16,7 +16,7 @@ export default function BookingPage() {
   }
 
   const handleInstantQuote = () => {
-    router.push("/quote")
+    router.push("/quoteA")
   }
 
   return (

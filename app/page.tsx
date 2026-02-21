@@ -307,7 +307,7 @@ export default function Home() {
                   asChild
                   className="rounded-full bg-[hsl(24_79%_55%)] text-white px-8 min-w-[230px] h-12 hover:bg-[hsl(24_79%_48%)]"
                 >
-                  <Link href="/quote">GET INSTANT QUOTE</Link>
+                  <Link href="/quoteA">GET INSTANT QUOTE</Link>
                 </Button>
 
                 <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
@@ -652,7 +652,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
                 <Button asChild className="bg-white text-amber-700 hover:bg-amber-50 min-w-[170px]">
-                  <Link href="/quote">Get Instant Quote</Link>
+                  <Link href="/quoteA">Get Instant Quote</Link>
                 </Button>
                 <Button
                   asChild

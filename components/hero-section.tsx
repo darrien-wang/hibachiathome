@@ -298,7 +298,7 @@ export default function HeroSection() {
               onClick={handlePrimaryCtaClick}
               className="bg-white text-black hover:bg-white/90 min-w-[240px] rounded-full h-14 text-lg font-extrabold tracking-wide"
             >
-              <Link href="/quote">{primaryCtaText}</Link>
+              <Link href="/quoteA">{primaryCtaText}</Link>
             </Button>
             <Link href="/menu" onClick={handleSecondaryCtaClick} className="text-white/85 text-sm underline underline-offset-4 hover:text-white">
               View Menu

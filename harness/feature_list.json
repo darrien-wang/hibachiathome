@@ -449,5 +449,148 @@
       "验证关键样式类存在并通过静态质量门禁。"
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-AB-ROUTES-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Create explicit quote variant routes so Quote A and Quote B can run as separate pages.",
+    "steps": [
+      "Expose two dedicated routes: /quoteA and /quoteB.",
+      "Keep legacy /quote route functional by redirecting to the default variant.",
+      "Update primary site quote CTAs to the default experiment variant route.",
+      "Verify build output includes /quoteA and /quoteB route entries."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-AB-ROUTES-002",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Variant B urgency module includes a direct deposit lock CTA.",
+    "steps": [
+      "Show urgency copy in Quote B after date and location are selected.",
+      "Include explicit text prompting users to pay deposit to lock the slot.",
+      "Add a Pay Deposit to Lock button inside the urgency block.",
+      "Verify button emits tracking intent and navigates to /deposit."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-DEPOSIT-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Align deposit page details with Instant Quote input and estimate range.",
+    "steps": [
+      "Collect Customer Name and Event Time on Quote flow before deposit lock action.",
+      "Pass quote context (name/date/time/location/guest counts/estimate range) to /deposit.",
+      "Render deposit page Total Estimate using Instant Quote low/high range when source is quote flow.",
+      "Verify deposit lock CTA is disabled until required quote fields are filled."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-DEPOSIT-002",
+    "priority": "P2",
+    "category": "functional",
+    "description": "Quote Event Time input uses fixed common time slots instead of free-form time entry.",
+    "steps": [
+      "Replace free-form Event Time input with dropdown selection.",
+      "Provide fixed options: 16:00, 19:00, 12:00, 14:00.",
+      "Keep Event Time required for deposit lock CTA enablement.",
+      "Verify static quality gates pass after the input type change."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-UI-002",
+    "priority": "P2",
+    "category": "style",
+    "description": "Tableware Rental helper copy includes limited free canopy note.",
+    "steps": [
+      "Update the Tableware Rental label helper text on quote form.",
+      "Include wording indicating limited free canopy availability.",
+      "Ensure copy change does not break form interaction.",
+      "Verify static quality gates pass."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-WEATHER-001",
+    "priority": "P2",
+    "category": "functional",
+    "description": "Add a default-on rainy day 10'x10' tent option under tableware in Quote flow.",
+    "steps": [
+      "Add a 10'x10' tent checkbox directly under the Tableware Rental option.",
+      "Default the tent checkbox to checked for new quote sessions.",
+      "Include tent selection in quote summary/contact payload for downstream visibility.",
+      "Verify static quality gates pass."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-UI-003",
+    "priority": "P2",
+    "category": "style",
+    "description": "Use an icon-based tooltip trigger for tableware details instead of plain question-mark text.",
+    "steps": [
+      "Keep the main label concise as Include tableware rental.",
+      "Use a small icon button for detail disclosure.",
+      "Show included items and per-person price inside tooltip content.",
+      "Verify lint/build quality gates pass."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-UI-004",
+    "priority": "P2",
+    "category": "style",
+    "description": "Enhance Instant Estimate Range with a visual weather snapshot card (sunset/rain/temp).",
+    "steps": [
+      "Add a weather card in the right-side Instant Estimate Range panel when date and location are selected.",
+      "Display sunset time, rain status/chance, and temperature using icons and styled tiles (not plain text list).",
+      "Keep the weather block visually distinct with gradient card styling.",
+      "Verify lint/build quality gates pass after UI update."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-WEATHER-API-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Back weather snapshot card with live weather API data for selected date and location.",
+    "steps": [
+      "Add server API endpoint to resolve location and fetch event-day weather metrics (sunset/rain/temp).",
+      "Call the weather API from quote client when date and location are selected.",
+      "Render weather snapshot card using live response data with graceful fallback on API errors.",
+      "Verify static quality gates pass and new /api/quote/weather route compiles."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-WEATHER-API-002",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Weather snapshot should support event-time specific forecast values (not only daily aggregates).",
+    "steps": [
+      "Accept eventTime in /api/quote/weather and resolve nearest hourly forecast point.",
+      "Return event-time label plus temperature/rain values for that specific time.",
+      "Use selected Event Time in quote client weather request and update weather card copy to indicate time-specific values.",
+      "Verify lint/build gates pass after API and UI updates."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QUOTE-CTA-BOOKONLINE-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Add Book Online CTA in Instant Estimate actions to route users directly into deposit flow.",
+    "steps": [
+      "Add a Book Online action button in the quote action button group.",
+      "Require required fields (name/date/time/location) before enabling direct deposit routing.",
+      "Route click directly to /deposit with quote context query parameters.",
+      "Verify lint/build quality gates pass."
+    ],
+    "passes": true
   }
 ]

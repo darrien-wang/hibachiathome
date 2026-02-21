@@ -10,6 +10,7 @@ export type QuoteInput = {
   adults: number
   kids: number
   tablewareRental: boolean
+  tent10x10: boolean
   budget?: number
   addOns: QuoteAddOns
 }
@@ -39,6 +40,7 @@ export type QuoteTemplateContext = {
   kids: string
   guest_count: string
   tableware_rental: string
+  tent_10x10: string
   upgrades: string
   budget: string
   estimate_low: string
@@ -159,6 +161,7 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Location: ${input.location || "TBD"}`,
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids ${input.kids || 0})`,
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
+    `10'x10' tent: ${input.tent10x10 ? "yes" : "no"}`,
     `Upgrades: ${formatAddOnSummary(input.addOns)}`,
     `Estimated total: ${formatCurrency(result.totalRange.low)} - ${formatCurrency(result.totalRange.high)}`,
   ].join(" | ")
@@ -172,6 +175,7 @@ export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResul
     kids: String(input.kids || 0),
     guest_count: String(result.guestCount),
     tableware_rental: input.tablewareRental ? "Yes" : "No",
+    tent_10x10: input.tent10x10 ? "Yes" : "No",
     upgrades: formatAddOnSummary(input.addOns),
     budget: input.budget ? formatCurrency(input.budget) : "Not provided",
     estimate_low: formatCurrency(result.totalRange.low),
