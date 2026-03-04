@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays } from "lucide-react"
 import { siteConfig } from "@/config/site"
-import { paymentConfig } from "@/config/ui"
+import { getDepositAmount } from "@/config/deposit"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { trackEvent } from "@/lib/tracking"
 import {
@@ -87,10 +87,10 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
   const slotsLeft = useMemo(() => calculateSlotsLeft(input.eventDate, input.location), [input.eventDate, input.location])
   const slotsNoun = slotsLeft === 1 ? "slot" : "slots"
-  const depositAmount = paymentConfig.depositAmount
   const shouldShowWeatherCard = Boolean(input.eventDate && input.location.trim())
 
   const result = useMemo(() => calculateQuote(input, travelFeeRange), [input, travelFeeRange])
+  const depositAmount = useMemo(() => getDepositAmount(result.totalRange.high), [result.totalRange.high])
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
   const smsBody = useMemo(() => buildSmsBody(input, result, contactTemplates.sms), [input, result, contactTemplates.sms])
@@ -366,7 +366,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       estimate_high: String(result.totalRange.high),
     })
 
-    window.location.href = `/deposit?${depositQuery.toString()}`
+    window.location.href = `/deposit/pay?${depositQuery.toString()}`
   }
 
   const onBookOnlineClick = () => {
@@ -401,7 +401,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       estimate_high: String(result.totalRange.high),
     })
 
-    window.location.href = `/deposit?${depositQuery.toString()}`
+    window.location.href = `/deposit/pay?${depositQuery.toString()}`
   }
 
   return (
