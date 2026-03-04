@@ -25,6 +25,10 @@ export interface Booking {
   }>
   total_cost?: number
   deposit?: number
+  deposit_amount?: number
+  deposit_status?: "pending" | "paid" | "refunded"
+  stripe_session_id?: string | null
+  payment_intent_id?: string | null
   status?: "pending" | "confirmed" | "completed" | "cancelled"
   created_at?: string
   updated_at?: string

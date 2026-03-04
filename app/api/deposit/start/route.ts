@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { getDepositAmount } from "@/config/deposit"
 import { getStripeServerClient } from "@/lib/stripe-server"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const runtime = "nodejs"
 
@@ -44,6 +45,7 @@ type NormalizedDepositStartPayload = {
 const CHECKOUT_SUCCESS_PATH = "/deposit/success"
 const CHECKOUT_CANCEL_PATH = "/deposit/cancel"
 const MAX_METADATA_LENGTH = 500
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function normalizeString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -231,10 +233,67 @@ function isLikelyEmail(email: string | undefined): email is string {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)
 }
 
+function isLikelyUuid(value: string | undefined): value is string {
+  if (!value) return false
+  return UUID_PATTERN.test(value)
+}
+
+function normalizePaymentIntentId(paymentIntent: Stripe.Checkout.Session["payment_intent"]): string | undefined {
+  if (typeof paymentIntent === "string" && paymentIntent.trim()) {
+    return paymentIntent
+  }
+
+  if (paymentIntent && typeof paymentIntent === "object" && "id" in paymentIntent) {
+    const candidate = (paymentIntent as { id?: unknown }).id
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate
+    }
+  }
+
+  return undefined
+}
+
+async function persistPendingDepositState(params: {
+  bookingId?: string
+  sessionId: string
+  paymentIntentId?: string
+  depositAmount: number
+}) {
+  if (!isLikelyUuid(params.bookingId)) {
+    return
+  }
+
+  const supabase = createServerSupabaseClient()
+  if (!supabase) {
+    console.warn("[deposit/start] Unable to persist canonical pending state: Supabase is not configured.")
+    return
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      deposit_status: "pending",
+      deposit_amount: Number(params.depositAmount.toFixed(2)),
+      stripe_session_id: params.sessionId,
+      payment_intent_id: params.paymentIntentId ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.bookingId)
+
+  if (error) {
+    console.error("[deposit/start] Failed to persist canonical pending deposit state:", error)
+  }
+}
+
 async function createCheckoutSession(
   request: NextRequest,
   payload: NormalizedDepositStartPayload,
-): Promise<{ session: Stripe.Checkout.Session; checkoutUrl: string }> {
+): Promise<{
+  session: Stripe.Checkout.Session
+  checkoutUrl: string
+  depositAmount: number
+  paymentIntentId?: string
+}> {
   const stripe = getStripeServerClient()
   const origin = resolveOrigin(request)
   const currency = payload.currency
@@ -275,7 +334,12 @@ async function createCheckoutSession(
     throw new Error("Stripe Checkout session was created without a redirect URL.")
   }
 
-  return { session, checkoutUrl: session.url }
+  return {
+    session,
+    checkoutUrl: session.url,
+    depositAmount,
+    paymentIntentId: normalizePaymentIntentId(session.payment_intent),
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -290,7 +354,14 @@ export async function POST(request: NextRequest) {
   const payload = buildNormalizedPayload((rawPayload ?? {}) as DepositStartPayload)
 
   try {
-    const { session, checkoutUrl } = await createCheckoutSession(request, payload)
+    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload)
+    await persistPendingDepositState({
+      bookingId: payload.bookingId,
+      sessionId: session.id,
+      paymentIntentId,
+      depositAmount,
+    })
+
     return NextResponse.json({
       success: true,
       checkoutUrl,
@@ -306,7 +377,14 @@ export async function GET(request: NextRequest) {
   const payload = parseGetPayload(request)
 
   try {
-    const { checkoutUrl } = await createCheckoutSession(request, payload)
+    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload)
+    await persistPendingDepositState({
+      bookingId: payload.bookingId,
+      sessionId: session.id,
+      paymentIntentId,
+      depositAmount,
+    })
+
     return NextResponse.redirect(checkoutUrl, 302)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to start Stripe Checkout."

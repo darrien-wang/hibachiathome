@@ -13,9 +13,23 @@ function getResendClient(): Resend | null {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
+function isLikelyStripePaymentIntentId(value: unknown): value is string {
+  return typeof value === "string" && /^pi_/i.test(value)
+}
+
+function isLikelyStripeSessionId(value: unknown): value is string {
+  return typeof value === "string" && /^cs_(test|live)_/i.test(value)
+}
+
 export async function processPayment(request: PaymentRequest): Promise<PaymentResponse> {
   try {
     const supabase = createServerSupabaseClient()
+    if (!supabase) {
+      return {
+        success: false,
+        error: "Database connection failed. Please try again.",
+      }
+    }
 
     // 1. Validate booking exists
     const { data: booking, error: bookingError } = await supabase
@@ -34,11 +48,16 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
 
     // 2. Process payment based on method
     let transactionId = ""
+    const isImmediateCapture = request.method === "stripe" || request.method === "square"
+    const normalizedAmount = Number(request.amount.toFixed(2))
 
     switch (request.method) {
       case "stripe":
-        // In a real application, this would call the Stripe API
-        transactionId = `stripe_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+        // Prefer real Stripe transaction identifiers when available.
+        transactionId =
+          request.paymentIntentId ||
+          request.stripeSessionId ||
+          `stripe_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
         break
 
       case "square":
@@ -68,10 +87,10 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
       .from("deposits")
       .insert({
         booking_id: request.bookingId,
-        amount: request.amount,
+        amount: normalizedAmount,
         payment_method: request.method,
         transaction_id: transactionId,
-        status: request.method === "stripe" || request.method === "square" ? "completed" : "pending",
+        status: isImmediateCapture ? "completed" : "pending",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -90,7 +109,11 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
     const { error: updateError } = await supabase
       .from("bookings")
       .update({
-        deposit: Math.round(request.amount), // Convert to integer as the database uses bigint
+        deposit: Math.round(normalizedAmount), // Convert to integer as the database uses bigint
+        deposit_amount: normalizedAmount,
+        deposit_status: isImmediateCapture ? "paid" : "pending",
+        stripe_session_id: request.stripeSessionId ?? null,
+        payment_intent_id: request.paymentIntentId ?? null,
         status: "confirmed",
         updated_at: new Date().toISOString(),
       })
@@ -146,6 +169,12 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
 export async function getDeposits() {
   try {
     const supabase = createServerSupabaseClient()
+    if (!supabase) {
+      return {
+        success: false,
+        error: "Database connection failed. Please try again.",
+      }
+    }
 
     const { data, error } = await supabase
       .from("deposits")
@@ -185,6 +214,12 @@ export async function getDeposits() {
 export async function confirmDeposit(depositId: string) {
   try {
     const supabase = createServerSupabaseClient()
+    if (!supabase) {
+      return {
+        success: false,
+        error: "Database connection failed. Please try again.",
+      }
+    }
 
     // 1. Get deposit and booking information
     const { data: deposit, error: fetchError } = await supabase
@@ -227,7 +262,39 @@ export async function confirmDeposit(depositId: string) {
       }
     }
 
-    // 3. Send confirmation email
+    // 3. Update canonical booking deposit fields
+    const bookingId = (deposit as any).bookings?.id as string | undefined
+    if (bookingId) {
+      const depositAmountRaw = Number((deposit as any).amount ?? 0)
+      const depositAmount = Number.isFinite(depositAmountRaw) ? Number(depositAmountRaw.toFixed(2)) : 0
+      const depositTransactionId = (deposit as any).transaction_id as string | undefined
+      const bookingUpdate: Record<string, unknown> = {
+        deposit: Math.round(depositAmount),
+        deposit_amount: depositAmount,
+        deposit_status: "paid",
+        status: "confirmed",
+        updated_at: new Date().toISOString(),
+      }
+
+      if (isLikelyStripeSessionId(depositTransactionId)) {
+        bookingUpdate.stripe_session_id = depositTransactionId
+      }
+      if (isLikelyStripePaymentIntentId(depositTransactionId)) {
+        bookingUpdate.payment_intent_id = depositTransactionId
+      }
+
+      const { error: updateBookingError } = await supabase.from("bookings").update(bookingUpdate).eq("id", bookingId)
+
+      if (updateBookingError) {
+        console.error("Error updating booking canonical deposit fields:", updateBookingError)
+        return {
+          success: false,
+          error: "Failed to update booking deposit status",
+        }
+      }
+    }
+
+    // 4. Send confirmation email
     try {
       const booking = (deposit as any).bookings
       const resend = getResendClient()
@@ -269,6 +336,12 @@ export async function confirmDeposit(depositId: string) {
 export async function refundDeposit(depositId: string) {
   try {
     const supabase = createServerSupabaseClient()
+    if (!supabase) {
+      return {
+        success: false,
+        error: "Database connection failed. Please try again.",
+      }
+    }
 
     // 1. Get deposit information
     const { data: deposit, error: fetchError } = await supabase
@@ -314,10 +387,15 @@ export async function refundDeposit(depositId: string) {
     // 3. Update booking status
     const bookingId = (deposit as any).bookings?.id
     if (bookingId) {
+      const depositAmountRaw = Number((deposit as any).amount ?? 0)
+      const depositAmount = Number.isFinite(depositAmountRaw) ? Number(depositAmountRaw.toFixed(2)) : 0
+
       const { error: updateBookingError } = await supabase
         .from("bookings")
         .update({
           deposit: 0, // Clear deposit
+          deposit_amount: depositAmount,
+          deposit_status: "refunded",
           status: "pending", // Revert to pending status
           updated_at: new Date().toISOString(),
         })

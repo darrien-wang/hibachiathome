@@ -1,0 +1,59 @@
+[scan] migration contains canonical booking deposit fields
+3:  ADD COLUMN IF NOT EXISTS deposit_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+4:  ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255),
+5:  ADD COLUMN IF NOT EXISTS payment_intent_id VARCHAR(255),
+6:  ADD COLUMN IF NOT EXISTS deposit_amount DECIMAL(10, 2);
+11:  deposit_amount = COALESCE(deposit_amount, deposit, 0),
+12:  deposit_status = COALESCE(
+13:    NULLIF(deposit_status, ''),
+19:WHERE deposit_amount IS NULL
+20:  OR deposit_status IS NULL
+21:  OR deposit_status = '';
+26:    ADD CONSTRAINT bookings_deposit_status_check
+27:    CHECK (deposit_status IN ('pending', 'paid', 'refunded'));
+33:CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_stripe_session_id_unique
+34:  ON bookings(stripe_session_id)
+35:  WHERE stripe_session_id IS NOT NULL;
+37:CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_payment_intent_id_unique
+38:  ON bookings(payment_intent_id)
+39:  WHERE payment_intent_id IS NOT NULL;
+41:CREATE INDEX IF NOT EXISTS idx_bookings_deposit_status
+42:  ON bookings(deposit_status);
+
+[scan] /api/deposit/start persists pending canonical state
+143:    depositAmount: params.get("deposit_amount") ?? undefined,
+200:    deposit_amount: metadataField(depositAmount.toFixed(2)),
+236:function isLikelyUuid(value: string | undefined): value is string {
+256:async function persistPendingDepositState(params: {
+262:  if (!isLikelyUuid(params.bookingId)) {
+275:      deposit_status: "pending",
+276:      deposit_amount: Number(params.depositAmount.toFixed(2)),
+277:      stripe_session_id: params.sessionId,
+278:      payment_intent_id: params.paymentIntentId ?? null,
+358:    await persistPendingDepositState({
+381:    await persistPendingDepositState({
+
+[scan] payment actions update canonical booking fields
+113:        deposit_amount: normalizedAmount,
+114:        deposit_status: isImmediateCapture ? "paid" : "pending",
+115:        stripe_session_id: request.stripeSessionId ?? null,
+116:        payment_intent_id: request.paymentIntentId ?? null,
+273:        deposit_amount: depositAmount,
+274:        deposit_status: "paid",
+280:        bookingUpdate.stripe_session_id = depositTransactionId
+283:        bookingUpdate.payment_intent_id = depositTransactionId
+374:        status: "refunded",
+397:          deposit_amount: depositAmount,
+398:          deposit_status: "refunded",
+
+[scan] booking type and defaults include canonical fields
+types/payment.ts:26:  deposit_status?: "pending" | "paid" | "refunded"
+types/payment.ts:27:  stripe_session_id?: string | null
+types/payment.ts:28:  payment_intent_id?: string | null
+types/payment.ts:29:  deposit_amount?: number
+types/booking.ts:28:  deposit_amount?: number
+types/booking.ts:29:  deposit_status?: "pending" | "paid" | "refunded"
+types/booking.ts:30:  stripe_session_id?: string | null
+types/booking.ts:31:  payment_intent_id?: string | null
+app/actions/booking.ts:226:      deposit_amount: 0,
+app/actions/booking.ts:227:      deposit_status: "pending",

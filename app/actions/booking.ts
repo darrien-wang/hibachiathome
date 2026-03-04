@@ -223,6 +223,8 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
       total_cost: totalCost,
       status: "pending",
       deposit: 0,
+      deposit_amount: 0,
+      deposit_status: "pending",
     }
 
     // 打印每次上传到数据库的 bookingData

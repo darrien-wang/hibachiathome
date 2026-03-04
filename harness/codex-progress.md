@@ -2149,3 +2149,53 @@
 
 - Next highest-priority action:
   - Start `CRO-DEPOSIT-PRIMARY-003`: persist canonical deposit fields (`deposit_status`, `stripe_session_id`, `payment_intent_id`, `deposit_amount`) with idempotent constraints.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-003 complete: canonical booking deposit state persistence)
+
+- Completed:
+  - Re-verified previously passing core flow baseline (required by workflow):
+    - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list`
+  - Added canonical bookings migration with backfill + idempotent constraints/indexes:
+    - `migrations/add-bookings-canonical-deposit-fields.sql`
+    - adds `deposit_status`, `stripe_session_id`, `payment_intent_id`, `deposit_amount`
+    - backfills from legacy `bookings.deposit`
+    - adds `deposit_status` check constraint and unique indexes for Stripe identifiers
+  - Updated TypeScript data contracts for canonical deposit fields:
+    - `types/booking.ts`
+    - `types/payment.ts`
+  - Updated booking creation defaults to include canonical pending state:
+    - `app/actions/booking.ts`
+  - Extended deposit start API to persist canonical pending state after Checkout Session creation:
+    - `app/api/deposit/start/route.ts`
+    - writes `deposit_status=pending`, `deposit_amount`, `stripe_session_id`, `payment_intent_id` to `bookings` when `bookingId` is UUID-like
+    - safely skips canonical write for quote-generated synthetic IDs (e.g. `QUOTE-*`)
+  - Updated payment actions to keep canonical booking fields synchronized on payment/confirm/refund flows:
+    - `app/actions/payment.ts`
+    - `processPayment` writes canonical pending/paid + Stripe identifiers
+    - `confirmDeposit` writes `deposit_status=paid` and canonical amount
+    - `refundDeposit` writes `deposit_status=refunded` and canonical amount
+    - added Supabase null guards for payment actions in envs without DB credentials
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-003` changed from `passes: false -> true`.
+
+- Verified:
+  - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list` ✅
+  - `pnpm exec playwright test --grep "TRK-007" --workers=1 --reporter=list` ✅
+  - `pnpm lint` ✅ (warnings only; no blocking errors)
+  - Canonical field contract scan ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/core-baseline-trk-001.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/core-baseline-trk-001.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/trk-001-home.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/trk-001-page-view-events.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/reverify-trk-007.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/reverify-trk-007.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/lint.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/lint.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/canonical-deposit-contract-scan.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-003/canonical-deposit-contract-scan.exit`
+
+- Next highest-priority action:
+  - Start `CRO-DEPOSIT-PRIMARY-004`: add Stripe webhook verification to transition canonical deposit state to `paid` from trusted payment events.
