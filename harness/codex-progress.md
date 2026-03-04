@@ -1915,3 +1915,182 @@
   - `harness/verification/2026-03-03-cro-deposit-019/cro-deposit-weather-tent-scan.log`
 - Next highest-priority action:
   - Add browser-level verification (or screenshot evidence) for the revised deposit amount and 72-hour policy copy once the local shell wrappers and frontend runtime are stable again.
+
+## 2026-03-04 (deposit primary-conversion gap audit + backlog planning)
+
+- Completed:
+  - Re-ran session bootstrap using a CRLF-safe invocation (`bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`) because checked-in shell wrappers still contain CRLF line endings in this environment.
+  - Re-verified previously passing core tracking baseline via:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-04-deposit-primary-plan`
+  - Audited currently active deposit/payment flow code paths (quote -> deposit, estimation Step7 deposit, deposit page, payment server action, tracking contract).
+  - Confirmed `components/menu/Step3ReviewCheckout.tsx` is currently unreferenced in active app flow and can be treated as cleanup candidate.
+  - Added a new dependency-ordered implementation backlog in `harness/feature_list.json` for making **Stripe deposit success** the primary conversion signal.
+- Feature status transition:
+  - Added the following planned items with `passes: false`:
+    - `CRO-DEPOSIT-PRIMARY-001`
+    - `CRO-DEPOSIT-PRIMARY-002`
+    - `CRO-DEPOSIT-PRIMARY-003`
+    - `CRO-DEPOSIT-PRIMARY-004`
+    - `CRO-DEPOSIT-PRIMARY-005`
+    - `CRO-DEPOSIT-PRIMARY-006`
+    - `CRO-DEPOSIT-PRIMARY-007`
+    - `CRO-CLEANUP-STEP3-001`
+- Audit findings captured in backlog scope:
+  - Current flow still uses direct `stripePaymentLink` redirects from UI, not server-created Checkout Sessions.
+  - No Stripe webhook endpoint is present, so `deposit_status=paid` is not sourced from verified payment events.
+  - No `/deposit/success` or `/deposit/cancel` routes exist yet, and no success verification API exists.
+  - `deposit_completed` exists in tracking contract/types but is not emitted from any active success callback flow.
+  - Mixed/dead parameter contracts remain in active code (e.g., `/deposit?order=...` vs `/deposit?id=...`).
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-04-deposit-primary-plan` ✅
+  - CRLF-safe session bootstrap invocation ✅
+- Evidence:
+  - `harness/verification/2026-03-04-deposit-primary-plan/session-start.log`
+  - `harness/verification/2026-03-04-deposit-primary-plan/session-start.exit`
+  - `harness/verification/2026-03-04-deposit-primary-plan/reverify-trk-001-lib.log`
+  - `harness/verification/2026-03-04-deposit-primary-plan/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-03-04-deposit-primary-plan/trk-001-trk-002-tracking-lib-evidence.json`
+- Next highest-priority action:
+  - Implement `CRO-DEPOSIT-PRIMARY-001` to standardize a single `/deposit/pay` entry and eliminate direct static Stripe-link redirects from active CTAs.
+
+## 2026-03-04 (priority shift: deprecated flow cleanup first)
+
+- Completed:
+  - Received priority change request to clean deprecated/legacy code before continuing new conversion features.
+  - Sunset legacy estimation funnel entry route:
+    - replaced `app/estimation/page.tsx` implementation with a compatibility redirect to `/quoteA`, preserving query parameters.
+  - Updated active in-app CTAs that pointed to `/estimation` to point directly to `/quoteA`:
+    - `app/page.tsx`
+    - `app/book/page.tsx`
+    - `app/hibachi-at-home/page.tsx`
+    - `components/how-it-works-section.tsx`
+    - `app/locations/nyc-long-island/page.tsx`
+  - Removed deprecated/unreferenced component files:
+    - `components/menu/Step3ReviewCheckout.tsx`
+    - `components/booking/booking-success.tsx`
+    - `components/estimation/Step1PartySize.tsx`
+    - `components/estimation/Step2Appetizers.tsx`
+    - `components/estimation/Step3PremiumMains.tsx`
+    - `components/estimation/Step4Sides.tsx`
+    - `components/estimation/Step5Estimate.tsx`
+    - `components/estimation/Step6BookingForm.tsx`
+    - `components/estimation/Step7Deposit.tsx`
+  - Removed `/estimation` from sitemap static route list in `app/sitemap.ts`.
+  - Added temporary server redirect endpoint `app/api/deposit/start/route.ts` and introduced `config/deposit.ts` as a groundwork helper while preserving backwards-compatible `paymentConfig.depositAmount`.
+- Feature status transition:
+  - `CRO-CLEANUP-STEP3-001` changed from `passes: false -> true` and priority raised `P1 -> P0` due explicit user reprioritization.
+  - Added `CRO-CLEANUP-ESTIMATION-001` with `passes: true`.
+- Verification:
+  - Baseline recheck:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-04-cleanup-estimation-deprecate` ✅
+  - Static quality gate:
+    - `bash harness/scripts/codex-verify.sh` could not complete because ESLint is unavailable in current environment (`ESLint must be installed`).
+  - Build check:
+    - `pnpm build` started but stalled at Next.js production build in this environment; process was terminated and recorded as non-passing.
+- Test-definition-change note (required):
+  - The `/estimation` route is now intentionally retired and redirected to `/quoteA`, which invalidates legacy estimation-based E2E scenarios/contracts (notably TRK checks that navigate to `/estimation` and assert estimation-step events).
+  - These checks need a follow-up contract update to equivalent quote-flow validations; this is a deliberate product-flow change, not an accidental regression.
+- Evidence:
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/reverify-trk-001-lib.log`
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/reverify-trk-001-lib.exit`
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/codex-verify.log`
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/codex-verify.exit`
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/build.log`
+  - `harness/verification/2026-03-04-cleanup-estimation-deprecate/build.exit`
+- Next highest-priority action:
+  - Rebaseline/replace legacy estimation-dependent E2E tracking checks with quote-flow equivalents, then continue `CRO-DEPOSIT-PRIMARY-001`.
+
+## 2026-03-04 (rebaseline /estimation E2E cases to quote flow)
+
+- Completed:
+  - Executed session bootstrap using CRLF-safe invocation:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Re-verified previously passing core flow baseline (required by workflow):
+    - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list`
+  - Rebaselined legacy `/estimation`-dependent smoke cases in `e2e/smoke.spec.ts` to active production flow:
+    - `/book` -> `Get Instant Quote` -> `/quoteA` for booking-funnel start.
+    - `/quoteA` for quote_started / quote_completed assertions.
+    - `/deposit/pay` for deposit intent assertion.
+  - Updated stale selectors in `TRK-018` to match current contact/mobile UX:
+    - contact form now uses `firstName/lastName/email/phone`.
+    - mobile interaction now validates active header menu flow (`Open menu` -> `Feedback`) and `/contact` page_view event.
+  - Ran targeted rebaseline subset and confirmed passing:
+    - `TRK-005`, `TRK-006`, `TRK-007`, `TRK-009`, `TRK-015`, `TRK-018`.
+
+- Feature list updates:
+  - Added `CRO-CLEANUP-ESTIMATION-E2E-001` with `passes: true`.
+  - Updated test definitions in `harness/feature_list.json` for:
+    - `TRK-006` (booking_submit contract -> quote_completed contract)
+    - `TRK-007` (/deposit -> /deposit/pay + deposit_started intent event)
+    - `TRK-009` (location_selected contract -> quote_started context contract)
+    - `TRK-015` (estimate_completed contract -> quote_completed numeric range contract)
+
+- Test-definition-change note (required):
+  - These TRK definition updates are intentional and required because `/estimation` has been retired and redirected to `/quoteA`.
+  - Old estimation-route assertions no longer reflect active user journeys; quote-flow events are now the canonical conversion/intent instrumentation path.
+
+- Verified:
+  - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list` ✅
+  - `pnpm exec playwright test --grep "TRK-018" --workers=1 --reporter=list` ✅
+  - `pnpm exec playwright test --grep "TRK-005|TRK-006|TRK-007|TRK-009|TRK-015|TRK-018" --workers=1 --reporter=list` ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/core-baseline-trk-001.log`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/core-baseline-trk-001.exit`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/rebaseline-trk-018.log`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/rebaseline-trk-018.exit`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/rebaseline-e2e.log`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/rebaseline-e2e.exit`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/trk-005-booking-funnel-start-events.json`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/trk-006-quote-completed-events.json`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/trk-007-deposit-started-events.json`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/trk-009-quote-started-events.json`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/trk-015-quote-completed-events.json`
+  - `harness/verification/2026-03-04-rebaseline-estimation-to-quote/trk-018-interaction-latency.json`
+
+- Next highest-priority action:
+  - Continue `CRO-DEPOSIT-PRIMARY-001` implementation after deprecated-flow cleanup, with `/deposit/pay` as the only active pay-deposit entry.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-001 complete: normalize deposit entry + rule source)
+
+- Completed:
+  - Re-verified previously passing core flow baseline (required by workflow):
+    - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list`
+  - Updated quote deposit entry CTAs to route directly to `/deposit/pay` instead of legacy `/deposit` forwarding:
+    - `app/quote/QuoteBuilderClient.tsx`
+      - `onDepositLockClick` now redirects to `/deposit/pay?...`
+      - `onBookOnlineClick` now redirects to `/deposit/pay?...`
+  - Consolidated deposit amount reads to the canonical rule engine (`getDepositAmount`) instead of `paymentConfig.depositAmount`:
+    - `app/quote/QuoteBuilderClient.tsx`
+    - `app/after-deposit/page.tsx`
+  - Simplified `config/ui.ts` payment config by removing duplicated `depositAmount` field; `stripePaymentLink` remains server-routed through `/api/deposit/start`.
+  - Verified no active CTA still uses legacy `/deposit?` direct links; legacy `/deposit` compatibility redirect remains in place via `app/deposit/page.tsx`.
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-001` changed from `passes: false -> true`.
+
+- Verified:
+  - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list` ✅
+  - `pnpm exec playwright test --grep "TRK-009" --workers=1 --reporter=list` ✅
+  - `pnpm exec playwright test --grep "TRK-005|TRK-006|TRK-007|TRK-009|TRK-015|TRK-018" --workers=1 --retries=1 --reporter=list` ✅
+  - `pnpm lint` ✅ (warnings only; no blocking errors)
+  - Code-scan confirmation:
+    - no `/deposit?` CTA targets remain
+    - `/deposit/pay?` targets present on quote CTA flows
+    - no `paymentConfig.depositAmount` usages remain
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/core-baseline-trk-001.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/core-baseline-trk-001.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/retry-trk-009.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/retry-trk-009.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/cro-deposit-primary-001-e2e-rerun.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/cro-deposit-primary-001-e2e-rerun.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/lint.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/lint.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/deposit-entry-scan.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-001/deposit-entry-scan.exit`
+
+- Next highest-priority action:
+  - Start `CRO-DEPOSIT-PRIMARY-002`: replace static Payment Link redirect behavior in `/api/deposit/start` with server-created Stripe Checkout Sessions.

@@ -1,0 +1,10 @@
+
+> my-v0-project@0.1.0 build /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next build
+
+   ▲ Next.js 15.2.8
+
+   Creating an optimized production build ...
+ ELIFECYCLE  Command failed.
+
+[manual-note] build was terminated after hanging during next build in this environment.

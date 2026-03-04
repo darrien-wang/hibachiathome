@@ -1,0 +1,7 @@
+[codex:verify] Running lint...
+
+> my-v0-project@0.1.0 lint /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next lint
+
+ ⨯ ESLint must be installed: pnpm install --save-dev eslint
+ ELIFECYCLE  Command failed with exit code 1.

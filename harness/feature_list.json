@@ -66,11 +66,11 @@
     "id": "TRK-006",
     "priority": "P0",
     "category": "functional",
-    "description": "Booking submit event includes required payload fields without undefined values.",
+    "description": "Quote completion event includes required payload fields without undefined values.",
     "steps": [
-      "Complete booking form with valid test input.",
-      "Submit booking form.",
-      "Capture booking_submit payload from dataLayer.",
+      "Open the /quoteA flow and fill required quote inputs with valid test data.",
+      "Trigger quote completion by providing date/time/location inputs.",
+      "Capture quote_completed payload from dataLayer.",
       "Validate required keys exist and are not undefined."
     ],
     "passes": true
@@ -79,11 +79,11 @@
     "id": "TRK-007",
     "priority": "P1",
     "category": "functional",
-    "description": "Deposit page CTA click emits conversion-intent tracking event.",
+    "description": "Deposit pay CTA click emits conversion-intent tracking event.",
     "steps": [
-      "Open /deposit page.",
+      "Open /deposit/pay with a test booking id.",
       "Click primary deposit CTA.",
-      "Verify matching CTA click event in dataLayer."
+      "Verify deposit_started CTA event appears in dataLayer with route and value context."
     ],
     "passes": true
   },
@@ -104,11 +104,11 @@
     "id": "TRK-009",
     "priority": "P1",
     "category": "functional",
-    "description": "Google Places selection emits location_selected event with place identifier.",
+    "description": "Quote page load emits quote_started with expected quote context defaults.",
     "steps": [
-      "Open booking flow where address autocomplete is available.",
-      "Select one autocomplete result.",
-      "Validate location_selected event payload has place_id."
+      "Open /quoteA in a clean session.",
+      "Capture the first quote_started event in dataLayer.",
+      "Validate quote context fields such as quote_surface, adults, and option flags."
     ],
     "passes": true
   },
@@ -176,11 +176,11 @@
     "id": "TRK-015",
     "priority": "P1",
     "category": "functional",
-    "description": "Quote estimation completion emits estimate_completed event with total estimate value.",
+    "description": "Quote completion emits quote_completed with numeric estimate range values.",
     "steps": [
-      "Go through estimation steps with valid selections.",
-      "Reach completion screen.",
-      "Verify estimate_completed event with numeric estimate value."
+      "Open /quoteA and provide required quote inputs.",
+      "Wait for quote_completed emission in dataLayer.",
+      "Verify estimate_low and estimate_high are numeric and internally consistent."
     ],
     "passes": true
   },
@@ -603,6 +603,136 @@
       "Update deposit, booking, and confirmation screens to show the 72-hour full-refund window.",
       "Replace legacy $100 late-change fee copy with non-refundable-deposit messaging inside the 72-hour window.",
       "Verify the updated amount and policy language appear consistently on core booking and FAQ surfaces."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Standardize one active deposit entry flow and enforce a single in-code deposit rule source.",
+    "steps": [
+      "Add a dedicated deposit rule config (fixed amount vs percentage) and compute payable deposit from that source only.",
+      "Route all active pay-deposit CTAs to /deposit/pay with normalized booking/quote context parameters.",
+      "Keep legacy /deposit links working through redirect/forwarding to /deposit/pay to prevent broken campaigns.",
+      "Verify no production CTA directly redirects to static Stripe Payment Link URLs."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-002",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Implement server-side Stripe Checkout Session creation for deposit payments.",
+    "steps": [
+      "Add Stripe SDK integration and required environment configuration for server-side checkout session creation.",
+      "Create API endpoint to accept order/customer/deposit payload and return Stripe Checkout URL.",
+      "Configure Checkout success/cancel callbacks to /deposit/success and /deposit/cancel with session_id passthrough.",
+      "Persist booking/order metadata into Stripe session metadata for downstream reconciliation."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Persist canonical deposit payment state fields for reliable attribution and deduplication.",
+    "steps": [
+      "Add storage fields for deposit_status (pending/paid/refunded), stripe_session_id, payment_intent_id, and deposit_amount.",
+      "Add unique constraints/indexes for Stripe identifiers to guarantee idempotent write behavior.",
+      "Update TypeScript payment/booking types and data-access code to use the new canonical fields.",
+      "Verify existing records are backward-compatible with a pending default state."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-004",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Add verified Stripe webhook processing so paid status only comes from real payment events.",
+    "steps": [
+      "Create Stripe webhook endpoint with signature verification using STRIPE_WEBHOOK_SECRET.",
+      "Handle checkout.session.completed to mark deposit_status=paid and store Stripe transaction identifiers.",
+      "Implement idempotent event handling so duplicate webhook deliveries do not duplicate state transitions.",
+      "Optionally handle refund/dispute events to set refunded/flagged states for reporting."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-005",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Build payment success/cancel routes and session verification API before firing conversion.",
+    "steps": [
+      "Create /deposit/pay, /deposit/success, and /deposit/cancel routes with user-facing states.",
+      "On /deposit/success, read session_id and call a server verification endpoint.",
+      "Implement verification endpoint to return paid flag, value, currency, and transaction_id from trusted payment state.",
+      "Verify cancelled or unpaid sessions never report paid confirmation in UI or tracking."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-006",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Emit primary conversion only when paid=true is verified, with transaction-level dedupe guarantees.",
+    "steps": [
+      "Keep deposit_started as optional intent event when user clicks Pay Deposit.",
+      "Emit deposit_completed (or deposit_paid alias) only after verification endpoint returns paid=true.",
+      "Include value, currency, and transaction_id (payment_intent preferred; session_id fallback) in the conversion payload.",
+      "Implement refresh/reopen dedupe guard so the same transaction_id is not emitted more than once."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-PRIMARY-007",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Add automated verification for success/cancel/refresh and webhook-degraded deposit paths.",
+    "steps": [
+      "Add tests for successful payment producing exactly one deposit_completed conversion event.",
+      "Add tests for cancelled payment ensuring no deposit_completed event is emitted.",
+      "Add tests for success-page refresh/reopen confirming transaction_id-based dedupe.",
+      "Add tests for delayed or missing webhook where UI blocks fake success conversion until paid is verified."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-CLEANUP-STEP3-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Remove deprecated menu Step3 checkout component and align deposit params to active flow only.",
+    "steps": [
+      "Delete unused components/menu/Step3ReviewCheckout.tsx and any dead imports if present.",
+      "Audit and remove stale flow references that are no longer part of active booking/deposit paths.",
+      "Unify deposit query key usage across active entry points (avoid mixed order/id parameter contracts).",
+      "Verify lint/build pass with no unresolved references after cleanup."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-CLEANUP-ESTIMATION-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Sunset legacy /estimation funnel and remove obsolete estimation-step implementation files.",
+    "steps": [
+      "Replace /estimation page implementation with redirect to the current quote flow while preserving legacy query params.",
+      "Update in-app CTA routes that pointed to /estimation so they now point directly to /quoteA.",
+      "Delete unused legacy estimation-step components (Step1-Step7) and related dead component files no longer referenced.",
+      "Remove deprecated /estimation route exposure from sitemap and verify no active app routes still link to /estimation."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-CLEANUP-ESTIMATION-E2E-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Rebaseline legacy /estimation-dependent E2E tracking tests to active quote and deposit flows.",
+    "steps": [
+      "Update smoke E2E cases that navigated to /estimation so they now target /quoteA and /deposit/pay.",
+      "Replace deprecated event assertions with active quote_started, quote_completed, and deposit_started contracts.",
+      "Align mobile interactivity checks to currently mounted mobile controls in production UI.",
+      "Run targeted Playwright subset (TRK-005, TRK-006, TRK-007, TRK-009, TRK-015, TRK-018) and capture evidence artifacts."
     ],
     "passes": true
   }

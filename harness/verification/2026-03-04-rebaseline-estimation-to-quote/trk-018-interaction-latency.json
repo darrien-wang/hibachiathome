@@ -1,0 +1,8 @@
+{
+  "desktop_home_to_book_ms": 814,
+  "desktop_book_to_quote_ms": 260,
+  "desktop_quote_input_ms": 84,
+  "desktop_quote_to_contact_ms": 1690,
+  "mobile_open_menu_ms": 437,
+  "mobile_menu_to_contact_ms": 1160
+}

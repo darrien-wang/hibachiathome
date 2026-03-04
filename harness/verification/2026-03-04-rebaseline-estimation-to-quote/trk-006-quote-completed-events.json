@@ -1,0 +1,18 @@
+[
+  {
+    "event": "quote_completed",
+    "page_path": "/quoteA",
+    "page_title": "Get Instant Quote A | Real Hibachi - Real Hibachi LA",
+    "quote_surface": "quote_builder_a",
+    "city_or_zip": "90001",
+    "tableware_rental": false,
+    "tent_10x10": false,
+    "add_on_steak": false,
+    "add_on_shrimp": false,
+    "add_on_lobster": false,
+    "guest_count": 10,
+    "estimate_low": 599,
+    "estimate_high": 599,
+    "budget_fit": "not_provided"
+  }
+]

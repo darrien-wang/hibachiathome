@@ -1,0 +1,48 @@
+[codex:session] pwd: /mnt/d/desktop/realhibachi/realhibachi-marketing
+[codex:session] Checking required files...
+  - OK: harness/prompts/tracking-improvement-spec.xml
+  - OK: harness/feature_list.json
+  - OK: harness/codex-progress.md
+  - OK: harness/docs/tracking.md
+[codex:session] feature_list status: 49 passing / 7 remaining
+[codex:session] Branch: main
+[codex:session] WARN: working tree has local changes
+ M app/book/page.tsx
+ M app/deposit/page.tsx
+ M app/estimation/page.tsx
+ M app/hibachi-at-home/page.tsx
+ M app/locations/nyc-long-island/page.tsx
+ M app/page.tsx
+ M app/sitemap.ts
+ D components/booking/booking-success.tsx
+ D components/estimation/Step1PartySize.tsx
+ D components/estimation/Step2Appetizers.tsx
+ D components/estimation/Step3PremiumMains.tsx
+ D components/estimation/Step4Sides.tsx
+ D components/estimation/Step5Estimate.tsx
+ D components/estimation/Step6BookingForm.tsx
+ D components/estimation/Step7Deposit.tsx
+ M components/how-it-works-section.tsx
+ D components/menu/Step3ReviewCheckout.tsx
+ M config/ui.ts
+ M harness/codex-progress.md
+ M harness/feature_list.json
+?? app/api/deposit/
+?? app/deposit/pay/
+?? config/deposit.ts
+?? harness/verification/2026-03-04-cleanup-estimation-deprecate/
+?? harness/verification/2026-03-04-cro-deposit-primary-001/
+?? harness/verification/2026-03-04-deposit-primary-plan/
+?? harness/verification/2026-03-04-rebaseline-estimation-to-quote/
+[codex:session] WARN: NEXT_PUBLIC_GTM_ID is not set in this shell
+[codex:session] Recent commits:
+1abfc98 chore: sync workspace updates and verification artifacts
+9121d02 feat: Add verification logs and exit codes for various home page and layout changes.
+3c2f2a5 feat(quote): add AB routes, weather card API, and deposit-first booking CTA
+44871c6 feat: add AI platform spec and fix quote wide-screen actions layout
+7fa0197 chore(home): remove fried-rice shrimp steak intro cards under videos
+a883bce style(home): add region section heading and reduce socal card scale
+4abde97 style(contact): simplify feedback page to clean two-column contact and form layout
+a5399e2 style(home): enforce equal height and vertical alignment for core cards
+32efdcb style(home): enlarge how-it-works core cards and typography
+83f8e1a fix(layout): wrap tracking bootstrap in suspense for useSearchParams

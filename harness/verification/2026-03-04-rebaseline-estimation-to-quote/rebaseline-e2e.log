@@ -1,0 +1,31 @@
+[2m[WebServer] [22m(node:26689) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:26702) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:26719) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:26795) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26795) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/smoke.spec.ts:104:5 › TRK-005: booking funnel start event fires on first booking interaction (3.8s)
+  ✓  2 [chromium] › e2e/smoke.spec.ts:142:5 › TRK-006: quote completion event includes required payload without undefined values (1.4s)
+[2m[WebServer] [22mMissing Supabase environment variables
+[2m[WebServer] [22mError in getBookingDetails: TypeError: Cannot read properties of null (reading 'from')
+[2m[WebServer] [22m    at getBookingDetails (app/actions/booking.ts:381:43)
+[2m[WebServer] [22m[0m [90m 379 |[39m     })()[0m
+[2m[WebServer] [22m[0m [90m 380 |[39m[0m
+[2m[WebServer] [22m[0m[31m[1m>[22m[39m[90m 381 |[39m     [36mconst[39m { data[33m,[39m error } [33m=[39m [36mawait[39m supabase[33m.[39m[36mfrom[39m([32m"bookings"[39m)[33m.[39mselect([32m"*"[39m)[33m.[39meq([32m"id"[39m[33m,[39m bookingId)[33m.[39msingle()[0m
+[2m[WebServer] [22m[0m [90m     |[39m                                           [31m[1m^[22m[39m[0m
+[2m[WebServer] [22m[0m [90m 382 |[39m[0m
+[2m[WebServer] [22m[0m [90m 383 |[39m     [36mif[39m (error) {[0m
+[2m[WebServer] [22m[0m [90m 384 |[39m       console[33m.[39merror([32m"Error fetching booking details:"[39m[33m,[39m error)[0m
+  ✓  3 [chromium] › e2e/smoke.spec.ts:201:5 › TRK-007: deposit CTA click emits conversion-intent event (3.8s)
+  ✓  4 [chromium] › e2e/smoke.spec.ts:294:5 › TRK-009: quote start emits quote_started with expected quote context (1.0s)
+  ✓  5 [chromium] › e2e/smoke.spec.ts:542:5 › TRK-015: quote completion emits quote_completed with numeric estimate range (1.3s)
+  ✓  6 [chromium] › e2e/smoke.spec.ts:679:5 › TRK-018: core pages stay interactive on desktop and mobile after tracking hooks (5.8s)
+
+  6 passed (1.7m)

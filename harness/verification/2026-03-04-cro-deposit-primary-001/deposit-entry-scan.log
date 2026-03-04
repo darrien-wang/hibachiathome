@@ -1,0 +1,16 @@
+# Deposit entry scan
+UTC 2026-03-04 02:44:52
+
+## Legacy /deposit? CTA targets
+
+## Active /deposit/pay? CTA targets
+app/deposit/page.tsx:35:    ? `/deposit/pay?${forwardedParams.toString()}`
+app/quote/QuoteBuilderClient.tsx:369:    window.location.href = `/deposit/pay?${depositQuery.toString()}`
+app/quote/QuoteBuilderClient.tsx:404:    window.location.href = `/deposit/pay?${depositQuery.toString()}`
+
+## Direct stripePaymentLink usage (should be server-side only)
+config/ui.ts:3:  stripePaymentLink: "https://buy.stripe.com/7sY7sN6E300z4Pq4ug1B602", // Replace with actual production link
+app/api/deposit/start/route.ts:7:  if (!paymentConfig.stripePaymentLink) {
+app/api/deposit/start/route.ts:11:  const destination = new URL(paymentConfig.stripePaymentLink)
+
+## paymentConfig.depositAmount usage (should be none)

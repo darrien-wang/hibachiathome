@@ -1,0 +1,21 @@
+[codex:session] pwd: /mnt/d/desktop/realhibachi/realhibachi-marketing
+[codex:session] Checking required files...
+  - OK: harness/prompts/tracking-improvement-spec.xml
+  - OK: harness/feature_list.json
+  - OK: harness/codex-progress.md
+  - OK: harness/docs/tracking.md
+[codex:session] feature_list status: 47 passing / 0 remaining
+[codex:session] Branch: main
+[codex:session] Working tree: clean
+[codex:session] WARN: NEXT_PUBLIC_GTM_ID is not set in this shell
+[codex:session] Recent commits:
+1abfc98 chore: sync workspace updates and verification artifacts
+9121d02 feat: Add verification logs and exit codes for various home page and layout changes.
+3c2f2a5 feat(quote): add AB routes, weather card API, and deposit-first booking CTA
+44871c6 feat: add AI platform spec and fix quote wide-screen actions layout
+7fa0197 chore(home): remove fried-rice shrimp steak intro cards under videos
+a883bce style(home): add region section heading and reduce socal card scale
+4abde97 style(contact): simplify feedback page to clean two-column contact and form layout
+a5399e2 style(home): enforce equal height and vertical alignment for core cards
+32efdcb style(home): enlarge how-it-works core cards and typography
+83f8e1a fix(layout): wrap tracking bootstrap in suspense for useSearchParams

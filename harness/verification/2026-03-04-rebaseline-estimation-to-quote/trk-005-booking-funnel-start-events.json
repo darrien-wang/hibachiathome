@@ -1,0 +1,9 @@
+[
+  {
+    "event": "booking_funnel_start",
+    "page_path": "/book",
+    "page_title": "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
+    "funnel_destination": "quoteA",
+    "funnel_entry": "book_instant_quote"
+  }
+]
