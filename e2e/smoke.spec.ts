@@ -113,8 +113,8 @@ test("TRK-005: booking funnel start event fires on first booking interaction", a
     Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
   )
 
-  await page.getByRole("button", { name: "Get Estimate" }).click()
-  await page.waitForURL(/\/estimation\?source=booking$/, { timeout: 20_000 })
+  await page.getByRole("button", { name: "Get Instant Quote" }).click()
+  await page.waitForURL(/\/quoteA(?:\?.*)?$/, { timeout: 20_000 })
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
@@ -139,81 +139,49 @@ test("TRK-005: booking funnel start event fires on first booking interaction", a
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-005-booking-start.png`, fullPage: true })
 })
 
-test("TRK-006: booking submit event includes required payload without undefined values", async ({ page }) => {
+test("TRK-006: quote completion event includes required payload without undefined values", async ({ page }) => {
   mkdirSync(EVIDENCE_DIR, { recursive: true })
 
-  test.setTimeout(120_000)
+  test.setTimeout(90_000)
 
-  await page.goto("/estimation", { waitUntil: "domcontentloaded" })
-  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Quote A|Real Hibachi/i, { timeout: 20_000 })
 
-  await page.evaluate(() => {
-    window.localStorage.removeItem("hibachi_estimation_form_data")
-    window.localStorage.removeItem("hibachi_estimation_order_data")
-  })
-  await page.reload({ waitUntil: "domcontentloaded" })
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
 
-  const infoModalClose = page.getByRole("button", { name: "Close" })
-  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
-
-  await page.getByPlaceholder("Your full name").fill("TRK Test User")
-  await page.getByPlaceholder("your.email@example.com").fill("trk006@example.com")
-  await page.getByPlaceholder("(123) 456-7890").fill("2135550106")
-  await page.getByPlaceholder("Example: 10001").fill("90001")
-
-  if (await infoModalClose.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
-
-  await page.getByPlaceholder("Your full name").fill("TRK Test User")
-  await page.getByRole("button", { name: "Increase adult count" }).click()
-  await page.getByRole("button", { name: "Next Step" }).click()
-
-  await page.getByRole("button", { name: "I don't need appetizers, skip" }).click()
-  await page.getByRole("button", { name: "No upgrades needed, skip" }).click()
-  await page.getByRole("button", { name: "No thanks, skip" }).click()
-  await page.getByRole("button", { name: "Yes, I want to book this!" }).click()
-
-  await page.getByLabel(/Estimated Guest Count/i).fill("10")
-  await page.getByPlaceholder("Street Address").fill("123 Test St")
-  await page.getByPlaceholder("City").fill("Los Angeles")
-  await page.getByPlaceholder("State").fill("CA")
-  await page.getByPlaceholder("ZIP").fill("90001")
-
-  await page.waitForFunction(() => {
-    const dayButtons = Array.from(document.querySelectorAll("button[type='button']"))
-      .map((el) => el.textContent?.trim() ?? "")
-      .filter((text) => /^\d+$/.test(text))
-    return dayButtons.length > 0
-  })
-  await page.locator("button[type='button']").filter({ hasText: /^\d+$/ }).first().click()
+  await page.getByPlaceholder("Your full name").fill("TRK Quote User")
+  await page.locator('input[type="date"]').first().fill("2026-05-18")
 
   const timeSelect = page.locator("select").first()
   await expect(timeSelect).toBeVisible({ timeout: 20_000 })
-  await page.waitForFunction(() => {
-    const select = document.querySelector("select")
-    return !!select && select.options.length > 1
-  })
-  await timeSelect.selectOption({ index: 1 })
+  await timeSelect.selectOption("19:00")
 
-  await page.getByRole("checkbox").first().click()
-  await page.getByRole("button", { name: "Book My Hibachi Party" }).click()
+  await page.getByPlaceholder("Los Angeles or 90001").fill("90001")
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.some((entry) => entry.event === "booking_submit")
+    return dataLayer.some((entry) => entry.event === "quote_completed")
   })
 
-  const bookingSubmitEvents = await page.evaluate(() => {
+  const quoteCompletedEvents = await page.evaluate(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.filter((entry) => entry.event === "booking_submit")
+    return dataLayer.filter((entry) => entry.event === "quote_completed")
   })
 
-  await expect(bookingSubmitEvents.length).toBeGreaterThan(0)
-  const latestEvent = bookingSubmitEvents[bookingSubmitEvents.length - 1] as Record<string, unknown>
-  const requiredKeys = ["event", "page_path", "page_title", "booking_id", "guest_count", "event_date", "event_time", "value", "currency"]
+  await expect(quoteCompletedEvents.length).toBeGreaterThan(0)
+  const latestEvent = quoteCompletedEvents[quoteCompletedEvents.length - 1] as Record<string, unknown>
+  const requiredKeys = [
+    "event",
+    "page_path",
+    "page_title",
+    "quote_surface",
+    "city_or_zip",
+    "guest_count",
+    "estimate_low",
+    "estimate_high",
+  ]
 
   for (const key of requiredKeys) {
     await expect(Object.prototype.hasOwnProperty.call(latestEvent, key)).toBeTruthy()
@@ -222,9 +190,12 @@ test("TRK-006: booking submit event includes required payload without undefined 
 
   const undefinedEntries = Object.entries(latestEvent).filter(([, value]) => value === undefined)
   await expect(undefinedEntries).toHaveLength(0)
+  await expect(latestEvent.page_path).toBe("/quoteA")
+  await expect(Number(latestEvent.estimate_low)).toBeGreaterThan(0)
+  await expect(Number(latestEvent.estimate_high)).toBeGreaterThanOrEqual(Number(latestEvent.estimate_low))
 
-  writeFileSync(`${EVIDENCE_DIR}/trk-006-booking-submit-events.json`, JSON.stringify(bookingSubmitEvents, null, 2), "utf-8")
-  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-006-booking-submit.png`, fullPage: true })
+  writeFileSync(`${EVIDENCE_DIR}/trk-006-quote-completed-events.json`, JSON.stringify(quoteCompletedEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-006-quote-completed.png`, fullPage: true })
 })
 
 test("TRK-007: deposit CTA click emits conversion-intent event", async ({ page }) => {
@@ -232,7 +203,7 @@ test("TRK-007: deposit CTA click emits conversion-intent event", async ({ page }
 
   test.setTimeout(60_000)
 
-  await page.goto("/deposit?id=TRK007", { waitUntil: "domcontentloaded" })
+  await page.goto("/deposit/pay?id=TRK007", { waitUntil: "domcontentloaded" })
   await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
 
   await page.waitForFunction(() =>
@@ -243,7 +214,7 @@ test("TRK-007: deposit CTA click emits conversion-intent event", async ({ page }
     ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
   })
 
-  await page.getByRole("button", { name: /Pay Securely with Stripe/i }).click()
+  await page.getByRole("button", { name: /Lock Your Date/i }).click()
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
@@ -258,7 +229,7 @@ test("TRK-007: deposit CTA click emits conversion-intent event", async ({ page }
   await expect(depositStartedEvents.length).toBeGreaterThan(0)
   const latestEvent = depositStartedEvents[depositStartedEvents.length - 1] as Record<string, unknown>
 
-  await expect(latestEvent.page_path).toBe("/deposit")
+  await expect(latestEvent.page_path).toBe("/deposit/pay")
   await expect(latestEvent.currency).toBe("USD")
   await expect(typeof latestEvent.value).toBe("number")
 
@@ -320,86 +291,37 @@ test("TRK-008: contact form submit emits lead_submit with channel metadata", asy
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-008-contact-submit.png`, fullPage: true })
 })
 
-test("TRK-009: Google Places selection emits location_selected with place_id", async ({ page }) => {
+test("TRK-009: quote start emits quote_started with expected quote context", async ({ page }) => {
   mkdirSync(EVIDENCE_DIR, { recursive: true })
 
-  test.setTimeout(120_000)
+  test.setTimeout(60_000)
 
-  await page.goto("/estimation", { waitUntil: "domcontentloaded" })
-  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Quote A|Real Hibachi/i, { timeout: 20_000 })
 
-  await page.evaluate(() => {
-    window.localStorage.removeItem("hibachi_estimation_form_data")
-    window.localStorage.removeItem("hibachi_estimation_order_data")
-  })
-  await page.reload({ waitUntil: "domcontentloaded" })
-
-  const infoModalClose = page.getByRole("button", { name: "Close" })
-  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
-
-  await page.getByPlaceholder("Your full name").fill("TRK Place User")
-  await page.getByPlaceholder("your.email@example.com").fill("trk009@example.com")
-  await page.getByPlaceholder("(123) 456-7890").fill("2135550109")
-  await page.getByPlaceholder("Example: 10001").fill("90001")
-
-  if (await infoModalClose.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
-
-  await page.getByPlaceholder("Your full name").fill("TRK Place User")
-  await page.getByRole("button", { name: "Increase adult count" }).click()
-  await page.getByRole("button", { name: "Next Step" }).click()
-
-  await page.getByRole("button", { name: "I don't need appetizers, skip" }).click()
-  await page.getByRole("button", { name: "No upgrades needed, skip" }).click()
-  await page.getByRole("button", { name: "No thanks, skip" }).click()
-  await page.getByRole("button", { name: "Yes, I want to book this!" }).click()
-
-  await expect(page.getByPlaceholder("Street Address")).toBeVisible({ timeout: 20_000 })
-
-  await page.evaluate(() => {
-    window.dispatchEvent(
-      new CustomEvent("realhibachi:mock-place-select", {
-        detail: {
-          place_id: "test-place-009",
-          formatted_address: "123 Test St, Los Angeles, CA 90001, USA",
-          address_components: [
-            { long_name: "123", short_name: "123", types: ["street_number"] },
-            { long_name: "Test St", short_name: "Test St", types: ["route"] },
-            { long_name: "Los Angeles", short_name: "Los Angeles", types: ["locality"] },
-            { long_name: "California", short_name: "CA", types: ["administrative_area_level_1"] },
-            { long_name: "90001", short_name: "90001", types: ["postal_code"] },
-          ],
-        },
-      }),
-    )
-  })
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.some((entry) => entry.event === "location_selected" && entry.place_id === "test-place-009")
+    return dataLayer.some((entry) => entry.event === "quote_started")
   })
 
-  const locationSelectedEvents = await page.evaluate(() => {
+  const quoteStartedEvents = await page.evaluate(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.filter((entry) => entry.event === "location_selected")
+    return dataLayer.filter((entry) => entry.event === "quote_started")
   })
 
-  await expect(locationSelectedEvents.length).toBeGreaterThan(0)
-  const latestEvent = locationSelectedEvents[locationSelectedEvents.length - 1] as Record<string, unknown>
-  await expect(latestEvent.place_id).toBe("test-place-009")
-  await expect(latestEvent.location_source).toBe("google_places_autocomplete")
+  await expect(quoteStartedEvents.length).toBeGreaterThan(0)
+  const latestEvent = quoteStartedEvents[quoteStartedEvents.length - 1] as Record<string, unknown>
+  await expect(latestEvent.quote_surface).toBe("quote_builder_a")
+  await expect(Number(latestEvent.adults)).toBeGreaterThan(0)
+  await expect(typeof latestEvent.tableware_rental).toBe("boolean")
+  await expect(typeof latestEvent.tent_10x10).toBe("boolean")
 
-  await expect(page.getByPlaceholder("Street Address")).toHaveValue(/123 Test St/)
-
-  writeFileSync(
-    `${EVIDENCE_DIR}/trk-009-location-selected-events.json`,
-    JSON.stringify(locationSelectedEvents, null, 2),
-    "utf-8",
-  )
-  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-009-location-selected.png`, fullPage: true })
+  writeFileSync(`${EVIDENCE_DIR}/trk-009-quote-started-events.json`, JSON.stringify(quoteStartedEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-009-quote-started.png`, fullPage: true })
 })
 
 test("TRK-010: package selection emits package_selected with package metadata", async ({ page }) => {
@@ -617,70 +539,41 @@ test("TRK-014: floating contact SMS click emits sms_click event", async ({ page 
   await page.screenshot({ path: `${EVIDENCE_DIR}/trk-014-sms-click.png`, fullPage: true })
 })
 
-test("TRK-015: estimate completion emits estimate_completed with numeric total value", async ({ page }) => {
+test("TRK-015: quote completion emits quote_completed with numeric estimate range", async ({ page }) => {
   mkdirSync(EVIDENCE_DIR, { recursive: true })
 
-  test.setTimeout(120_000)
+  test.setTimeout(90_000)
 
-  await page.goto("/estimation", { waitUntil: "domcontentloaded" })
-  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Quote A|Real Hibachi/i, { timeout: 20_000 })
 
-  await page.evaluate(() => {
-    window.localStorage.removeItem("hibachi_estimation_form_data")
-    window.localStorage.removeItem("hibachi_estimation_order_data")
-  })
-  await page.reload({ waitUntil: "domcontentloaded" })
+  await page.waitForFunction(() =>
+    Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+  )
 
-  const infoModalClose = page.getByRole("button", { name: "Close" })
-  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
-
-  await page.getByPlaceholder("Your full name").fill("TRK Estimate User")
-  await page.getByPlaceholder("your.email@example.com").fill("trk015@example.com")
-  await page.getByPlaceholder("(123) 456-7890").fill("2135550115")
-  await page.getByPlaceholder("Example: 10001").fill("90001")
-
-  if (await infoModalClose.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
-
-  await page.getByPlaceholder("Your full name").fill("TRK Estimate User")
-  await page.getByPlaceholder("your.email@example.com").fill("trk015@example.com")
-  await page.getByPlaceholder("(123) 456-7890").fill("2135550115")
-  await page.getByPlaceholder("Example: 10001").fill("90001")
-  await page.getByRole("button", { name: "Increase adult count" }).click()
-  await page.getByRole("button", { name: "Next Step" }).click()
-
-  await page.getByRole("button", { name: "I don't need appetizers, skip" }).click()
-  await page.getByRole("button", { name: "No upgrades needed, skip" }).click()
-  await page.getByRole("button", { name: "No thanks, skip" }).click()
-
-  await expect(page.getByRole("heading", { name: "Your Estimated Price" }).first()).toBeVisible({ timeout: 20_000 })
+  await page.locator('input[type="date"]').first().fill("2026-06-01")
+  await page.getByPlaceholder("Los Angeles or 90001").fill("Irvine")
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.some((entry) => entry.event === "estimate_completed")
+    return dataLayer.some((entry) => entry.event === "quote_completed")
   })
 
-  const estimateCompletedEvents = await page.evaluate(() => {
+  const quoteCompletedEvents = await page.evaluate(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.filter((entry) => entry.event === "estimate_completed")
+    return dataLayer.filter((entry) => entry.event === "quote_completed")
   })
 
-  await expect(estimateCompletedEvents.length).toBeGreaterThan(0)
-  const latestEvent = estimateCompletedEvents[estimateCompletedEvents.length - 1] as Record<string, unknown>
+  await expect(quoteCompletedEvents.length).toBeGreaterThan(0)
+  const latestEvent = quoteCompletedEvents[quoteCompletedEvents.length - 1] as Record<string, unknown>
 
-  await expect(typeof latestEvent.value).toBe("number")
-  await expect(Number(latestEvent.value)).toBeGreaterThan(0)
-  await expect(Number(latestEvent.estimate_total)).toBeGreaterThan(0)
+  await expect(typeof latestEvent.estimate_low).toBe("number")
+  await expect(typeof latestEvent.estimate_high).toBe("number")
+  await expect(Number(latestEvent.estimate_low)).toBeGreaterThan(0)
+  await expect(Number(latestEvent.estimate_high)).toBeGreaterThanOrEqual(Number(latestEvent.estimate_low))
 
-  writeFileSync(
-    `${EVIDENCE_DIR}/trk-015-estimate-completed-events.json`,
-    JSON.stringify(estimateCompletedEvents, null, 2),
-    "utf-8",
-  )
-  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-015-estimate-completed.png`, fullPage: true })
+  writeFileSync(`${EVIDENCE_DIR}/trk-015-quote-completed-events.json`, JSON.stringify(quoteCompletedEvents, null, 2), "utf-8")
+  await page.screenshot({ path: `${EVIDENCE_DIR}/trk-015-quote-completed.png`, fullPage: true })
 })
 
 test("TRK-016: tracking remains resilient when GTM/dataLayer is unavailable", async ({ page }) => {
@@ -805,70 +698,44 @@ test("TRK-018: core pages stay interactive on desktop and mobile after tracking 
   interactionLatency.desktop_home_to_book_ms = Date.now() - start
 
   start = Date.now()
-  await page.getByRole("button", { name: "Get Estimate" }).click()
-  await page.waitForURL(/\/estimation\?source=booking$/, { timeout: 20_000 })
-  interactionLatency.desktop_book_to_estimation_ms = Date.now() - start
-
-  const infoModalClose = page.getByRole("button", { name: "Close" })
-  if (await infoModalClose.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await infoModalClose.click()
-  }
+  await page.getByRole("button", { name: "Get Instant Quote" }).click()
+  await page.waitForURL(/\/quoteA(?:\?.*)?$/, { timeout: 20_000 })
+  interactionLatency.desktop_book_to_quote_ms = Date.now() - start
 
   start = Date.now()
   await page.getByPlaceholder("Your full name").fill("TRK018 Desktop User")
   await expect(page.getByPlaceholder("Your full name")).toHaveValue("TRK018 Desktop User")
-  interactionLatency.desktop_estimation_input_ms = Date.now() - start
+  interactionLatency.desktop_quote_input_ms = Date.now() - start
 
   start = Date.now()
   await page.goto("/contact", { waitUntil: "domcontentloaded" })
   await expect(page).toHaveURL(/\/contact(?:\?.*)?$/)
-  interactionLatency.desktop_estimation_to_contact_ms = Date.now() - start
+  interactionLatency.desktop_quote_to_contact_ms = Date.now() - start
 
-  await page.locator('input[name="name"]').fill("TRK018 Contact User")
+  await page.locator('input[name="firstName"]').fill("TRK018")
+  await page.locator('input[name="lastName"]').fill("Contact User")
   await page.locator('input[name="email"]').fill("trk018@example.com")
   await page.locator('input[name="phone"]').fill("2135550118")
-  await expect(page.locator('input[name="name"]')).toHaveValue("TRK018 Contact User")
+  await expect(page.locator('input[name="firstName"]')).toHaveValue("TRK018")
+  await expect(page.locator('input[name="lastName"]')).toHaveValue("Contact User")
 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto("/", { waitUntil: "domcontentloaded" })
   await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
 
-  await page.evaluate(() => {
-    ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
-  })
-
-  const floatingBar = page.locator("div.fixed.bottom-0.left-0.right-0").first()
+  start = Date.now()
+  await page.getByRole("button", { name: "Open menu" }).click()
+  await expect(page.getByRole("link", { name: "Feedback" })).toBeVisible({ timeout: 10_000 })
+  interactionLatency.mobile_open_menu_ms = Date.now() - start
 
   start = Date.now()
-  await floatingBar.getByRole("button", { name: "Book Now" }).click()
-  await expect(floatingBar.getByRole("button", { name: "Call Us" })).toBeVisible({ timeout: 10_000 })
-  interactionLatency.mobile_expand_contact_ms = Date.now() - start
-
-  start = Date.now()
-  await floatingBar.getByRole("button", { name: "Call Us" }).click()
-  await expect(floatingBar.getByRole("button", { name: "Call Now" })).toBeVisible({ timeout: 10_000 })
-  interactionLatency.mobile_open_call_panel_ms = Date.now() - start
-
-  start = Date.now()
-  await floatingBar.getByRole("button", { name: "Call Now" }).click()
+  await page.getByRole("link", { name: "Feedback" }).click()
+  await page.waitForURL(/\/contact(?:\?.*)?$/, { timeout: 20_000 })
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.some((entry) => entry.event === "phone_click")
+    return dataLayer.some((entry) => entry.event === "page_view" && entry.page_path === "/contact")
   })
-  interactionLatency.mobile_call_click_ms = Date.now() - start
-
-  start = Date.now()
-  await floatingBar.getByRole("button", { name: "Send Text" }).click()
-  await expect(floatingBar.getByRole("button", { name: "Send SMS" })).toBeVisible({ timeout: 10_000 })
-  interactionLatency.mobile_open_sms_panel_ms = Date.now() - start
-
-  start = Date.now()
-  await floatingBar.getByRole("button", { name: "Send SMS" }).click()
-  await page.waitForFunction(() => {
-    const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
-    return dataLayer.some((entry) => entry.event === "sms_click")
-  })
-  interactionLatency.mobile_sms_click_ms = Date.now() - start
+  interactionLatency.mobile_menu_to_contact_ms = Date.now() - start
 
   for (const [metric, value] of Object.entries(interactionLatency)) {
     await expect(value, `${metric} should stay responsive`).toBeLessThan(5_000)
