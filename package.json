@@ -7,6 +7,8 @@
     "codex:init": "bash ./harness/init.sh",
     "codex:session": "bash ./harness/scripts/codex-session-start.sh",
     "codex:verify": "bash ./harness/scripts/codex-verify.sh",
+    "env:check": "bash ./harness/scripts/check-local-env.sh",
+    "stripe:listen:local": "bash ./harness/scripts/stripe-listen-local.sh",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",

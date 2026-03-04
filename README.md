@@ -32,6 +32,46 @@ Notes:
 - Configure UI E2E via `test:e2e` script or `CODEX_E2E_CMD`.
 - `test:e2e` uses Playwright (`harness/scripts/run-e2e.sh`) and performs first-run Chromium/bootstrap setup automatically.
 
+## Local Stripe Webhook Quickstart
+
+1. Initialize local env file:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Fill at least the required keys in `.env.local`:
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_BASE_URL` (use `http://localhost:3000` locally)
+
+3. Run env sanity check:
+
+```bash
+pnpm env:check
+```
+
+4. Start app:
+
+```bash
+pnpm dev
+```
+
+5. In another terminal, run Stripe CLI webhook forwarder:
+
+```bash
+stripe listen --events checkout.session.completed,charge.refunded --forward-to localhost:3000/api/stripe/webhook
+```
+
+6. Copy the CLI output `whsec_...` value into `.env.local` as `STRIPE_WEBHOOK_SECRET`, then restart `pnpm dev`.
+
+Alternative helper command (auto-reads `NEXT_PUBLIC_BASE_URL` from `.env.local`):
+
+```bash
+pnpm stripe:listen:local
+```
+
 ## Long-Running Workflow Files
 
 - `harness/prompts/tracking-improvement-spec.xml`
