@@ -131,6 +131,8 @@ export default function DepositPaymentPage() {
   const [booking, setBooking] = useState<BookingPreview | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [checkoutStarting, setCheckoutStarting] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchBookingDetails() {
@@ -204,7 +206,7 @@ export default function DepositPaymentPage() {
     ? formatRange(Number(booking?.estimate_low), Number(booking?.estimate_high))
     : `$${totalAmount.toFixed(2)}`
 
-  const handleDepositCtaClick = () => {
+  const handleDepositCtaClick = async () => {
     if (!booking) return
 
     trackEvent("deposit_started", {
@@ -218,20 +220,54 @@ export default function DepositPaymentPage() {
       return
     }
 
-    const redirectQuery = new URLSearchParams()
-    if (booking.email) {
-      redirectQuery.set("prefilled_email", booking.email)
-    }
-    if (booking.id) {
-      redirectQuery.set("booking_id", booking.id)
-    }
-    if (source) {
-      redirectQuery.set("source", source)
-    }
+    setCheckoutStarting(true)
+    setCheckoutError(null)
 
-    window.location.href = redirectQuery.toString()
-      ? `/api/deposit/start?${redirectQuery.toString()}`
-      : "/api/deposit/start"
+    try {
+      const response = await fetch("/api/deposit/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          source: source || "deposit_pay",
+          customerName: booking.full_name,
+          customerEmail: booking.email,
+          eventDate: booking.event_date,
+          eventTime: booking.event_time,
+          location: booking.location,
+          adults: booking.guest_adults,
+          kids: booking.guest_kids,
+          tent10x10: booking.tent_10x10,
+          estimateLow: booking.estimate_low,
+          estimateHigh: booking.estimate_high,
+          totalAmount,
+          depositAmount,
+          currency: "USD",
+        }),
+      })
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        success?: boolean
+        checkoutUrl?: string
+        error?: string
+      }
+
+      if (!response.ok || !payload.checkoutUrl) {
+        throw new Error(payload.error || "Unable to start secure checkout. Please try again.")
+      }
+
+      window.location.href = payload.checkoutUrl
+    } catch (checkoutStartError) {
+      console.error(checkoutStartError)
+      setCheckoutError(
+        checkoutStartError instanceof Error
+          ? checkoutStartError.message
+          : "Unable to start secure checkout. Please contact us if this keeps happening.",
+      )
+      setCheckoutStarting(false)
+    }
   }
 
   if (loading) {
@@ -364,17 +400,29 @@ export default function DepositPaymentPage() {
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
-            <Button onClick={handleDepositCtaClick} className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-3">
+            <Button
+              onClick={handleDepositCtaClick}
+              disabled={checkoutStarting}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-3 disabled:bg-blue-300"
+            >
               <div className="flex items-center justify-center">
                 <img
                   src="https://b.stripecdn.com/manage-statics-srv/assets/public/favicon.ico"
                   alt="Stripe"
                   className="h-5 w-5 mr-2"
                 />
-                Lock Your Date for ${depositAmount.toFixed(2)}
+                {checkoutStarting ? "Redirecting to secure checkout..." : `Lock Your Date for $${depositAmount.toFixed(2)}`}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </div>
             </Button>
+
+            {checkoutError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Checkout Error</AlertTitle>
+                <AlertDescription>{checkoutError}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="text-sm text-gray-600 mt-4 space-y-4">
               <p className="text-center font-medium">

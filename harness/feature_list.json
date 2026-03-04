@@ -630,7 +630,7 @@
       "Configure Checkout success/cancel callbacks to /deposit/success and /deposit/cancel with session_id passthrough.",
       "Persist booking/order metadata into Stripe session metadata for downstream reconciliation."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-DEPOSIT-PRIMARY-003",

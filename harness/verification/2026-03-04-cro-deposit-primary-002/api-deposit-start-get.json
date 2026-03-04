@@ -1,0 +1,1 @@
+{"success":false,"error":"Missing STRIPE_SECRET_KEY environment variable."}

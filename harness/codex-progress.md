@@ -2094,3 +2094,58 @@
 
 - Next highest-priority action:
   - Start `CRO-DEPOSIT-PRIMARY-002`: replace static Payment Link redirect behavior in `/api/deposit/start` with server-created Stripe Checkout Sessions.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-002 complete: server-created Stripe Checkout session flow)
+
+- Completed:
+  - Re-verified previously passing core flow baseline (required by workflow):
+    - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list`
+  - Added Stripe SDK integration:
+    - added `stripe` dependency in `package.json` / `pnpm-lock.yaml`
+    - introduced server-only Stripe client helper `lib/stripe-server.ts` (reads `STRIPE_SECRET_KEY`)
+  - Replaced legacy static-link redirect logic in `app/api/deposit/start/route.ts`:
+    - `POST /api/deposit/start` now accepts structured booking/customer/deposit payload and returns JSON `{ success, checkoutUrl, sessionId }`
+    - `GET /api/deposit/start` retained as compatibility path and now redirects to a server-created Checkout session URL
+    - creates Stripe Checkout Session (`mode=payment`) with:
+      - `success_url` -> `/deposit/success?session_id={CHECKOUT_SESSION_ID}`
+      - `cancel_url` -> `/deposit/cancel` (with optional booking/source context params)
+      - metadata + `payment_intent_data.metadata` populated for downstream reconciliation
+  - Updated `app/deposit/pay/page.tsx`:
+    - primary CTA now calls `POST /api/deposit/start`
+    - handles loading state + checkout-start error surface
+    - redirects using returned `checkoutUrl`
+  - Added callback pages to avoid checkout return-path 404:
+    - `app/deposit/success/page.tsx`
+    - `app/deposit/cancel/page.tsx`
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-002` changed from `passes: false -> true`.
+
+- Verified:
+  - `pnpm exec playwright test --grep "TRK-001" --workers=1 --reporter=list` ✅
+  - `pnpm exec playwright test --grep "TRK-007" --workers=1 --reporter=list` ✅
+  - `pnpm lint` ✅ (warnings only; no blocking errors)
+  - Contract scan confirms API/session wiring and callback paths ✅
+  - API smoke check in local dev server:
+    - `POST /api/deposit/start` returns structured error JSON when `STRIPE_SECRET_KEY` is missing
+    - `GET /api/deposit/start` compatibility path returns structured error JSON when `STRIPE_SECRET_KEY` is missing
+
+- Environment note:
+  - Full Stripe redirect verification requires a valid `STRIPE_SECRET_KEY` and live/test Stripe credentials in runtime environment.
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/core-baseline-trk-001.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/core-baseline-trk-001.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/reverify-trk-007.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/reverify-trk-007.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/lint.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/lint.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/checkout-contract-scan.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/checkout-contract-scan.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/api-deposit-start-post.http`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/api-deposit-start-post.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/api-deposit-start-get.http`
+  - `harness/verification/2026-03-04-cro-deposit-primary-002/api-deposit-start-get.json`
+
+- Next highest-priority action:
+  - Start `CRO-DEPOSIT-PRIMARY-003`: persist canonical deposit fields (`deposit_status`, `stripe_session_id`, `payment_intent_id`, `deposit_amount`) with idempotent constraints.
