@@ -17,7 +17,8 @@ This repository uses a long-running Codex workflow. Treat each session as resuma
 3. Implement one highest-priority failing feature at a time.
 4. Capture verification evidence in `verification/`.
 5. Update `feature_list.json` and `codex-progress.md` before ending the session.
-6. Keep commits small and scoped to one feature or fix.
+6. Every completed feature must be committed immediately as one commit.
+7. Keep commits small and scoped to one feature or fix.
 
 ## Change Policy for `feature_list.json`
 
