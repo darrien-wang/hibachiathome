@@ -8,6 +8,7 @@ import { CheckCircle, Calendar, Clock, Users, DollarSign, ArrowRight, Phone, Mes
 import Link from "next/link"
 import { getBookingDetails } from "@/app/actions/booking"
 import { formatDate } from "@/lib/utils"
+import { paymentConfig } from "@/config/ui"
 
 export default function AfterDepositPage() {
   const searchParams = useSearchParams()
@@ -103,7 +104,8 @@ export default function AfterDepositPage() {
             </div>
             <h2 className="text-2xl font-bold mb-4 text-center">Booking Confirmed!</h2>
             <p className="text-lg mb-6 text-center">
-              We have received your deposit payment of ${booking?.deposit || 100}.00
+              We have received your deposit payment of $
+              {Number(booking?.deposit ?? paymentConfig.depositAmount).toFixed(2)}
             </p>
 
             <div className="bg-white p-6 rounded-lg border border-green-100 mb-6">
@@ -158,7 +160,7 @@ export default function AfterDepositPage() {
                 <li>Our team will contact you within 24-48 hours to confirm all details</li>
                 <li>We'll send a reminder 3 days before your event</li>
                 <li>The remaining balance will be due on the day of your event</li>
-                <li>Remember our 48-hour free cancellation policy if your plans change</li>
+                <li>Remember our 72-hour free cancellation policy if your plans change</li>
               </ul>
             </div>
 

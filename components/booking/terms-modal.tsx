@@ -40,10 +40,10 @@ export function TermsModal({ open, onClose }: { open: boolean; onClose: () => vo
           <div>
             <p className="font-medium">Cancelation Policy & Weather Policy</p>
             <p>
-              48 hours notice for all cancellations and rescheduled parties or guest will be charged a fee of $100.00.
-              If it rains, customer is required to provide some type of covering for the chef to cook under so they can
-              stay dry. We can cook under tents, and patios. Customer is responsible for canceling due to inclement
-              weather within 48 hours of your party.
+              Please provide at least 72 hours notice for cancellations or rescheduled parties to receive a full
+              deposit refund. Changes made inside 72 hours may make the deposit non-refundable. If it rains, we can
+              provide a complimentary tent so the chef can stay dry. If you still need to cancel due to inclement
+              weather, please notify us at least 72 hours before the party.
             </p>
           </div>
           <div>

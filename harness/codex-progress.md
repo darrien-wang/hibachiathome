@@ -1888,3 +1888,30 @@
   - `harness/verification/2026-02-21-quote-book-online-cta/codex-verify.exit`
 - Next highest-priority action:
   - Add browser-level assertion for Book Online button routing and disabled/enabled state when localhost constraints are lifted.
+
+## 2026-03-03 (CRO-DEPOSIT-OFFER-001 lower-friction deposit offer)
+
+- Completed:
+  - Attempted session bootstrap via `bash harness/scripts/codex-session-start.sh`, but the checked-in shell wrappers currently fail in this environment because they contain CRLF line endings (`set: pipefail\r: invalid option name`).
+  - Re-verified a previously passing baseline tracking contract via `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-03-cro-deposit-019`.
+  - Lowered the shared deposit amount in `config/ui.ts` from `$100` to `$19.90`.
+  - Updated deposit-related booking surfaces and marketing copy to align with the new offer:
+    - deposit payment page
+    - booking success step
+    - after-deposit confirmation page
+    - quote deposit CTA amount source
+    - booking policy blocks / FAQ surfaces
+  - Standardized cancellation copy to a 72-hour full-refund window and replaced legacy `$100 fee` language with `deposit may be non-refundable inside 72 hours` wording to match the lower-commitment deposit model.
+  - Added rainy-day reassurance copy across the same booking surfaces: we can provide a complimentary tent, while keeping the 72-hour weather-cancellation refund window.
+  - Reframed the main deposit CTAs from generic payment language to conversion-focused `Lock Your Date for $19.90` copy on booking, deposit, estimation, and quote urgency surfaces.
+- Feature status transition:
+  - Added `CRO-DEPOSIT-OFFER-001` with `passes: true` in `harness/feature_list.json`.
+- Verified:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-03-cro-deposit-019` ✅
+  - `pnpm lint` could not complete in this environment because ESLint is not currently installed in `node_modules` (`ESLint must be installed`).
+  - `pnpm build` was started, but this environment stalled while downloading Next.js SWC binaries; no final pass/fail result was produced during this session.
+- Evidence:
+  - `harness/verification/2026-03-03-cro-deposit-019/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-03-cro-deposit-019/cro-deposit-weather-tent-scan.log`
+- Next highest-priority action:
+  - Add browser-level verification (or screenshot evidence) for the revised deposit amount and 72-hour policy copy once the local shell wrappers and frontend runtime are stable again.

@@ -150,11 +150,11 @@ export default function BookingPage() {
           <div className="grid gap-3 text-sm text-amber-900 md:grid-cols-2">
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Cancellation</p>
-              <p>Cancel or reschedule with at least 48 hours notice to avoid late-change fees.</p>
+              <p>Cancel or reschedule with at least 72 hours notice to receive a full deposit refund.</p>
             </div>
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Weather</p>
-              <p>Cooking is outdoors. Please provide cover (tent/canopy) when weather is uncertain.</p>
+              <p>Cooking is outdoors. If rain is expected, we can provide a complimentary tent for your event setup.</p>
             </div>
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Arrival Timing</p>

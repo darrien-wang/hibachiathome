@@ -598,7 +598,7 @@ export default function Home() {
                 {
                   question: "What is your cancellation policy?",
                   answer:
-                    "Our cancellation policy includes the following terms: 48 hours' notice required for cancellations or reschedules. Late changes incur a $100 fee. Weather contingency: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event. If you need to cancel due to weather, please let us know at least 48 hours beforehand.",
+                    "Our cancellation policy includes the following terms: 72 hours' notice required for cancellations or reschedules to receive a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable. For rainy days, we can provide a complimentary tent for the chef setup. If you still need to cancel due to weather, please let us know at least 72 hours beforehand.",
                 },
               ].map((faq, index) => (
                 <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">

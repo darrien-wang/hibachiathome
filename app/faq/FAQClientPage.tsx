@@ -109,7 +109,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "What is your cancellation policy?",
     answer:
-      "Our cancellation policy includes the following terms:\n\n- 48 hours' notice required for cancellations or reschedules\n- Late changes incur a $100 fee\n- Weather contingency: You're responsible for providing cover (e.g., tent, canopy) within 48 hours of the event\n- If you need to cancel due to weather, please let us know at least 48 hours beforehand",
+      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules to receive a full deposit refund\n- Changes made inside 72 hours may make the deposit non-refundable\n- For rainy days, we can provide a complimentary tent for the chef setup\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",
   },
 ]
 
@@ -118,12 +118,12 @@ export default function FAQClientPage() {
     {
       title: "What if weather changes on event day?",
       answer:
-        "If weather is uncertain, please provide covered outdoor space (tent/canopy). For weather-related cancellations, notify us at least 48 hours in advance.",
+        "If weather is uncertain, we can provide a complimentary tent for the chef setup. If you still need to cancel for weather, notify us at least 72 hours in advance for a full deposit refund.",
     },
     {
       title: "How does cancellation/reschedule work?",
       answer:
-        "You can cancel or reschedule with at least 48 hours notice. Late changes may include a fee because staff and ingredients are already allocated.",
+        "You can cancel or reschedule with at least 72 hours notice for a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable because staff and ingredients are already allocated.",
     },
     {
       title: "Can you handle allergies and dietary restrictions?",

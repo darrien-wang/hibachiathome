@@ -164,8 +164,7 @@ export default function DepositPaymentPage() {
 
   // 计算押金金额
   const calculateDepositAmount = () => {
-    // 固定押金金额为 $100
-    return paymentConfig.depositAmount || 100
+    return paymentConfig.depositAmount
   }
 
   const formatRange = (low: number, high: number) => {
@@ -288,14 +287,15 @@ export default function DepositPaymentPage() {
         <div className="flex items-center">
           <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
           <p className="text-green-700 font-medium text-lg">
-            <span className="font-bold">48-Hour Free Cancellation Policy:</span> Cancel within 48 hours for a full
+            <span className="font-bold">72-Hour Free Cancellation Policy:</span> Cancel at least 72 hours before your
+            event for a full
             refund with no penalty.
           </p>
         </div>
       </div>
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Pay Booking Deposit</h1>
+          <h1 className="text-4xl font-bold mb-4">Lock Your Date for ${depositAmount.toFixed(2)}</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Please pay the deposit to confirm your private hibachi party booking
           </p>
@@ -387,7 +387,7 @@ export default function DepositPaymentPage() {
                   alt="Stripe"
                   className="h-5 w-5 mr-2"
                 />
-                Pay Securely with Stripe ${depositAmount.toFixed(2)}
+                Lock Your Date for ${depositAmount.toFixed(2)}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </div>
             </Button>
@@ -412,14 +412,15 @@ export default function DepositPaymentPage() {
                 </p>
 
                 <p className="mb-2">
-                  <span className="font-semibold">Cancellation Policy:</span> Notify us within 48 hours of your event to
-                  cancel or reschedule and receive a full refund of your deposit with no penalty fees.
+                  <span className="font-semibold">Cancellation Policy:</span> Notify us at least 72 hours before your
+                  event to cancel or reschedule and receive a full refund of your deposit with no penalty fees. Changes
+                  inside 72 hours may make the deposit non-refundable.
                 </p>
 
                 <p>
-                  <span className="font-semibold">Weather Policy:</span> If it rains, customer must provide covering for
-                  the chef. Customer is responsible for canceling due to inclement weather within 48 hours of your
-                  party.
+                  <span className="font-semibold">Weather Policy:</span> If rain is in the forecast, we can provide a
+                  complimentary tent for your event. If you still need to cancel due to weather, please let us know at
+                  least 72 hours before your party for a full deposit refund.
                 </p>
               </div>
             </div>

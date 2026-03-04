@@ -592,5 +592,18 @@
       "Verify lint/build quality gates pass."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-DEPOSIT-OFFER-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Deposit offer uses a low-friction $19.90 amount and consistent 72-hour refund messaging across booking surfaces.",
+    "steps": [
+      "Set the shared deposit amount config to $19.90 so all deposit CTA surfaces reflect the lower commitment.",
+      "Update deposit, booking, and confirmation screens to show the 72-hour full-refund window.",
+      "Replace legacy $100 late-change fee copy with non-refundable-deposit messaging inside the 72-hour window.",
+      "Verify the updated amount and policy language appear consistently on core booking and FAQ surfaces."
+    ],
+    "passes": true
   }
 ]

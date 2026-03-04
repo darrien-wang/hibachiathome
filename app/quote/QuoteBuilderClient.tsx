@@ -87,7 +87,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
   const slotsLeft = useMemo(() => calculateSlotsLeft(input.eventDate, input.location), [input.eventDate, input.location])
   const slotsNoun = slotsLeft === 1 ? "slot" : "slots"
-  const depositAmount = paymentConfig.depositAmount || 100
+  const depositAmount = paymentConfig.depositAmount
   const shouldShowWeatherCard = Boolean(input.eventDate && input.location.trim())
 
   const result = useMemo(() => calculateQuote(input, travelFeeRange), [input, travelFeeRange])
@@ -596,14 +596,14 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
               {variant === "B" && slotsLeft !== null && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
                   <p className="font-semibold">
-                    Only {slotsLeft} prime {slotsNoun} left for this date and time. Pay deposit to lock.
+                    Only {slotsLeft} prime {slotsNoun} left for this date and time. Lock your date now.
                   </p>
                   <Button
                     onClick={onDepositLockClick}
                     disabled={depositLockDisabled}
                     className="mt-3 h-9 rounded-full bg-[hsl(24_79%_55%)] px-4 text-white hover:bg-[hsl(24_79%_48%)]"
                   >
-                    Pay Deposit to Lock
+                    Lock Your Date for ${depositAmount.toFixed(2)}
                   </Button>
                   {depositLockDisabled && (
                     <p className="mt-2 text-xs text-red-700">Fill customer name, date, time, and core quote details first.</p>

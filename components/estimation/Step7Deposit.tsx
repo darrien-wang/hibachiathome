@@ -102,7 +102,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
           </li>
           <li className="flex items-start">
             <span className="text-green-600 mr-2">✅</span>
-            <span>Fully refundable up to 48 hours before the event</span>
+            <span>Fully refundable up to 72 hours before the event</span>
           </li>
           <li className="flex items-start">
             <span className="text-green-600 mr-2">✅</span>
@@ -144,7 +144,7 @@ const Step7Deposit: React.FC<Step7DepositProps> = ({
               }}
               className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg px-6 py-3 text-base font-medium mb-3 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              Pay ${paymentConfig.depositAmount.toFixed(2)} Deposit
+              Lock Your Date for ${paymentConfig.depositAmount.toFixed(2)}
             </Button>
             <div className="text-xs text-gray-500 text-center">💳 Powered by Stripe • Secure & Encrypted</div>
           </div>

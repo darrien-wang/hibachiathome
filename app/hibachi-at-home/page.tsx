@@ -30,15 +30,15 @@ const faqs = [
   },
   {
     question: "How do I pay?",
-    answer: "Zelle, Venmo, or cash. $100 deposit to lock your date, remaining balance due day of service.",
+    answer: "Zelle, Venmo, or cash. Just a $19.90 deposit locks your date, and the remaining balance is due on the day of service.",
   },
   {
     question: "What if it rains?",
-    answer: "You provide cover (tent/canopy). 48-hour notice required for weather cancellations with full refund.",
+    answer: "If it rains, we can provide a complimentary tent for your setup. If you still need to cancel for weather, give us at least 72 hours notice to receive a full deposit refund.",
   },
   {
     question: "Can I cancel or reschedule?",
-    answer: "Yes! Cancel up to 48 hours before for full refund. Reschedule anytime with 24-hour notice.",
+    answer: "Yes. Cancel or reschedule at least 72 hours before your event for a full deposit refund. Changes inside 72 hours may make the deposit non-refundable.",
   },
 ]
 

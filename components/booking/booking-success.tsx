@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { format } from "date-fns"
+import { paymentConfig } from "@/config/ui"
 
 type BookingSuccessProps = {
   orderData: {
@@ -25,7 +26,7 @@ export default function BookingSuccess({ orderData, totalGuests }: BookingSucces
   const [leadPhone, setLeadPhone] = useState("")
   const [leadSubmitted, setLeadSubmitted] = useState(false)
 
-  const depositAmount = 100.0
+  const depositAmount = paymentConfig.depositAmount
   const formattedDate = orderData?.event_date ? format(new Date(orderData.event_date), "MMMM d, yyyy") : "May 22, 2025"
 
   const handleLeadSubmit = (e: React.FormEvent) => {
@@ -122,7 +123,7 @@ export default function BookingSuccess({ orderData, totalGuests }: BookingSucces
             onClick={() => (window.location.href = `/deposit?order=${orderData?.id || "demo"}`)}
           >
             <CreditCard className="mr-2 h-5 w-5" />
-            Confirm and Pay ${depositAmount.toFixed(2)} Deposit
+            Lock Your Date for ${depositAmount.toFixed(2)}
           </Button>
 
           <p className="text-sm text-gray-500">💳 Powered by Stripe • Secure & Encrypted</p>
@@ -132,8 +133,8 @@ export default function BookingSuccess({ orderData, totalGuests }: BookingSucces
         <div className="text-xs text-gray-500 text-center max-w-md mx-auto mb-8">
           <p className="mb-1">By paying the deposit, you are confirming your request for this event.</p>
           <p>
-            If for any reason you need to cancel, you will receive a full refund if cancelled at least 72 hours before
-            your event.
+            If you need to cancel or reschedule, you will receive a full refund if you notify us at least 72 hours
+            before your event. Changes inside 72 hours may make the deposit non-refundable.
             <a href="/faq" className="text-[#E4572E] hover:underline ml-1">
               Learn more
             </a>

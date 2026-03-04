@@ -1,0 +1,22 @@
+config/ui.ts:3:  depositAmount: 19.9,
+app/hibachi-at-home/page.tsx:33:    answer: "Zelle, Venmo, or cash. Just a $19.90 deposit locks your date, and the remaining balance is due on the day of service.",
+app/hibachi-at-home/page.tsx:37:    answer: "You provide cover (tent/canopy). Give us at least 72 hours notice for weather cancellations to receive a full deposit refund.",
+app/hibachi-at-home/page.tsx:41:    answer: "Yes. Cancel or reschedule at least 72 hours before your event for a full deposit refund. Changes inside 72 hours may make the deposit non-refundable.",
+app/book/page.tsx:153:              <p>Cancel or reschedule with at least 72 hours notice to receive a full deposit refund.</p>
+app/deposit/page.tsx:290:            <span className="font-bold">72-Hour Free Cancellation Policy:</span> Cancel at least 72 hours before your
+app/deposit/page.tsx:415:                  <span className="font-semibold">Cancellation Policy:</span> Notify us at least 72 hours before your
+app/deposit/page.tsx:417:                  inside 72 hours may make the deposit non-refundable.
+app/deposit/page.tsx:422:                  the chef. Customer is responsible for canceling due to inclement weather at least 72 hours before
+components/booking/terms-modal.tsx:43:              Please provide at least 72 hours notice for cancellations or rescheduled parties to receive a full
+components/booking/terms-modal.tsx:44:              deposit refund. Changes made inside 72 hours may make the deposit non-refundable. If it rains, customer
+components/booking/terms-modal.tsx:46:              under tents and patios. Customer is responsible for canceling due to inclement weather at least 72 hours
+app/faq/FAQClientPage.tsx:68:If using credit card, payment must be settled at least 72 hours before your event.`,
+app/faq/FAQClientPage.tsx:112:      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules to receive a full deposit refund\n- Changes made inside 72 hours may make the deposit non-refundable\n- Weather contingency: You're responsible for providing cover (e.g., tent, canopy) for the chef\n- If you need to cancel due to weather, please let us know at least 72 hours beforehand",
+app/faq/FAQClientPage.tsx:121:        "If weather is uncertain, please provide covered outdoor space (tent/canopy). For weather-related cancellations, notify us at least 72 hours in advance.",
+app/faq/FAQClientPage.tsx:126:        "You can cancel or reschedule with at least 72 hours notice for a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable because staff and ingredients are already allocated.",
+components/booking/booking-success.tsx:106:              <span>Fully refundable up to 72 hours before the event</span>
+components/booking/booking-success.tsx:136:            If you need to cancel or reschedule, you will receive a full refund if you notify us at least 72 hours
+components/booking/booking-success.tsx:137:            before your event. Changes inside 72 hours may make the deposit non-refundable.
+components/estimation/Step7Deposit.tsx:105:            <span>Fully refundable up to 72 hours before the event</span>
+app/page.tsx:601:                    "Our cancellation policy includes the following terms: 72 hours' notice required for cancellations or reschedules to receive a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable. Weather contingency: You're responsible for providing cover (e.g., tent, canopy) for the chef. If you need to cancel due to weather, please let us know at least 72 hours beforehand.",
+app/after-deposit/page.tsx:163:                <li>Remember our 72-hour free cancellation policy if your plans change</li>

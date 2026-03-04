@@ -1,7 +1,7 @@
 // Payment configuration
 export const paymentConfig = {
-  depositAmount: 100,
-  stripePaymentLink: "https://book.stripe.com/fZecPIeSL0e658I7ss", // Replace with actual production link
+  depositAmount: 19.9,
+  stripePaymentLink: "https://buy.stripe.com/7sY7sN6E300z4Pq4ug1B602", // Replace with actual production link
 }
 
 // Payment methods configuration
