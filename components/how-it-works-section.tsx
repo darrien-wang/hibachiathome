@@ -146,7 +146,7 @@ export default function HowItWorksSection() {
                       size="sm"
                       className="rounded-full border-amber-500 text-amber-600 hover:bg-amber-50 flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4"
                     >
-                      <Link href="/estimation">
+                      <Link href="/quoteA">
                         <CreditCard className="h-3 w-3 md:h-4 md:w-4" />
                         <span>Reserve Now</span>
                       </Link>
@@ -273,7 +273,7 @@ export default function HowItWorksSection() {
                     variant="outline"
                     className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 w-full flex items-center justify-center gap-2"
                   >
-                    <Link href="/estimation">
+                    <Link href="/quoteA">
                       <CreditCard className="h-4 w-4" />
                       <span>Reserve Now</span>
                     </Link>

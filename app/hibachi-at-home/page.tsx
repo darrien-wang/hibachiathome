@@ -213,7 +213,7 @@ export default function HibachiAtHomePage() {
 
   const handleOnlineBooking = () => {
     trackEvent("lead_start")
-    router.push("/estimation?source=booking")
+    router.push("/quoteA?source=booking")
   }
 
   const handleBookNow = (packageType: string) => {

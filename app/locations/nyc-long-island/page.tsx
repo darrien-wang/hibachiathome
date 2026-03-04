@@ -99,7 +99,7 @@ export default function NycLongIslandHibachiPage() {
               size="lg"
               className="bg-primary hover:bg-primary/90 text-white py-3 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all"
             >
-              <Link href="/estimation">Get a Free Estimate</Link>
+              <Link href="/quoteA">Get a Free Estimate</Link>
             </Button>
           </div>
         </section>
@@ -193,7 +193,7 @@ export default function NycLongIslandHibachiPage() {
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-full"
                   >
-                    <Link href="/estimation">Book Online Now</Link>
+                    <Link href="/quoteA">Book Online Now</Link>
                   </Button>
                 </div>
               </AnimateOnScroll>
@@ -292,7 +292,7 @@ export default function NycLongIslandHibachiPage() {
               size="lg"
               className="bg-white text-primary hover:bg-gray-100 py-4 px-10 text-xl rounded-full shadow-lg hover:shadow-xl transition-all"
             >
-              <Link href="/estimation">Get Your Free Estimate Today!</Link>
+              <Link href="/quoteA">Get Your Free Estimate Today!</Link>
             </Button>
           </div>
         </section>
