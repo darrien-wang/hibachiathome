@@ -1,0 +1,45 @@
+[scan] webhook route exists
+ok: app/api/stripe/webhook/route.ts
+
+[scan] webhook signature verification + secret checks
+185:  const stripeSignature = request.headers.get("stripe-signature")
+187:    return NextResponse.json({ received: false, error: "Missing stripe-signature header." }, { status: 400 })
+190:  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim()
+193:      { received: false, error: "Missing STRIPE_WEBHOOK_SECRET environment variable." },
+209:    event = stripe.webhooks.constructEvent(payload, stripeSignature, webhookSecret)
+
+[scan] required events handled
+126:    console.warn("[stripe/webhook] checkout.session.completed did not match any booking.", {
+228:  switch (event.type) {
+229:    case "checkout.session.completed": {
+247:    case "charge.refunded": {
+
+[scan] idempotent event ledger
+migrations/create-stripe-webhook-events-table.sql:2:CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+migrations/create-stripe-webhook-events-table.sql:3:  event_id VARCHAR(255) PRIMARY KEY,
+migrations/create-stripe-webhook-events-table.sql:10:CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_type_received_at
+migrations/create-stripe-webhook-events-table.sql:11:  ON stripe_webhook_events(event_type, received_at DESC);
+app/api/stripe/webhook/route.ts:42:async function registerEventForIdempotency(
+app/api/stripe/webhook/route.ts:45:): Promise<"accepted" | "duplicate" | "error"> {
+app/api/stripe/webhook/route.ts:46:  const { error } = await supabase.from("stripe_webhook_events").insert({
+app/api/stripe/webhook/route.ts:47:    event_id: event.id,
+app/api/stripe/webhook/route.ts:58:  if ((error as { code?: string }).code === "23505") {
+app/api/stripe/webhook/route.ts:59:    return "duplicate"
+app/api/stripe/webhook/route.ts:220:  const idempotencyResult = await registerEventForIdempotency(supabase, event)
+app/api/stripe/webhook/route.ts:221:  if (idempotencyResult === "duplicate") {
+app/api/stripe/webhook/route.ts:222:    return NextResponse.json({ received: true, duplicate: true, eventType: event.type }, { status: 200 })
+
+[scan] booking canonical state updates from webhook
+75:    deposit_status: "paid",
+76:    status: "confirmed",
+77:    stripe_session_id: session.id,
+82:    bookingUpdate.deposit_amount = depositAmount
+86:    bookingUpdate.payment_intent_id = paymentIntentId
+94:    .eq("stripe_session_id", session.id)
+99:    console.error("[stripe/webhook] Failed to update booking by stripe_session_id:", bySessionError)
+100:    return { ok: false as const, error: "Failed to update booking by stripe_session_id." }
+155:    deposit_status: "refunded",
+156:    status: "pending",
+162:    bookingUpdate.deposit_amount = refundedAmount
+168:    .eq("payment_intent_id", paymentIntentId)
+173:    console.error("[stripe/webhook] Failed to mark booking refunded by payment_intent_id:", error)

@@ -1,0 +1,21 @@
+[codex:session] pwd: /mnt/d/desktop/realhibachi/realhibachi-marketing
+[codex:session] Checking required files...
+  - OK: harness/prompts/tracking-improvement-spec.xml
+  - OK: harness/feature_list.json
+  - OK: harness/codex-progress.md
+  - OK: harness/docs/tracking.md
+[codex:session] feature_list status: 53 passing / 4 remaining
+[codex:session] Branch: main
+[codex:session] Working tree: clean
+[codex:session] WARN: NEXT_PUBLIC_GTM_ID is not set in this shell
+[codex:session] Recent commits:
+281ff58 feat(deposit): persist canonical booking deposit state
+3f84223 feat(deposit): create Stripe Checkout sessions via /api/deposit/start
+bc7697f docs(workflow): require one commit per completed feature
+c16483e chore(harness): update feature status and verification evidence for cleanup and deposit work
+a30223b feat(deposit): normalize pay entry to /deposit/pay and centralize deposit rule usage
+33da63f test(e2e): rebaseline estimation smoke cases to quote and deposit-pay flows
+c248305 feat(cleanup): retire estimation flow and remove legacy step components
+1abfc98 chore: sync workspace updates and verification artifacts
+9121d02 feat: Add verification logs and exit codes for various home page and layout changes.
+3c2f2a5 feat(quote): add AB routes, weather card API, and deposit-first booking CTA

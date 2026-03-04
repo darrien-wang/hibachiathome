@@ -656,7 +656,7 @@
       "Implement idempotent event handling so duplicate webhook deliveries do not duplicate state transitions.",
       "Optionally handle refund/dispute events to set refunded/flagged states for reporting."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-DEPOSIT-PRIMARY-005",

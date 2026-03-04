@@ -1,0 +1,26 @@
+[2m[WebServer] [22m(node:41985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:41998) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:42017) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:42119) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42119) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22mMissing Supabase environment variables
+[2m[WebServer] [22mError in getBookingDetails: TypeError: Cannot read properties of null (reading 'from')
+[2m[WebServer] [22m    at getBookingDetails (app/actions/booking.ts:383:43)
+[2m[WebServer] [22m[0m [90m 381 |[39m     })()[0m
+[2m[WebServer] [22m[0m [90m 382 |[39m[0m
+[2m[WebServer] [22m[0m[31m[1m>[22m[39m[90m 383 |[39m     [36mconst[39m { data[33m,[39m error } [33m=[39m [36mawait[39m supabase[33m.[39m[36mfrom[39m([32m"bookings"[39m)[33m.[39mselect([32m"*"[39m)[33m.[39meq([32m"id"[39m[33m,[39m bookingId)[33m.[39msingle()[0m
+[2m[WebServer] [22m[0m [90m     |[39m                                           [31m[1m^[22m[39m[0m
+[2m[WebServer] [22m[0m [90m 384 |[39m[0m
+[2m[WebServer] [22m[0m [90m 385 |[39m     [36mif[39m (error) {[0m
+[2m[WebServer] [22m[0m [90m 386 |[39m       console[33m.[39merror([32m"Error fetching booking details:"[39m[33m,[39m error)[0m
+  ✓  1 [chromium] › e2e/smoke.spec.ts:201:5 › TRK-007: deposit CTA click emits conversion-intent event (9.0s)
+
+  1 passed (2.2m)

@@ -2199,3 +2199,55 @@
 
 - Next highest-priority action:
   - Start `CRO-DEPOSIT-PRIMARY-004`: add Stripe webhook verification to transition canonical deposit state to `paid` from trusted payment events.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-004 complete: verified Stripe webhook state transitions)
+
+- Completed:
+  - Ran session bootstrap for this feature scope:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Added Stripe webhook endpoint with signature verification:
+    - `app/api/stripe/webhook/route.ts`
+    - validates `stripe-signature` header
+    - verifies payload using `STRIPE_WEBHOOK_SECRET`
+    - uses Stripe SDK webhook construct/verify path before any state mutation
+  - Implemented trusted payment-success state transition:
+    - handles `checkout.session.completed`
+    - updates canonical booking fields (`deposit_status=paid`, `stripe_session_id`, `payment_intent_id`, `deposit_amount`) and keeps legacy compatibility fields (`deposit`, `status`)
+    - matching strategy:
+      - primary: `stripe_session_id`
+      - fallback: UUID-like `metadata.booking_id`
+  - Added idempotent webhook event handling ledger:
+    - migration: `migrations/create-stripe-webhook-events-table.sql`
+    - new table `stripe_webhook_events` keyed by `event_id`
+    - duplicate events (`23505`) return 200 with `duplicate: true` and skip reprocessing
+  - Added optional refund event handling:
+    - handles `charge.refunded`
+    - updates booking canonical status to `deposit_status=refunded` by `payment_intent_id`
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-004` changed from `passes: false -> true`.
+
+- Verified:
+  - Core baseline recheck:
+    - first `TRK-001` run timed out on web server startup in this environment
+    - retry `TRK-001` completed successfully
+  - `pnpm exec playwright test --grep "TRK-007" --workers=1 --reporter=list` ✅
+  - `pnpm lint` ✅ (warnings only; no blocking errors)
+  - Webhook contract scan ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/session-start.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/session-start.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/core-baseline-trk-001.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/core-baseline-trk-001.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/core-baseline-trk-001-retry.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/core-baseline-trk-001-retry.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/reverify-trk-007.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/reverify-trk-007.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/lint.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/lint.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/webhook-contract-scan.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-004/webhook-contract-scan.exit`
+
+- Next highest-priority action:
+  - Start `CRO-DEPOSIT-PRIMARY-005`: implement success/cancel verification API and trusted paid-state response contract for conversion firing.
