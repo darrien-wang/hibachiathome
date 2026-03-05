@@ -14,7 +14,17 @@ export default async function DepositSuccessPage({ searchParams }: DepositSucces
   const resolvedSearchParams = (await searchParams) ?? {}
   const sessionId = firstParam(resolvedSearchParams.session_id)
   const bookingId = firstParam(resolvedSearchParams.booking_id)
+  const email = firstParam(resolvedSearchParams.email)
+  const phone = firstParam(resolvedSearchParams.phone)
   const source = firstParam(resolvedSearchParams.source)
 
-  return <DepositSuccessClient sessionId={sessionId} initialBookingId={bookingId} initialSource={source} />
+  return (
+    <DepositSuccessClient
+      sessionId={sessionId}
+      initialBookingId={bookingId}
+      initialEmail={email}
+      initialPhone={phone}
+      initialSource={source}
+    />
+  )
 }

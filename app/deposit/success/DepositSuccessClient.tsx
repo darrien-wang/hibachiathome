@@ -19,12 +19,16 @@ type DepositVerifyResponse = {
   currency?: string
   transaction_id?: string
   booking_id?: string
+  email?: string
+  phone?: string
   error?: string
 }
 
 type DepositSuccessClientProps = {
   sessionId: string | null
   initialBookingId: string | null
+  initialEmail: string | null
+  initialPhone: string | null
   initialSource: string | null
 }
 
@@ -56,14 +60,80 @@ function buildBackToDepositHref(params: { bookingId: string | null; source: stri
   return `/deposit/pay?${query.toString()}`
 }
 
-export default function DepositSuccessClient({ sessionId, initialBookingId, initialSource }: DepositSuccessClientProps) {
+function normalizeText(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function buildInvoiceSelfServiceHref(params: {
+  baseUrl: string | undefined
+  bookingId: string | null
+  email: string | null
+  phone: string | null
+  source: string | null
+}): string | null {
+  const baseUrl = normalizeText(params.baseUrl)
+  const bookingId = normalizeText(params.bookingId)
+  const email = normalizeText(params.email)
+  const phone = normalizeText(params.phone)
+  const source = normalizeText(params.source)
+
+  if (!baseUrl || (!bookingId && !email && !phone)) {
+    return null
+  }
+
+  try {
+    const url = new URL(baseUrl)
+    if (bookingId) {
+      url.searchParams.set("booking_id", bookingId)
+    }
+    if (email) {
+      url.searchParams.set("email", email)
+    }
+    if (phone) {
+      url.searchParams.set("phone", phone)
+    }
+    if (source) {
+      url.searchParams.set("source", source)
+    }
+    url.searchParams.set("surface", "deposit_success")
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+export default function DepositSuccessClient({
+  sessionId,
+  initialBookingId,
+  initialEmail,
+  initialPhone,
+  initialSource,
+}: DepositSuccessClientProps) {
   const [state, setState] = useState<VerifyState>({ stage: "idle" })
 
   const canVerify = useMemo(() => typeof sessionId === "string" && sessionId.length > 0, [sessionId])
   const resolvedBookingId = state.stage === "resolved" ? state.payload.booking_id ?? null : null
+  const resolvedEmail = state.stage === "resolved" ? state.payload.email ?? null : null
+  const resolvedPhone = state.stage === "resolved" ? state.payload.phone ?? null : null
   const backToDepositHref = useMemo(
     () => buildBackToDepositHref({ bookingId: resolvedBookingId ?? initialBookingId, source: initialSource }),
     [initialBookingId, initialSource, resolvedBookingId],
+  )
+  const invoiceSelfServiceHref = useMemo(
+    () =>
+      buildInvoiceSelfServiceHref({
+        baseUrl: process.env.NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL,
+        bookingId: resolvedBookingId ?? initialBookingId,
+        email: resolvedEmail ?? initialEmail,
+        phone: resolvedPhone ?? initialPhone,
+        source: initialSource,
+      }),
+    [initialBookingId, initialEmail, initialPhone, initialSource, resolvedBookingId, resolvedEmail, resolvedPhone],
   )
 
   const verify = useCallback(async () => {
@@ -182,6 +252,11 @@ export default function DepositSuccessClient({ sessionId, initialBookingId, init
               </p>
             )}
           </div>
+          {invoiceSelfServiceHref && (
+            <p className="text-sm text-gray-700">
+              Need to update invoice details or contact information? Use the self-service invoice link below.
+            </p>
+          )}
         </div>
       )
     }
@@ -223,6 +298,13 @@ export default function DepositSuccessClient({ sessionId, initialBookingId, init
               <Button asChild>
                 <Link href={backToDepositHref}>Back to Deposit</Link>
               </Button>
+              {invoiceSelfServiceHref && (
+                <Button asChild variant="outline">
+                  <a href={invoiceSelfServiceHref} target="_blank" rel="noreferrer">
+                    Update Invoice Details
+                  </a>
+                </Button>
+              )}
               <Button asChild variant="outline">
                 <Link href="/deposit/cancel">Payment Help</Link>
               </Button>

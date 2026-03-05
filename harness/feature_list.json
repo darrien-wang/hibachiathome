@@ -788,5 +788,44 @@
       "Capture verification artifacts proving event payload mapping, signature headers, and dedupe-safe event_id behavior."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-INVOICE-SELF-SERVICE-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Deposit success flow builds self-service invoice deep-link with booking_id/email/phone from canonical verification state.",
+    "steps": [
+      "Complete deposit checkout and land on /deposit/success with a valid session_id.",
+      "Verify /api/deposit/verify response includes booking_id plus customer email/phone from canonical booking data.",
+      "Verify the success page self-service CTA URL contains booking_id/email/phone query parameters when available.",
+      "Verify URL encoding is preserved for special characters in email and phone values."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-INVOICE-SELF-SERVICE-002",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Deposit success page shows self-service invoice CTA only when deep-link configuration and customer identifiers are available.",
+    "steps": [
+      "Load /deposit/success with NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL configured and verified booking contact data present.",
+      "Confirm Update Invoice Details CTA is rendered and opens the configured portal in a new tab.",
+      "Repeat with missing portal env or missing booking/email/phone context.",
+      "Confirm CTA is hidden while standard payment-help and contact actions remain available."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-NOTIFY-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "checkout.session.completed webhook sends customer email/SMS with booking ID and self-service invoice link when optional providers are configured.",
+    "steps": [
+      "Trigger a checkout.session.completed webhook fixture that resolves to a booking with email and phone.",
+      "Configure INVOICE_SELF_SERVICE_BASE_URL plus RESEND_API_KEY and Twilio credentials.",
+      "Verify webhook attempts both channels and payload copy includes booking ID and the self-service link.",
+      "Repeat with missing provider/env values and verify webhook remains 200 while notification status reports skipped reasons."
+    ],
+    "passes": false
   }
 ]

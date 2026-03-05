@@ -14,6 +14,8 @@ type VerifyResponse = {
   currency?: string
   transaction_id?: string
   booking_id?: string
+  email?: string
+  phone?: string
   error?: string
 }
 
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("bookings")
-    .select("id, deposit_status, deposit_amount, payment_intent_id, stripe_session_id")
+    .select("id, email, phone, deposit_status, deposit_amount, payment_intent_id, stripe_session_id")
     .eq("stripe_session_id", sessionId)
     .limit(1)
     .maybeSingle()
@@ -137,5 +139,7 @@ export async function GET(request: NextRequest) {
     currency: "USD",
     transaction_id: paid ? transactionId : undefined,
     booking_id: typeof data.id === "string" ? data.id : undefined,
+    email: typeof data.email === "string" ? data.email : undefined,
+    phone: typeof data.phone === "string" ? data.phone : undefined,
   })
 }
