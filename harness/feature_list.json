@@ -748,5 +748,45 @@
       "Verify removed legacy routes now return 404 to prevent accidental traffic from old flows."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-CRM-INTEGRATION-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Forward verified Stripe deposit-paid webhook events from website to CRM integration API with signed contract payload.",
+    "steps": [
+      "Add CRM integration client in website backend with HMAC SHA256 signing headers (X-Partner-Id, X-Timestamp, X-Signature, X-Request-Id).",
+      "Map canonical booking + Stripe payment data into CRM event envelope for event_type=order.deposit_paid under /api/integrations/v1/events.",
+      "Trigger CRM event forwarding only after checkout.session.completed is verified and booking canonical deposit state is updated to paid.",
+      "Add retry behavior for retryable transport/status failures (timeouts, 408, 429, 5xx) and structured logging for skipped/failed delivery.",
+      "Document required CRM integration environment variables in .env.example."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-CRM-INTEGRATION-002",
+    "priority": "P1",
+    "category": "integration",
+    "description": "Add durable CRM integration delivery tracking so transient CRM outages do not lose website payment events.",
+    "steps": [
+      "Create CRM outbox persistence table for website-originated integration events with payload hash and delivery status.",
+      "Write outbox record before delivery attempt and mark sent/failed with response code and error details after each attempt.",
+      "Implement replay worker or endpoint for pending/failed outbox events with idempotent event_id reuse.",
+      "Expose operational logging/metrics fields (attempt_count, last_attempt_at, last_error) for support and reconciliation."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-CRM-INTEGRATION-003",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Add end-to-end verification coverage for CRM forwarding contract and failure modes from website webhook flow.",
+    "steps": [
+      "Add tests for successful checkout.session.completed forwarding signed order.deposit_paid payload with required fields.",
+      "Add tests for missing CRM config ensuring webhook stays successful while forward is skipped with explicit reason.",
+      "Add tests for retryable CRM responses (429/5xx) verifying retries are attempted and final result is logged.",
+      "Capture verification artifacts proving event payload mapping, signature headers, and dedupe-safe event_id behavior."
+    ],
+    "passes": false
   }
 ]

@@ -1,0 +1,18 @@
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --port 3012
+
+   ▲ Next.js 15.2.8
+   - Local:        http://localhost:3012
+   - Network:      http://10.255.255.254:3012
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 66s
+ ○ Compiling / ...
+ ✓ Compiled / in 55.2s (1034 modules)
+ GET / 200 in 60921ms
+ ○ Compiling /deposit/pay ...
+ ✓ Compiled /deposit/pay in 11s (1181 modules)
+ GET /deposit/pay?id=BASELINE-CRM001 200 in 8544ms
+ ELIFECYCLE  Command failed.

@@ -1,0 +1,196 @@
+{
+  "pass": true,
+  "result": {
+    "attempted": true,
+    "delivered": true,
+    "status": 200,
+    "requestId": "req_mkt_e687d519-0c05-49fe-9f11-680e92cd8de8",
+    "body": {
+      "ok": true,
+      "code": "EVENT_ACCEPTED"
+    }
+  },
+  "request_count": 2,
+  "assertions": [
+    {
+      "name": "delivery_success",
+      "pass": true
+    },
+    {
+      "name": "retry_happened",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_partner_id",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_signature_valid",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_path",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_event_type",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_event_source",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_order_id",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_payment_status",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_payment_cents",
+      "pass": true
+    },
+    {
+      "name": "attempt_1_payment_currency",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_partner_id",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_signature_valid",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_path",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_event_type",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_event_source",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_order_id",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_payment_status",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_payment_cents",
+      "pass": true
+    },
+    {
+      "name": "attempt_2_payment_currency",
+      "pass": true
+    }
+  ],
+  "requests": [
+    {
+      "method": "POST",
+      "url": "/api/integrations/v1/events",
+      "headers": {
+        "x-partner-id": "official_website",
+        "x-timestamp": "1772683597",
+        "x-signature": "v1=df98cde9bb1197ee793d454e3f2c1d606dbfaefaa94a726e675fe26a5fc5e53a",
+        "x-request-id": "req_mkt_e687d519-0c05-49fe-9f11-680e92cd8de8"
+      },
+      "payload": {
+        "event_id": "evt_stripe_evt_test_forward_001",
+        "event_type": "order.deposit_paid",
+        "occurred_at": "2026-03-05T05:07:00.000Z",
+        "source": "official_website",
+        "order": {
+          "external_order_id": "b5ef857d-046f-4dd1-a2d5-95ddf7ed4664",
+          "order_number": "b5ef857d-046f-4dd1-a2d5-95ddf7ed4664",
+          "customer_name": "Alice",
+          "customer_phone": "6260000000",
+          "customer_email": "alice@example.com",
+          "event_start": "2026-03-21T01:00:00.000Z",
+          "event_timezone": "America/Los_Angeles",
+          "event_address": "123 Main St, Los Angeles, CA",
+          "guest_adult_count": 10,
+          "guest_child_count": 2,
+          "invoice_details": {
+            "total_cost": 1234,
+            "travel_fee": 50
+          },
+          "notes": "No onion"
+        },
+        "payment": {
+          "external_payment_id": "pi_test_forward_001",
+          "type": "deposit",
+          "status": "paid",
+          "amount_cents": 12345,
+          "currency": "USD",
+          "provider": "stripe",
+          "paid_at": "2026-03-05T05:07:00.000Z",
+          "transaction_ref": "pi_test_forward_001"
+        },
+        "metadata": {
+          "stripe_event_id": "evt_test_forward_001",
+          "checkout_session_id": "cs_test_forward_001",
+          "livemode": false,
+          "event_category": "deposit_primary"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/integrations/v1/events",
+      "headers": {
+        "x-partner-id": "official_website",
+        "x-timestamp": "1772683598",
+        "x-signature": "v1=921ade09c15a1ef0955c5999ec6556b7d42b22dbb7e54b7c6f4622521ab439bc",
+        "x-request-id": "req_mkt_e687d519-0c05-49fe-9f11-680e92cd8de8"
+      },
+      "payload": {
+        "event_id": "evt_stripe_evt_test_forward_001",
+        "event_type": "order.deposit_paid",
+        "occurred_at": "2026-03-05T05:07:00.000Z",
+        "source": "official_website",
+        "order": {
+          "external_order_id": "b5ef857d-046f-4dd1-a2d5-95ddf7ed4664",
+          "order_number": "b5ef857d-046f-4dd1-a2d5-95ddf7ed4664",
+          "customer_name": "Alice",
+          "customer_phone": "6260000000",
+          "customer_email": "alice@example.com",
+          "event_start": "2026-03-21T01:00:00.000Z",
+          "event_timezone": "America/Los_Angeles",
+          "event_address": "123 Main St, Los Angeles, CA",
+          "guest_adult_count": 10,
+          "guest_child_count": 2,
+          "invoice_details": {
+            "total_cost": 1234,
+            "travel_fee": 50
+          },
+          "notes": "No onion"
+        },
+        "payment": {
+          "external_payment_id": "pi_test_forward_001",
+          "type": "deposit",
+          "status": "paid",
+          "amount_cents": 12345,
+          "currency": "USD",
+          "provider": "stripe",
+          "paid_at": "2026-03-05T05:07:00.000Z",
+          "transaction_ref": "pi_test_forward_001"
+        },
+        "metadata": {
+          "stripe_event_id": "evt_test_forward_001",
+          "checkout_session_id": "cs_test_forward_001",
+          "livemode": false,
+          "event_category": "deposit_primary"
+        }
+      }
+    }
+  ]
+}

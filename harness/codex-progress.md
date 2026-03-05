@@ -2449,3 +2449,53 @@
 
 - Next highest-priority action:
   - No remaining failing feature items in `feature_list.json`; proceed with broader regression sweep or new CRO backlog items.
+
+## 2026-03-04 (CRO-CRM-INTEGRATION-001 complete: website forwards signed deposit_paid events to CRM integration API)
+
+- Completed:
+  - Added CRM integration forwarding client for website backend:
+    - `lib/crm-integration.ts`
+    - signs payload with HMAC SHA256 using headers:
+      - `X-Partner-Id`
+      - `X-Timestamp`
+      - `X-Signature` (`v1=<hex_hmac_sha256>`)
+      - `X-Request-Id`
+    - target endpoint: `POST /api/integrations/v1/events`
+    - payload mapping implemented for `event_type=order.deposit_paid`
+    - required contract fields mapped from canonical booking + Stripe session/payment data
+    - retry behavior added for retryable failures (`408`, `429`, `5xx`, network timeout)
+  - Wired forwarding into verified Stripe webhook flow:
+    - `app/api/stripe/webhook/route.ts`
+    - after `checkout.session.completed` canonical booking update succeeds, load booking snapshot and forward to CRM
+    - forwarding failures are logged with request/status/body and do not break Stripe webhook acknowledgement path
+  - Added CRM integration configuration placeholders:
+    - `.env.example`
+    - `CRM_INTEGRATION_BASE_URL`
+    - `CRM_INTEGRATION_SHARED_SECRET`
+    - `CRM_INTEGRATION_PARTNER_ID`
+    - `CRM_INTEGRATION_SOURCE`
+
+- Feature status transition:
+  - `CRO-CRM-INTEGRATION-001` changed from `passes: false -> true`.
+
+- Verified:
+  - Core baseline route check before feature completion:
+    - `/deposit/pay?id=BASELINE-CRM001` returned `200` ✅
+  - Contract forwarding verification:
+    - signed request headers are present and signature verifies against `timestamp.raw_body` ✅
+    - first retryable failure (`500`) is retried and second attempt succeeds (`200`) ✅
+    - payload contains required `order.deposit_paid` fields (`event_type`, `source`, `order.external_order_id`, `payment.amount_cents`, `payment.currency`, `payment.status`) ✅
+  - Missing CRM env config path returns explicit skip result (`not_configured`) ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-crm-integration-001/core-baseline-server-ready.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/core-baseline-dev.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/core-baseline-deposit-pay.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/core-baseline-deposit-pay.exit`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/core-baseline-deposit-pay.html`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/crm-forwarding-contract-check.json`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/crm-forwarding-contract-check.exit`
+  - `harness/verification/2026-03-04-cro-crm-integration-001/crm-forwarding-skip-check.json`
+
+- Next highest-priority action:
+  - Start `CRO-CRM-INTEGRATION-002`: add durable outbox delivery tracking for CRM forwarding failures.

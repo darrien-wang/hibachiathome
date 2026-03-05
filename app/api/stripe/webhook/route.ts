@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
+import { sendDepositPaidEventToCrm } from "@/lib/crm-integration"
 
 export const runtime = "nodejs"
 
@@ -37,6 +38,50 @@ function amountFromMinorUnits(amountMinor: number | null | undefined): number | 
     return undefined
   }
   return Number((amountMinor / 100).toFixed(2))
+}
+
+type BookingCrmSnapshot = {
+  id: string
+  full_name: string | null
+  phone: string | null
+  email: string | null
+  event_date: string | null
+  event_time: string | null
+  address: string | null
+  guest_adults: number | null
+  guest_kids: number | null
+  total_cost: number | null
+  travel_fee: number | null
+  special_requests: string | null
+  deposit_amount: number | null
+}
+
+async function loadBookingCrmSnapshot(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  bookingId: string | null,
+): Promise<BookingCrmSnapshot | null> {
+  if (!bookingId) {
+    return null
+  }
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(
+      "id, full_name, phone, email, event_date, event_time, address, guest_adults, guest_kids, total_cost, travel_fee, special_requests, deposit_amount",
+    )
+    .eq("id", bookingId)
+    .maybeSingle()
+
+  if (error) {
+    console.error("[stripe/webhook] Failed to load booking snapshot for CRM sync:", error)
+    return null
+  }
+
+  if (!data) {
+    return null
+  }
+
+  return data as BookingCrmSnapshot
 }
 
 async function registerEventForIdempotency(
@@ -129,11 +174,14 @@ async function handleCheckoutSessionCompleted(
     })
   }
 
+  const bookingSnapshot = await loadBookingCrmSnapshot(supabase, updatedBookingId)
+
   return {
     ok: true as const,
     updatedBookingId,
     paymentIntentId,
     depositAmount,
+    bookingSnapshot,
   }
 }
 
@@ -227,9 +275,35 @@ export async function POST(request: NextRequest) {
 
   switch (event.type) {
     case "checkout.session.completed": {
-      const result = await handleCheckoutSessionCompleted(supabase, event.data.object as Stripe.Checkout.Session)
+      const session = event.data.object as Stripe.Checkout.Session
+      const result = await handleCheckoutSessionCompleted(supabase, session)
       if (!result.ok) {
         return NextResponse.json({ received: false, error: result.error }, { status: 500 })
+      }
+
+      const crmSyncResult = await sendDepositPaidEventToCrm({
+        stripeEventId: event.id,
+        session,
+        booking: result.bookingSnapshot,
+        paymentIntentId: result.paymentIntentId,
+        depositAmount: result.depositAmount,
+      })
+
+      if (crmSyncResult.attempted && !crmSyncResult.delivered) {
+        console.error("[stripe/webhook] Failed to forward deposit_paid event to CRM:", {
+          eventId: event.id,
+          requestId: crmSyncResult.requestId,
+          status: crmSyncResult.status,
+          error: crmSyncResult.error,
+          body: crmSyncResult.body,
+        })
+      }
+      if (!crmSyncResult.attempted) {
+        console.warn("[stripe/webhook] CRM forward was skipped:", {
+          eventId: event.id,
+          reason: crmSyncResult.reason,
+          detail: crmSyncResult.detail,
+        })
       }
 
       return NextResponse.json(
@@ -239,6 +313,9 @@ export async function POST(request: NextRequest) {
           updatedBookingId: result.updatedBookingId,
           paymentIntentId: result.paymentIntentId,
           depositAmount: result.depositAmount,
+          crmForwarded: crmSyncResult.attempted ? crmSyncResult.delivered : false,
+          crmRequestId: crmSyncResult.attempted ? crmSyncResult.requestId : undefined,
+          crmSkippedReason: !crmSyncResult.attempted ? crmSyncResult.reason : undefined,
         },
         { status: 200 },
       )

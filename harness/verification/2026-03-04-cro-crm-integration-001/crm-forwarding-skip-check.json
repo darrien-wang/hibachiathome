@@ -1,0 +1,9 @@
+{
+  "pass": true,
+  "result": {
+    "attempted": false,
+    "delivered": false,
+    "reason": "not_configured",
+    "detail": "CRM_INTEGRATION_BASE_URL or CRM_INTEGRATION_SHARED_SECRET is missing."
+  }
+}
