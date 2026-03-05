@@ -880,5 +880,17 @@
       "Verify request to /api/notify-lead returns 404 while deposit-start trigger remains functional."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-LOCAL-STACK-001",
+    "priority": "P1",
+    "category": "developer_experience",
+    "description": "Add a persistent local E2E startup runbook and script so marketing + invoice + Stripe webhook services can be started without repeated reminders.",
+    "steps": [
+      "Add a local stack script with start/status/stop/logs commands for marketing app, invoice app, and Stripe webhook forwarder.",
+      "Store pid/log files under a stable repo path for easy reuse across sessions.",
+      "Update README with one-command startup and daily local test workflow."
+    ],
+    "passes": false
   }
 ]
