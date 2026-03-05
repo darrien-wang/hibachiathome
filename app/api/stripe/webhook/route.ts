@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
-import { sendDepositPaidEventToCrm } from "@/lib/crm-integration"
+import { buildDepositPaidEventEnvelope, type CrmBookingSnapshot } from "@/lib/crm-integration"
+import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 
 export const runtime = "nodejs"
 
@@ -40,26 +41,10 @@ function amountFromMinorUnits(amountMinor: number | null | undefined): number | 
   return Number((amountMinor / 100).toFixed(2))
 }
 
-type BookingCrmSnapshot = {
-  id: string
-  full_name: string | null
-  phone: string | null
-  email: string | null
-  event_date: string | null
-  event_time: string | null
-  address: string | null
-  guest_adults: number | null
-  guest_kids: number | null
-  total_cost: number | null
-  travel_fee: number | null
-  special_requests: string | null
-  deposit_amount: number | null
-}
-
 async function loadBookingCrmSnapshot(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   bookingId: string | null,
-): Promise<BookingCrmSnapshot | null> {
+): Promise<CrmBookingSnapshot | null> {
   if (!bookingId) {
     return null
   }
@@ -81,7 +66,7 @@ async function loadBookingCrmSnapshot(
     return null
   }
 
-  return data as BookingCrmSnapshot
+  return data as CrmBookingSnapshot
 }
 
 async function registerEventForIdempotency(
@@ -281,7 +266,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: false, error: result.error }, { status: 500 })
       }
 
-      const crmSyncResult = await sendDepositPaidEventToCrm({
+      const crmEnvelopeResult = buildDepositPaidEventEnvelope({
         stripeEventId: event.id,
         session,
         booking: result.bookingSnapshot,
@@ -289,21 +274,64 @@ export async function POST(request: NextRequest) {
         depositAmount: result.depositAmount,
       })
 
-      if (crmSyncResult.attempted && !crmSyncResult.delivered) {
-        console.error("[stripe/webhook] Failed to forward deposit_paid event to CRM:", {
-          eventId: event.id,
-          requestId: crmSyncResult.requestId,
-          status: crmSyncResult.status,
-          error: crmSyncResult.error,
-          body: crmSyncResult.body,
-        })
-      }
-      if (!crmSyncResult.attempted) {
+      let crmForwarded = false
+      let crmRequestId: string | undefined
+      let crmOutboxEventId: string | undefined
+      let crmOutboxState: string | undefined
+      let crmSkippedReason: string | undefined
+      let crmError: string | undefined
+
+      if (!crmEnvelopeResult.ok) {
         console.warn("[stripe/webhook] CRM forward was skipped:", {
           eventId: event.id,
-          reason: crmSyncResult.reason,
-          detail: crmSyncResult.detail,
+          reason: crmEnvelopeResult.reason,
+          detail: crmEnvelopeResult.detail,
         })
+        crmSkippedReason = crmEnvelopeResult.reason
+      } else {
+        const enqueueResult = await enqueueCrmOutboxEvent(supabase, {
+          eventId: crmEnvelopeResult.envelope.event_id,
+          eventType: crmEnvelopeResult.envelope.event_type,
+          payload: crmEnvelopeResult.envelope,
+        })
+
+        if (!enqueueResult.ok) {
+          crmOutboxEventId = crmEnvelopeResult.envelope.event_id
+          crmError = enqueueResult.error
+          crmOutboxState = enqueueResult.conflict ? "conflict" : "enqueue_failed"
+          console.error("[stripe/webhook] Failed to enqueue CRM outbox event:", {
+            eventId: event.id,
+            crmEventId: crmEnvelopeResult.envelope.event_id,
+            conflict: enqueueResult.conflict,
+            error: enqueueResult.error,
+          })
+        } else {
+          crmOutboxEventId = enqueueResult.record.event_id
+          const deliveryResult = await deliverCrmOutboxRecord(supabase, enqueueResult.record)
+          if (!deliveryResult.ok) {
+            crmError = deliveryResult.error
+            crmOutboxState = "deliver_failed"
+            console.error("[stripe/webhook] Failed to deliver CRM outbox event:", {
+              eventId: event.id,
+              crmEventId: enqueueResult.record.event_id,
+              error: deliveryResult.error,
+            })
+          } else {
+            crmOutboxState = deliveryResult.state
+            crmRequestId = deliveryResult.requestId
+            crmForwarded = deliveryResult.delivered
+            if (!deliveryResult.delivered) {
+              console.warn("[stripe/webhook] CRM outbox delivery not completed in webhook path:", {
+                eventId: event.id,
+                crmEventId: enqueueResult.record.event_id,
+                state: deliveryResult.state,
+                reason: deliveryResult.reason,
+                status: deliveryResult.status,
+                error: deliveryResult.error,
+              })
+            }
+          }
+        }
       }
 
       return NextResponse.json(
@@ -313,9 +341,12 @@ export async function POST(request: NextRequest) {
           updatedBookingId: result.updatedBookingId,
           paymentIntentId: result.paymentIntentId,
           depositAmount: result.depositAmount,
-          crmForwarded: crmSyncResult.attempted ? crmSyncResult.delivered : false,
-          crmRequestId: crmSyncResult.attempted ? crmSyncResult.requestId : undefined,
-          crmSkippedReason: !crmSyncResult.attempted ? crmSyncResult.reason : undefined,
+          crmForwarded,
+          crmRequestId,
+          crmOutboxEventId,
+          crmOutboxState,
+          crmSkippedReason,
+          crmError,
         },
         { status: 200 },
       )

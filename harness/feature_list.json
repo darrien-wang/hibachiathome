@@ -774,7 +774,7 @@
       "Implement replay worker or endpoint for pending/failed outbox events with idempotent event_id reuse.",
       "Expose operational logging/metrics fields (attempt_count, last_attempt_at, last_error) for support and reconciliation."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-CRM-INTEGRATION-003",

@@ -1,7 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto"
 import type Stripe from "stripe"
 
-type CrmBookingSnapshot = {
+export type CrmBookingSnapshot = {
   id: string
   full_name?: string | null
   phone?: string | null
@@ -17,7 +17,59 @@ type CrmBookingSnapshot = {
   deposit_amount?: number | null
 }
 
-type CrmIntegrationResult =
+export type CrmDepositPaidEventEnvelope = {
+  event_id: string
+  event_type: "order.deposit_paid"
+  occurred_at: string
+  source: string
+  order: {
+    external_order_id: string
+    order_number?: string
+    customer_name: string
+    customer_phone?: string
+    customer_email?: string
+    event_start: string
+    event_timezone: "America/Los_Angeles"
+    event_address?: string
+    guest_adult_count?: number
+    guest_child_count?: number
+    invoice_details?: {
+      total_cost?: number
+      travel_fee?: number
+    }
+    notes?: string
+  }
+  payment: {
+    external_payment_id: string
+    type: "deposit"
+    status: "paid"
+    amount_cents: number
+    currency: "USD"
+    provider: "stripe"
+    paid_at: string
+    transaction_ref?: string
+    receipt_url?: string
+  }
+  metadata: {
+    stripe_event_id: string
+    checkout_session_id: string
+    livemode: boolean
+    event_category: "deposit_primary"
+  }
+}
+
+type BuildCrmEnvelopeResult =
+  | {
+      ok: true
+      envelope: CrmDepositPaidEventEnvelope
+    }
+  | {
+      ok: false
+      reason: "missing_required_fields"
+      detail: string
+    }
+
+export type CrmIntegrationResult =
   | {
       attempted: false
       delivered: false
@@ -38,6 +90,12 @@ type RetryAttemptResult = {
   status?: number
   body?: unknown
   error?: string
+}
+
+type CrmIntegrationConfig = {
+  baseUrl: string
+  sharedSecret: string
+  partnerId: string
 }
 
 const CRM_EVENT_PATH = "/api/integrations/v1/events"
@@ -123,6 +181,21 @@ function isRetryableStatus(status: number): boolean {
   return status === 408 || status === 429 || status >= 500
 }
 
+function getCrmConfig(): CrmIntegrationConfig | null {
+  const baseUrl = asString(process.env.CRM_INTEGRATION_BASE_URL)
+  const sharedSecret = asString(process.env.CRM_INTEGRATION_SHARED_SECRET)
+  if (!baseUrl || !sharedSecret) {
+    return null
+  }
+
+  const partnerId = asString(process.env.CRM_INTEGRATION_PARTNER_ID) ?? DEFAULT_PARTNER_ID
+  return {
+    baseUrl: normalizeBaseUrl(baseUrl),
+    sharedSecret,
+    partnerId,
+  }
+}
+
 async function postSignedEvent(
   endpoint: string,
   partnerId: string,
@@ -194,27 +267,15 @@ async function sendWithRetry(params: {
   return last
 }
 
-export async function sendDepositPaidEventToCrm(params: {
+export function buildDepositPaidEventEnvelope(params: {
   stripeEventId: string
   session: Stripe.Checkout.Session
   booking: CrmBookingSnapshot | null
   paymentIntentId?: string
   depositAmount?: number
-}): Promise<CrmIntegrationResult> {
-  const baseUrl = asString(process.env.CRM_INTEGRATION_BASE_URL)
-  const sharedSecret = asString(process.env.CRM_INTEGRATION_SHARED_SECRET)
-  if (!baseUrl || !sharedSecret) {
-    return {
-      attempted: false,
-      delivered: false,
-      reason: "not_configured",
-      detail: "CRM_INTEGRATION_BASE_URL or CRM_INTEGRATION_SHARED_SECRET is missing.",
-    }
-  }
-
-  const partnerId = asString(process.env.CRM_INTEGRATION_PARTNER_ID) ?? DEFAULT_PARTNER_ID
-  const source = asString(process.env.CRM_INTEGRATION_SOURCE) ?? DEFAULT_SOURCE
-
+  source?: string
+}): BuildCrmEnvelopeResult {
+  const source = asString(params.source) ?? asString(process.env.CRM_INTEGRATION_SOURCE) ?? DEFAULT_SOURCE
   const externalOrderId =
     asString(params.booking?.id) ??
     asString(params.session.metadata?.booking_id) ??
@@ -243,68 +304,85 @@ export async function sendDepositPaidEventToCrm(params: {
 
   if (!externalOrderId || !amountCents || !externalPaymentId) {
     return {
-      attempted: false,
-      delivered: false,
+      ok: false,
       reason: "missing_required_fields",
       detail: "external_order_id, external_payment_id, or amount_cents is missing.",
     }
   }
 
-  const eventEnvelope = {
-    event_id: `evt_stripe_${params.stripeEventId}`,
-    event_type: "order.deposit_paid",
-    occurred_at: fallbackOccurredAt,
-    source,
-    order: {
-      external_order_id: externalOrderId,
-      order_number: asString(params.booking?.id),
-      customer_name: customerName,
-      customer_phone: asString(params.booking?.phone),
-      customer_email:
-        asString(params.booking?.email) ??
-        asString(params.session.customer_details?.email) ??
-        asString(params.session.customer_email),
-      event_start: eventStart,
-      event_timezone: "America/Los_Angeles",
-      event_address: asString(params.booking?.address) ?? asString(params.session.metadata?.location),
-      guest_adult_count: typeof params.booking?.guest_adults === "number" ? params.booking.guest_adults : undefined,
-      guest_child_count: typeof params.booking?.guest_kids === "number" ? params.booking.guest_kids : undefined,
-      invoice_details:
-        typeof params.booking?.total_cost === "number" || typeof params.booking?.travel_fee === "number"
-          ? {
-              total_cost: params.booking?.total_cost ?? undefined,
-              travel_fee: params.booking?.travel_fee ?? undefined,
-            }
-          : undefined,
-      notes: asString(params.booking?.special_requests) ?? "Deposit paid via Stripe Checkout on website.",
-    },
-    payment: {
-      external_payment_id: externalPaymentId,
-      type: "deposit",
-      status: "paid",
-      amount_cents: amountCents,
-      currency: "USD",
-      provider: "stripe",
-      paid_at: fallbackOccurredAt,
-      transaction_ref: asString(params.paymentIntentId) ?? params.session.id,
-      receipt_url: undefined as string | undefined,
-    },
-    metadata: {
-      stripe_event_id: params.stripeEventId,
-      checkout_session_id: params.session.id,
-      livemode: params.session.livemode,
-      event_category: "deposit_primary",
+  return {
+    ok: true,
+    envelope: {
+      event_id: `evt_stripe_${params.stripeEventId}`,
+      event_type: "order.deposit_paid",
+      occurred_at: fallbackOccurredAt,
+      source,
+      order: {
+        external_order_id: externalOrderId,
+        order_number: asString(params.booking?.id),
+        customer_name: customerName,
+        customer_phone: asString(params.booking?.phone),
+        customer_email:
+          asString(params.booking?.email) ??
+          asString(params.session.customer_details?.email) ??
+          asString(params.session.customer_email),
+        event_start: eventStart,
+        event_timezone: "America/Los_Angeles",
+        event_address: asString(params.booking?.address) ?? asString(params.session.metadata?.location),
+        guest_adult_count: typeof params.booking?.guest_adults === "number" ? params.booking.guest_adults : undefined,
+        guest_child_count: typeof params.booking?.guest_kids === "number" ? params.booking.guest_kids : undefined,
+        invoice_details:
+          typeof params.booking?.total_cost === "number" || typeof params.booking?.travel_fee === "number"
+            ? {
+                total_cost: params.booking?.total_cost ?? undefined,
+                travel_fee: params.booking?.travel_fee ?? undefined,
+              }
+            : undefined,
+        notes: asString(params.booking?.special_requests) ?? "Deposit paid via Stripe Checkout on website.",
+      },
+      payment: {
+        external_payment_id: externalPaymentId,
+        type: "deposit",
+        status: "paid",
+        amount_cents: amountCents,
+        currency: "USD",
+        provider: "stripe",
+        paid_at: fallbackOccurredAt,
+        transaction_ref: asString(params.paymentIntentId) ?? params.session.id,
+        receipt_url: undefined,
+      },
+      metadata: {
+        stripe_event_id: params.stripeEventId,
+        checkout_session_id: params.session.id,
+        livemode: params.session.livemode,
+        event_category: "deposit_primary",
+      },
     },
   }
+}
 
-  const requestId = `req_mkt_${randomUUID()}`
-  const endpoint = `${normalizeBaseUrl(baseUrl)}${CRM_EVENT_PATH}`
-  const rawBody = JSON.stringify(eventEnvelope)
+export async function sendCrmEventEnvelope(params: {
+  envelope: CrmDepositPaidEventEnvelope
+  requestId?: string
+}): Promise<CrmIntegrationResult> {
+  const config = getCrmConfig()
+  if (!config) {
+    return {
+      attempted: false,
+      delivered: false,
+      reason: "not_configured",
+      detail: "CRM_INTEGRATION_BASE_URL or CRM_INTEGRATION_SHARED_SECRET is missing.",
+    }
+  }
+
+  const requestId = params.requestId ?? `req_mkt_${randomUUID()}`
+  const endpoint = `${config.baseUrl}${CRM_EVENT_PATH}`
+  const rawBody = JSON.stringify(params.envelope)
 
   const delivery = await sendWithRetry({
     endpoint,
-    partnerId,
-    sharedSecret,
+    partnerId: config.partnerId,
+    sharedSecret: config.sharedSecret,
     rawBody,
     requestId,
   })
@@ -317,4 +395,26 @@ export async function sendDepositPaidEventToCrm(params: {
     body: delivery.body,
     error: delivery.error,
   }
+}
+
+export async function sendDepositPaidEventToCrm(params: {
+  stripeEventId: string
+  session: Stripe.Checkout.Session
+  booking: CrmBookingSnapshot | null
+  paymentIntentId?: string
+  depositAmount?: number
+}): Promise<CrmIntegrationResult> {
+  const built = buildDepositPaidEventEnvelope(params)
+  if (!built.ok) {
+    return {
+      attempted: false,
+      delivered: false,
+      reason: "missing_required_fields",
+      detail: built.detail,
+    }
+  }
+
+  return sendCrmEventEnvelope({
+    envelope: built.envelope,
+  })
 }

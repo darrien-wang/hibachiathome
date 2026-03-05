@@ -2499,3 +2499,62 @@
 
 - Next highest-priority action:
   - Start `CRO-CRM-INTEGRATION-002`: add durable outbox delivery tracking for CRM forwarding failures.
+
+## 2026-03-04 (CRO-CRM-INTEGRATION-002 complete: durable CRM outbox persistence + replay)
+
+- Completed:
+  - Ran session bootstrap:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Re-verified one previously passing core flow baseline before feature completion:
+    - `/deposit/pay?id=BASELINE-CRM002-RERUN` returned `200`
+  - Added durable CRM outbox persistence layer:
+    - `lib/crm-outbox.ts`
+    - outbox states: `pending`, `sending`, `sent`, `failed`, `dead_letter`
+    - event-level idempotent enqueue by `event_id` + `payload_hash`
+    - conflict handling for same `event_id` with mismatched payload
+    - delivery attempt tracking fields (`attempt_count`, `last_attempt_at`, `last_error`, `response_status`, `last_request_id`, `next_attempt_at`)
+    - retry scheduling with bounded backoff and dead-letter cutoff
+  - Added CRM outbox replay endpoint:
+    - `app/api/integrations/crm/outbox/replay/route.ts`
+    - token-guarded with `CRM_INTEGRATION_REPLAY_TOKEN`
+    - supports bounded batch replay (`limit`, max 100)
+  - Wired Stripe webhook to durable outbox flow:
+    - `app/api/stripe/webhook/route.ts`
+    - on verified `checkout.session.completed`, enqueue CRM envelope first, then attempt delivery from outbox record
+    - webhook response now exposes outbox outcome metadata (`crmOutboxEventId`, `crmOutboxState`, `crmError`, `crmRequestId`)
+  - Extended CRM integration utility:
+    - `lib/crm-integration.ts`
+    - extracted `buildDepositPaidEventEnvelope()` and `sendCrmEventEnvelope()` to support outbox-driven retries/replay
+  - Added SQL migration for operational persistence:
+    - `migrations/create-crm-integration-outbox-table.sql`
+  - Added required env placeholders:
+    - `.env.example`
+    - `CRM_INTEGRATION_REPLAY_TOKEN`
+    - `CRM_INTEGRATION_MAX_ATTEMPTS`
+
+- Feature status transition:
+  - `CRO-CRM-INTEGRATION-002` changed from `passes: false -> true`.
+
+- Verified:
+  - Scoped TypeScript checks for CRM-outbox touched files pass ✅
+  - Outbox enqueue inserts `pending` row and duplicate enqueue dedupes by `event_id` ✅
+  - Same `event_id` with different payload hash is rejected as conflict ✅
+  - First delivery failure persists failed state with operational fields (`attempt_count`, `last_attempt_at`, `last_error`) ✅
+  - Replay reuses the same `event_id` and transitions failed record to sent with response/request metadata ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-crm-integration-002/core-baseline-dev.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/core-baseline-server-ready-rerun.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/core-baseline-deposit-pay-rerun.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/core-baseline-deposit-pay-rerun.exit`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/core-baseline-deposit-pay-rerun.html`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-tsc.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-tsc.exit`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-tsc-emit.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-tsc-emit.exit`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-replay-check.log`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-replay-check.exit`
+  - `harness/verification/2026-03-04-cro-crm-integration-002/crm-outbox-replay-check.json`
+
+- Next highest-priority action:
+  - Start `CRO-CRM-INTEGRATION-003`: add end-to-end verification coverage for webhook->CRM forwarding failure modes and contract behavior.

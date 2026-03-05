@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "assertions": {
+    "initial_enqueue_pending": true,
+    "dedupe_same_event_id": true,
+    "conflict_on_hash_mismatch": true,
+    "first_delivery_failed_state": true,
+    "failed_row_has_operational_fields": true,
+    "replay_transitions_to_sent": true,
+    "final_row_sent_with_metrics": true
+  },
+  "outbox_event_id": "evt_stripe_evt_test_crm002_1",
+  "first_delivery_state": "failed",
+  "replay_summary": {
+    "selected": 1,
+    "sent": 1,
+    "failed": 0,
+    "dead_letter": 0,
+    "skipped": 0,
+    "errors": 0
+  },
+  "failed_snapshot": {
+    "attempt_count": 1,
+    "last_attempt_at": "2026-03-05T04:45:26.443Z",
+    "last_error": "delivery_failed_status_400",
+    "status": "failed"
+  },
+  "final_row": {
+    "id": 1,
+    "event_id": "evt_stripe_evt_test_crm002_1",
+    "event_type": "order.deposit_paid",
+    "payload_json": {
+      "event_id": "evt_stripe_evt_test_crm002_1",
+      "event_type": "order.deposit_paid",
+      "occurred_at": "2025-11-07T21:20:00.000Z",
+      "source": "official_website",
+      "order": {
+        "external_order_id": "booking-crm-002",
+        "order_number": "booking-crm-002",
+        "customer_name": "Darrien Wang",
+        "customer_phone": "+1-310-555-1212",
+        "customer_email": "darrien.wang@gmail.com",
+        "event_start": "2026-03-16T02:30:00.000Z",
+        "event_timezone": "America/Los_Angeles",
+        "event_address": "123 Main St, Los Angeles, CA",
+        "guest_adult_count": 10,
+        "guest_child_count": 2,
+        "invoice_details": {
+          "total_cost": 900,
+          "travel_fee": 50
+        },
+        "notes": "No onion"
+      },
+      "payment": {
+        "external_payment_id": "pi_test_crm002_1",
+        "type": "deposit",
+        "status": "paid",
+        "amount_cents": 15000,
+        "currency": "USD",
+        "provider": "stripe",
+        "paid_at": "2025-11-07T21:20:00.000Z",
+        "transaction_ref": "pi_test_crm002_1"
+      },
+      "metadata": {
+        "stripe_event_id": "evt_test_crm002_1",
+        "checkout_session_id": "cs_test_crm002_1",
+        "livemode": false,
+        "event_category": "deposit_primary"
+      }
+    },
+    "payload_hash": "cd5f0ab2d9b0a5110f934e5799e695bb7eba4976b9046df278aab5cf735030ab",
+    "status": "sent",
+    "attempt_count": 2,
+    "max_attempts": 4,
+    "last_attempt_at": "2026-03-05T04:45:26.469Z",
+    "next_attempt_at": null,
+    "response_status": 200,
+    "response_body": {
+      "ok": true,
+      "accepted": true,
+      "crm_id": "crm_evt_2"
+    },
+    "last_error": null,
+    "last_request_id": "req_mkt_536c0374-5e25-4313-a25c-301bf18bfff6",
+    "created_at": "2026-03-05T04:45:26.443Z",
+    "updated_at": "2026-03-05T04:45:26.471Z"
+  },
+  "crm_request_count": 2,
+  "crm_requests": [
+    {
+      "attempt": 1,
+      "status_expected": 400,
+      "request_id": "req_mkt_7b954251-8682-4379-a517-6bd634bef1ee",
+      "signature_present": true,
+      "event_id": "evt_stripe_evt_test_crm002_1",
+      "event_type": "order.deposit_paid"
+    },
+    {
+      "attempt": 2,
+      "status_expected": 200,
+      "request_id": "req_mkt_536c0374-5e25-4313-a25c-301bf18bfff6",
+      "signature_present": true,
+      "event_id": "evt_stripe_evt_test_crm002_1",
+      "event_type": "order.deposit_paid"
+    }
+  ]
+}
