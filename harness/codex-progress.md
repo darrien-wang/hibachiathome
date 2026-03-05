@@ -2395,3 +2395,57 @@
 
 - Next highest-priority action:
   - Start `CRO-DEPOSIT-PRIMARY-007`: add automated tests for success/cancel/refresh and webhook-degraded paths.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-007 complete: automated verification for success/cancel/refresh/webhook-degraded deposit paths)
+
+- Completed:
+  - Ran session bootstrap:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Re-verified one previously passing core flow baseline before feature work:
+    - `/deposit/pay?id=BASELINE007` loaded successfully
+    - baseline evidence captured in `harness/verification/2026-03-04-cro-deposit-primary-007/`
+  - Added feature-specific automated test coverage for deposit primary conversion behavior:
+    - `e2e/deposit-primary-007.spec.ts`
+    - scenarios implemented:
+      - paid success emits exactly one `deposit_completed`
+      - cancel flow emits zero `deposit_completed`
+      - success refresh/reopen dedupes by `transaction_id`
+      - delayed webhook (pending -> paid on refresh) blocks then allows conversion
+  - Added deterministic verification harness script to execute 007 scenarios and capture artifacts:
+    - `harness/scripts/verify-cro-deposit-primary-007.mjs`
+    - script behavior:
+      - starts local app on dedicated port (`3011`) if not already reachable
+      - runs baseline + four 007 assertions with Playwright browser automation
+      - writes structured JSON and screenshots for each scenario
+      - cleans up local server process with SIGTERM/SIGKILL fallback
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-007` changed from `passes: false -> true`.
+
+- Verified:
+  - Paid success path: exactly one `deposit_completed` emitted with `value`, `currency`, `transaction_id` ✅
+  - Cancel path: no `deposit_completed` emitted ✅
+  - Refresh/reopen path: same `transaction_id` does not re-emit conversion ✅
+  - Delayed webhook path: `pending` state emits none, refresh to `paid` emits once ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/core-baseline-deposit-pay.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/core-baseline-deposit-pay.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/core-baseline-deposit-pay.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-paid-once.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-paid-once.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-cancel-no-conversion.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-cancel.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-refresh-reopen-dedupe.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-refresh.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-reopen.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-delayed-webhook.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-delayed-webhook-pending.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007-delayed-webhook-confirmed.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/cro-deposit-primary-007.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/dev-server.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-007/dev-server-ready.log`
+
+- Next highest-priority action:
+  - No remaining failing feature items in `feature_list.json`; proceed with broader regression sweep or new CRO backlog items.

@@ -695,7 +695,7 @@
       "Add tests for success-page refresh/reopen confirming transaction_id-based dedupe.",
       "Add tests for delayed or missing webhook where UI blocks fake success conversion until paid is verified."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-CLEANUP-STEP3-001",

@@ -1,0 +1,10 @@
+{
+  "session_id": "cs_test_cro007_dedupe",
+  "transaction_id": "pi_test_cro007_dedupe",
+  "first_load_count": 1,
+  "reload_count": 0,
+  "reopen_count": 0,
+  "dedupe_storage": [
+    "pi_test_cro007_dedupe"
+  ]
+}

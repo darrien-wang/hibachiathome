@@ -1,0 +1,38 @@
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --port 3011
+
+   ▲ Next.js 15.2.8
+   - Local:        http://localhost:3011
+   - Network:      http://10.255.255.254:3011
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 74.8s
+ ○ Compiling / ...
+ ✓ Compiled / in 49.5s (1034 modules)
+ GET / 200 in 4626ms
+ ✓ Compiled in 5.4s (436 modules)
+ GET / 200 in 894ms
+ GET / 200 in 263ms
+ ○ Compiling /deposit/pay ...
+ ✓ Compiled /deposit/pay in 2.6s (1167 modules)
+ GET /deposit/pay?id=BASELINE007 200 in 4348ms
+Error fetching booking details: {
+  code: '22P02',
+  details: null,
+  hint: null,
+  message: 'invalid input syntax for type uuid: "BASELINE007"'
+}
+ POST /deposit/pay?id=BASELINE007 200 in 872ms
+ ○ Compiling /deposit/success ...
+ ✓ Compiled /deposit/success in 2.1s (1181 modules)
+ GET /deposit/success?session_id=cs_test_cro007_paid_once 200 in 2847ms
+ ○ Compiling /deposit/cancel ...
+ ✓ Compiled /deposit/cancel in 2.3s (1194 modules)
+ GET /deposit/cancel?booking_id=BOOK007-02 200 in 3023ms
+ GET /deposit/success?session_id=cs_test_cro007_dedupe 200 in 353ms
+ GET /deposit/success?session_id=cs_test_cro007_dedupe 200 in 203ms
+ GET /deposit/success?session_id=cs_test_cro007_dedupe 200 in 275ms
+ GET /deposit/success?session_id=cs_test_cro007_delayed 200 in 237ms
+ ELIFECYCLE  Command failed.
