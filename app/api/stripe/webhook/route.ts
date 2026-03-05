@@ -19,6 +19,8 @@ type NotificationDeliveryResult = {
   providerMessageId?: string
 }
 
+type SmsProviderPreference = "auto" | "sendly" | "twilio"
+
 function asNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined
@@ -183,18 +185,6 @@ async function sendDepositConfirmationSms(params: {
   bookingId?: string
   selfServiceLink?: string
 }): Promise<NotificationDeliveryResult> {
-  const accountSid = asNonEmptyString(process.env.TWILIO_ACCOUNT_SID)
-  const authToken = asNonEmptyString(process.env.TWILIO_AUTH_TOKEN)
-  const fromNumber = asNonEmptyString(process.env.TWILIO_FROM_NUMBER)
-
-  if (!accountSid || !authToken || !fromNumber) {
-    return {
-      attempted: false,
-      delivered: false,
-      skippedReason: "twilio_not_configured",
-    }
-  }
-
   const recipientPhone = normalizeSmsPhone(params.recipientPhone)
   if (!recipientPhone) {
     return {
@@ -222,12 +212,118 @@ async function sendDepositConfirmationSms(params: {
     }
   }
 
+  const preference = getSmsProviderPreference()
+  if (preference === "sendly") {
+    return sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink })
+  }
+  if (preference === "twilio") {
+    return sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink })
+  }
+
+  const sendly = await sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink })
+  if (sendly.delivered || sendly.attempted) {
+    return sendly
+  }
+
+  const twilio = await sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink })
+  if (twilio.delivered || twilio.attempted) {
+    return twilio
+  }
+
+  return {
+    attempted: false,
+    delivered: false,
+    skippedReason: "no_sms_provider_configured",
+  }
+}
+
+function getSmsProviderPreference(): SmsProviderPreference {
+  const value = asNonEmptyString(process.env.SMS_PROVIDER)?.toLowerCase()
+  if (value === "sendly" || value === "twilio" || value === "auto") {
+    return value
+  }
+  return "auto"
+}
+
+async function sendDepositConfirmationSmsViaSendly(params: {
+  recipientPhone: string
+  bookingId: string
+  selfServiceLink: string
+}): Promise<NotificationDeliveryResult> {
+  const apiKey = asNonEmptyString(process.env.SENDLY_API_KEY)
+  const endpoint = asNonEmptyString(process.env.SENDLY_API_URL) ?? "https://sendly.live/api/v1/messages"
+
+  if (!apiKey) {
+    return {
+      attempted: false,
+      delivered: false,
+      skippedReason: "sendly_not_configured",
+    }
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: params.recipientPhone,
+        text: `Real Hibachi: deposit confirmed for booking ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
+      }),
+      cache: "no-store",
+    })
+
+    const payload = (await response.json().catch(() => null)) as { id?: unknown; message?: unknown; error?: unknown } | null
+    if (!response.ok) {
+      return {
+        attempted: true,
+        delivered: false,
+        error:
+          asNonEmptyString(payload?.message) ??
+          asNonEmptyString(payload?.error) ??
+          `sendly_http_${response.status}`,
+      }
+    }
+
+    return {
+      attempted: true,
+      delivered: true,
+      providerMessageId: asNonEmptyString(payload?.id),
+    }
+  } catch (error) {
+    return {
+      attempted: true,
+      delivered: false,
+      error: error instanceof Error ? error.message : "sendly_sms_send_failed",
+    }
+  }
+}
+
+async function sendDepositConfirmationSmsViaTwilio(params: {
+  recipientPhone: string
+  bookingId: string
+  selfServiceLink: string
+}): Promise<NotificationDeliveryResult> {
+  const accountSid = asNonEmptyString(process.env.TWILIO_ACCOUNT_SID)
+  const authToken = asNonEmptyString(process.env.TWILIO_AUTH_TOKEN)
+  const fromNumber = asNonEmptyString(process.env.TWILIO_FROM_NUMBER)
+
+  if (!accountSid || !authToken || !fromNumber) {
+    return {
+      attempted: false,
+      delivered: false,
+      skippedReason: "twilio_not_configured",
+    }
+  }
+
   const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
   const body = new URLSearchParams({
-    To: recipientPhone,
+    To: params.recipientPhone,
     From: fromNumber,
-    Body: `Real Hibachi: deposit confirmed for booking ${bookingId}. Update invoice details: ${selfServiceLink}`,
+    Body: `Real Hibachi: deposit confirmed for booking ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
   })
 
   try {

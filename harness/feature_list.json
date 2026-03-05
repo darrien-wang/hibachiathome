@@ -822,9 +822,23 @@
     "description": "checkout.session.completed webhook sends customer email/SMS with booking ID and self-service invoice link when optional providers are configured.",
     "steps": [
       "Trigger a checkout.session.completed webhook fixture that resolves to a booking with email and phone.",
-      "Configure INVOICE_SELF_SERVICE_BASE_URL plus RESEND_API_KEY and Twilio credentials.",
+      "Configure INVOICE_SELF_SERVICE_BASE_URL plus RESEND_API_KEY and SMS provider credentials.",
       "Verify webhook attempts both channels and payload copy includes booking ID and the self-service link.",
       "Repeat with missing provider/env values and verify webhook remains 200 while notification status reports skipped reasons."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-NOTIFY-002",
+    "priority": "P1",
+    "category": "integration",
+    "description": "SMS notification compatibility layer supports Sendly and Twilio provider selection in Stripe webhook flow.",
+    "steps": [
+      "Set SMS_PROVIDER=sendly with SENDLY_API_KEY and trigger checkout.session.completed webhook.",
+      "Verify webhook SMS attempt posts to Sendly API and response is captured in customerNotification.sms fields.",
+      "Set SMS_PROVIDER=twilio with TWILIO_* env values and trigger webhook again.",
+      "Verify webhook SMS attempt uses Twilio API path and response fields are returned.",
+      "Set SMS_PROVIDER=auto with only one provider configured and verify automatic provider selection works."
     ],
     "passes": false
   }
