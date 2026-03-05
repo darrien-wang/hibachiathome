@@ -841,5 +841,44 @@
       "Set SMS_PROVIDER=auto with only one provider configured and verify automatic provider selection works."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-SUPPORT-EMAIL-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "All customer-facing and operational email addresses are standardized to support@realhibachi.com.",
+    "steps": [
+      "Update site contact email config and verify footer/contact/book/locations pages render support@realhibachi.com mailto links.",
+      "Update contact/privacy/quote/partner pages to remove hardcoded legacy Gmail addresses.",
+      "Update API email defaults and hardcoded recipients so fallback sender/recipient targets support@realhibachi.com.",
+      "Run deposit webhook and contact form APIs and verify outbound email metadata uses support@realhibachi.com for sender/ops inbox.",
+      "Verify no remaining hardcoded legacy email addresses exist in active app source files."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-LEAD-TRIGGER-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Move operational lead-notification trigger from legacy estimate path to active deposit checkout start flow.",
+    "steps": [
+      "Verify /api/notify-lead is no longer called by active quote/deposit pages.",
+      "Trigger a new checkout session via /api/deposit/start and send a lead-notification email to ops inbox with booking and quote context.",
+      "Ensure lead notification delivery failures never block checkout session creation response.",
+      "Verify both POST and GET deposit start flows follow the same lead trigger behavior."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-LEAD-CLEANUP-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Remove deprecated /api/notify-lead endpoint after lead trigger migration to deposit-start flow.",
+    "steps": [
+      "Delete legacy route app/api/notify-lead/route.ts so stale estimate-era endpoint is not reachable.",
+      "Verify active code paths no longer reference /api/notify-lead.",
+      "Verify request to /api/notify-lead returns 404 while deposit-start trigger remains functional."
+    ],
+    "passes": false
   }
 ]

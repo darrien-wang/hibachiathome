@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
+import { Resend } from "resend"
 import { getDepositAmount } from "@/config/deposit"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
@@ -350,6 +351,91 @@ async function persistPendingDepositState(params: {
   }
 }
 
+function formatUsd(value: number | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A"
+  }
+  return `$${value.toFixed(2)}`
+}
+
+async function sendOpsLeadNotification(params: {
+  payload: NormalizedDepositStartPayload
+  sessionId: string
+  depositAmount: number
+  checkoutUrl: string
+}) {
+  const resendApiKey = normalizeString(process.env.RESEND_API_KEY)
+  if (!resendApiKey) {
+    return
+  }
+
+  const from = normalizeString(process.env.EMAIL_FROM) ?? "support@realhibachi.com"
+  const to = normalizeString(process.env.EMAIL_TO) ?? "support@realhibachi.com"
+  const bookingRef = params.payload.bookingId ?? params.sessionId
+  const source = params.payload.source ?? "deposit_pay"
+  const estimateRange =
+    typeof params.payload.estimateLow === "number" && typeof params.payload.estimateHigh === "number"
+      ? `${formatUsd(params.payload.estimateLow)} - ${formatUsd(params.payload.estimateHigh)}`
+      : "N/A"
+
+  const text = [
+    "New Real Hibachi lead reached deposit checkout.",
+    `Booking Ref: ${bookingRef}`,
+    `Stripe Session ID: ${params.sessionId}`,
+    `Source: ${source}`,
+    `Customer Name: ${params.payload.customerName ?? "N/A"}`,
+    `Customer Email: ${params.payload.customerEmail ?? "N/A"}`,
+    `Event Date: ${params.payload.eventDate ?? "N/A"}`,
+    `Event Time: ${params.payload.eventTime ?? "N/A"}`,
+    `Location: ${params.payload.location ?? "N/A"}`,
+    `Guests: adults=${params.payload.adults ?? 0}, kids=${params.payload.kids ?? 0}`,
+    `Estimate Range: ${estimateRange}`,
+    `Deposit Amount: ${formatUsd(params.depositAmount)}`,
+    `Checkout URL: ${params.checkoutUrl}`,
+  ].join("\n")
+
+  const html = [
+    "<p>New Real Hibachi lead reached deposit checkout.</p>",
+    `<p><strong>Booking Ref:</strong> ${bookingRef}</p>`,
+    `<p><strong>Stripe Session ID:</strong> ${params.sessionId}</p>`,
+    `<p><strong>Source:</strong> ${source}</p>`,
+    `<p><strong>Customer Name:</strong> ${params.payload.customerName ?? "N/A"}</p>`,
+    `<p><strong>Customer Email:</strong> ${params.payload.customerEmail ?? "N/A"}</p>`,
+    `<p><strong>Event Date:</strong> ${params.payload.eventDate ?? "N/A"}</p>`,
+    `<p><strong>Event Time:</strong> ${params.payload.eventTime ?? "N/A"}</p>`,
+    `<p><strong>Location:</strong> ${params.payload.location ?? "N/A"}</p>`,
+    `<p><strong>Guests:</strong> adults=${params.payload.adults ?? 0}, kids=${params.payload.kids ?? 0}</p>`,
+    `<p><strong>Estimate Range:</strong> ${estimateRange}</p>`,
+    `<p><strong>Deposit Amount:</strong> ${formatUsd(params.depositAmount)}</p>`,
+    `<p><strong>Checkout URL:</strong> <a href="${params.checkoutUrl}">${params.checkoutUrl}</a></p>`,
+  ].join("")
+
+  try {
+    const resend = new Resend(resendApiKey)
+    const { error } = await resend.emails.send({
+      from,
+      to: [to],
+      subject: `Lead Trigger: Deposit Checkout Started (${bookingRef})`,
+      text,
+      html,
+    })
+
+    if (error) {
+      console.error("[deposit/start] Lead notification email failed:", {
+        bookingRef,
+        sessionId: params.sessionId,
+        error: error.message,
+      })
+    }
+  } catch (error) {
+    console.error("[deposit/start] Lead notification email threw error:", {
+      bookingRef,
+      sessionId: params.sessionId,
+      error: error instanceof Error ? error.message : "unknown_error",
+    })
+  }
+}
+
 async function createCheckoutSession(
   request: NextRequest,
   payload: NormalizedDepositStartPayload,
@@ -426,6 +512,12 @@ export async function POST(request: NextRequest) {
       paymentIntentId,
       depositAmount,
     })
+    await sendOpsLeadNotification({
+      payload,
+      sessionId: session.id,
+      depositAmount,
+      checkoutUrl,
+    })
 
     return NextResponse.json({
       success: true,
@@ -448,6 +540,12 @@ export async function GET(request: NextRequest) {
       sessionId: session.id,
       paymentIntentId,
       depositAmount,
+    })
+    await sendOpsLeadNotification({
+      payload,
+      sessionId: session.id,
+      depositAmount,
+      checkoutUrl,
     })
 
     return NextResponse.redirect(checkoutUrl, 302)
