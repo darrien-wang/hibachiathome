@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+(node:59506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:59506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/smoke.spec.ts:579:5 › TRK-016: tracking remains resilient when GTM/dataLayer is unavailable (1.0m)
+
+
+  1) [chromium] › e2e/smoke.spec.ts:579:5 › TRK-016: tracking remains resilient when GTM/dataLayer is unavailable 
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('div.fixed.bottom-0.left-0.right-0').first().getByRole('button', { name: 'Book Now' })[22m
+
+
+      601 |
+      602 |   const floatingBar = page.locator("div.fixed.bottom-0.left-0.right-0").first()
+    > 603 |   await floatingBar.getByRole("button", { name: "Book Now" }).click()
+          |                                                               ^
+      604 |   await floatingBar.getByRole("button", { name: "Call Us" }).click()
+      605 |   await floatingBar.getByRole("button", { name: "Call Now" }).click()
+      606 |   await floatingBar.getByRole("button", { name: "Send Text" }).click()
+        at /mnt/d/desktop/realhibachi/realhibachi-marketing/e2e/smoke.spec.ts:603:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/smoke-TRK-016-tracking-rem-31c96-TM-dataLayer-is-unavailable-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/smoke-TRK-016-tracking-rem-31c96-TM-dataLayer-is-unavailable-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/smoke-TRK-016-tracking-rem-31c96-TM-dataLayer-is-unavailable-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/smoke.spec.ts:579:5 › TRK-016: tracking remains resilient when GTM/dataLayer is unavailable 

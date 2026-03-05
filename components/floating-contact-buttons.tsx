@@ -9,7 +9,7 @@ export function FloatingContactButtons() {
   const pathname = usePathname()
   const phoneNumber = "2137707788"
 
-  if (pathname.startsWith("/deposit") || pathname.startsWith("/after-deposit")) {
+  if (pathname.startsWith("/deposit")) {
     return null
   }
 

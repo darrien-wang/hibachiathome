@@ -735,5 +735,18 @@
       "Run targeted Playwright subset (TRK-005, TRK-006, TRK-007, TRK-009, TRK-015, TRK-018) and capture evidence artifacts."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-CLEANUP-DEPOSIT-LEGACY-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Remove deprecated post-deposit confirmation routes and stale UI guards that are no longer in the active payment flow.",
+    "steps": [
+      "Delete unused app routes /after-deposit and /booking-confirmation (page and loading files).",
+      "Remove dead code branches that still special-cased /after-deposit in shared UI components.",
+      "Verify active deposit pages (/deposit/pay, /deposit/success, /deposit/cancel) continue returning 200.",
+      "Verify removed legacy routes now return 404 to prevent accidental traffic from old flows."
+    ],
+    "passes": true
   }
 ]

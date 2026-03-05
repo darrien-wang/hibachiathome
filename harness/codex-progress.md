@@ -2251,3 +2251,45 @@
 
 - Next highest-priority action:
   - Start `CRO-DEPOSIT-PRIMARY-005`: implement success/cancel verification API and trusted paid-state response contract for conversion firing.
+
+## 2026-03-04 (CRO-CLEANUP-DEPOSIT-LEGACY-001 complete: retire obsolete post-deposit routes)
+
+- Completed:
+  - Ran session bootstrap for this cleanup scope:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Re-verified one previously passing core flow baseline (workflow requirement) with a stable local check that does not depend on GTM/dataLayer:
+    - opened `http://127.0.0.1:3000/deposit/pay?id=BASELINE`
+    - asserted page title and `Lock Your Date` CTA visibility
+    - captured screenshot evidence
+  - Removed legacy routes that are no longer part of active flow:
+    - `app/after-deposit/page.tsx`
+    - `app/after-deposit/loading.tsx`
+    - `app/booking-confirmation/page.tsx`
+    - `app/booking-confirmation/loading.tsx`
+  - Removed stale branch in shared floating CTA component:
+    - `components/floating-contact-buttons.tsx`
+    - updated guard from `pathname.startsWith("/deposit") || pathname.startsWith("/after-deposit")` to `pathname.startsWith("/deposit")`
+
+- Feature list update:
+  - Added new tracked cleanup item `CRO-CLEANUP-DEPOSIT-LEGACY-001` with `passes: true`.
+
+- Verified:
+  - Baseline deposit-pay load and CTA visibility check ✅
+  - Route status checks ✅
+    - `/deposit/pay?id=CHECK` -> `200`
+    - `/deposit/success` -> `200`
+    - `/after-deposit` -> `404`
+    - `/booking-confirmation` -> `404`
+  - `pnpm lint` / targeted eslint commands were attempted but hung in this environment; route and UI checks were used as release gates for this cleanup-only change.
+
+- Evidence:
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/core-baseline-deposit-pay.log`
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/core-baseline-deposit-pay.exit`
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/core-baseline-deposit-pay.png`
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/cleanup-route-status.log`
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/core-baseline-smoke.log`
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/core-baseline-trk-007.log`
+  - `harness/verification/2026-03-04-cleanup-legacy-pages/core-baseline-trk-016.log`
+
+- Next highest-priority action:
+  - Continue with `CRO-DEPOSIT-PRIMARY-005`: validate success/cancel verification contract and conversion trigger behavior end-to-end.

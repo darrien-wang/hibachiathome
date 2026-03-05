@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+(node:58264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:58264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/smoke.spec.ts:201:5 › TRK-007: deposit CTA click emits conversion-intent event (1.0m)
+
+
+  1) [chromium] › e2e/smoke.spec.ts:201:5 › TRK-007: deposit CTA click emits conversion-intent event 
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: page.waitForFunction: Test timeout of 60000ms exceeded.
+
+      207 |   await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
+      208 |
+    > 209 |   await page.waitForFunction(() =>
+          |              ^
+      210 |     Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
+      211 |   )
+      212 |
+        at /mnt/d/desktop/realhibachi/realhibachi-marketing/e2e/smoke.spec.ts:209:14
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/smoke-TRK-007-deposit-CTA--d95bd-its-conversion-intent-event-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/smoke-TRK-007-deposit-CTA--d95bd-its-conversion-intent-event-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/smoke-TRK-007-deposit-CTA--d95bd-its-conversion-intent-event-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/smoke.spec.ts:201:5 › TRK-007: deposit CTA click emits conversion-intent event 
