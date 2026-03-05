@@ -669,7 +669,7 @@
       "Implement verification endpoint to return paid flag, value, currency, and transaction_id from trusted payment state.",
       "Verify cancelled or unpaid sessions never report paid confirmation in UI or tracking."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-DEPOSIT-PRIMARY-006",

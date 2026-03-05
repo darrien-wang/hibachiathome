@@ -1,0 +1,13 @@
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+locator.waitFor: Timeout 120000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /Lock Your Date/i }) to be visible[22m
+
+    at [stdin]:7:13 {
+  name: 'TimeoutError'
+}
+
+Node.js v24.13.1

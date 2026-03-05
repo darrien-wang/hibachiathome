@@ -2293,3 +2293,67 @@
 
 - Next highest-priority action:
   - Continue with `CRO-DEPOSIT-PRIMARY-005`: validate success/cancel verification contract and conversion trigger behavior end-to-end.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-005 complete: verified success/cancel flow contract before conversion firing)
+
+- Completed:
+  - Ran session bootstrap for this feature scope:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Re-verified one previously passing core flow baseline (workflow requirement):
+    - opened `/deposit/pay?id=BASELINE`
+    - confirmed primary `Lock Your Date` CTA is visible
+  - Added trusted server-side deposit verification endpoint:
+    - `app/api/deposit/verify/route.ts`
+    - input: `session_id` query parameter
+    - output: canonical `paid` flag, `status`, `value`, `currency`, `transaction_id`, `booking_id`
+    - source of truth: canonical booking fields (`deposit_status`, `deposit_amount`, `payment_intent_id`, `stripe_session_id`)
+    - returns `paid=false` for missing/not_found/unpaid states to prevent false success
+    - sets `Cache-Control: no-store`
+  - Updated success page to require server verification before showing paid confirmation:
+    - `app/deposit/success/page.tsx`
+      - migrated to async `searchParams` usage (resolves Next.js dynamic API warning)
+      - passes `session_id` into client verifier
+    - `app/deposit/success/DepositSuccessClient.tsx`
+      - calls `/api/deposit/verify?session_id=...` with `cache: no-store`
+      - shows explicit states:
+        - loading verification
+        - paid confirmed
+        - not confirmed yet (`paid=false`)
+        - missing/invalid session error
+      - no conversion event firing is performed in this feature
+  - Updated cancel page to keep retry path bound to booking context:
+    - `app/deposit/cancel/page.tsx`
+    - async `searchParams` parsing for `booking_id`
+    - `Try Again` now links to `/deposit/pay?id=<booking_id>` when available
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-005` changed from `passes: false -> true`.
+
+- Verified:
+  - Core baseline `/deposit/pay` load + CTA visible ✅
+  - `GET /api/deposit/verify` without `session_id` returns `400` + `status=invalid_request` ✅
+  - `GET /api/deposit/verify?session_id=cs_test_unknown_005` returns `200` + `paid=false` + `status=not_found` ✅
+  - Route checks:
+    - `/deposit/pay?id=CHECK005` -> `200`
+    - `/deposit/success?session_id=cs_test_unknown_005` -> `200`
+    - `/deposit/cancel?booking_id=BOOK005` -> `200`
+  - UI checks:
+    - unknown session on success page shows `Payment not confirmed yet` (no paid confirmation)
+    - missing `session_id` on success page shows verification failure message
+    - cancel page shows booking reference and retry links back to `/deposit/pay?id=...`
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/core-baseline-deposit-pay.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/core-baseline-deposit-pay.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/core-baseline-deposit-pay.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/api-deposit-verify-missing.headers`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/api-deposit-verify-missing.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/api-deposit-verify-unknown.headers`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/api-deposit-verify-unknown.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/deposit-route-status.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/success-unknown-session.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/success-missing-session.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-005/cancel-booking-reference.png`
+
+- Next highest-priority action:
+  - Start `CRO-DEPOSIT-PRIMARY-006`: fire primary conversion event only after `paid=true` verification with transaction-level dedupe.

@@ -1,0 +1,9 @@
+HTTP/1.1 400 Bad Request
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+cache-control: no-store
+content-type: application/json
+Date: Thu, 05 Mar 2026 01:09:05 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
