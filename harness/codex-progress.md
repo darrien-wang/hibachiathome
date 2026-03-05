@@ -2357,3 +2357,41 @@
 
 - Next highest-priority action:
   - Start `CRO-DEPOSIT-PRIMARY-006`: fire primary conversion event only after `paid=true` verification with transaction-level dedupe.
+
+## 2026-03-04 (CRO-DEPOSIT-PRIMARY-006 complete: verified paid-only conversion emission with transaction dedupe)
+
+- Completed:
+  - Ran session bootstrap for this feature scope:
+    - `bash <(tr -d '\r' < harness/scripts/codex-session-start.sh)`
+  - Re-used previously captured core baseline evidence for this scope (workflow requirement):
+    - `/deposit/pay?id=BASELINE` load + `Lock Your Date` CTA visibility
+  - Implemented transaction-level conversion dedupe helper in tracking:
+    - `lib/tracking.ts`
+    - added `trackDepositCompletedOnce({ transaction_id, ... })`
+    - enforces non-empty `transaction_id`
+    - stores seen IDs in localStorage key `realhibachi_deposit_completed_tx_ids`
+    - keeps in-memory + persisted dedupe guard for refresh/reopen behavior
+  - Wired paid verification state to conversion emission:
+    - `app/deposit/success/DepositSuccessClient.tsx`
+    - fires conversion only when `/api/deposit/verify` resolves `paid=true` with `transaction_id`
+    - sends `value`, `currency`, `transaction_id` and checkout context fields
+
+- Feature status transition:
+  - `CRO-DEPOSIT-PRIMARY-006` changed from `passes: false -> true`.
+
+- Verified:
+  - Paid verification path emits exactly one `deposit_completed` event on first load ✅
+  - Refresh on the same success URL does not emit a second conversion for the same `transaction_id` ✅
+  - Reopen in a new page (same browser context) does not emit again for the same `transaction_id` ✅
+  - localStorage dedupe registry contains emitted `transaction_id` ✅
+
+- Evidence:
+  - `harness/verification/2026-03-04-cro-deposit-primary-006/core-baseline-deposit-pay.log`
+  - `harness/verification/2026-03-04-cro-deposit-primary-006/core-baseline-deposit-pay.exit`
+  - `harness/verification/2026-03-04-cro-deposit-primary-006/core-baseline-deposit-pay.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-006/deposit-completed-dedupe-check.json`
+  - `harness/verification/2026-03-04-cro-deposit-primary-006/success-paid-first-load.png`
+  - `harness/verification/2026-03-04-cro-deposit-primary-006/success-paid-refresh.png`
+
+- Next highest-priority action:
+  - Start `CRO-DEPOSIT-PRIMARY-007`: add automated tests for success/cancel/refresh and webhook-degraded paths.

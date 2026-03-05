@@ -58,6 +58,11 @@ type DataLayerPayload = AttributionFields & {
   debug_mode?: boolean
 } & Record<string, TrackingParamValue | undefined>
 
+type DepositCompletedTrackResult = {
+  tracked: boolean
+  reason?: "invalid_transaction_id" | "duplicate_transaction_id"
+}
+
 const ATTRIBUTION_KEYS = [
   "utm_source",
   "utm_medium",
@@ -71,6 +76,9 @@ const ATTRIBUTION_KEYS = [
 
 const COOKIE_NAME = "realhibachi_attribution"
 const COOKIE_TTL_DAYS = 90
+const DEPOSIT_COMPLETED_DEDUPE_KEY = "realhibachi_deposit_completed_tx_ids"
+const MAX_DEPOSIT_COMPLETED_DEDUPE_IDS = 200
+const depositCompletedInMemorySet = new Set<string>()
 
 declare global {
   interface Window {
@@ -142,6 +150,68 @@ function removeUndefinedFields<T extends Record<string, unknown>>(input: T): T {
   return Object.fromEntries(entries) as T
 }
 
+function normalizeTransactionId(value: string): string {
+  return value.trim()
+}
+
+function readTrackedDepositTransactionIds(): string[] {
+  if (typeof window === "undefined") return []
+
+  try {
+    const raw = window.localStorage.getItem(DEPOSIT_COMPLETED_DEDUPE_KEY)
+    if (!raw) {
+      return []
+    }
+
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .slice(0, MAX_DEPOSIT_COMPLETED_DEDUPE_IDS)
+  } catch {
+    return []
+  }
+}
+
+function writeTrackedDepositTransactionIds(transactionIds: string[]): void {
+  if (typeof window === "undefined") return
+
+  try {
+    window.localStorage.setItem(DEPOSIT_COMPLETED_DEDUPE_KEY, JSON.stringify(transactionIds))
+  } catch {
+    // Ignore localStorage write failures in private/incognito modes.
+  }
+}
+
+function hasTrackedDepositTransaction(transactionId: string): boolean {
+  if (depositCompletedInMemorySet.has(transactionId)) {
+    return true
+  }
+
+  const fromStorage = readTrackedDepositTransactionIds()
+  if (!fromStorage.includes(transactionId)) {
+    return false
+  }
+
+  for (const id of fromStorage) {
+    depositCompletedInMemorySet.add(id)
+  }
+  return true
+}
+
+function rememberTrackedDepositTransaction(transactionId: string): void {
+  depositCompletedInMemorySet.add(transactionId)
+
+  const fromStorage = readTrackedDepositTransactionIds()
+  const merged = [transactionId, ...fromStorage.filter((id) => id !== transactionId)].slice(0, MAX_DEPOSIT_COMPLETED_DEDUPE_IDS)
+  writeTrackedDepositTransactionIds(merged)
+}
+
 export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 
@@ -204,4 +274,32 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
   }
 
   window.dataLayer.push(normalizedPayload)
+}
+
+export function trackDepositCompletedOnce(
+  params: TrackEventParams & { transaction_id: string },
+): DepositCompletedTrackResult {
+  if (typeof window === "undefined") {
+    return { tracked: false, reason: "invalid_transaction_id" }
+  }
+
+  const transactionId = normalizeTransactionId(params.transaction_id)
+  if (!transactionId) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("trackDepositCompletedOnce requires transaction_id")
+    }
+    return { tracked: false, reason: "invalid_transaction_id" }
+  }
+
+  if (hasTrackedDepositTransaction(transactionId)) {
+    return { tracked: false, reason: "duplicate_transaction_id" }
+  }
+
+  trackEvent("deposit_completed", {
+    ...params,
+    transaction_id: transactionId,
+  })
+
+  rememberTrackedDepositTransaction(transactionId)
+  return { tracked: true }
 }

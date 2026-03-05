@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { trackDepositCompletedOnce } from "@/lib/tracking"
 
 type DepositVerifyStatus = "pending" | "paid" | "refunded" | "not_found" | "invalid_request"
 
@@ -84,6 +85,27 @@ export default function DepositSuccessClient({ sessionId }: DepositSuccessClient
   useEffect(() => {
     void verify()
   }, [verify])
+
+  useEffect(() => {
+    if (state.stage !== "resolved") {
+      return
+    }
+
+    const result = state.payload
+    if (!result.paid || !result.transaction_id) {
+      return
+    }
+
+    trackDepositCompletedOnce({
+      transaction_id: result.transaction_id,
+      value: typeof result.value === "number" ? result.value : undefined,
+      currency: typeof result.currency === "string" ? result.currency : "USD",
+      booking_id: result.booking_id,
+      checkout_session_id: result.session_id || undefined,
+      deposit_status: result.status,
+      conversion_surface: "deposit_success",
+    })
+  }, [state])
 
   const content = (() => {
     if (state.stage === "idle" || state.stage === "loading") {
@@ -193,4 +215,3 @@ export default function DepositSuccessClient({ sessionId }: DepositSuccessClient
     </div>
   )
 }
-

@@ -1,0 +1,35 @@
+{
+  "scenario": "CRO-DEPOSIT-PRIMARY-006",
+  "session_id": "cs_test_paid_006",
+  "transaction_id": "pi_test_006_txn_001",
+  "expected": {
+    "first_load_count": 1,
+    "reload_count": 0,
+    "reopen_same_context_count": 0,
+    "storage_includes_transaction_id": true
+  },
+  "actual": {
+    "first_load_count": 1,
+    "first_load_payload": {
+      "event": "deposit_completed",
+      "page_path": "/deposit/success",
+      "page_title": "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
+      "transaction_id": "pi_test_006_txn_001",
+      "value": 275,
+      "currency": "USD",
+      "booking_id": "BOOK006",
+      "checkout_session_id": "cs_test_paid_006",
+      "deposit_status": "paid",
+      "conversion_surface": "deposit_success"
+    },
+    "reload_count": 0,
+    "reload_payload": null,
+    "reopen_same_context_count": 0,
+    "reopen_same_context_payload": null,
+    "storage_parsed": [
+      "pi_test_006_txn_001"
+    ],
+    "storage_includes_transaction_id": true
+  },
+  "pass": true
+}

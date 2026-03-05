@@ -682,7 +682,7 @@
       "Include value, currency, and transaction_id (payment_intent preferred; session_id fallback) in the conversion payload.",
       "Implement refresh/reopen dedupe guard so the same transaction_id is not emitted more than once."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-DEPOSIT-PRIMARY-007",
