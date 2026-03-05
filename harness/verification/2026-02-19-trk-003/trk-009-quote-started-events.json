@@ -1,0 +1,12 @@
+[
+  {
+    "event": "quote_started",
+    "page_path": "/quoteA",
+    "page_title": "Get Instant Quote A | Real Hibachi - Real Hibachi LA",
+    "quote_surface": "quote_builder_a",
+    "adults": 10,
+    "kids": 0,
+    "tableware_rental": false,
+    "tent_10x10": false
+  }
+]

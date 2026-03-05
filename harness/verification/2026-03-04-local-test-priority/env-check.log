@@ -1,0 +1,13 @@
+[env:check] Using env file: .env.local
+[env:check] OK: STRIPE_SECRET_KEY is set
+[env:check] ERROR: STRIPE_WEBHOOK_SECRET is using a placeholder value.
+[env:check] OK: NEXT_PUBLIC_BASE_URL is set
+[env:check] WARN: SUPABASE_URL is still a placeholder.
+[env:check] WARN: SUPABASE_SERVICE_ROLE_KEY is still a placeholder.
+[env:check] WARN: NEXT_PUBLIC_SUPABASE_URL is still a placeholder.
+[env:check] WARN: NEXT_PUBLIC_SUPABASE_ANON_KEY is still a placeholder.
+[env:check] WARN: RESEND_API_KEY is still a placeholder.
+[env:check] OK: EMAIL_FROM is set
+[env:check] WARN: NEXT_PUBLIC_GTM_ID is still a placeholder.
+[env:check] WARN: Stripe CLI not found. Install it for local webhook forwarding.
+[env:check] Summary: errors=1, warnings=7
