@@ -24,6 +24,8 @@ type DepositVerifyResponse = {
 
 type DepositSuccessClientProps = {
   sessionId: string | null
+  initialBookingId: string | null
+  initialSource: string | null
 }
 
 type VerifyState =
@@ -40,10 +42,29 @@ function formatCurrency(value: number, currency: string) {
   }).format(value)
 }
 
-export default function DepositSuccessClient({ sessionId }: DepositSuccessClientProps) {
+function buildBackToDepositHref(params: { bookingId: string | null; source: string | null }) {
+  if (!params.bookingId) {
+    return "/quoteA"
+  }
+
+  const query = new URLSearchParams()
+  query.set("id", params.bookingId)
+  if (params.source) {
+    query.set("source", params.source)
+  }
+
+  return `/deposit/pay?${query.toString()}`
+}
+
+export default function DepositSuccessClient({ sessionId, initialBookingId, initialSource }: DepositSuccessClientProps) {
   const [state, setState] = useState<VerifyState>({ stage: "idle" })
 
   const canVerify = useMemo(() => typeof sessionId === "string" && sessionId.length > 0, [sessionId])
+  const resolvedBookingId = state.stage === "resolved" ? state.payload.booking_id ?? null : null
+  const backToDepositHref = useMemo(
+    () => buildBackToDepositHref({ bookingId: resolvedBookingId ?? initialBookingId, source: initialSource }),
+    [initialBookingId, initialSource, resolvedBookingId],
+  )
 
   const verify = useCallback(async () => {
     if (!sessionId) {
@@ -200,7 +221,7 @@ export default function DepositSuccessClient({ sessionId }: DepositSuccessClient
             )}
             <div className="flex flex-wrap gap-3">
               <Button asChild>
-                <Link href="/deposit/pay">Back to Deposit</Link>
+                <Link href={backToDepositHref}>Back to Deposit</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href="/deposit/cancel">Payment Help</Link>

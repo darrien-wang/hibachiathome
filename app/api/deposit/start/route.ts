@@ -204,8 +204,19 @@ function buildMetadata(payload: NormalizedDepositStartPayload, depositAmount: nu
   return Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined)) as Record<string, string>
 }
 
-function buildSuccessUrl(origin: string): string {
-  return `${origin}${CHECKOUT_SUCCESS_PATH}?session_id={CHECKOUT_SESSION_ID}`
+function buildSuccessUrl(origin: string, payload: NormalizedDepositStartPayload): string {
+  const base = `${origin}${CHECKOUT_SUCCESS_PATH}?session_id={CHECKOUT_SESSION_ID}`
+  const params = new URLSearchParams()
+
+  if (payload.bookingId) {
+    params.set("booking_id", payload.bookingId)
+  }
+  if (payload.source) {
+    params.set("source", payload.source)
+  }
+
+  const suffix = params.toString()
+  return suffix ? `${base}&${suffix}` : base
 }
 
 function buildCancelUrl(origin: string, payload: NormalizedDepositStartPayload): string {
@@ -254,34 +265,88 @@ function normalizePaymentIntentId(paymentIntent: Stripe.Checkout.Session["paymen
 }
 
 async function persistPendingDepositState(params: {
-  bookingId?: string
+  payload: NormalizedDepositStartPayload
   sessionId: string
   paymentIntentId?: string
   depositAmount: number
 }) {
-  if (!isLikelyUuid(params.bookingId)) {
-    return
-  }
-
   const supabase = createServerSupabaseClient()
   if (!supabase) {
     console.warn("[deposit/start] Unable to persist canonical pending state: Supabase is not configured.")
     return
   }
 
-  const { error } = await supabase
-    .from("bookings")
-    .update({
-      deposit_status: "pending",
-      deposit_amount: Number(params.depositAmount.toFixed(2)),
-      stripe_session_id: params.sessionId,
-      payment_intent_id: params.paymentIntentId ?? null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.bookingId)
+  const canonicalDepositAmount = Number(params.depositAmount.toFixed(2))
+  const bookingId = params.payload.bookingId
+  const updatePayload = {
+    deposit_status: "pending",
+    deposit_amount: canonicalDepositAmount,
+    stripe_session_id: params.sessionId,
+    payment_intent_id: params.paymentIntentId ?? null,
+    updated_at: new Date().toISOString(),
+  }
 
+  if (isLikelyUuid(bookingId)) {
+    const { error } = await supabase.from("bookings").update(updatePayload).eq("id", bookingId)
+    if (error) {
+      console.error("[deposit/start] Failed to persist canonical pending deposit state:", error)
+    }
+    return
+  }
+
+  const eventDate =
+    params.payload.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(params.payload.eventDate)
+      ? params.payload.eventDate
+      : new Date().toISOString().slice(0, 10)
+  const eventTime = params.payload.eventTime || "TBD"
+  const customerName = params.payload.customerName || "Guest"
+  const customerEmail = isLikelyEmail(params.payload.customerEmail) ? params.payload.customerEmail : "unknown@example.com"
+  const guestAdults = Number.isFinite(params.payload.adults) ? Math.max(0, Math.round(params.payload.adults as number)) : 0
+  const guestKids = Number.isFinite(params.payload.kids) ? Math.max(0, Math.round(params.payload.kids as number)) : 0
+  const totalCostRaw = Number.isFinite(params.payload.totalAmount)
+    ? Number(params.payload.totalAmount)
+    : Number.isFinite(params.payload.estimateHigh)
+      ? Number(params.payload.estimateHigh)
+      : canonicalDepositAmount
+  const totalCost = Number(Math.max(0, totalCostRaw).toFixed(2))
+
+  const markerParts = [
+    "Auto-generated booking for deposit checkout",
+    params.payload.bookingId ? `external_booking_id=${params.payload.bookingId}` : undefined,
+    params.payload.source ? `deposit_source=${params.payload.source}` : undefined,
+  ].filter(Boolean)
+
+  const placeholderBooking: Record<string, unknown> = {
+    full_name: customerName,
+    email: customerEmail,
+    phone: "TBD",
+    address: params.payload.location || "TBD",
+    zip_code: "00000",
+    event_date: eventDate,
+    event_time: eventTime,
+    guest_adults: guestAdults,
+    guest_kids: guestKids,
+    price_adult: 0,
+    price_kid: 0,
+    travel_fee: 0,
+    premium_proteins: [],
+    add_ons: [],
+    special_requests: markerParts.join(" | "),
+    total_cost: totalCost,
+    status: "pending",
+    deposit: Math.round(canonicalDepositAmount),
+    deposit_amount: canonicalDepositAmount,
+    deposit_status: "pending",
+    stripe_session_id: params.sessionId,
+    payment_intent_id: params.paymentIntentId ?? null,
+  }
+
+  const { error } = await supabase.from("bookings").insert(placeholderBooking)
   if (error) {
-    console.error("[deposit/start] Failed to persist canonical pending deposit state:", error)
+    console.error("[deposit/start] Failed to insert placeholder booking for non-UUID deposit flow:", error, {
+      bookingIdFromPayload: bookingId,
+      sessionId: params.sessionId,
+    })
   }
 }
 
@@ -309,7 +374,7 @@ async function createCheckoutSession(
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: isLikelyEmail(payload.customerEmail) ? payload.customerEmail : undefined,
-    success_url: buildSuccessUrl(origin),
+    success_url: buildSuccessUrl(origin, payload),
     cancel_url: buildCancelUrl(origin, payload),
     line_items: [
       {
@@ -356,7 +421,7 @@ export async function POST(request: NextRequest) {
   try {
     const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload)
     await persistPendingDepositState({
-      bookingId: payload.bookingId,
+      payload,
       sessionId: session.id,
       paymentIntentId,
       depositAmount,
@@ -379,7 +444,7 @@ export async function GET(request: NextRequest) {
   try {
     const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload)
     await persistPendingDepositState({
-      bookingId: payload.bookingId,
+      payload,
       sessionId: session.id,
       paymentIntentId,
       depositAmount,

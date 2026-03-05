@@ -13,5 +13,8 @@ function firstParam(value: string | string[] | undefined): string | null {
 export default async function DepositSuccessPage({ searchParams }: DepositSuccessPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {}
   const sessionId = firstParam(resolvedSearchParams.session_id)
-  return <DepositSuccessClient sessionId={sessionId} />
+  const bookingId = firstParam(resolvedSearchParams.booking_id)
+  const source = firstParam(resolvedSearchParams.source)
+
+  return <DepositSuccessClient sessionId={sessionId} initialBookingId={bookingId} initialSource={source} />
 }
