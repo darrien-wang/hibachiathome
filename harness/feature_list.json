@@ -928,5 +928,17 @@
       "Verify no active quote/deposit path still emits QUOTE-* identifiers in UI, URL, Stripe metadata, or success deep links."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-STRIPE-PRE-ENV-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Pre-branch deployments must resolve Stripe secrets from PRE_* variables while preserving STRIPE_* behavior for production and local usage.",
+    "steps": [
+      "Add a shared Stripe environment resolver that detects pre branch deployments via VERCEL_GIT_COMMIT_REF.",
+      "Use PRE_STRIPE_SECRET_KEY / PRE_STRIPE_WEBHOOK_SECRET as first priority on pre branch, with STRIPE_* fallback for backward compatibility.",
+      "Wire webhook signature verification and Stripe server client initialization through the shared resolver."
+    ],
+    "passes": false
   }
 ]

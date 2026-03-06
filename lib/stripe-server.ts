@@ -1,12 +1,16 @@
 import Stripe from "stripe"
+import { isPreBranchDeployment, resolveStripeSecretKey } from "@/lib/stripe-env"
 
 let stripeClient: Stripe | null = null
 
 export function getStripeServerClient(): Stripe {
-  const secretKey = process.env.STRIPE_SECRET_KEY?.trim()
+  const secretKey = resolveStripeSecretKey()
 
   if (!secretKey) {
-    throw new Error("Missing STRIPE_SECRET_KEY environment variable.")
+    const envHint = isPreBranchDeployment()
+      ? "Missing Stripe secret key. Expected PRE_STRIPE_SECRET_KEY (or fallback STRIPE_SECRET_KEY)."
+      : "Missing STRIPE_SECRET_KEY environment variable."
+    throw new Error(envHint)
   }
 
   if (!stripeClient) {

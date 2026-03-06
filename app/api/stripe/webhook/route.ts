@@ -3,6 +3,7 @@ import type Stripe from "stripe"
 import { Resend } from "resend"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
+import { isPreBranchDeployment, resolveStripeWebhookSecret } from "@/lib/stripe-env"
 import { buildDepositPaidEventEnvelope, buildPaymentRefundedEventEnvelope, type CrmBookingSnapshot } from "@/lib/crm-integration"
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 
@@ -643,10 +644,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: false, error: "Missing stripe-signature header." }, { status: 400 })
   }
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim()
+  const webhookSecret = resolveStripeWebhookSecret()
   if (!webhookSecret) {
+    const errorMessage = isPreBranchDeployment()
+      ? "Missing Stripe webhook secret. Expected PRE_STRIPE_WEBHOOK_SECRET (or fallback STRIPE_WEBHOOK_SECRET)."
+      : "Missing STRIPE_WEBHOOK_SECRET environment variable."
     return NextResponse.json(
-      { received: false, error: "Missing STRIPE_WEBHOOK_SECRET environment variable." },
+      { received: false, error: errorMessage },
       { status: 500 },
     )
   }
