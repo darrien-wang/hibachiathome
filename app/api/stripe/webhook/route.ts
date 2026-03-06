@@ -135,23 +135,23 @@ async function sendDepositConfirmationEmail(params: {
   }
 
   const resend = new Resend(resendApiKey)
-  const subject = `Real Hibachi deposit confirmed for booking ${bookingId}`
+  const subject = `Real Hibachi deposit confirmed for booking number ${bookingId}`
   const text = [
     "Thanks for your deposit payment with Real Hibachi.",
-    `Booking ID: ${bookingId}`,
+    `Booking Number: ${bookingId}`,
     `Update invoice details here: ${selfServiceLink}`,
     "Reply to this email if you need help.",
   ].join("\n")
   const html = [
     "<p>Thanks for your deposit payment with Real Hibachi.</p>",
-    `<p><strong>Booking ID:</strong> ${bookingId}</p>`,
+    `<p><strong>Booking Number:</strong> ${bookingId}</p>`,
     `<p><a href=\"${selfServiceLink}\">Update invoice details</a></p>`,
     "<p>Reply to this email if you need help.</p>",
   ].join("")
 
   try {
     const { data, error } = await resend.emails.send({
-      from: asNonEmptyString(process.env.EMAIL_FROM) ?? "noreply@hibachicatering.com",
+      from: asNonEmptyString(process.env.EMAIL_FROM) ?? "support@realhibachi.com",
       to: [recipientEmail],
       subject,
       text,
@@ -270,7 +270,7 @@ async function sendDepositConfirmationSmsViaSendly(params: {
       },
       body: JSON.stringify({
         to: params.recipientPhone,
-        text: `Real Hibachi: deposit confirmed for booking ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
+        text: `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
       }),
       cache: "no-store",
     })
@@ -323,7 +323,7 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   const body = new URLSearchParams({
     To: params.recipientPhone,
     From: fromNumber,
-    Body: `Real Hibachi: deposit confirmed for booking ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
+    Body: `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
   })
 
   try {

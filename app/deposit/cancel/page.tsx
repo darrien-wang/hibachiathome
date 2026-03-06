@@ -37,7 +37,7 @@ export default async function DepositCancelPage({ searchParams }: DepositCancelP
             </p>
             {bookingId && (
               <p className="text-xs text-gray-500 break-all">
-                Booking reference: <span className="font-mono">{bookingId}</span>
+                Booking Number: <span className="font-mono">{bookingId}</span>
               </p>
             )}
             <div className="flex flex-wrap gap-3">

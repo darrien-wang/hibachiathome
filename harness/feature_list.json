@@ -892,5 +892,29 @@
       "Update README with one-command startup and daily local test workflow."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-DEPOSIT-SUCCESS-COPY-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Refine deposit success self-service copy and remove redundant CTAs to keep only essential next actions.",
+    "steps": [
+      "Update success-state helper copy to emphasize self-service party-day menu and contact detail updates.",
+      "Replace generic invoice CTA label with a task-oriented self-service label for party details.",
+      "Remove redundant bottom actions on paid success state and keep only essential buttons."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-BOOKING-NAMING-001",
+    "priority": "P0",
+    "category": "ux-copy",
+    "description": "Unify customer-facing identifier language to 'Booking Number (RH-...)' and avoid exposing multiple technical IDs on deposit flows.",
+    "steps": [
+      "Replace customer-facing labels like Booking ID/Booking reference with Booking Number across deposit pay/success/cancel screens.",
+      "Update webhook customer notification copy (email and SMS) to use Booking Number consistently.",
+      "Remove or de-emphasize technical IDs (transaction/session/request IDs) from default customer-facing success content."
+    ],
+    "passes": false
   }
 ]

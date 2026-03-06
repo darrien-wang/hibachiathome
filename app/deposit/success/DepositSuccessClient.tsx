@@ -46,20 +46,6 @@ function formatCurrency(value: number, currency: string) {
   }).format(value)
 }
 
-function buildBackToDepositHref(params: { bookingId: string | null; source: string | null }) {
-  if (!params.bookingId) {
-    return "/quoteA"
-  }
-
-  const query = new URLSearchParams()
-  query.set("id", params.bookingId)
-  if (params.source) {
-    query.set("source", params.source)
-  }
-
-  return `/deposit/pay?${query.toString()}`
-}
-
 function normalizeText(value: string | null | undefined): string | null {
   if (typeof value !== "string") {
     return null
@@ -120,10 +106,7 @@ export default function DepositSuccessClient({
   const resolvedBookingId = state.stage === "resolved" ? state.payload.booking_id ?? null : null
   const resolvedEmail = state.stage === "resolved" ? state.payload.email ?? null : null
   const resolvedPhone = state.stage === "resolved" ? state.payload.phone ?? null : null
-  const backToDepositHref = useMemo(
-    () => buildBackToDepositHref({ bookingId: resolvedBookingId ?? initialBookingId, source: initialSource }),
-    [initialBookingId, initialSource, resolvedBookingId],
-  )
+  const isPaidState = state.stage === "resolved" && state.payload.paid
   const invoiceSelfServiceHref = useMemo(
     () =>
       buildInvoiceSelfServiceHref({
@@ -241,20 +224,16 @@ export default function DepositSuccessClient({
                 <span className="font-medium">{formatCurrency(result.value, (result.currency || "USD").toUpperCase())}</span>
               </p>
             )}
-            {result.transaction_id && (
-              <p className="mt-1 break-all">
-                Transaction ID: <span className="font-mono">{result.transaction_id}</span>
-              </p>
-            )}
             {result.booking_id && (
               <p className="mt-1 break-all">
-                Booking ID: <span className="font-mono">{result.booking_id}</span>
+                Booking Number: <span className="font-mono">{result.booking_id}</span>
               </p>
             )}
           </div>
           {invoiceSelfServiceHref && (
             <p className="text-sm text-gray-700">
-              Need to update invoice details or contact information? Use the self-service invoice link below.
+              Need to confirm your party-day menu selections or update contact information? Use the self-service link
+              below.
             </p>
           )}
         </div>
@@ -289,25 +268,26 @@ export default function DepositSuccessClient({
           </CardHeader>
           <CardContent className="space-y-4">
             {content}
-            {canVerify && sessionId && (
-              <p className="text-xs text-gray-500 break-all">
-                Checkout session: <span className="font-mono">{sessionId}</span>
-              </p>
-            )}
             <div className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href={backToDepositHref}>Back to Deposit</Link>
-              </Button>
-              {invoiceSelfServiceHref && (
-                <Button asChild variant="outline">
+              {isPaidState && invoiceSelfServiceHref && (
+                <Button asChild>
                   <a href={invoiceSelfServiceHref} target="_blank" rel="noreferrer">
-                    Update Invoice Details
+                    Manage Party-Day Details
                   </a>
                 </Button>
               )}
-              <Button asChild variant="outline">
-                <Link href="/deposit/cancel">Payment Help</Link>
-              </Button>
+              {!isPaidState && invoiceSelfServiceHref && (
+                <Button asChild variant="outline">
+                  <a href={invoiceSelfServiceHref} target="_blank" rel="noreferrer">
+                    Open Self-Service Details
+                  </a>
+                </Button>
+              )}
+              {!isPaidState && (
+                <Button asChild variant="outline">
+                  <Link href="/deposit/cancel">Payment Help</Link>
+                </Button>
+              )}
               <Button asChild variant="outline">
                 <Link href="/contact">Contact Support</Link>
               </Button>

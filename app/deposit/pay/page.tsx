@@ -137,7 +137,7 @@ export default function DepositPaymentPage() {
   useEffect(() => {
     async function fetchBookingDetails() {
       if (!bookingId) {
-        setError("Booking ID is missing. Please check if your link is complete.")
+        setError("Booking number is missing. Please check if your link is complete.")
         setLoading(false)
         return
       }
@@ -333,7 +333,7 @@ export default function DepositPaymentPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Booking ID</p>
+                  <p className="text-sm text-gray-500">Booking Number</p>
                   <p className="font-medium">{booking.id}</p>
                 </div>
                 <div>
