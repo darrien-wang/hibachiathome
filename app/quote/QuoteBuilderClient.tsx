@@ -11,6 +11,7 @@ import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, 
 import { siteConfig } from "@/config/site"
 import { getDepositAmount } from "@/config/deposit"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
+import { generateRhBookingNumber } from "@/lib/booking-number"
 import { trackEvent } from "@/lib/tracking"
 import {
   buildCallScript,
@@ -266,8 +267,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
 
   const displayPhone = "213-770-7788"
   const phoneRaw = "2137707788"
-  const displayEmail = "realhibachiathome@gmail.com"
-  const emailTo = "realhibachiathome@gmail.com"
+  const displayEmail = "support@realhibachi.com"
+  const emailTo = "support@realhibachi.com"
   const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBody)}`
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
@@ -337,7 +338,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const onDepositLockClick = () => {
     if (depositLockDisabled) return
 
-    const bookingId = `QUOTE-${variant}-${Date.now()}`
+    const bookingId = generateRhBookingNumber()
 
     trackEvent("ab_test_conversion", {
       experiment_id: "quote_route_split_v1",
@@ -372,7 +373,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const onBookOnlineClick = () => {
     if (depositLockDisabled) return
 
-    const bookingId = `QUOTE-${variant}-${Date.now()}`
+    const bookingId = generateRhBookingNumber()
 
     trackEvent("ab_test_conversion", {
       experiment_id: "quote_route_split_v1",

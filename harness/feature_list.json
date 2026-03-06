@@ -916,5 +916,17 @@
       "Remove or de-emphasize technical IDs (transaction/session/request IDs) from default customer-facing success content."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-BOOKING-NAMING-002",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Quote entry points must generate and carry RH booking numbers so deposit pages never surface legacy QUOTE-* identifiers.",
+    "steps": [
+      "Replace quote CTA temporary ID generator with RH-YYYYMMDD-#### booking number generation.",
+      "Ensure deposit/pay prefill flow normalizes incoming booking_number/id to RH format before rendering and checkout-start handoff.",
+      "Verify no active quote/deposit path still emits QUOTE-* identifiers in UI, URL, Stripe metadata, or success deep links."
+    ],
+    "passes": false
   }
 ]

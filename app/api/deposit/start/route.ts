@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { Resend } from "resend"
 import { getDepositAmount } from "@/config/deposit"
+import { generateRhBookingNumber, normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
@@ -104,10 +105,32 @@ function normalizeCurrency(value: unknown): string {
   return /^[a-z]{3}$/.test(normalized) ? normalized : "usd"
 }
 
+function resolveBookingId(input: { bookingId?: string; source?: string }): string | undefined {
+  if (isLikelyUuid(input.bookingId)) {
+    return input.bookingId
+  }
+
+  const normalizedRhBookingId = normalizeRhBookingNumber(input.bookingId)
+  if (normalizedRhBookingId) {
+    return normalizedRhBookingId
+  }
+
+  if (shouldUseRhBookingNumbers(input.source)) {
+    return generateRhBookingNumber()
+  }
+
+  return input.bookingId
+}
+
 function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDepositStartPayload {
+  const source = normalizeString(payload.source)
+
   return {
-    bookingId: normalizeString(payload.bookingId),
-    source: normalizeString(payload.source),
+    bookingId: resolveBookingId({
+      bookingId: normalizeString(payload.bookingId),
+      source,
+    }),
+    source,
     customerName: normalizeString(payload.customerName),
     customerEmail: normalizeString(payload.customerEmail),
     eventDate: normalizeString(payload.eventDate),

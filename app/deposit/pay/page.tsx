@@ -10,6 +10,7 @@ import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { getBookingDetails } from "@/app/actions/booking"
 import { getDepositAmount } from "@/config/deposit"
+import { generateRhBookingNumber, normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { trackEvent } from "@/lib/tracking"
 
 type BookingPreview = {
@@ -31,8 +32,6 @@ type BookingPreview = {
   premium_proteins?: Array<{ quantity: number; unit_price: number }>
   add_ons?: Array<{ quantity: number; unit_price: number }>
 }
-
-const PREFILL_SOURCES = new Set(["quoteA", "quoteB", "estimation"])
 
 function parseNumber(input: string | null): number | undefined {
   if (!input) return undefined
@@ -85,9 +84,16 @@ function calculateTotalAmount(booking: BookingPreview): number {
 
 export default function DepositPaymentPage() {
   const searchParams = useSearchParams()
-  const bookingId = searchParams.get("id") || ""
+  const rawBookingId = searchParams.get("id") || ""
   const source = searchParams.get("source") || ""
-  const isPrefillSource = PREFILL_SOURCES.has(source)
+  const isPrefillSource = shouldUseRhBookingNumbers(source)
+  const bookingId = useMemo(() => {
+    if (!isPrefillSource) {
+      return rawBookingId
+    }
+
+    return normalizeRhBookingNumber(rawBookingId) ?? generateRhBookingNumber()
+  }, [isPrefillSource, rawBookingId])
   const customerNameParam = searchParams.get("customer_name")?.trim() || ""
   const customerEmailParam = searchParams.get("customer_email")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
