@@ -1,0 +1,8 @@
+{
+  "item": "CPL-010",
+  "date": "2026-03-11",
+  "transformBefore": "none",
+  "transformAfter": "matrix(1, 0, 0, 1, -80.1229, -68.6768)",
+  "moved": true,
+  "ariaExpanded": "false"
+}

@@ -979,8 +979,8 @@
       "Run smoke verification on quote/deposit pages and any affected card/list components to confirm unified display output."
     ],
     "passes": true
-  }
-  ,{
+  },
+  {
     "id": "CRO-BOOKING-NAMING-004",
     "priority": "P0",
     "category": "integration",
@@ -1121,6 +1121,112 @@
       "Update quote tier labels and helper copy to explicitly show $45.9/adult and $22.95/child for Weekday Saver.",
       "Update homepage Weekday Saver pricing bullets so customer-facing pricing terms match quote calculation.",
       "Verify / and /quoteA reflect the mixed pricing terms and no stale Weekday Saver per-person flat copy remains."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-LIVECHAT-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Integrate independent realhibachi-livechat widget into marketing pages with conversion-oriented triggers and analytics bridge.",
+    "steps": [
+      "Load external live chat widget script from configurable base URL in global layout without blocking page render.",
+      "Pass route context to widget and enable conversion-focused proactive prompts on high-intent pages (/quoteA and /deposit/pay).",
+      "Bridge widget custom events to marketing analytics events for open, message, lead submit, and CTA click behavior.",
+      "Verify chat launcher renders on desktop/mobile and route transitions preserve widget context in App Router navigation."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-LIVECHAT-LOCAL-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Restore local livechat launcher visibility on marketing pages by wiring local widget base URL and verifying render behavior.",
+    "steps": [
+      "Set NEXT_PUBLIC_LIVECHAT_BASE_URL in local environment to reachable livechat service endpoint.",
+      "Ensure livechat service is reachable from browser context used for local manual testing.",
+      "Reload /quoteA and verify the chat launcher button is visible and clickable.",
+      "Verify embedded chat panel can initialize a session after launcher open."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-LIVECHAT-LOCAL-002",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Harden local livechat launcher visibility so chat button still appears when local widget base URL env is missing or UI layering would otherwise hide launcher.",
+    "steps": [
+      "Use a development fallback base URL for livechat widget injection when NEXT_PUBLIC_LIVECHAT_BASE_URL is not set.",
+      "Set explicit high z-index on injected widget script config so launcher and panel stay above marketing floating UI elements.",
+      "Add script re-injection guard to replace stale widget src when base URL changes during local dev sessions.",
+      "Verify /quoteA renders chat launcher button and opens embed panel in local environment."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-TIME-WINDOW-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Unify customer-facing scheduling options to the new booking slots 1 PM, 4 PM, 7 PM, and 9 PM across quote and booking surfaces.",
+    "steps": [
+      "Update quote time dropdown options from 12:00/14:00/16:00/19:00 to 13:00/16:00/19:00/21:00.",
+      "Update booking availability slot generation so available times align to the same four-slot policy.",
+      "Update booking timeslot API mock outputs to the same slot set to avoid stale time options in dependent pages.",
+      "Verify all affected scheduling UI surfaces consistently show only 1 PM, 4 PM, 7 PM, and 9 PM."
+    ],
+    "passes": false
+  },
+  {
+    "id": "CRO-LIVECHAT-CRM-003",
+    "priority": "P1",
+    "category": "integration",
+    "description": "Prepare marketing-livechat integration contract for external CRM channel gateway while keeping conversion flow anchored to Real Hibachi order/deposit pages.",
+    "steps": [
+      "Define and document required widget context fields passed to livechat for CRM-correlated sessions (path/source/intent/order hints).",
+      "Pass through CRM identifiers from quote URL params to livechat widget context (crm_conversation_id/crm_channel/crm_contact_id/order_hint) with compact payload rules.",
+      "Ensure deposit success and invoice self-service deep links remain generated from Real Hibachi systems, not external CRM ownership.",
+      "Verify tracking events still use website funnel semantics even when the initial conversation is resumed from CRM channel context.",
+      "Add Playwright E2E coverage that stubs widget setContext and asserts CRM context passthrough on /quoteA deep-link entry.",
+      "Add harness verification notes for cross-channel attribution consistency in quote/deposit conversions."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-LIVECHAT-UX-004",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Marketing-embedded livechat launcher presents unified Live Chat copy with human avatar and supports drag repositioning from launcher surface.",
+    "steps": [
+      "Update launcher copy contract to show Live Chat in idle state across quote/deposit marketing pages.",
+      "Pass avatar URL context into widget script so launcher uses human-profile visual instead of monogram badge.",
+      "Verify launcher can be dragged to a new position and does not accidentally toggle open/close when drag gesture occurs.",
+      "Capture UI evidence on /quoteA with launcher label, avatar render, and drag-move transform change."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-DEPOSIT-MAINFLOW-009",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Deposit start placeholder booking insert supports RH booking flow without numeric type errors, so webhook can reconcile paid state by stripe_session_id.",
+    "steps": [
+      "Ensure placeholder booking payload uses schema-compatible numeric types for legacy integer fields (not decimal strings/floats where bigint is expected).",
+      "Verify /api/deposit/start can persist pending booking state for RH booking_id inputs returned from livechat deposit-link.",
+      "Verify checkout.session.completed webhook finds the booking by stripe_session_id and transitions deposit status to paid.",
+      "Verify /api/deposit/verify returns paid=true for the same session after webhook completion."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-QA-006",
+    "priority": "P0",
+    "category": "quality",
+    "description": "Enforce mandatory E2E validation on every implementation cycle with JSON evidence output from marketing verification scripts.",
+    "steps": [
+      "Update codex verification flow to execute Playwright E2E by default after lint/build.",
+      "Ensure E2E run emits JSON report artifacts under harness verification paths for auditability.",
+      "Fail verification immediately when E2E fails to block incomplete delivery claims.",
+      "Document the required E2E-first completion rule in harness scripts/log output for consistent usage."
     ],
     "passes": true
   }

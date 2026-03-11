@@ -24,6 +24,14 @@ type DepositStartPayload = {
   totalAmount?: number
   depositAmount?: number
   currency?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+  gclid?: string
+  wbraid?: string
+  gbraid?: string
 }
 
 type NormalizedDepositStartPayload = {
@@ -42,12 +50,35 @@ type NormalizedDepositStartPayload = {
   totalAmount?: number
   depositAmount?: number
   currency: string
+  attribution: AttributionFields
+}
+
+type AttributionFields = {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+  gclid?: string
+  wbraid?: string
+  gbraid?: string
 }
 
 const CHECKOUT_SUCCESS_PATH = "/deposit/success"
 const CHECKOUT_CANCEL_PATH = "/deposit/cancel"
 const MAX_METADATA_LENGTH = 500
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const ATTRIBUTION_COOKIE_NAME = "realhibachi_attribution"
+const ATTRIBUTION_KEYS: Array<keyof AttributionFields> = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "gclid",
+  "wbraid",
+  "gbraid",
+]
 
 function normalizeString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -105,6 +136,76 @@ function normalizeCurrency(value: unknown): string {
   return /^[a-z]{3}$/.test(normalized) ? normalized : "usd"
 }
 
+function normalizeAttributionValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+function normalizeAttributionInput(value: Partial<AttributionFields> | undefined): AttributionFields {
+  if (!value || typeof value !== "object") return {}
+  return {
+    utm_source: normalizeAttributionValue(value.utm_source),
+    utm_medium: normalizeAttributionValue(value.utm_medium),
+    utm_campaign: normalizeAttributionValue(value.utm_campaign),
+    utm_term: normalizeAttributionValue(value.utm_term),
+    utm_content: normalizeAttributionValue(value.utm_content),
+    gclid: normalizeAttributionValue(value.gclid),
+    wbraid: normalizeAttributionValue(value.wbraid),
+    gbraid: normalizeAttributionValue(value.gbraid),
+  }
+}
+
+function parseAttributionFromSearchParams(params: URLSearchParams): AttributionFields {
+  return normalizeAttributionInput({
+    utm_source: params.get("utm_source") ?? undefined,
+    utm_medium: params.get("utm_medium") ?? undefined,
+    utm_campaign: params.get("utm_campaign") ?? undefined,
+    utm_term: params.get("utm_term") ?? undefined,
+    utm_content: params.get("utm_content") ?? undefined,
+    gclid: params.get("gclid") ?? undefined,
+    wbraid: params.get("wbraid") ?? undefined,
+    gbraid: params.get("gbraid") ?? undefined,
+  })
+}
+
+function parseAttributionFromCookieHeader(cookieHeader: string | null): AttributionFields {
+  if (!cookieHeader) return {}
+  const cookieEntries = cookieHeader.split(";").map((part) => part.trim())
+  const rawEntry = cookieEntries.find((entry) => entry.startsWith(`${ATTRIBUTION_COOKIE_NAME}=`))
+  if (!rawEntry) return {}
+  const rawValue = rawEntry.slice(`${ATTRIBUTION_COOKIE_NAME}=`.length)
+
+  try {
+    const decoded = decodeURIComponent(rawValue)
+    const parsed = JSON.parse(decoded) as Record<string, unknown>
+    return normalizeAttributionInput({
+      utm_source: parsed.utm_source as string | undefined,
+      utm_medium: parsed.utm_medium as string | undefined,
+      utm_campaign: parsed.utm_campaign as string | undefined,
+      utm_term: parsed.utm_term as string | undefined,
+      utm_content: parsed.utm_content as string | undefined,
+      gclid: parsed.gclid as string | undefined,
+      wbraid: parsed.wbraid as string | undefined,
+      gbraid: parsed.gbraid as string | undefined,
+    })
+  } catch {
+    return {}
+  }
+}
+
+function mergeAttributionSources(params: {
+  cookie: AttributionFields
+  payload: AttributionFields
+  query: AttributionFields
+}): AttributionFields {
+  const merged: AttributionFields = {}
+  for (const key of ATTRIBUTION_KEYS) {
+    merged[key] = params.cookie[key] ?? params.payload[key] ?? params.query[key]
+  }
+  return normalizeAttributionInput(merged)
+}
+
 function resolveBookingId(input: { bookingId?: string; source?: string }): string | undefined {
   if (isLikelyUuid(input.bookingId)) {
     return input.bookingId
@@ -144,6 +245,16 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
     totalAmount: normalizeNumber(payload.totalAmount),
     depositAmount: normalizeNumber(payload.depositAmount),
     currency: normalizeCurrency(payload.currency),
+    attribution: normalizeAttributionInput({
+      utm_source: payload.utm_source,
+      utm_medium: payload.utm_medium,
+      utm_campaign: payload.utm_campaign,
+      utm_term: payload.utm_term,
+      utm_content: payload.utm_content,
+      gclid: payload.gclid,
+      wbraid: payload.wbraid,
+      gbraid: payload.gbraid,
+    }),
   }
 }
 
@@ -166,6 +277,25 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
     totalAmount: params.get("total_amount") ?? undefined,
     depositAmount: params.get("deposit_amount") ?? undefined,
     currency: params.get("currency") ?? undefined,
+    utm_source: params.get("utm_source") ?? undefined,
+    utm_medium: params.get("utm_medium") ?? undefined,
+    utm_campaign: params.get("utm_campaign") ?? undefined,
+    utm_term: params.get("utm_term") ?? undefined,
+    utm_content: params.get("utm_content") ?? undefined,
+    gclid: params.get("gclid") ?? undefined,
+    wbraid: params.get("wbraid") ?? undefined,
+    gbraid: params.get("gbraid") ?? undefined,
+  })
+}
+
+function buildResolvedAttribution(request: NextRequest, payload: NormalizedDepositStartPayload): AttributionFields {
+  const fromCookie = parseAttributionFromCookieHeader(request.headers.get("cookie"))
+  const fromPayload = payload.attribution
+  const fromQuery = parseAttributionFromSearchParams(request.nextUrl.searchParams)
+  return mergeAttributionSources({
+    cookie: fromCookie,
+    payload: fromPayload,
+    query: fromQuery,
   })
 }
 
@@ -206,7 +336,12 @@ function metadataField(value: unknown): string | undefined {
   return text.slice(0, MAX_METADATA_LENGTH)
 }
 
-function buildMetadata(payload: NormalizedDepositStartPayload, depositAmount: number, currency: string): Record<string, string> {
+function buildMetadata(
+  payload: NormalizedDepositStartPayload,
+  depositAmount: number,
+  currency: string,
+  attribution: AttributionFields,
+): Record<string, string> {
   const metadata: Record<string, string | undefined> = {
     booking_id: metadataField(payload.bookingId),
     deposit_source: metadataField(payload.source),
@@ -223,6 +358,14 @@ function buildMetadata(payload: NormalizedDepositStartPayload, depositAmount: nu
     total_amount: metadataField(payload.totalAmount),
     deposit_amount: metadataField(depositAmount.toFixed(2)),
     deposit_currency: metadataField(currency.toUpperCase()),
+    utm_source: metadataField(attribution.utm_source),
+    utm_medium: metadataField(attribution.utm_medium),
+    utm_campaign: metadataField(attribution.utm_campaign),
+    utm_term: metadataField(attribution.utm_term),
+    utm_content: metadataField(attribution.utm_content),
+    gclid: metadataField(attribution.gclid),
+    wbraid: metadataField(attribution.wbraid),
+    gbraid: metadataField(attribution.gbraid),
   }
 
   return Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined)) as Record<string, string>
@@ -237,6 +380,30 @@ function buildSuccessUrl(origin: string, payload: NormalizedDepositStartPayload)
   }
   if (payload.source) {
     params.set("source", payload.source)
+  }
+  if (payload.customerName) {
+    params.set("customer_name", payload.customerName)
+  }
+  if (payload.customerEmail) {
+    params.set("customer_email", payload.customerEmail)
+  }
+  if (payload.eventDate) {
+    params.set("event_date", payload.eventDate)
+  }
+  if (payload.eventTime) {
+    params.set("event_time", payload.eventTime)
+  }
+  if (payload.location) {
+    params.set("location", payload.location)
+  }
+  if (typeof payload.adults === "number" && Number.isFinite(payload.adults)) {
+    params.set("adults", String(Math.max(0, Math.round(payload.adults))))
+  }
+  if (typeof payload.kids === "number" && Number.isFinite(payload.kids)) {
+    params.set("kids", String(Math.max(0, Math.round(payload.kids))))
+  }
+  if (typeof payload.tent10x10 === "boolean") {
+    params.set("tent_10x10", payload.tent10x10 ? "yes" : "no")
   }
 
   const suffix = params.toString()
@@ -290,6 +457,7 @@ function normalizePaymentIntentId(paymentIntent: Stripe.Checkout.Session["paymen
 
 async function persistPendingDepositState(params: {
   payload: NormalizedDepositStartPayload
+  attribution: AttributionFields
   sessionId: string
   paymentIntentId?: string
   depositAmount: number
@@ -307,6 +475,14 @@ async function persistPendingDepositState(params: {
     deposit_amount: canonicalDepositAmount,
     stripe_session_id: params.sessionId,
     payment_intent_id: params.paymentIntentId ?? null,
+    utm_source: params.attribution.utm_source,
+    utm_medium: params.attribution.utm_medium,
+    utm_campaign: params.attribution.utm_campaign,
+    utm_term: params.attribution.utm_term,
+    utm_content: params.attribution.utm_content,
+    gclid: params.attribution.gclid,
+    wbraid: params.attribution.wbraid,
+    gbraid: params.attribution.gbraid,
     updated_at: new Date().toISOString(),
   }
 
@@ -332,7 +508,8 @@ async function persistPendingDepositState(params: {
     : Number.isFinite(params.payload.estimateHigh)
       ? Number(params.payload.estimateHigh)
       : canonicalDepositAmount
-  const totalCost = Number(Math.max(0, totalCostRaw).toFixed(2))
+  // `bookings.total_cost` is bigint in current schema, so keep an integer value here.
+  const totalCost = Math.round(Math.max(0, totalCostRaw))
 
   const markerParts = [
     "Auto-generated booking for deposit checkout",
@@ -363,6 +540,14 @@ async function persistPendingDepositState(params: {
     deposit_status: "pending",
     stripe_session_id: params.sessionId,
     payment_intent_id: params.paymentIntentId ?? null,
+    utm_source: params.attribution.utm_source,
+    utm_medium: params.attribution.utm_medium,
+    utm_campaign: params.attribution.utm_campaign,
+    utm_term: params.attribution.utm_term,
+    utm_content: params.attribution.utm_content,
+    gclid: params.attribution.gclid,
+    wbraid: params.attribution.wbraid,
+    gbraid: params.attribution.gbraid,
   }
 
   const { error } = await supabase.from("bookings").insert(placeholderBooking)
@@ -383,6 +568,7 @@ function formatUsd(value: number | undefined): string {
 
 async function sendOpsLeadNotification(params: {
   payload: NormalizedDepositStartPayload
+  attribution: AttributionFields
   sessionId: string
   depositAmount: number
   checkoutUrl: string
@@ -414,6 +600,9 @@ async function sendOpsLeadNotification(params: {
     `Guests: adults=${params.payload.adults ?? 0}, kids=${params.payload.kids ?? 0}`,
     `Estimate Range: ${estimateRange}`,
     `Deposit Amount: ${formatUsd(params.depositAmount)}`,
+    `UTM Source: ${params.attribution.utm_source ?? "N/A"}`,
+    `UTM Campaign: ${params.attribution.utm_campaign ?? "N/A"}`,
+    `GCLID: ${params.attribution.gclid ?? "N/A"}`,
     `Checkout URL: ${params.checkoutUrl}`,
   ].join("\n")
 
@@ -430,6 +619,9 @@ async function sendOpsLeadNotification(params: {
     `<p><strong>Guests:</strong> adults=${params.payload.adults ?? 0}, kids=${params.payload.kids ?? 0}</p>`,
     `<p><strong>Estimate Range:</strong> ${estimateRange}</p>`,
     `<p><strong>Deposit Amount:</strong> ${formatUsd(params.depositAmount)}</p>`,
+    `<p><strong>UTM Source:</strong> ${params.attribution.utm_source ?? "N/A"}</p>`,
+    `<p><strong>UTM Campaign:</strong> ${params.attribution.utm_campaign ?? "N/A"}</p>`,
+    `<p><strong>GCLID:</strong> ${params.attribution.gclid ?? "N/A"}</p>`,
     `<p><strong>Checkout URL:</strong> <a href="${params.checkoutUrl}">${params.checkoutUrl}</a></p>`,
   ].join("")
 
@@ -462,6 +654,7 @@ async function sendOpsLeadNotification(params: {
 async function createCheckoutSession(
   request: NextRequest,
   payload: NormalizedDepositStartPayload,
+  attribution: AttributionFields,
 ): Promise<{
   session: Stripe.Checkout.Session
   checkoutUrl: string
@@ -478,7 +671,7 @@ async function createCheckoutSession(
     throw new Error("Invalid deposit amount.")
   }
 
-  const metadata = buildMetadata(payload, depositAmount, currency)
+  const metadata = buildMetadata(payload, depositAmount, currency, attribution)
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -526,17 +719,20 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = buildNormalizedPayload((rawPayload ?? {}) as DepositStartPayload)
+  const attribution = buildResolvedAttribution(request, payload)
 
   try {
-    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload)
+    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload, attribution)
     await persistPendingDepositState({
       payload,
+      attribution,
       sessionId: session.id,
       paymentIntentId,
       depositAmount,
     })
     await sendOpsLeadNotification({
       payload,
+      attribution,
       sessionId: session.id,
       depositAmount,
       checkoutUrl,
@@ -555,17 +751,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const payload = parseGetPayload(request)
+  const attribution = buildResolvedAttribution(request, payload)
 
   try {
-    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload)
+    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload, attribution)
     await persistPendingDepositState({
       payload,
+      attribution,
       sessionId: session.id,
       paymentIntentId,
       depositAmount,
     })
     await sendOpsLeadNotification({
       payload,
+      attribution,
       sessionId: session.id,
       depositAmount,
       checkoutUrl,

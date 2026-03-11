@@ -1,0 +1,18 @@
+{
+  "item": "CPL-009",
+  "date": "2026-03-11",
+  "pass": true,
+  "setContextCallCount": 1,
+  "captured": {
+    "path": "/quoteA",
+    "search": "crm_conversation_id=conv_001&crm_channel=sms&crm_contact_id=ct_001&booking_id=RH-20260311-1234",
+    "path_with_search": "/quoteA?crm_conversation_id=conv_001&crm_channel=sms&crm_contact_id=ct_001&booking_id=RH-20260311-1234",
+    "intent": "quote",
+    "page_group": "quote",
+    "source": "realhibachi-marketing",
+    "crm_conversation_id": "conv_001",
+    "crm_channel": "sms",
+    "crm_contact_id": "ct_001",
+    "order_hint": "RH-20260311-1234"
+  }
+}

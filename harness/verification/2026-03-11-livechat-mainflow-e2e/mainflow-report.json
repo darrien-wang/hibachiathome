@@ -1,0 +1,279 @@
+{
+  "suite": "livechat-to-deposit-to-invoice-mainflow",
+  "executedAt": "2026-03-11T21:22:17.683Z",
+  "baseUrls": {
+    "livechat": "http://127.0.0.1:3300",
+    "marketing": "http://127.0.0.1:3000",
+    "invoice": "http://127.0.0.1:3101"
+  },
+  "preflight": {
+    "hasStripeWebhookSecret": true,
+    "hasIntegrationSecret": true,
+    "integrationPartnerId": "official_website",
+    "crmIntegrationBaseUrl": "http://localhost:3101"
+  },
+  "context": {
+    "bookingId": "RH-20260311-8261",
+    "chatSessionId": "4c705a7e-7447-4d54-8cd4-d2f6e82426e4",
+    "stripeSessionId": "cs_test_a103IMjDouDAjbOOc6WAlc6tGkda7FwysKtEr37ae0S5yWF2tnPMr54EYE"
+  },
+  "steps": [
+    {
+      "id": "MF-000",
+      "name": "service readiness check",
+      "startedAt": "2026-03-11T21:22:17.683Z",
+      "finishedAt": "2026-03-11T21:22:18.440Z",
+      "passed": true,
+      "data": [
+        {
+          "name": "livechat",
+          "url": "http://127.0.0.1:3300/widget.js",
+          "status": 200,
+          "ok": true
+        },
+        {
+          "name": "marketing",
+          "url": "http://127.0.0.1:3000/quoteA",
+          "status": 200,
+          "ok": true
+        },
+        {
+          "name": "invoice",
+          "url": "http://127.0.0.1:3101/api/invoice/schema",
+          "status": 200,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "MF-001",
+      "name": "create livechat session",
+      "startedAt": "2026-03-11T21:22:18.440Z",
+      "finishedAt": "2026-03-11T21:22:18.482Z",
+      "passed": true,
+      "data": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "sessionId": "4c705a7e-7447-4d54-8cd4-d2f6e82426e4",
+          "createdAt": "2026-03-11T21:22:18.481Z",
+          "context": {
+            "path": "/quoteA",
+            "intent": "quote",
+            "source": "mainflow_e2e"
+          }
+        }
+      }
+    },
+    {
+      "id": "MF-002",
+      "name": "request chat deposit link with prefill profile",
+      "startedAt": "2026-03-11T21:22:18.482Z",
+      "finishedAt": "2026-03-11T21:22:19.013Z",
+      "passed": true,
+      "data": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "sessionId": "4c705a7e-7447-4d54-8cd4-d2f6e82426e4",
+          "bookingId": "RH-20260311-8261",
+          "href": "/deposit/pay?id=RH-20260311-8261&source=estimation&surface=livechat&chat_session_id=4c705a7e-7447-4d54-8cd4-d2f6e82426e4&customer_name=Mainflow+E2E&customer_email=mainflow.e2e%40example.com&customer_phone=6265550199&event_date=2026-03-22&event_time=19%3A00%3A00&location=91748&adults=12&kids=3&estimate_low=808.65&estimate_high=808.65",
+          "prefill": {
+            "customerName": "Mainflow E2E",
+            "customerEmail": "mainflow.e2e@example.com",
+            "customerPhone": "6265550199",
+            "eventDate": "2026-03-22",
+            "eventTime": "19:00:00",
+            "location": "91748",
+            "adults": 12,
+            "kids": 3
+          },
+          "missingFields": [],
+          "quote": {
+            "baseCost": 808.65,
+            "subtotal": 808.65,
+            "adjustedTotal": 808.65,
+            "travelFee": 0,
+            "creditCardFee": 0,
+            "finalTotal": 808.65,
+            "deposit": 100,
+            "balanceDue": 708.65
+          }
+        }
+      }
+    },
+    {
+      "id": "MF-003",
+      "name": "start marketing deposit checkout session",
+      "startedAt": "2026-03-11T21:22:19.013Z",
+      "finishedAt": "2026-03-11T21:22:20.413Z",
+      "passed": true,
+      "data": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_a103IMjDouDAjbOOc6WAlc6tGkda7FwysKtEr37ae0S5yWF2tnPMr54EYE#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdkdWxOYHwnPyd1blpxYHZxWjA0V1BmSkhVN3MwUkphNldQVG1QUFZqNkF3UHFBRGRLSzRtQjwxVTJjVFxyNlRTaEx2UD1SSzRDcjdKN3RhVTVENzRWd2dOYTV8UDZuMF1AfXNdTj1ncTVNNTVRakZHdEhyVScpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyZjM2M0YDMnKSdpZHxqcHFRfHVgJz8ndmxrYmlgWmxxYGgnKSdga2RnaWBVaWRmYG1qaWFgd3YnP3F3cGB4JSUl",
+          "sessionId": "cs_test_a103IMjDouDAjbOOc6WAlc6tGkda7FwysKtEr37ae0S5yWF2tnPMr54EYE"
+        }
+      }
+    },
+    {
+      "id": "MF-004",
+      "name": "simulate Stripe checkout.session.completed webhook (signed)",
+      "startedAt": "2026-03-11T21:22:20.413Z",
+      "finishedAt": "2026-03-11T21:22:23.796Z",
+      "passed": true,
+      "data": {
+        "status": 200,
+        "body": {
+          "received": true,
+          "eventType": "checkout.session.completed",
+          "updatedBookingId": "3e5098ae-17f4-4aec-a26e-6bac5e03b2ef",
+          "paymentIntentId": "pi_mainflow_1773264140413",
+          "depositAmount": 19.9,
+          "crmForwarded": true,
+          "crmRequestId": "req_mkt_cc47381e-eff5-4de1-b896-768008fccf7b",
+          "crmOutboxEventId": "evt_stripe_evt_mainflow_1773264140413",
+          "crmOutboxState": "sent",
+          "customerNotification": {
+            "bookingId": "RH-20260311-8261",
+            "selfServiceLinkReady": true,
+            "email": {
+              "attempted": true,
+              "delivered": true,
+              "providerMessageId": "00c39e97-9bcb-497b-be80-2972c746c619"
+            },
+            "sms": {
+              "attempted": false,
+              "delivered": false,
+              "skippedReason": "missing_or_invalid_phone"
+            }
+          },
+          "serverTracking": {
+            "attempted": false,
+            "delivered": false,
+            "skippedReason": "missing_ga4_measurement_id"
+          }
+        }
+      }
+    },
+    {
+      "id": "MF-005",
+      "name": "verify canonical paid deposit status in marketing",
+      "startedAt": "2026-03-11T21:22:23.796Z",
+      "finishedAt": "2026-03-11T21:22:24.018Z",
+      "passed": true,
+      "data": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "paid": true,
+          "session_id": "cs_test_a103IMjDouDAjbOOc6WAlc6tGkda7FwysKtEr37ae0S5yWF2tnPMr54EYE",
+          "status": "paid",
+          "value": 19.9,
+          "currency": "USD",
+          "transaction_id": "pi_mainflow_1773264140413",
+          "booking_id": "RH-20260311-8261",
+          "email": "mainflow.e2e@example.com",
+          "customer_name": "Mainflow E2E",
+          "event_date": "2026-03-22",
+          "event_time": "19:00:00",
+          "location": "91748",
+          "adults": 12,
+          "kids": 3
+        }
+      }
+    },
+    {
+      "id": "MF-006",
+      "name": "verify invoice integration order projection by booking identifier",
+      "startedAt": "2026-03-11T21:22:24.018Z",
+      "finishedAt": "2026-03-11T21:22:31.551Z",
+      "passed": true,
+      "data": {
+        "attempt": 1,
+        "status": 200,
+        "body": {
+          "ok": true,
+          "code": "ORDER_STATUS_OK",
+          "message": "Order projection loaded",
+          "request_id": "req_mainflow_1773264144018_1",
+          "data": {
+            "external_order_id": "RH-20260311-8261",
+            "order_id": "0c015373-b335-4118-bcf4-e3c6034c4893",
+            "order_no": "RH-20260311-0004",
+            "source": "website",
+            "deposit_status": "paid_verified",
+            "deposit_paid_total_cents": 1990,
+            "date_lock_status": "not_locked",
+            "calendar_status": "not_synced",
+            "details_status": "complete",
+            "updated_at": "2026-03-11T21:22:22.908291+00:00"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "id": "MF-007",
+      "name": "verify invoice self-service lookup by booking id (customer entry point)",
+      "startedAt": "2026-03-11T21:22:31.551Z",
+      "finishedAt": "2026-03-11T21:22:32.244Z",
+      "passed": true,
+      "data": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "found": true,
+          "order": {
+            "id": "0c015373-b335-4118-bcf4-e3c6034c4893",
+            "orderNo": "RH-20260311-0004",
+            "source": "website",
+            "externalOrderId": "RH-20260311-0004",
+            "customerName": "Mainflow E2E",
+            "customerEmail": "mainflow.e2e@example.com",
+            "customerPhone": "TBD",
+            "updatedAt": "2026-03-11T21:22:22.908291+00:00"
+          },
+          "prefill": {
+            "contactInfo": {
+              "clientName": "Mainflow E2E",
+              "email": "mainflow.e2e@example.com",
+              "phone": "TBD",
+              "eventDate": "2026-03-23",
+              "eventTime": "01:00",
+              "eventAddress": "91748",
+              "specialNotes": "Auto-generated booking for deposit checkout | external_booking_id=RH-20260311-8261 | deposit_source=quoteA"
+            },
+            "adultCount": 0,
+            "childCount": 0,
+            "mode": "detailed",
+            "guests": [],
+            "quickCountItems": [],
+            "partyWideAddons": [],
+            "partyExtras": [],
+            "paymentMethod": "cash",
+            "depositAmount": 19.9,
+            "promotions": [],
+            "travelFee": {
+              "homeZipcode": "91748",
+              "ratePerMile": 2,
+              "freeRadiusMiles": 20,
+              "distanceMiles": null,
+              "manualOverride": null
+            },
+            "selectedGratuityRate": null
+          },
+          "request": null,
+          "message": "Booking found and prefilled."
+        }
+      }
+    }
+  ],
+  "passed": true,
+  "totals": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0
+  }
+}

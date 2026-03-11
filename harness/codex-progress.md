@@ -1,5 +1,43 @@
 # Codex Progress Log
 
+## 2026-03-11 (CRO-LIVECHAT-UX-004 + CRO-DEPOSIT-MAINFLOW-009)
+
+- Completed:
+  - Updated livechat launcher UX contract on marketing side:
+    - launcher idle label is now `Live Chat`
+    - avatar URL is passed to widget via `data-avatar-url`
+    - added Playwright coverage `e2e/cpl-010.spec.ts` for label/avatar/drag-no-accidental-toggle behavior.
+  - Fixed deposit placeholder persistence bug in `/api/deposit/start`:
+    - `bookings.total_cost` now writes schema-compatible integer value for RH booking placeholder rows.
+    - unblocks webhook reconciliation by `stripe_session_id` for RH booking flows.
+  - Executed full cross-service mainflow validation:
+    - livechat session -> deposit link -> deposit start -> signed webhook simulation -> deposit verify paid -> invoice integration projection.
+- Feature status transition:
+  - `CRO-LIVECHAT-UX-004`: `passes: false -> true`
+  - `CRO-DEPOSIT-MAINFLOW-009`: `passes: false -> true`
+- Verified:
+  - `bash harness/scripts/run-e2e.sh e2e/cpl-010.spec.ts` ✅
+  - Mainflow report: `harness/verification/2026-03-11-livechat-mainflow-e2e/mainflow-report.json` ✅ (8/8 steps passed)
+- Evidence:
+  - `cpl-verification/2026-03-11-cpl-010/cpl-010-livechat-launcher-ux.json`
+  - `cpl-verification/2026-03-11-cpl-010/cpl-010-livechat-launcher-ux.png`
+  - `harness/verification/2026-03-11-135253-e2e-run/playwright-report.json`
+  - `harness/verification/2026-03-11-livechat-mainflow-e2e/mainflow-report.json`
+
+## 2026-03-11 (CRO-LIVECHAT-CRM-003 CRM context passthrough verification)
+
+- Completed:
+  - Added CRM URL parameter passthrough support in `components/live-chat-loader.tsx` context payload (`crm_conversation_id`, `crm_channel`, `crm_contact_id`, `order_hint`) with empty-value compaction.
+  - Added Playwright contract test `e2e/cpl-009.spec.ts` to stub `window.RealHibachiLiveChat.setContext` and assert `/quoteA` deep-link CRM context forwarding.
+- Feature status transition:
+  - `CRO-LIVECHAT-CRM-003` changed from `passes: false -> true` in `harness/feature_list.json`.
+- Verified:
+  - `bash harness/scripts/run-e2e.sh e2e/cpl-009.spec.ts` ✅
+- Evidence:
+  - `cpl-verification/2026-03-11-cpl-009/cpl-009-livechat-crm-context.json`
+  - `cpl-verification/2026-03-11-cpl-009/cpl-009-livechat-crm-context.png`
+  - `harness/verification/2026-03-11-133328-e2e-run/playwright-report.json`
+
 ## 2026-02-18
 
 - Established Codex long-running harness baseline.
@@ -2660,3 +2698,85 @@
 - Notes:
   - `harness/scripts/codex-session-start.sh` still fails under LF parser due CRLF `set -o pipefail` line ending artifact.
   - `pnpm exec tsc --noEmit` currently reports pre-existing errors in `examples/instagram-carousel-example.tsx` (unrelated to this change scope).
+
+## 2026-03-10 (CRO-LIVECHAT-001 complete: integrate independent realhibachi-livechat widget)
+
+- Completed:
+  - Added global chat loader in `components/live-chat-loader.tsx`.
+  - Injected external widget script from `NEXT_PUBLIC_LIVECHAT_BASE_URL` in app layout.
+  - Added route-context bridge (`path`, `intent`, `page_group`) so chat can run conversion prompts for high-intent pages.
+  - Added analytics bridge from widget browser events to GTM dataLayer tracking events:
+    - `chat_widget_opened`
+    - `chat_prompt_shown`
+    - `chat_message_sent`
+    - `chat_lead_submitted`
+    - `chat_cta_clicked`
+  - Extended tracking event name union in `lib/tracking.ts` for the new chat events.
+  - Added env template key in `.env.example`:
+    - `NEXT_PUBLIC_LIVECHAT_BASE_URL`
+
+- Integration dependency:
+  - Chat service is hosted in sibling project `realhibachi-livechat` and exposes `/widget.js`.
+  - Live pricing responses in chat are resolved via invoice API from `v0-real-hibachi-invoice-generator`.
+
+- Verified:
+  - `next lint` targeted files pass (non-blocking existing font warning only) ✅
+  - Layout includes loader and script injection path is environment-driven ✅
+
+- Feature status transition:
+  - `CRO-LIVECHAT-001` changed from `passes: false -> true`.
+
+## 2026-03-11 (CRO-LIVECHAT-LOCAL-001 complete: restore local livechat launcher visibility)
+
+- Root cause:
+  - `NEXT_PUBLIC_LIVECHAT_BASE_URL` was not present in local marketing runtime config, so `LiveChatLoader` returned early and never injected `widget.js`.
+  - Local `livechat` service was not reachable via Windows `127.0.0.1:3300` in the current process mode, which blocked local browser loading even when service was running.
+
+- Completed:
+  - Added local env key in `realhibachi-marketing/.env.local`:
+    - `NEXT_PUBLIC_LIVECHAT_BASE_URL=http://127.0.0.1:3300`
+  - Restarted `marketing` dev server with explicit host bind:
+    - `pnpm dev --port 3000 --hostname 0.0.0.0`
+  - Restarted `livechat` server with explicit host bind:
+    - `pnpm dev --port 3300 --hostname 0.0.0.0`
+
+- Verified:
+  - Browser-side checks on `http://127.0.0.1:3000/quoteA` and `http://localhost:3000/quoteA` both passed:
+    - launcher button text `Chat with planner` is present
+    - script `#rh-livechat-widget-script` is injected
+    - `window.RealHibachiLiveChat` exists
+    - embedded iframe panel initializes with a valid session id
+  - Feature status transition:
+    - `CRO-LIVECHAT-LOCAL-001` changed from `passes: false -> true`.
+
+## 2026-03-11 (CRO-LIVECHAT-LOCAL-002 complete: prevent launcher disappearing in local dev)
+
+- Root cause:
+  - Local launcher visibility depended strictly on `NEXT_PUBLIC_LIVECHAT_BASE_URL`; when missing or stale in a restarted dev session, widget injection silently skipped.
+  - Widget default layering could be occluded by other floating UI components on marketing pages.
+
+- Completed:
+  - Updated `components/live-chat-loader.tsx`:
+    - Added development fallback base URL:
+      - when env is missing and `NODE_ENV !== production`, fallback to `http://127.0.0.1:3300`.
+    - Added stale-script replacement logic:
+      - if existing `#rh-livechat-widget-script` points to old src, remove and re-inject with latest base URL.
+    - Added explicit widget z-index config:
+      - `script.dataset.zIndex = "2147483000"` to keep launcher/panel above marketing floating overlays.
+    - Added script load error logging for faster local troubleshooting.
+
+- Verified:
+  - Playwright check on `http://localhost:3000/quoteA` confirms launcher present and clickable:
+    - launcher text `Chat with planner` visible in DOM snapshot.
+    - embedded iframe rendered and chat session initialized.
+  - `pnpm lint` passes with existing non-blocking project warnings only (no new errors introduced by this change).
+
+- Feature status transition:
+  - `CRO-LIVECHAT-LOCAL-002` changed from `passes: false -> true`.
+
+
+## 2026-03-11 (CRO-LIVECHAT-LOCAL-002 follow-up: localhost binding fix)
+
+- Updated local base URL from `127.0.0.1:3300` to `localhost:3300` in marketing env and dev fallback to match host-browser reachability.
+- Restarted marketing/livechat dev servers with explicit host bind `--hostname 0.0.0.0`.
+- Local check: `http://localhost:3300/widget.js` responds successfully.

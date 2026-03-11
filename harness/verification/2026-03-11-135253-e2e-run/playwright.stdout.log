@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/cpl-010.spec.ts:12:5 › CPL-010: launcher shows Live Chat + human avatar and supports drag without accidental toggle (9.6s)
+
+  1 passed (1.6m)
