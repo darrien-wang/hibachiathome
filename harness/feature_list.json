@@ -940,5 +940,188 @@
       "Wire webhook signature verification and Stripe server client initialization through the shared resolver."
     ],
     "passes": false
+  },
+  {
+    "id": "CRO-BOOKING-NAMING-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Deposit success verification must never replace customer-facing RH booking number with internal UUID values.",
+    "steps": [
+      "Complete a Stripe checkout from quote/deposit flow where URL contains booking_id=RH-YYYYMMDD-####.",
+      "Call /api/deposit/verify and verify returned booking_id is RH-format or omitted (never UUID).",
+      "Verify /deposit/success displays RH booking number and uses RH in self-service deep-link parameters.",
+      "Verify internal UUID booking primary keys are not rendered in customer-facing success content."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-INVOICE-PREFILL-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Deposit success -> invoice self-service deep-link must carry Instant Quote prefill context (name/date/time/location/guest counts) for first-time customer updates.",
+    "steps": [
+      "From quote flow, complete deposit checkout start with instant quote context fields populated.",
+      "Verify Stripe success return URL keeps booking_id plus quote context query fields needed by invoice prefill.",
+      "Verify /deposit/success self-service CTA preserves these fields when opening invoice portal.",
+      "Verify placeholder values (unknown@example.com, TBD) are not propagated as customer contact identifiers when better context is absent."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-DATE-FORMAT-001",
+    "priority": "P1",
+    "category": "ux-copy",
+    "description": "Normalize website UI date copy to long English format (May 3, 2026) on customer-facing pages while keeping internal APIs/storage in numeric date formats.",
+    "steps": [
+      "Audit active UI surfaces (deposit pay/success context, booking summary, social/date cards) for short-month or raw YYYY-MM-DD rendering.",
+      "Use shared long-date formatting in all customer-visible date labels so month/day/year style is consistent.",
+      "Preserve machine-oriented formats (ISO/JSON/query params/input date values) for backend processing and integrations.",
+      "Run smoke verification on quote/deposit pages and any affected card/list components to confirm unified display output."
+    ],
+    "passes": true
+  }
+  ,{
+    "id": "CRO-BOOKING-NAMING-004",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Stripe webhook -> CRM integration must propagate RH booking numbers (not internal UUIDs) as external_order_id/order_number so invoice self-service lookup by booking number works after deposit payment.",
+    "steps": [
+      "When building order.deposit_paid event envelope, prefer RH booking number from session metadata or booking special_requests marker external_booking_id=RH-....",
+      "Avoid using bookings.id UUID as first-choice external_order_id/order_number for CRM event payloads.",
+      "Ensure customer deposit notification self-service links also use RH booking number preference order.",
+      "Verify newly paid deposit bookings can be found in invoice portal with the same RH booking number shown on marketing success page."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-TRACKING-ROI-001",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Expand GTM -> GA4 routing coverage for high-intent website events so paid traffic optimization can use full funnel signals, not only lead/deposit endpoints.",
+    "steps": [
+      "Create GTM custom-event triggers and GA4 event tags for quote_started, quote_completed, lead_start, support_submit, and contact click events that are already emitted in dataLayer.",
+      "Keep naming consistent with existing dataLayer event names to avoid reporting fragmentation.",
+      "Verify each new tag fires in Tag Assistant when the corresponding UI action is performed.",
+      "Verify these events appear in GA4 Realtime and standard event reports."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-TRACKING-ROI-002",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Map high-value event parameters into GA4 so conversion quality can be segmented by value, source, and booking context.",
+    "steps": [
+      "For deposit_started/deposit_completed, pass transaction_id, value, currency, booking_id, and deposit_source into GA4 event parameters.",
+      "For lead_submit/support_submit, pass lead_channel, lead_source, lead_type, inquiry_reason, and location/guest context parameters.",
+      "Validate parameters in GA4 DebugView and confirm no undefined/empty placeholder values are sent for critical fields.",
+      "Document required custom dimensions/metrics registration in GA4 Admin for the mapped parameters."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-TRACKING-ROI-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Standardize SPA page_view measurement to one explicit page_view event per route change by using app-level dataLayer page_view and disabling GA4 auto page view.",
+    "steps": [
+      "Set GA4 Configuration tag send_page_view=false to prevent duplicate automatic pageview collection.",
+      "Use existing app-level trackEvent('page_view') as the single source of truth for pageview measurement on initial load and route transitions.",
+      "Create/verify GTM page_view custom-event trigger and GA4 page_view event tag with required page context parameters.",
+      "Verify exactly one page_view is recorded per route change in Tag Assistant and GA4 DebugView."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-TRACKING-ROI-004",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Protect production reporting quality by restricting conversion tags to production domains and isolating local/staging debug traffic.",
+    "steps": [
+      "Add hostname conditions to conversion tags so real conversion signals fire only on realhibachi.com (and approved production aliases).",
+      "Keep preview/debug validation available on localhost/pre without polluting production conversion metrics.",
+      "Verify local manual tests no longer create production conversion records in GA4 standard reports.",
+      "Document environment behavior so QA and ops teams understand which domains write production analytics."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-TRACKING-ROI-005",
+    "priority": "P1",
+    "category": "integration",
+    "description": "Add server-side fallback tracking for deposit_completed from verified webhook path to reduce client-side drop-off and improve ad optimization feedback reliability.",
+    "steps": [
+      "On verified checkout.session.completed flow, send a server-side GA4 Measurement Protocol event for deposit_completed using canonical payment data.",
+      "Use stable dedupe keys (transaction_id/event_id) to prevent double counting when both client and server events exist.",
+      "Add retry/error logging for Measurement Protocol delivery failures without impacting payment confirmation flow.",
+      "Verify webhook-only completion path still yields a conversion event in GA4 when success page is not visited."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-PRICING-UX-001",
+    "priority": "P0",
+    "category": "ui",
+    "description": "Redesign homepage pricing presentation to a modern dual-plan card layout with clear standard-plan CTA and custom-plan contact path.",
+    "steps": [
+      "Replace the existing 3-column text pricing cards in homepage package section with 2 pricing plan cards (Standard and Custom) styled similar to requested reference.",
+      "Keep pricing facts accurate ($59.90/adult, $29.95/child, $599 minimum, optional setup pricing) and present them in a scannable feature list.",
+      "Add strong CTA buttons per card (instant quote for standard, contact sales for custom) with desktop/mobile responsive behavior.",
+      "Validate visual spacing and readability on both desktop and mobile breakpoints."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-PRICING-UX-002",
+    "priority": "P0",
+    "category": "ui",
+    "description": "Add top navigation Pricing item that scrolls directly to homepage pricing section anchor.",
+    "steps": [
+      "Add `Pricing` link to header navigation and mobile sheet navigation.",
+      "Point link to homepage hash anchor (`/#pricing`) so it works from both home and other routes.",
+      "Add stable pricing section id and scroll margin offset to avoid fixed-header overlap.",
+      "Verify clicking Pricing navigates and lands at the pricing section reliably."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-PRICING-UX-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Add weekday-only $50/person quote tier with strict eligibility and menu constraints for self-serve quoting.",
+    "steps": [
+      "Expose a new pricing tier option at quote input stage: Weekday Saver ($50 per person).",
+      "Enforce hard eligibility: only Monday through Thursday event dates and minimum 15 total guests.",
+      "When Weekday Saver is selected, require exactly 2 proteins selected from chicken/steak/shrimp and disallow any add-ons.",
+      "Disable custom-upgrade path in this tier and block booking/deposit CTA until all Weekday Saver constraints are satisfied.",
+      "Show clear inline validation messages and include selected tier/menu context in quote summary and tracking payload."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-PRICING-UX-004",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Adjust Weekday Saver pricing from $50/person to $45.9/person consistently across quote logic and pricing surfaces.",
+    "steps": [
+      "Update Weekday Saver calculation rate in quote engine to 45.9 per person.",
+      "Update quote-builder UI copy, tier labels, and estimate summary labels to reflect $45.9/person.",
+      "Update homepage pricing card copy to reflect $45.9/person Weekday Saver offer.",
+      "Verify / and /quoteA both render the updated Weekday Saver price and no stale $50 copy remains."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-PRICING-UX-005",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Refine Weekday Saver to mixed guest pricing: $45.9/adult and 50% child food price for under-13 guests.",
+    "steps": [
+      "Update quote engine Weekday Saver base calculation to charge adults at 45.9 and kids at half-rate (22.95).",
+      "Update quote tier labels and helper copy to explicitly show $45.9/adult and $22.95/child for Weekday Saver.",
+      "Update homepage Weekday Saver pricing bullets so customer-facing pricing terms match quote calculation.",
+      "Verify / and /quoteA reflect the mixed pricing terms and no stale Weekday Saver per-person flat copy remains."
+    ],
+    "passes": true
   }
 ]

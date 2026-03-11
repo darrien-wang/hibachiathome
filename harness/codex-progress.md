@@ -2558,3 +2558,105 @@
 
 - Next highest-priority action:
   - Start `CRO-CRM-INTEGRATION-003`: add end-to-end verification coverage for webhook->CRM forwarding failure modes and contract behavior.
+
+## 2026-03-06 (CRO-BOOKING-NAMING-003 complete: prevent UUID exposure on deposit success)
+
+- Completed:
+  - Updated `harness/feature_list.json` with `CRO-BOOKING-NAMING-003` and marked `passes: true` after verification.
+  - Hardened `/api/deposit/verify` to resolve customer-facing booking number using RH-only precedence:
+    - `booking_id` query param (RH format)
+    - `special_requests` marker `external_booking_id=RH-...`
+    - booking primary key only if already RH format
+  - Updated `/deposit/success` client logic to:
+    - normalize and display RH booking number only
+    - avoid replacing RH booking number with internal UUID from verify payload
+    - pass `booking_id` into verify request as fallback context
+    - use normalized RH booking number for self-service deep-link and conversion payload
+
+- Verified:
+  - `GET /api/deposit/verify?session_id=cs_test_a12f3gFgrJsZhZbeHoEFAT3y3FnBZMGERIqXhlfnO7ghaGNirB925V4v8c&booking_id=RH-20260306-2722`
+    returned `booking_id: RH-20260306-2722` (not UUID) ✅
+  - `GET /deposit/success?...&booking_id=RH-20260306-2722` returned `200` ✅
+
+- Next highest-priority action:
+  - Continue full booking identifier unification by removing UUID exposure on remaining customer-facing surfaces if discovered.
+
+## 2026-03-06 (CRO-INVOICE-PREFILL-003 complete: pass Instant Quote context into invoice self-service)
+
+- Completed:
+  - Expanded deposit checkout success URL context propagation in `/api/deposit/start` to carry:
+    - `customer_name`, `customer_email`, `event_date`, `event_time`, `location`, `adults`, `kids`, `tent_10x10`.
+  - Extended `/deposit/success` page props passthrough for the same prefill context.
+  - Updated success-page self-service link construction to include quote context fields in invoice deep-link.
+  - Hardened prefill contact normalization to suppress placeholder values (`unknown@example.com`, `TBD`, `N/A`).
+  - Extended `/api/deposit/verify` response with customer/event prefill fields for fallback context.
+
+- Verified:
+  - `/deposit/success?...&customer_name=...&event_date=...&event_time=...&location=...&adults=...&kids=...` now renders self-service link carrying quote context fields.
+  - Self-service link no longer includes placeholder contact values when only placeholders exist.
+
+- Feature status transition:
+  - `CRO-INVOICE-PREFILL-003` changed from `passes: false -> true`.
+
+## 2026-03-06 (CRO-DATE-FORMAT-001 complete: unify UI date labels to long format)
+
+- Completed:
+  - Added shared date display helper `lib/date-display.ts` to normalize UI dates as `MMMM d, yyyy`.
+  - Updated customer-facing date render points:
+    - `app/deposit/pay/page.tsx` event date now renders via long-format helper.
+    - `components/booking/booking-form.tsx` selected date/time now uses `MMMM d, yyyy`.
+    - `components/instagram-videos-section.tsx` date badges now render via long-format helper.
+  - Kept backend and machine-oriented formats unchanged (`YYYY-MM-DD` / ISO in payloads, query params, and storage).
+
+- Verified:
+  - `npm run -s lint` completed with existing non-blocking warnings only (no new errors from touched files) ✅
+  - `npm run -s build` completed successfully ✅
+
+- Feature status transition:
+  - `CRO-DATE-FORMAT-001` changed from `passes: false -> true`.
+
+## 2026-03-10 (CRO-PRICING-UX-001/002/003 complete: pricing nav anchor + weekday saver tier)
+
+- Completed:
+  - Finalized homepage pricing redesign and shipped dual-plan refresh enhancements with added Weekday Saver card details.
+  - Added `Pricing` item in top navigation and wired it to `/#pricing` with section scroll offset handling.
+  - Implemented new quote tier `Weekday Saver ($50/person)` with strict constraints:
+    - Monday-Thursday date eligibility only.
+    - Minimum 15 total guests.
+    - Exactly 2 proteins from chicken/steak/shrimp.
+    - No premium add-ons in this tier.
+    - Book/deposit CTA blocked until all tier requirements are satisfied.
+  - Included tier context in quote summary, tracking payloads, and deposit deep-link query params.
+
+- Verified:
+  - `pnpm build` passed successfully after changes ✅
+  - Confirmed `CRO-PRICING-UX-001`, `CRO-PRICING-UX-002`, and `CRO-PRICING-UX-003` transitioned `passes: false -> true`.
+
+- Notes:
+  - Build still reports existing path-casing warning (`RealHibachi` vs `realhibachi`) unrelated to this feature logic.
+
+## 2026-03-10 (CRO-PRICING-UX-004/005 complete: Weekday Saver adult-child split pricing)
+
+- Completed:
+  - Updated Weekday Saver quote calculation in `lib/quote-builder.ts` from flat per-person math to split pricing:
+    - Adults: `$45.9`
+    - Kids (under 13): `$22.95` (50% food rate)
+  - Updated Weekday Saver tier labels and summaries in `app/quote/QuoteBuilderClient.tsx` to display `$45.9/adult` and `$22.95/child`.
+  - Updated homepage Weekday Saver pricing copy in `app/page.tsx`:
+    - Card unit label changed to `/adult`
+    - Feature bullets now include child half-price line.
+  - Added `CRO-PRICING-UX-005` to `harness/feature_list.json` and completed verification.
+
+- Verified:
+  - Calculation spot-check (tsx): input adults `10`, kids `5`, Weekday Saver => `baseSubtotal = 573.75` (matches `10*45.9 + 5*22.95`) ✅
+  - `/quoteA` rendered updated Weekday Saver copy snippet:
+    - `45.9/adult, $22.95/child (under 13), Monday-Thursday only, 15+ guests required` ✅
+  - Existing Weekday Saver repricing validation remained valid; no stale `$50/person` copy in updated pricing surfaces.
+
+- Feature status transition:
+  - `CRO-PRICING-UX-004` changed from `passes: false -> true`.
+  - `CRO-PRICING-UX-005` changed from `passes: false -> true`.
+
+- Notes:
+  - `harness/scripts/codex-session-start.sh` still fails under LF parser due CRLF `set -o pipefail` line ending artifact.
+  - `pnpm exec tsc --noEmit` currently reports pre-existing errors in `examples/instagram-carousel-example.tsx` (unrelated to this change scope).

@@ -28,6 +28,12 @@ const DEFAULT_INPUT: QuoteInput = {
   location: "",
   adults: 10,
   kids: 0,
+  pricingTier: "standard",
+  weekdaySaverProteins: {
+    chicken: true,
+    steak: true,
+    shrimp: false,
+  },
   tablewareRental: false,
   tent10x10: false,
   budget: undefined,
@@ -39,6 +45,12 @@ const DEFAULT_INPUT: QuoteInput = {
 }
 
 const EVENT_TIME_OPTIONS = ["12:00", "14:00", "16:00", "19:00"] as const
+const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
+const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof QuoteInput["weekdaySaverProteins"], string> = {
+  chicken: "Chicken",
+  steak: "Steak",
+  shrimp: "Shrimp",
+}
 
 function encodeUrlComponent(value: string): string {
   return encodeURIComponent(value)
@@ -83,6 +95,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
   const [distanceMiles, setDistanceMiles] = useState<number | null>(null)
+  const [quoteStartIntentCaptured, setQuoteStartIntentCaptured] = useState(false)
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
   const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
@@ -107,6 +120,16 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     () => buildCallScript(input, result, contactTemplates.callScript),
     [input, result, contactTemplates.callScript],
   )
+  const isWeekdaySaverTier = input.pricingTier === "weekday_saver"
+  const selectedWeekdayProteins = useMemo(
+    () =>
+      (Object.keys(input.weekdaySaverProteins) as Array<keyof QuoteInput["weekdaySaverProteins"]>)
+        .filter((key) => input.weekdaySaverProteins[key])
+        .map((key) => WEEKDAY_SAVER_PROTEIN_LABELS[key]),
+    [input.weekdaySaverProteins],
+  )
+  const selectedWeekdayProteinsText = selectedWeekdayProteins.length > 0 ? selectedWeekdayProteins.join(", ") : "none"
+  const weekdaySaverProteinsValue = isWeekdaySaverTier ? selectedWeekdayProteinsText : "n/a"
 
   useEffect(() => {
     const destination = input.location.trim()
@@ -212,9 +235,10 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
 
   useEffect(() => {
     const hasAnyInput = Boolean(input.eventDate || input.location || input.adults > 0 || input.kids > 0)
-    if (!quoteStartedTracked && hasAnyInput) {
+    if (!quoteStartedTracked && quoteStartIntentCaptured && hasAnyInput) {
       trackEvent("quote_started", {
         quote_surface: quoteSurface,
+        quote_tier: input.pricingTier,
         adults: input.adults,
         kids: input.kids,
         tableware_rental: input.tablewareRental,
@@ -222,18 +246,20 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       })
       setQuoteStartedTracked(true)
     }
-  }, [input, quoteStartedTracked, quoteSurface])
+  }, [input, quoteStartIntentCaptured, quoteStartedTracked, quoteSurface])
 
   useEffect(() => {
     if (!quoteCompletedTracked && result.hasCoreInputs) {
       trackEvent("quote_completed", {
         quote_surface: quoteSurface,
+        quote_tier: input.pricingTier,
         city_or_zip: input.location || "unspecified",
         tableware_rental: input.tablewareRental,
         tent_10x10: input.tent10x10,
         add_on_steak: input.addOns.steak,
         add_on_shrimp: input.addOns.shrimp,
         add_on_lobster: input.addOns.lobster,
+        weekday_saver_proteins: weekdaySaverProteinsValue,
         guest_count: result.guestCount,
         estimate_low: result.totalRange.low,
         estimate_high: result.totalRange.high,
@@ -241,7 +267,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       })
       setQuoteCompletedTracked(true)
     }
-  }, [input, result, quoteCompletedTracked, quoteSurface])
+  }, [input, result, quoteCompletedTracked, quoteSurface, weekdaySaverProteinsValue])
 
   useEffect(() => {
     trackEvent("ab_test_exposure", {
@@ -252,10 +278,53 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   }, [quoteSurface, variant])
 
   const handleFieldChange = (field: keyof QuoteInput, value: string | number | boolean | undefined) => {
+    if (!quoteStartIntentCaptured && QUOTE_STARTED_INPUT_FIELDS.includes(field)) {
+      setQuoteStartIntentCaptured(true)
+    }
     setInput((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handlePricingTierChange = (pricingTier: QuoteInput["pricingTier"]) => {
+    setInput((prev) => {
+      if (prev.pricingTier === pricingTier) return prev
+      if (pricingTier === "weekday_saver") {
+        return {
+          ...prev,
+          pricingTier,
+          addOns: {
+            steak: false,
+            shrimp: false,
+            lobster: false,
+          },
+        }
+      }
+      return {
+        ...prev,
+        pricingTier,
+      }
+    })
+  }
+
+  const handleWeekdayProteinToggle = (key: keyof QuoteInput["weekdaySaverProteins"], checked: boolean) => {
+    setInput((prev) => {
+      const selectedCount = (Object.keys(prev.weekdaySaverProteins) as Array<keyof QuoteInput["weekdaySaverProteins"]>).filter(
+        (proteinKey) => prev.weekdaySaverProteins[proteinKey],
+      ).length
+      if (checked && !prev.weekdaySaverProteins[key] && selectedCount >= 2) {
+        return prev
+      }
+      return {
+        ...prev,
+        weekdaySaverProteins: {
+          ...prev.weekdaySaverProteins,
+          [key]: checked,
+        },
+      }
+    })
+  }
+
   const handleAddOnToggle = (key: keyof QuoteInput["addOns"], checked: boolean) => {
+    if (input.pricingTier === "weekday_saver") return
     setInput((prev) => ({
       ...prev,
       addOns: {
@@ -272,7 +341,31 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBody)}`
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
-  const depositLockDisabled = !result.hasCoreInputs || !customerName.trim() || !eventTime
+  const missingRequiredBookingFields = !result.hasCoreInputs || !customerName.trim() || !eventTime
+  const weekdaySaverRulesFailed = isWeekdaySaverTier && !result.weekdaySaver.isEligible
+  const depositLockDisabled = missingRequiredBookingFields || weekdaySaverRulesFailed
+  const depositLockHelperText = missingRequiredBookingFields
+    ? "Fill customer name, date, time, and core quote details first."
+    : "Weekday Saver must be Monday-Thursday, 15+ guests, and exactly 2 proteins selected."
+
+  const buildQualifiedLeadPayload = (leadChannel: "sms" | "phone" | "email") => ({
+    lead_channel: leadChannel,
+    lead_source: quoteSurface,
+    lead_type: "quote_contact",
+    quote_summary: quoteSummary,
+    city_or_zip: input.location || "unspecified",
+    tableware_rental: input.tablewareRental,
+    tent_10x10: input.tent10x10,
+    quote_tier: input.pricingTier,
+    weekday_saver_proteins: weekdaySaverProteinsValue,
+    add_on_steak: input.addOns.steak,
+    add_on_shrimp: input.addOns.shrimp,
+    add_on_lobster: input.addOns.lobster,
+    estimate_low: result.totalRange.low,
+    estimate_high: result.totalRange.high,
+    customer_name: customerName || "unspecified",
+    event_time: eventTime || "unspecified",
+  })
 
   const onSmsClick = () => {
     if (contactDisabled) return
@@ -282,12 +375,18 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       city_or_zip: input.location || "unspecified",
       tableware_rental: input.tablewareRental,
       tent_10x10: input.tent10x10,
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       add_on_steak: input.addOns.steak,
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
       customer_name: customerName || "unspecified",
       event_time: eventTime || "unspecified",
     })
+    trackEvent("lead_submit", buildQualifiedLeadPayload("sms"))
+    if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
     window.location.href = smsHref
   }
 
@@ -299,12 +398,18 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       city_or_zip: input.location || "unspecified",
       tableware_rental: input.tablewareRental,
       tent_10x10: input.tent10x10,
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       add_on_steak: input.addOns.steak,
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
       customer_name: customerName || "unspecified",
       event_time: eventTime || "unspecified",
     })
+    trackEvent("lead_submit", buildQualifiedLeadPayload("phone"))
+    if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
     window.location.href = `tel:${phoneRaw}`
   }
 
@@ -316,22 +421,18 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       city_or_zip: input.location || "unspecified",
       tableware_rental: input.tablewareRental,
       tent_10x10: input.tent10x10,
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       add_on_steak: input.addOns.steak,
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
       customer_name: customerName || "unspecified",
       event_time: eventTime || "unspecified",
     })
-    trackEvent("lead_submit", {
-      lead_channel: "email",
-      lead_source: quoteSurface,
-      lead_type: "quote_contact",
-      quote_summary: quoteSummary,
-      estimate_low: result.totalRange.low,
-      estimate_high: result.totalRange.high,
-      customer_name: customerName || "unspecified",
-      event_time: eventTime || "unspecified",
-    })
+    trackEvent("lead_submit", buildQualifiedLeadPayload("email"))
+    if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
     window.location.href = emailHref
   }
 
@@ -349,6 +450,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       event_date: input.eventDate || "unspecified",
       event_time: eventTime || "unspecified",
       tent_10x10: input.tent10x10,
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       estimate_low: result.totalRange.low,
       estimate_high: result.totalRange.high,
     })
@@ -363,6 +466,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       adults: String(input.adults || 0),
       kids: String(input.kids || 0),
       tent_10x10: input.tent10x10 ? "yes" : "no",
+      pricing_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       estimate_low: String(result.totalRange.low),
       estimate_high: String(result.totalRange.high),
     })
@@ -384,6 +489,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       event_date: input.eventDate || "unspecified",
       event_time: eventTime || "unspecified",
       tent_10x10: input.tent10x10,
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       estimate_low: result.totalRange.low,
       estimate_high: result.totalRange.high,
     })
@@ -398,6 +505,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       adults: String(input.adults || 0),
       kids: String(input.kids || 0),
       tent_10x10: input.tent10x10 ? "yes" : "no",
+      pricing_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
       estimate_low: String(result.totalRange.low),
       estimate_high: String(result.totalRange.high),
     })
@@ -495,6 +604,79 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
               </div>
 
               <div className="space-y-3">
+                <label className="text-sm font-medium">Pricing Tier *</label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePricingTierChange("standard")}
+                    className={`rounded-lg border p-3 text-left transition ${
+                      input.pricingTier === "standard"
+                        ? "border-[hsl(24_79%_55%)] bg-[hsl(24_79%_96%)]"
+                        : "border-gray-200 bg-white hover:border-[hsl(24_79%_70%)]"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-gray-900">Standard Plan</p>
+                    <p className="mt-1 text-xs text-gray-600">$59.90/adult, $29.95/child, add-ons available</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePricingTierChange("weekday_saver")}
+                    className={`rounded-lg border p-3 text-left transition ${
+                      input.pricingTier === "weekday_saver"
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-200 bg-white hover:border-emerald-300"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-gray-900">Weekday Saver</p>
+                    <p className="mt-1 text-xs text-gray-600">$45.9/adult, $22.95/child (under 13), Monday-Thursday only, 15+ guests required</p>
+                  </button>
+                </div>
+                {isWeekdaySaverTier && (
+                  <p className="text-xs text-emerald-700">
+                    Weekday Saver rules: pick exactly 2 proteins (chicken/steak/shrimp), no premium add-ons, no custom
+                    upgrade.
+                  </p>
+                )}
+              </div>
+
+              {isWeekdaySaverTier && (
+                <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
+                  <p className="text-sm font-medium text-emerald-900">Weekday Saver Protein Set (pick exactly 2)</p>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {(Object.keys(WEEKDAY_SAVER_PROTEIN_LABELS) as Array<keyof QuoteInput["weekdaySaverProteins"]>).map(
+                      (proteinKey) => {
+                        const checked = input.weekdaySaverProteins[proteinKey]
+                        const disableUnchecked = !checked && result.weekdaySaver.selectedProteinCount >= 2
+                        return (
+                          <div key={proteinKey} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`weekday-protein-${proteinKey}`}
+                              checked={checked}
+                              disabled={disableUnchecked}
+                              onCheckedChange={(value) => handleWeekdayProteinToggle(proteinKey, Boolean(value))}
+                            />
+                            <label htmlFor={`weekday-protein-${proteinKey}`} className="text-sm text-gray-800">
+                              {WEEKDAY_SAVER_PROTEIN_LABELS[proteinKey]}
+                            </label>
+                          </div>
+                        )
+                      },
+                    )}
+                  </div>
+                  <p className="text-xs text-emerald-800">Selected proteins: {selectedWeekdayProteinsText}</p>
+                  {result.weekdaySaver.violations.length > 0 && (
+                    <div className="space-y-1 rounded-md border border-red-200 bg-red-50 p-2">
+                      {result.weekdaySaver.violations.map((message) => (
+                        <p key={message} className="text-xs text-red-700">
+                          {message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Tableware Rental</label>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -538,13 +720,14 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className={`space-y-3 ${isWeekdaySaverTier ? "opacity-60" : ""}`}>
                 <p className="text-sm font-medium">Premium Upgrade Options (optional)</p>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="add-on-steak"
                       checked={input.addOns.steak}
+                      disabled={isWeekdaySaverTier}
                       onCheckedChange={(checked) => handleAddOnToggle("steak", Boolean(checked))}
                     />
                     <label htmlFor="add-on-steak" className="text-sm">
@@ -555,6 +738,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                     <Checkbox
                       id="add-on-shrimp"
                       checked={input.addOns.shrimp}
+                      disabled={isWeekdaySaverTier}
                       onCheckedChange={(checked) => handleAddOnToggle("shrimp", Boolean(checked))}
                     />
                     <label htmlFor="add-on-shrimp" className="text-sm">
@@ -565,6 +749,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                     <Checkbox
                       id="add-on-lobster"
                       checked={input.addOns.lobster}
+                      disabled={isWeekdaySaverTier}
                       onCheckedChange={(checked) => handleAddOnToggle("lobster", Boolean(checked))}
                     />
                     <label htmlFor="add-on-lobster" className="text-sm">
@@ -572,9 +757,13 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                     </label>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Quick estimate assumes selected premium upgrades could be chosen by up to all guests.
-                </p>
+                {isWeekdaySaverTier ? (
+                  <p className="text-xs text-red-700">Premium add-ons are not available in the Weekday Saver tier.</p>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    Quick estimate assumes selected premium upgrades could be chosen by up to all guests.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -583,7 +772,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
             <CardHeader>
               <CardTitle>Instant Estimate Range</CardTitle>
               <CardDescription>
-                Includes $599 minimum-spend logic, full-setup selection, and premium-upgrade impact.
+                Includes tier rules, $599 minimum-spend logic, full-setup selection, and premium-upgrade impact.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -607,7 +796,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                     Lock Your Date for ${depositAmount.toFixed(2)}
                   </Button>
                   {depositLockDisabled && (
-                    <p className="mt-2 text-xs text-red-700">Fill customer name, date, time, and core quote details first.</p>
+                    <p className="mt-2 text-xs text-red-700">{depositLockHelperText}</p>
                   )}
                 </div>
               )}
@@ -654,6 +843,9 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
               )}
 
               <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  Selected tier: {isWeekdaySaverTier ? "Weekday Saver ($45.9/adult, $22.95/child)" : "Standard Plan"}
+                </p>
                 <p>Guest count: {result.guestCount}</p>
                 <p>Base subtotal: ${result.baseSubtotal.toFixed(0)}</p>
                 <p>Minimum spend applied: ${result.minimumSpend.toFixed(0)}</p>
@@ -663,9 +855,16 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 </p>
                 <p>Distance from 91748: {distanceMiles !== null ? `${distanceMiles.toFixed(1)} miles` : "calculating..."}</p>
                 <p>Full setup (tables/chairs/utensils): ${result.tablewareFee.toFixed(0)}</p>
-                <p>
-                  Premium upgrades impact: ${result.addOnTotalRange.low.toFixed(0)} - ${result.addOnTotalRange.high.toFixed(0)}
-                </p>
+                {isWeekdaySaverTier ? (
+                  <>
+                    <p>Weekday Saver proteins: {selectedWeekdayProteinsText}</p>
+                    <p>Premium upgrades impact: Not available in Weekday Saver</p>
+                  </>
+                ) : (
+                  <p>
+                    Premium upgrades impact: ${result.addOnTotalRange.low.toFixed(0)} - ${result.addOnTotalRange.high.toFixed(0)}
+                  </p>
+                )}
               </div>
 
               <div className="rounded-md border p-3 text-sm text-gray-700">
@@ -724,7 +923,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
               </div>
               {depositLockDisabled && (
                 <p className="text-xs text-gray-500">
-                  Fill customer name, date, time, and location to enable Book Online deposit flow.
+                  {depositLockHelperText}
                 </p>
               )}
 

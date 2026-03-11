@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
+import { ArrowRight, Check, MessageSquare, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 
@@ -210,61 +210,127 @@ export default function Home() {
     },
   ]
 
+  const standardPlanFeatures = [
+    "$29.95 per child (under 13)",
+    "$599 minimum per event",
+    "2 regular proteins per guest included",
+    "Fried rice, fresh vegetables, and house salad included",
+    "Live chef performance and on-site grill cooking",
+    "Optional full setup: +$15 per guest",
+    "Premium protein upgrades available",
+  ]
+
+  const weekdaySaverFeatures = [
+    "$45.9 per adult",
+    "$22.95 per child (under 13, 50% food price)",
+    "Monday-Thursday events only",
+    "Minimum 15 total guests",
+    "Choose exactly 2 proteins: chicken, steak, shrimp",
+    "No add-ons or custom upgrade in this tier",
+    "Optional full setup: +$15 per guest",
+  ]
+
+  const customPlanFeatures = [
+    "Everything in the Standard plan",
+    "Multi-chef planning for larger parties",
+    "Custom timeline and event flow support",
+    "Add-on, rental, and setup coordination",
+    "Direct planning support from our team",
+  ]
+
   return (
     <div>
       <HeroSection />
       {/* Package Options Section */}
       <AnimateOnScroll>
-        <section className="py-16 bg-[#f7f4ec]">
+        <section id="pricing" className="py-16 bg-[#f7f4ec] scroll-mt-36 md:scroll-mt-44">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-3 text-[hsl(24_79%_55%)]">
-                How It Works
-              </h2>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-3 text-[hsl(24_79%_55%)]">Pricing</h2>
               <p className="text-4xl md:text-5xl font-serif font-bold text-center text-gray-900 max-w-4xl mx-auto leading-tight mb-5">
-                We Bring Our Hibachi Grill + Chef to Your Backyard.
+                Pick The Plan That Fits Your Party
               </p>
               <p className="text-base md:text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                You pick the date and headcount. We handle the chef and cooking experience. For custom setup details,
-                message support directly.
+                Compare weekday saver, standard, and custom options. Book instantly when your event fits the published
+                rules, or contact our team for tailored planning.
               </p>
             </AnimateOnScroll>
 
-            <div className="grid gap-6 md:grid-cols-3 max-w-7xl mx-auto">
+            <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
+              <AnimateOnScroll direction="up" delay={60}>
+                <div className="rounded-3xl bg-emerald-50 border border-emerald-200 p-8 md:p-10 text-stone-700 shadow-[0_12px_28px_rgba(5,150,105,0.15)]">
+                  <p className="text-lg font-semibold text-emerald-900">Weekday Saver</p>
+                  <div className="mt-5 flex items-baseline gap-2">
+                    <p className="text-5xl font-black text-emerald-950">$45.9</p>
+                    <p className="text-lg font-medium text-emerald-800">/adult</p>
+                  </div>
+                  <p className="mt-3 text-base text-emerald-900">For Monday-Thursday parties with 15+ guests and a fixed menu set.</p>
+                  <Button asChild className="mt-7 h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 text-base font-semibold shadow-md">
+                    <Link href="/quoteA">
+                      Check Weekday Saver
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <div className="mt-7 space-y-3 border-t border-emerald-200 pt-7">
+                    {weekdaySaverFeatures.map((item) => (
+                      <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-emerald-900">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </AnimateOnScroll>
+
               <AnimateOnScroll direction="up">
-                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[420px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)] flex flex-col">
-                  <h3 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-center text-[hsl(24_79%_55%)]">Pricing</h3>
-                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center flex-1 flex flex-col justify-center">
-                    <p>$59.90 per adult</p>
-                    <p>$29.95 per child (under 13, food portion)</p>
-                    <p>$599 minimum for all events</p>
-                    <p>Optional full setup: +$15 per guest</p>
+                <div className="relative rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 text-stone-700 shadow-[0_12px_30px_rgba(120,80,20,0.12)]">
+                  <div className="absolute -top-4 left-8 inline-flex items-center gap-1 rounded-full bg-[hsl(24_79%_55%)] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-md">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Most Popular
+                  </div>
+                  <p className="mt-4 text-lg font-semibold text-gray-800">Standard Plan</p>
+                  <div className="mt-5 flex items-baseline gap-2">
+                    <p className="text-5xl font-black text-gray-900">$59.90</p>
+                    <p className="text-lg font-medium text-gray-500">/adult</p>
+                  </div>
+                  <p className="mt-3 text-base text-gray-600">Best for most birthdays, family parties, and backyard events.</p>
+                  <Button asChild className="mt-7 h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-base font-semibold shadow-md">
+                    <Link href="/quoteA">
+                      Get Instant Quote
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <div className="mt-7 space-y-3 border-t border-[#eadfcf] pt-7">
+                    {standardPlanFeatures.map((item) => (
+                      <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-gray-700">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(24_79%_42%)]" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </AnimateOnScroll>
 
-              <AnimateOnScroll direction="up" delay={120}>
-                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[420px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)] flex flex-col">
-                  <h3 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-center text-[hsl(24_79%_55%)]">
-                    Protein Choices
-                  </h3>
-                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center flex-1 flex flex-col justify-center">
-                    <p>2 regular proteins included per guest</p>
-                    <p>Chicken, Steak, Shrimp, Salmon, Tofu</p>
-                    <p>Premium upgrades:</p>
-                    <p>Scallops +$6, Filet Mignon +$8, Lobster Tail +$12</p>
-                  </div>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll direction="up" delay={240}>
-                <div className="rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 min-h-[420px] text-stone-700 shadow-[0_8px_24px_rgba(120,80,20,0.08)] flex flex-col">
-                  <h3 className="text-4xl md:text-5xl font-serif font-bold mb-6 text-center text-[hsl(24_79%_55%)]">Included</h3>
-                  <div className="space-y-3 text-lg md:text-2xl leading-relaxed text-center flex-1 flex flex-col justify-center">
-                    <p>Fried rice, fresh vegetables, house salad</p>
-                    <p>Chef performance and on-site grill cooking</p>
-                    <p>Outdoor cooking setup only</p>
-                    <p>Need custom details? Ask support.</p>
+              <AnimateOnScroll direction="up" delay={180}>
+                <div className="rounded-3xl bg-[#fcfcfc] border border-[#dfe2e8] p-8 md:p-10 text-stone-700 shadow-[0_10px_24px_rgba(31,41,55,0.08)]">
+                  <p className="text-lg font-semibold text-gray-800">Custom Plan</p>
+                  <h3 className="mt-5 text-5xl font-black tracking-tight text-gray-900">Talk with us</h3>
+                  <p className="mt-3 text-base text-gray-600">
+                    For larger guest counts, special menu requests, or custom event logistics.
+                  </p>
+                  <Button asChild className="mt-7 h-12 w-full rounded-full bg-[#1f2a44] text-white hover:bg-[#111a2f] text-base font-semibold shadow-md">
+                    <Link href="/contact?reason=Custom%20Pricing%20Request">
+                      Request Custom Plan
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <div className="mt-7 space-y-3 border-t border-[#e5e7eb] pt-7">
+                    {customPlanFeatures.map((item) => (
+                      <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-gray-700">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#1f2a44]" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </AnimateOnScroll>
