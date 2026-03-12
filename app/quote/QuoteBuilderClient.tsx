@@ -11,7 +11,6 @@ import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, 
 import { siteConfig } from "@/config/site"
 import { getDepositAmount } from "@/config/deposit"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
-import { generateRhBookingNumber } from "@/lib/booking-number"
 import { trackEvent } from "@/lib/tracking"
 import {
   buildCallScript,
@@ -44,7 +43,7 @@ const DEFAULT_INPUT: QuoteInput = {
   },
 }
 
-const EVENT_TIME_OPTIONS = ["12:00", "14:00", "16:00", "19:00"] as const
+const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
 const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
 const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof QuoteInput["weekdaySaverProteins"], string> = {
   chicken: "Chicken",
@@ -174,7 +173,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   useEffect(() => {
     const destination = input.location.trim()
     const eventDate = input.eventDate
-    const selectedEventTime = eventTime || "18:00"
+    const selectedEventTime = eventTime || "19:00"
 
     if (!destination || !eventDate) {
       setWeatherPreview(null)
@@ -439,8 +438,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const onDepositLockClick = () => {
     if (depositLockDisabled) return
 
-    const bookingId = generateRhBookingNumber()
-
     trackEvent("ab_test_conversion", {
       experiment_id: "quote_route_split_v1",
       quote_variant: variant,
@@ -457,7 +454,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     })
 
     const depositQuery = new URLSearchParams({
-      id: bookingId,
       source: `quote${variant}`,
       customer_name: customerName.trim(),
       event_date: input.eventDate || "",
@@ -478,8 +474,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const onBookOnlineClick = () => {
     if (depositLockDisabled) return
 
-    const bookingId = generateRhBookingNumber()
-
     trackEvent("ab_test_conversion", {
       experiment_id: "quote_route_split_v1",
       quote_variant: variant,
@@ -496,7 +490,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     })
 
     const depositQuery = new URLSearchParams({
-      id: bookingId,
       source: `quote${variant}`,
       customer_name: customerName.trim(),
       event_date: input.eventDate || "",

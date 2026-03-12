@@ -1,5 +1,6 @@
 import { createHmac, randomUUID } from "node:crypto"
 import type Stripe from "stripe"
+import { normalizeRhBookingNumber } from "@/lib/booking-number"
 
 export type CrmBookingSnapshot = {
   id: string
@@ -58,10 +59,53 @@ export type CrmDepositPaidEventEnvelope = {
   }
 }
 
-type BuildCrmEnvelopeResult =
+export type CrmPaymentRefundedEventEnvelope = {
+  event_id: string
+  event_type: "payment.refunded"
+  occurred_at: string
+  source: string
+  order: {
+    external_order_id: string
+    order_number?: string
+    customer_name: string
+    customer_phone?: string
+    customer_email?: string
+    event_timezone: "America/Los_Angeles"
+    event_address?: string
+    guest_adult_count?: number
+    guest_child_count?: number
+    invoice_details?: {
+      total_cost?: number
+      travel_fee?: number
+    }
+    notes?: string
+  }
+  payment: {
+    external_payment_id: string
+    type: "deposit"
+    status: "refunded"
+    amount_cents: number
+    currency: "USD"
+    provider: "stripe"
+    refunded_at: string
+    transaction_ref?: string
+    receipt_url?: string
+  }
+  metadata: {
+    stripe_event_id: string
+    charge_id: string
+    payment_intent_id?: string
+    livemode: boolean
+    event_category: "deposit_refund"
+  }
+}
+
+export type CrmEventEnvelope = CrmDepositPaidEventEnvelope | CrmPaymentRefundedEventEnvelope
+
+type BuildCrmEnvelopeResult<TEnvelope extends CrmEventEnvelope = CrmEventEnvelope> =
   | {
       ok: true
-      envelope: CrmDepositPaidEventEnvelope
+      envelope: TEnvelope
     }
   | {
       ok: false
@@ -115,6 +159,35 @@ function asString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
+function parseExternalBookingIdMarker(value: string | null | undefined): string | undefined {
+  const text = asString(value)
+  if (!text) return undefined
+  const match = text.match(/(?:^|\|)\s*external_booking_id\s*=\s*([A-Za-z0-9-]+)\s*(?:\||$)/i)
+  if (!match) return undefined
+  return asString(match[1])
+}
+
+function resolveRhBookingId(params: {
+  bookingId?: string | null
+  sessionBookingId?: string | null
+  clientReferenceId?: string | null
+  specialRequests?: string | null
+}): string | undefined {
+  const fromSession = normalizeRhBookingNumber(params.sessionBookingId)
+  if (fromSession) return fromSession
+
+  const fromMarker = normalizeRhBookingNumber(parseExternalBookingIdMarker(params.specialRequests))
+  if (fromMarker) return fromMarker
+
+  const fromClientReference = normalizeRhBookingNumber(params.clientReferenceId)
+  if (fromClientReference) return fromClientReference
+
+  const fromBooking = normalizeRhBookingNumber(params.bookingId)
+  if (fromBooking) return fromBooking
+
+  return undefined
+}
+
 function toAmountCents(amount: number | null | undefined): number | undefined {
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
     return undefined
@@ -127,6 +200,47 @@ function amountFromStripeSession(session: Stripe.Checkout.Session): number | und
     return undefined
   }
   return Number((session.amount_total / 100).toFixed(2))
+}
+
+function amountFromStripeCharge(charge: Stripe.Charge): number | undefined {
+  const amountMinor = charge.amount_refunded > 0 ? charge.amount_refunded : charge.amount
+  if (typeof amountMinor !== "number" || !Number.isFinite(amountMinor) || amountMinor <= 0) {
+    return undefined
+  }
+  return Number((amountMinor / 100).toFixed(2))
+}
+
+function toIsoStringFromUnixSeconds(value: number | null | undefined): string | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return undefined
+  }
+  return new Date(value * 1000).toISOString()
+}
+
+function paymentIntentIdFromCharge(value: Stripe.Charge["payment_intent"]): string | undefined {
+  if (typeof value === "string") {
+    return asString(value)
+  }
+
+  if (value && typeof value === "object" && "id" in value) {
+    return asString((value as { id?: unknown }).id)
+  }
+
+  return undefined
+}
+
+function refundedAtFromCharge(charge: Stripe.Charge): string | undefined {
+  const refunds = Array.isArray(charge.refunds?.data) ? charge.refunds.data : []
+  const latestRefund = refunds.reduce<Stripe.Refund | null>((latest, candidate) => {
+    if (!latest) return candidate
+    return candidate.created > latest.created ? candidate : latest
+  }, null)
+
+  return toIsoStringFromUnixSeconds(latestRefund?.created) ?? toIsoStringFromUnixSeconds(charge.created)
+}
+
+function resolveSource(source?: string): string {
+  return asString(source) ?? asString(process.env.CRM_INTEGRATION_SOURCE) ?? DEFAULT_SOURCE
 }
 
 function parseTimeTo24Hour(raw: string | undefined): string {
@@ -274,11 +388,18 @@ export function buildDepositPaidEventEnvelope(params: {
   paymentIntentId?: string
   depositAmount?: number
   source?: string
-}): BuildCrmEnvelopeResult {
-  const source = asString(params.source) ?? asString(process.env.CRM_INTEGRATION_SOURCE) ?? DEFAULT_SOURCE
+}): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
+  const source = resolveSource(params.source)
+  const preferredRhBookingId = resolveRhBookingId({
+    bookingId: params.booking?.id,
+    sessionBookingId: params.session.metadata?.booking_id,
+    clientReferenceId: params.session.client_reference_id,
+    specialRequests: params.booking?.special_requests,
+  })
   const externalOrderId =
-    asString(params.booking?.id) ??
+    preferredRhBookingId ??
     asString(params.session.metadata?.booking_id) ??
+    asString(params.booking?.id) ??
     asString(params.session.client_reference_id)
 
   const fallbackOccurredAt = new Date(
@@ -319,7 +440,7 @@ export function buildDepositPaidEventEnvelope(params: {
       source,
       order: {
         external_order_id: externalOrderId,
-        order_number: asString(params.booking?.id),
+        order_number: preferredRhBookingId,
         customer_name: customerName,
         customer_phone: asString(params.booking?.phone),
         customer_email:
@@ -361,8 +482,94 @@ export function buildDepositPaidEventEnvelope(params: {
   }
 }
 
+export function buildPaymentRefundedEventEnvelope(params: {
+  stripeEventId: string
+  charge: Stripe.Charge
+  booking: CrmBookingSnapshot | null
+  paymentIntentId?: string
+  refundedAmount?: number
+  refundedAt?: string
+  source?: string
+}): BuildCrmEnvelopeResult<CrmPaymentRefundedEventEnvelope> {
+  const source = resolveSource(params.source)
+  const preferredRhBookingId = resolveRhBookingId({
+    bookingId: params.booking?.id,
+    sessionBookingId: params.charge.metadata?.booking_id,
+    specialRequests: params.booking?.special_requests,
+  })
+  const externalOrderId =
+    preferredRhBookingId ??
+    asString(params.charge.metadata?.booking_id) ??
+    asString(params.booking?.id)
+  const externalPaymentId =
+    asString(params.paymentIntentId) ?? paymentIntentIdFromCharge(params.charge.payment_intent) ?? params.charge.id
+
+  const customerName = asString(params.booking?.full_name) ?? "Website Customer"
+  const refundedAmount =
+    params.refundedAmount ??
+    amountFromStripeCharge(params.charge) ??
+    (typeof params.booking?.deposit_amount === "number" ? params.booking.deposit_amount : undefined)
+  const amountCents = toAmountCents(refundedAmount)
+  const refundedAt = asString(params.refundedAt) ?? refundedAtFromCharge(params.charge)
+
+  if (!externalOrderId || !externalPaymentId || !amountCents || !refundedAt) {
+    return {
+      ok: false,
+      reason: "missing_required_fields",
+      detail: "external_order_id, external_payment_id, amount_cents, or refunded_at is missing.",
+    }
+  }
+
+  return {
+    ok: true,
+    envelope: {
+      event_id: `evt_stripe_${params.stripeEventId}`,
+      event_type: "payment.refunded",
+      occurred_at: refundedAt,
+      source,
+      order: {
+        external_order_id: externalOrderId,
+        order_number: preferredRhBookingId,
+        customer_name: customerName,
+        customer_phone: asString(params.booking?.phone),
+        customer_email: asString(params.booking?.email),
+        event_timezone: "America/Los_Angeles",
+        event_address: asString(params.booking?.address),
+        guest_adult_count: typeof params.booking?.guest_adults === "number" ? params.booking.guest_adults : undefined,
+        guest_child_count: typeof params.booking?.guest_kids === "number" ? params.booking.guest_kids : undefined,
+        invoice_details:
+          typeof params.booking?.total_cost === "number" || typeof params.booking?.travel_fee === "number"
+            ? {
+                total_cost: params.booking?.total_cost ?? undefined,
+                travel_fee: params.booking?.travel_fee ?? undefined,
+              }
+            : undefined,
+        notes: asString(params.booking?.special_requests) ?? "Deposit refunded via Stripe on website.",
+      },
+      payment: {
+        external_payment_id: externalPaymentId,
+        type: "deposit",
+        status: "refunded",
+        amount_cents: amountCents,
+        currency: "USD",
+        provider: "stripe",
+        refunded_at: refundedAt,
+        transaction_ref: asString(params.paymentIntentId) ?? paymentIntentIdFromCharge(params.charge.payment_intent),
+        receipt_url: asString(params.charge.receipt_url),
+      },
+      metadata: {
+        stripe_event_id: params.stripeEventId,
+        charge_id: params.charge.id,
+        payment_intent_id: asString(params.paymentIntentId) ?? paymentIntentIdFromCharge(params.charge.payment_intent),
+        livemode: params.charge.livemode,
+        event_category: "deposit_refund",
+      },
+    },
+  }
+}
+
 export async function sendCrmEventEnvelope(params: {
-  envelope: CrmDepositPaidEventEnvelope
+  envelope: CrmEventEnvelope
   requestId?: string
 }): Promise<CrmIntegrationResult> {
   const config = getCrmConfig()

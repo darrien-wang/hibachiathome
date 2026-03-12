@@ -1,0 +1,39 @@
+{
+  "feature_id": "CRO-ORDER-ID-010",
+  "date": "2026-03-11",
+  "summary": "Upstream RH pre-generation removed from quote/deposit start path; paid verify can resolve RH via integration projection.",
+  "checks": [
+    {
+      "name": "quote_builder_no_rh_generation",
+      "type": "static",
+      "status": "passed",
+      "evidence": "app/quote/QuoteBuilderClient.tsx no longer imports/calls generateRhBookingNumber"
+    },
+    {
+      "name": "deposit_start_no_auto_rh",
+      "type": "static",
+      "status": "passed",
+      "evidence": "app/api/deposit/start/route.ts resolveBookingId no longer calls generateRhBookingNumber"
+    },
+    {
+      "name": "deposit_verify_paid_order_lookup",
+      "type": "static",
+      "status": "passed",
+      "evidence": "app/api/deposit/verify/route.ts adds signed integration lookup /api/integrations/v1/orders/{external_order_id}"
+    },
+    {
+      "name": "marketing_lint",
+      "type": "command",
+      "status": "passed",
+      "command": "pnpm -C realhibachi-marketing lint",
+      "notes": "Completed with existing warnings only (no new errors)."
+    },
+    {
+      "name": "marketing_tsc",
+      "type": "command",
+      "status": "blocked",
+      "command": "pnpm -C realhibachi-marketing exec tsc --noEmit",
+      "notes": "Failed on pre-existing examples/instagram-carousel-example.tsx parse errors unrelated to this feature."
+    }
+  ]
+}

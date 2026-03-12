@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { Resend } from "resend"
 import { getDepositAmount } from "@/config/deposit"
-import { generateRhBookingNumber, normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
+import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
@@ -206,7 +206,7 @@ function mergeAttributionSources(params: {
   return normalizeAttributionInput(merged)
 }
 
-function resolveBookingId(input: { bookingId?: string; source?: string }): string | undefined {
+function resolveBookingId(input: { bookingId?: string }): string | undefined {
   if (isLikelyUuid(input.bookingId)) {
     return input.bookingId
   }
@@ -214,10 +214,6 @@ function resolveBookingId(input: { bookingId?: string; source?: string }): strin
   const normalizedRhBookingId = normalizeRhBookingNumber(input.bookingId)
   if (normalizedRhBookingId) {
     return normalizedRhBookingId
-  }
-
-  if (shouldUseRhBookingNumbers(input.source)) {
-    return generateRhBookingNumber()
   }
 
   return input.bookingId
@@ -229,7 +225,6 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
   return {
     bookingId: resolveBookingId({
       bookingId: normalizeString(payload.bookingId),
-      source,
     }),
     source,
     customerName: normalizeString(payload.customerName),

@@ -1218,6 +1218,18 @@
     "passes": true
   },
   {
+    "id": "CRO-LIVECHAT-TZ-005",
+    "priority": "P1",
+    "category": "integration",
+    "description": "Marketing host context provides browser timezone to livechat widget so relative date parsing can resolve correctly.",
+    "steps": [
+      "Attach browser IANA timezone (Intl resolvedOptions().timeZone) into livechat setContext payload.",
+      "Ensure timezone field is omitted only when unavailable/empty.",
+      "Verify livechat context bridge includes timezone on /quoteA entry for downstream date interpretation."
+    ],
+    "passes": false
+  },
+  {
     "id": "CRO-QA-006",
     "priority": "P0",
     "category": "quality",
@@ -1227,6 +1239,20 @@
       "Ensure E2E run emits JSON report artifacts under harness verification paths for auditability.",
       "Fail verification immediately when E2E fails to block incomplete delivery claims.",
       "Document the required E2E-first completion rule in harness scripts/log output for consistent usage."
+    ],
+    "passes": true
+  },
+  {
+    "id": "CRO-ORDER-ID-010",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Stop pre-payment RH booking number generation in marketing surfaces; use upstream external reference only and resolve RH order number after deposit-paid webhook processing.",
+    "steps": [
+      "Remove RH pre-generation from quote/deposit entry paths and allow deposit pay flow without a pre-assigned booking number.",
+      "Ensure /api/deposit/start metadata persists non-RH external reference only and never auto-generates RH for quote/livechat sources.",
+      "Update Stripe webhook notification preference to use CRM-assigned order_no when available after CRM outbox delivery.",
+      "Update /api/deposit/verify to resolve booking_id from paid-order projection via integration lookup (external_order_id -> order_no), with safe fallback when unavailable.",
+      "Validate end-to-end that pre-payment pages show no RH booking number and paid verification resolves RH booking number for customer self-service links."
     ],
     "passes": true
   }

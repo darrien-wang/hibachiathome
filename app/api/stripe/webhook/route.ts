@@ -6,11 +6,25 @@ import { getStripeServerClient } from "@/lib/stripe-server"
 import { isPreBranchDeployment, resolveStripeWebhookSecret } from "@/lib/stripe-env"
 import { buildDepositPaidEventEnvelope, buildPaymentRefundedEventEnvelope, type CrmBookingSnapshot } from "@/lib/crm-integration"
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
+import { normalizeRhBookingNumber } from "@/lib/booking-number"
+import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
 
 export const runtime = "nodejs"
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+const ATTRIBUTION_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "wbraid", "gbraid"] as const
+
+type AttributionFields = {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+  gclid?: string
+  wbraid?: string
+  gbraid?: string
+}
 
 type NotificationDeliveryResult = {
   attempted: boolean
@@ -29,6 +43,69 @@ function asNonEmptyString(value: unknown): string | undefined {
 
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined
+  }
+  return value as Record<string, unknown>
+}
+
+function parseExternalBookingIdMarker(value: string | null | undefined): string | undefined {
+  const text = asNonEmptyString(value)
+  if (!text) return undefined
+  const match = text.match(/(?:^|\|)\s*external_booking_id\s*=\s*([A-Za-z0-9-]+)\s*(?:\||$)/i)
+  if (!match) return undefined
+  return asNonEmptyString(match[1])
+}
+
+function extractCrmOrderNoFromResponseBody(value: unknown): string | undefined {
+  const direct = asRecord(value)
+  if (!direct) return undefined
+
+  const fromTopLevel = normalizeRhBookingNumber(asNonEmptyString(direct.order_no))
+  if (fromTopLevel) return fromTopLevel
+
+  const data = asRecord(direct.data)
+  const fromData = normalizeRhBookingNumber(asNonEmptyString(data?.order_no))
+  if (fromData) return fromData
+
+  return undefined
+}
+
+function resolvePreferredBookingNumber(params: {
+  crmAssignedOrderNo?: string | null
+  updatedBookingId?: string | null
+  bookingSnapshotId?: string | null
+  sessionBookingId?: string | null
+  clientReferenceId?: string | null
+  specialRequests?: string | null
+}): string | undefined {
+  const fromCrm = normalizeRhBookingNumber(params.crmAssignedOrderNo)
+  if (fromCrm) return fromCrm
+
+  const fromSession = normalizeRhBookingNumber(params.sessionBookingId)
+  if (fromSession) return fromSession
+
+  const fromMarker = normalizeRhBookingNumber(parseExternalBookingIdMarker(params.specialRequests))
+  if (fromMarker) return fromMarker
+
+  const fromClientReference = normalizeRhBookingNumber(params.clientReferenceId)
+  if (fromClientReference) return fromClientReference
+
+  const fromUpdatedBooking = normalizeRhBookingNumber(params.updatedBookingId)
+  if (fromUpdatedBooking) return fromUpdatedBooking
+
+  const fromBookingSnapshot = normalizeRhBookingNumber(params.bookingSnapshotId)
+  if (fromBookingSnapshot) return fromBookingSnapshot
+
+  return (
+    asNonEmptyString(params.sessionBookingId) ??
+    asNonEmptyString(params.updatedBookingId) ??
+    asNonEmptyString(params.bookingSnapshotId) ??
+    asNonEmptyString(params.clientReferenceId)
+  )
 }
 
 function isLikelyEmail(value: string | undefined): value is string {
@@ -393,6 +470,18 @@ function amountFromMinorUnits(amountMinor: number | null | undefined): number | 
   return Number((amountMinor / 100).toFixed(2))
 }
 
+function readAttributionFromStripeMetadata(metadata: Stripe.Metadata | null | undefined): AttributionFields {
+  if (!metadata) return {}
+  const result: AttributionFields = {}
+  for (const key of ATTRIBUTION_KEYS) {
+    const normalized = asNonEmptyString(metadata[key])
+    if (normalized) {
+      result[key] = normalized
+    }
+  }
+  return result
+}
+
 async function loadBookingCrmSnapshot(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   bookingId: string | null,
@@ -452,6 +541,7 @@ async function handleCheckoutSessionCompleted(
   const paymentIntentId = normalizePaymentIntentId(session.payment_intent)
   const depositAmount = amountFromMinorUnits(session.amount_total)
   const bookingIdFromMetadata = session.metadata?.booking_id
+  const attribution = readAttributionFromStripeMetadata(session.metadata)
 
   const bookingUpdate: Record<string, unknown> = {
     deposit_status: "paid",
@@ -467,6 +557,14 @@ async function handleCheckoutSessionCompleted(
   if (paymentIntentId) {
     bookingUpdate.payment_intent_id = paymentIntentId
   }
+  if (attribution.utm_source) bookingUpdate.utm_source = attribution.utm_source
+  if (attribution.utm_medium) bookingUpdate.utm_medium = attribution.utm_medium
+  if (attribution.utm_campaign) bookingUpdate.utm_campaign = attribution.utm_campaign
+  if (attribution.utm_term) bookingUpdate.utm_term = attribution.utm_term
+  if (attribution.utm_content) bookingUpdate.utm_content = attribution.utm_content
+  if (attribution.gclid) bookingUpdate.gclid = attribution.gclid
+  if (attribution.wbraid) bookingUpdate.wbraid = attribution.wbraid
+  if (attribution.gbraid) bookingUpdate.gbraid = attribution.gbraid
 
   let updatedBookingId: string | null = null
 
@@ -588,17 +686,21 @@ async function sendCustomerDepositNotifications(params: {
   session: Stripe.Checkout.Session
   updatedBookingId: string | null
   bookingSnapshot: CrmBookingSnapshot | null
+  crmAssignedOrderNo?: string | null
 }): Promise<{
   bookingId?: string
   selfServiceLinkReady: boolean
   email: NotificationDeliveryResult
   sms: NotificationDeliveryResult
 }> {
-  const bookingId =
-    asNonEmptyString(params.updatedBookingId) ??
-    asNonEmptyString(params.bookingSnapshot?.id) ??
-    asNonEmptyString(params.session.metadata?.booking_id) ??
-    asNonEmptyString(params.session.client_reference_id)
+  const bookingId = resolvePreferredBookingNumber({
+    crmAssignedOrderNo: params.crmAssignedOrderNo,
+    updatedBookingId: params.updatedBookingId,
+    bookingSnapshotId: params.bookingSnapshot?.id,
+    sessionBookingId: params.session.metadata?.booking_id,
+    clientReferenceId: params.session.client_reference_id,
+    specialRequests: params.bookingSnapshot?.special_requests ?? null,
+  })
   const customerEmail =
     asNonEmptyString(params.bookingSnapshot?.email) ??
     asNonEmptyString(params.session.customer_details?.email) ??
@@ -707,6 +809,7 @@ export async function POST(request: NextRequest) {
       let crmOutboxState: string | undefined
       let crmSkippedReason: string | undefined
       let crmError: string | undefined
+      let crmAssignedOrderNo: string | undefined
 
       if (!crmEnvelopeResult.ok) {
         console.warn("[stripe/webhook] CRM forward was skipped:", {
@@ -747,6 +850,7 @@ export async function POST(request: NextRequest) {
             crmOutboxState = deliveryResult.state
             crmRequestId = deliveryResult.requestId
             crmForwarded = deliveryResult.delivered
+            crmAssignedOrderNo = extractCrmOrderNoFromResponseBody(deliveryResult.record.response_body)
             if (!deliveryResult.delivered) {
               console.warn("[stripe/webhook] CRM outbox delivery not completed in webhook path:", {
                 eventId: event.id,
@@ -765,6 +869,7 @@ export async function POST(request: NextRequest) {
         session,
         updatedBookingId: result.updatedBookingId,
         bookingSnapshot: result.bookingSnapshot,
+        crmAssignedOrderNo: crmAssignedOrderNo ?? null,
       })
 
       if (!customerNotification.email.delivered && customerNotification.email.attempted) {
@@ -785,6 +890,25 @@ export async function POST(request: NextRequest) {
         })
       }
 
+      const serverTracking = await trackDepositCompletedServer({
+        stripeEventId: event.id,
+        checkoutSessionId: session.id,
+        transactionId: result.paymentIntentId,
+        bookingId: customerNotification.bookingId ?? result.updatedBookingId ?? session.metadata?.booking_id ?? null,
+        value: result.depositAmount,
+        currency: asNonEmptyString(session.currency),
+        depositSource: asNonEmptyString(session.metadata?.deposit_source) ?? asNonEmptyString(session.metadata?.source),
+      })
+
+      if (!serverTracking.delivered && serverTracking.attempted) {
+        console.error("[stripe/webhook] Failed to send server-side GA4 deposit_completed:", {
+          eventId: event.id,
+          bookingId: customerNotification.bookingId,
+          statusCode: serverTracking.statusCode,
+          error: serverTracking.error,
+        })
+      }
+
       return NextResponse.json(
         {
           received: true,
@@ -798,7 +922,9 @@ export async function POST(request: NextRequest) {
           crmOutboxState,
           crmSkippedReason,
           crmError,
+          crmAssignedOrderNo,
           customerNotification,
+          serverTracking,
         },
         { status: 200 },
       )

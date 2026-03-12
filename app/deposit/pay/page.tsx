@@ -10,7 +10,8 @@ import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { getBookingDetails } from "@/app/actions/booking"
 import { getDepositAmount } from "@/config/deposit"
-import { generateRhBookingNumber, normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
+import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
+import { formatUiDate } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
 
 type BookingPreview = {
@@ -51,6 +52,13 @@ function formatRange(low: number, high: number): string {
   return `$${low.toFixed(0)} - $${high.toFixed(0)}`
 }
 
+function normalizeExternalBookingId(input: string | null): string {
+  if (!input) return ""
+  const trimmed = input.trim()
+  if (!trimmed) return ""
+  return normalizeRhBookingNumber(trimmed) ?? trimmed
+}
+
 function calculateTotalAmount(booking: BookingPreview): number {
   if (typeof booking.total_cost === "number") {
     return booking.total_cost
@@ -87,13 +95,7 @@ export default function DepositPaymentPage() {
   const rawBookingId = searchParams.get("id") || ""
   const source = searchParams.get("source") || ""
   const isPrefillSource = shouldUseRhBookingNumbers(source)
-  const bookingId = useMemo(() => {
-    if (!isPrefillSource) {
-      return rawBookingId
-    }
-
-    return normalizeRhBookingNumber(rawBookingId) ?? generateRhBookingNumber()
-  }, [isPrefillSource, rawBookingId])
+  const bookingId = useMemo(() => normalizeExternalBookingId(rawBookingId), [rawBookingId])
   const customerNameParam = searchParams.get("customer_name")?.trim() || ""
   const customerEmailParam = searchParams.get("customer_email")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
@@ -142,7 +144,7 @@ export default function DepositPaymentPage() {
 
   useEffect(() => {
     async function fetchBookingDetails() {
-      if (!bookingId) {
+      if (!bookingId && !isPrefillSource) {
         setError("Booking number is missing. Please check if your link is complete.")
         setLoading(false)
         return
@@ -340,7 +342,7 @@ export default function DepositPaymentPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Booking Number</p>
-                  <p className="font-medium">{booking.id}</p>
+                  <p className="font-medium">{booking.id || "Assigned after deposit payment"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Customer Name</p>
@@ -351,7 +353,7 @@ export default function DepositPaymentPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Event Date</p>
-                  <p className="font-medium">{booking.event_date || "TBD"}</p>
+                  <p className="font-medium">{formatUiDate(booking.event_date, "TBD")}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Event Time</p>
