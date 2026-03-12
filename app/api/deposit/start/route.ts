@@ -206,13 +206,21 @@ function mergeAttributionSources(params: {
   return normalizeAttributionInput(merged)
 }
 
-function resolveBookingId(input: { bookingId?: string }): string | undefined {
+function isPrefillSource(source?: string): boolean {
+  if (!source) return false
+  return source === "quoteA" || source === "quoteB" || source === "estimation"
+}
+
+function resolveBookingId(input: { bookingId?: string; source?: string }): string | undefined {
   if (isLikelyUuid(input.bookingId)) {
     return input.bookingId
   }
 
   const normalizedRhBookingId = normalizeRhBookingNumber(input.bookingId)
   if (normalizedRhBookingId) {
+    if (isPrefillSource(input.source)) {
+      return undefined
+    }
     return normalizedRhBookingId
   }
 
@@ -225,6 +233,7 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
   return {
     bookingId: resolveBookingId({
       bookingId: normalizeString(payload.bookingId),
+      source,
     }),
     source,
     customerName: normalizeString(payload.customerName),

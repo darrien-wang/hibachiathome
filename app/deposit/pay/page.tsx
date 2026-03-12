@@ -59,6 +59,13 @@ function normalizeExternalBookingId(input: string | null): string {
   return normalizeRhBookingNumber(trimmed) ?? trimmed
 }
 
+function shouldSuppressLegacyRhId(params: { source: string; rawBookingId: string }): boolean {
+  if (!shouldUseRhBookingNumbers(params.source)) {
+    return false
+  }
+  return Boolean(normalizeRhBookingNumber(params.rawBookingId))
+}
+
 function calculateTotalAmount(booking: BookingPreview): number {
   if (typeof booking.total_cost === "number") {
     return booking.total_cost
@@ -95,7 +102,16 @@ export default function DepositPaymentPage() {
   const rawBookingId = searchParams.get("id") || ""
   const source = searchParams.get("source") || ""
   const isPrefillSource = shouldUseRhBookingNumbers(source)
-  const bookingId = useMemo(() => normalizeExternalBookingId(rawBookingId), [rawBookingId])
+  const suppressLegacyRhId = useMemo(
+    () => shouldSuppressLegacyRhId({ source, rawBookingId }),
+    [rawBookingId, source],
+  )
+  const bookingId = useMemo(() => {
+    if (suppressLegacyRhId) {
+      return ""
+    }
+    return normalizeExternalBookingId(rawBookingId)
+  }, [rawBookingId, suppressLegacyRhId])
   const customerNameParam = searchParams.get("customer_name")?.trim() || ""
   const customerEmailParam = searchParams.get("customer_email")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
@@ -141,6 +157,17 @@ export default function DepositPaymentPage() {
   const [error, setError] = useState<string | null>(null)
   const [checkoutStarting, setCheckoutStarting] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!suppressLegacyRhId) {
+      return
+    }
+
+    const url = new URL(window.location.href)
+    url.searchParams.delete("id")
+    url.searchParams.delete("booking_id")
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`)
+  }, [suppressLegacyRhId])
 
   useEffect(() => {
     async function fetchBookingDetails() {

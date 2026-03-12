@@ -1,0 +1,23 @@
+{
+  "feature_id": "CRO-ORDER-ID-011",
+  "date": "2026-03-11",
+  "summary": "Legacy RH id query values are ignored and cleaned for pre-payment deposit flows.",
+  "checks": [
+    {
+      "name": "deposit_pay_legacy_rh_id_suppressed",
+      "status": "passed",
+      "evidence": "app/deposit/pay/page.tsx suppresses RH id for prefill sources and cleans URL via history.replaceState"
+    },
+    {
+      "name": "deposit_start_drops_legacy_rh_id",
+      "status": "passed",
+      "evidence": "app/api/deposit/start/route.ts resolveBookingId returns undefined for RH booking id from prefill sources"
+    },
+    {
+      "name": "marketing_lint",
+      "status": "passed",
+      "command": "pnpm -C realhibachi-marketing lint",
+      "notes": "warnings only"
+    }
+  ]
+}

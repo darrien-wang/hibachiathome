@@ -1255,5 +1255,17 @@
       "Validate end-to-end that pre-payment pages show no RH booking number and paid verification resolves RH booking number for customer self-service links."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-ORDER-ID-011",
+    "priority": "P0",
+    "category": "integration",
+    "description": "Harden pre-payment deposit entry to ignore legacy RH id query values from stale links so Go to Deposit never surfaces pre-assigned booking numbers.",
+    "steps": [
+      "For prefill sources (quoteA/quoteB/estimation), ignore RH-formatted id values in deposit pay page display state.",
+      "For deposit start API, drop RH-formatted booking_id from prefill sources before writing metadata and marker fields.",
+      "Verify legacy links containing id=RH-... still produce deposit flow with no pre-payment booking number display."
+    ],
+    "passes": true
   }
 ]
