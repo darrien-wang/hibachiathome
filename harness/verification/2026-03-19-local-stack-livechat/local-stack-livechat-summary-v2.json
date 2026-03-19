@@ -1,0 +1,17 @@
+{
+  "scenario": "local-stack start/status/stop includes livechat service",
+  "checks": {
+    "startMarketing": true,
+    "startInvoice": true,
+    "startLivechat": true,
+    "startStripe": true,
+    "statusLivechat": true,
+    "stopLivechat": true,
+    "statusAfterStop": true
+  },
+  "passed": true,
+  "evidence": [
+    "harness/verification/2026-03-19-local-stack-livechat/local-stack-livechat-cycle-v2.log"
+  ],
+  "generatedAt": "2026-03-19T21:48:09.224Z"
+}

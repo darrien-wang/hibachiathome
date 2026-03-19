@@ -37,6 +37,7 @@ Notes:
 Use one command to run the full local integration stack for manual E2E testing:
 - marketing app (`http://127.0.0.1:3100`)
 - invoice app (`http://127.0.0.1:3101`)
+- livechat app (`http://localhost:3300`, widget at `/widget.js`)
 - Stripe webhook forwarder -> marketing `/api/stripe/webhook`
 
 Start:
@@ -69,7 +70,10 @@ Notes:
 - Override defaults when needed:
   - `MARKETING_PORT` (default `3100`)
   - `INVOICE_PORT` (default `3101`)
+  - `LIVECHAT_PORT` (default `3300`)
+  - `LIVECHAT_HOST` (default `0.0.0.0`)
   - `INVOICE_DIR` (default `../v0-real-hibachi-invoice-generator`)
+  - `LIVECHAT_DIR` (default `../realhibachi-livechat`)
 
 ## Local Stripe Webhook Quickstart
 

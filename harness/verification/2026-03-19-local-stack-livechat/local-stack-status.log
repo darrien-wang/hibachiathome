@@ -1,0 +1,9 @@
+
+> my-v0-project@0.1.0 local:stack:status /mnt/d/desktop/realhibachi/realhibachi-marketing
+> bash ./harness/scripts/local-stack.sh status
+
+[local-stack] marketing: stopped (stale pid file)
+[local-stack] invoice: stopped (stale pid file)
+[local-stack] livechat: stopped (stale pid file)
+[local-stack] stripe-listen: stopped (stale pid file)
+[local-stack] latest stripe webhook secret in log: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050

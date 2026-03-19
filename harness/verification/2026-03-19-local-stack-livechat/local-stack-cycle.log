@@ -1,0 +1,26 @@
+[verify] stopping any prior stack
+[local-stack] stripe-listen already stopped (stale pid file removed).
+[local-stack] livechat already stopped (stale pid file removed).
+[local-stack] invoice already stopped (stale pid file removed).
+[local-stack] marketing already stopped (stale pid file removed).
+[verify] starting stack (marketing+invoice+livechat+stripe)
+[local-stack] starting marketing...
+[local-stack] marketing started (pid=2331). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/marketing.log
+[local-stack] starting invoice...
+[local-stack] invoice started (pid=2367). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/invoice.log
+[local-stack] starting livechat...
+[local-stack] livechat started (pid=2404). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/livechat.log
+[local-stack] livechat widget endpoint: http://localhost:3300/widget.js
+[local-stack] starting stripe-listen...
+[local-stack] stripe-listen started (pid=2441). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/stripe.log
+[local-stack] stripe webhook secret detected: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050
+[local-stack] set STRIPE_WEBHOOK_SECRET=whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050 in .env.local, then restart marketing service.
+[local-stack] done.
+[verify] waiting for endpoints
+[verify] status snapshot
+[local-stack] marketing: running (pid=2331) url=http://127.0.0.1:3100
+[local-stack] invoice: running (pid=2367) url=http://127.0.0.1:3101
+[local-stack] livechat: running (pid=2404) url=http://localhost:3300
+[local-stack] stripe-listen: running (pid=2441)
+[local-stack] latest stripe webhook secret in log: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050
+[verify] curl checks

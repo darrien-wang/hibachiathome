@@ -1,0 +1,120 @@
+[verify] pre-stop
+[local-stack] stripe-listen not managed by script (no pid file).
+[local-stack] livechat not managed by script (no pid file).
+[local-stack] invoice not managed by script (no pid file).
+[local-stack] marketing not managed by script (no pid file).
+[verify] start
+[local-stack] starting marketing...
+[local-stack] marketing started (pid=2822). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/marketing.log
+[local-stack] starting invoice...
+[local-stack] invoice started (pid=2858). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/invoice.log
+[local-stack] starting livechat...
+[local-stack] livechat started (pid=2895). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/livechat.log
+[local-stack] livechat widget endpoint: http://localhost:3300/widget.js
+[local-stack] starting stripe-listen...
+[local-stack] stripe-listen started (pid=2932). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/stripe.log
+[local-stack] stripe webhook secret detected: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050
+[local-stack] set STRIPE_WEBHOOK_SECRET=whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050 in .env.local, then restart marketing service.
+[local-stack] done.
+[verify] status-after-start
+[local-stack] marketing: running (pid=2822) url=http://127.0.0.1:3100
+[local-stack] invoice: running (pid=2858) url=http://127.0.0.1:3101
+[local-stack] livechat: running (pid=2895) url=http://localhost:3300
+[local-stack] stripe-listen: running (pid=2932)
+[local-stack] latest stripe webhook secret in log: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050
+[verify] logs-snapshot
+[local-stack] logs:
+  marketing: /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/marketing.log
+  invoice:   /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/invoice.log
+  livechat:  /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/livechat.log
+  stripe:    /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/stripe.log
+
+==> /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/marketing.log <==
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/RealHibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3000
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+> my-v0-project@0.1.0 dev /mnt/d/desktop/realhibachi/realhibachi-marketing
+> next dev --hostname 127.0.0.1 --port 3100
+
+
+==> /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/invoice.log <==
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+> my-project@0.1.0 dev /mnt/d/desktop/realhibachi/v0-real-hibachi-invoice-generator
+> next dev --hostname 127.0.0.1 --port 3101
+
+
+==> /mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/livechat.log <==
+
+[verify] stop
+[local-stack] stopping stripe-listen (pid=2932)...
+[local-stack] stripe-listen stopped.
+[local-stack] stopping livechat (pid=2895)...
+[local-stack] livechat stopped.
+[local-stack] stopping invoice (pid=2858)...
+[local-stack] invoice stopped.
+[local-stack] stopping marketing (pid=2822)...
+[local-stack] marketing stopped.
+[verify] status-after-stop
+[local-stack] marketing: stopped
+[local-stack] invoice: stopped
+[local-stack] livechat: stopped
+[local-stack] stripe-listen: stopped
+[local-stack] latest stripe webhook secret in log: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050

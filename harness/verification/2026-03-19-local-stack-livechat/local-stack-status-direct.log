@@ -1,0 +1,5 @@
+[local-stack] marketing: running (pid=2090) url=http://127.0.0.1:3100
+[local-stack] invoice: running (pid=2126) url=http://127.0.0.1:3101
+[local-stack] livechat: running (pid=2163) url=http://localhost:3300
+[local-stack] stripe-listen: running (pid=2200)
+[local-stack] latest stripe webhook secret in log: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050

@@ -5,9 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKETING_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 INVOICE_DIR_DEFAULT="${MARKETING_DIR}/../v0-real-hibachi-invoice-generator"
 INVOICE_DIR="${INVOICE_DIR:-${INVOICE_DIR_DEFAULT}}"
+LIVECHAT_DIR_DEFAULT="${MARKETING_DIR}/../realhibachi-livechat"
+LIVECHAT_DIR="${LIVECHAT_DIR:-${LIVECHAT_DIR_DEFAULT}}"
 
 MARKETING_PORT="${MARKETING_PORT:-3100}"
 INVOICE_PORT="${INVOICE_PORT:-3101}"
+LIVECHAT_PORT="${LIVECHAT_PORT:-3300}"
+LIVECHAT_HOST="${LIVECHAT_HOST:-0.0.0.0}"
 WEBHOOK_EVENTS="${WEBHOOK_EVENTS:-checkout.session.completed,charge.refunded}"
 WEBHOOK_FORWARD_URL="${WEBHOOK_FORWARD_URL:-http://127.0.0.1:${MARKETING_PORT}/api/stripe/webhook}"
 
@@ -16,10 +20,12 @@ mkdir -p "${STATE_DIR}"
 
 MARKETING_PID_FILE="${STATE_DIR}/marketing.pid"
 INVOICE_PID_FILE="${STATE_DIR}/invoice.pid"
+LIVECHAT_PID_FILE="${STATE_DIR}/livechat.pid"
 STRIPE_PID_FILE="${STATE_DIR}/stripe.pid"
 
 MARKETING_LOG="${STATE_DIR}/marketing.log"
 INVOICE_LOG="${STATE_DIR}/invoice.log"
+LIVECHAT_LOG="${STATE_DIR}/livechat.log"
 STRIPE_LOG="${STATE_DIR}/stripe.log"
 
 usage() {
@@ -29,7 +35,10 @@ Usage: bash harness/scripts/local-stack.sh <start|status|stop|logs>
 Environment overrides:
   MARKETING_PORT      default: 3100
   INVOICE_PORT        default: 3101
+  LIVECHAT_PORT       default: 3300
+  LIVECHAT_HOST       default: 0.0.0.0
   INVOICE_DIR         default: ../v0-real-hibachi-invoice-generator
+  LIVECHAT_DIR        default: ../realhibachi-livechat
   WEBHOOK_EVENTS      default: checkout.session.completed,charge.refunded
   WEBHOOK_FORWARD_URL default: http://127.0.0.1:${MARKETING_PORT}/api/stripe/webhook
 EOF
@@ -162,7 +171,12 @@ print_status_line() {
       echo "[local-stack] ${name}: running (pid=${pid})${url:+ url=${url}}"
       return
     fi
-    echo "[local-stack] ${name}: stopped (stale pid file)"
+    rm -f "${pid_file}"
+    if [ "${port}" != "none" ] && is_port_in_use "${port}"; then
+      echo "[local-stack] ${name}: running (external process on port ${port}; stale pid file removed)${url:+ url=${url}}"
+      return
+    fi
+    echo "[local-stack] ${name}: stopped (stale pid file removed)"
     return
   fi
 
@@ -182,6 +196,8 @@ start_all() {
 
   start_service "marketing" "${MARKETING_DIR}" "pnpm dev --hostname 127.0.0.1 --port ${MARKETING_PORT}" "${MARKETING_PORT}" "${MARKETING_PID_FILE}" "${MARKETING_LOG}"
   start_service "invoice" "${INVOICE_DIR}" "pnpm dev --hostname 127.0.0.1 --port ${INVOICE_PORT}" "${INVOICE_PORT}" "${INVOICE_PID_FILE}" "${INVOICE_LOG}"
+  start_service "livechat" "${LIVECHAT_DIR}" "pnpm dev --hostname ${LIVECHAT_HOST} --port ${LIVECHAT_PORT}" "${LIVECHAT_PORT}" "${LIVECHAT_PID_FILE}" "${LIVECHAT_LOG}"
+  echo "[local-stack] livechat widget endpoint: http://localhost:${LIVECHAT_PORT}/widget.js"
 
   if ! command -v stripe >/dev/null 2>&1; then
     echo "[local-stack] WARN: Stripe CLI not found; webhook forwarder not started."
@@ -215,6 +231,7 @@ start_all() {
 status_all() {
   print_status_line "marketing" "${MARKETING_PID_FILE}" "${MARKETING_PORT}" "http://127.0.0.1:${MARKETING_PORT}"
   print_status_line "invoice" "${INVOICE_PID_FILE}" "${INVOICE_PORT}" "http://127.0.0.1:${INVOICE_PORT}"
+  print_status_line "livechat" "${LIVECHAT_PID_FILE}" "${LIVECHAT_PORT}" "http://localhost:${LIVECHAT_PORT}"
   if [ -f "${STRIPE_PID_FILE}" ]; then
     print_status_line "stripe-listen" "${STRIPE_PID_FILE}" "none" ""
   elif is_external_stripe_listen_running; then
@@ -234,6 +251,7 @@ status_all() {
 
 stop_all() {
   stop_service "stripe-listen" "${STRIPE_PID_FILE}"
+  stop_service "livechat" "${LIVECHAT_PID_FILE}"
   stop_service "invoice" "${INVOICE_PID_FILE}"
   stop_service "marketing" "${MARKETING_PID_FILE}"
 }
@@ -242,9 +260,10 @@ logs_all() {
   echo "[local-stack] logs:"
   echo "  marketing: ${MARKETING_LOG}"
   echo "  invoice:   ${INVOICE_LOG}"
+  echo "  livechat:  ${LIVECHAT_LOG}"
   echo "  stripe:    ${STRIPE_LOG}"
   echo
-  tail -n 60 "${MARKETING_LOG}" "${INVOICE_LOG}" "${STRIPE_LOG}" 2>/dev/null || true
+  tail -n 60 "${MARKETING_LOG}" "${INVOICE_LOG}" "${LIVECHAT_LOG}" "${STRIPE_LOG}" 2>/dev/null || true
 }
 
 main() {

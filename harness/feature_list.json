@@ -891,7 +891,7 @@
       "Store pid/log files under a stable repo path for easy reuse across sessions.",
       "Update README with one-command startup and daily local test workflow."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-DEPOSIT-SUCCESS-COPY-001",

@@ -1,0 +1,16 @@
+
+> my-v0-project@0.1.0 local:stack:start /mnt/d/desktop/realhibachi/realhibachi-marketing
+> bash ./harness/scripts/local-stack.sh start
+
+[local-stack] starting marketing...
+[local-stack] marketing started (pid=1705). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/marketing.log
+[local-stack] starting invoice...
+[local-stack] invoice started (pid=1742). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/invoice.log
+[local-stack] starting livechat...
+[local-stack] livechat started (pid=1778). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/livechat.log
+[local-stack] livechat widget endpoint: http://localhost:3300/widget.js
+[local-stack] starting stripe-listen...
+[local-stack] stripe-listen started (pid=1817). log=/mnt/d/desktop/realhibachi/realhibachi-marketing/.codex/local-stack/stripe.log
+[local-stack] stripe webhook secret detected: whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050
+[local-stack] set STRIPE_WEBHOOK_SECRET=whsec_c25c9b16660878855e9720942b5c0a16e5c7517df532694d69d9e727b3903050 in .env.local, then restart marketing service.
+[local-stack] done.

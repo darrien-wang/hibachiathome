@@ -2780,3 +2780,41 @@
 - Updated local base URL from `127.0.0.1:3300` to `localhost:3300` in marketing env and dev fallback to match host-browser reachability.
 - Restarted marketing/livechat dev servers with explicit host bind `--hostname 0.0.0.0`.
 - Local check: `http://localhost:3300/widget.js` responds successfully.
+
+## 2026-03-19 (CRO-LOCAL-STACK-001 complete: local-stack now manages livechat service)
+
+- Baseline check before changes:
+  - Ran existing core command `pnpm local:stack:status` to confirm the local-stack script entrypoint was callable in this environment before implementing updates.
+
+- Completed:
+  - Updated `harness/scripts/local-stack.sh` to include sibling livechat service lifecycle management:
+    - Added env defaults:
+      - `LIVECHAT_DIR` (default `../realhibachi-livechat`)
+      - `LIVECHAT_PORT` (default `3300`)
+      - `LIVECHAT_HOST` (default `0.0.0.0`)
+    - Added pid/log tracking files under `.codex/local-stack/`:
+      - `livechat.pid`
+      - `livechat.log`
+    - `start` now launches livechat service (`pnpm dev --hostname ${LIVECHAT_HOST} --port ${LIVECHAT_PORT}`) and prints widget endpoint.
+    - `status`, `logs`, and `stop` now include livechat.
+    - Hardened stale pid handling in `status`: stale pid files are now removed and status can still report an external process by port.
+  - Updated `README.md` Local Cross-Project Stack section to document livechat startup and overrides.
+
+- Verified:
+  - Local stack lifecycle evidence captured in:
+    - `harness/verification/2026-03-19-local-stack-livechat/local-stack-livechat-cycle-v2.log`
+    - `harness/verification/2026-03-19-local-stack-livechat/local-stack-livechat-summary-v2.json`
+  - Verification confirms start/status/stop coverage includes livechat:
+    - livechat starts with stack,
+    - livechat appears in status,
+    - livechat log path is listed,
+    - livechat is stopped by stack stop command.
+
+- Feature status transition:
+  - `CRO-LOCAL-STACK-001` changed from `passes: false -> true`.
+
+- Notes:
+  - `bash harness/scripts/codex-session-start.sh` still fails in this environment due CRLF line-ending artifact (`set: pipefail\r: invalid option name`), unchanged in this scoped fix.
+  - `bash harness/scripts/codex-verify.sh` was executed; lint/build completed but e2e gate failed with pre-existing broad regression set (`26 failed / 2 passed`) recorded under:
+    - `harness/verification/2026-03-19-144834-codex-verify/verify.log`
+    - `harness/verification/2026-03-19-145743-e2e-run/playwright.stdout.log`

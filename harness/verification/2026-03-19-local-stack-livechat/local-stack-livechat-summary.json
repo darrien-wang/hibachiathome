@@ -1,0 +1,20 @@
+{
+  "scenario": "local-stack includes livechat service management",
+  "checks": {
+    "startedMarketing": true,
+    "startedInvoice": true,
+    "startedLivechat": true,
+    "startedStripe": true,
+    "statusMarketingRunning": true,
+    "statusInvoiceRunning": true,
+    "statusLivechatRunning": true,
+    "statusStripeRunning": true
+  },
+  "passed": true,
+  "evidence": [
+    "harness/verification/2026-03-19-local-stack-livechat/local-stack-start-direct.log",
+    "harness/verification/2026-03-19-local-stack-livechat/local-stack-status-direct.log",
+    "harness/verification/2026-03-19-local-stack-livechat/local-stack-stop-after-direct.log"
+  ],
+  "generatedAt": "2026-03-19T21:47:22.187Z"
+}
