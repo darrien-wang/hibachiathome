@@ -1,0 +1,27 @@
+<svg width="768" height="768" viewBox="0 0 768 768" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">East Coast map with New Jersey highlighted</title>
+  <desc id="desc">Stylized Northeastern United States map where New Jersey is shown in red as an open service area.</desc>
+  <rect width="768" height="768" fill="#0B0F17" />
+
+  <!-- Great Lakes / Atlantic voids -->
+  <path d="M0 0H638L650 18L670 0H768V168L748 186L712 182L690 198L668 192L644 210L608 208L590 196L572 214L560 236L552 258L540 280L522 296L506 306L510 318L502 332L488 344L466 350L450 366L432 376L400 378L376 370L362 352L340 338L310 336L288 340L268 352L246 354L220 342L200 344L174 358L152 360L134 348L112 352L90 338L66 336L40 324L18 318L0 320V0Z" fill="#111827"/>
+  <path d="M0 448L12 440L24 420L18 394L0 382V448Z" fill="#111827"/>
+
+  <!-- Midwest / East land mass -->
+  <path d="M0 322L22 318L44 324L66 336L90 338L112 352L134 348L152 360L174 358L200 344L220 342L246 354L268 352L288 340L310 336L340 338L362 352L376 370L400 378L432 376L450 366L466 350L488 344L502 332L510 318L506 306L522 296L540 280L552 258L560 236L572 214L590 196L608 208L644 210L668 192L690 198L712 182L748 186L768 168V768H0V322Z" fill="#E7E5E4" stroke="#2E1A1A" stroke-width="2"/>
+
+  <!-- State separators (stylized) -->
+  <path d="M560 236L574 292L584 346" stroke="#2E1A1A" stroke-width="3"/>
+  <path d="M592 222L600 272L606 320L614 368" stroke="#2E1A1A" stroke-width="3"/>
+  <path d="M628 208L636 246L648 300L660 338" stroke="#2E1A1A" stroke-width="3"/>
+  <path d="M650 358L584 380L514 334L432 356L398 360" stroke="#2E1A1A" stroke-width="3"/>
+  <path d="M366 372L384 494L552 458L566 516L590 540L618 548" stroke="#2E1A1A" stroke-width="3"/>
+  <path d="M0 420L78 434L106 452L108 520L120 564L100 628L128 682L188 676L230 664L266 688L332 678L402 664L474 650L546 632L612 610" stroke="#2E1A1A" stroke-width="3"/>
+
+  <!-- New Jersey highlight -->
+  <path d="M560 364L596 372L594 398L606 424L598 464L586 472L572 506L548 490L548 468L540 446L538 420L548 400L546 380L560 364Z" fill="#DC2626" stroke="#7F1D1D" stroke-width="3"/>
+
+  <!-- Label -->
+  <rect x="520" y="530" width="118" height="38" rx="19" fill="#DC2626"/>
+  <text x="579" y="555" text-anchor="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">NJ OPEN</text>
+</svg>

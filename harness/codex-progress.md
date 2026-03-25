@@ -1,5 +1,38 @@
 # Codex Progress Log
 
+## 2026-03-24 (CRO-HOME-REGION-012 homepage NJ east-coast open-area card)
+
+- Completed:
+  - Reworked homepage **Select Your Region To Start** module into a two-card regional selector (west + east).
+  - Preserved existing west-coast card for **SOUTH CALIFORNIA**.
+  - Added new east-coast card for **NEW JERSEY** with open-area label and matching CTA/call actions.
+  - Added new map asset: `public/nj-east-coast-map.svg` (NJ highlighted).
+- Feature status transition:
+  - Added and completed `CRO-HOME-REGION-012` in `harness/feature_list.json` (`passes: true`).
+- Verified:
+  - Core baseline recheck (previously passing flow): `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-24-core-baseline` ✅
+  - Real UI verification (homepage region selector + NJ card visibility): Playwright scripted check against live dev server ✅
+  - `pnpm lint` ✅
+  - `pnpm next build --experimental-build-mode=compile` ✅
+- Regressions/blockers:
+  - Attempted direct Playwright harness run `bash harness/scripts/run-e2e.sh e2e/smoke.spec.ts --grep "TRK-001"` timed out on webServer startup in this environment; captured and proceeded with deterministic baseline + direct UI Playwright verification.
+  - `bash harness/scripts/codex-verify.sh` now enforces full E2E in this repo and failed in current workspace due broad existing E2E regressions (CPL/TRK/deposit specs) outside this homepage-only scope; captured partial run output and exit marker for handoff.
+- Evidence:
+  - `harness/verification/2026-03-24-core-baseline/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-24-core-baseline/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-24-core-baseline/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/home-service-region-west-east.png`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/home-service-region-west-east.json`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/verify-home-nj-eastcoast.log`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/verify-home-nj-eastcoast.exit`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/lint.log`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/lint.exit`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/build.log`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/build.exit`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/codex-verify.log`
+  - `harness/verification/2026-03-24-home-nj-eastcoast/codex-verify.exit`
+  - `harness/verification/2026-03-24-184854-e2e-run/playwright.stdout.log`
+
 ## 2026-03-11 (CRO-LIVECHAT-UX-004 + CRO-DEPOSIT-MAINFLOW-009)
 
 - Completed:

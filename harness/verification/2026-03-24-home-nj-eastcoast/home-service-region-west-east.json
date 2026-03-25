@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-03-25T01:37:43.506Z",
+  "url": "http://127.0.0.1:3100/",
+  "assertions": {
+    "new_jersey_card_visible": true,
+    "east_coast_open_tag_present": true,
+    "instant_quote_button_count": 5
+  }
+}

@@ -238,6 +238,28 @@ export default function Home() {
     "Direct planning support from our team",
   ]
 
+  const serviceRegionCards = [
+    {
+      id: "west-coast",
+      regionTag: "WEST COAST",
+      heading: "SOUTH CALIFORNIA",
+      mapSrc: "/socal-map.png",
+      mapAlt: "West coast map with Southern California highlighted",
+      coverage:
+        "LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County",
+      quoteHref: "/quoteA?region=west-coast",
+    },
+    {
+      id: "east-coast-nj",
+      regionTag: "EAST COAST · OPEN AREA",
+      heading: "NEW JERSEY",
+      mapSrc: "/nj-east-coast-map.svg",
+      mapAlt: "East coast map with New Jersey highlighted as an open service area",
+      coverage: "Now open in NJ: Bergen, Hudson, Essex, Union, Middlesex, Monmouth, and nearby areas.",
+      quoteHref: "/quoteA?region=east-coast-nj",
+    },
+  ] as const
+
   return (
     <div>
       <HeroSection />
@@ -353,38 +375,49 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="max-w-2xl mx-auto bg-[#fffdf8] rounded-3xl overflow-hidden border border-[#e7dbc6] shadow-[0_10px_30px_rgba(120,80,20,0.08)]">
-              <img
-                src="/socal-map.png"
-                alt="West coast map with Southern California highlighted"
-                className="w-full max-h-[460px] object-contain bg-[#f7f2e7]"
-                loading="lazy"
-              />
-
-              <div className="px-6 md:px-8 py-7 text-center">
-                <h3 className="text-3xl font-montserrat font-bold tracking-tight text-[hsl(24_79%_55%)] mb-2">
-                  SOUTH CALIFORNIA
-                </h3>
-                <p className="text-stone-600 mb-5 text-sm md:text-base">
-                  LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County
-                </p>
-
-                <Button
-                  asChild
-                  className="rounded-full bg-[hsl(24_79%_55%)] text-white px-8 min-w-[230px] h-12 hover:bg-[hsl(24_79%_48%)]"
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+              {serviceRegionCards.map((region) => (
+                <div
+                  key={region.id}
+                  className="bg-[#fffdf8] rounded-3xl overflow-hidden border border-[#e7dbc6] shadow-[0_10px_30px_rgba(120,80,20,0.08)]"
                 >
-                  <Link href="/quoteA">GET INSTANT QUOTE</Link>
-                </Button>
+                  <img
+                    src={region.mapSrc}
+                    alt={region.mapAlt}
+                    className="w-full h-[340px] md:h-[380px] object-contain bg-[#f7f2e7]"
+                    loading="lazy"
+                  />
 
-                <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
-                <a
-                  href="tel:2137707788"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] px-8 min-w-[230px] h-12 font-semibold hover:bg-[hsl(24_79%_96%)] transition-colors"
-                >
-                  213-770-7788
-                </a>
-              </div>
+                  <div className="px-6 md:px-8 py-7 text-center">
+                    <p className="text-xs md:text-sm tracking-[0.22em] uppercase text-stone-500 font-semibold mb-2">
+                      {region.regionTag}
+                    </p>
+                    <h3 className="text-3xl font-montserrat font-bold tracking-tight text-[hsl(24_79%_55%)] mb-2">
+                      {region.heading}
+                    </h3>
+                    <p className="text-stone-600 mb-5 text-sm md:text-base">{region.coverage}</p>
+
+                    <Button
+                      asChild
+                      className="rounded-full bg-[hsl(24_79%_55%)] text-white px-8 min-w-[230px] h-12 hover:bg-[hsl(24_79%_48%)]"
+                    >
+                      <Link href={region.quoteHref}>GET INSTANT QUOTE</Link>
+                    </Button>
+
+                    <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
+                    <a
+                      href="tel:2137707788"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] px-8 min-w-[230px] h-12 font-semibold hover:bg-[hsl(24_79%_96%)] transition-colors"
+                    >
+                      213-770-7788
+                    </a>
+                  </div>
+                </div>
+              ))}
             </div>
+            <p className="text-center text-sm text-stone-600 mt-5">
+              East coast availability is currently focused on New Jersey, with more nearby areas opening soon.
+            </p>
           </div>
         </section>
       </AnimateOnScroll>

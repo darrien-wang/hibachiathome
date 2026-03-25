@@ -1267,5 +1267,18 @@
       "Verify legacy links containing id=RH-... still produce deposit flow with no pre-payment booking number display."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-HOME-REGION-012",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Homepage region selector shows both west coast and east coast entry cards, including New Jersey as an east coast open area.",
+    "steps": [
+      "Open homepage and scroll to the Select Your Region To Start section.",
+      "Verify west coast card still renders with Southern California map and CTA.",
+      "Verify a second east coast card renders with New Jersey highlighted and east coast open-area label.",
+      "Verify users can click Get Instant Quote from both region cards."
+    ],
+    "passes": true
   }
 ]

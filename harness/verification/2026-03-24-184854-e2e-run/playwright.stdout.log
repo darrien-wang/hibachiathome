@@ -1,0 +1,15 @@
+
+Running 28 tests using 1 worker
+
+  ✘   1 [chromium] › e2e/cpl-006.spec.ts:12:5 › CPL-006: quote SMS/Call/Email clicks emit lead_submit with qualified channel payload (30.3s)
+  ✘   2 [chromium] › e2e/cpl-007.spec.ts:32:5 › CPL-007-01: default contact intent emits lead_submit booking_inquiry (26.9s)
+  ✘   3 [chromium] › e2e/cpl-007.spec.ts:68:5 › CPL-007-02: support reason query emits support_submit customer_support (26.1s)
+  ✘   4 [chromium] › e2e/cpl-008.spec.ts:12:5 › CPL-008: quote_started emits only after first real input and only once (25.1s)
+  ✘   5 [chromium] › e2e/cpl-009.spec.ts:12:5 › CPL-009: quote deep link forwards CRM context into livechat widget setContext payload (22.7s)
+  ✘   6 [chromium] › e2e/cpl-010.spec.ts:12:5 › CPL-010: launcher shows Live Chat + human avatar and supports drag without accidental toggle (23.6s)
+  ✘   7 [chromium] › e2e/deposit-primary-007.spec.ts:32:5 › CRO-DEPOSIT-PRIMARY-007-01: paid verify emits exactly one deposit_completed with required payload (27.1s)
+  ✘   8 [chromium] › e2e/deposit-primary-007.spec.ts:84:5 › CRO-DEPOSIT-PRIMARY-007-02: cancel flow does not emit deposit_completed (30.9s)
+  ✘   9 [chromium] › e2e/deposit-primary-007.spec.ts:98:5 › CRO-DEPOSIT-PRIMARY-007-03: success refresh and reopen are deduped by transaction_id (26.1s)
+  ✘  10 [chromium] › e2e/deposit-primary-007.spec.ts:176:5 › CRO-DEPOSIT-PRIMARY-007-04: delayed webhook blocks conversion until paid verification (30.3s)
+  ✘  11 [chromium] › e2e/smoke.spec.ts:6:5 › TRK-001: home load emits exactly one page_view via dataLayer (6.4s)
+  ✘  12 [chromium] › e2e/smoke.spec.ts:32:5 › TRK-003: navigation from home to /book emits a new page_view event (5.9s)

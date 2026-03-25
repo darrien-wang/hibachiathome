@@ -1,0 +1,58 @@
+   ▲ Next.js 15.2.8
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Collecting page data ...
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/availability
+├ ƒ /api/booking/create
+├ ƒ /api/booking/timeslots
+├ ƒ /api/calendar
+├ ƒ /api/calendar/manual
+├ ƒ /api/contact
+├ ƒ /api/deposit/start
+├ ƒ /api/deposit/verify
+├ ƒ /api/google-maps-script
+├ ƒ /api/integrations/crm/outbox/replay
+├ ƒ /api/quote/travel-fee
+├ ƒ /api/quote/weather
+├ ƒ /api/serve-sitemap-html
+├ ƒ /api/stripe/webhook
+├ ƒ /blog
+├ ƒ /blog/[slug]
+├ ƒ /book
+├ ƒ /contact
+├ ƒ /deposit
+├ ƒ /deposit/cancel
+├ ƒ /deposit/pay
+├ ƒ /deposit/success
+├ ƒ /estimation
+├ ƒ /faq
+├ ƒ /gallery
+├ ƒ /hibachi-at-home
+├ ƒ /locations
+├ ƒ /locations/la-orange-county
+├ ƒ /locations/nyc-long-island
+├ ƒ /menu
+├ ƒ /partner-opportunities
+├ ƒ /privacy-policy
+├ ƒ /quote
+├ ƒ /quoteA
+├ ƒ /quoteB
+├ ƒ /rentals
+├ ƒ /robots.txt
+└ ƒ /sitemap.xml
++ First Load JS shared by all             101 kB
+  ├ chunks/24cdbf2e-cc4652e84400122e.js  53.3 kB
+  ├ chunks/3409-8c475b391ad871ef.js      45.6 kB
+  └ other shared chunks (total)          1.86 kB
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
