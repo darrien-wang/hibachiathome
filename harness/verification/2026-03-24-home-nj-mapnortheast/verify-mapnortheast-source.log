@@ -1,0 +1,8 @@
+[verify] checking homepage source references
+253:      id: "east-coast-nj",
+255:      heading: "NEW JERSEY",
+256:      mapSrc: "/mapnortheast.png",
+259:      quoteHref: "/quoteA?region=east-coast-nj",
+[verify] checking asset files
+-rwxrwxrwx 1 darrien darrien 48500 Mar 24 18:17 public/mapnortheast.png
+ok: svg removed

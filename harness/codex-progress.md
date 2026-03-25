@@ -1,5 +1,23 @@
 # Codex Progress Log
 
+## 2026-03-25 (CRO-HOME-REGION-012 follow-up: switch NJ card to mapnortheast.png)
+
+- Completed:
+  - Updated homepage east-coast NJ region card map source from SVG (`/nj-east-coast-map.svg`) to PNG (`/mapnortheast.png`) per stakeholder request.
+  - Removed obsolete SVG asset `public/nj-east-coast-map.svg` from repo to prevent accidental reuse.
+- Verified:
+  - Core baseline recheck: `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-24-home-nj-mapnortheast` ✅
+  - Source-level region-map contract check confirms homepage now references `/mapnortheast.png` and no longer references `/nj-east-coast-map.svg` ✅
+  - `pnpm lint` ✅
+- Evidence:
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/verify-mapnortheast-source.log`
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/verify-mapnortheast-source.exit`
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/lint.log`
+  - `harness/verification/2026-03-24-home-nj-mapnortheast/lint.exit`
+
 ## 2026-03-24 (CRO-HOME-REGION-012 homepage NJ east-coast open-area card)
 
 - Completed:

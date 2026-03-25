@@ -253,7 +253,7 @@ export default function Home() {
       id: "east-coast-nj",
       regionTag: "EAST COAST · OPEN AREA",
       heading: "NEW JERSEY",
-      mapSrc: "/nj-east-coast-map.svg",
+      mapSrc: "/mapnortheast.png",
       mapAlt: "East coast map with New Jersey highlighted as an open service area",
       coverage: "Now open in NJ: Bergen, Hudson, Essex, Union, Middlesex, Monmouth, and nearby areas.",
       quoteHref: "/quoteA?region=east-coast-nj",
