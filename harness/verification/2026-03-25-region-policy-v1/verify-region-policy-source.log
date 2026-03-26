@@ -1,0 +1,17 @@
+[check] config/regional-policies.ts exists
+[check] lib/region-resolver.ts exists
+[check] regional policy definitions
+config/regional-policies.ts:1:export const REGION_COOKIE_KEY = "rh_region"
+config/regional-policies.ts:5:export type PricingPolicyKey = "weekday_saver"
+config/regional-policies.ts:30:    enabledPricingPolicies: ["weekday_saver"],
+config/regional-policies.ts:35:    aliases: ["nj", "new-jersey", "east-coast", "east_coast", "east-coast-nj", "east_coast_nj"],
+config/regional-policies.ts:36:    quoteRegionParam: "east-coast-nj",
+config/regional-policies.ts:42:  weekday_saver: {
+config/regional-policies.ts:43:    key: "weekday_saver",
+config/regional-policies.ts:46:    unavailableMessage: "Weekday Saver is currently available in Southern California only.",
+[check] quote builder uses regional resolver + policy notice
+22:import { persistRegionCookie, resolveRegionForClient } from "@/lib/region-resolver"
+149:    const resolvedRegion = resolveRegionForClient({
+156:    persistRegionCookie(resolvedRegion)
+561:            Regional profile: <span className="font-medium text-slate-700">{activeRegionDefinition.label}</span>
+642:                <label className="text-sm font-medium">Pricing Tier *</label>

@@ -8,6 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowRight, Check, MessageSquare, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
+import {
+  DEFAULT_REGION_CODE,
+  getPricingPolicyDefinition,
+  getRegionDefinition,
+  getRegionQuoteHref,
+  isPricingPolicyEnabledForRegion,
+  type RegionCode,
+} from "@/config/regional-policies"
 
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
@@ -131,6 +139,7 @@ export default function Home() {
   }
 
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
+  const activeRegion: RegionCode = DEFAULT_REGION_CODE
 
   const handleOnlineBooking = () => {
     trackEvent("lead_start")
@@ -220,15 +229,10 @@ export default function Home() {
     "Premium protein upgrades available",
   ]
 
-  const weekdaySaverFeatures = [
-    "$45.9 per adult",
-    "$22.95 per child (under 13, 50% food price)",
-    "Monday-Thursday events only",
-    "Minimum 15 total guests",
-    "Choose exactly 2 proteins: chicken, steak, shrimp",
-    "No add-ons or custom upgrade in this tier",
-    "Optional full setup: +$15 per guest",
-  ]
+  const activeRegionDefinition = getRegionDefinition(activeRegion)
+  const activeRegionQuoteHref = getRegionQuoteHref(activeRegion)
+  const weekdaySaverPolicy = getPricingPolicyDefinition("weekday_saver")
+  const weekdaySaverEnabled = isPricingPolicyEnabledForRegion("weekday_saver", activeRegion)
 
   const customPlanFeatures = [
     "Everything in the Standard plan",
@@ -273,36 +277,65 @@ export default function Home() {
                 Pick The Plan That Fits Your Party
               </p>
               <p className="text-base md:text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Compare weekday saver, standard, and custom options. Book instantly when your event fits the published
-                rules, or contact our team for tailored planning.
+                {weekdaySaverEnabled
+                  ? "Compare weekday saver, standard, and custom options."
+                  : `Regional policy detected: ${activeRegionDefinition.label} uses standard + custom pricing options.`}{" "}
+                Book instantly when your event fits the published rules, or contact our team for tailored planning.
               </p>
             </AnimateOnScroll>
 
             <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
-              <AnimateOnScroll direction="up" delay={60}>
-                <div className="rounded-3xl bg-emerald-50 border border-emerald-200 p-8 md:p-10 text-stone-700 shadow-[0_12px_28px_rgba(5,150,105,0.15)]">
-                  <p className="text-lg font-semibold text-emerald-900">Weekday Saver</p>
-                  <div className="mt-5 flex items-baseline gap-2">
-                    <p className="text-5xl font-black text-emerald-950">$45.9</p>
-                    <p className="text-lg font-medium text-emerald-800">/adult</p>
+              {weekdaySaverEnabled ? (
+                <AnimateOnScroll direction="up" delay={60}>
+                  <div className="rounded-3xl bg-emerald-50 border border-emerald-200 p-8 md:p-10 text-stone-700 shadow-[0_12px_28px_rgba(5,150,105,0.15)]">
+                    <p className="text-lg font-semibold text-emerald-900">{weekdaySaverPolicy.title}</p>
+                    <div className="mt-5 flex items-baseline gap-2">
+                      <p className="text-5xl font-black text-emerald-950">$45.9</p>
+                      <p className="text-lg font-medium text-emerald-800">/adult</p>
+                    </div>
+                    <p className="mt-3 text-base text-emerald-900">{weekdaySaverPolicy.description}</p>
+                    <Button
+                      asChild
+                      className="mt-7 h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 text-base font-semibold shadow-md"
+                    >
+                      <Link href={activeRegionQuoteHref}>
+                        Check Weekday Saver
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <div className="mt-7 space-y-3 border-t border-emerald-200 pt-7">
+                      {weekdaySaverPolicy.homeFeatureList.map((item) => (
+                        <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-emerald-900">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <p className="mt-3 text-base text-emerald-900">For Monday-Thursday parties with 15+ guests and a fixed menu set.</p>
-                  <Button asChild className="mt-7 h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 text-base font-semibold shadow-md">
-                    <Link href="/quoteA">
-                      Check Weekday Saver
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <div className="mt-7 space-y-3 border-t border-emerald-200 pt-7">
-                    {weekdaySaverFeatures.map((item) => (
-                      <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-emerald-900">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
+                </AnimateOnScroll>
+              ) : (
+                <AnimateOnScroll direction="up" delay={60}>
+                  <div className="rounded-3xl bg-slate-50 border border-slate-200 p-8 md:p-10 text-stone-700 shadow-[0_10px_26px_rgba(71,85,105,0.12)]">
+                    <p className="text-lg font-semibold text-slate-900">{weekdaySaverPolicy.title} (CA only)</p>
+                    <p className="mt-5 text-sm uppercase tracking-wide text-slate-500">Current region</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">{activeRegionDefinition.label}</p>
+                    <p className="mt-4 text-base text-slate-700">{weekdaySaverPolicy.unavailableMessage}</p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="mt-7 h-12 w-full rounded-full border-slate-300 text-slate-900 hover:bg-slate-100 text-base font-semibold"
+                    >
+                      <Link href={activeRegionQuoteHref}>
+                        Continue with Standard Plan
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <p className="mt-7 border-t border-slate-200 pt-7 text-sm text-slate-600">
+                      Need a custom weekday promotion for your area? Contact our team and we&apos;ll confirm available offers.
+                    </p>
                   </div>
-                </div>
-              </AnimateOnScroll>
+                </AnimateOnScroll>
+              )}
 
               <AnimateOnScroll direction="up">
                 <div className="relative rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 text-stone-700 shadow-[0_12px_30px_rgba(120,80,20,0.12)]">
@@ -317,7 +350,7 @@ export default function Home() {
                   </div>
                   <p className="mt-3 text-base text-gray-600">Best for most birthdays, family parties, and backyard events.</p>
                   <Button asChild className="mt-7 h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-base font-semibold shadow-md">
-                    <Link href="/quoteA">
+                    <Link href={activeRegionQuoteHref}>
                       Get Instant Quote
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>

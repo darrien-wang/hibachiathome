@@ -1,0 +1,26 @@
+{
+  "feature": "CRO-REGION-POLICY-013",
+  "checked_at": "2026-03-25T17:31:00-07:00",
+  "base_recheck": {
+    "script": "node harness/scripts/verify-tracking-page-view.mjs",
+    "status": "pass",
+    "evidence": [
+      "harness/verification/2026-03-25-region-policy-v1/reverify-trk-001-trk-002.log",
+      "harness/verification/2026-03-25-region-policy-v1/trk-001-trk-002-tracking-lib-evidence.json"
+    ]
+  },
+  "regional_policy_checks": {
+    "source_contract": "pass",
+    "quote_nj_hides_weekday_saver": "pass",
+    "quote_nj_shows_ca_only_notice": "pass",
+    "quote_ca_shows_weekday_saver": "pass"
+  },
+  "ui_evidence": [
+    "harness/verification/2026-03-25-region-policy-v1/quoteA-region-nj.png",
+    "harness/verification/2026-03-25-region-policy-v1/quoteA-region-ca.png"
+  ],
+  "notes": [
+    "Quote page regional behavior was validated by direct Playwright navigation snapshots.",
+    "codex-verify script was attempted but the global verify pipeline remains unstable in this workspace due pre-existing lint/build environment issues."
+  ]
+}

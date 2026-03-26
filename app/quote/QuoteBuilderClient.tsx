@@ -8,9 +8,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { siteConfig } from "@/config/site"
 import { getDepositAmount } from "@/config/deposit"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
+import {
+  DEFAULT_REGION_CODE,
+  getPricingPolicyDefinition,
+  getRegionDefinition,
+  isPricingPolicyEnabledForRegion,
+  type RegionCode,
+} from "@/config/regional-policies"
+import { persistRegionCookie, resolveRegionForClient } from "@/lib/region-resolver"
 import { trackEvent } from "@/lib/tracking"
 import {
   buildCallScript,
@@ -86,7 +95,10 @@ function calculateSlotsLeft(eventDate: string, location: string): number | null 
 }
 
 export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClientProps) {
+  const searchParams = useSearchParams()
+  const searchParamsKey = searchParams.toString()
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
+  const [activeRegion, setActiveRegion] = useState<RegionCode>(DEFAULT_REGION_CODE)
   const [customerName, setCustomerName] = useState("")
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
@@ -98,6 +110,9 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
   const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
+  const activeRegionDefinition = getRegionDefinition(activeRegion)
+  const weekdaySaverPolicy = getPricingPolicyDefinition("weekday_saver")
+  const weekdaySaverEnabled = isPricingPolicyEnabledForRegion("weekday_saver", activeRegion)
   const slotsLeft = useMemo(() => calculateSlotsLeft(input.eventDate, input.location), [input.eventDate, input.location])
   const slotsNoun = slotsLeft === 1 ? "slot" : "slots"
   const shouldShowWeatherCard = Boolean(input.eventDate && input.location.trim())
@@ -129,6 +144,26 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   )
   const selectedWeekdayProteinsText = selectedWeekdayProteins.length > 0 ? selectedWeekdayProteins.join(", ") : "none"
   const weekdaySaverProteinsValue = isWeekdaySaverTier ? selectedWeekdayProteinsText : "n/a"
+
+  useEffect(() => {
+    const resolvedRegion = resolveRegionForClient({
+      searchParams: searchParamsKey,
+      cookieString: typeof document !== "undefined" ? document.cookie : null,
+      fallbackRegion: DEFAULT_REGION_CODE,
+    })
+
+    setActiveRegion((current) => (current === resolvedRegion ? current : resolvedRegion))
+    persistRegionCookie(resolvedRegion)
+  }, [searchParamsKey])
+
+  useEffect(() => {
+    if (!weekdaySaverEnabled && input.pricingTier === "weekday_saver") {
+      setInput((previous) => ({
+        ...previous,
+        pricingTier: "standard",
+      }))
+    }
+  }, [input.pricingTier, weekdaySaverEnabled])
 
   useEffect(() => {
     const destination = input.location.trim()
@@ -284,6 +319,10 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   }
 
   const handlePricingTierChange = (pricingTier: QuoteInput["pricingTier"]) => {
+    if (pricingTier === "weekday_saver" && !weekdaySaverEnabled) {
+      return
+    }
+
     setInput((prev) => {
       if (prev.pricingTier === pricingTier) return prev
       if (pricingTier === "weekday_saver") {
@@ -518,6 +557,9 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Enter a few details to see an estimated range in seconds, then contact us with your quote prefilled.
           </p>
+          <p className="mt-3 text-sm text-slate-500">
+            Regional profile: <span className="font-medium text-slate-700">{activeRegionDefinition.label}</span>
+          </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
@@ -598,7 +640,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
 
               <div className="space-y-3">
                 <label className="text-sm font-medium">Pricing Tier *</label>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className={`grid gap-3 ${weekdaySaverEnabled ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
                   <button
                     type="button"
                     onClick={() => handlePricingTierChange("standard")}
@@ -611,19 +653,26 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                     <p className="text-sm font-semibold text-gray-900">Standard Plan</p>
                     <p className="mt-1 text-xs text-gray-600">$59.90/adult, $29.95/child, add-ons available</p>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePricingTierChange("weekday_saver")}
-                    className={`rounded-lg border p-3 text-left transition ${
-                      input.pricingTier === "weekday_saver"
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-200 bg-white hover:border-emerald-300"
-                    }`}
-                  >
-                    <p className="text-sm font-semibold text-gray-900">Weekday Saver</p>
-                    <p className="mt-1 text-xs text-gray-600">$45.9/adult, $22.95/child (under 13), Monday-Thursday only, 15+ guests required</p>
-                  </button>
+                  {weekdaySaverEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => handlePricingTierChange("weekday_saver")}
+                      className={`rounded-lg border p-3 text-left transition ${
+                        input.pricingTier === "weekday_saver"
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-gray-200 bg-white hover:border-emerald-300"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-gray-900">{weekdaySaverPolicy.title}</p>
+                      <p className="mt-1 text-xs text-gray-600">{weekdaySaverPolicy.quoteDescription}</p>
+                    </button>
+                  )}
                 </div>
+                {!weekdaySaverEnabled && (
+                  <p className="text-xs text-slate-600">
+                    {weekdaySaverPolicy.unavailableMessage} Current region: <span className="font-medium">{activeRegionDefinition.label}</span>.
+                  </p>
+                )}
                 {isWeekdaySaverTier && (
                   <p className="text-xs text-emerald-700">
                     Weekday Saver rules: pick exactly 2 proteins (chicken/steak/shrimp), no premium add-ons, no custom

@@ -1,5 +1,50 @@
 # Codex Progress Log
 
+## 2026-03-25 (CRO-REGION-POLICY-013 first version: config-driven regional policy visibility)
+
+- Baseline recheck before implementation:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-25-region-policy-v1` ✅
+
+- Completed:
+  - Added centralized regional policy config in `config/regional-policies.ts`:
+    - region codes + aliases (`ca`, `nj`)
+    - per-region policy availability flags
+    - reusable policy metadata for Weekday Saver copy
+  - Added region resolver/persistence helper in `lib/region-resolver.ts`:
+    - query parsing (`region`, `service_region`)
+    - cookie fallback (`rh_region`)
+    - cookie persistence helper for cross-page continuity
+  - Integrated first production usage in `app/quote/QuoteBuilderClient.tsx`:
+    - resolve active region from query/cookie
+    - show region profile badge in quote header
+    - CA-only Weekday Saver availability now policy-driven
+    - NJ view hides Weekday Saver tier button and shows a CA-only notice
+    - CA view continues to show Weekday Saver tier button
+  - Updated homepage pricing copy/cards to read Weekday Saver policy text from config (single source), while keeping homepage default regional behavior unchanged.
+
+- Feature status transition:
+  - Added and completed `CRO-REGION-POLICY-013` in `harness/feature_list.json` (`passes: true`).
+
+- Verified:
+  - Source contract checks for config + resolver + quote integration ✅
+  - Direct UI verification (Playwright snapshot flow):
+    - `/quoteA?region=east-coast-nj` shows `Regional profile: New Jersey`, hides Weekday Saver selector, and shows CA-only notice ✅
+    - `/quoteA?region=west-coast` shows `Regional profile: Southern California` and displays Weekday Saver selector ✅
+
+- Evidence:
+  - `harness/verification/2026-03-25-region-policy-v1/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-25-region-policy-v1/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-25-region-policy-v1/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-25-region-policy-v1/verify-region-policy-source.log`
+  - `harness/verification/2026-03-25-region-policy-v1/verify-region-policy-source.exit`
+  - `harness/verification/2026-03-25-region-policy-v1/quoteA-region-nj.png`
+  - `harness/verification/2026-03-25-region-policy-v1/quoteA-region-ca.png`
+  - `harness/verification/2026-03-25-region-policy-v1/verify-region-policy-summary.json`
+
+- Regressions / blockers:
+  - `codex-verify` was attempted from this workspace, but the global verify pipeline remains unstable due pre-existing lint/build environment behavior in current tree (see `harness/verification/2026-03-25-region-policy-v1/codex-verify.log`).
+
+
 ## 2026-03-25 (CRO-HOME-REGION-012 follow-up: switch NJ card to mapnortheast.png)
 
 - Completed:
