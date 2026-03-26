@@ -2941,3 +2941,41 @@
 
 - Feature status transition:
   - Added `CRO-REGION-POLICY-014` with `passes: true` in `harness/feature_list.json`.
+
+## 2026-03-25 (CRO-LIVECHAT-UX-015 complete: livechat online/offline operator badge + bell placeholder)
+
+- Completed:
+  - Added presence API in marketing app:
+    - `app/api/livechat/presence/route.ts`
+    - supports backend presence endpoint, admin-session heuristic fallback, and dev preview override (`?preview=online|offline&preview_agent=...`).
+  - Added new floating presence UI card:
+    - `components/livechat-presence-indicator.tsx`
+    - bell placeholder icon (`BellRing`), online agent name state, offline ring-to-call CTA state.
+  - Integrated new presence card into livechat loader flow:
+    - `components/live-chat-loader.tsx` now renders `LiveChatPresenceIndicator` while keeping widget injection/context bridge behavior.
+
+- Verified:
+  - Offline state UI:
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/home-ca-offline.png`
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/livechat-presence-offline.json`
+  - Online state UI (dev preview contract):
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/home-livechat-online-preview.png`
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/livechat-presence-online-preview.json`
+
+- Feature status transition:
+  - Added `CRO-LIVECHAT-UX-015` with `passes: true` in `harness/feature_list.json`.
+
+## 2026-03-25 (verification gate note)
+
+- Ran full verify gate script via LF-normalized variant:
+  - `bash harness/scripts/.codex-verify.lf.sh`
+  - and targeted rerun with `E2E_ARGS='--grep TRK-001'`.
+- Result:
+  - Lint/build completed.
+  - E2E gate failed on existing `TRK-001` Playwright assertion (`page_view` count expected 1, received 0) in this environment.
+- Evidence:
+  - `harness/verification/2026-03-25-182204-codex-verify/verify.log`
+  - Playwright failure artifacts under `test-results/smoke-TRK-001-home-load-em-be63f-one-page-view-via-dataLayer-chromium/`
+
+- Next action:
+  - Investigate TRK-001 E2E environment mismatch (`dataLayer page_view` not observed under Playwright-run webServer) and stabilize baseline gate for subsequent feature cycles.

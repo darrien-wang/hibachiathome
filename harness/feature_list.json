@@ -1306,5 +1306,18 @@
       "Render quote tier visibility from the same snapshot and verify NJ still hides Weekday Saver with regional notice."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-LIVECHAT-UX-015",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Livechat launcher area shows operator presence with bell placeholder icon: online shows agent name, offline shows ring-to-call fallback CTA.",
+    "steps": [
+      "Add `/api/livechat/presence` endpoint that resolves livechat status from backend presence API or admin-session heuristic and supports development preview overrides.",
+      "Add a floating marketing-side presence card with bell icon placeholder and polling refresh for status updates.",
+      "When online, show agent name and Start Live Chat action; when offline, show Ring Customer Service call CTA.",
+      "Verify offline and online-preview UI states render correctly on homepage and preserve existing widget launcher behavior."
+    ],
+    "passes": true
   }
 ]

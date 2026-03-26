@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { trackEvent } from "@/lib/tracking"
+import { LiveChatPresenceIndicator } from "@/components/livechat-presence-indicator"
 
 type ChatIntent = "quote" | "deposit" | "general"
 
@@ -253,5 +254,9 @@ export function LiveChatLoader() {
     }
   }, [context.crm_channel, context.crm_conversation_id])
 
-  return null
+  if (!LIVECHAT_BASE_URL) {
+    return null
+  }
+
+  return <LiveChatPresenceIndicator />
 }
