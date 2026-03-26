@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { Resend } from "resend"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
+import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
 function asString(value: unknown): string | undefined {
@@ -37,12 +37,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Name, email, and message are required" }, { status: 400 })
     }
 
-    const supabase = createServerSupabaseClient()
-    if (!supabase && process.env.NODE_ENV !== "development") {
-      return NextResponse.json({ error: "Lead persistence is unavailable" }, { status: 500 })
-    }
+    // Prepare email content
+    const emailHtml = `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+      <p><strong>Reason:</strong> ${reason || "Not specified"}</p>
+      <h3>Message:</h3>
+      <p>${message.replace(/\n/g, "<br>")}</p>
+    `
+    const emailText = [
+      "New Contact Form Submission",
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Phone: ${phone || "Not provided"}`,
+      `Reason: ${reason || "Not specified"}`,
+      "",
+      "Message:",
+      message,
+    ].join("\n")
+
+    const supportNotification = await sendSupportNotificationEmail({
+      subject: `Contact Form: ${reason || "General Inquiry"}`,
+      text: emailText,
+      html: emailHtml,
+      replyTo: email,
+    })
 
     let leadResult: Awaited<ReturnType<typeof upsertLeadFromContact>> | null = null
+    let leadPersistenceError: string | null = null
+
+    const supabase = createServerSupabaseClient()
     if (supabase) {
       try {
         leadResult = await upsertLeadFromContact(supabase, {
@@ -72,84 +98,49 @@ export async function POST(request: Request) {
           rawPayload: body,
         })
       } catch (leadError) {
+        leadPersistenceError = leadError instanceof Error ? leadError.message : String(leadError)
         console.error("Lead upsert failed:", leadError)
-        return NextResponse.json(
-          {
-            error: "Failed to persist lead record",
-            details: leadError instanceof Error ? leadError.message : String(leadError),
-          },
-          { status: 500 },
-        )
       }
+    } else {
+      leadPersistenceError = "Lead persistence is unavailable"
+      console.warn("[contact] Supabase is not configured; support notification path only.")
     }
 
-    // Prepare email content
-    const emailHtml = `
-      <h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-      <p><strong>Reason:</strong> ${reason || "Not specified"}</p>
-      <h3>Message:</h3>
-      <p>${message.replace(/\n/g, "<br>")}</p>
-    `
-
-    // In development/preview, just log the email data
-    if (process.env.NODE_ENV === "development" || !process.env.RESEND_API_KEY) {
-      console.log("Email would be sent with the following data:", {
-        from: process.env.EMAIL_FROM || "Hibachi at Home <support@realhibachi.com>",
-        to: process.env.EMAIL_TO || "support@realhibachi.com",
-        subject: `Contact Form: ${reason || "General Inquiry"}`,
-        html: emailHtml,
-      })
-
-      return NextResponse.json({
-        success: true,
-        leadId: leadResult?.leadId ?? null,
-        leadDeduped: leadResult?.deduped ?? false,
-        message: "Your message has been received. In the preview environment, emails are logged but not sent.",
+    if (!isOpsEmailEffectivelyHandled(supportNotification)) {
+      console.error("[contact] Support notification was not delivered.", {
+        error: supportNotification.error,
+        skippedReason: supportNotification.skippedReason,
       })
     }
 
-    console.log("Attempting to send email with Resend...")
-    console.log("Using API key:", process.env.RESEND_API_KEY ? "API key exists" : "API key missing")
-    console.log("From:", process.env.EMAIL_FROM || "Hibachi at Home <support@realhibachi.com>")
-    console.log("To:", process.env.EMAIL_TO || "support@realhibachi.com")
-
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      // Send the email
-      const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || "Hibachi at Home <support@realhibachi.com>",
-        to: [process.env.EMAIL_TO || "support@realhibachi.com"],
-        reply_to: email,
-        subject: `Contact Form: ${reason || "General Inquiry"}`,
-        html: emailHtml,
-      })
-
-      if (error) {
-        console.error("Error sending email with Resend:", error)
-        return NextResponse.json({ error: "Failed to send email", details: error }, { status: 500 })
-      }
-
-      console.log("Email sent successfully:", data)
-      // Return success response
-      return NextResponse.json({
-        success: true,
-        data,
-        leadId: leadResult?.leadId ?? null,
-        leadDeduped: leadResult?.deduped ?? false,
-      })
-    } catch (resendError) {
-      console.error("Resend API error:", resendError)
+    if (!isOpsEmailEffectivelyHandled(supportNotification) && !leadResult) {
       return NextResponse.json(
         {
-          error: "Failed to send email",
-          details: resendError instanceof Error ? resendError.message : String(resendError),
+          error: "Failed to notify support",
+          notification: supportNotification,
+          leadPersistenceError,
         },
         { status: 500 },
       )
     }
+
+    return NextResponse.json(
+      {
+        success: true,
+        leadId: leadResult?.leadId ?? null,
+        leadDeduped: leadResult?.deduped ?? false,
+        notification: supportNotification,
+        leadPersistence: {
+          persisted: Boolean(leadResult),
+          error: leadPersistenceError,
+        },
+        message:
+          supportNotification.skippedReason === "development_mode_logged"
+            ? "Your message has been received. In local development, support emails are logged unless ALLOW_DEV_EMAIL_SEND=true."
+            : "Your message has been received and our team will follow up soon.",
+      },
+      { status: isOpsEmailEffectivelyHandled(supportNotification) ? 200 : 202 },
+    )
   } catch (error) {
     console.error("Error processing contact form:", error)
     return NextResponse.json(

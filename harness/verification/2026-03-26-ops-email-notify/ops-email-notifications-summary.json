@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-03-26T22:56:57.126Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "ops-helper",
+      "pass": true,
+      "detail": "Unified ops email helper exists with development logging mode."
+    },
+    {
+      "id": "contact-route",
+      "pass": true,
+      "detail": "Contact route triggers support email without hard-blocking on Supabase persistence."
+    },
+    {
+      "id": "deposit-start-post",
+      "pass": true,
+      "detail": "Deposit start POST returns ops notification status."
+    },
+    {
+      "id": "deposit-start-get",
+      "pass": true,
+      "detail": "Deposit start GET path still attempts support notification."
+    },
+    {
+      "id": "webhook-paid",
+      "pass": true,
+      "detail": "Deposit-paid webhook sends and returns ops notification status."
+    },
+    {
+      "id": "legacy-notify-route-removed",
+      "pass": true,
+      "detail": "Legacy /api/notify-lead route remains removed."
+    }
+  ]
+}

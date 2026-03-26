@@ -287,10 +287,20 @@ export default function DepositPaymentPage() {
         success?: boolean
         checkoutUrl?: string
         error?: string
+        opsNotification?: {
+          attempted?: boolean
+          delivered?: boolean
+          skippedReason?: string
+          error?: string
+        }
       }
 
       if (!response.ok || !payload.checkoutUrl) {
         throw new Error(payload.error || "Unable to start secure checkout. Please try again.")
+      }
+
+      if (payload.opsNotification && !payload.opsNotification.delivered) {
+        console.warn("[deposit/pay] Support notification not confirmed during checkout start.", payload.opsNotification)
       }
 
       window.location.href = payload.checkoutUrl

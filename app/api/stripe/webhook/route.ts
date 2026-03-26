@@ -8,6 +8,7 @@ import { buildDepositPaidEventEnvelope, buildPaymentRefundedEventEnvelope, type 
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
+import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
 
 export const runtime = "nodejs"
 
@@ -690,6 +691,7 @@ async function sendCustomerDepositNotifications(params: {
 }): Promise<{
   bookingId?: string
   selfServiceLinkReady: boolean
+  selfServiceLink?: string
   email: NotificationDeliveryResult
   sms: NotificationDeliveryResult
 }> {
@@ -735,9 +737,101 @@ async function sendCustomerDepositNotifications(params: {
   return {
     bookingId,
     selfServiceLinkReady: Boolean(selfServiceLink),
+    selfServiceLink,
     email,
     sms,
   }
+}
+
+async function sendOpsDepositPaidNotification(params: {
+  session: Stripe.Checkout.Session
+  bookingSnapshot: CrmBookingSnapshot | null
+  updatedBookingId: string | null
+  crmAssignedOrderNo?: string | null
+  paymentIntentId?: string
+  depositAmount?: number
+  customerNotification: {
+    bookingId?: string
+    selfServiceLink?: string
+  }
+}): Promise<OpsEmailDeliveryResult> {
+  const bookingId = params.customerNotification.bookingId
+  const customerName =
+    asNonEmptyString(params.bookingSnapshot?.full_name) ??
+    asNonEmptyString(params.session.customer_details?.name) ??
+    asNonEmptyString(params.session.metadata?.customer_name) ??
+    "N/A"
+  const customerEmail =
+    asNonEmptyString(params.bookingSnapshot?.email) ??
+    asNonEmptyString(params.session.customer_details?.email) ??
+    asNonEmptyString(params.session.customer_email) ??
+    asNonEmptyString(params.session.metadata?.customer_email) ??
+    "N/A"
+  const customerPhone =
+    asNonEmptyString(params.bookingSnapshot?.phone) ??
+    asNonEmptyString(params.session.customer_details?.phone) ??
+    asNonEmptyString(params.session.metadata?.customer_phone) ??
+    "N/A"
+  const eventDate =
+    asNonEmptyString(params.bookingSnapshot?.event_date) ?? asNonEmptyString(params.session.metadata?.event_date) ?? "N/A"
+  const eventTime =
+    asNonEmptyString(params.bookingSnapshot?.event_time) ?? asNonEmptyString(params.session.metadata?.event_time) ?? "N/A"
+  const eventAddress =
+    asNonEmptyString(params.bookingSnapshot?.address) ?? asNonEmptyString(params.session.metadata?.location) ?? "N/A"
+  const guestAdults = params.bookingSnapshot?.guest_adults ?? params.session.metadata?.adults ?? "N/A"
+  const guestKids = params.bookingSnapshot?.guest_kids ?? params.session.metadata?.kids ?? "N/A"
+  const depositAmountText =
+    typeof params.depositAmount === "number" && Number.isFinite(params.depositAmount)
+      ? `$${params.depositAmount.toFixed(2)}`
+      : "N/A"
+  const source =
+    asNonEmptyString(params.session.metadata?.deposit_source) ??
+    asNonEmptyString(params.session.metadata?.source) ??
+    "stripe_webhook"
+  const selfServiceLink = asNonEmptyString(params.customerNotification.selfServiceLink) ?? "N/A"
+
+  const lines = [
+    "Deposit payment completed for Real Hibachi.",
+    `Booking Number: ${bookingId ?? "N/A"}`,
+    `Stripe Session ID: ${params.session.id}`,
+    `Payment Intent ID: ${params.paymentIntentId ?? "N/A"}`,
+    `Source: ${source}`,
+    `Customer Name: ${customerName}`,
+    `Customer Email: ${customerEmail}`,
+    `Customer Phone: ${customerPhone}`,
+    `Event Date: ${eventDate}`,
+    `Event Time: ${eventTime}`,
+    `Location: ${eventAddress}`,
+    `Guests: adults=${guestAdults}, kids=${guestKids}`,
+    `Deposit Amount: ${depositAmountText}`,
+    `Self-Service Link: ${selfServiceLink}`,
+  ]
+
+  const html = [
+    "<p>Deposit payment completed for Real Hibachi.</p>",
+    `<p><strong>Booking Number:</strong> ${bookingId ?? "N/A"}</p>`,
+    `<p><strong>Stripe Session ID:</strong> ${params.session.id}</p>`,
+    `<p><strong>Payment Intent ID:</strong> ${params.paymentIntentId ?? "N/A"}</p>`,
+    `<p><strong>Source:</strong> ${source}</p>`,
+    `<p><strong>Customer Name:</strong> ${customerName}</p>`,
+    `<p><strong>Customer Email:</strong> ${customerEmail}</p>`,
+    `<p><strong>Customer Phone:</strong> ${customerPhone}</p>`,
+    `<p><strong>Event Date:</strong> ${eventDate}</p>`,
+    `<p><strong>Event Time:</strong> ${eventTime}</p>`,
+    `<p><strong>Location:</strong> ${eventAddress}</p>`,
+    `<p><strong>Guests:</strong> adults=${guestAdults}, kids=${guestKids}</p>`,
+    `<p><strong>Deposit Amount:</strong> ${depositAmountText}</p>`,
+    selfServiceLink === "N/A"
+      ? "<p><strong>Self-Service Link:</strong> N/A</p>"
+      : `<p><strong>Self-Service Link:</strong> <a href="${selfServiceLink}">${selfServiceLink}</a></p>`,
+  ].join("")
+
+  return sendSupportNotificationEmail({
+    subject: `Deposit Paid: ${bookingId ?? params.session.id}`,
+    text: lines.join("\n"),
+    html,
+    replyTo: customerEmail !== "N/A" ? customerEmail : undefined,
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -871,6 +965,15 @@ export async function POST(request: NextRequest) {
         bookingSnapshot: result.bookingSnapshot,
         crmAssignedOrderNo: crmAssignedOrderNo ?? null,
       })
+      const opsNotification = await sendOpsDepositPaidNotification({
+        session,
+        bookingSnapshot: result.bookingSnapshot,
+        updatedBookingId: result.updatedBookingId,
+        crmAssignedOrderNo: crmAssignedOrderNo ?? null,
+        paymentIntentId: result.paymentIntentId,
+        depositAmount: result.depositAmount,
+        customerNotification,
+      })
 
       if (!customerNotification.email.delivered && customerNotification.email.attempted) {
         console.error("[stripe/webhook] Failed to send deposit confirmation email to customer:", {
@@ -887,6 +990,15 @@ export async function POST(request: NextRequest) {
           bookingId: customerNotification.bookingId,
           error: customerNotification.sms.error,
           skippedReason: customerNotification.sms.skippedReason,
+        })
+      }
+
+      if (!opsNotification.delivered && opsNotification.skippedReason !== "development_mode_logged") {
+        console.error("[stripe/webhook] Failed to send ops deposit-paid notification:", {
+          eventId: event.id,
+          bookingId: customerNotification.bookingId,
+          error: opsNotification.error,
+          skippedReason: opsNotification.skippedReason,
         })
       }
 
@@ -924,6 +1036,7 @@ export async function POST(request: NextRequest) {
           crmError,
           crmAssignedOrderNo,
           customerNotification,
+          opsNotification,
           serverTracking,
         },
         { status: 200 },

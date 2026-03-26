@@ -867,7 +867,7 @@
       "Ensure lead notification delivery failures never block checkout session creation response.",
       "Verify both POST and GET deposit start flows follow the same lead trigger behavior."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "CRO-LEAD-CLEANUP-001",

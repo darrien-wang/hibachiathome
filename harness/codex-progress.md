@@ -3024,3 +3024,60 @@
   - `CRO-TIME-WINDOW-001`: `passes: false -> true`
 - Verified:
   - `harness/verification/2026-03-26-contact-leads-sync/time-window-audit.log` now shows all four audited surfaces aligned and `legacyManualCalendarNeedsFollowup: false` ✅
+
+## 2026-03-26 (CRO-LEAD-TRIGGER-001 complete: actionable support notifications for contact, deposit start, and deposit-paid follow-up)
+
+- Baseline recheck before implementation:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-26-ops-email-notify` ✅
+
+- Completed:
+  - Added unified support-notification helper in `lib/ops-notifications.ts`:
+    - centralized `EMAIL_FROM` / `EMAIL_TO` fallback handling
+    - development-safe logging mode by default
+    - optional local override via `ALLOW_DEV_EMAIL_SEND=true`
+  - Hardened `app/api/contact/route.ts` so actionable contact submissions notify support independently of lead persistence:
+    - support email is attempted even if Supabase lead persistence is unavailable or fails
+    - contact route now returns notification + persistence status payloads for observability
+    - production support notification no longer depends on lead-table success to reach ops inbox
+  - Hardened `app/api/deposit/start/route.ts` lead notification flow:
+    - both POST and GET checkout-start paths continue to trigger support lead email from the active deposit-start route
+    - POST response now includes `opsNotification` result for diagnostics without blocking checkout redirect behavior
+    - failures remain non-blocking for checkout start, while being logged explicitly
+  - Added support-facing deposit-paid notification in `app/api/stripe/webhook/route.ts`:
+    - after verified `checkout.session.completed`, support now receives an order-summary email in addition to customer notifications
+    - webhook JSON response now includes `opsNotification` alongside `customerNotification` for traceability
+  - Kept click-type high-intent actions (`sms/call/email` CTA taps) as tracking-only; no noisy ops email added for these non-actionable clicks.
+  - Added environment/example guidance for `ALLOW_DEV_EMAIL_SEND` and updated local env check script.
+
+- Feature status transition:
+  - `CRO-LEAD-TRIGGER-001`: `passes: false -> true`
+
+- Verified:
+  - Source contract verification via `node harness/scripts/verify-ops-email-notifications.mjs harness/verification/2026-03-26-ops-email-notify` ✅
+  - Audit confirms:
+    - legacy `/api/notify-lead` route remains removed ✅
+    - contact route uses unified support notification path without hard-blocking on Supabase ✅
+    - deposit start POST/GET both use active support-notification path ✅
+    - deposit-paid webhook now emits support notification path ✅
+  - Targeted TypeScript transpile audit for changed files ✅
+  - Full verify gate attempted via `timeout 600 bash harness/scripts/codex-verify.sh`; lint and build completed, then required E2E timed out after surfacing existing failures in `CPL-006` and `CPL-007-01` ⚠️
+
+- Evidence:
+  - `harness/verification/2026-03-26-ops-email-notify/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-26-ops-email-notify/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-26-ops-email-notify/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-26-ops-email-notify/ops-email-notify.log`
+  - `harness/verification/2026-03-26-ops-email-notify/ops-email-notify.exit`
+  - `harness/verification/2026-03-26-ops-email-notify/ops-email-notifications-summary.json`
+  - `harness/verification/2026-03-26-ops-email-notify/ts-transpile-audit.log`
+  - `harness/verification/2026-03-26-ops-email-notify/ts-transpile-audit.exit`
+  - `harness/verification/2026-03-26-ops-email-notify/targeted-eslint.log`
+  - `harness/verification/2026-03-26-ops-email-notify/targeted-eslint.exit`
+  - `harness/verification/2026-03-26-ops-email-notify/codex-verify.log`
+  - `harness/verification/2026-03-26-ops-email-notify/codex-verify.exit`
+  - `harness/verification/2026-03-26-155334-codex-verify/verify.log`
+  - `harness/verification/2026-03-26-155914-e2e-run/playwright.stdout.log`
+
+- Regressions / blockers:
+  - Direct targeted ESLint invocation in this workspace still hangs and was timed out; source-contract + transpile verification were used as deterministic evidence for this session.
+  - Full `codex-verify` timed out at 600s in the required E2E stage after lint/build completed; existing `CPL-006` and `CPL-007-01` failures remain to be stabilized separately from this notification change.

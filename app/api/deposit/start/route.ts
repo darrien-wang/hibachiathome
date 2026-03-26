@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
-import { Resend } from "resend"
 import { getDepositAmount } from "@/config/deposit"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
+import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
@@ -576,14 +576,7 @@ async function sendOpsLeadNotification(params: {
   sessionId: string
   depositAmount: number
   checkoutUrl: string
-}) {
-  const resendApiKey = normalizeString(process.env.RESEND_API_KEY)
-  if (!resendApiKey) {
-    return
-  }
-
-  const from = normalizeString(process.env.EMAIL_FROM) ?? "support@realhibachi.com"
-  const to = normalizeString(process.env.EMAIL_TO) ?? "support@realhibachi.com"
+}): Promise<OpsEmailDeliveryResult> {
   const bookingRef = params.payload.bookingId ?? params.sessionId
   const source = params.payload.source ?? "deposit_pay"
   const estimateRange =
@@ -629,30 +622,23 @@ async function sendOpsLeadNotification(params: {
     `<p><strong>Checkout URL:</strong> <a href="${params.checkoutUrl}">${params.checkoutUrl}</a></p>`,
   ].join("")
 
-  try {
-    const resend = new Resend(resendApiKey)
-    const { error } = await resend.emails.send({
-      from,
-      to: [to],
-      subject: `Lead Trigger: Deposit Checkout Started (${bookingRef})`,
-      text,
-      html,
-    })
+  const result = await sendSupportNotificationEmail({
+    subject: `Lead Trigger: Deposit Checkout Started (${bookingRef})`,
+    text,
+    html,
+    replyTo: params.payload.customerEmail,
+  })
 
-    if (error) {
-      console.error("[deposit/start] Lead notification email failed:", {
-        bookingRef,
-        sessionId: params.sessionId,
-        error: error.message,
-      })
-    }
-  } catch (error) {
-    console.error("[deposit/start] Lead notification email threw error:", {
+  if (!result.delivered && result.skippedReason !== "development_mode_logged") {
+    console.error("[deposit/start] Lead notification email was not delivered:", {
       bookingRef,
       sessionId: params.sessionId,
-      error: error instanceof Error ? error.message : "unknown_error",
+      error: result.error,
+      skippedReason: result.skippedReason,
     })
   }
+
+  return result
 }
 
 async function createCheckoutSession(
@@ -734,7 +720,7 @@ export async function POST(request: NextRequest) {
       paymentIntentId,
       depositAmount,
     })
-    await sendOpsLeadNotification({
+    const opsNotification = await sendOpsLeadNotification({
       payload,
       attribution,
       sessionId: session.id,
@@ -746,6 +732,7 @@ export async function POST(request: NextRequest) {
       success: true,
       checkoutUrl,
       sessionId: session.id,
+      opsNotification,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to start Stripe Checkout."
@@ -766,13 +753,20 @@ export async function GET(request: NextRequest) {
       paymentIntentId,
       depositAmount,
     })
-    await sendOpsLeadNotification({
+    const opsNotification = await sendOpsLeadNotification({
       payload,
       attribution,
       sessionId: session.id,
       depositAmount,
       checkoutUrl,
     })
+    if (!opsNotification.delivered && opsNotification.skippedReason !== "development_mode_logged") {
+      console.warn("[deposit/start] GET flow continued without confirmed ops email delivery:", {
+        sessionId: session.id,
+        error: opsNotification.error,
+        skippedReason: opsNotification.skippedReason,
+      })
+    }
 
     return NextResponse.redirect(checkoutUrl, 302)
   } catch (error) {

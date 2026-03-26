@@ -1,0 +1,29 @@
+{
+  "pass": true,
+  "results": [
+    {
+      "file": "lib/ops-notifications.ts",
+      "pass": true
+    },
+    {
+      "file": "app/api/contact/route.ts",
+      "pass": true
+    },
+    {
+      "file": "app/api/deposit/start/route.ts",
+      "pass": true
+    },
+    {
+      "file": "app/api/stripe/webhook/route.ts",
+      "pass": true
+    },
+    {
+      "file": "app/deposit/pay/page.tsx",
+      "pass": true
+    },
+    {
+      "file": "harness/scripts/verify-ops-email-notifications.mjs",
+      "pass": true
+    }
+  ]
+}
