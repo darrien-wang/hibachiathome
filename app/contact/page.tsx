@@ -2,14 +2,14 @@ import type { Metadata } from "next"
 import ContactPageClient from "./ContactPageClient"
 
 export const metadata: Metadata = {
-  title: "Feedback | Real Hibachi Post-Event Support",
+  title: "Contact & Booking Help | Real Hibachi",
   description:
-    "Share your event feedback or request post-event support. Real Hibachi will review and follow up quickly.",
+    "Request booking help, availability confirmation, and next steps for your hibachi event. Real Hibachi responds quickly by phone, SMS, or email.",
   keywords:
-    "real hibachi feedback, hibachi post-event support, hibachi service feedback, customer support hibachi",
+    "real hibachi contact, hibachi booking inquiry, hibachi availability request, hibachi event consultation",
   openGraph: {
-    title: "Feedback | Real Hibachi Post-Event Support",
-    description: "Send event feedback or post-event support requests by phone, SMS, WhatsApp, or form.",
+    title: "Contact & Booking Help | Real Hibachi",
+    description: "Get booking help and event planning support by phone, SMS, WhatsApp, or form.",
     url: "https://realhibachi.com/contact",
     siteName: "Real Hibachi",
     type: "website",

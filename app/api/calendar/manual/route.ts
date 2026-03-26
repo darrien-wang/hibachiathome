@@ -10,8 +10,8 @@ const MANUAL_SLOTS: Record<string, { time: string; price: number; available: boo
   // 可继续添加其它日期
 };
 
-const DEFAULT_TIMES = ['13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
-const DISCOUNT_TIMES = [];//'13:00', '14:00','15:00'
+const DEFAULT_TIMES = ['13:00', '16:00', '19:00', '21:00'];
+const DISCOUNT_TIMES = [];
 const DISCOUNT_AMOUNT = 50;
 
 export async function GET(req: NextRequest) {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   // 1. 优先用手动配置
   let slots = MANUAL_SLOTS[date];
 
-  // 2. 如果没有配置，所有日期都只返回 13:00、16:00、19:00
+  // 2. 如果没有配置，所有日期都只返回 13:00、16:00、19:00、21:00
   if (!slots) {
     slots = DEFAULT_TIMES.map(time => {
       let price = basePrice;

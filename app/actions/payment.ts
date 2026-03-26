@@ -132,7 +132,7 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
       const resend = getResendClient()
       if (resend) {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
+          from: process.env.EMAIL_FROM || "support@realhibachi.com",
           to: booking.email,
           subject: "Hibachi Catering - Deposit Payment Confirmation",
           react: PaymentConfirmationEmail({
@@ -300,7 +300,7 @@ export async function confirmDeposit(depositId: string) {
       const resend = getResendClient()
       if (booking && booking.email && resend) {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
+          from: process.env.EMAIL_FROM || "support@realhibachi.com",
           to: booking.email,
           subject: "Hibachi Catering - Deposit Payment Confirmed",
           react: PaymentConfirmationEmail({
@@ -413,7 +413,7 @@ export async function refundDeposit(depositId: string) {
       const resend = getResendClient()
       if (booking && booking.email && resend) {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || "noreply@hibachicatering.com",
+          from: process.env.EMAIL_FROM || "support@realhibachi.com",
           to: booking.email,
           subject: "Hibachi Catering - Deposit Refund Confirmation",
           react: RefundConfirmationEmail({

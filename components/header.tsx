@@ -13,12 +13,13 @@ import { trackEvent } from "@/lib/tracking"
 const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
+  { name: "Pricing", href: "/#pricing", disabled: false },
   { name: "Blog", href: "/blog", disabled: true },
   { name: "Locations", href: "/locations", disabled: true },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
   { name: "Equipment Rentals", href: "/rentals", disabled: true },
-  { name: "Feedback", href: "/contact", disabled: false },
+  { name: "Contact", href: "/contact", disabled: false },
 ]
 
 export function Header() {

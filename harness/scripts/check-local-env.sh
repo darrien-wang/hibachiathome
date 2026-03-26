@@ -91,10 +91,14 @@ check_optional() {
 check_required "STRIPE_SECRET_KEY"
 check_required "STRIPE_WEBHOOK_SECRET"
 check_required "NEXT_PUBLIC_BASE_URL"
+check_required "CRM_INTEGRATION_BASE_URL"
+check_required "CRM_INTEGRATION_SHARED_SECRET"
+check_required "CRM_INTEGRATION_REPLAY_TOKEN"
 
 stripe_secret_key="$(get_env_value STRIPE_SECRET_KEY)"
 stripe_webhook_secret="$(get_env_value STRIPE_WEBHOOK_SECRET)"
 base_url="$(get_env_value NEXT_PUBLIC_BASE_URL)"
+crm_base_url="$(get_env_value CRM_INTEGRATION_BASE_URL)"
 
 if [ -n "${stripe_secret_key}" ] && ! echo "${stripe_secret_key}" | rg -q '^sk_(test|live)_'; then
   echo "[env:check] ERROR: STRIPE_SECRET_KEY should start with sk_test_ or sk_live_."
@@ -111,6 +115,11 @@ if [ -n "${base_url}" ] && ! echo "${base_url}" | rg -q '^https?://'; then
   errors=$((errors + 1))
 fi
 
+if [ -n "${crm_base_url}" ] && ! echo "${crm_base_url}" | rg -q '^https?://'; then
+  echo "[env:check] ERROR: CRM_INTEGRATION_BASE_URL should start with http:// or https://."
+  errors=$((errors + 1))
+fi
+
 check_optional "SUPABASE_URL"
 check_optional "SUPABASE_SERVICE_ROLE_KEY"
 check_optional "NEXT_PUBLIC_SUPABASE_URL"
@@ -118,6 +127,15 @@ check_optional "NEXT_PUBLIC_SUPABASE_ANON_KEY"
 check_optional "RESEND_API_KEY"
 check_optional "EMAIL_FROM"
 check_optional "NEXT_PUBLIC_GTM_ID"
+check_optional "CRM_INTEGRATION_PARTNER_ID"
+check_optional "CRM_INTEGRATION_SOURCE"
+check_optional "CRM_INTEGRATION_MAX_ATTEMPTS"
+
+crm_max_attempts="$(get_env_value CRM_INTEGRATION_MAX_ATTEMPTS)"
+if [ -n "${crm_max_attempts}" ] && ! echo "${crm_max_attempts}" | rg -q '^[1-9][0-9]*$'; then
+  echo "[env:check] ERROR: CRM_INTEGRATION_MAX_ATTEMPTS must be a positive integer."
+  errors=$((errors + 1))
+fi
 
 if command -v stripe >/dev/null 2>&1; then
   echo "[env:check] OK: Stripe CLI detected ($(stripe --version | head -n1))."

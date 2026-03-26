@@ -1,0 +1,21 @@
+[
+  {
+    "file": "app/quote/QuoteBuilderClient.tsx",
+    "hasAllExpected": true
+  },
+  {
+    "file": "app/actions/booking.ts",
+    "hasAllExpected": true
+  },
+  {
+    "file": "app/api/booking/timeslots/route.ts",
+    "hasAllExpected": true
+  },
+  {
+    "file": "app/api/calendar/manual/route.ts",
+    "hasAllExpected": true
+  },
+  {
+    "legacyManualCalendarNeedsFollowup": false
+  }
+]

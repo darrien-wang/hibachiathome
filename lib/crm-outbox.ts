@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { type CrmDepositPaidEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-integration"
+import { type CrmEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-integration"
 
 export type CrmOutboxStatus = "pending" | "sending" | "sent" | "failed" | "dead_letter"
 
@@ -173,7 +173,7 @@ export async function enqueueCrmOutboxEvent(
   params: {
     eventId: string
     eventType: string
-    payload: CrmDepositPaidEventEnvelope
+    payload: CrmEventEnvelope
     maxAttempts?: number
   },
 ): Promise<EnqueueResult> {
@@ -323,7 +323,7 @@ export async function deliverCrmOutboxRecord(supabase: SupabaseClient, row: CrmO
     }
   }
 
-  const payload = claimed.payload_json as unknown as CrmDepositPaidEventEnvelope
+  const payload = claimed.payload_json as unknown as CrmEventEnvelope
   const delivery = await sendCrmEventEnvelope({ envelope: payload })
   const updatedAt = nowIso()
 

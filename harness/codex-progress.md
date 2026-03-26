@@ -2979,3 +2979,48 @@
 
 - Next action:
   - Investigate TRK-001 E2E environment mismatch (`dataLayer page_view` not observed under Playwright-run webServer) and stabilize baseline gate for subsequent feature cycles.
+
+## 2026-03-26 (CRO-SUPPORT-EMAIL-001 complete + pending lead/contact sync committed)
+
+- Baseline recheck before organizing pending work:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-26-contact-leads-sync` ✅
+
+- Completed:
+  - Standardized customer-facing and ops fallback email targets to `support@realhibachi.com` across active marketing source:
+    - updated config/defaults in `config/site.ts`, `.env.example`, `app/actions/payment.ts`, and `app/api/contact/route.ts`
+    - removed legacy Gmail/hardcoded fallback addresses from privacy + partner-facing UI copy
+    - kept contact and partner submission flows aligned with the support inbox destination
+  - Organized and retained pending in-progress source changes already present in this workspace for follow-up commit integrity:
+    - contact lead persistence groundwork via `lib/leads.ts` + SQL migrations and `/api/contact` integration
+    - deposit success self-service prefill hardening for booking/contact/context carry-through
+    - quote/contact tracking contract docs + CPL e2e assets/specs now preserved in repo
+    - time-slot policy alignment progressed in quote + booking + booking-timeslot mock code
+
+- Feature status transition:
+  - `CRO-SUPPORT-EMAIL-001`: `passes: false -> true`
+
+- Verified:
+  - Legacy email source audit across active app/config/lib/docs paths returns no old Gmail / Resend onboarding / `noreply@hibachicatering.com` fallbacks ✅
+  - Core baseline recheck artifact written successfully ✅
+  - Time-window source audit confirms `13:00/16:00/19:00/21:00` alignment in quote builder, booking action helper, booking timeslot API mock, and manual-calendar fallback ✅
+
+- Evidence:
+  - `harness/verification/2026-03-26-contact-leads-sync/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-26-contact-leads-sync/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-26-contact-leads-sync/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-26-contact-leads-sync/support-email-audit.log`
+  - `harness/verification/2026-03-26-contact-leads-sync/support-email-audit.exit`
+  - `harness/verification/2026-03-26-contact-leads-sync/time-window-audit.log`
+  - `harness/verification/2026-03-26-contact-leads-sync/time-window-audit.exit`
+
+- Regressions / blockers:
+  - Local `pnpm lint`, `next build`, and targeted Playwright verification were attempted from this workspace, but this tree currently exhibits slow/hanging local Next startup/build behavior; preserve source-audit evidence and continue follow-up from the committed state.
+
+### 2026-03-26 addendum (CRO-TIME-WINDOW-001)
+
+- Completed after source audit follow-up:
+  - updated `app/api/calendar/manual/route.ts` default slot set to `13:00 / 16:00 / 19:00 / 21:00` so manual-calendar fallback matches quote + booking + booking-timeslot mock policy.
+- Feature status transition:
+  - `CRO-TIME-WINDOW-001`: `passes: false -> true`
+- Verified:
+  - `harness/verification/2026-03-26-contact-leads-sync/time-window-audit.log` now shows all four audited surfaces aligned and `legacyManualCalendarNeedsFollowup: false` ✅

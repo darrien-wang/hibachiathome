@@ -225,7 +225,7 @@ export default function BookingForm({
                     <div className="flex justify-between">
                       <span>Selected Date & Time:</span>
                       <span>
-                        {format(selectedDateTime.date, "MMM d, yyyy")} at {selectedDateTime.time}
+                        {format(selectedDateTime.date, "MMMM d, yyyy")} at {selectedDateTime.time}
                       </span>
                     </div>
                     {selectedDateTime.originalPrice > selectedDateTime.price && (

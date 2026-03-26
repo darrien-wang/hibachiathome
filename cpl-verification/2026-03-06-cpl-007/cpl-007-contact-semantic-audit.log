@@ -1,0 +1,14 @@
+# contact page metadata check
+app/contact/page.tsx:5:  title: "Contact & Booking Help | Real Hibachi",
+app/contact/page.tsx:9:    "real hibachi contact, hibachi booking inquiry, hibachi availability request, hibachi event consultation",
+app/contact/page.tsx:11:    title: "Contact & Booking Help | Real Hibachi",
+app/contact/ContactPageClient.tsx:131:              <h2 className="text-4xl font-serif font-bold text-[hsl(24_79%_42%)] mb-6">Book or Ask About Your Event</h2>
+app/contact/ContactPageClient.tsx:233:                  {isSubmitting ? "Submitting..." : "Send Request"}
+
+# contact submit event routing
+34:  const submissionIntent: "booking_inquiry" | "customer_support" = reasonLooksLikeSupport
+37:  const submissionEventName: "lead_submit" | "support_submit" =
+38:    submissionIntent === "booking_inquiry" ? "lead_submit" : "support_submit"
+39:  const submissionReason = reason || (submissionIntent === "booking_inquiry" ? "Booking Inquiry" : "Customer Support")
+90:        trackEvent(submissionEventName, {
+93:          lead_type: submissionIntent,

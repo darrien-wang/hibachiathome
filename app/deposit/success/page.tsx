@@ -17,14 +17,27 @@ export default async function DepositSuccessPage({ searchParams }: DepositSucces
   const email = firstParam(resolvedSearchParams.email)
   const phone = firstParam(resolvedSearchParams.phone)
   const source = firstParam(resolvedSearchParams.source)
+  const customerName = firstParam(resolvedSearchParams.customer_name)
+  const customerEmail = firstParam(resolvedSearchParams.customer_email)
+  const eventDate = firstParam(resolvedSearchParams.event_date)
+  const eventTime = firstParam(resolvedSearchParams.event_time)
+  const location = firstParam(resolvedSearchParams.location)
+  const adults = firstParam(resolvedSearchParams.adults)
+  const kids = firstParam(resolvedSearchParams.kids)
 
   return (
     <DepositSuccessClient
       sessionId={sessionId}
       initialBookingId={bookingId}
-      initialEmail={email}
+      initialEmail={email ?? customerEmail}
       initialPhone={phone}
       initialSource={source}
+      initialCustomerName={customerName}
+      initialEventDate={eventDate}
+      initialEventTime={eventTime}
+      initialLocation={location}
+      initialAdults={adults}
+      initialKids={kids}
     />
   )
 }

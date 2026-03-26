@@ -11,6 +11,8 @@ import { Phone, Mail, MapPin } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
 import { siteConfig } from "@/config/site"
 
+const SUPPORT_REASON_PATTERN = /support|feedback|refund|cancel|cancellation|reschedule|post[- ]?event|complaint|issue|help/i
+
 export default function ContactPageClient() {
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -27,7 +29,14 @@ export default function ContactPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
 
-  const reason = searchParams.get("reason") ?? ""
+  const reason = (searchParams.get("reason") ?? "").trim()
+  const reasonLooksLikeSupport = reason.length > 0 && SUPPORT_REASON_PATTERN.test(reason)
+  const submissionIntent: "booking_inquiry" | "customer_support" = reasonLooksLikeSupport
+    ? "customer_support"
+    : "booking_inquiry"
+  const submissionEventName: "lead_submit" | "support_submit" =
+    submissionIntent === "booking_inquiry" ? "lead_submit" : "support_submit"
+  const submissionReason = reason || (submissionIntent === "booking_inquiry" ? "Booking Inquiry" : "Customer Support")
 
   useEffect(() => {
     const eventDate = searchParams.get("eventDate") ?? ""
@@ -66,7 +75,12 @@ export default function ContactPageClient() {
           name: `${formData.firstName} ${formData.lastName}`.trim(),
           email: formData.email,
           phone: formData.phone,
-          reason: reason || "Post-Event Feedback / Support",
+          reason: submissionReason,
+          leadSource: "contact_page",
+          leadChannel: "contact_form",
+          leadType: submissionIntent,
+          cityOrZip: formData.cityOrZip || undefined,
+          guestCount: formData.guestCount || undefined,
           message: [
             `Event Date: ${formData.eventDate || "Not provided"}`,
             `Guest Count: ${formData.guestCount || "Not provided"}`,
@@ -78,11 +92,11 @@ export default function ContactPageClient() {
       })
 
       if (response.ok) {
-        trackEvent("lead_submit", {
+        trackEvent(submissionEventName, {
           lead_channel: "contact_form",
           lead_source: "contact_page",
-          lead_type: "customer_feedback",
-          inquiry_reason: reason || "post_event_feedback_support",
+          lead_type: submissionIntent,
+          inquiry_reason: submissionReason.toLowerCase().replace(/\s+/g, "_"),
           guest_count: formData.guestCount || "unspecified",
           location_hint: formData.cityOrZip || "unspecified",
         })
@@ -119,7 +133,7 @@ export default function ContactPageClient() {
           <div className="space-y-8">
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900">Contact Us</h1>
             <div>
-              <h2 className="text-4xl font-serif font-bold text-[hsl(24_79%_42%)] mb-6">Text Or Call Us</h2>
+              <h2 className="text-4xl font-serif font-bold text-[hsl(24_79%_42%)] mb-6">Book or Ask About Your Event</h2>
               <div className="space-y-5 text-2xl text-gray-800">
                 <a href="tel:2137707788" className="flex items-center gap-3 hover:text-[hsl(24_79%_42%)]">
                   <Phone className="h-6 w-6 text-[hsl(24_79%_42%)]" />
@@ -141,11 +155,11 @@ export default function ContactPageClient() {
           </div>
 
           <div>
-            <h3 className="text-4xl font-serif font-bold mb-6 text-gray-900">Name</h3>
+            <h3 className="text-4xl font-serif font-bold mb-6 text-gray-900">Tell Us Your Event Details</h3>
             <div className="space-y-6">
               {submitStatus === "success" && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800">Thanks. Your feedback request is in and we will contact you shortly.</p>
+                  <p className="text-green-800">Thanks. Your request is in and our booking team will contact you shortly.</p>
                 </div>
               )}
 
@@ -221,7 +235,7 @@ export default function ContactPageClient() {
                   disabled={isSubmitting}
                   className="rounded-full px-10 h-14 bg-[#B3261E] hover:bg-[#9f2019] text-white text-lg font-semibold"
                 >
-                  {isSubmitting ? "Submitting..." : "Submit"}
+                  {isSubmitting ? "Submitting..." : "Send Request"}
                 </Button>
               </form>
             </div>

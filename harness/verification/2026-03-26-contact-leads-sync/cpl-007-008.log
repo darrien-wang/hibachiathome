@@ -1,0 +1,10 @@
+[run-e2e] Reusing existing Playwright Chromium from /home/darrien/.cache/ms-playwright
+[run-e2e] output dir: /mnt/d/desktop/realhibachi/realhibachi-marketing/harness/verification/2026-03-26-142722-e2e-run
+[2m[WebServer] [22m(node:2766) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:2779) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:2796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command was killed with SIGTERM (Termination): playwright test --reporter=list,json e2e/cpl-007.spec.ts e2e/cpl-008.spec.ts

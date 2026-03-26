@@ -1,0 +1,19 @@
+{
+  "item": "CPL-008",
+  "date": "2026-03-06",
+  "initialQuoteStartedCount": 0,
+  "finalQuoteStartedCount": 1,
+  "firstEvent": {
+    "event": "quote_started",
+    "page_path": "/quoteA",
+    "page_title": "Get Instant Quote A | Real Hibachi - Real Hibachi LA",
+    "quote_surface": "quote_builder_a",
+    "quote_tier": "standard",
+    "adults": 10,
+    "kids": 0,
+    "tableware_rental": false,
+    "tent_10x10": false,
+    "gtm.uniqueEventId": 13
+  },
+  "pass": true
+}

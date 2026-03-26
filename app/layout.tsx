@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { SocialProofToast } from "@/components/social-proof-toast"
+import { LiveChatLoader } from "@/components/live-chat-loader"
 
 export const metadata: Metadata = {
   title: {
@@ -106,6 +107,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         ) : null}
         <Suspense fallback={null}>
           <TrackingBootstrap />
+          <LiveChatLoader />
         </Suspense>
         <Suspense>
           <Header />

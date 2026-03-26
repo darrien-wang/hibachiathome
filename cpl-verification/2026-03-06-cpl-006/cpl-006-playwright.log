@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/cpl-006.spec.ts:12:5 › CPL-006: quote SMS/Call/Email clicks emit lead_submit with qualified channel payload (1.8s)
+
+  1 passed (47.7s)

@@ -29,6 +29,14 @@ export interface Booking {
   deposit_status?: "pending" | "paid" | "refunded"
   stripe_session_id?: string | null
   payment_intent_id?: string | null
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  utm_term?: string | null
+  utm_content?: string | null
+  gclid?: string | null
+  wbraid?: string | null
+  gbraid?: string | null
   status?: "pending" | "confirmed" | "completed" | "cancelled"
   created_at?: string
   updated_at?: string

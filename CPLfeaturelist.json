@@ -1,0 +1,327 @@
+[
+  {
+    "id": "CPL-001",
+    "priority": "P0",
+    "category": "functional",
+    "description": "站点通过 GTM 容器注入作为唯一前端标签入口（head script + noscript iframe）。",
+    "steps": [
+      "启动应用并打开任意页面（如 / 和 /quoteA）。",
+      "查看页面源码或 Elements，确认存在 googletagmanager.com/gtm.js?id=GTM-xxxx。",
+      "确认 body 中存在 noscript iframe，src 包含 /ns.html?id=GTM-xxxx。",
+      "保存验证证据：cpl-verification/<date>/cpl-001-gtm-installed.png。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-002",
+    "priority": "P0",
+    "category": "functional",
+    "description": "前端代码不直接调用 window.gtag，所有业务事件统一走 dataLayer。",
+    "steps": [
+      "在仓库根目录执行：rg -n \"window\\.gtag|gtag\\(\" app lib components。",
+      "确认结果为空或仅文档说明，不包含业务代码调用。",
+      "执行：rg -n \"trackEvent\\(\" app lib components，确认事件入口集中在 lib/tracking.ts。",
+      "保存命令输出：cpl-verification/<date>/cpl-002-no-direct-gtag.log。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-003",
+    "priority": "P0",
+    "category": "functional",
+    "description": "落地页首访时持久化 attribution（utm_* + gclid/wbraid/gbraid）并注入后续事件。",
+    "steps": [
+      "用带参数 URL 打开首页：/?utm_source=google&utm_medium=cpc&utm_campaign=test_cpl&gclid=TEST123。",
+      "进入 Console 执行 window.dataLayer，检查后续事件 payload 含上述 attribution 字段。",
+      "刷新并跳转到 /quoteA，再触发一个事件（例如点击短信），确认 attribution 仍存在。",
+      "保存证据：cpl-verification/<date>/cpl-003-attribution-persistence.json。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-004",
+    "priority": "P0",
+    "category": "functional",
+    "description": "deposit_completed 仅在服务端验证 paid=true 后触发，并按 transaction_id 客户端去重。",
+    "steps": [
+      "打开 /deposit/success?session_id=<valid_session_id>&booking_id=<booking_id>。",
+      "确认 /api/deposit/verify 返回 paid=true 且包含 transaction_id。",
+      "在 Console 检查 dataLayer 中 deposit_completed 仅出现一次；刷新页面不重复新增。",
+      "保存证据：cpl-verification/<date>/cpl-004-deposit-dedupe.json。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-005",
+    "priority": "P0",
+    "category": "functional",
+    "description": "拆分“广告优化线索事件”与“非销售事件”，避免 lead_submit 信号污染（例如 support/partner 不再进入主转化）。",
+    "steps": [
+      "在代码中定义高质量线索事件（例如 qualified_lead_submit）并更新对应触发点。",
+      "Contact 支持类提交改为 support_submit；伙伴招募改为 partner_application_submit（或至少加 lead_type 过滤标记）。",
+      "运行事件命名审计脚本，确认新事件均为 snake_case 且字典已更新。",
+      "在 GTM 预览中验证仅高质量线索事件触发 Ads 主转化 tag。保存证据到 cpl-verification/<date>/cpl-005-lead-signal-split/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-006",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Quote 页面 SMS/Call/Email 点击均提供可优化线索信号（lead_submit + lead_channel），避免只统计 email 线索。",
+    "steps": [
+      "修改 /quote 交互：onSmsClick 和 onCallClick 补充 lead_submit，并携带 lead_channel=sms/phone。",
+      "统一 email 线索事件 payload，与 SMS/Call 共用同一销售线索合同（lead_type=quote_contact）。",
+      "执行自动化验证（e2e/cpl-006.spec.ts），确认 SMS/Call/Email 各触发 1 条 contact_* 与 1 条 lead_submit。",
+      "保存证据：cpl-verification/<date>/cpl-006-quote-contact-actions.json 与截图。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-007",
+    "priority": "P0",
+    "category": "functional",
+    "description": "Contact 页面语义改为“预订咨询”主导，并按意图输出 lead_submit(booking) 或 support_submit(support)。",
+    "steps": [
+      "更新 /contact metadata 与主文案，使页面明确面向预订咨询（Booking Help）。",
+      "默认提交意图输出 lead_submit（lead_type=booking_inquiry）；当 reason 命中支持类关键词时输出 support_submit（lead_type=customer_support）。",
+      "执行自动化验证（e2e/cpl-007.spec.ts），覆盖默认咨询与 support reason 两条路径。",
+      "保存证据：cpl-verification/<date>/cpl-007-default-booking-intent.json 与 cpl-007-support-reason-intent.json。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-008",
+    "priority": "P0",
+    "category": "functional",
+    "description": "quote_started 仅在用户真实首个核心输入后触发，并保证单次触发，避免页面加载即误记漏斗起点。",
+    "steps": [
+      "在 QuoteBuilder 中引入 first_input/touched gating（核心字段：eventDate/location/adults/kids），未交互前不允许发送 quote_started。",
+      "打开 /quoteA 不做任何输入，验证 dataLayer 中 quote_started 数量为 0。",
+      "输入任一核心字段后验证 quote_started 变为 1；继续修改其他字段仍保持 1。",
+      "执行自动化验证（e2e/cpl-008.spec.ts），并保存证据到 cpl-verification/<date>/cpl-008-quote-started-gating.json。"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CPL-009",
+    "priority": "P0",
+    "category": "functional",
+    "description": "为 deposit_completed 增加服务端回传兜底（webhook 成功时可直接回传 GA4/Ads/sGTM），降低回跳漏数。",
+    "steps": [
+      "在 Stripe webhook checkout.session.completed 成功分支实现 server-side 转化上报。",
+      "加入幂等键（event_id/transaction_id）并记录发送结果（成功/失败/重试）。",
+      "模拟用户支付后不回跳成功页，验证广告侧仍能接收到成交事件。",
+      "保存证据：cpl-verification/<date>/cpl-009-server-side-conversion-fallback/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-010",
+    "priority": "P0",
+    "category": "governance",
+    "description": "生产环境强制 NEXT_PUBLIC_GTM_ID 必填，避免“无标签上线”导致全量漏数。",
+    "steps": [
+      "将环境校验脚本和 CI 阶段改为：production/pre 缺少 GTM ID 时失败。",
+      "本地模拟缺失 NEXT_PUBLIC_GTM_ID，运行校验脚本确认返回非 0 状态码。",
+      "恢复配置后校验脚本通过。",
+      "保存证据：cpl-verification/<date>/cpl-010-gtm-required.log。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-011",
+    "priority": "P0",
+    "category": "manual",
+    "description": "Google Ads 与 GTM 执行单计数路径治理：仅保留 GTM_WEBSITE_ONLY，杜绝双计数。",
+    "steps": [
+      "在 Google Ads -> Conversions 中检查 GA4 Imported 转化动作是否被禁用或设为 Secondary。",
+      "在 GTM 中确认 Ads conversion tags 仅由目标事件触发（如 qualified_lead_submit、deposit_completed）。",
+      "用 Tag Assistant 触发一次线索和一次支付，确认每类转化仅触发一条 counting path。",
+      "保存后台截图：cpl-verification/<date>/cpl-011-single-counting-path/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-012",
+    "priority": "P0",
+    "category": "manual",
+    "description": "建立 GTM 容器版本化与发布前核对清单（可审计）。",
+    "steps": [
+      "导出 GTM Container JSON（当前生产版本）并保存至 cpl-verification/<date>/gtm-export.json。",
+      "在仓库文档记录版本号、发布时间、改动摘要、回滚版本。",
+      "发布前检查清单必须包含：触发器、转化标签、transaction_id 去重变量、debug 结果。",
+      "由执行人签名（姓名+日期）并上传截图/文档。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-013",
+    "priority": "P1",
+    "category": "functional",
+    "description": "/book 页与 footer 的电话/SMS/WhatsApp/Email 触点补齐 tracking，消除漏斗盲区。",
+    "steps": [
+      "为 /book 页面所有外链触点增加 onClick trackEvent（contact_call_click/contact_sms_click/contact_whatsapp_click/contact_email_click）。",
+      "为 footer 联系方式增加同类 trackEvent 并补充 contact_surface 参数。",
+      "手动点击各入口，检查 dataLayer 事件命名与参数一致。",
+      "保存证据：cpl-verification/<date>/cpl-013-contact-touchpoint-coverage.json。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-014",
+    "priority": "P1",
+    "category": "functional",
+    "description": "统一主要 CTA 流量路径（优先进入 /quoteA），减少路径分叉造成的流失。",
+    "steps": [
+      "梳理 Header/Home/核心按钮的主 CTA 跳转目标并统一到 /quoteA（可带 source 参数）。",
+      "点击每个主 CTA，确认最终进入相同漏斗入口。",
+      "核对 dataLayer 中 funnel_entry/source 参数可区分来源但不分叉流程。",
+      "保存证据：cpl-verification/<date>/cpl-014-unified-cta-path/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-015",
+    "priority": "P1",
+    "category": "functional",
+    "description": "移除用户可见的 A/B 版本标识（如 Quote Variant A/B），减少信任摩擦。",
+    "steps": [
+      "移除页面可见的 Variant 标签和 SEO title 中的 A/B 暴露文案。",
+      "对 /quoteA 与 /quoteB 进行视觉回归，确认功能不变。",
+      "检查实验参数仍可在事件层标识（不在 UI 暴露）。",
+      "保存证据：cpl-verification/<date>/cpl-015-hide-ab-surface.png。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-016",
+    "priority": "P1",
+    "category": "experiment",
+    "description": "优化 deposit 页 CTA 附近文案密度（保留关键信任点，折叠次要政策）以提升支付继续率。",
+    "steps": [
+      "将长政策区改为精简摘要 + 可展开详情（Accordion/Details）。",
+      "保证 CTA 附近保留 2-3 条核心承诺：72h 退款、Stripe 安全、客服可达。",
+      "做 A/B 或前后对比，观察 deposit_started -> checkoutUrl 返回率。",
+      "保存证据：cpl-verification/<date>/cpl-016-deposit-copy-test/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-017",
+    "priority": "P1",
+    "category": "manual",
+    "description": "Google Ads 转化动作分层：Primary 仅高质量事件，Secondary 保留诊断事件。",
+    "steps": [
+      "在 Ads Conversions 中将 qualified_lead_submit、deposit_completed 设为 Primary。",
+      "将 contact_click 等辅助事件设为 Secondary（或不计入 bidding）。",
+      "发布后观察 7 天，确认竞价策略使用的主目标未混入低质量事件。",
+      "保存设置截图：cpl-verification/<date>/cpl-017-ads-primary-secondary/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-018",
+    "priority": "P1",
+    "category": "manual",
+    "description": "Google Ads 开启并验证 Enhanced Conversions for Leads（若使用表单线索优化）。",
+    "steps": [
+      "在 Ads 对应 conversion action 配置 Enhanced Conversions（通过 GTM/Google tag）。",
+      "按官方诊断流程提交测试线索，检查状态从 Needs attention 到 Recording。",
+      "确认哈希字段映射正确（email/phone），且符合隐私策略。",
+      "保存证据：cpl-verification/<date>/cpl-018-enhanced-conversions/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-019",
+    "priority": "P1",
+    "category": "functional",
+    "description": "引入 event_id 合同用于跨端去重（Web + Server），为 Ads/Meta 双通路去重准备。",
+    "steps": [
+      "在 trackEvent 统一生成或接收 event_id 并写入 dataLayer。",
+      "服务端回传（如 webhook 转化上报）复用同一 event_id。",
+      "验证同一转化从两条链路上报时被平台正确 dedupe。",
+      "保存证据：cpl-verification/<date>/cpl-019-event-id-dedupe.json。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-020",
+    "priority": "P1",
+    "category": "functional",
+    "description": "扩展 attribution 字段支持 Meta（fbclid/fbp/fbc）并持久化 90 天。",
+    "steps": [
+      "在 tracking attribution keys 中新增 fbclid/fbp/fbc 并纳入 capture/persist 逻辑。",
+      "用包含 fbclid 的落地 URL 访问页面，触发后续事件检查字段继承。",
+      "确认 cookie/localStorage 数据结构兼容旧版本。",
+      "保存证据：cpl-verification/<date>/cpl-020-meta-attribution.json。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-021",
+    "priority": "P1",
+    "category": "manual",
+    "description": "Meta Pixel + Conversions API 双通路打通，并以 event_id 去重。",
+    "steps": [
+      "在 Meta Events Manager 创建/确认 Pixel，并通过 GTM 或代码发送关键事件（Lead/Purchase）。",
+      "服务端实现 CAPI 同事件上报并包含 event_id、event_time、action_source。",
+      "在 Test Events 验证浏览器与服务器事件成功 dedupe。",
+      "保存证据：cpl-verification/<date>/cpl-021-meta-pixel-capi/。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-022",
+    "priority": "P1",
+    "category": "qa",
+    "description": "补齐并修复 e2e 追踪测试，覆盖 CPL 关键事件回归（线索、支付、去重）。",
+    "steps": [
+      "更新 smoke/e2e 用例以匹配当前表单字段与事件语义。",
+      "新增用例：qualified_lead_submit、support_submit 不触发 Ads 主转化、deposit_completed 去重。",
+      "执行测试并导出报告到 cpl-verification/<date>/cpl-022-e2e-report/。",
+      "失败场景修复后重新跑到全绿。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-023",
+    "priority": "P2",
+    "category": "reporting",
+    "description": "建立周度 CPL 漏斗看板（渠道 -> quote_started -> qualified_lead -> deposit_completed）。",
+    "steps": [
+      "定义统一数据源（GA4 导出/BigQuery/广告平台 API）及字段口径。",
+      "输出每周报告：花费、线索数、成交数、CPL、CPA、线索到成交率。",
+      "按 source/medium/campaign 与 lead_channel 细分对比。",
+      "保存报告样例：cpl-verification/<date>/cpl-023-weekly-dashboard.csv。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-024",
+    "priority": "P2",
+    "category": "manual",
+    "description": "建立搜索词与创意迭代闭环：每周否词、素材测试、落地页消息一致性审查。",
+    "steps": [
+      "Google Ads 每周导出 Search Terms，标记浪费词并加入否词清单。",
+      "Meta 每周保留前 20% 素材、淘汰后 30% 素材，新增 2-3 套创意。",
+      "核对广告文案承诺与落地页首屏一致（价格/服务区/退款规则）。",
+      "保存周报：cpl-verification/<date>/cpl-024-ad-optimization-loop.md。"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CPL-025",
+    "priority": "P2",
+    "category": "governance",
+    "description": "建立“发布门禁 + 人工验收”SOP，任何广告追踪变更必须附带证据后发布。",
+    "steps": [
+      "定义发布门禁：代码检查、自动化测试、GTM Preview、Ads/Meta Test Events 全部通过。",
+      "每次发布记录版本号、负责人、回滚方式、证据链接。",
+      "随机抽查最近 3 次发布，确认记录完整可追溯。",
+      "保存 SOP 与抽查结果：cpl-verification/<date>/cpl-025-release-gate-audit.md。"
+    ],
+    "passes": false
+  }
+]

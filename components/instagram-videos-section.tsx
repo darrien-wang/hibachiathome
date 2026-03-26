@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Play, MapPin, Calendar, ChevronLeft, ChevronRight, Instagram, ExternalLink } from "lucide-react"
 import { getLatestVideos, type InstagramVideo } from "@/config/instagram-videos"
+import { formatUiDate } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
 
 interface InstagramVideosSectionProps {
@@ -100,11 +101,7 @@ export default function InstagramVideosSection({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
-    })
+    return formatUiDate(dateString, dateString)
   }
 
   const formatNumber = (num?: number) => {
@@ -288,10 +285,7 @@ function VideoCard({ video, index, onVideoPlay, onVideoRef, playingVideo, isCaro
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric"
-    })
+    return formatUiDate(dateString, dateString)
   }
 
   return (

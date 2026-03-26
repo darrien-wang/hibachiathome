@@ -21,6 +21,12 @@ type DepositVerifyResponse = {
   booking_id?: string
   email?: string
   phone?: string
+  customer_name?: string
+  event_date?: string
+  event_time?: string
+  location?: string
+  adults?: number
+  kids?: number
   error?: string
 }
 
@@ -30,6 +36,12 @@ type DepositSuccessClientProps = {
   initialEmail: string | null
   initialPhone: string | null
   initialSource: string | null
+  initialCustomerName: string | null
+  initialEventDate: string | null
+  initialEventTime: string | null
+  initialLocation: string | null
+  initialAdults: string | null
+  initialKids: string | null
 }
 
 type VerifyState =
@@ -55,20 +67,75 @@ function normalizeText(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+const RH_BOOKING_NUMBER_PATTERN = /^RH-\d{8}-\d{4}$/i
+
+function normalizeRhBookingNumber(value: string | null | undefined): string | null {
+  const normalized = normalizeText(value)?.toUpperCase() ?? null
+  if (!normalized) {
+    return null
+  }
+
+  return RH_BOOKING_NUMBER_PATTERN.test(normalized) ? normalized : null
+}
+
+function normalizePrefillEmail(value: string | null | undefined): string | null {
+  const normalized = normalizeText(value)?.toLowerCase() ?? null
+  if (!normalized || normalized === "unknown@example.com" || normalized === "n/a") {
+    return null
+  }
+  return normalized
+}
+
+function normalizePrefillPhone(value: string | null | undefined): string | null {
+  const normalized = normalizeText(value)
+  if (!normalized) {
+    return null
+  }
+
+  const lowered = normalized.toLowerCase()
+  if (lowered === "tbd" || lowered === "n/a" || lowered === "na" || lowered === "unknown") {
+    return null
+  }
+  return normalized
+}
+
+function normalizeCount(value: string | number | null | undefined): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.trunc(value))
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.trunc(parsed))
+    }
+  }
+  return null
+}
+
 function buildInvoiceSelfServiceHref(params: {
   baseUrl: string | undefined
   bookingId: string | null
   email: string | null
   phone: string | null
   source: string | null
+  customerName: string | null
+  eventDate: string | null
+  eventTime: string | null
+  location: string | null
+  adults: number | null
+  kids: number | null
 }): string | null {
   const baseUrl = normalizeText(params.baseUrl)
   const bookingId = normalizeText(params.bookingId)
-  const email = normalizeText(params.email)
-  const phone = normalizeText(params.phone)
+  const email = normalizePrefillEmail(params.email)
+  const phone = normalizePrefillPhone(params.phone)
   const source = normalizeText(params.source)
+  const customerName = normalizeText(params.customerName)
+  const eventDate = normalizeText(params.eventDate)
+  const eventTime = normalizeText(params.eventTime)
+  const location = normalizeText(params.location)
 
-  if (!baseUrl || (!bookingId && !email && !phone)) {
+  if (!baseUrl || (!bookingId && !email && !phone && !customerName && !eventDate && !eventTime && !location)) {
     return null
   }
 
@@ -86,6 +153,24 @@ function buildInvoiceSelfServiceHref(params: {
     if (source) {
       url.searchParams.set("source", source)
     }
+    if (customerName) {
+      url.searchParams.set("customer_name", customerName)
+    }
+    if (eventDate) {
+      url.searchParams.set("event_date", eventDate)
+    }
+    if (eventTime) {
+      url.searchParams.set("event_time", eventTime)
+    }
+    if (location) {
+      url.searchParams.set("location", location)
+    }
+    if (typeof params.adults === "number") {
+      url.searchParams.set("adults", String(params.adults))
+    }
+    if (typeof params.kids === "number") {
+      url.searchParams.set("kids", String(params.kids))
+    }
     url.searchParams.set("surface", "deposit_success")
     return url.toString()
   } catch {
@@ -99,24 +184,64 @@ export default function DepositSuccessClient({
   initialEmail,
   initialPhone,
   initialSource,
+  initialCustomerName,
+  initialEventDate,
+  initialEventTime,
+  initialLocation,
+  initialAdults,
+  initialKids,
 }: DepositSuccessClientProps) {
   const [state, setState] = useState<VerifyState>({ stage: "idle" })
 
   const canVerify = useMemo(() => typeof sessionId === "string" && sessionId.length > 0, [sessionId])
-  const resolvedBookingId = state.stage === "resolved" ? state.payload.booking_id ?? null : null
-  const resolvedEmail = state.stage === "resolved" ? state.payload.email ?? null : null
-  const resolvedPhone = state.stage === "resolved" ? state.payload.phone ?? null : null
+  const normalizedInitialBookingId = useMemo(() => normalizeRhBookingNumber(initialBookingId), [initialBookingId])
+  const resolvedBookingId =
+    state.stage === "resolved" ? normalizeRhBookingNumber(state.payload.booking_id) : null
+  const displayBookingId = resolvedBookingId ?? normalizedInitialBookingId
+  const resolvedEmail = state.stage === "resolved" ? normalizePrefillEmail(state.payload.email) : null
+  const resolvedPhone = state.stage === "resolved" ? normalizePrefillPhone(state.payload.phone) : null
+  const displayEmail = resolvedEmail ?? normalizePrefillEmail(initialEmail)
+  const displayPhone = resolvedPhone ?? normalizePrefillPhone(initialPhone)
+  const resolvedCustomerName = state.stage === "resolved" ? normalizeText(state.payload.customer_name) : null
+  const resolvedEventDate = state.stage === "resolved" ? normalizeText(state.payload.event_date) : null
+  const resolvedEventTime = state.stage === "resolved" ? normalizeText(state.payload.event_time) : null
+  const resolvedLocation = state.stage === "resolved" ? normalizeText(state.payload.location) : null
+  const resolvedAdults = state.stage === "resolved" ? normalizeCount(state.payload.adults) : null
+  const resolvedKids = state.stage === "resolved" ? normalizeCount(state.payload.kids) : null
+  const displayCustomerName = resolvedCustomerName ?? normalizeText(initialCustomerName)
+  const displayEventDate = resolvedEventDate ?? normalizeText(initialEventDate)
+  const displayEventTime = resolvedEventTime ?? normalizeText(initialEventTime)
+  const displayLocation = resolvedLocation ?? normalizeText(initialLocation)
+  const displayAdults = resolvedAdults ?? normalizeCount(initialAdults)
+  const displayKids = resolvedKids ?? normalizeCount(initialKids)
   const isPaidState = state.stage === "resolved" && state.payload.paid
   const invoiceSelfServiceHref = useMemo(
     () =>
       buildInvoiceSelfServiceHref({
         baseUrl: process.env.NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL,
-        bookingId: resolvedBookingId ?? initialBookingId,
-        email: resolvedEmail ?? initialEmail,
-        phone: resolvedPhone ?? initialPhone,
+        bookingId: displayBookingId,
+        email: displayEmail,
+        phone: displayPhone,
         source: initialSource,
+        customerName: displayCustomerName,
+        eventDate: displayEventDate,
+        eventTime: displayEventTime,
+        location: displayLocation,
+        adults: displayAdults,
+        kids: displayKids,
       }),
-    [initialBookingId, initialEmail, initialPhone, initialSource, resolvedBookingId, resolvedEmail, resolvedPhone],
+    [
+      displayAdults,
+      displayBookingId,
+      displayCustomerName,
+      displayEmail,
+      displayEventDate,
+      displayEventTime,
+      displayKids,
+      displayLocation,
+      displayPhone,
+      initialSource,
+    ],
   )
 
   const verify = useCallback(async () => {
@@ -131,7 +256,12 @@ export default function DepositSuccessClient({
     setState({ stage: "loading" })
 
     try {
-      const response = await fetch(`/api/deposit/verify?session_id=${encodeURIComponent(sessionId)}`, {
+      const query = new URLSearchParams({ session_id: sessionId })
+      if (normalizedInitialBookingId) {
+        query.set("booking_id", normalizedInitialBookingId)
+      }
+
+      const response = await fetch(`/api/deposit/verify?${query.toString()}`, {
         method: "GET",
         cache: "no-store",
         headers: {
@@ -154,7 +284,7 @@ export default function DepositSuccessClient({
         error instanceof Error ? error.message : "Unable to verify payment status right now. Please try again."
       setState({ stage: "failed", message })
     }
-  }, [sessionId])
+  }, [sessionId, normalizedInitialBookingId])
 
   useEffect(() => {
     void verify()
@@ -174,12 +304,13 @@ export default function DepositSuccessClient({
       transaction_id: result.transaction_id,
       value: typeof result.value === "number" ? result.value : undefined,
       currency: typeof result.currency === "string" ? result.currency : "USD",
-      booking_id: result.booking_id,
+      event_id: result.session_id || sessionId || undefined,
+      booking_id: displayBookingId ?? undefined,
       checkout_session_id: result.session_id || undefined,
       deposit_status: result.status,
       conversion_surface: "deposit_success",
     })
-  }, [state])
+  }, [displayBookingId, sessionId, state])
 
   const content = (() => {
     if (state.stage === "idle" || state.stage === "loading") {
@@ -224,9 +355,9 @@ export default function DepositSuccessClient({
                 <span className="font-medium">{formatCurrency(result.value, (result.currency || "USD").toUpperCase())}</span>
               </p>
             )}
-            {result.booking_id && (
+            {displayBookingId && (
               <p className="mt-1 break-all">
-                Booking Number: <span className="font-mono">{result.booking_id}</span>
+                Booking Number: <span className="font-mono">{displayBookingId}</span>
               </p>
             )}
           </div>

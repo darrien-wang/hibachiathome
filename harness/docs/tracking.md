@@ -1,6 +1,6 @@
 # Tracking System Contract (GTM + dataLayer)
 
-Last updated: 2026-02-19
+Last updated: 2026-03-07
 Source spec: `harness/prompts/tracking-improvement-spec.xml`
 
 ## 1) Architecture
@@ -20,7 +20,9 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 | `ab_test_exposure` | User is assigned/exposed to experiment variant | Hero experiment assignment | No |
 | `ab_test_conversion` | User converts under a specific experiment variant | Hero primary CTA click | No |
 | `lead_start` | User starts booking/lead intent | Primary booking CTA before navigation | No |
-| `lead_submit` | User submits lead/contact form | Contact form successful submit path | Yes |
+| `lead_submit` | User submits a sales-qualified lead action | Quote contact actions (SMS/Call/Email) and Contact booking inquiry form | Yes |
+| `support_submit` | User submits customer support / post-event request | Contact form submit when reason indicates support/feedback intent | No |
+| `partner_application_submit` | Service provider submits partnership application | Partner opportunities application submit | No |
 | `booking_funnel_start` | User enters estimation from booking page | `/book` Get Estimate CTA | No |
 | `estimate_completed` | User reaches estimate result step | Estimation step transition into Step 5 | No |
 | `booking_submit` | User submits booking details | Estimation order submission | Yes (import-eligible) |
@@ -78,24 +80,44 @@ Source spec: `harness/prompts/tracking-improvement-spec.xml`
 
 ### Variables
 
-- Data Layer Variables for every contract field above.
+- Data Layer Variables are configured for the high-value parameters used by funnel and conversion events:
+  - `value`, `currency`, `transaction_id`, `booking_id`, `deposit_source`, `checkout_session_id`, `event_id`
+  - `lead_channel`, `lead_source`, `lead_type`, `inquiry_reason`, `location_hint`, `guest_count`, `city_or_zip`
+  - `quote_surface`, `estimate_low`, `estimate_high`, `budget_fit`, `adults`, `kids`, `contact_surface`
+  - `page_path`, `page_title`
 
 ### Triggers
 
-- Custom Event triggers named exactly as the event dictionary entries above.
-- Minimum required GTM triggers for conversion-critical flows:
-  - `lead_submit`
-  - `booking_submit` (if mapped to Ads/GA4 conversion path)
-  - `deposit_started`
-  - `deposit_completed`
+- Custom Event triggers are configured for:
+  - `page_view`, `quote_started`, `quote_completed`, `lead_start`
+  - `lead_submit`, `support_submit`
+  - `contact_whatsapp_click`, `contact_sms_click`, `contact_call_click`, `contact_email_click`
+  - `phone_click`, `sms_click`
+  - `deposit_started`, `deposit_completed`
+- Production protection:
+  - `CE - lead_submit` and `CE - deposit_completed` include `Page Hostname` regex filter `^(www\.)?realhibachi\.com$` so conversion signals are production-only.
 
 ### Tags
 
-- GA4 Configuration tag: all pages.
+- GA4 Configuration tag: all pages with `send_page_view=false` (SPA pageviews come only from explicit dataLayer `page_view` events).
 - GA4 Event tags: one per custom event trigger above.
+- Parameter mapping highlights:
+  - `deposit_started` / `deposit_completed` map `transaction_id`, `value`, `currency`, `booking_id`, `deposit_source`, `event_id` (plus `checkout_session_id` on completed).
+  - `lead_submit` / `support_submit` map `lead_channel`, `lead_source`, `lead_type`, `inquiry_reason`, `location_hint`, `guest_count`, `city_or_zip`, `event_id`.
 - Google Ads conversion tags (only for `GTM_WEBSITE_ONLY`):
   - `lead_submit` conversion action
   - `deposit_completed` conversion action with `transaction_id` dedup
+  - Do **not** bind Ads conversion tags to `support_submit` or `partner_application_submit`
+
+### GA4 Custom Definitions To Register
+
+- Event-scoped custom dimensions:
+  - `booking_id`, `deposit_source`, `checkout_session_id`
+  - `lead_channel`, `lead_source`, `lead_type`, `inquiry_reason`
+  - `location_hint`, `guest_count`, `city_or_zip`
+  - `quote_surface`, `budget_fit`, `contact_surface`
+- Custom metrics (if needed for reporting in standard GA4 UI):
+  - `estimate_low`, `estimate_high`
 
 ## 6) Ads Conversion Mapping (single counting path rule)
 

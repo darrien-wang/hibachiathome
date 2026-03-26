@@ -1,0 +1,35 @@
+{
+  "item": "CPL-005",
+  "date": "2026-03-06",
+  "assertions": [
+    {
+      "name": "contact_form_uses_support_submit",
+      "pass": true,
+      "file": "app/contact/ContactPageClient.tsx"
+    },
+    {
+      "name": "partner_form_uses_partner_application_submit",
+      "pass": true,
+      "file": "app/partner-opportunities/PartnerOpportunitiesPageClient.tsx"
+    },
+    {
+      "name": "lead_submit_not_used_in_contact_or_partner",
+      "pass": true,
+      "files": [
+        "app/contact/ContactPageClient.tsx",
+        "app/partner-opportunities/PartnerOpportunitiesPageClient.tsx"
+      ]
+    },
+    {
+      "name": "tracking_union_has_new_events",
+      "pass": true,
+      "file": "lib/tracking.ts"
+    },
+    {
+      "name": "tracking_docs_updated_non_ads_mapping",
+      "pass": true,
+      "file": "harness/docs/tracking.md"
+    }
+  ],
+  "pass": true
+}

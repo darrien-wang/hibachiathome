@@ -1,0 +1,10 @@
+# lead_submit calls in QuoteBuilderClient
+277:  const buildQualifiedLeadPayload = (leadChannel: "sms" | "phone" | "email") => ({
+308:    trackEvent("lead_submit", buildQualifiedLeadPayload("sms"))
+326:    trackEvent("lead_submit", buildQualifiedLeadPayload("phone"))
+344:    trackEvent("lead_submit", buildQualifiedLeadPayload("email"))
+
+# lead_submit usage across app
+app/quote/QuoteBuilderClient.tsx:308:    trackEvent("lead_submit", buildQualifiedLeadPayload("sms"))
+app/quote/QuoteBuilderClient.tsx:326:    trackEvent("lead_submit", buildQualifiedLeadPayload("phone"))
+app/quote/QuoteBuilderClient.tsx:344:    trackEvent("lead_submit", buildQualifiedLeadPayload("email"))

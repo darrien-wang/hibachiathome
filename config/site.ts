@@ -16,7 +16,7 @@ export const siteConfig = {
   // Contact information
   contact: {
     phone: "213-770-7788",
-    email: "RealHibachiAtHome@gmail.com",
+    email: "support@realhibachi.com",
     locations: ["Los Angeles", "Orange County", "Beverly Hills", "Santa Monica", "Pasadena", "Irvine", "Newport Beach", "Anaheim", "Long Beach", "Burbank"],
   },
 

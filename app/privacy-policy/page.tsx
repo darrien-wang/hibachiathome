@@ -111,10 +111,10 @@ export default function PrivacyPolicyPage() {
               <p className="text-gray-700 leading-relaxed">
                 For any questions about your data, you may contact us at{" "}
                 <a
-                  href="mailto:realhibachiathome@gmail.com"
+                  href="mailto:support@realhibachi.com"
                   className="text-orange-600 hover:text-orange-700 font-medium"
                 >
-                  realhibachiathome@gmail.com
+                  support@realhibachi.com
                 </a>
                 .
               </p>

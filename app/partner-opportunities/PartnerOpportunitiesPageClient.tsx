@@ -51,6 +51,9 @@ export default function PartnerOpportunitiesPageClient() {
         body: JSON.stringify({
           ...formData,
           reason: `Partnership Application - ${formData.serviceType || "Service Provider"}`,
+          leadSource: "partner_opportunities_page",
+          leadChannel: "contact_form",
+          leadType: "partner_application",
           message: [
             `Company: ${formData.company || "Not provided"}`,
             `Service Type: ${formData.serviceType || "Not provided"}`,
@@ -61,7 +64,7 @@ export default function PartnerOpportunitiesPageClient() {
       })
 
       if (response.ok) {
-        trackEvent("lead_submit", {
+        trackEvent("partner_application_submit", {
           lead_channel: "contact_form",
           lead_source: "partner_opportunities_page",
           lead_type: "partner_application",
@@ -245,7 +248,7 @@ export default function PartnerOpportunitiesPageClient() {
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <Mail className="h-5 w-5 text-orange-500" />
-                <span>realhibachiathome@gmail.com</span>
+                <span>support@realhibachi.com</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <MapPin className="h-5 w-5 text-orange-500" />

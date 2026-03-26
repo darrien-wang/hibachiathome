@@ -302,7 +302,7 @@ export async function getAvailableTimes(date: string, zipcode: string): Promise<
     }
 
     // 默认时间段
-    const allTimeSlots = ["11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"]
+    const allTimeSlots = ["13:00", "16:00", "19:00", "21:00"]
 
     // 计算可用时间段
     const availableTimeSlots = allTimeSlots.filter((time) => {

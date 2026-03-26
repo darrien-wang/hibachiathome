@@ -1,0 +1,28 @@
+{
+  "leadSubmitEvents": [
+    {
+      "event": "lead_submit",
+      "page_path": "/contact",
+      "page_title": "Contact & Booking Help | Real Hibachi - Real Hibachi LA",
+      "lead_channel": "contact_form",
+      "lead_source": "contact_page",
+      "lead_type": "booking_inquiry",
+      "inquiry_reason": "booking_inquiry",
+      "guest_count": "unspecified",
+      "location_hint": "unspecified"
+    }
+  ],
+  "supportSubmitEvents": [],
+  "matchedLead": {
+    "event": "lead_submit",
+    "page_path": "/contact",
+    "page_title": "Contact & Booking Help | Real Hibachi - Real Hibachi LA",
+    "lead_channel": "contact_form",
+    "lead_source": "contact_page",
+    "lead_type": "booking_inquiry",
+    "inquiry_reason": "booking_inquiry",
+    "guest_count": "unspecified",
+    "location_hint": "unspecified"
+  },
+  "pass": true
+}

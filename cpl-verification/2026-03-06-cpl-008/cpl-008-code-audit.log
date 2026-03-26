@@ -1,0 +1,6 @@
+42:const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
+87:  const [quoteStartIntentCaptured, setQuoteStartIntentCaptured] = useState(false)
+217:    if (!quoteStartedTracked && quoteStartIntentCaptured && hasAnyInput) {
+218:      trackEvent("quote_started", {
+227:  }, [input, quoteStartIntentCaptured, quoteStartedTracked, quoteSurface])
+257:    if (!quoteStartIntentCaptured && QUOTE_STARTED_INPUT_FIELDS.includes(field)) {
