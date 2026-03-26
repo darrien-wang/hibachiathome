@@ -10,12 +10,9 @@ import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 import {
   DEFAULT_REGION_CODE,
-  getPricingPolicyDefinition,
-  getRegionDefinition,
-  getRegionQuoteHref,
-  isPricingPolicyEnabledForRegion,
-  type RegionCode,
+  getRegionalPolicySnapshot,
 } from "@/config/regional-policies"
+import { useActiveRegion } from "@/lib/use-active-region"
 
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
@@ -139,7 +136,7 @@ export default function Home() {
   }
 
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
-  const activeRegion: RegionCode = DEFAULT_REGION_CODE
+  const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
 
   const handleOnlineBooking = () => {
     trackEvent("lead_start")
@@ -229,10 +226,11 @@ export default function Home() {
     "Premium protein upgrades available",
   ]
 
-  const activeRegionDefinition = getRegionDefinition(activeRegion)
-  const activeRegionQuoteHref = getRegionQuoteHref(activeRegion)
-  const weekdaySaverPolicy = getPricingPolicyDefinition("weekday_saver")
-  const weekdaySaverEnabled = isPricingPolicyEnabledForRegion("weekday_saver", activeRegion)
+  const regionPolicySnapshot = getRegionalPolicySnapshot(activeRegion)
+  const activeRegionDefinition = regionPolicySnapshot.region
+  const activeRegionQuoteHref = regionPolicySnapshot.quoteHref
+  const weekdaySaverPolicy = regionPolicySnapshot.pricingPolicies.weekday_saver.definition
+  const weekdaySaverEnabled = regionPolicySnapshot.pricingPolicies.weekday_saver.enabled
 
   const customPlanFeatures = [
     "Everything in the Standard plan",

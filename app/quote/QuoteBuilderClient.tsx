@@ -8,18 +8,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays } from "lucide-react"
-import { useSearchParams } from "next/navigation"
 import { siteConfig } from "@/config/site"
 import { getDepositAmount } from "@/config/deposit"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import {
   DEFAULT_REGION_CODE,
-  getPricingPolicyDefinition,
-  getRegionDefinition,
-  isPricingPolicyEnabledForRegion,
+  getRegionalPolicySnapshot,
   type RegionCode,
 } from "@/config/regional-policies"
-import { persistRegionCookie, resolveRegionForClient } from "@/lib/region-resolver"
+import { useActiveRegion } from "@/lib/use-active-region"
 import { trackEvent } from "@/lib/tracking"
 import {
   buildCallScript,
@@ -95,10 +92,8 @@ function calculateSlotsLeft(eventDate: string, location: string): number | null 
 }
 
 export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClientProps) {
-  const searchParams = useSearchParams()
-  const searchParamsKey = searchParams.toString()
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
-  const [activeRegion, setActiveRegion] = useState<RegionCode>(DEFAULT_REGION_CODE)
+  const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
   const [customerName, setCustomerName] = useState("")
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
@@ -110,9 +105,10 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
   const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
-  const activeRegionDefinition = getRegionDefinition(activeRegion)
-  const weekdaySaverPolicy = getPricingPolicyDefinition("weekday_saver")
-  const weekdaySaverEnabled = isPricingPolicyEnabledForRegion("weekday_saver", activeRegion)
+  const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
+  const activeRegionDefinition = regionPolicySnapshot.region
+  const weekdaySaverPolicy = regionPolicySnapshot.pricingPolicies.weekday_saver.definition
+  const weekdaySaverEnabled = regionPolicySnapshot.pricingPolicies.weekday_saver.enabled
   const slotsLeft = useMemo(() => calculateSlotsLeft(input.eventDate, input.location), [input.eventDate, input.location])
   const slotsNoun = slotsLeft === 1 ? "slot" : "slots"
   const shouldShowWeatherCard = Boolean(input.eventDate && input.location.trim())
@@ -144,17 +140,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   )
   const selectedWeekdayProteinsText = selectedWeekdayProteins.length > 0 ? selectedWeekdayProteins.join(", ") : "none"
   const weekdaySaverProteinsValue = isWeekdaySaverTier ? selectedWeekdayProteinsText : "n/a"
-
-  useEffect(() => {
-    const resolvedRegion = resolveRegionForClient({
-      searchParams: searchParamsKey,
-      cookieString: typeof document !== "undefined" ? document.cookie : null,
-      fallbackRegion: DEFAULT_REGION_CODE,
-    })
-
-    setActiveRegion((current) => (current === resolvedRegion ? current : resolvedRegion))
-    persistRegionCookie(resolvedRegion)
-  }, [searchParamsKey])
 
   useEffect(() => {
     if (!weekdaySaverEnabled && input.pricingTier === "weekday_saver") {

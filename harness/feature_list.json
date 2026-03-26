@@ -1293,5 +1293,18 @@
       "Verify NJ view hides Weekday Saver and shows CA-only policy notice while CA view continues to show Weekday Saver."
     ],
     "passes": true
+  },
+  {
+    "id": "CRO-REGION-POLICY-014",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Regional policy V2 unifies homepage and quote regional rendering through shared policy snapshot + region resolver hook, so one config update propagates to both surfaces.",
+    "steps": [
+      "Add a reusable client region hook that resolves active region from query/cookie and persists the selection.",
+      "Expose a single regional policy snapshot helper that returns region label, quote href, and pricing policy availability.",
+      "Render homepage pricing cards from the shared snapshot so NJ region shows CA-only fallback card while CA keeps Weekday Saver card.",
+      "Render quote tier visibility from the same snapshot and verify NJ still hides Weekday Saver with regional notice."
+    ],
+    "passes": true
   }
 ]

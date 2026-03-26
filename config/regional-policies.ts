@@ -3,6 +3,7 @@ export const DEFAULT_REGION_CODE = "ca" as const
 
 export type RegionCode = "ca" | "nj"
 export type PricingPolicyKey = "weekday_saver"
+export type RegionalDisplayModule = "quote_pricing_tiers" | "home_pricing_cards"
 
 export type PricingPolicyDefinition = {
   key: PricingPolicyKey
@@ -19,6 +20,7 @@ type RegionDefinition = {
   aliases: readonly string[]
   quoteRegionParam: string
   enabledPricingPolicies: readonly PricingPolicyKey[]
+  enabledDisplayModules: readonly RegionalDisplayModule[]
 }
 
 const REGION_DEFINITIONS: Record<RegionCode, RegionDefinition> = {
@@ -28,6 +30,7 @@ const REGION_DEFINITIONS: Record<RegionCode, RegionDefinition> = {
     aliases: ["ca", "california", "southern-california", "west-coast", "west_coast", "socal"],
     quoteRegionParam: "west-coast",
     enabledPricingPolicies: ["weekday_saver"],
+    enabledDisplayModules: ["quote_pricing_tiers", "home_pricing_cards"],
   },
   nj: {
     code: "nj",
@@ -35,6 +38,7 @@ const REGION_DEFINITIONS: Record<RegionCode, RegionDefinition> = {
     aliases: ["nj", "new-jersey", "east-coast", "east_coast", "east-coast-nj", "east_coast_nj"],
     quoteRegionParam: "east-coast-nj",
     enabledPricingPolicies: [],
+    enabledDisplayModules: ["quote_pricing_tiers", "home_pricing_cards"],
   },
 } as const
 
@@ -92,6 +96,40 @@ export function isPricingPolicyEnabledForRegion(policy: PricingPolicyKey, region
   return REGION_DEFINITIONS[region].enabledPricingPolicies.includes(policy)
 }
 
+export function isDisplayModuleEnabledForRegion(module: RegionalDisplayModule, region: RegionCode): boolean {
+  return REGION_DEFINITIONS[region].enabledDisplayModules.includes(module)
+}
+
 export function getRegionQuoteHref(region: RegionCode): string {
   return `/quoteA?region=${REGION_DEFINITIONS[region].quoteRegionParam}`
+}
+
+export type RegionalPolicySnapshot = {
+  region: RegionDefinition
+  quoteHref: string
+  pricingPolicies: Record<
+    PricingPolicyKey,
+    {
+      definition: PricingPolicyDefinition
+      enabled: boolean
+    }
+  >
+  displayModules: Record<RegionalDisplayModule, boolean>
+}
+
+export function getRegionalPolicySnapshot(region: RegionCode): RegionalPolicySnapshot {
+  return {
+    region: getRegionDefinition(region),
+    quoteHref: getRegionQuoteHref(region),
+    pricingPolicies: {
+      weekday_saver: {
+        definition: getPricingPolicyDefinition("weekday_saver"),
+        enabled: isPricingPolicyEnabledForRegion("weekday_saver", region),
+      },
+    },
+    displayModules: {
+      quote_pricing_tiers: isDisplayModuleEnabledForRegion("quote_pricing_tiers", region),
+      home_pricing_cards: isDisplayModuleEnabledForRegion("home_pricing_cards", region),
+    },
+  }
 }

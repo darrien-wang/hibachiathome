@@ -2914,3 +2914,30 @@
   - `bash harness/scripts/codex-verify.sh` was executed; lint/build completed but e2e gate failed with pre-existing broad regression set (`26 failed / 2 passed`) recorded under:
     - `harness/verification/2026-03-19-144834-codex-verify/verify.log`
     - `harness/verification/2026-03-19-145743-e2e-run/playwright.stdout.log`
+
+## 2026-03-25 (CRO-REGION-POLICY-014 complete: regional policy V2 shared snapshot)
+
+- Baseline re-check before implementation:
+  - Re-verified previously passing core flow via tracking harness:
+    - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-25-region-policy-v2-livechat-status`
+    - exit `0` and evidence updated.
+
+- Completed:
+  - Added shared regional resolver hook `lib/use-active-region.ts` to resolve region from query/cookie and persist cookie once.
+  - Extended regional config with V2 policy snapshot contract in `config/regional-policies.ts`:
+    - `RegionalDisplayModule`
+    - `getRegionalPolicySnapshot(region)`
+    - unified `region + quote href + pricing policy availability` payload.
+  - Migrated quote page (`app/quote/QuoteBuilderClient.tsx`) to consume V2 snapshot instead of per-page policy wiring.
+  - Migrated homepage (`app/page.tsx`) to consume the same V2 snapshot (instead of fixed CA default), so `?region=east-coast-nj` now drives NJ-specific pricing policy surfaces.
+
+- Verified:
+  - Homepage NJ policy state renders CA-only fallback card and region-specific messaging:
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/home-nj-ca-only-card.png`
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/home-nj-pricing-policy.png`
+  - Quote NJ policy state hides Weekday Saver tier and shows CA-only notice:
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/quote-nj-pricing-tier.png`
+    - `harness/verification/2026-03-25-region-policy-v2-livechat-status/quote-nj-weekday-hidden.png`
+
+- Feature status transition:
+  - Added `CRO-REGION-POLICY-014` with `passes: true` in `harness/feature_list.json`.
