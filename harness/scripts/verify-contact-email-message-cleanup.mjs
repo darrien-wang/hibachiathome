@@ -22,12 +22,14 @@ const contactRoute = read("app/api/contact/route.ts")
 
 const checks = [
   {
-    id: "frontend-sends-plain-message",
+    id: "frontend-sends-only-visible-fields",
     pass:
-      contactClient.includes("eventDate: formData.eventDate || undefined") &&
       contactClient.includes("message: formData.message") &&
+      !contactClient.includes("eventDate: formData.eventDate || undefined") &&
+      !contactClient.includes("cityOrZip: formData.cityOrZip || undefined") &&
+      !contactClient.includes("guestCount: formData.guestCount || undefined") &&
       !contactClient.includes("`Event Date: ${formData.eventDate || \"Not provided\"}`"),
-    detail: "Contact page sends the user's message directly and passes event details separately.",
+    detail: "Contact page sends only the visible user-entered fields and keeps the message plain.",
   },
   {
     id: "route-cleans-legacy-prefixed-lines",

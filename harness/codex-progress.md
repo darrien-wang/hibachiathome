@@ -3112,3 +3112,21 @@
   - `harness/verification/2026-03-26-contact-message-cleanup/contact-message-cleanup.log`
   - `harness/verification/2026-03-26-contact-message-cleanup/contact-message-cleanup.exit`
   - `harness/verification/2026-03-26-contact-message-cleanup/contact-email-message-cleanup-summary.json`
+
+### 2026-03-26 addendum (contact form payload alignment)
+
+- Follow-up refinement after validating the live `/contact` UI only exposes first name, last name, email, phone, and message:
+  - removed hidden `eventDate`, `guestCount`, and `cityOrZip` fields from the `app/contact/ContactPageClient.tsx` payload sent to `/api/contact`
+  - retained server-side compatibility in `app/api/contact/route.ts` so other callers can still pass structured event details when appropriate
+  - updated `harness/scripts/verify-contact-email-message-cleanup.mjs` to assert the contact page only sends visible user-entered fields
+
+- Verified:
+  - `node harness/scripts/verify-contact-email-message-cleanup.mjs harness/verification/2026-03-26-contact-form-payload-cleanup` ✅
+
+- Evidence:
+  - `harness/verification/2026-03-26-contact-form-payload-cleanup/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-26-contact-form-payload-cleanup/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-26-contact-form-payload-cleanup/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-26-contact-form-payload-cleanup/contact-message-cleanup.log`
+  - `harness/verification/2026-03-26-contact-form-payload-cleanup/contact-message-cleanup.exit`
+  - `harness/verification/2026-03-26-contact-form-payload-cleanup/contact-email-message-cleanup-summary.json`

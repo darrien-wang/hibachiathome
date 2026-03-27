@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-03-27T00:51:15.881Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "frontend-sends-only-visible-fields",
+      "pass": true,
+      "detail": "Contact page sends only the visible user-entered fields and keeps the message plain."
+    },
+    {
+      "id": "route-cleans-legacy-prefixed-lines",
+      "pass": true,
+      "detail": "Contact API strips legacy prefixed metadata lines out of the email message body."
+    },
+    {
+      "id": "route-renders-structured-details-separately",
+      "pass": true,
+      "detail": "Contact API renders event details in dedicated optional rows instead of prepending them to the message."
+    }
+  ]
+}

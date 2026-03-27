@@ -79,9 +79,6 @@ export default function ContactPageClient() {
           leadSource: "contact_page",
           leadChannel: "contact_form",
           leadType: submissionIntent,
-          eventDate: formData.eventDate || undefined,
-          cityOrZip: formData.cityOrZip || undefined,
-          guestCount: formData.guestCount || undefined,
           message: formData.message,
         }),
       })
