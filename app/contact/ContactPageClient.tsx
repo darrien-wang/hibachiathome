@@ -79,15 +79,10 @@ export default function ContactPageClient() {
           leadSource: "contact_page",
           leadChannel: "contact_form",
           leadType: submissionIntent,
+          eventDate: formData.eventDate || undefined,
           cityOrZip: formData.cityOrZip || undefined,
           guestCount: formData.guestCount || undefined,
-          message: [
-            `Event Date: ${formData.eventDate || "Not provided"}`,
-            `Guest Count: ${formData.guestCount || "Not provided"}`,
-            `City/ZIP: ${formData.cityOrZip || "Not provided"}`,
-            "",
-            formData.message,
-          ].join("\n"),
+          message: formData.message,
         }),
       })
 

@@ -3081,3 +3081,34 @@
 - Regressions / blockers:
   - Direct targeted ESLint invocation in this workspace still hangs and was timed out; source-contract + transpile verification were used as deterministic evidence for this session.
   - Full `codex-verify` timed out at 600s in the required E2E stage after lint/build completed; existing `CPL-006` and `CPL-007-01` failures remain to be stabilized separately from this notification change.
+
+## 2026-03-26 (CRO-CONTACT-EMAIL-001 complete: keep customer message clean in support email)
+
+- Baseline recheck before follow-up:
+  - `node harness/scripts/verify-tracking-page-view.mjs harness/verification/2026-03-26-contact-message-cleanup` ✅
+
+- Completed:
+  - Updated `app/contact/ContactPageClient.tsx` so the form submits the customer's real textarea content as `message` instead of prepending default `Event Date / Guest Count / City/ZIP` lines into the message body.
+  - Passed `eventDate` separately in the contact payload so support emails can still show event context without polluting the main message text.
+  - Updated `app/api/contact/route.ts` to:
+    - render event date / guest count / city/ZIP as separate optional fields in the support email
+    - omit blank "Not provided" rows from the support email
+    - strip legacy prefixed lines from `message` payloads for backward compatibility with older clients
+
+- Feature status transition:
+  - `CRO-CONTACT-EMAIL-001`: added with `passes: true`
+
+- Verified:
+  - Source contract verification via `node harness/scripts/verify-contact-email-message-cleanup.mjs harness/verification/2026-03-26-contact-message-cleanup` ✅
+  - Audit confirms:
+    - contact page now sends plain user message text ✅
+    - API route strips legacy prefixed metadata from message bodies ✅
+    - support email template renders optional event detail rows separately ✅
+
+- Evidence:
+  - `harness/verification/2026-03-26-contact-message-cleanup/reverify-trk-001-trk-002.log`
+  - `harness/verification/2026-03-26-contact-message-cleanup/reverify-trk-001-trk-002.exit`
+  - `harness/verification/2026-03-26-contact-message-cleanup/trk-001-trk-002-tracking-lib-evidence.json`
+  - `harness/verification/2026-03-26-contact-message-cleanup/contact-message-cleanup.log`
+  - `harness/verification/2026-03-26-contact-message-cleanup/contact-message-cleanup.exit`
+  - `harness/verification/2026-03-26-contact-message-cleanup/contact-email-message-cleanup-summary.json`

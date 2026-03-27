@@ -870,6 +870,19 @@
     "passes": true
   },
   {
+    "id": "CRO-CONTACT-EMAIL-001",
+    "priority": "P1",
+    "category": "functional",
+    "description": "Contact form support emails keep the customer's real message clean while showing event details as separate fields.",
+    "steps": [
+      "Submit the contact form with a short message and optional event fields populated separately.",
+      "Verify the support email message body contains only the customer's actual message text.",
+      "Verify event date, guest count, and city/ZIP render as separate optional rows when provided.",
+      "Verify legacy prefixed payload lines are stripped from the displayed message body for backward compatibility."
+    ],
+    "passes": true
+  },
+  {
     "id": "CRO-LEAD-CLEANUP-001",
     "priority": "P1",
     "category": "functional",

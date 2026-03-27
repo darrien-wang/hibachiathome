@@ -19,6 +19,60 @@ function resolvePathFromReferer(value: string | null): string | undefined {
   }
 }
 
+function normalizeOptionalDetail(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.toLowerCase() === "not provided") return undefined
+  return trimmed
+}
+
+function extractContactDetailsFromMessage(message: string | undefined) {
+  if (!message) {
+    return {
+      cleanedMessage: message,
+      eventDate: undefined,
+      guestCount: undefined,
+      cityOrZip: undefined,
+    }
+  }
+
+  const lines = message.split(/\r?\n/)
+  let eventDate: string | undefined
+  let guestCount: string | undefined
+  let cityOrZip: string | undefined
+  const cleanedLines: string[] = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith("Event Date:")) {
+      eventDate = normalizeOptionalDetail(trimmed.slice("Event Date:".length))
+      continue
+    }
+
+    if (trimmed.startsWith("Guest Count:")) {
+      guestCount = normalizeOptionalDetail(trimmed.slice("Guest Count:".length))
+      continue
+    }
+
+    if (trimmed.startsWith("City/ZIP:")) {
+      cityOrZip = normalizeOptionalDetail(trimmed.slice("City/ZIP:".length))
+      continue
+    }
+
+    cleanedLines.push(line)
+  }
+
+  const cleanedMessage = cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim()
+
+  return {
+    cleanedMessage,
+    eventDate,
+    guestCount,
+    cityOrZip,
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // Parse the request body
@@ -27,7 +81,19 @@ export async function POST(request: Request) {
     const email = asString(body.email)
     const phone = asString(body.phone)
     const reason = asString(body.reason)
-    const message = asString(body.message)
+    const rawMessage = asString(body.message)
+    const extractedDetails = extractContactDetailsFromMessage(rawMessage)
+    const message = asString(extractedDetails.cleanedMessage)
+    const eventDate = asString(body.eventDate) ?? extractedDetails.eventDate
+    const guestCount =
+      (typeof body.guestCount === "number" || typeof body.guestCount === "string"
+        ? String(body.guestCount)
+        : undefined) ??
+      (typeof body.guest_count === "number" || typeof body.guest_count === "string"
+        ? String(body.guest_count)
+        : undefined) ??
+      extractedDetails.guestCount
+    const cityOrZip = asString(body.cityOrZip) ?? asString(body.city_or_zip) ?? extractedDetails.cityOrZip
 
     console.log("Received form submission:", { name, email, reason })
 
@@ -42,8 +108,11 @@ export async function POST(request: Request) {
       <h2>New Contact Form Submission</h2>
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+      ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
       <p><strong>Reason:</strong> ${reason || "Not specified"}</p>
+      ${eventDate ? `<p><strong>Event Date:</strong> ${eventDate}</p>` : ""}
+      ${guestCount ? `<p><strong>Guest Count:</strong> ${guestCount}</p>` : ""}
+      ${cityOrZip ? `<p><strong>City/ZIP:</strong> ${cityOrZip}</p>` : ""}
       <h3>Message:</h3>
       <p>${message.replace(/\n/g, "<br>")}</p>
     `
@@ -51,12 +120,17 @@ export async function POST(request: Request) {
       "New Contact Form Submission",
       `Name: ${name}`,
       `Email: ${email}`,
-      `Phone: ${phone || "Not provided"}`,
       `Reason: ${reason || "Not specified"}`,
+      phone ? `Phone: ${phone}` : null,
+      eventDate ? `Event Date: ${eventDate}` : null,
+      guestCount ? `Guest Count: ${guestCount}` : null,
+      cityOrZip ? `City/ZIP: ${cityOrZip}` : null,
       "",
       "Message:",
       message,
-    ].join("\n")
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join("\n")
 
     const supportNotification = await sendSupportNotificationEmail({
       subject: `Contact Form: ${reason || "General Inquiry"}`,
@@ -80,14 +154,8 @@ export async function POST(request: Request) {
           leadSource: asString(body.leadSource) ?? asString(body.lead_source),
           leadChannel: asString(body.leadChannel) ?? asString(body.lead_channel),
           leadType: asString(body.leadType) ?? asString(body.lead_type),
-          cityOrZip: asString(body.cityOrZip) ?? asString(body.city_or_zip),
-          guestCount:
-            (typeof body.guestCount === "number" || typeof body.guestCount === "string"
-              ? (body.guestCount as number | string)
-              : undefined) ??
-            (typeof body.guest_count === "number" || typeof body.guest_count === "string"
-              ? (body.guest_count as number | string)
-              : undefined),
+          cityOrZip,
+          guestCount,
           touchpointType: asString(body.touchpointType) ?? asString(body.touchpoint_type),
           touchpointSource: asString(body.touchpointSource) ?? asString(body.touchpoint_source),
           externalCallId: asString(body.externalCallId) ?? asString(body.external_call_id),
