@@ -9,23 +9,47 @@ function writeEvidence(filename: string, payload: unknown) {
   writeFileSync(resolve(EVIDENCE_DIR, filename), `${JSON.stringify(payload, null, 2)}\n`, "utf8")
 }
 
-test("CPL-009: quote deep link forwards CRM context into livechat widget setContext payload", async ({ page }) => {
-  await page.route("**/widget.js", async (route) => {
+test("CPL-009: quote deep link forwards CRM context into livechat message payload", async ({ page }) => {
+  let capturedRequest: Record<string, unknown> | null = null
+
+  await page.route("**/api/livechat/session", async (route) => {
     await route.fulfill({
       status: 200,
-      contentType: "application/javascript",
-      body: "",
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, session: null, messages: [] }),
     })
   })
 
-  await page.addInitScript(() => {
-    ;(window as Window & { __rhSetContexts?: Array<Record<string, string>> }).__rhSetContexts = []
-    ;(window as Window & { RealHibachiLiveChat?: { setContext?: (context: Record<string, string>) => void } }).RealHibachiLiveChat = {
-      setContext(context) {
-        const store = (window as Window & { __rhSetContexts?: Array<Record<string, string>> }).__rhSetContexts
-        store?.push(context)
-      },
-    }
+  await page.route("**/api/livechat/message", async (route) => {
+    capturedRequest = route.request().postDataJSON() as Record<string, unknown>
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        session: {
+          id: "session-cpl-009",
+          status: "waiting_admin",
+          assignedAdmin: null,
+          visitorName: "Test Visitor",
+          visitorEmail: "test@example.com",
+          visitorPhone: "6265550000",
+          latestMessagePreview: "Need help with my quote.",
+          unreadForVisitorCount: 0,
+          lastMessageAt: "2026-03-11T10:00:00.000Z",
+        },
+        messages: [
+          {
+            id: "msg-cpl-009",
+            senderRole: "visitor",
+            senderName: "Test Visitor",
+            body: "Need help with my quote.",
+            contentType: "text",
+            createdAt: "2026-03-11T10:00:00.000Z",
+          },
+        ],
+      }),
+    })
   })
 
   await page.goto(
@@ -33,42 +57,40 @@ test("CPL-009: quote deep link forwards CRM context into livechat widget setCont
     { waitUntil: "domcontentloaded" },
   )
 
-  await expect
-    .poll(async () => {
-      return await page.evaluate(() => {
-        const setContexts = (window as Window & { __rhSetContexts?: Array<Record<string, string>> }).__rhSetContexts ?? []
-        return setContexts.length
-      })
-    })
-    .toBe(1)
+  await page.getByRole("button", { name: /open support chat|chat with support/i }).click()
+  await page.getByLabel("Visitor name").fill("Test Visitor")
+  await page.getByLabel("Visitor email").fill("test@example.com")
+  await page.getByLabel("Visitor phone").fill("6265550000")
+  await page.getByLabel("Support message").fill("Need help with my quote.")
+  await page.getByRole("button", { name: /^send$/i }).click()
 
-  const setContextCallCount = await page.evaluate(() => {
-    const all = (window as Window & { __rhSetContexts?: Array<Record<string, string>> }).__rhSetContexts ?? []
-    return all.length
-  })
+  await expect.poll(() => capturedRequest).not.toBeNull()
 
-  const captured = await page.evaluate(() => {
-    const all = (window as Window & { __rhSetContexts?: Array<Record<string, string>> }).__rhSetContexts ?? []
-    return all[all.length - 1] ?? null
-  })
+  const contextMetadata =
+    capturedRequest?.contextMetadata && typeof capturedRequest.contextMetadata === "object"
+      ? (capturedRequest.contextMetadata as Record<string, string>)
+      : null
 
   const pass =
-    Boolean(captured) &&
-    captured?.path === "/quoteA" &&
-    captured?.intent === "quote" &&
-    captured?.page_group === "quote" &&
-    captured?.source === "realhibachi-marketing" &&
-    captured?.crm_conversation_id === "conv_001" &&
-    captured?.crm_channel === "sms" &&
-    captured?.crm_contact_id === "ct_001" &&
-    captured?.order_hint === "RH-20260311-1234"
+    Boolean(capturedRequest) &&
+    capturedRequest?.source === "marketing_page" &&
+    typeof capturedRequest?.initialPageUrl === "string" &&
+    capturedRequest.initialPageUrl.includes("/quoteA?") &&
+    Boolean(contextMetadata) &&
+    contextMetadata?.path === "/quoteA" &&
+    contextMetadata?.intent === "quote" &&
+    contextMetadata?.page_group === "quote" &&
+    contextMetadata?.source === "realhibachi-marketing" &&
+    contextMetadata?.crm_conversation_id === "conv_001" &&
+    contextMetadata?.crm_channel === "sms" &&
+    contextMetadata?.crm_contact_id === "ct_001" &&
+    contextMetadata?.order_hint === "RH-20260311-1234"
 
   const summary = {
     item: "CPL-009",
     date: "2026-03-11",
     pass,
-    setContextCallCount,
-    captured,
+    capturedRequest,
   }
 
   writeEvidence("cpl-009-livechat-crm-context.json", summary)

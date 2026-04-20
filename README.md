@@ -32,6 +32,22 @@ Notes:
 - Configure UI E2E via `test:e2e` script or `CODEX_E2E_CMD`.
 - `test:e2e` uses Playwright (`harness/scripts/run-e2e.sh`) and performs first-run Chromium/bootstrap setup automatically.
 
+### Livechat Roundtrip E2E
+
+Use this targeted regression when changing the customer chat widget, support inbox, or admin reply flow:
+
+```bash
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3520 \
+ADMIN_BASE_URL=http://127.0.0.1:3510 \
+pnpm test:e2e:livechat-roundtrip
+```
+
+Notes:
+- `PLAYWRIGHT_BASE_URL` should point to the marketing site with the widget enabled.
+- `ADMIN_BASE_URL` should point to the admin support app.
+- The spec logs into admin through `/api/admin/login`, creates a fresh visitor session, sends a real visitor message, opens the matching support session in admin, sends a real admin reply, and verifies the visitor receives it.
+- Admin credentials default to `admin` / `realhibachi@0326`, and can be overridden with `ADMIN_E2E_USERNAME` / `ADMIN_E2E_PASSWORD`.
+
 ## Local Cross-Project Stack (Recommended)
 
 Use one command to run the full local integration stack for manual E2E testing:

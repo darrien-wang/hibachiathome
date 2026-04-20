@@ -9,43 +9,38 @@ function writeEvidence(filename: string, payload: unknown) {
   writeFileSync(resolve(EVIDENCE_DIR, filename), `${JSON.stringify(payload, null, 2)}\n`, "utf8")
 }
 
-test("CPL-010: launcher shows Live Chat + human avatar and supports drag without accidental toggle", async ({ page }) => {
+test("CPL-010: launcher opens the embedded support panel and exposes expanded state", async ({ page }) => {
+  await page.route("**/api/livechat/session", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, session: null, messages: [] }),
+    })
+  })
+
   await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
 
   const launcher = page.locator("#rh-livechat-widget-root button[aria-expanded]").first()
   await expect(launcher).toBeVisible({ timeout: 20_000 })
-  await expect(launcher).toContainText("Live Chat")
-  await expect(launcher.locator("img[alt='Live chat agent']")).toBeVisible()
+  await expect(launcher).toContainText("Chat with support")
   await expect(launcher).toHaveAttribute("aria-expanded", "false")
+  await expect(page.locator("#rh-livechat-panel")).toHaveCount(0)
 
-  const transformBefore = await page.evaluate(() => {
-    const root = document.getElementById("rh-livechat-widget-root")
-    return root ? getComputedStyle(root).transform : null
-  })
+  await launcher.click()
+  await expect(launcher).toHaveAttribute("aria-expanded", "true")
+  await expect(page.locator("#rh-livechat-panel")).toBeVisible()
+  await expect(page.getByLabel("Visitor name")).toBeVisible()
+  await expect(page.getByLabel("Support message")).toBeVisible()
 
-  const box = await launcher.boundingBox()
-  expect(box).not.toBeNull()
-  if (!box) {
-    throw new Error("Missing launcher bounding box")
-  }
-
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(box.x + box.width / 2 - 140, box.y + box.height / 2 - 120, { steps: 12 })
-  await page.mouse.up()
-
-  const transformAfter = await page.evaluate(() => {
-    const root = document.getElementById("rh-livechat-widget-root")
-    return root ? getComputedStyle(root).transform : null
-  })
+  await page.getByRole("button", { name: "Close support chat" }).click()
+  await expect(launcher).toHaveAttribute("aria-expanded", "false")
+  await expect(page.locator("#rh-livechat-panel")).toHaveCount(0)
 
   const summary = {
     item: "CPL-010",
     date: "2026-03-11",
-    transformBefore,
-    transformAfter,
-    moved: transformBefore !== transformAfter,
     ariaExpanded: await launcher.getAttribute("aria-expanded"),
+    panelPresentAfterClose: await page.locator("#rh-livechat-panel").count(),
   }
 
   writeEvidence("cpl-010-livechat-launcher-ux.json", summary)
@@ -54,6 +49,6 @@ test("CPL-010: launcher shows Live Chat + human avatar and supports drag without
     fullPage: true,
   })
 
-  expect(summary.moved).toBeTruthy()
   expect(summary.ariaExpanded).toBe("false")
+  expect(summary.panelPresentAfterClose).toBe(0)
 })
