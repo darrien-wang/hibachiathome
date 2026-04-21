@@ -44,6 +44,7 @@ type LivechatSession = {
   visitorEmail: string | null
   visitorPhone: string | null
   latestMessagePreview: string | null
+  latestMessageSenderRole: "visitor" | "admin" | "system" | null
   unreadForVisitorCount: number
   lastMessageAt: string | null
 }
@@ -237,6 +238,11 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [documentVisible, setDocumentVisible] = useState(() =>
+    typeof document === "undefined" ? true : document.visibilityState === "visible",
+  )
+  const [replyOverlayKey, setReplyOverlayKey] = useState<string | null>(null)
+  const [dismissedReplyOverlayKey, setDismissedReplyOverlayKey] = useState<string | null>(null)
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -401,6 +407,23 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
       return
     }
 
+    const syncDocumentVisibility = () => {
+      setDocumentVisible(document.visibilityState === "visible")
+    }
+
+    syncDocumentVisibility()
+    document.addEventListener("visibilitychange", syncDocumentVisibility)
+
+    return () => {
+      document.removeEventListener("visibilitychange", syncDocumentVisibility)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return
+    }
+
     if (!initialTitleRef.current) {
       initialTitleRef.current = document.title
     }
@@ -532,24 +555,31 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
     previousSessionRef.current = session
 
     const unreadCount = open ? 0 : session.unreadForVisitorCount
+    const latestAdminReplyAt = session.latestMessageSenderRole === "admin" ? session.lastMessageAt : null
     const hasNewAdminReply = Boolean(
       !open &&
         session.latestMessageSenderRole === "admin" &&
         unreadCount > 0 &&
-        session.lastAdminMessageAt &&
-        session.lastAdminMessageAt !== previousSession?.lastAdminMessageAt,
+        latestAdminReplyAt &&
+        latestAdminReplyAt !== previousSession?.lastMessageAt,
     )
 
     if (!hasNewAdminReply) {
       return
     }
 
-    const alertKey = `${session.id}:${session.lastAdminMessageAt}`
+    const alertKey = `${session.id}:${latestAdminReplyAt}:${session.unreadForVisitorCount}`
     if (window.sessionStorage.getItem(LAST_ALERTED_ADMIN_REPLY_KEY) === alertKey) {
       return
     }
 
     window.sessionStorage.setItem(LAST_ALERTED_ADMIN_REPLY_KEY, alertKey)
+
+    if (document.visibilityState === "visible") {
+      setDismissedReplyOverlayKey(null)
+      setReplyOverlayKey(alertKey)
+      return
+    }
 
     if ("Notification" in window && document.visibilityState === "hidden" && Notification.permission === "granted") {
       const notification = new Notification("Real Hibachi support replied", {
@@ -565,6 +595,12 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
       }
     }
   }, [open, session, openWidget])
+
+  useEffect(() => {
+    if (open || !session || session.unreadForVisitorCount <= 0 || session.latestMessageSenderRole !== "admin") {
+      setReplyOverlayKey(null)
+    }
+  }, [open, session])
 
   useEffect(() => {
     if (!open || !sessionId || !session || session.unreadForVisitorCount <= 0) {
@@ -738,6 +774,16 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
     void handleSend(chip.text)
   }, [handleSend, mergedContext, sessionId, visitorName])
 
+  const showReplyOverlay = Boolean(
+    replyOverlayKey &&
+      replyOverlayKey !== dismissedReplyOverlayKey &&
+      !open &&
+      documentVisible &&
+      session &&
+      session.latestMessageSenderRole === "admin" &&
+      session.unreadForVisitorCount > 0,
+  )
+
   if (!hydrated) {
     return null
   }
@@ -745,8 +791,17 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
   return (
     <>
       <LiveChatPresenceIndicator
-        unreadCount={open ? 0 : session?.unreadForVisitorCount ?? 0}
-        onOpenChat={() => openWidget("unread_reply")}
+        unreadCount={showReplyOverlay ? session?.unreadForVisitorCount ?? 0 : 0}
+        previewText={session?.latestMessagePreview ?? null}
+        onOpenChat={() => {
+          setReplyOverlayKey(null)
+          openWidget("unread_reply")
+        }}
+        onDismiss={() => {
+          if (replyOverlayKey) {
+            setDismissedReplyOverlayKey(replyOverlayKey)
+          }
+        }}
       />
       {open ? (
         <div
@@ -890,7 +945,7 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
               />
               {error ? <p className="text-sm text-rose-600">{error}</p> : null}
               <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-                <span>{session?.assignedAdmin ? `Owner: ${session.assignedAdmin}` : "No admin assigned yet"}</span>
+                <span>{session?.assignedAdmin ? `Support: ${session.assignedAdmin}` : "No support agent yet"}</span>
                 <Button
                   type="button"
                   onClick={() => void handleSend()}
