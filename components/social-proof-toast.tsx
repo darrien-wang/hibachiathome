@@ -10,6 +10,7 @@ type BookingExample = {
 }
 
 const SESSION_DISMISS_KEY = "realhibachi_social_proof_toast_dismissed"
+const TOAST_VISIBLE_MS = 2000
 
 const RECENT_BOOKINGS: BookingExample[] = [
   { guestCount: 12, city: "Irvine", minutesAgo: 18 },
@@ -19,9 +20,9 @@ const RECENT_BOOKINGS: BookingExample[] = [
   { guestCount: 14, city: "Santa Monica", minutesAgo: 22 },
 ]
 
-function nextRotationDelayMs() {
-  const minSeconds = 20
-  const maxSeconds = 40
+function nextAppearanceDelayMs() {
+  const minSeconds = 10
+  const maxSeconds = 20
   const seconds = Math.floor(Math.random() * (maxSeconds - minSeconds + 1)) + minSeconds
   return seconds * 1000
 }
@@ -30,32 +31,41 @@ export function SocialProofToast() {
   const [dismissed, setDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [isReady, setIsReady] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
   const bookingCount = RECENT_BOOKINGS.length
 
   useEffect(() => {
     const value = window.sessionStorage.getItem(SESSION_DISMISS_KEY)
     setDismissed(value === "1")
+    setIsVisible(false)
     setIsReady(true)
   }, [])
 
   useEffect(() => {
-    if (!isReady || dismissed || bookingCount < 2) return
+    if (!isReady || dismissed || bookingCount === 0) return
 
-    let timer: ReturnType<typeof setTimeout> | undefined
+    let showTimer: ReturnType<typeof setTimeout> | undefined
+    let hideTimer: ReturnType<typeof setTimeout> | undefined
+
+    setIsVisible(false)
 
     const schedule = () => {
-      timer = window.setTimeout(() => {
-        setActiveIndex((current) => (current + 1) % bookingCount)
-        schedule()
-      }, nextRotationDelayMs())
+      showTimer = window.setTimeout(() => {
+        setIsVisible(true)
+
+        hideTimer = window.setTimeout(() => {
+          setIsVisible(false)
+          setActiveIndex((current) => (current + 1) % bookingCount)
+          schedule()
+        }, TOAST_VISIBLE_MS)
+      }, nextAppearanceDelayMs())
     }
 
     schedule()
 
     return () => {
-      if (timer) {
-        window.clearTimeout(timer)
-      }
+      if (showTimer) window.clearTimeout(showTimer)
+      if (hideTimer) window.clearTimeout(hideTimer)
     }
   }, [dismissed, isReady, bookingCount])
 
@@ -63,15 +73,16 @@ export function SocialProofToast() {
 
   const onDismiss = () => {
     window.sessionStorage.setItem(SESSION_DISMISS_KEY, "1")
+    setIsVisible(false)
     setDismissed(true)
   }
 
-  if (!isReady || dismissed) {
+  if (!isReady || dismissed || !isVisible) {
     return null
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-24 right-3 z-40 w-[min(22rem,calc(100vw-1.5rem))] md:bottom-6 md:right-6">
+    <div className="pointer-events-none fixed bottom-6 left-3 z-40 hidden w-[20rem] max-w-[calc(100vw-2rem)] md:block md:left-6">
       <div className="pointer-events-auto rounded-xl border border-orange-200 bg-white/95 p-4 shadow-xl backdrop-blur">
         <button
           type="button"
