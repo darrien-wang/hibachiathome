@@ -148,6 +148,10 @@ function compactStringRecord(input: Record<string, string | undefined>): Record<
 }
 
 function statusLabel(status: string | null | undefined) {
+  if (!status) {
+    return "Ready to chat"
+  }
+
   switch (status) {
     case "waiting_admin":
       return "Waiting for support"
@@ -174,6 +178,11 @@ function formatTime(value: string) {
 function emitChatEvent(name: string, detail: ChatEventDetail) {
   if (typeof window === "undefined") return
   window.dispatchEvent(new CustomEvent(name, { detail }))
+}
+
+function clearStoredLivechatSession() {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(STORAGE_KEY_SESSION)
 }
 
 function requestBrowserNotificationPermissionOnce() {
@@ -269,13 +278,30 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
     }
   }, [visitorEmail, visitorName, visitorPhone])
 
-  const ensureVisitorCookie = useCallback(async () => {
+  const ensureVisitorCookie = useCallback(async (restart = false, strict = false) => {
     try {
-      await fetch("/api/livechat/session", {
+      const response = await fetch("/api/livechat/session", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         cache: "no-store",
+        body: JSON.stringify(
+          restart
+            ? {
+                restart: true,
+              }
+            : {},
+        ),
       })
+
+      if (strict && !response.ok) {
+        throw new Error("Failed to initialize a new livechat visitor session.")
+      }
     } catch {
+      if (strict) {
+        throw new Error("Failed to initialize a new livechat visitor session.")
+      }
       // Ignore cookie bootstrap failures. Message send will retry.
     }
   }, [])
@@ -658,6 +684,38 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
     }
   }, [applyPayload, mergedContext, messageDraft, sessionId, visitorEmail, visitorName, visitorPhone])
 
+  const handleRestartConversation = useCallback(async () => {
+    setLoading(true)
+    setRefreshing(false)
+    setError(null)
+
+    try {
+      await ensureVisitorCookie(true, true)
+
+      clearStoredLivechatSession()
+      setSessionId(null)
+      setSession(null)
+      setMessages([])
+      setMessageDraft("")
+      lastReadAckRef.current = null
+      previousSessionRef.current = null
+      sessionInitializedRef.current = false
+
+      const detail: ChatEventDetail = {
+        reason: "visitor_restart",
+      }
+      emitChatEvent("rh_chat_restarted", detail)
+      trackEvent("chat_restarted", {
+        ...getTrackingBase(mergedContext),
+        chat_reason: "visitor_restart",
+      })
+    } catch (restartError) {
+      setError(restartError instanceof Error ? restartError.message : "Failed to start a new conversation.")
+    } finally {
+      setLoading(false)
+    }
+  }, [ensureVisitorCookie, mergedContext])
+
   const handleQuickQuestion = useCallback(async (chip: QuickQuestion) => {
     const detail: ChatEventDetail = {
       cta: chip.id,
@@ -749,15 +807,28 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
               ) : null}
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>{statusLabel(session?.status)}</span>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-slate-500 transition hover:text-slate-900"
-                  onClick={() => void loadSession(sessionId, true)}
-                  disabled={refreshing || loading}
-                >
-                  <RefreshCw className={cn("h-3.5 w-3.5", refreshing ? "animate-spin" : "")} />
-                  Refresh
-                </button>
+                <div className="flex items-center gap-3">
+                  {session ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-slate-500 transition hover:text-slate-900"
+                      onClick={() => void handleRestartConversation()}
+                      disabled={loading}
+                    >
+                      <RefreshCw className={cn("h-3.5 w-3.5", loading ? "animate-spin" : "")} />
+                      Start new chat
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-slate-500 transition hover:text-slate-900"
+                    onClick={() => void loadSession(sessionId, true)}
+                    disabled={refreshing || loading}
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", refreshing ? "animate-spin" : "")} />
+                    Refresh
+                  </button>
+                </div>
               </div>
             </div>
           </div>

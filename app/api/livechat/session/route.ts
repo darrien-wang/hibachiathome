@@ -60,13 +60,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const payload = await request.json().catch(() => null)
+  const restartRequested = payload?.restart === true
+
   const existingCookie = request.headers
     .get("cookie")
     ?.split(";")
     .map((part) => part.trim())
     .find((part) => part.startsWith(`${LIVECHAT_VISITOR_COOKIE_NAME}=`))
     ?.slice(LIVECHAT_VISITOR_COOKIE_NAME.length + 1)
-  const visitorKey = existingCookie || createLivechatVisitorKey()
+  const visitorKey = restartRequested ? createLivechatVisitorKey() : existingCookie || createLivechatVisitorKey()
 
   const response = NextResponse.json({ ok: true, visitorKey })
   response.cookies.set(LIVECHAT_VISITOR_COOKIE_NAME, visitorKey, buildCookieOptions(request))
