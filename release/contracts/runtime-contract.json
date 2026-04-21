@@ -1,0 +1,33 @@
+{
+  "verifiedAt": "2026-04-20",
+  "contractVersion": "2026-04-20.runtime.v1",
+  "readyPath": "/_release/ready",
+  "requiredTargets": [
+    "marketing/public-site",
+    "marketing/isolated-marketing",
+    "ops/ops",
+    "chef/chef"
+  ],
+  "sharedComparisons": [
+    {
+      "service": "shared-supabase",
+      "targets": [
+        "marketing/public-site",
+        "marketing/isolated-marketing",
+        "ops/ops",
+        "chef/chef"
+      ],
+      "field": "dependencies.sharedSupabase.projectRef"
+    },
+    {
+      "service": "shared-supabase-host",
+      "targets": [
+        "marketing/public-site",
+        "marketing/isolated-marketing",
+        "ops/ops",
+        "chef/chef"
+      ],
+      "field": "dependencies.sharedSupabase.urlHost"
+    }
+  ]
+}

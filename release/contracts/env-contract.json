@@ -1,0 +1,79 @@
+{
+  "verifiedAt": "2026-04-20",
+  "localRequiredKeys": {
+    "marketing": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "ops": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "chef": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "CHEF_SESSION_SECRET"
+    ]
+  },
+  "localSharedGroups": [
+    {
+      "id": "shared-supabase-core",
+      "targets": [
+        "marketing",
+        "ops",
+        "chef"
+      ],
+      "keys": [
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL"
+      ]
+    },
+    {
+      "id": "shared-supabase-anon",
+      "targets": [
+        "marketing",
+        "ops"
+      ],
+      "keys": [
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ]
+    }
+  ],
+  "vercelRequiredKeys": {
+    "marketing/public-site": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "INVOICE_SELF_SERVICE_BASE_URL",
+      "NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL"
+    ],
+    "marketing/isolated-marketing": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "ops/ops": [
+      "ADMIN_USERNAME",
+      "ADMIN_PASSWORD",
+      "ADMIN_SESSION_SECRET",
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "chef/chef": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "CHEF_SESSION_SECRET"
+    ]
+  }
+}

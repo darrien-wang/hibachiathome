@@ -1,0 +1,119 @@
+{
+  "verifiedAt": "2026-04-20",
+  "vercelTeam": "darrienwangs-projects",
+  "codebases": [
+    {
+      "id": "marketing",
+      "label": "Marketing codebase",
+      "localRepoPath": ".",
+      "gitRepo": "darrien-wang/hibachiathome",
+      "localEnvFile": ".env.local",
+      "deployTargets": [
+        {
+          "id": "public-site",
+          "vercelProject": "realhibachi",
+          "purpose": "Actual public production site for realhibachi.com",
+          "productionAliases": [
+            "realhibachi.com",
+            "www.realhibachi.com",
+            "realhibachi-darrienwangs-projects.vercel.app",
+            "realhibachi-git-main-darrienwangs-projects.vercel.app"
+          ],
+          "previewAliases": [
+            "pre.realhibachi.com",
+            "realhibachi-git-pre-darrienwangs-projects.vercel.app"
+          ]
+        },
+        {
+          "id": "isolated-marketing",
+          "vercelProject": "realhibachi-marketing",
+          "purpose": "Secondary isolated deployment of the same repo, not the public custom-domain target",
+          "productionAliases": [
+            "realhibachi-marketing.vercel.app",
+            "realhibachi-marketing-darrienwangs-projects.vercel.app",
+            "realhibachi-marketing-git-main-darrienwangs-projects.vercel.app"
+          ],
+          "previewAliases": [
+            "realhibachi-marketing-git-pre-darrienwangs-projects.vercel.app"
+          ]
+        }
+      ],
+      "sharedDataDependencies": [
+        "shared-supabase",
+        "invoice-self-service"
+      ],
+      "notes": [
+        "The public site is served by Vercel project realhibachi, not by project realhibachi-marketing.",
+        "Current livechat path is in-app /api/livechat/*, not live.realhibachi.com."
+      ]
+    },
+    {
+      "id": "ops",
+      "label": "Ops codebase",
+      "localRepoPath": "../realhibachi-order-management-system",
+      "gitRepo": "darrien-wang/realhibachi-order-management-system",
+      "localEnvFile": ".env.local",
+      "deployTargets": [
+        {
+          "id": "ops",
+          "vercelProject": "v0-realhibachi-order-management-system",
+          "purpose": "Support/admin production site",
+          "productionAliases": [
+            "ops.realhibachi.com",
+            "v0-realhibachi-order-management-sys.vercel.app",
+            "v0-realhibachi-order-management-system-darrienwangs-projects.vercel.app",
+            "v0-realhibachi-order-managemen-git-3a5846-darrienwangs-projects.vercel.app"
+          ],
+          "previewAliases": []
+        }
+      ],
+      "sharedDataDependencies": [
+        "shared-supabase"
+      ]
+    },
+    {
+      "id": "chef",
+      "label": "Chef codebase",
+      "localRepoPath": "../v0-chef-app-design",
+      "gitRepo": "darrien-wang/v0-chef-app-design",
+      "localEnvFile": ".env.local",
+      "deployTargets": [
+        {
+          "id": "chef",
+          "vercelProject": "v0-chef-app-design",
+          "purpose": "Chef production site",
+          "productionAliases": [
+            "chefs.realhibachi.com",
+            "v0-chef-app-design.vercel.app",
+            "v0-chef-app-design-darrienwangs-projects.vercel.app",
+            "v0-chef-app-design-git-main-darrienwangs-projects.vercel.app"
+          ],
+          "previewAliases": []
+        }
+      ],
+      "sharedDataDependencies": [
+        "shared-supabase"
+      ],
+      "notes": [
+        "Current custom domain is chefs.realhibachi.com.",
+        "chef.realhibachi.com is not currently bound."
+      ]
+    }
+  ],
+  "sharedServices": [
+    {
+      "id": "shared-supabase",
+      "label": "Shared Supabase production project",
+      "sourceCodebase": "marketing",
+      "sourceEnvKey": "SUPABASE_URL"
+    },
+    {
+      "id": "invoice-self-service",
+      "label": "Invoice self-service site",
+      "vercelProject": "v0-real-hibachi-invoice-generator",
+      "productionAliases": [
+        "v0-real-hibachi-invoice-generator.vercel.app"
+      ]
+    }
+  ]
+}

@@ -18,7 +18,14 @@
     "start": "next start",
     "codex:acceptance": "bash ./harness/scripts/codex-acceptance.sh",
     "test:e2e": "bash ./harness/scripts/run-e2e.sh",
-    "test:e2e:livechat-roundtrip": "bash ./harness/scripts/run-e2e.sh e2e/livechat-admin-roundtrip.spec.ts"
+    "test:e2e:livechat-roundtrip": "bash ./harness/scripts/run-e2e.sh e2e/livechat-admin-roundtrip.spec.ts",
+    "release:check:local-env": "node ./scripts/release/check-local-shared-env.mjs",
+    "release:check:topology": "node ./scripts/release/check-topology.mjs",
+    "release:check:vercel-env": "node ./scripts/release/check-vercel-env.mjs",
+    "release:check:schema": "node ./scripts/release/check-supabase-schema.mjs",
+    "release:check:runtime": "node ./scripts/release/check-runtime-ready.mjs",
+    "release:check": "pnpm release:check:local-env && pnpm release:check:topology && pnpm release:check:vercel-env && pnpm release:check:schema",
+    "release:gate": "pnpm release:check && pnpm release:check:runtime"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
