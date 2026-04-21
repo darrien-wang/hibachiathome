@@ -84,6 +84,9 @@ const STORAGE_KEY_NAME = "rh_livechat_visitor_name"
 const STORAGE_KEY_EMAIL = "rh_livechat_visitor_email"
 const STORAGE_KEY_PHONE = "rh_livechat_visitor_phone"
 const FALLBACK_REFRESH_MS = 30_000
+const TITLE_FLASH_MS = 1200
+const NOTIFICATION_REQUESTED_KEY = "rh_livechat_notifications_requested"
+const LAST_ALERTED_ADMIN_REPLY_KEY = "rh_livechat_last_alerted_admin_reply"
 const COMMON_QUESTION_CHIPS: QuickQuestion[] = [
   {
     id: "faq-estimate",
@@ -173,6 +176,31 @@ function emitChatEvent(name: string, detail: ChatEventDetail) {
   window.dispatchEvent(new CustomEvent(name, { detail }))
 }
 
+function requestBrowserNotificationPermissionOnce() {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return () => undefined
+  }
+
+  if (window.sessionStorage.getItem(NOTIFICATION_REQUESTED_KEY) === "1") {
+    return () => undefined
+  }
+
+  const requestPermission = () => {
+    window.sessionStorage.setItem(NOTIFICATION_REQUESTED_KEY, "1")
+    if (Notification.permission === "default") {
+      void Notification.requestPermission().catch(() => undefined)
+    }
+  }
+
+  window.addEventListener("pointerdown", requestPermission, { once: true })
+  window.addEventListener("keydown", requestPermission, { once: true })
+
+  return () => {
+    window.removeEventListener("pointerdown", requestPermission)
+    window.removeEventListener("keydown", requestPermission)
+  }
+}
+
 function getTrackingBase(context: Record<string, string>) {
   return {
     chat_path: context.path ?? window.location.pathname,
@@ -205,6 +233,9 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const promptTrackedRef = useRef(false)
   const lastReadAckRef = useRef<string | null>(null)
+  const previousSessionRef = useRef<LivechatSession | null>(null)
+  const sessionInitializedRef = useRef(false)
+  const initialTitleRef = useRef<string | null>(null)
 
   const mergedContext = useMemo(() => ({
     ...compactStringRecord(context),
@@ -337,6 +368,43 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
     void ensureVisitorCookie()
   }, [ensureVisitorCookie])
 
+  useEffect(() => requestBrowserNotificationPermissionOnce(), [])
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return
+    }
+
+    if (!initialTitleRef.current) {
+      initialTitleRef.current = document.title
+    }
+
+    const originalTitle = initialTitleRef.current
+    if (!originalTitle) {
+      return
+    }
+
+    const unreadCount = open ? 0 : session?.unreadForVisitorCount ?? 0
+    if (unreadCount <= 0) {
+      document.title = originalTitle
+      return
+    }
+
+    const alertTitle = unreadCount === 1 ? "(1) Support replied - RealHibachi" : `(${unreadCount}) Support replied - RealHibachi`
+    let showAlert = false
+    document.title = alertTitle
+
+    const timer = window.setInterval(() => {
+      showAlert = !showAlert
+      document.title = showAlert ? alertTitle : originalTitle
+    }, TITLE_FLASH_MS)
+
+    return () => {
+      window.clearInterval(timer)
+      document.title = originalTitle
+    }
+  }, [open, session])
+
   useEffect(() => {
     window.RealHibachiLiveChat = {
       open: (reason?: string) => openWidget(reason ?? "manual"),
@@ -421,6 +489,56 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
       }
     }
   }, [hydrated, loadSession, sessionId])
+
+  useEffect(() => {
+    if (!session) {
+      previousSessionRef.current = session
+      return
+    }
+
+    if (!sessionInitializedRef.current) {
+      sessionInitializedRef.current = true
+      previousSessionRef.current = session
+      return
+    }
+
+    const previousSession = previousSessionRef.current
+    previousSessionRef.current = session
+
+    const unreadCount = open ? 0 : session.unreadForVisitorCount
+    const hasNewAdminReply = Boolean(
+      !open &&
+        session.latestMessageSenderRole === "admin" &&
+        unreadCount > 0 &&
+        session.lastAdminMessageAt &&
+        session.lastAdminMessageAt !== previousSession?.lastAdminMessageAt,
+    )
+
+    if (!hasNewAdminReply) {
+      return
+    }
+
+    const alertKey = `${session.id}:${session.lastAdminMessageAt}`
+    if (window.sessionStorage.getItem(LAST_ALERTED_ADMIN_REPLY_KEY) === alertKey) {
+      return
+    }
+
+    window.sessionStorage.setItem(LAST_ALERTED_ADMIN_REPLY_KEY, alertKey)
+
+    if ("Notification" in window && document.visibilityState === "hidden" && Notification.permission === "granted") {
+      const notification = new Notification("Real Hibachi support replied", {
+        body: session.latestMessagePreview || "Open the support chat to review the reply.",
+        tag: `marketing-livechat-${session.id}`,
+        renotify: true,
+      })
+
+      notification.onclick = () => {
+        window.focus()
+        openWidget("unread_reply")
+        notification.close()
+      }
+    }
+  }, [open, session, openWidget])
 
   useEffect(() => {
     if (!open || !sessionId || !session || session.unreadForVisitorCount <= 0) {
@@ -724,10 +842,15 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
           aria-controls="rh-livechat-panel"
           aria-expanded={open}
           onClick={() => (open ? setOpen(false) : openWidget("manual"))}
-          className="pointer-events-auto h-14 rounded-full bg-slate-950 px-5 text-white shadow-xl hover:bg-slate-800"
+          className="pointer-events-auto relative h-14 rounded-full bg-slate-950 px-5 text-white shadow-xl hover:bg-slate-800"
         >
           <MessageCircle className="h-5 w-5" />
           Chat with support
+          {!open && (session?.unreadForVisitorCount ?? 0) > 0 ? (
+            <span className="absolute -right-1.5 -top-1.5 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-emerald-600 px-1.5 text-[11px] font-semibold leading-none text-white shadow-lg">
+              {Math.min(session?.unreadForVisitorCount ?? 0, 9)}
+            </span>
+          ) : null}
         </Button>
       </div>
     </>
