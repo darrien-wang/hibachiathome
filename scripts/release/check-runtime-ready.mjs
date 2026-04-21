@@ -15,11 +15,9 @@ function getByPath(value, path) {
 }
 
 function pickPrimaryAlias(target) {
-  return (
-    target.productionAliases.find((alias) => !alias.endsWith(".vercel.app")) ||
-    target.productionAliases[0] ||
-    null
-  )
+  const customAliases = target.productionAliases.filter((alias) => !alias.endsWith(".vercel.app"))
+  const preferredCustomAlias = customAliases.find((alias) => alias.startsWith("www."))
+  return preferredCustomAlias || customAliases[0] || target.productionAliases[0] || null
 }
 
 async function fetchRuntimeReady(url) {
@@ -57,6 +55,7 @@ async function fetchRuntimeReady(url) {
     ok: response.ok,
     status: response.status,
     payload,
+    finalUrl: response.url,
     error: null,
   }
 }
@@ -80,6 +79,7 @@ for (const targetRef of runtimeContract.requiredTargets) {
 
   responses.set(targetRef, {
     url,
+    finalUrl: result.finalUrl,
     status: result.status,
     payload: result.payload,
   })
@@ -101,9 +101,19 @@ for (const targetRef of runtimeContract.requiredTargets) {
     continue
   }
 
-  if (result.payload.deployment?.requestedHost !== alias) {
+  const finalHost = result.finalUrl ? new URL(result.finalUrl).host : alias
+  const allowedHosts = new Set(target.productionAliases)
+
+  if (!allowedHosts.has(result.payload.deployment?.requestedHost)) {
     failures.push(
-      `${targetRef}: payload host mismatch (expected ${alias}, got ${result.payload.deployment?.requestedHost || "missing"})`,
+      `${targetRef}: payload host mismatch (expected one of ${target.productionAliases.join(", ")}, got ${result.payload.deployment?.requestedHost || "missing"})`,
+    )
+    continue
+  }
+
+  if (!allowedHosts.has(finalHost)) {
+    failures.push(
+      `${targetRef}: final runtime URL resolved to unexpected host ${finalHost}`,
     )
     continue
   }
