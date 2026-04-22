@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import {
   LIVECHAT_VISITOR_COOKIE_NAME,
+  ensureLivechatFirstReplyTimeoutMessage,
   findAuthorizedSession,
   findLatestVisitorSession,
 } from "@/lib/livechat-public"
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
     return new Response("Not found", { status: 404 })
   }
 
+  const { remainingMs } = await ensureLivechatFirstReplyTimeoutMessage(supabase, resolvedSession)
   const sessionId = resolvedSession.id
   const channelName = `visitor-livechat-${sessionId}-${randomUUID()}`
   let cleanup = () => {}
@@ -53,6 +55,12 @@ export async function GET(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       let isClosed = false
+      const firstReplyTimeoutTimer =
+        remainingMs && remainingMs > 0
+          ? setTimeout(() => {
+              void ensureLivechatFirstReplyTimeoutMessage(supabase, resolvedSession)
+            }, remainingMs + 250)
+          : null
 
       const send = (payload: Record<string, unknown>) => {
         if (isClosed) {
@@ -70,6 +78,7 @@ export async function GET(request: Request) {
         }
 
         isClosed = true
+        if (firstReplyTimeoutTimer) clearTimeout(firstReplyTimeoutTimer)
         clearInterval(heartbeatTimer)
         void supabase.removeChannel(channel)
         controller.close()

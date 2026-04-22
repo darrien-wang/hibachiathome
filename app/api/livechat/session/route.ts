@@ -4,7 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import {
   LIVECHAT_VISITOR_COOKIE_NAME,
   createLivechatVisitorKey,
+  ensureLivechatFirstReplyTimeoutMessage,
   fetchSessionPayload,
+  findAuthorizedSession,
   findLatestVisitorSession,
 } from "@/lib/livechat-public"
 
@@ -40,15 +42,17 @@ export async function GET(request: Request) {
 
   try {
     const resolvedSession = sessionId
-      ? await fetchSessionPayload(supabase, sessionId, visitorKey)
-      : await (async () => {
-          const latest = await findLatestVisitorSession(supabase, visitorKey)
-          if (!latest) return null
-          return fetchSessionPayload(supabase, latest.id, visitorKey)
-        })()
+      ? await findAuthorizedSession(supabase, sessionId, visitorKey)
+      : await findLatestVisitorSession(supabase, visitorKey)
+
+    if (resolvedSession) {
+      await ensureLivechatFirstReplyTimeoutMessage(supabase, resolvedSession)
+    }
+
+    const payload = resolvedSession ? await fetchSessionPayload(supabase, resolvedSession.id, visitorKey) : null
 
     return NextResponse.json(
-      { ok: true, session: resolvedSession?.session ?? null, messages: resolvedSession?.messages ?? [] },
+      { ok: true, session: payload?.session ?? null, messages: payload?.messages ?? [] },
       { headers: { "Cache-Control": "no-store" } },
     )
   } catch (error) {

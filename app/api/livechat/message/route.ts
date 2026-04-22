@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import {
   LIVECHAT_VISITOR_COOKIE_NAME,
   createLivechatVisitorKey,
+  ensureLivechatFirstReplyTimeoutMessage,
   fetchSessionPayload,
   findAuthorizedSession,
   findLatestVisitorSession,
@@ -133,6 +134,8 @@ export async function POST(request: Request) {
     if (messageError) {
       throw new Error(`Failed to send livechat message: ${messageError.message}`)
     }
+
+    await ensureLivechatFirstReplyTimeoutMessage(supabase, session)
 
     const result = await fetchSessionPayload(supabase, session.id, visitorKey)
     if (!result) {
