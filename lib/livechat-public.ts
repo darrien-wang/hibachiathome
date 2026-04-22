@@ -5,9 +5,12 @@ export const LIVECHAT_VISITOR_COOKIE_NAME = "rh_livechat_visitor"
 export const LIVECHAT_FIRST_REPLY_TIMEOUT_MS = 5 * 60 * 1000
 export const LIVECHAT_FIRST_REPLY_TIMEOUT_MESSAGE =
   "We're a bit busy right now. Please call 2137707788 for faster assistance."
+export const LIVECHAT_VISITOR_ACKNOWLEDGEMENT_MESSAGE =
+  "Thanks for your message. A support agent will be with you shortly."
 
 const AUTO_BUSY_REPLY_SENDER_ID = "auto_busy_callback"
 const AUTO_BUSY_REPLY_SENDER_NAME = "Real Hibachi Support"
+const AUTO_VISITOR_ACKNOWLEDGEMENT_ID = "auto_visitor_acknowledgement"
 
 const SESSION_SELECT = [
   "id",
@@ -115,8 +118,8 @@ export function mapMessage(row: LivechatMessageRow) {
   }
 }
 
-function createDeterministicAutoReplyId(sessionId: string) {
-  const hash = createHash("sha256").update(`livechat:first-reply-timeout:${sessionId}`).digest("hex").slice(0, 32).split("")
+function createDeterministicChatMessageId(sessionId: string, purpose: string) {
+  const hash = createHash("sha256").update(`livechat:${purpose}:${sessionId}`).digest("hex").slice(0, 32).split("")
   hash[12] = "4"
   hash[16] = "8"
   const normalized = hash.join("")
@@ -152,6 +155,52 @@ async function hasAdminReply(supabase: SupabaseClient, sessionId: string) {
   return Boolean(data)
 }
 
+async function hasNonVisitorReply(supabase: SupabaseClient, sessionId: string) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("id")
+    .eq("session_id", sessionId)
+    .neq("sender_role", "visitor")
+    .limit(1)
+    .maybeSingle<{ id: string }>()
+
+  if (error) {
+    throw new Error(`Failed to inspect support chat replies: ${error.message}`)
+  }
+
+  return Boolean(data)
+}
+
+export async function ensureLivechatVisitorAcknowledgementMessage(
+  supabase: SupabaseClient,
+  sessionId: string,
+): Promise<{ sent: boolean }> {
+  if (await hasNonVisitorReply(supabase, sessionId)) {
+    return { sent: false }
+  }
+
+  const { error } = await supabase.from("chat_messages").insert({
+    id: createDeterministicChatMessageId(sessionId, "visitor-acknowledgement"),
+    session_id: sessionId,
+    sender_role: "system",
+    sender_id: AUTO_VISITOR_ACKNOWLEDGEMENT_ID,
+    sender_name: AUTO_BUSY_REPLY_SENDER_NAME,
+    body: LIVECHAT_VISITOR_ACKNOWLEDGEMENT_MESSAGE,
+    content_type: "text",
+    delivery_status: "sent",
+    metadata: {
+      auto_visitor_acknowledgement: true,
+      trigger: "first_visitor_message",
+    },
+  })
+
+  if (error && error.code !== "23505") {
+    throw new Error(`Failed to send visitor acknowledgement message: ${error.message}`)
+  }
+
+  return { sent: !error }
+}
+
 export async function ensureLivechatFirstReplyTimeoutMessage(
   supabase: SupabaseClient,
   session: LivechatTimeoutTarget,
@@ -170,7 +219,7 @@ export async function ensureLivechatFirstReplyTimeoutMessage(
   }
 
   const { error } = await supabase.from("chat_messages").insert({
-    id: createDeterministicAutoReplyId(session.id),
+    id: createDeterministicChatMessageId(session.id, "first-reply-timeout"),
     session_id: session.id,
     sender_role: "admin",
     sender_id: AUTO_BUSY_REPLY_SENDER_ID,
