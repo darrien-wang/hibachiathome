@@ -263,6 +263,9 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
     ...compactStringRecord(context),
     ...contextOverride,
   }), [context, contextOverride])
+  const hasVisitorMessage = useMemo(() => messages.some((message) => message.senderRole === "visitor"), [messages])
+  const hasAdminMessage = useMemo(() => messages.some((message) => message.senderRole === "admin"), [messages])
+  const showSupportArrivalIndicator = Boolean(session && session.status === "waiting_admin" && hasVisitorMessage && !hasAdminMessage)
   const isProfileComplete = useMemo(
     () => Boolean(visitorName.trim() && visitorEmail.trim() && visitorPhone.trim()),
     [visitorEmail, visitorName, visitorPhone],
@@ -1010,6 +1013,27 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
                     </div>
                   )
                 })}
+                {showSupportArrivalIndicator ? (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-[22px] rounded-bl-md border border-amber-200/80 bg-gradient-to-r from-white to-amber-50 px-3.5 py-3 text-slate-700 shadow-sm">
+                      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700/80">
+                        <span className="relative inline-flex h-2.5 w-2.5">
+                          <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
+                          <span className="relative rounded-full bg-emerald-500 h-2.5 w-2.5" />
+                        </span>
+                        <span>Support is on the way</span>
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-bounce [animation-delay:-0.25s]" />
+                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.12s]" />
+                          <span className="h-2 w-2 rounded-full bg-amber-600 animate-bounce" />
+                        </div>
+                        <p className="text-sm leading-5 text-slate-600">A team member is heading into this chat now.</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 <div ref={messagesEndRef} />
               </div>
             )}
