@@ -974,12 +974,12 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
                     <p className="leading-6">{QUICK_REPLY_WELCOME_MESSAGE}</p>
                   </div>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col items-start gap-2">
                   {QUICK_REPLY_OPTIONS.map((chip) => (
                     <button
                       key={chip.id}
                       type="button"
-                      className="rounded-2xl border border-blue-200 bg-gradient-to-r from-white to-blue-50 px-4 py-3 text-left transition hover:border-blue-300 hover:from-blue-50 hover:to-blue-100"
+                      className="inline-flex w-fit max-w-[88%] flex-col rounded-2xl border border-blue-200 bg-gradient-to-r from-white to-blue-50 px-4 py-3 text-left transition hover:border-blue-300 hover:from-blue-50 hover:to-blue-100 sm:max-w-[80%]"
                       onClick={() => void handleQuickQuestion(chip)}
                       disabled={loading}
                     >
