@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { MessageCircle, RefreshCw, Send, UserRound, X } from "lucide-react"
+import { MessageCircle, RefreshCw, Send, SmilePlus, UserRound, X } from "lucide-react"
 import { LiveChatPresenceIndicator } from "@/components/livechat-presence-indicator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -69,6 +69,7 @@ type QuickQuestion = {
   id: string
   label: string
   text: string
+  helper?: string
 }
 
 declare global {
@@ -88,33 +89,35 @@ const FALLBACK_REFRESH_MS = 30_000
 const TITLE_FLASH_MS = 1200
 const NOTIFICATION_REQUESTED_KEY = "rh_livechat_notifications_requested"
 const LAST_ALERTED_ADMIN_REPLY_KEY = "rh_livechat_last_alerted_admin_reply"
-const COMMON_QUESTION_CHIPS: QuickQuestion[] = [
+const QUICK_REPLY_OPTIONS: QuickQuestion[] = [
   {
-    id: "faq-estimate",
-    label: "Can I get an estimate?",
-    text: "Can I get an estimate?",
+    id: "quote-fast",
+    label: "I'd like a quick quote",
+    text: "I'd like a quick quote for my event.",
+    helper: "Get pricing guidance faster",
   },
   {
     id: "faq-pricing",
     label: "How much does it cost?",
     text: "How much does it cost?",
+    helper: "Pricing and minimums",
   },
   {
     id: "faq-steps",
     label: "What are the steps to book?",
     text: "What are the steps to book?",
+    helper: "Booking flow and deposit steps",
   },
   {
     id: "faq-menu",
     label: "What proteins are available?",
     text: "What proteins are available?",
-  },
-  {
-    id: "faq-setup",
-    label: "Do you provide table/chairs?",
-    text: "Do you provide table and chairs setup?",
+    helper: "Menu and protein options",
   },
 ]
+const QUICK_REPLY_WELCOME_MESSAGE =
+  "Hi there. I'm here to help with pricing, quote timing, menu options, and booking details."
+const EMOJI_OPTIONS = ["😀", "😊", "👍", "🙌", "👋", "❤️", "🔥", "🙏", "🎉", "📅", "📍", "📞", "💬", "✅", "❓", "🍱"]
 
 function getIntent(pathname: string): ChatIntent {
   if (pathname.startsWith("/quote")) return "quote"
@@ -246,11 +249,15 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const emojiPickerRef = useRef<HTMLDivElement | null>(null)
+  const emojiToggleButtonRef = useRef<HTMLButtonElement | null>(null)
   const promptTrackedRef = useRef(false)
   const lastReadAckRef = useRef<string | null>(null)
   const previousSessionRef = useRef<LivechatSession | null>(null)
   const sessionInitializedRef = useRef(false)
   const initialTitleRef = useRef<string | null>(null)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
 
   const mergedContext = useMemo(() => ({
     ...compactStringRecord(context),
@@ -621,6 +628,47 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
   }, [messages.length, open])
 
   useEffect(() => {
+    if (!emojiPickerOpen) {
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (!target) {
+        return
+      }
+
+      if (emojiPickerRef.current?.contains(target)) {
+        return
+      }
+
+      if (messageInputRef.current?.contains(target)) {
+        return
+      }
+
+      if (emojiToggleButtonRef.current?.contains(target)) {
+        return
+      }
+
+      setEmojiPickerOpen(false)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setEmojiPickerOpen(false)
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [emojiPickerOpen])
+
+  useEffect(() => {
     if (!hydrated) return
     window.localStorage.setItem(STORAGE_KEY_NAME, visitorName)
   }, [hydrated, visitorName])
@@ -681,6 +729,7 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
 
       applyPayload(payload)
       setMessageDraft("")
+      setEmojiPickerOpen(false)
 
       const trackedSessionId = payload.session?.id ?? sessionId ?? undefined
       const detail: ChatEventDetail = {
@@ -773,6 +822,30 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
 
     void handleSend(chip.text)
   }, [handleSend, mergedContext, sessionId, visitorName])
+
+  const handleEmojiInsert = useCallback((emoji: string) => {
+    const input = messageInputRef.current
+
+    setMessageDraft((current) => {
+      if (!input) {
+        return `${current}${emoji}`
+      }
+
+      const selectionStart = input.selectionStart ?? current.length
+      const selectionEnd = input.selectionEnd ?? current.length
+      const nextValue = `${current.slice(0, selectionStart)}${emoji}${current.slice(selectionEnd)}`
+
+      window.requestAnimationFrame(() => {
+        const nextCaret = selectionStart + emoji.length
+        input.focus()
+        input.setSelectionRange(nextCaret, nextCaret)
+      })
+
+      return nextValue
+    })
+
+    setEmojiPickerOpen(false)
+  }, [])
 
   const showReplyOverlay = Boolean(
     replyOverlayKey &&
@@ -890,20 +963,28 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
 
           <div className="min-h-[12rem] flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffaf0,#ffffff)] px-4 py-4">
             {messages.length === 0 ? (
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-dashed border-amber-200 bg-white/90 px-4 py-5 text-sm text-slate-600">
-                  Start with a common question below, or type your own message. The admin desk will receive it in the shared Supabase inbox.
+              <div className="space-y-4">
+                <div className="flex justify-start">
+                  <div className="max-w-[88%] rounded-[22px] rounded-bl-md border border-amber-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+                    <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700/80">
+                      <span>Support</span>
+                      <span className="h-1 w-1 rounded-full bg-amber-400" />
+                      <span>Online</span>
+                    </div>
+                    <p className="leading-6">{QUICK_REPLY_WELCOME_MESSAGE}</p>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {COMMON_QUESTION_CHIPS.map((chip) => (
+                <div className="grid gap-2">
+                  {QUICK_REPLY_OPTIONS.map((chip) => (
                     <button
                       key={chip.id}
                       type="button"
-                      className="rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-amber-300 hover:bg-amber-50"
+                      className="rounded-2xl border border-blue-200 bg-gradient-to-r from-white to-blue-50 px-4 py-3 text-left transition hover:border-blue-300 hover:from-blue-50 hover:to-blue-100"
                       onClick={() => void handleQuickQuestion(chip)}
                       disabled={loading}
                     >
-                      {chip.label}
+                      <span className="block text-sm font-semibold text-slate-900">{chip.label}</span>
+                      {chip.helper ? <span className="mt-1 block text-xs text-slate-500">{chip.helper}</span> : null}
                     </button>
                   ))}
                 </div>
@@ -936,13 +1017,60 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
 
           <div className="border-t border-amber-100 bg-white px-4 py-3">
             <div className="grid gap-2">
-              <Textarea
-                aria-label="Support message"
-                placeholder="Ask about pricing, deposit, menu, or booking timing..."
-                value={messageDraft}
-                onChange={(event) => setMessageDraft(event.target.value)}
-                className="min-h-24 resize-none"
-              />
+              <div className="relative">
+                {emojiPickerOpen ? (
+                  <div
+                    ref={emojiPickerRef}
+                    className="absolute bottom-[calc(100%+0.75rem)] left-0 z-10 w-[min(18rem,calc(100vw-4rem))] rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.18)]"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Quick emoji</p>
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-slate-400 transition hover:text-slate-700"
+                        onClick={() => setEmojiPickerOpen(false)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {EMOJI_OPTIONS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          className="flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-xl transition hover:border-amber-300 hover:bg-amber-50"
+                          onClick={() => handleEmojiInsert(emoji)}
+                        >
+                          <span aria-hidden>{emoji}</span>
+                          <span className="sr-only">{`Insert ${emoji}`}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <Textarea
+                  ref={messageInputRef}
+                  aria-label="Support message"
+                  placeholder="Ask about pricing, deposit, menu, or booking timing..."
+                  value={messageDraft}
+                  onChange={(event) => setMessageDraft(event.target.value)}
+                  className="min-h-24 resize-none rounded-[22px] border-slate-200 bg-slate-50 pb-14 pr-24"
+                />
+
+                <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    ref={emojiToggleButtonRef}
+                    aria-label={emojiPickerOpen ? "Close emoji picker" : "Open emoji picker"}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-amber-300 hover:text-slate-900"
+                    onClick={() => setEmojiPickerOpen((current) => !current)}
+                  >
+                    <SmilePlus className="h-4 w-4" />
+                  </button>
+                  <div className="text-[11px] text-slate-400">{messageDraft.trim().length > 0 ? `${messageDraft.trim().length} chars` : "Emoji supported"}</div>
+                </div>
+              </div>
               {error ? <p className="text-sm text-rose-600">{error}</p> : null}
               <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
                 <span>{session?.assignedAdmin ? `Support: ${session.assignedAdmin}` : "No support agent yet"}</span>
