@@ -1149,12 +1149,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                   {bookingRequestError}
                 </p>
               ) : null}
-              {!bookingConfirmation ? (
-                <p className="text-xs text-slate-500">
-                  Clicking `Book Online` now sends your booking request directly to our team instead of taking a deposit.
-                </p>
-              ) : null}
-
             </CardContent>
           </Card>
         </div>

@@ -10,6 +10,22 @@
       ]
     },
     {
+      "name": "leads",
+      "usedBy": [
+        "marketing/public-site",
+        "marketing/isolated-marketing"
+      ],
+      "migrationPath": "migrations/create-leads-and-touchpoints-table.sql"
+    },
+    {
+      "name": "lead_touchpoints",
+      "usedBy": [
+        "marketing/public-site",
+        "marketing/isolated-marketing"
+      ],
+      "migrationPath": "migrations/create-leads-and-touchpoints-table.sql"
+    },
+    {
       "name": "stripe_webhook_events",
       "usedBy": [
         "marketing/public-site",

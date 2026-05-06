@@ -13,6 +13,8 @@ const REQUIRED_ENV_KEYS = [
 ]
 const REQUIRED_TABLES = [
   "bookings",
+  "leads",
+  "lead_touchpoints",
   "stripe_webhook_events",
   "crm_integration_outbox",
   "chat_sessions",
