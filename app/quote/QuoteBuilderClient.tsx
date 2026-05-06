@@ -531,7 +531,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       `Pricing Tier: ${pricingTierLabel}`,
       `Estimated Total: $${result.totalRange.low.toFixed(0)} - $${result.totalRange.high.toFixed(0)}`,
       `Tableware Rental: ${input.tablewareRental ? "Yes" : "No"}`,
-      `10'x10' Tent: ${input.tent10x10 ? "Yes" : "No"}`,
+      `Canopies: ${input.tent10x10 ? "Yes" : "No"}`,
       `Premium Upgrades: ${selectedPremiumUpgradesText}`,
       "",
       "Please contact this customer to finalize booking details.",
@@ -669,7 +669,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                       Tableware: {bookingConfirmation.tablewareRental ? "Yes" : "No"}
                     </Badge>
                     <Badge variant="outline" className="rounded-full">
-                      Tent: {bookingConfirmation.tent10x10 ? "Yes" : "No"}
+                      Canopies: {bookingConfirmation.tent10x10 ? "Yes" : "No"}
                     </Badge>
                     <Badge variant="outline" className="rounded-full">
                       Upgrades: {bookingConfirmation.premiumUpgrades.length > 0 ? bookingConfirmation.premiumUpgrades.join(", ") : "None"}
@@ -935,14 +935,14 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                   />
                   <div className="flex items-center gap-1.5">
                     <label htmlFor="tent-10x10" className="text-sm text-gray-700">
-                      10&apos;x10&apos; tent (rainy day option)
+                      Canopies (rainy day option)
                     </label>
                     <TooltipProvider>
                       <Tooltip open={tentTooltipOpen} onOpenChange={setTentTooltipOpen}>
                         <TooltipTrigger asChild>
                           <button
                             type="button"
-                            aria-label="Tent rental details"
+                            aria-label="Canopy details"
                             aria-expanded={tentTooltipOpen}
                             onClick={() => setTentTooltipOpen((prev) => !prev)}
                             className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 ring-offset-background transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -951,7 +951,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>10&apos;x10&apos; tent rental available for rainy day setups</p>
+                          <p>Canopies are available for rainy day setups</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
