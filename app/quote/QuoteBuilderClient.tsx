@@ -116,6 +116,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [customerPhone, setCustomerPhone] = useState("")
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
+  const [tentTooltipOpen, setTentTooltipOpen] = useState(false)
   const [weatherPreview, setWeatherPreview] = useState<WeatherPreview | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
@@ -148,8 +149,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     [input, result, contactTemplates.emailBody, contactTemplates.emailSubject],
   )
   const callScript = useMemo(
-    () => buildCallScript(input, result, contactTemplates.callScript),
-    [input, result, contactTemplates.callScript],
+    () => buildCallScript(input, result, contactTemplates.callScript, eventTime),
+    [eventTime, input, result, contactTemplates.callScript],
   )
   const isWeekdaySaverTier = input.pricingTier === "weekday_saver"
   const selectedWeekdayProteins = useMemo(
@@ -932,9 +933,29 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                     checked={input.tent10x10}
                     onCheckedChange={(checked) => handleFieldChange("tent10x10", Boolean(checked))}
                   />
-                  <label htmlFor="tent-10x10" className="text-sm text-gray-700">
-                    10&apos;x10&apos; tent (rainy day option)
-                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <label htmlFor="tent-10x10" className="text-sm text-gray-700">
+                      10&apos;x10&apos; tent (rainy day option)
+                    </label>
+                    <TooltipProvider>
+                      <Tooltip open={tentTooltipOpen} onOpenChange={setTentTooltipOpen}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="Tent rental details"
+                            aria-expanded={tentTooltipOpen}
+                            onClick={() => setTentTooltipOpen((prev) => !prev)}
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 ring-offset-background transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <CircleHelp className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>10&apos;x10&apos; tent rental · $50 flat fee</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
               </div>
 

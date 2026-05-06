@@ -56,6 +56,7 @@ export type QuoteResult = {
 
 export type QuoteTemplateContext = {
   event_date: string
+  event_time: string
   location: string
   adults: string
   kids: string
@@ -252,6 +253,14 @@ function formatAddOnSummary(addOns: QuoteAddOns): string {
   return labels.length > 0 ? labels.join(", ") : "none"
 }
 
+function formatSelectedUpgradeLabels(addOns: QuoteAddOns): string[] {
+  const labels: string[] = []
+  if (addOns.steak) labels.push("Filet Mignon")
+  if (addOns.shrimp) labels.push("Scallops")
+  if (addOns.lobster) labels.push("Lobster Tail")
+  return labels
+}
+
 function interpolateTemplate(template: string, context: QuoteTemplateContext): string {
   return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (match, key: keyof QuoteTemplateContext) => {
     return context[key] ?? match
@@ -276,9 +285,10 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     .join(" | ")
 }
 
-export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResult): QuoteTemplateContext {
+export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResult, eventTime?: string): QuoteTemplateContext {
   return {
     event_date: input.eventDate || "TBD",
+    event_time: eventTime || "TBD",
     location: input.location || "TBD",
     adults: String(input.adults || 0),
     kids: String(input.kids || 0),
@@ -315,11 +325,30 @@ export function buildEmailPayload(
   }
 }
 
-export function buildCallScript(input: QuoteInput, result: QuoteResult, template: string): string {
-  const context = createQuoteTemplateContext(input, result)
-  const interpolated = interpolateTemplate(template, context)
-  const withKids = interpolated.includes("Kids") ? interpolated : `${interpolated} Kids: ${context.kids}.`
-  return withKids.includes("tables/chairs/utensils") || withKids.includes("full setup")
-    ? withKids
-    : `${withKids} Full setup (tables/chairs/utensils): ${context.tableware_rental}.`
+export function buildCallScript(input: QuoteInput, result: QuoteResult, template: string, eventTime?: string): string {
+  void template
+
+  const guestsLine = `We have ${result.guestCount} guests (Adults ${input.adults || 0}, Kids ${input.kids || 0}).`
+  const details: string[] = []
+
+  if (input.tablewareRental) {
+    details.push(`We would like tableware rental at $15 per person.`)
+  }
+
+  if (input.tent10x10) {
+    details.push(`We would like a 10'x10' tent for $50.`)
+  }
+
+  if (input.pricingTier !== "weekday_saver") {
+    const selectedUpgrades = formatSelectedUpgradeLabels(input.addOns)
+    if (selectedUpgrades.length > 0) {
+      details.push(`We are interested in premium upgrades: ${selectedUpgrades.join(", ")}.`)
+    }
+  }
+
+  return [
+    `Hi, I am calling about a quote for ${input.eventDate || "TBD"} at ${eventTime || "TBD"} in ${input.location || "TBD"}.`,
+    guestsLine,
+    ...details,
+  ].join(" ")
 }
