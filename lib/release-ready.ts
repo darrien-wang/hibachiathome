@@ -6,8 +6,18 @@ const REQUIRED_ENV_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "CRM_INTEGRATION_BASE_URL",
+  "CRM_INTEGRATION_SHARED_SECRET",
+  "INVOICE_SELF_SERVICE_BASE_URL",
+  "NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL",
 ]
-const REQUIRED_TABLES = ["chat_sessions", "chat_messages"]
+const REQUIRED_TABLES = [
+  "bookings",
+  "stripe_webhook_events",
+  "crm_integration_outbox",
+  "chat_sessions",
+  "chat_messages",
+]
 
 type ReleaseCheck = {
   id: string

@@ -1,5 +1,6 @@
 import Stripe from "stripe"
-import { isPreBranchDeployment, resolveStripeSecretKey } from "@/lib/stripe-env"
+import { resolveStripeSecretKey } from "@/lib/stripe-env"
+import { isPreBranchDeployment } from "@/lib/runtime-env"
 
 let stripeClient: Stripe | null = null
 

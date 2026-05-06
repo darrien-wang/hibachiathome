@@ -6,7 +6,8 @@
     "marketing/public-site",
     "marketing/isolated-marketing",
     "ops/ops",
-    "chef/chef"
+    "chef/chef",
+    "invoice/invoice-self-service"
   ],
   "sharedComparisons": [
     {
@@ -15,7 +16,8 @@
         "marketing/public-site",
         "marketing/isolated-marketing",
         "ops/ops",
-        "chef/chef"
+        "chef/chef",
+        "invoice/invoice-self-service"
       ],
       "field": "dependencies.sharedSupabase.projectRef"
     },
@@ -25,7 +27,8 @@
         "marketing/public-site",
         "marketing/isolated-marketing",
         "ops/ops",
-        "chef/chef"
+        "chef/chef",
+        "invoice/invoice-self-service"
       ],
       "field": "dependencies.sharedSupabase.urlHost"
     }

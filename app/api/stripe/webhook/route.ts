@@ -3,12 +3,13 @@ import type Stripe from "stripe"
 import { Resend } from "resend"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
-import { isPreBranchDeployment, resolveStripeWebhookSecret } from "@/lib/stripe-env"
+import { resolveStripeWebhookSecret } from "@/lib/stripe-env"
 import { buildDepositPaidEventEnvelope, buildPaymentRefundedEventEnvelope, type CrmBookingSnapshot } from "@/lib/crm-integration"
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
-import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
+import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
+import { isPreBranchDeployment, shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
 export const runtime = "nodejs"
 
@@ -51,6 +52,14 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     return undefined
   }
   return value as Record<string, unknown>
+}
+
+function buildSuppressedNotificationResult(reason: string): NotificationDeliveryResult {
+  return {
+    attempted: false,
+    delivered: false,
+    skippedReason: reason,
+  }
 }
 
 function parseExternalBookingIdMarker(value: string | null | undefined): string | undefined {
@@ -543,6 +552,7 @@ async function handleCheckoutSessionCompleted(
   const depositAmount = amountFromMinorUnits(session.amount_total)
   const bookingIdFromMetadata = session.metadata?.booking_id
   const attribution = readAttributionFromStripeMetadata(session.metadata)
+  const bookingSyncWarnings: string[] = []
 
   const bookingUpdate: Record<string, unknown> = {
     deposit_status: "paid",
@@ -578,7 +588,7 @@ async function handleCheckoutSessionCompleted(
 
   if (bySessionError) {
     console.error("[stripe/webhook] Failed to update booking by stripe_session_id:", bySessionError)
-    return { ok: false as const, error: "Failed to update booking by stripe_session_id." }
+    bookingSyncWarnings.push(`stripe_session_id:${bySessionError.message}`)
   }
 
   if (bySessionData?.id) {
@@ -595,12 +605,20 @@ async function handleCheckoutSessionCompleted(
 
     if (byIdError) {
       console.error("[stripe/webhook] Failed to update booking by metadata booking_id:", byIdError)
-      return { ok: false as const, error: "Failed to update booking by metadata booking_id." }
+      bookingSyncWarnings.push(`booking_id:${byIdError.message}`)
     }
 
     if (byIdData?.id) {
       updatedBookingId = byIdData.id
     }
+  }
+
+  if (bookingSyncWarnings.length > 0) {
+    console.warn("[stripe/webhook] Continuing without confirmed marketing booking sync.", {
+      sessionId: session.id,
+      bookingIdFromMetadata,
+      warnings: bookingSyncWarnings,
+    })
   }
 
   if (!updatedBookingId) {
@@ -618,6 +636,7 @@ async function handleCheckoutSessionCompleted(
     paymentIntentId,
     depositAmount,
     bookingSnapshot,
+    bookingSyncWarnings,
   }
 }
 
@@ -721,18 +740,23 @@ async function sendCustomerDepositNotifications(params: {
     phone: customerPhone,
   })
 
-  const [email, sms] = await Promise.all([
-    sendDepositConfirmationEmail({
-      recipientEmail: customerEmail,
-      bookingId,
-      selfServiceLink,
-    }),
-    sendDepositConfirmationSms({
-      recipientPhone: customerPhone,
-      bookingId,
-      selfServiceLink,
-    }),
-  ])
+  const [email, sms] = shouldSuppressExternalNotifications()
+    ? [
+        buildSuppressedNotificationResult("preview_mode_suppressed"),
+        buildSuppressedNotificationResult("preview_mode_suppressed"),
+      ]
+    : await Promise.all([
+        sendDepositConfirmationEmail({
+          recipientEmail: customerEmail,
+          bookingId,
+          selfServiceLink,
+        }),
+        sendDepositConfirmationSms({
+          recipientPhone: customerPhone,
+          bookingId,
+          selfServiceLink,
+        }),
+      ])
 
   return {
     bookingId,
@@ -993,7 +1017,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      if (!opsNotification.delivered && opsNotification.skippedReason !== "development_mode_logged") {
+      if (!isOpsEmailEffectivelyHandled(opsNotification)) {
         console.error("[stripe/webhook] Failed to send ops deposit-paid notification:", {
           eventId: event.id,
           bookingId: customerNotification.bookingId,
@@ -1002,15 +1026,21 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      const serverTracking = await trackDepositCompletedServer({
-        stripeEventId: event.id,
-        checkoutSessionId: session.id,
-        transactionId: result.paymentIntentId,
-        bookingId: customerNotification.bookingId ?? result.updatedBookingId ?? session.metadata?.booking_id ?? null,
-        value: result.depositAmount,
-        currency: asNonEmptyString(session.currency),
-        depositSource: asNonEmptyString(session.metadata?.deposit_source) ?? asNonEmptyString(session.metadata?.source),
-      })
+      const serverTracking = shouldSuppressExternalNotifications()
+        ? {
+            attempted: false,
+            delivered: false,
+            skippedReason: "preview_mode_suppressed",
+          }
+        : await trackDepositCompletedServer({
+            stripeEventId: event.id,
+            checkoutSessionId: session.id,
+            transactionId: result.paymentIntentId,
+            bookingId: customerNotification.bookingId ?? result.updatedBookingId ?? session.metadata?.booking_id ?? null,
+            value: result.depositAmount,
+            currency: asNonEmptyString(session.currency),
+            depositSource: asNonEmptyString(session.metadata?.deposit_source) ?? asNonEmptyString(session.metadata?.source),
+          })
 
       if (!serverTracking.delivered && serverTracking.attempted) {
         console.error("[stripe/webhook] Failed to send server-side GA4 deposit_completed:", {
@@ -1028,6 +1058,7 @@ export async function POST(request: NextRequest) {
           updatedBookingId: result.updatedBookingId,
           paymentIntentId: result.paymentIntentId,
           depositAmount: result.depositAmount,
+          bookingSyncWarnings: result.bookingSyncWarnings,
           crmForwarded,
           crmRequestId,
           crmOutboxEventId,

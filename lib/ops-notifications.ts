@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
 export type OpsEmailDeliveryResult = {
   attempted: boolean
@@ -29,8 +30,16 @@ function shouldLogOnlyInDevelopment(): boolean {
   return process.env.NODE_ENV === "development" && process.env.ALLOW_DEV_EMAIL_SEND !== "true"
 }
 
+function shouldLogOnlyInPreview(): boolean {
+  return shouldSuppressExternalNotifications()
+}
+
 export function isOpsEmailEffectivelyHandled(result: OpsEmailDeliveryResult): boolean {
-  return result.delivered || result.skippedReason === "development_mode_logged"
+  return (
+    result.delivered ||
+    result.skippedReason === "development_mode_logged" ||
+    result.skippedReason === "preview_mode_logged"
+  )
 }
 
 export async function sendSupportNotificationEmail(
@@ -52,6 +61,22 @@ export async function sendSupportNotificationEmail(
       attempted: false,
       delivered: false,
       skippedReason: "development_mode_logged",
+      mode: "logged",
+    }
+  }
+
+  if (shouldLogOnlyInPreview()) {
+    console.log("[ops-email] Preview mode: support notification suppressed.", {
+      from,
+      to,
+      subject: params.subject,
+      replyTo,
+    })
+
+    return {
+      attempted: false,
+      delivered: false,
+      skippedReason: "preview_mode_logged",
       mode: "logged",
     }
   }

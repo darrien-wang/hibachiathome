@@ -1,6 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto"
 import type Stripe from "stripe"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
+import { getRuntimeEnvironmentTag } from "@/lib/runtime-env"
 
 export type CrmBookingSnapshot = {
   id: string
@@ -56,6 +57,9 @@ export type CrmDepositPaidEventEnvelope = {
     checkout_session_id: string
     livemode: boolean
     event_category: "deposit_primary"
+    deployment_environment: "pre" | "production"
+    stripe_mode: "test" | "live"
+    notification_mode: "suppressed" | "live"
   }
 }
 
@@ -97,6 +101,9 @@ export type CrmPaymentRefundedEventEnvelope = {
     payment_intent_id?: string
     livemode: boolean
     event_category: "deposit_refund"
+    deployment_environment: "pre" | "production"
+    stripe_mode: "test" | "live"
+    notification_mode: "suppressed" | "live"
   }
 }
 
@@ -148,6 +155,7 @@ const DEFAULT_SOURCE = "official_website"
 const DEFAULT_EVENT_TIME = "18:00"
 const REQUEST_TIMEOUT_MS = 8_000
 const RETRY_DELAYS_MS = [0, 1_000, 3_000]
+const PRE_TEST_NOTE_PREFIX = "[PRE TEST]"
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -165,6 +173,14 @@ function parseExternalBookingIdMarker(value: string | null | undefined): string 
   const match = text.match(/(?:^|\|)\s*external_booking_id\s*=\s*([A-Za-z0-9-]+)\s*(?:\||$)/i)
   if (!match) return undefined
   return asString(match[1])
+}
+
+function prefixPreTestNote(note: string | undefined, stripeMode: "test" | "live"): string {
+  const suffix = note ?? `Stripe ${stripeMode} payment created from the pre deployment.`
+  if (suffix.startsWith(PRE_TEST_NOTE_PREFIX)) {
+    return suffix
+  }
+  return `${PRE_TEST_NOTE_PREFIX} ${suffix}`
 }
 
 function resolveRhBookingId(params: {
@@ -390,6 +406,9 @@ export function buildDepositPaidEventEnvelope(params: {
   source?: string
 }): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
   const source = resolveSource(params.source)
+  const deploymentEnvironment = getRuntimeEnvironmentTag()
+  const stripeMode = params.session.livemode ? "live" : "test"
+  const notificationMode = deploymentEnvironment === "pre" ? "suppressed" : "live"
   const preferredRhBookingId = resolveRhBookingId({
     bookingId: params.booking?.id,
     sessionBookingId: params.session.metadata?.booking_id,
@@ -459,7 +478,10 @@ export function buildDepositPaidEventEnvelope(params: {
                 travel_fee: params.booking?.travel_fee ?? undefined,
               }
             : undefined,
-        notes: asString(params.booking?.special_requests) ?? "Deposit paid via Stripe Checkout on website.",
+        notes:
+          deploymentEnvironment === "pre"
+            ? prefixPreTestNote(asString(params.booking?.special_requests), stripeMode)
+            : asString(params.booking?.special_requests) ?? "Deposit paid via Stripe Checkout on website.",
       },
       payment: {
         external_payment_id: externalPaymentId,
@@ -477,6 +499,9 @@ export function buildDepositPaidEventEnvelope(params: {
         checkout_session_id: params.session.id,
         livemode: params.session.livemode,
         event_category: "deposit_primary",
+        deployment_environment: deploymentEnvironment,
+        stripe_mode: stripeMode,
+        notification_mode: notificationMode,
       },
     },
   }
@@ -492,6 +517,9 @@ export function buildPaymentRefundedEventEnvelope(params: {
   source?: string
 }): BuildCrmEnvelopeResult<CrmPaymentRefundedEventEnvelope> {
   const source = resolveSource(params.source)
+  const deploymentEnvironment = getRuntimeEnvironmentTag()
+  const stripeMode = params.charge.livemode ? "live" : "test"
+  const notificationMode = deploymentEnvironment === "pre" ? "suppressed" : "live"
   const preferredRhBookingId = resolveRhBookingId({
     bookingId: params.booking?.id,
     sessionBookingId: params.charge.metadata?.booking_id,
@@ -544,7 +572,10 @@ export function buildPaymentRefundedEventEnvelope(params: {
                 travel_fee: params.booking?.travel_fee ?? undefined,
               }
             : undefined,
-        notes: asString(params.booking?.special_requests) ?? "Deposit refunded via Stripe on website.",
+        notes:
+          deploymentEnvironment === "pre"
+            ? prefixPreTestNote(asString(params.booking?.special_requests), stripeMode)
+            : asString(params.booking?.special_requests) ?? "Deposit refunded via Stripe on website.",
       },
       payment: {
         external_payment_id: externalPaymentId,
@@ -563,6 +594,9 @@ export function buildPaymentRefundedEventEnvelope(params: {
         payment_intent_id: asString(params.paymentIntentId) ?? paymentIntentIdFromCharge(params.charge.payment_intent),
         livemode: params.charge.livemode,
         event_category: "deposit_refund",
+        deployment_environment: deploymentEnvironment,
+        stripe_mode: stripeMode,
+        notification_mode: notificationMode,
       },
     },
   }

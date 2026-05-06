@@ -18,6 +18,13 @@
       "SUPABASE_SERVICE_ROLE_KEY",
       "NEXT_PUBLIC_SUPABASE_URL",
       "CHEF_SESSION_SECRET"
+    ],
+    "invoice": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "INTEGRATION_SHARED_SECRET"
     ]
   },
   "localSharedGroups": [
@@ -26,7 +33,8 @@
       "targets": [
         "marketing",
         "ops",
-        "chef"
+        "chef",
+        "invoice"
       ],
       "keys": [
         "SUPABASE_URL",
@@ -38,7 +46,8 @@
       "id": "shared-supabase-anon",
       "targets": [
         "marketing",
-        "ops"
+        "ops",
+        "invoice"
       ],
       "keys": [
         "NEXT_PUBLIC_SUPABASE_ANON_KEY"
@@ -51,6 +60,8 @@
       "SUPABASE_SERVICE_ROLE_KEY",
       "NEXT_PUBLIC_SUPABASE_URL",
       "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "CRM_INTEGRATION_BASE_URL",
+      "CRM_INTEGRATION_SHARED_SECRET",
       "INVOICE_SELF_SERVICE_BASE_URL",
       "NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL"
     ],
@@ -58,7 +69,11 @@
       "SUPABASE_URL",
       "SUPABASE_SERVICE_ROLE_KEY",
       "NEXT_PUBLIC_SUPABASE_URL",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "CRM_INTEGRATION_BASE_URL",
+      "CRM_INTEGRATION_SHARED_SECRET",
+      "INVOICE_SELF_SERVICE_BASE_URL",
+      "NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL"
     ],
     "ops/ops": [
       "ADMIN_USERNAME",
@@ -74,6 +89,12 @@
       "SUPABASE_SERVICE_ROLE_KEY",
       "NEXT_PUBLIC_SUPABASE_URL",
       "CHEF_SESSION_SECRET"
+    ],
+    "invoice/invoice-self-service": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "INTEGRATION_SHARED_SECRET"
     ]
   }
 }

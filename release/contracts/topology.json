@@ -98,6 +98,34 @@
         "Current custom domain is chefs.realhibachi.com.",
         "chef.realhibachi.com is not currently bound."
       ]
+    },
+    {
+      "id": "invoice",
+      "label": "Invoice integration codebase",
+      "localRepoPath": "../v0-real-hibachi-invoice-generator",
+      "gitRepo": "darrien-wang/v0-real-hibachi-invoice-generator",
+      "localEnvFile": ".env.local",
+      "deployTargets": [
+        {
+          "id": "invoice-self-service",
+          "vercelProject": "v0-real-hibachi-invoice-generator",
+          "purpose": "Website deposit integration and invoice self-service production site",
+          "productionAliases": [
+            "invoice.realhibachi.com",
+            "v0-real-hibachi-invoice-generator.vercel.app"
+          ],
+          "previewAliases": [
+            "pre.invoice.realhibachi.com"
+          ]
+        }
+      ],
+      "sharedDataDependencies": [
+        "shared-supabase"
+      ],
+      "notes": [
+        "Receives signed website integration events at /api/integrations/v1/events.",
+        "Creates website-sourced orders and payment projections used by the ops workspace."
+      ]
     }
   ],
   "sharedServices": [
@@ -112,7 +140,11 @@
       "label": "Invoice self-service site",
       "vercelProject": "v0-real-hibachi-invoice-generator",
       "productionAliases": [
+        "invoice.realhibachi.com",
         "v0-real-hibachi-invoice-generator.vercel.app"
+      ],
+      "previewAliases": [
+        "pre.invoice.realhibachi.com"
       ]
     }
   ]

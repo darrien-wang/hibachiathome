@@ -3,13 +3,36 @@
   "sourceCodebase": "marketing",
   "requiredTables": [
     {
+      "name": "bookings",
+      "usedBy": [
+        "marketing/public-site",
+        "marketing/isolated-marketing"
+      ]
+    },
+    {
+      "name": "stripe_webhook_events",
+      "usedBy": [
+        "marketing/public-site",
+        "marketing/isolated-marketing"
+      ],
+      "migrationPath": "migrations/create-stripe-webhook-events-table.sql"
+    },
+    {
+      "name": "crm_integration_outbox",
+      "usedBy": [
+        "marketing/public-site",
+        "marketing/isolated-marketing",
+        "invoice/invoice-self-service"
+      ],
+      "migrationPath": "migrations/create-crm-integration-outbox-table.sql"
+    },
+    {
       "name": "chat_sessions",
       "usedBy": [
         "marketing/public-site",
         "marketing/isolated-marketing",
         "ops/ops"
-      ],
-      "migrationPath": "../v0-real-hibachi-invoice-generator/supabase/migrations/20260331193000_add_lightweight_livechat_tables.sql"
+      ]
     },
     {
       "name": "chat_messages",
@@ -17,14 +40,38 @@
         "marketing/public-site",
         "marketing/isolated-marketing",
         "ops/ops"
-      ],
-      "migrationPath": "../v0-real-hibachi-invoice-generator/supabase/migrations/20260331193000_add_lightweight_livechat_tables.sql"
+      ]
     },
     {
       "name": "orders",
       "usedBy": [
         "ops/ops",
-        "chef/chef"
+        "chef/chef",
+        "invoice/invoice-self-service"
+      ]
+    },
+    {
+      "name": "payments",
+      "usedBy": [
+        "invoice/invoice-self-service"
+      ]
+    },
+    {
+      "name": "integration_events",
+      "usedBy": [
+        "invoice/invoice-self-service"
+      ]
+    },
+    {
+      "name": "integration_jobs",
+      "usedBy": [
+        "invoice/invoice-self-service"
+      ]
+    },
+    {
+      "name": "order_events",
+      "usedBy": [
+        "invoice/invoice-self-service"
       ]
     },
     {
