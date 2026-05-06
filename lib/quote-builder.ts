@@ -336,7 +336,7 @@ export function buildCallScript(input: QuoteInput, result: QuoteResult, template
   }
 
   if (input.tent10x10) {
-    details.push(`We would like 1 10'x10' tent for $50.`)
+    details.push(`We would like a 10'x10' tent.`)
   }
 
   if (input.pricingTier !== "weekday_saver") {

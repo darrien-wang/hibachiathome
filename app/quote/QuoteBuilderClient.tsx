@@ -951,7 +951,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>1 10&apos;x10&apos; tent · $50 flat fee</p>
+                          <p>10&apos;x10&apos; tent rental available for rainy day setups</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
