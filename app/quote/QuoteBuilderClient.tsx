@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays } from "lucide-react"
 import { siteConfig } from "@/config/site"
-import { getDepositAmount } from "@/config/deposit"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import {
   DEFAULT_REGION_CODE,
@@ -76,6 +75,24 @@ type WeatherPreview = {
   source?: string
 }
 
+type BookingConfirmation = {
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  eventDate: string
+  eventTime: string
+  location: string
+  adults: number
+  kids: number
+  pricingTierLabel: string
+  estimateLow: number
+  estimateHigh: number
+  tablewareRental: boolean
+  tent10x10: boolean
+  premiumUpgrades: string[]
+  customerEmailDelivered: boolean
+}
+
 function calculateSlotsLeft(eventDate: string, location: string): number | null {
   const normalizedLocation = location.trim().toLowerCase()
   if (!eventDate || !normalizedLocation) {
@@ -95,6 +112,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
   const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
   const [customerName, setCustomerName] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
   const [weatherPreview, setWeatherPreview] = useState<WeatherPreview | null>(null)
@@ -104,6 +123,9 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [quoteStartIntentCaptured, setQuoteStartIntentCaptured] = useState(false)
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
+  const [bookingRequestSubmitting, setBookingRequestSubmitting] = useState(false)
+  const [bookingRequestError, setBookingRequestError] = useState("")
+  const [bookingConfirmation, setBookingConfirmation] = useState<BookingConfirmation | null>(null)
   const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
   const activeRegionDefinition = regionPolicySnapshot.region
@@ -114,7 +136,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const shouldShowWeatherCard = Boolean(input.eventDate && input.location.trim())
 
   const result = useMemo(() => calculateQuote(input, travelFeeRange), [input, travelFeeRange])
-  const depositAmount = useMemo(() => getDepositAmount(result.totalRange.high), [result.totalRange.high])
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
   const smsBody = useMemo(() => buildSmsBody(input, result, contactTemplates.sms), [input, result, contactTemplates.sms])
@@ -364,12 +385,25 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBody)}`
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
-  const missingRequiredBookingFields = !result.hasCoreInputs || !customerName.trim() || !eventTime
+  const missingRequiredBookingFields =
+    !result.hasCoreInputs
+    || !customerName.trim()
+    || !customerEmail.trim()
+    || !customerPhone.trim()
+    || !eventTime
   const weekdaySaverRulesFailed = isWeekdaySaverTier && !result.weekdaySaver.isEligible
-  const depositLockDisabled = missingRequiredBookingFields || weekdaySaverRulesFailed
-  const depositLockHelperText = missingRequiredBookingFields
-    ? "Fill customer name, date, time, and core quote details first."
+  const bookingRequestDisabled = missingRequiredBookingFields || weekdaySaverRulesFailed || bookingRequestSubmitting
+  const bookingRequestHelperText = missingRequiredBookingFields
+    ? "Fill name, email, phone, date, time, and core quote details first."
     : "Weekday Saver must be Monday-Thursday, 15+ guests, and exactly 2 proteins selected."
+  const selectedPremiumUpgrades = useMemo(() => {
+    const labels: string[] = []
+    if (input.addOns.steak) labels.push("Filet Mignon")
+    if (input.addOns.shrimp) labels.push("Scallops")
+    if (input.addOns.lobster) labels.push("Lobster Tail")
+    return labels
+  }, [input.addOns.lobster, input.addOns.shrimp, input.addOns.steak])
+  const selectedPremiumUpgradesText = selectedPremiumUpgrades.length > 0 ? selectedPremiumUpgrades.join(", ") : "None"
 
   const buildQualifiedLeadPayload = (leadChannel: "sms" | "phone" | "email") => ({
     lead_channel: leadChannel,
@@ -459,13 +493,16 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     window.location.href = emailHref
   }
 
-  const onDepositLockClick = () => {
-    if (depositLockDisabled) return
+  const submitBookingRequest = async (conversionType: "book_online_click" | "deposit_lock_click") => {
+    if (bookingRequestDisabled) return
+
+    setBookingRequestSubmitting(true)
+    setBookingRequestError("")
 
     trackEvent("ab_test_conversion", {
       experiment_id: "quote_route_split_v1",
       quote_variant: variant,
-      conversion_type: "deposit_lock_click",
+      conversion_type: conversionType,
       lead_source: quoteSurface,
       city_or_zip: input.location || "unspecified",
       event_date: input.eventDate || "unspecified",
@@ -477,63 +514,196 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       estimate_high: result.totalRange.high,
     })
 
-    const depositQuery = new URLSearchParams({
-      source: `quote${variant}`,
-      customer_name: customerName.trim(),
-      event_date: input.eventDate || "",
-      event_time: eventTime,
-      location: input.location || "",
-      adults: String(input.adults || 0),
-      kids: String(input.kids || 0),
-      tent_10x10: input.tent10x10 ? "yes" : "no",
-      pricing_tier: input.pricingTier,
-      weekday_saver_proteins: weekdaySaverProteinsValue,
-      estimate_low: String(result.totalRange.low),
-      estimate_high: String(result.totalRange.high),
+    trackEvent("lead_submit", {
+      ...buildQualifiedLeadPayload("email"),
+      lead_channel: "website_booking_request",
+      customer_email: customerEmail.trim(),
+      customer_phone: customerPhone.trim(),
+      booking_request: true,
     })
 
-    window.location.href = `/deposit/pay?${depositQuery.toString()}`
+    const pricingTierLabel = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
+    const message = [
+      "Website customer clicked Book Online. No deposit was collected.",
+      "",
+      `Quote Summary: ${quoteSummary}`,
+      `Pricing Tier: ${pricingTierLabel}`,
+      `Estimated Total: $${result.totalRange.low.toFixed(0)} - $${result.totalRange.high.toFixed(0)}`,
+      `Tableware Rental: ${input.tablewareRental ? "Yes" : "No"}`,
+      `10'x10' Tent: ${input.tent10x10 ? "Yes" : "No"}`,
+      `Premium Upgrades: ${selectedPremiumUpgradesText}`,
+      "",
+      "Please contact this customer to finalize booking details.",
+    ].join("\n")
+
+    try {
+      const response = await fetch("/api/booking-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim(),
+          customerPhone: customerPhone.trim(),
+          eventDate: input.eventDate,
+          eventTime,
+          location: input.location.trim(),
+          adults: input.adults,
+          kids: input.kids,
+          pricingTierLabel,
+          estimateLow: result.totalRange.low,
+          estimateHigh: result.totalRange.high,
+          tablewareRental: input.tablewareRental,
+          tent10x10: input.tent10x10,
+          premiumUpgrades: selectedPremiumUpgrades,
+          quoteSummary,
+          leadSource: quoteSurface,
+          note: message,
+        }),
+      })
+
+      const payload = (await response.json().catch(() => null)) as { success?: boolean; error?: string; message?: string } | null
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || payload?.message || `Booking request failed with status ${response.status}`)
+      }
+      const bookingPayload = payload as {
+        success?: boolean
+        customerConfirmation?: {
+          delivered?: boolean
+          skippedReason?: string
+        }
+      }
+
+      setBookingConfirmation({
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim(),
+        customerPhone: customerPhone.trim(),
+        eventDate: input.eventDate,
+        eventTime,
+        location: input.location.trim(),
+        adults: input.adults,
+        kids: input.kids,
+        pricingTierLabel,
+        estimateLow: result.totalRange.low,
+        estimateHigh: result.totalRange.high,
+        tablewareRental: input.tablewareRental,
+        tent10x10: input.tent10x10,
+        premiumUpgrades: selectedPremiumUpgrades,
+        customerEmailDelivered: bookingPayload.customerConfirmation?.delivered === true,
+      })
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    } catch (error) {
+      setBookingRequestError(error instanceof Error ? error.message : "Failed to submit booking request.")
+    } finally {
+      setBookingRequestSubmitting(false)
+    }
+  }
+
+  const onDepositLockClick = () => {
+    void submitBookingRequest("deposit_lock_click")
   }
 
   const onBookOnlineClick = () => {
-    if (depositLockDisabled) return
-
-    trackEvent("ab_test_conversion", {
-      experiment_id: "quote_route_split_v1",
-      quote_variant: variant,
-      conversion_type: "book_online_click",
-      lead_source: quoteSurface,
-      city_or_zip: input.location || "unspecified",
-      event_date: input.eventDate || "unspecified",
-      event_time: eventTime || "unspecified",
-      tent_10x10: input.tent10x10,
-      quote_tier: input.pricingTier,
-      weekday_saver_proteins: weekdaySaverProteinsValue,
-      estimate_low: result.totalRange.low,
-      estimate_high: result.totalRange.high,
-    })
-
-    const depositQuery = new URLSearchParams({
-      source: `quote${variant}`,
-      customer_name: customerName.trim(),
-      event_date: input.eventDate || "",
-      event_time: eventTime,
-      location: input.location || "",
-      adults: String(input.adults || 0),
-      kids: String(input.kids || 0),
-      tent_10x10: input.tent10x10 ? "yes" : "no",
-      pricing_tier: input.pricingTier,
-      weekday_saver_proteins: weekdaySaverProteinsValue,
-      estimate_low: String(result.totalRange.low),
-      estimate_high: String(result.totalRange.high),
-    })
-
-    window.location.href = `/deposit/pay?${depositQuery.toString()}`
+    void submitBookingRequest("book_online_click")
   }
 
   return (
     <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
+        {bookingConfirmation ? (
+          <Card className="mb-8 overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-amber-50 shadow-lg">
+            <CardHeader className="border-b border-emerald-200/70 bg-white/80">
+              <Badge className="mb-3 w-fit bg-emerald-600 text-white hover:bg-emerald-600">Booking Request Sent</Badge>
+              <CardTitle className="text-3xl text-emerald-900">Your booking request has been received</CardTitle>
+              <CardDescription className="max-w-3xl text-base text-emerald-900/80">
+                We have your event basics.
+                {bookingConfirmation.customerEmailDelivered
+                  ? " A confirmation email has been sent, and our team will contact you as soon as possible to confirm menu details, service setup, and the final booking steps."
+                  : " Our team will contact you as soon as possible to confirm menu details, service setup, and the final booking steps."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Name</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{bookingConfirmation.customerName}</p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Contact</p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">{bookingConfirmation.customerEmail}</p>
+                    <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.customerPhone}</p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Event</p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">
+                      {bookingConfirmation.eventDate} at {bookingConfirmation.eventTime}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.location}</p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Guests</p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">
+                      {bookingConfirmation.adults} adults, {bookingConfirmation.kids} kids
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.pricingTierLabel}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-slate-200 bg-white/90 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Estimated range</p>
+                      <p className="mt-2 text-3xl font-semibold text-slate-900">
+                        ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="rounded-full border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-700">
+                      No deposit required now
+                    </Badge>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-700">
+                    <Badge variant="outline" className="rounded-full">
+                      Tableware: {bookingConfirmation.tablewareRental ? "Yes" : "No"}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full">
+                      Tent: {bookingConfirmation.tent10x10 ? "Yes" : "No"}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full">
+                      Upgrades: {bookingConfirmation.premiumUpgrades.length > 0 ? bookingConfirmation.premiumUpgrades.join(", ") : "None"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[32px] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_22px_60px_rgba(15,23,42,0.22)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">What happens next</p>
+                <div className="mt-4 overflow-hidden rounded-[24px] border border-white/10 bg-slate-900">
+                  <img
+                    src="/images/hibachi-dinner-party.jpg"
+                    alt="Hibachi dinner party preview"
+                    className="h-48 w-full object-cover"
+                  />
+                  <div className="space-y-3 p-4">
+                    <p className="text-lg font-semibold">We will reach out shortly</p>
+                    <p className="text-sm leading-6 text-slate-300">
+                      Please keep this screen as your confirmation screenshot.
+                      {bookingConfirmation.customerEmailDelivered
+                        ? " A confirmation email has been sent from support@realhibachi.com, and our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."
+                        : " Our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."}
+                    </p>
+                    <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-200">
+                      <p>Support: {displayPhone}</p>
+                      <p>{displayEmail}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="text-center mb-10">
           <Badge variant="secondary" className="mb-4">
             {variant === "B" ? "Quote Variant B" : "Quote Variant A"}
@@ -565,6 +735,27 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                   placeholder="Your full name"
                   onChange={(e) => setCustomerName(e.target.value)}
                 />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email *</label>
+                  <Input
+                    type="email"
+                    value={customerEmail}
+                    placeholder="you@example.com"
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phone *</label>
+                  <Input
+                    type="tel"
+                    value={customerPhone}
+                    placeholder="(213) 555-1234"
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div>
@@ -813,17 +1004,17 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
               {variant === "B" && slotsLeft !== null && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
                   <p className="font-semibold">
-                    Only {slotsLeft} prime {slotsNoun} left for this date and time. Lock your date now.
+                    Only {slotsLeft} prime {slotsNoun} left for this date and time. Send your booking request now.
                   </p>
                   <Button
                     onClick={onDepositLockClick}
-                    disabled={depositLockDisabled}
+                    disabled={bookingRequestDisabled}
                     className="mt-3 h-9 rounded-full bg-[hsl(24_79%_55%)] px-4 text-white hover:bg-[hsl(24_79%_48%)]"
                   >
-                    Lock Your Date for ${depositAmount.toFixed(2)}
+                    {bookingRequestSubmitting ? "Sending..." : "Send Booking Request"}
                   </Button>
-                  {depositLockDisabled && (
-                    <p className="mt-2 text-xs text-red-700">{depositLockHelperText}</p>
+                  {bookingRequestDisabled && (
+                    <p className="mt-2 text-xs text-red-700">{bookingRequestHelperText}</p>
                   )}
                 </div>
               )}
@@ -941,18 +1132,28 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 </Button>
                 <Button
                   onClick={onBookOnlineClick}
-                  disabled={depositLockDisabled}
+                  disabled={bookingRequestDisabled}
                   className="h-auto min-h-12 min-w-0 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-200 disabled:text-emerald-700 text-sm text-center py-3 px-4"
                 >
                   <CalendarDays className="mr-2 h-4 w-4" />
-                  <span className="font-medium">Book Online</span>
+                  <span className="font-medium">{bookingRequestSubmitting ? "Submitting..." : "Book Online"}</span>
                 </Button>
               </div>
-              {depositLockDisabled && (
+              {bookingRequestDisabled && (
                 <p className="text-xs text-gray-500">
-                  {depositLockHelperText}
+                  {bookingRequestHelperText}
                 </p>
               )}
+              {bookingRequestError ? (
+                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {bookingRequestError}
+                </p>
+              ) : null}
+              {!bookingConfirmation ? (
+                <p className="text-xs text-slate-500">
+                  Clicking `Book Online` now sends your booking request directly to our team instead of taking a deposit.
+                </p>
+              ) : null}
 
             </CardContent>
           </Card>
