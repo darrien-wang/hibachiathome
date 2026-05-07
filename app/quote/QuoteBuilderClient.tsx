@@ -613,38 +613,37 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         {bookingConfirmation ? (
-          <Card className="mb-8 overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-amber-50 shadow-lg">
-            <CardHeader className="border-b border-emerald-200/70 bg-white/80">
-              <Badge className="mb-3 w-fit bg-emerald-600 text-white hover:bg-emerald-600">Booking Request Sent</Badge>
-              <CardTitle className="text-3xl text-emerald-900">Your booking request has been received</CardTitle>
-              <CardDescription className="max-w-3xl text-base text-emerald-900/80">
-                We have your event basics.
+          <Card className="mb-8 overflow-hidden border-[#f1c7b1] bg-[linear-gradient(135deg,#fff7f2_0%,#fff1ec_52%,#fff8f1_100%)] shadow-[0_24px_70px_rgba(182,72,28,0.14)]">
+            <CardHeader className="border-b border-[#f3d4c5] bg-white/75">
+              <Badge className="mb-3 w-fit bg-[linear-gradient(135deg,#d3542b,#b91c1c)] text-white hover:brightness-105">Booking Request Sent</Badge>
+              <CardTitle className="text-3xl text-[#7f2d16]">Your booking request has been received</CardTitle>
+              <CardDescription className="max-w-3xl text-base text-[#9a3412]">
                 {bookingConfirmation.customerEmailDelivered
-                  ? " A confirmation email has been sent, and our team will contact you as soon as possible to confirm menu details, service setup, and the final booking steps."
-                  : " Our team will contact you as soon as possible to confirm menu details, service setup, and the final booking steps."}
+                  ? "A confirmation email will arrive shortly, and our team will contact you soon to finalize the remaining booking details."
+                  : "Our team will contact you soon, and we will send a confirmation email with the remaining booking details."}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
               <div className="space-y-5">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Name</p>
+                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Name</p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">{bookingConfirmation.customerName}</p>
                   </div>
-                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Contact</p>
+                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Contact</p>
                     <p className="mt-2 text-sm font-medium text-slate-900">{bookingConfirmation.customerEmail}</p>
                     <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.customerPhone}</p>
                   </div>
-                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Event</p>
+                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Event</p>
                     <p className="mt-2 text-sm font-medium text-slate-900">
                       {bookingConfirmation.eventDate} at {bookingConfirmation.eventTime}
                     </p>
                     <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.location}</p>
                   </div>
-                  <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Guests</p>
+                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Guests</p>
                     <p className="mt-2 text-sm font-medium text-slate-900">
                       {bookingConfirmation.adults} adults, {bookingConfirmation.kids} kids
                     </p>
@@ -652,43 +651,43 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                   </div>
                 </div>
 
-                <div className="rounded-[28px] border border-slate-200 bg-white/90 p-5">
+                <div className="rounded-[28px] border border-[#ecd7ca] bg-white/92 p-5">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Estimated range</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a3412]">Estimated range</p>
                     <p className="mt-2 text-3xl font-semibold text-slate-900">
                       ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
                     </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-700">
-                    <Badge variant="outline" className="rounded-full">
+                    <Badge variant="outline" className="rounded-full border-[#f0d4c8] bg-[#fff7f2]">
                       Tableware: {bookingConfirmation.tablewareRental ? "Yes" : "No"}
                     </Badge>
-                    <Badge variant="outline" className="rounded-full">
+                    <Badge variant="outline" className="rounded-full border-[#f0d4c8] bg-[#fff7f2]">
                       Canopies: {bookingConfirmation.tent10x10 ? "Yes" : "No"}
                     </Badge>
-                    <Badge variant="outline" className="rounded-full">
+                    <Badge variant="outline" className="rounded-full border-[#f0d4c8] bg-[#fff7f2]">
                       Upgrades: {bookingConfirmation.premiumUpgrades.length > 0 ? bookingConfirmation.premiumUpgrades.join(", ") : "None"}
                     </Badge>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[32px] border border-[#f3d7b2] bg-[linear-gradient(180deg,#fffaf2_0%,#fff2dd_100%)] p-4 text-slate-900 shadow-[0_24px_60px_rgba(190,120,40,0.16)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c96a18]">What happens next</p>
-                <div className="mt-4 overflow-hidden rounded-[24px] border border-[#efd8bc] bg-white/90">
+              <div className="rounded-[32px] border border-[#f2c3b0] bg-[linear-gradient(180deg,#fff4ee_0%,#ffe8dc_100%)] p-4 text-slate-900 shadow-[0_26px_60px_rgba(185,67,36,0.16)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c2410c]">What happens next</p>
+                <div className="mt-4 overflow-hidden rounded-[24px] border border-[#efcdbd] bg-[#fffdfb]">
                   <img
                     src="/images/hibachi-dinner-party.jpg"
                     alt="Hibachi dinner party preview"
                     className="h-48 w-full object-cover"
                   />
                   <div className="space-y-3 p-4">
-                    <p className="text-lg font-semibold text-[#7a3e10]">We will reach out shortly</p>
+                    <p className="text-lg font-semibold text-[#9a3412]">We will reach out shortly</p>
                     <p className="text-sm leading-6 text-slate-700">
                       {bookingConfirmation.customerEmailDelivered
                         ? "You will receive a confirmation email from support@realhibachi.com shortly, and our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."
                         : "Our team will contact you soon, and we will send a confirmation email to finalize menu options, chef availability, address details, and any special requests."}
                     </p>
-                    <div className="rounded-2xl border border-[#f1dcc0] bg-[#fff7ea] p-3 text-sm text-slate-700">
+                    <div className="rounded-2xl border border-[#efcfbf] bg-[#fff3ea] p-3 text-sm text-slate-700">
                       <p className="font-medium text-slate-900">Support: {displayPhone}</p>
                       <p>{displayEmail}</p>
                     </div>
