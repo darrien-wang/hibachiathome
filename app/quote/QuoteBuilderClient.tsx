@@ -653,16 +653,11 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 </div>
 
                 <div className="rounded-[28px] border border-slate-200 bg-white/90 p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Estimated range</p>
-                      <p className="mt-2 text-3xl font-semibold text-slate-900">
-                        ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="rounded-full border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-700">
-                      No deposit required now
-                    </Badge>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Estimated range</p>
+                    <p className="mt-2 text-3xl font-semibold text-slate-900">
+                      ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
+                    </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-700">
                     <Badge variant="outline" className="rounded-full">
@@ -678,24 +673,23 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 </div>
               </div>
 
-              <div className="rounded-[32px] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_22px_60px_rgba(15,23,42,0.22)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">What happens next</p>
-                <div className="mt-4 overflow-hidden rounded-[24px] border border-white/10 bg-slate-900">
+              <div className="rounded-[32px] border border-[#f3d7b2] bg-[linear-gradient(180deg,#fffaf2_0%,#fff2dd_100%)] p-4 text-slate-900 shadow-[0_24px_60px_rgba(190,120,40,0.16)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c96a18]">What happens next</p>
+                <div className="mt-4 overflow-hidden rounded-[24px] border border-[#efd8bc] bg-white/90">
                   <img
                     src="/images/hibachi-dinner-party.jpg"
                     alt="Hibachi dinner party preview"
                     className="h-48 w-full object-cover"
                   />
                   <div className="space-y-3 p-4">
-                    <p className="text-lg font-semibold">We will reach out shortly</p>
-                    <p className="text-sm leading-6 text-slate-300">
-                      Please keep this screen as your confirmation screenshot.
+                    <p className="text-lg font-semibold text-[#7a3e10]">We will reach out shortly</p>
+                    <p className="text-sm leading-6 text-slate-700">
                       {bookingConfirmation.customerEmailDelivered
-                        ? " A confirmation email has been sent from support@realhibachi.com, and our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."
-                        : " Our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."}
+                        ? "You will receive a confirmation email from support@realhibachi.com shortly, and our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."
+                        : "Our team will contact you soon, and we will send a confirmation email to finalize menu options, chef availability, address details, and any special requests."}
                     </p>
-                    <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-200">
-                      <p>Support: {displayPhone}</p>
+                    <div className="rounded-2xl border border-[#f1dcc0] bg-[#fff7ea] p-3 text-sm text-slate-700">
+                      <p className="font-medium text-slate-900">Support: {displayPhone}</p>
                       <p>{displayEmail}</p>
                     </div>
                   </div>
