@@ -951,7 +951,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Canopies are available for rainy day setups</p>
+                          <p>Canopies are available for rainy day setups · $50 per canopy</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
