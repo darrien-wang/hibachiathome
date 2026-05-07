@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Image from "next/image"
 import { usePathname, useSearchParams } from "next/navigation"
 import { MessageCircle, RefreshCw, Send, SmilePlus, UserRound, X } from "lucide-react"
 import { LiveChatPresenceIndicator } from "@/components/livechat-presence-indicator"
@@ -57,6 +58,9 @@ type LivechatMessage = {
   contentType: string
   createdAt: string
 }
+
+const SUPPORT_AGENT_NAME = "Rowling"
+const SUPPORT_AGENT_AVATAR_SRC = "/live-chat-avatar.png"
 
 type SessionResponse = {
   ok: boolean
@@ -997,7 +1001,18 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
                 {messages.map((message) => {
                   const fromVisitor = message.senderRole === "visitor"
                   return (
-                    <div key={message.id} className={cn("flex", fromVisitor ? "justify-end" : "justify-start")}>
+                    <div key={message.id} className={cn("flex items-end gap-2", fromVisitor ? "justify-end" : "justify-start")}>
+                      {!fromVisitor ? (
+                        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-amber-200 bg-white shadow-sm">
+                          <Image
+                            src={SUPPORT_AGENT_AVATAR_SRC}
+                            alt={SUPPORT_AGENT_NAME}
+                            fill
+                            sizes="36px"
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : null}
                       <div
                         className={cn(
                           "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
@@ -1005,7 +1020,7 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
                         )}
                       >
                         <div className="mb-1 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.18em] opacity-70">
-                          <span>{fromVisitor ? "You" : message.senderName || "Support"}</span>
+                          <span>{fromVisitor ? "You" : message.senderName || SUPPORT_AGENT_NAME}</span>
                           <span className="normal-case tracking-normal">{formatTime(message.createdAt)}</span>
                         </div>
                         <p className="whitespace-pre-wrap leading-5">{message.body}</p>
@@ -1097,7 +1112,7 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
               </div>
               {error ? <p className="text-sm text-rose-600">{error}</p> : null}
               <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-                <span>{session?.assignedAdmin ? `Support: ${session.assignedAdmin}` : "No support agent yet"}</span>
+                <span>{session?.assignedAdmin ? `Support: ${SUPPORT_AGENT_NAME}` : "No support agent yet"}</span>
                 <Button
                   type="button"
                   onClick={() => void handleSend()}
