@@ -9,6 +9,7 @@ type GalleryMedia = {
   src: string
   title: string
   alt: string
+  poster?: string
 }
 
 const galleryMedia: GalleryMedia[] = [
@@ -114,6 +115,7 @@ const galleryMedia: GalleryMedia[] = [
     id: "real-hibachi-party-los-angeles-chef-show-video-01",
     type: "video",
     src: "/gallery/real-hibachi-party-los-angeles-chef-show-video-01.mp4",
+    poster: "/gallery/real-hibachi-party-los-angeles-chef-show-video-01-poster.jpg",
     title: "Los Angeles Hibachi Chef Show Video",
     alt: "Video of a hibachi chef show at a Los Angeles private party",
   },
@@ -121,6 +123,7 @@ const galleryMedia: GalleryMedia[] = [
     id: "real-hibachi-party-orange-county-backyard-video-02",
     type: "video",
     src: "/gallery/real-hibachi-party-orange-county-backyard-video-02.mp4",
+    poster: "/gallery/real-hibachi-party-orange-county-backyard-video-02-poster.jpg",
     title: "Orange County Backyard Hibachi Party Video",
     alt: "Video of a backyard hibachi party in Orange County",
   },
@@ -128,6 +131,7 @@ const galleryMedia: GalleryMedia[] = [
     id: "real-hibachi-party-los-angeles-live-cooking-video-03",
     type: "video",
     src: "/gallery/real-hibachi-party-los-angeles-live-cooking-video-03.mp4",
+    poster: "/gallery/real-hibachi-party-los-angeles-live-cooking-video-03-poster.jpg",
     title: "Los Angeles Live Hibachi Cooking Video",
     alt: "Video of live hibachi cooking for a Los Angeles at-home event",
   },
@@ -135,6 +139,7 @@ const galleryMedia: GalleryMedia[] = [
     id: "real-hibachi-party-southern-california-event-video-04",
     type: "video",
     src: "/gallery/real-hibachi-party-southern-california-event-video-04.mp4",
+    poster: "/gallery/real-hibachi-party-southern-california-event-video-04-poster.jpg",
     title: "Southern California Hibachi Event Video",
     alt: "Video of a Southern California hibachi party with on-site chef service",
   },
@@ -181,25 +186,18 @@ export default function GalleryPage() {
               aria-label={media.alt}
               title={media.title}
             >
-              {!mediaLoadErrors[media.id] && media.type === "image" ? (
+              {!mediaLoadErrors[media.id] ? (
                 <Image
-                  src={media.src}
+                  src={media.type === "video" && media.poster ? media.poster : media.src}
                   alt={media.alt}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                   className="object-cover"
-                  priority={media.id.endsWith("-01") || media.id.endsWith("-02")}
-                  onError={() => handleMediaError(media.id)}
-                />
-              ) : !mediaLoadErrors[media.id] ? (
-                <video
-                  src={media.src}
-                  aria-label={media.alt}
-                  title={media.title}
-                  className="h-full w-full object-cover"
-                  muted
-                  playsInline
-                  preload="metadata"
+                  priority={
+                    media.type === "image" &&
+                    (media.id === "real-hibachi-party-los-angeles-private-chef-01" ||
+                      media.id === "real-hibachi-party-los-angeles-backyard-event-02")
+                  }
                   onError={() => handleMediaError(media.id)}
                 />
               ) : (
@@ -207,6 +205,14 @@ export default function GalleryPage() {
                   <span className="text-sm">Media unavailable</span>
                 </div>
               )}
+              {media.type === "video" ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-xl text-slate-900 shadow-lg">
+                    <span className="ml-1" aria-hidden="true">▶</span>
+                    <span className="sr-only">Play video</span>
+                  </div>
+                </div>
+              ) : null}
               <div className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-sm font-medium text-white">
                 {media.title}
               </div>
@@ -233,6 +239,7 @@ export default function GalleryPage() {
               ) : (
                 <video
                   src={selectedMedia.src}
+                  poster={selectedMedia.poster}
                   aria-label={selectedMedia.alt}
                   title={selectedMedia.title}
                   className="h-full w-full object-contain"
