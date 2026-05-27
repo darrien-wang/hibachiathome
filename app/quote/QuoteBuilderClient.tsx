@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays } from "lucide-react"
+import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, X } from "lucide-react"
 import { siteConfig } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import {
@@ -76,6 +77,7 @@ type WeatherPreview = {
 }
 
 type BookingConfirmation = {
+  bookingId?: string
   customerName: string
   customerEmail: string
   customerPhone: string
@@ -397,6 +399,29 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const bookingRequestHelperText = missingRequiredBookingFields
     ? "Fill name, email, phone, date, time, and core quote details first."
     : "Weekday Saver must be Monday-Thursday, 15+ guests, and exactly 2 proteins selected."
+  const bookingConfirmationDepositHref = useMemo(() => {
+    if (!bookingConfirmation) return "/deposit/pay"
+
+    const params = new URLSearchParams({
+      source: variant === "B" ? "quoteB" : "quoteA",
+      customer_name: bookingConfirmation.customerName,
+      customer_email: bookingConfirmation.customerEmail,
+      event_date: bookingConfirmation.eventDate,
+      event_time: bookingConfirmation.eventTime,
+      location: bookingConfirmation.location,
+      adults: String(bookingConfirmation.adults),
+      kids: String(bookingConfirmation.kids),
+      tent_10x10: bookingConfirmation.tent10x10 ? "yes" : "no",
+      estimate_low: String(Math.round(bookingConfirmation.estimateLow)),
+      estimate_high: String(Math.round(bookingConfirmation.estimateHigh)),
+    })
+
+    if (bookingConfirmation.bookingId) {
+      params.set("id", bookingConfirmation.bookingId)
+    }
+
+    return `/deposit/pay?${params.toString()}`
+  }, [bookingConfirmation, variant])
   const selectedPremiumUpgrades = useMemo(() => {
     const labels: string[] = []
     if (input.addOns.steak) labels.push("Filet Mignon")
@@ -499,6 +524,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
 
     setBookingRequestSubmitting(true)
     setBookingRequestError("")
+    const bookingEventId = `booking_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
     trackEvent("ab_test_conversion", {
       experiment_id: "quote_route_split_v1",
@@ -515,17 +541,31 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       estimate_high: result.totalRange.high,
     })
 
-    trackEvent("lead_submit", {
-      ...buildQualifiedLeadPayload("email"),
+    trackEvent("booking_submit", {
+      lead_source: quoteSurface,
       lead_channel: "website_booking_request",
-      customer_email: customerEmail.trim(),
-      customer_phone: customerPhone.trim(),
+      lead_type: "booking_request",
       booking_request: true,
+      contact_surface: quoteSurface,
+      quote_surface: quoteSurface,
+      city_or_zip: input.location || "unspecified",
+      guest_count: result.guestCount,
+      adults: input.adults,
+      kids: input.kids,
+      event_date: input.eventDate || "unspecified",
+      event_time: eventTime || "unspecified",
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
+      estimate_low: result.totalRange.low,
+      estimate_high: result.totalRange.high,
+      value: result.totalRange.low,
+      currency: "USD",
+      event_id: bookingEventId,
     })
 
     const pricingTierLabel = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
     const message = [
-      "Website customer clicked Book Online. No deposit was collected.",
+      "Website customer clicked Book Now. No deposit was collected.",
       "",
       `Quote Summary: ${quoteSummary}`,
       `Pricing Tier: ${pricingTierLabel}`,
@@ -570,6 +610,9 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       }
       const bookingPayload = payload as {
         success?: boolean
+        bookingFallback?: {
+          bookingId?: string
+        } | null
         customerConfirmation?: {
           delivered?: boolean
           skippedReason?: string
@@ -577,6 +620,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       }
 
       setBookingConfirmation({
+        bookingId: bookingPayload.bookingFallback?.bookingId,
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim(),
@@ -593,7 +637,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
         premiumUpgrades: selectedPremiumUpgrades,
         customerEmailDelivered: bookingPayload.customerConfirmation?.delivered === true,
       })
-      window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (error) {
       setBookingRequestError(error instanceof Error ? error.message : "Failed to submit booking request.")
     } finally {
@@ -613,89 +656,82 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         {bookingConfirmation ? (
-          <Card className="mb-8 overflow-hidden border-[#f1c7b1] bg-[linear-gradient(135deg,#fff7f2_0%,#fff1ec_52%,#fff8f1_100%)] shadow-[0_24px_70px_rgba(182,72,28,0.14)]">
-            <CardHeader className="border-b border-[#f3d4c5] bg-white/75">
-              <Badge className="mb-3 w-fit bg-[linear-gradient(135deg,#d3542b,#b91c1c)] text-white hover:brightness-105">Booking Request Sent</Badge>
-              <CardTitle className="text-3xl text-[#7f2d16]">Your booking request has been received</CardTitle>
-              <CardDescription className="max-w-3xl text-base text-[#9a3412]">
-                {bookingConfirmation.customerEmailDelivered
-                  ? "A confirmation email will arrive shortly, and our team will contact you soon to finalize the remaining booking details."
-                  : "Our team will contact you soon, and we will send a confirmation email with the remaining booking details."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-              <div className="space-y-5">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Name</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-900">{bookingConfirmation.customerName}</p>
-                  </div>
-                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Contact</p>
-                    <p className="mt-2 text-sm font-medium text-slate-900">{bookingConfirmation.customerEmail}</p>
-                    <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.customerPhone}</p>
-                  </div>
-                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Event</p>
-                    <p className="mt-2 text-sm font-medium text-slate-900">
-                      {bookingConfirmation.eventDate} at {bookingConfirmation.eventTime}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.location}</p>
-                  </div>
-                  <div className="rounded-2xl border border-[#f1d4c7] bg-white/92 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">Guests</p>
-                    <p className="mt-2 text-sm font-medium text-slate-900">
-                      {bookingConfirmation.adults} adults, {bookingConfirmation.kids} kids
-                    </p>
-                    <p className="mt-1 text-sm text-slate-700">{bookingConfirmation.pricingTierLabel}</p>
-                  </div>
-                </div>
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="booking-confirmation-title"
+          >
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-[#f1c7b1] bg-[linear-gradient(135deg,#fff7f2_0%,#fff1ec_52%,#fff8f1_100%)] p-5 shadow-[0_30px_90px_rgba(64,22,10,0.35)] sm:p-7">
+              <button
+                type="button"
+                onClick={() => setBookingConfirmation(null)}
+                className="absolute right-4 top-4 rounded-full bg-white/80 p-2 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900"
+                aria-label="Close booking confirmation"
+              >
+                <X className="h-4 w-4" />
+              </button>
 
-                <div className="rounded-[28px] border border-[#ecd7ca] bg-white/92 p-5">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a3412]">Estimated range</p>
-                    <p className="mt-2 text-3xl font-semibold text-slate-900">
-                      ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-700">
-                    <Badge variant="outline" className="rounded-full border-[#f0d4c8] bg-[#fff7f2]">
-                      Tableware: {bookingConfirmation.tablewareRental ? "Yes" : "No"}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-full border-[#f0d4c8] bg-[#fff7f2]">
-                      Canopies: {bookingConfirmation.tent10x10 ? "Yes" : "No"}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-full border-[#f0d4c8] bg-[#fff7f2]">
-                      Upgrades: {bookingConfirmation.premiumUpgrades.length > 0 ? bookingConfirmation.premiumUpgrades.join(", ") : "None"}
-                    </Badge>
-                  </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-white/70">
+                  <CheckCircle2 className="h-9 w-9" />
+                </div>
+                <Badge className="mb-3 w-fit bg-[linear-gradient(135deg,#d3542b,#b91c1c)] text-white hover:brightness-105">
+                  Booking Request Sent
+                </Badge>
+                <h2 id="booking-confirmation-title" className="text-3xl font-bold tracking-tight text-[#7f2d16] sm:text-4xl">
+                  Great, you're on our booking list!
+                </h2>
+                <p className="mt-3 max-w-xl text-base leading-7 text-[#9a3412]">
+                  {bookingConfirmation.customerEmailDelivered
+                    ? "We received your event details and sent a confirmation email. Our team will contact you soon to confirm chef availability, menu options, and the final details."
+                    : "We received your event details. Our team will contact you soon to confirm chef availability, menu options, and the final details."}
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-3 rounded-2xl border border-[#f1d4c7] bg-white/90 p-4 text-sm text-slate-700 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Event</p>
+                  <p className="mt-1 font-medium text-slate-900">
+                    {bookingConfirmation.eventDate} at {bookingConfirmation.eventTime}
+                  </p>
+                  <p>{bookingConfirmation.location}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Estimate</p>
+                  <p className="mt-1 font-medium text-slate-900">
+                    ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
+                  </p>
+                  <p>{bookingConfirmation.adults} adults, {bookingConfirmation.kids} kids</p>
                 </div>
               </div>
 
-              <div className="rounded-[32px] border border-[#f2c3b0] bg-[linear-gradient(180deg,#fff4ee_0%,#ffe8dc_100%)] p-4 text-slate-900 shadow-[0_26px_60px_rgba(185,67,36,0.16)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c2410c]">What happens next</p>
-                <div className="mt-4 overflow-hidden rounded-[24px] border border-[#efcdbd] bg-[#fffdfb]">
-                  <img
-                    src="/images/hibachi-dinner-party.jpg"
-                    alt="Hibachi dinner party preview"
-                    className="h-48 w-full object-cover"
-                  />
-                  <div className="space-y-3 p-4">
-                    <p className="text-lg font-semibold text-[#9a3412]">We will reach out shortly</p>
-                    <p className="text-sm leading-6 text-slate-700">
-                      {bookingConfirmation.customerEmailDelivered
-                        ? "You will receive a confirmation email from support@realhibachi.com shortly, and our team will contact you soon to finalize menu options, chef availability, address details, and any special requests."
-                        : "Our team will contact you soon, and we will send a confirmation email to finalize menu options, chef availability, address details, and any special requests."}
-                    </p>
-                    <div className="rounded-2xl border border-[#efcfbf] bg-[#fff3ea] p-3 text-sm text-slate-700">
-                      <p className="font-medium text-slate-900">Support: {displayPhone}</p>
-                      <p>{displayEmail}</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="mt-6 rounded-2xl border border-[#efcfbf] bg-[#fff3ea] p-4 text-center">
+                <p className="text-lg font-semibold text-[#9a3412]">Your booking request is complete.</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  You can pay the deposit now to lock the date, or simply wait for our team to contact you and pay after we confirm the details.
+                </p>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Button asChild className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
+                  <Link href={bookingConfirmationDepositHref}>Pay Deposit Now</Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setBookingConfirmation(null)}
+                  className="rounded-full border-[#efcfbf] bg-white text-[#9a3412] hover:bg-[#fff7f2]"
+                >
+                  Wait for Our Contact
+                </Button>
+              </div>
+
+              <p className="mt-4 text-center text-xs leading-5 text-slate-600">
+                Questions? Call or text {displayPhone}, or email {displayEmail}.
+              </p>
+            </div>
+          </div>
         ) : null}
 
         <div className="text-center mb-10">
@@ -718,7 +754,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 <Calculator className="h-5 w-5" />
                 Event Inputs
               </CardTitle>
-              <CardDescription>4+1 quick inputs. Most users finish this in under 30 seconds.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div>
@@ -1150,7 +1185,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                   className="h-auto min-h-12 min-w-0 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-200 disabled:text-emerald-700 text-sm text-center py-3 px-4"
                 >
                   <CalendarDays className="mr-2 h-4 w-4" />
-                  <span className="font-medium">{bookingRequestSubmitting ? "Submitting..." : "Book Online"}</span>
+                  <span className="font-medium">{bookingRequestSubmitting ? "Submitting..." : "Book Now"}</span>
                 </Button>
               </div>
               {bookingRequestDisabled && (

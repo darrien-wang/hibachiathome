@@ -1135,10 +1135,16 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
           aria-controls="rh-livechat-panel"
           aria-expanded={open}
           onClick={() => (open ? setOpen(false) : openWidget("manual"))}
-          className="pointer-events-auto relative h-14 rounded-full bg-slate-950 px-5 text-white shadow-xl hover:bg-slate-800"
+          className="pointer-events-auto relative h-14 w-14 overflow-hidden rounded-full border-2 border-white bg-slate-950 p-0 text-white shadow-xl hover:bg-slate-800"
         >
-          <MessageCircle className="h-5 w-5" />
-          Chat with support
+          <Image
+            src={SUPPORT_AGENT_AVATAR_SRC}
+            alt=""
+            width={56}
+            height={56}
+            className="h-full w-full object-cover"
+            priority={false}
+          />
           {!open && (session?.unreadForVisitorCount ?? 0) > 0 ? (
             <span className="absolute -right-1.5 -top-1.5 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-emerald-600 px-1.5 text-[11px] font-semibold leading-none text-white shadow-lg">
               {Math.min(session?.unreadForVisitorCount ?? 0, 9)}

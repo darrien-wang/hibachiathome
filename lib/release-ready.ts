@@ -150,7 +150,7 @@ export async function buildReleaseReadyPayload(request: Request) {
       requestedBaseUrl: host ? `${protocol}://${host}` : null,
       vercelEnv: process.env.VERCEL_ENV || process.env.NODE_ENV || null,
       vercelUrl: process.env.VERCEL_URL || null,
-      productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL || null,
+      productionUrl: process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || null,
       gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
     },
     dependencies: {

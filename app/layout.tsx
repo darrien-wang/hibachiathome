@@ -10,6 +10,8 @@ import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { SocialProofToast } from "@/components/social-proof-toast"
 import { LiveChatLoader } from "@/components/live-chat-loader"
 
+const DEFAULT_GTM_ID = "GTM-WQZNBK82"
+
 export const metadata: Metadata = {
   title: {
     default: "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
@@ -67,7 +69,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID || DEFAULT_GTM_ID
 
   return (
     <html lang="en" suppressHydrationWarning>
