@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "Get Instant Quote A | Real Hibachi",
   description:
     "Variant A of our one-page quote builder for instant hibachi pricing context, travel fee range, upgrades, and quick contact actions.",
+  robots: {
+    index: false,
+    follow: true,
+  },
   openGraph: {
     title: "Get Instant Quote A | Real Hibachi",
     description: "Quote variant A with SMS, call, and email actions.",

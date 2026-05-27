@@ -1,159 +1,163 @@
 "use client"
 
 import { useState } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
-import { siteConfig } from "@/config/site"
 
-// Gallery data with actual blob images
-const galleryImages = [
-  {
-    id: "img1",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/1-m93dHNDISVKua3hTFnhnZ2JOqCPLB8.jpg",
-    alt: "Hibachi chef cooking with flames",
-  },
-  {
-    id: "img2",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/2-fwVMDe7XNA5vixCVGUffU4v1pDKdGG.jpg",
-    alt: "Fresh hibachi food being prepared",
-  },
-  {
-    id: "img3",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/3-ECGoDibwRJkqEKZFdiHbo4zufuvMyy.jpg",
-    alt: "Family enjoying hibachi at home",
-  },
-  {
-    id: "img4",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/4-SfqZqyg2PR4QVtatCRbequgR4WEoED.jpg",
-    alt: "Chef performing tricks",
-  },
-  {
-    id: "img5",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/5-q0GCQMceuaTeB4FEj5cRTas5xwHNeM.jpg",
-    alt: "Seafood hibachi",
-  },
-  {
-    id: "img6",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/7-TDZQrw5MJ7F6E1PmyHBDTtVPfNotpU.jpg",
-    alt: "Backyard party with hibachi",
-  },
-  {
-    id: "img7",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/9-qHeyNSeSAqYXM7I48CSkphbX7otGg4.jpg",
-    alt: "Chef preparing food for guests",
-  },
-  {
-    id: "img8",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/10-J7UoyKbxWTbhf21D1MIAUmZDztkwuY.jpg",
-    alt: "Indoor hibachi setup",
-  },
-  {
-    id: "img9",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/12-iIr42kDF4rQun91qqi0fabY58OlvAa.jpg",
-    alt: "Hibachi chef in action",
-  },
-  {
-    id: "img10",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/13-DOajRn24VwHuGDHsSSquxCmhKZqwwz.jpg",
-    alt: "Hibachi cooking demonstration",
-  },
-  {
-    id: "img11",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/15-YiS8DnJX7ucNCKnwemQ63i2HLwp8FH.jpg",
-    alt: "Hibachi dinner party",
-  },
-  {
-    id: "img12",
-    src: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/21-0VdJxRFuoOsjk8mAAP0E1uKNupLa1E.jpg",
-    alt: "Hibachi chef preparing meal",
-  },
-]
+type GalleryMedia = {
+  id: string
+  type: "image" | "video"
+  src: string
+  title: string
+  alt: string
+}
 
-// Video data with YouTube embeds
-const galleryVideos = [
+const galleryMedia: GalleryMedia[] = [
   {
-    id: "vid-scallops",
-    youtubeId: "fSDzyAoXnfE",
-    title: "How to Make Perfect Hibachi Scallops: Expert Tips and Techniques",
-    description:
-      "Learn how to make perfectly seared hibachi scallops with expert tips and techniques from a professional hibachi chef. Watch as the chef demonstrates the proper way to prepare and cook scallops on a hibachi grill, using just the right amount of heat and seasoning to bring out their natural flavors.",
-    isAvailable: true,
-  },
-
-  {
-    id: "vid1",
-    youtubeId: "5ZH43ej3wys",
-    title: "Benihana Fried Rice Secrets Revealed",
-    description:
-      "A comprehensive guide to making Benihana's famous fried rice at home. Learn all the tips, tricks and techniques to make restaurant-quality hibachi fried rice.",
-    isAvailable: true,
+    id: "real-hibachi-party-los-angeles-private-chef-01",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-private-chef-01.jpg",
+    title: "Private Hibachi Chef Party in Los Angeles",
+    alt: "Private hibachi chef cooking at a Los Angeles hibachi party",
   },
   {
-    id: "vid10",
-    youtubeId: "3Ha8hMsF0t0",
-    title: "Hibachi Restaurant Chef Live",
-    description:
-      "Experience the excitement of a live hibachi restaurant chef performance. Watch as the chef demonstrates impressive cooking skills and entertaining tricks right at the table.",
-    isAvailable: true,
+    id: "real-hibachi-party-los-angeles-backyard-event-02",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-backyard-event-02.jpg",
+    title: "Backyard Hibachi Party in Los Angeles",
+    alt: "Backyard hibachi party setup for a Los Angeles private event",
   },
   {
-    id: "vid11",
-    youtubeId: "ENTCDF8du_A",
-    title: "How to Make Hibachi at Home | Steak and Shrimp Hibachi on Blackstone Griddle",
-    description:
-      "A detailed tutorial on how to make restaurant-quality steak and shrimp hibachi at home using a Blackstone griddle. Learn professional techniques and tips for creating the perfect hibachi meal in your own backyard.",
-    isAvailable: true,
+    id: "real-hibachi-party-los-angeles-chef-grill-setup-03",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg",
+    title: "Hibachi Chef and Grill Setup in LA",
+    alt: "Hibachi chef and grill setup for an at-home party in Los Angeles",
   },
   {
-    id: "vid2",
-    youtubeId: "SdRL0xprY24",
-    title: "Hibachi Chicken At Home Better Than Benihana",
-    description:
-      "Learn how to make hibachi chicken at home that's even better than Benihana or any Japanese steakhouse, for a fraction of the cost. This Japanese-inspired hibachi teppanyaki recipe is super easy to make.",
-    isAvailable: true,
+    id: "real-hibachi-party-orange-county-family-event-04",
+    type: "image",
+    src: "/gallery/real-hibachi-party-orange-county-family-event-04.jpg",
+    title: "Orange County Family Hibachi Event",
+    alt: "Family hibachi party at home in Orange County",
   },
   {
-    id: "vid3",
-    youtubeId: "cnjPsZP0Uj8",
-    title: "Hibachi Steak At Home Better Than Benihana",
-    description:
-      "Make restaurant-quality hibachi steak at home with this easy-to-follow recipe. Perfect for a special dinner that's more affordable than dining out.",
-    isAvailable: true,
+    id: "real-hibachi-party-los-angeles-fresh-cooking-05",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
+    title: "Fresh On-Site Hibachi Cooking in Los Angeles",
+    alt: "Fresh hibachi food cooked on-site for a Los Angeles party",
   },
   {
-    id: "vid4",
-    youtubeId: "ZnzRmM1KE48",
-    title: "Benihana Hibachi Ginger Salad Dressing Recipe",
-    description:
-      "Learn how to make Benihana's famous ginger salad dressing at home. This tangy, sweet, and slightly spicy dressing perfectly complements any hibachi meal.",
-    isAvailable: true,
+    id: "real-hibachi-party-southern-california-dinner-06",
+    type: "image",
+    src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
+    title: "Southern California Hibachi Dinner Party",
+    alt: "Hibachi dinner party for a Southern California private event",
   },
   {
-    id: "vid5",
-    youtubeId: "Lj_OqXwh-Ks",
-    title: "Benihana Hibachi Vegetables Recipe",
-    description:
-      "Create restaurant-quality hibachi vegetables at home with this authentic recipe. Perfect as a side dish for your hibachi-style meal.",
-    isAvailable: true,
+    id: "real-hibachi-party-los-angeles-chef-show-07",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-chef-show-07.jpg",
+    title: "Los Angeles Hibachi Chef Show",
+    alt: "Hibachi chef show during a Los Angeles at-home party",
+  },
+  {
+    id: "real-hibachi-party-orange-county-backyard-hibachi-08",
+    type: "image",
+    src: "/gallery/real-hibachi-party-orange-county-backyard-hibachi-08.jpg",
+    title: "Orange County Backyard Hibachi Party",
+    alt: "Backyard hibachi party service in Orange County",
+  },
+  {
+    id: "real-hibachi-party-los-angeles-group-dinner-09",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-group-dinner-09.jpg",
+    title: "Los Angeles Group Hibachi Dinner",
+    alt: "Group dinner with hibachi chef service in Los Angeles",
+  },
+  {
+    id: "real-hibachi-party-southern-california-private-event-10",
+    type: "image",
+    src: "/gallery/real-hibachi-party-southern-california-private-event-10.jpg",
+    title: "Southern California Private Hibachi Event",
+    alt: "Private hibachi event with chef service in Southern California",
+  },
+  {
+    id: "real-hibachi-party-los-angeles-on-site-chef-11",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-on-site-chef-11.jpg",
+    title: "On-Site Hibachi Chef in Los Angeles",
+    alt: "On-site hibachi chef cooking for guests in Los Angeles",
+  },
+  {
+    id: "real-hibachi-party-orange-county-hibachi-at-home-12",
+    type: "image",
+    src: "/gallery/real-hibachi-party-orange-county-hibachi-at-home-12.jpg",
+    title: "Hibachi at Home in Orange County",
+    alt: "Hibachi at home party with chef service in Orange County",
+  },
+  {
+    id: "real-hibachi-party-los-angeles-birthday-event-13",
+    type: "image",
+    src: "/gallery/real-hibachi-party-los-angeles-birthday-event-13.jpg",
+    title: "Los Angeles Birthday Hibachi Party",
+    alt: "Birthday hibachi party with private chef service in Los Angeles",
+  },
+  {
+    id: "real-hibachi-party-southern-california-chef-experience-14",
+    type: "image",
+    src: "/gallery/real-hibachi-party-southern-california-chef-experience-14.jpg",
+    title: "Southern California Hibachi Chef Experience",
+    alt: "Private hibachi chef experience for a Southern California party",
+  },
+  {
+    id: "real-hibachi-party-los-angeles-chef-show-video-01",
+    type: "video",
+    src: "/gallery/real-hibachi-party-los-angeles-chef-show-video-01.mp4",
+    title: "Los Angeles Hibachi Chef Show Video",
+    alt: "Video of a hibachi chef show at a Los Angeles private party",
+  },
+  {
+    id: "real-hibachi-party-orange-county-backyard-video-02",
+    type: "video",
+    src: "/gallery/real-hibachi-party-orange-county-backyard-video-02.mp4",
+    title: "Orange County Backyard Hibachi Party Video",
+    alt: "Video of a backyard hibachi party in Orange County",
+  },
+  {
+    id: "real-hibachi-party-los-angeles-live-cooking-video-03",
+    type: "video",
+    src: "/gallery/real-hibachi-party-los-angeles-live-cooking-video-03.mp4",
+    title: "Los Angeles Live Hibachi Cooking Video",
+    alt: "Video of live hibachi cooking for a Los Angeles at-home event",
+  },
+  {
+    id: "real-hibachi-party-southern-california-event-video-04",
+    type: "video",
+    src: "/gallery/real-hibachi-party-southern-california-event-video-04.mp4",
+    title: "Southern California Hibachi Event Video",
+    alt: "Video of a Southern California hibachi party with on-site chef service",
   },
 ]
 
 export default function GalleryPage() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({})
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null)
+  const [mediaLoadErrors, setMediaLoadErrors] = useState<Record<string, boolean>>({})
+
+  const selectedMedia = galleryMedia.find((media) => media.id === selectedMediaId)
 
   const openLightbox = (id: string) => {
-    setSelectedImage(id)
+    setSelectedMediaId(id)
   }
 
   const closeLightbox = () => {
-    setSelectedImage(null)
+    setSelectedMediaId(null)
   }
 
-  const handleImageError = (imageId: string) => {
-    setImageLoadErrors(prev => ({
+  const handleMediaError = (mediaId: string) => {
+    setMediaLoadErrors(prev => ({
       ...prev,
-      [imageId]: true
+      [mediaId]: true
     }))
   }
 
@@ -163,111 +167,92 @@ export default function GalleryPage() {
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Gallery</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Browse our collection of hibachi photos and instructional videos. Learn professional techniques and get
-            inspired for your next hibachi experience.
+            See real hibachi-at-home events, chef show moments, backyard parties, and fresh on-site cooking from Real
+            Hibachi service examples.
           </p>
         </div>
 
-        <Tabs defaultValue="photos" className="mb-12">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="videos">Videos</TabsTrigger>
-          </TabsList>
-
-          {/* Photos Tab */}
-          <TabsContent value="photos">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {galleryImages.map((image) => (
-                <div
-                  key={image.id}
-                  className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
-                  onClick={() => !imageLoadErrors[image.id] && openLightbox(image.id)}
-                >
-                  {!imageLoadErrors[image.id] ? (
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                      className="object-cover"
-                      priority={image.id === "img1" || image.id === "img2"}
-                      onError={() => handleImageError(image.id)}
-                      unoptimized={true}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                      <span className="text-sm">Image unavailable</span>
-                    </div>
-                  )}
+        <div className="mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {galleryMedia.map((media) => (
+            <div
+              key={media.id}
+              className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
+              onClick={() => !mediaLoadErrors[media.id] && openLightbox(media.id)}
+              aria-label={media.alt}
+              title={media.title}
+            >
+              {!mediaLoadErrors[media.id] && media.type === "image" ? (
+                <Image
+                  src={media.src}
+                  alt={media.alt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                  className="object-cover"
+                  priority={media.id.endsWith("-01") || media.id.endsWith("-02")}
+                  onError={() => handleMediaError(media.id)}
+                />
+              ) : !mediaLoadErrors[media.id] ? (
+                <video
+                  src={media.src}
+                  aria-label={media.alt}
+                  title={media.title}
+                  className="h-full w-full object-cover"
+                  muted
+                  playsInline
+                  preload="metadata"
+                  onError={() => handleMediaError(media.id)}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                  <span className="text-sm">Media unavailable</span>
                 </div>
-              ))}
+              )}
+              <div className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-sm font-medium text-white">
+                {media.title}
+              </div>
             </div>
-          </TabsContent>
-
-          {/* Videos Tab */}
-          <TabsContent value="videos">
-            <div className="mb-8 max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold mb-3">Hibachi Cooking Tutorials</h2>
-              <p className="text-gray-600 mb-4">
-                Explore our collection of high-quality Hibachi cooking tutorials. Learn everything from basic ingredient
-                preparation to professional cooking techniques, all demonstrated by expert chefs. Recreate
-                restaurant-quality Hibachi experiences at home!
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {galleryVideos
-                .filter((video) => video.isAvailable !== false) // 过滤掉不可用的视频
-                .map((video) => (
-                  <div key={video.id} className="rounded-lg overflow-hidden border shadow-md">
-                    <div className="relative aspect-video bg-gray-100">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${video.youtubeId}`}
-                        title={video.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="absolute inset-0 w-full h-full"
-                      ></iframe>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-medium text-lg mb-1">{video.title}</h3>
-                      <p className="text-sm text-gray-600">{video.description}</p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-
-            <div className="mt-10 text-center text-sm text-gray-500 max-w-2xl mx-auto border-t border-gray-200 pt-6">
-              <p className="mb-2">
-                <strong>Disclaimer:</strong> All videos featured on this page are sourced from public platforms. Rights
-                belong to their respective creators and are shared for educational purposes only.
-              </p>
-              <p>If you're the original creator and have concerns, please contact us at {siteConfig.contact.email}</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+          ))}
+        </div>
 
         {/* Lightbox */}
-        {selectedImage && !imageLoadErrors[selectedImage] && (
+        {selectedMedia && !mediaLoadErrors[selectedMedia.id] && (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center" onClick={closeLightbox}>
             <div className="relative max-w-5xl w-full h-full max-h-[80vh] p-4">
-              {galleryImages.find((img) => img.id === selectedImage) && (
+              {selectedMedia.type === "image" ? (
                 <Image
-                  src={galleryImages.find((img) => img.id === selectedImage)!.src}
-                  alt={galleryImages.find((img) => img.id === selectedImage)!.alt}
+                  src={selectedMedia.src}
+                  alt={selectedMedia.alt}
                   fill
                   sizes="100vw"
                   className="object-contain"
                   onError={() => {
-                    handleImageError(selectedImage)
+                    handleMediaError(selectedMedia.id)
                     closeLightbox()
                   }}
-                  unoptimized={true}
+                />
+              ) : (
+                <video
+                  src={selectedMedia.src}
+                  aria-label={selectedMedia.alt}
+                  title={selectedMedia.title}
+                  className="h-full w-full object-contain"
+                  controls
+                  autoPlay
+                  playsInline
+                  onError={() => {
+                    handleMediaError(selectedMedia.id)
+                    closeLightbox()
+                  }}
                 />
               )}
-              <button 
-                className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors" 
+              <div className="absolute inset-x-4 bottom-4 rounded bg-black/65 px-4 py-3 text-white">
+                <p className="font-semibold">{selectedMedia.title}</p>
+                <p className="text-sm text-white/80">{selectedMedia.alt}</p>
+              </div>
+              <button
+                className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors"
                 onClick={closeLightbox}
+                aria-label="Close gallery preview"
               >
                 &times;
               </button>

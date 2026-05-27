@@ -1,0 +1,303 @@
+{
+  "project": "realhibachi-marketing",
+  "created_at": "2026-05-26",
+  "objective": "Align organic SEO pages with the high-intent Google Ads keyword strategy while keeping quote pages focused on conversion tracking.",
+  "execution_rule": "Complete exactly one implementation task per Codex turn, then verify before moving to the next task.",
+  "keyword_clusters": [
+    {
+      "cluster": "hibachi_at_home",
+      "target_page": "/hibachi-at-home",
+      "keywords": [
+        "hibachi at home",
+        "hibachi at home near me",
+        "at home hibachi near me",
+        "hibachi at your house",
+        "hibachi come to your house",
+        "hibachi service at home",
+        "hibachi party at home prices"
+      ]
+    },
+    {
+      "cluster": "mobile_hibachi",
+      "target_page": "/mobile-hibachi-los-angeles",
+      "keywords": [
+        "mobile hibachi",
+        "mobile hibachi near me",
+        "hibachi mobile near me",
+        "traveling hibachi near me",
+        "mobile hibachi catering near me"
+      ]
+    },
+    {
+      "cluster": "private_hibachi_chef",
+      "target_page": "/private-hibachi-chef-los-angeles",
+      "keywords": [
+        "private hibachi chef",
+        "private hibachi chef near me",
+        "hire hibachi chef",
+        "hibachi chefs at home",
+        "hibachi chef for private party",
+        "hibachi chef for birthday party"
+      ]
+    },
+    {
+      "cluster": "hibachi_catering",
+      "target_page": "/hibachi-catering-los-angeles",
+      "keywords": [
+        "hibachi catering",
+        "hibachi catering los angeles",
+        "private hibachi catering",
+        "hibachi catering for events",
+        "teppanyaki catering"
+      ]
+    },
+    {
+      "cluster": "local_southern_california",
+      "target_page": "/locations/la-orange-county",
+      "keywords": [
+        "hibachi at home los angeles",
+        "private hibachi chef los angeles",
+        "hibachi catering los angeles",
+        "hibachi at home orange county",
+        "mobile hibachi los angeles"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "SEO-001",
+      "title": "Keep quote variants out of organic index and sitemap",
+      "status": "verified",
+      "priority": "P0",
+      "type": "technical_seo",
+      "target_files": [
+        "app/quoteA/page.tsx",
+        "app/quoteB/page.tsx",
+        "app/sitemap.ts"
+      ],
+      "why": "Quote A/B pages are conversion endpoints for paid traffic, not durable organic landing pages. Organic search should rank service pages that explain the offer, then send qualified visitors to /quoteA.",
+      "acceptance_criteria": [
+        "/quoteA has robots noindex, follow metadata.",
+        "/quoteB has robots noindex, follow metadata.",
+        "/quoteA and /quoteB are removed from generated sitemap static pages.",
+        "Ads can still send traffic to /quoteA directly."
+      ],
+      "verification": [
+        "Inspect source for robots metadata on quote pages.",
+        "Inspect sitemap source to confirm quote variants are not listed.",
+        "Run a targeted TypeScript parse/build-safe check if available."
+      ],
+      "verification_result": [
+        "2026-05-26: Confirmed /quoteA and /quoteB metadata include robots index=false and follow=true.",
+        "2026-05-26: Confirmed app/sitemap.ts no longer lists /quoteA or /quoteB in static pages.",
+        "2026-05-26: seo-task-list.json passed python3 -m json.tool.",
+        "2026-05-26: Targeted TypeScript transpile check passed for app/quoteA/page.tsx, app/quoteB/page.tsx, and app/sitemap.ts.",
+        "2026-05-26: git diff --check passed for touched SEO-001 files.",
+        "2026-05-26: Full tsc was attempted but blocked by a pre-existing syntax error in examples/instagram-carousel-example.tsx, unrelated to SEO-001."
+      ]
+    },
+    {
+      "id": "SEO-002",
+      "title": "Route LA/OC location CTA into the validated quote flow",
+      "status": "verified",
+      "priority": "P0",
+      "type": "conversion_path_alignment",
+      "target_files": [
+        "app/locations/la-orange-county/page.tsx"
+      ],
+      "why": "The location SEO page should feed the same quoteA -> Book Now -> booking_submit path used by paid search, instead of sending high-intent users to the older /book flow.",
+      "acceptance_criteria": [
+        "Primary location-page CTA links to /quoteA with an SEO source parameter.",
+        "Button copy still clearly invites booking or quote action.",
+        "The /book page is not removed."
+      ],
+      "verification": [
+        "Inspect the CTA href.",
+        "Run a targeted static check for old /book CTA in the LA/OC page."
+      ],
+      "verification_result": [
+        "2026-05-26: Confirmed the hero CTA links to /quoteA?source=seo_location_la_oc.",
+        "2026-05-26: Confirmed the bottom CTA links to /quoteA?source=seo_location_la_oc.",
+        "2026-05-26: Confirmed app/locations/la-orange-county/page.tsx no longer contains href=\"/book\".",
+        "2026-05-26: seo-task-list.json passed python3 -m json.tool.",
+        "2026-05-26: Targeted TypeScript transpile check passed for app/locations/la-orange-county/page.tsx.",
+        "2026-05-26: git diff --check passed for touched SEO-002 files."
+      ]
+    },
+    {
+      "id": "SEO-003",
+      "title": "Clean gallery copy away from DIY, recipe, Blackstone, and Benihana intent",
+      "status": "verified",
+      "priority": "P0",
+      "type": "content_seo",
+      "target_files": [
+        "app/gallery/page.tsx"
+      ],
+      "why": "The campaign intentionally blocks equipment, recipe, DIY, and competitor/restaurant terms. The gallery should reinforce real event service intent, not attract low-value tutorial searches.",
+      "acceptance_criteria": [
+        "Gallery intro describes real event photos and service examples.",
+        "DIY/recipe/tutorial/Blackstone/Benihana-focused video content is removed or reframed away from organic service pages.",
+        "Gallery still renders photos normally."
+      ],
+      "verification": [
+        "Search the gallery source for Blackstone, Benihana, recipe, tutorial, and DIY language.",
+        "Run lint or a targeted render check."
+      ],
+      "verification_result": [
+        "2026-05-26: Removed the gallery video tab and third-party tutorial video embeds from app/gallery/page.tsx.",
+        "2026-05-26: Updated gallery intro copy to focus on real hibachi-at-home events, chef show moments, backyard parties, and on-site cooking examples.",
+        "2026-05-26: Confirmed app/gallery/page.tsx has no Blackstone, Benihana, recipe, tutorial, DIY, instructional, YouTube, iframe, galleryVideos, Tabs, or siteConfig references.",
+        "2026-05-26: seo-task-list.json passed python3 -m json.tool.",
+        "2026-05-26: Targeted TypeScript transpile check passed for app/gallery/page.tsx.",
+        "2026-05-26: git diff --check passed for touched SEO-003 files."
+      ]
+    },
+    {
+      "id": "SEO-003A",
+      "title": "Replace gallery with local hibachi party media and SEO filenames",
+      "status": "verified",
+      "priority": "P0",
+      "type": "media_seo",
+      "target_files": [
+        "app/gallery/page.tsx",
+        "public/gallery"
+      ],
+      "why": "Real local hibachi party photos and videos reinforce service intent better than old generic or third-party media. SEO-friendly filenames and accessible labels help search engines and users understand the media context.",
+      "acceptance_criteria": [
+        "Gallery uses media from D:\\desktop\\new gallery copied into public/gallery.",
+        "Copied media files have SEO-friendly filenames.",
+        "Gallery includes both images and videos.",
+        "Images have alt text.",
+        "Videos have title and aria-label text.",
+        "Old external gallery image URLs are removed from app/gallery/page.tsx."
+      ],
+      "verification": [
+        "Count public/gallery media files.",
+        "Search app/gallery/page.tsx for old blob URLs and low-intent terms.",
+        "Run targeted TypeScript transpile check for app/gallery/page.tsx.",
+        "Run git diff --check.",
+        "Request /gallery from local dev server."
+      ],
+      "verification_result": [
+        "2026-05-26: Copied 14 JPG images and 4 MP4 videos into public/gallery.",
+        "2026-05-26: Confirmed public/gallery contains 18 SEO-named files.",
+        "2026-05-26: Confirmed app/gallery/page.tsx no longer references old pr65kebnwwqnqr8l blob image URLs or WeChat filenames.",
+        "2026-05-26: Confirmed images include alt text and videos include title plus aria-label text.",
+        "2026-05-26: Confirmed app/gallery/page.tsx has no Blackstone, Benihana, recipe, tutorial, DIY, instructional, YouTube, iframe, or galleryVideos references.",
+        "2026-05-26: Targeted TypeScript transpile check passed for app/gallery/page.tsx.",
+        "2026-05-26: git diff --check passed for touched gallery files.",
+        "2026-05-26: Local /gallery returned HTTP 200 OK on http://127.0.0.1:3017/gallery."
+      ]
+    },
+    {
+      "id": "SEO-004",
+      "title": "Optimize /hibachi-at-home metadata and section copy for at-home intent",
+      "status": "pending",
+      "priority": "P1",
+      "type": "on_page_seo",
+      "target_files": [
+        "app/hibachi-at-home/layout.tsx",
+        "app/hibachi-at-home/page.tsx"
+      ],
+      "why": "This page should be the main organic target for hibachi-at-home and comes-to-your-house searches.",
+      "acceptance_criteria": [
+        "Title and description include Los Angeles, Orange County, at-home hibachi, and private chef language naturally.",
+        "Page includes visible content for what is included, pricing/minimums, service areas, and FAQ.",
+        "No keyword stuffing."
+      ],
+      "verification": [
+        "Inspect metadata.",
+        "Search page source for target section headings.",
+        "Run lint or TypeScript check."
+      ]
+    },
+    {
+      "id": "SEO-005",
+      "title": "Create /mobile-hibachi-los-angeles service page",
+      "status": "pending",
+      "priority": "P1",
+      "type": "new_seo_page",
+      "target_files": [
+        "app/mobile-hibachi-los-angeles/page.tsx",
+        "app/sitemap.ts"
+      ],
+      "why": "Keyword Planner and Ads setup show strong mobile-hibachi demand that deserves its own organic service page and analytics path.",
+      "acceptance_criteria": [
+        "Page targets mobile hibachi Los Angeles and Orange County intent.",
+        "Page explains chef, grill, food, setup, service areas, events, pricing/minimums, and quote CTA.",
+        "Page is added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes the page.",
+        "Run lint or TypeScript check."
+      ]
+    },
+    {
+      "id": "SEO-006",
+      "title": "Create /private-hibachi-chef-los-angeles service page",
+      "status": "pending",
+      "priority": "P1",
+      "type": "new_seo_page",
+      "target_files": [
+        "app/private-hibachi-chef-los-angeles/page.tsx",
+        "app/sitemap.ts"
+      ],
+      "why": "Private chef searches have a distinct hiring intent and should not be forced into a generic at-home page.",
+      "acceptance_criteria": [
+        "Page targets private hibachi chef and hire hibachi chef intent.",
+        "Page links to /quoteA with a dedicated SEO source parameter.",
+        "Page is added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes the page.",
+        "Run lint or TypeScript check."
+      ]
+    },
+    {
+      "id": "SEO-007",
+      "title": "Create /hibachi-catering-los-angeles service page",
+      "status": "pending",
+      "priority": "P1",
+      "type": "new_seo_page",
+      "target_files": [
+        "app/hibachi-catering-los-angeles/page.tsx",
+        "app/sitemap.ts"
+      ],
+      "why": "Catering searches are event-oriented and should have their own page for birthdays, corporate events, private parties, and larger groups.",
+      "acceptance_criteria": [
+        "Page targets hibachi catering Los Angeles and private event catering intent.",
+        "Page explains event types, setup, menu, service area, and quote CTA.",
+        "Page is added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes the page.",
+        "Run lint or TypeScript check."
+      ]
+    },
+    {
+      "id": "SEO-008",
+      "title": "Add structured data to core service pages",
+      "status": "pending",
+      "priority": "P2",
+      "type": "structured_data",
+      "target_files": [
+        "app/hibachi-at-home/page.tsx",
+        "app/locations/la-orange-county/page.tsx",
+        "future service pages"
+      ],
+      "why": "Service, FAQPage, and BreadcrumbList schema can clarify offer, service area, FAQs, and page relationships for search engines and AI summaries.",
+      "acceptance_criteria": [
+        "Core service pages include valid JSON-LD.",
+        "FAQ schema matches visible page content.",
+        "Schema does not include unsupported or misleading claims."
+      ],
+      "verification": [
+        "Inspect JSON-LD output.",
+        "Run a schema parse check."
+      ]
+    }
+  ]
+}
