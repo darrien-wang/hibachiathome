@@ -2,21 +2,27 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Private Hibachi at Your Home - Starting at $59.9/Guest | Real Hibachi",
+  title: "Hibachi at Home Los Angeles & Orange County | Private Chef",
   description:
-    "Professional hibachi chef comes to your home. Chef show, full setup, fried rice, salad, and 2 proteins—all done at your place. Book now!",
-  keywords: "hibachi at home, private hibachi chef, home hibachi service, backyard hibachi party, hibachi catering",
+    "Book hibachi at home in Los Angeles and Orange County. A private hibachi chef brings the grill, food, setup, chef show, and cleanup to your backyard or event space.",
+  keywords:
+    "hibachi at home Los Angeles, hibachi at home Orange County, private hibachi chef LA, hibachi come to your house, backyard hibachi party prices",
   openGraph: {
-    title: "Private Hibachi at Your Home - Starting at $59.9/Guest",
-    description: "Chef show, full setup, fried rice, salad, and 2 proteins—all done at your place.",
+    title: "Hibachi at Home in Los Angeles & Orange County",
+    description:
+      "Private hibachi chef service with grill, food, setup, chef show, and cleanup for backyard parties and at-home events.",
+    url: "https://www.realhibachi.com/hibachi-at-home",
     images: [
       {
         url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg",
         width: 1200,
         height: 630,
-        alt: "Hibachi at home experience",
+        alt: "Hibachi at home private chef experience in Los Angeles",
       },
     ],
+  },
+  alternates: {
+    canonical: "https://www.realhibachi.com/hibachi-at-home",
   },
 }
 

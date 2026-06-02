@@ -3,6 +3,7 @@
   "created_at": "2026-05-26",
   "objective": "Align organic SEO pages with the high-intent Google Ads keyword strategy while keeping quote pages focused on conversion tracking.",
   "execution_rule": "Complete exactly one implementation task per Codex turn, then verify before moving to the next task.",
+  "ai_search_objective": "Improve Real Hibachi visibility in ChatGPT Search, Bing, Copilot, and other answer engines by making the site crawlable, indexable, structured, local, and specific to high-intent Southern California hibachi-at-home queries.",
   "keyword_clusters": [
     {
       "cluster": "hibachi_at_home",
@@ -192,7 +193,7 @@
     {
       "id": "SEO-004",
       "title": "Optimize /hibachi-at-home metadata and section copy for at-home intent",
-      "status": "pending",
+      "status": "verified",
       "priority": "P1",
       "type": "on_page_seo",
       "target_files": [
@@ -209,6 +210,283 @@
         "Inspect metadata.",
         "Search page source for target section headings.",
         "Run lint or TypeScript check."
+      ],
+      "verification_result": [
+        "2026-05-27: Updated /hibachi-at-home metadata title, description, keywords, OpenGraph, and canonical URL for Los Angeles, Orange County, at-home hibachi, and private chef intent.",
+        "2026-05-27: Added visible service-summary content covering what is included, pricing and minimums, service areas, and quote CTA.",
+        "2026-05-27: Confirmed page source includes What is included, Pricing & minimums, Service areas, Frequently Asked Questions, Los Angeles, Orange County, and private hibachi chef language.",
+        "2026-05-27: Updated /hibachi-at-home CTAs to route into /quoteA with dedicated SEO source parameters.",
+        "2026-05-27: Targeted TypeScript transpile check passed for app/hibachi-at-home/layout.tsx and app/hibachi-at-home/page.tsx.",
+        "2026-05-27: git diff --check passed for touched SEO-004 files.",
+        "2026-05-27: seo-task-list.json passed python3 -m json.tool.",
+        "2026-05-27: Local /hibachi-at-home returned HTTP 200 OK on http://127.0.0.1:3017/hibachi-at-home and rendered the updated metadata and service-summary copy."
+      ]
+    },
+    {
+      "id": "AEO-001",
+      "title": "Allow ChatGPT and Bing crawlers to access important SEO pages",
+      "status": "verified",
+      "priority": "P0",
+      "type": "technical_ai_search",
+      "target_files": [
+        "app/robots.ts",
+        "app/quoteA/page.tsx",
+        "app/quoteB/page.tsx",
+        "next.config.mjs"
+      ],
+      "why": "ChatGPT Search inclusion requires OAI-SearchBot access, and Bing visibility requires Bingbot access. If robots or hosting blocks them, later AEO content work will not matter.",
+      "acceptance_criteria": [
+        "robots.txt explicitly allows OAI-SearchBot.",
+        "robots.txt explicitly allows ChatGPT-User and GPTBot.",
+        "robots.txt explicitly allows Bingbot.",
+        "Core SEO pages remain crawlable.",
+        "Quote pages remain noindex, follow rather than blocked in robots.txt.",
+        "No middleware or Next.js config blocks crawler user agents."
+      ],
+      "verification": [
+        "Inspect app/robots.ts.",
+        "Inspect quoteA and quoteB metadata.",
+        "Inspect middleware and next.config.mjs for crawler blocks.",
+        "Run targeted TypeScript transpile check.",
+        "Fetch /robots.txt locally and test crawler user agents."
+      ],
+      "verification_result": [
+        "2026-05-27: Updated app/robots.ts to explicitly allow OAI-SearchBot, ChatGPT-User, GPTBot, and Bingbot, while keeping the default user agent allowed.",
+        "2026-05-27: Confirmed app/quoteA/page.tsx and app/quoteB/page.tsx keep robots index=false and follow=true.",
+        "2026-05-27: Confirmed no middleware.ts exists and next.config.mjs has no crawler blocking logic.",
+        "2026-05-27: Targeted TypeScript transpile check passed for app/robots.ts.",
+        "2026-05-27: git diff --check passed for app/robots.ts and seo-task-list.json.",
+        "2026-05-27: seo-task-list.json passed python3 -m json.tool.",
+        "2026-05-27: Local /robots.txt returned HTTP 200 and included explicit OAI-SearchBot, ChatGPT-User, GPTBot, Bingbot, Allow: / rules plus sitemap URL.",
+        "2026-05-27: Local /hibachi-at-home returned HTTP 200 when requested with the OAI-SearchBot user agent.",
+        "2026-05-27: Local /locations/la-orange-county returned HTTP 200 when requested with the Bingbot user agent."
+      ]
+    },
+    {
+      "id": "AEO-002",
+      "title": "Set up Bing Webmaster Tools and submit sitemap",
+      "status": "needs_bing_webmaster_access",
+      "priority": "P0",
+      "type": "bing_indexing",
+      "target_files": [
+        "app/sitemap.ts",
+        "Bing Webmaster Tools"
+      ],
+      "why": "Bing needs to discover and inspect the core SEO pages before they can rank or be useful for AI search retrieval.",
+      "acceptance_criteria": [
+        "Bing Webmaster Tools property is verified.",
+        "https://www.realhibachi.com/sitemap.xml is submitted.",
+        "Core service URLs show discovered or indexed status.",
+        "No accidental noindex on core SEO pages."
+      ],
+      "verification": [
+        "Inspect Bing Webmaster Tools sitemap status.",
+        "Run URL Inspection for /hibachi-at-home, /locations/la-orange-county, and /gallery."
+      ],
+      "site_side_verification_result": [
+        "2026-05-27: Added /hibachi-at-home to app/sitemap.ts with daily change frequency and 0.95 priority.",
+        "2026-05-27: Removed stale public/sitemap.xml because it conflicted with app/sitemap.ts and caused local /sitemap.xml to return HTTP 500.",
+        "2026-05-27: Updated app/sitemap.ts to use https://www.realhibachi.com as the canonical sitemap base URL instead of NEXT_PUBLIC_BASE_URL, preventing local or misconfigured environment URLs from leaking into the submitted sitemap.",
+        "2026-05-27: Local /sitemap.xml returned HTTP 200 after removing the public file conflict.",
+        "2026-05-27: Local /sitemap.xml includes /hibachi-at-home, /locations/la-orange-county, and /gallery.",
+        "2026-05-27: Local /sitemap.xml does not include /quoteA or /quoteB.",
+        "2026-05-27: Targeted TypeScript transpile check passed for app/sitemap.ts.",
+        "2026-05-27: git diff --check passed for app/sitemap.ts, public/sitemap.xml, and seo-task-list.json.",
+        "2026-05-27: No local Bing Webmaster API key or authenticated Bing Webmaster connector was found, so Bing dashboard sitemap submission and URL Inspection still require Bing Webmaster Tools access."
+      ],
+      "manual_bing_webmaster_next_steps": [
+        "Open Bing Webmaster Tools for https://www.realhibachi.com.",
+        "Submit or resubmit https://www.realhibachi.com/sitemap.xml.",
+        "Run URL Inspection for https://www.realhibachi.com/hibachi-at-home, https://www.realhibachi.com/locations/la-orange-county, and https://www.realhibachi.com/gallery.",
+        "Record whether each URL is indexed, discovered, crawlable, or blocked."
+      ]
+    },
+    {
+      "id": "AEO-003",
+      "title": "Implement IndexNow for faster Bing discovery",
+      "status": "pending",
+      "priority": "P0",
+      "type": "indexing_automation",
+      "target_files": [
+        "public",
+        "scripts",
+        "package.json"
+      ],
+      "why": "IndexNow can notify Bing and participating search engines when important URLs are added, updated, or removed.",
+      "acceptance_criteria": [
+        "IndexNow key file is reachable on the production site.",
+        "A submission script can send changed SEO URLs.",
+        "Submissions are logged or recorded."
+      ],
+      "verification": [
+        "Curl the IndexNow key file.",
+        "Run a test submission for one changed URL.",
+        "Check Bing Webmaster Tools IndexNow activity when available."
+      ]
+    },
+    {
+      "id": "AEO-004",
+      "title": "Add structured data to core service pages",
+      "status": "pending",
+      "priority": "P0",
+      "type": "structured_data",
+      "target_files": [
+        "app/hibachi-at-home/page.tsx",
+        "app/locations/la-orange-county/page.tsx",
+        "future service pages"
+      ],
+      "why": "LocalBusiness, Service, FAQPage, and BreadcrumbList schema help answer engines understand Real Hibachi's services, location, FAQs, and booking path.",
+      "acceptance_criteria": [
+        "Core service pages include valid JSON-LD.",
+        "FAQ schema matches visible FAQ content.",
+        "Service area includes Los Angeles and Orange County.",
+        "Schema avoids fake or unsupported claims."
+      ],
+      "verification": [
+        "Parse JSON-LD locally.",
+        "Inspect rendered HTML.",
+        "Confirm visible FAQ and schema FAQ match."
+      ]
+    },
+    {
+      "id": "AEO-005",
+      "title": "Create answer-first sections for high-intent AI queries",
+      "status": "pending",
+      "priority": "P1",
+      "type": "answer_engine_content",
+      "target_files": [
+        "app/hibachi-at-home/page.tsx",
+        "future service pages"
+      ],
+      "why": "ChatGPT Search and Bing-style retrieval favor pages that answer specific buyer questions directly.",
+      "acceptance_criteria": [
+        "Core pages include concise question-style sections.",
+        "Answers cover pricing, service area, what's included, booking, weather, and event fit.",
+        "No keyword stuffing."
+      ],
+      "verification": [
+        "Search source for question headings.",
+        "Render pages locally and inspect visible copy."
+      ]
+    },
+    {
+      "id": "AEO-006",
+      "title": "Create dedicated pages for specific AI-search intent clusters",
+      "status": "pending",
+      "priority": "P1",
+      "type": "new_ai_search_pages",
+      "target_files": [
+        "app/mobile-hibachi-los-angeles/page.tsx",
+        "app/private-hibachi-chef-los-angeles/page.tsx",
+        "app/hibachi-catering-los-angeles/page.tsx",
+        "app/sitemap.ts"
+      ],
+      "why": "Specific pages for mobile hibachi, private chef, catering, birthday party, and pricing queries give Bing and answer engines clearer retrieval targets.",
+      "acceptance_criteria": [
+        "Each page targets one intent cluster.",
+        "Each page has unique metadata, H1, FAQ, schema, and quote CTA.",
+        "Pages are added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes new pages.",
+        "Run targeted TypeScript checks.",
+        "Request each page locally."
+      ]
+    },
+    {
+      "id": "AEO-007",
+      "title": "Build local entity credibility for Real Hibachi",
+      "status": "pending",
+      "priority": "P1",
+      "type": "entity_seo",
+      "target_files": [
+        "components/footer.tsx",
+        "app/contact/page.tsx",
+        "schema",
+        "external citation checklist"
+      ],
+      "why": "AI answers prefer recognizable local entities with consistent business information across the website and external profiles.",
+      "acceptance_criteria": [
+        "Business name, phone, email, service areas, and URL are consistent.",
+        "LocalBusiness schema uses the same details.",
+        "External profile checklist exists for Bing Places, Google Business Profile, Yelp, Instagram, Facebook, and local directories."
+      ],
+      "verification": [
+        "Inspect footer and contact page.",
+        "Inspect LocalBusiness schema.",
+        "Review external profile checklist."
+      ]
+    },
+    {
+      "id": "AEO-008",
+      "title": "Create AI-friendly FAQ hub for booking objections",
+      "status": "pending",
+      "priority": "P1",
+      "type": "faq_content",
+      "target_files": [
+        "app/faq/FAQClientPage.tsx",
+        "app/hibachi-at-home/page.tsx",
+        "future service pages"
+      ],
+      "why": "FAQ content helps users and answer engines resolve objections about price, deposit, rain, travel fee, setup, timing, menu, and service area.",
+      "acceptance_criteria": [
+        "FAQ answers are specific to Real Hibachi.",
+        "Answers include LA/OC context where relevant.",
+        "FAQPage schema matches visible FAQ content."
+      ],
+      "verification": [
+        "Inspect FAQ page.",
+        "Parse JSON-LD.",
+        "Search source for target questions."
+      ]
+    },
+    {
+      "id": "AEO-009",
+      "title": "Optimize media and gallery for AI/local proof",
+      "status": "pending",
+      "priority": "P2",
+      "type": "media_entity_seo",
+      "target_files": [
+        "app/gallery/page.tsx",
+        "public/gallery"
+      ],
+      "why": "Real local event images and captions help establish service proof and local relevance for search and answer engines.",
+      "acceptance_criteria": [
+        "Gallery images have descriptive alt text.",
+        "Videos have poster, title, and aria-label.",
+        "Gallery includes service-focused captions.",
+        "Gallery routes users to quote flow."
+      ],
+      "verification": [
+        "Inspect gallery source.",
+        "Request /gallery locally.",
+        "Confirm no initial mp4 load in HTML."
+      ]
+    },
+    {
+      "id": "AEO-010",
+      "title": "Monitor Bing, ChatGPT Search, and AI answer visibility",
+      "status": "pending",
+      "priority": "P1",
+      "type": "measurement",
+      "target_files": [
+        "codex-progress.md",
+        "business-goal-tracker data",
+        "seo-task-list.json"
+      ],
+      "why": "AI visibility needs evidence. We should track whether Real Hibachi appears, which URL is cited, and whether those visits convert.",
+      "acceptance_criteria": [
+        "A prompt tracking checklist exists.",
+        "Weekly baseline is recorded.",
+        "Bing Webmaster query data is reviewed.",
+        "Observed AI visibility is tied back to quote and booking results where possible."
+      ],
+      "verification": [
+        "Manual ChatGPT Search test with Sources panel.",
+        "Manual Bing search test.",
+        "Bing Webmaster performance export.",
+        "GA4 landing page and conversion review."
       ]
     },
     {

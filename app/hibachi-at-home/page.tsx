@@ -213,7 +213,7 @@ export default function HibachiAtHomePage() {
 
   const handleOnlineBooking = () => {
     trackEvent("lead_start")
-    router.push("/quoteA?source=booking")
+    router.push("/quoteA?source=seo_hibachi_at_home")
   }
 
   const handleBookNow = (packageType: string) => {
@@ -228,7 +228,7 @@ export default function HibachiAtHomePage() {
     }
 
     trackEvent("lead_start")
-    router.push(`/book?package=${packageType}`)
+    router.push(`/quoteA?source=seo_hibachi_at_home_package&package=${packageType}`)
   }
 
   const handleViewMenu = () => {
@@ -323,7 +323,8 @@ export default function HibachiAtHomePage() {
                 Now Serving <span className="text-primary">Los Angeles & Orange County</span>
               </h2>
               <p className="text-lg text-white mb-6">
-                Experience authentic hibachi at home in LA, Beverly Hills, Santa Monica, Irvine, and surrounding areas
+                Experience authentic hibachi at home in Los Angeles, Beverly Hills, Santa Monica, Irvine, and nearby
+                Orange County cities.
               </p>
               <div className="flex flex-wrap justify-center gap-4 mb-6">
                 <div className="flex items-center text-sm text-white">
@@ -340,7 +341,7 @@ export default function HibachiAtHomePage() {
                 </div>
               </div>
               <Button asChild className="bg-primary hover:bg-primary/90">
-                <a href="/locations/la-orange-county">Book Hibachi at Home in LA</a>
+                <a href="/quoteA?source=seo_hibachi_at_home_la_oc">Book Hibachi at Home in LA</a>
               </Button>
             </div>
           </div>
@@ -352,15 +353,76 @@ export default function HibachiAtHomePage() {
         <SocialProofCounter />
       </AnimateOnScroll>
 
+      {/* Search-focused service summary */}
+      <AnimateOnScroll>
+        <section className="py-16 bg-amber-50/60">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">
+                  Hibachi at Home Service in Los Angeles & Orange County
+                </h2>
+                <p className="text-lg text-gray-700 max-w-3xl mx-auto">
+                  Real Hibachi brings a private hibachi chef to your house, backyard, apartment community, or event
+                  space. We handle the cooking experience on-site so you can host without turning dinner into another
+                  project.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>What is included</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-gray-700">
+                    <p>Private chef, mobile grill, fresh ingredients, chef show, setup, and cleanup.</p>
+                    <p>Guests typically receive fried rice, salad, vegetables, and two protein choices.</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pricing & minimums</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-gray-700">
+                    <p>Standard hibachi at home pricing starts at $59.9 per adult guest.</p>
+                    <p>Most private events use a 10 guest or $599 minimum, with optional upgrades and rentals.</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Service areas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-gray-700">
+                    <p>
+                      Serving Los Angeles County and Orange County, including LA, Santa Monica, Beverly Hills, Irvine,
+                      Anaheim, and Newport Beach.
+                    </p>
+                    <p>Enter your city or ZIP code in the quote form to confirm availability and any travel fee.</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="mt-8 text-center">
+                <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={handleOnlineBooking}>
+                  Get a Hibachi at Home Quote
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimateOnScroll>
+
       {/* Service Introduction */}
       <AnimateOnScroll>
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h3 className="text-3xl font-serif font-bold mb-4">✅ "We bring the restaurant to your backyard."</h3>
+              <h3 className="text-3xl font-serif font-bold mb-4">"We bring the restaurant to your backyard."</h3>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Professional hibachi chef comes to your home with everything needed for an authentic Japanese dining
-                experience.
+                A professional hibachi chef comes to your home with the grill, ingredients, setup, show, and cleanup
+                needed for an authentic Japanese-style private dining experience.
               </p>
             </div>
 

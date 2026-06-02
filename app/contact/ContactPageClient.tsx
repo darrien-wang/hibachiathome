@@ -34,8 +34,8 @@ export default function ContactPageClient() {
   const submissionIntent: "booking_inquiry" | "customer_support" = reasonLooksLikeSupport
     ? "customer_support"
     : "booking_inquiry"
-  const submissionEventName: "lead_submit" | "support_submit" =
-    submissionIntent === "booking_inquiry" ? "lead_submit" : "support_submit"
+  const submissionEventName: "contact_booking_inquiry_submit" | "support_submit" =
+    submissionIntent === "booking_inquiry" ? "contact_booking_inquiry_submit" : "support_submit"
   const submissionReason = reason || (submissionIntent === "booking_inquiry" ? "Booking Inquiry" : "Customer Support")
 
   useEffect(() => {

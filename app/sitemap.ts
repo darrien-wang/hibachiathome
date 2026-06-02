@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next"
-import { siteConfig } from "@/config/site"
 import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog posts
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || siteConfig.url
+const BASE_URL = "https://www.realhibachi.com"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     "", // Homepage
+    "/hibachi-at-home", // Core at-home hibachi service page
     "/locations/la-orange-county", // Los Angeles page - highest priority
     "/menu",
     "/book",
@@ -20,8 +20,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
     lastModified: new Date().toISOString(),
-    changeFrequency: route === "" || route === "/locations/la-orange-county" ? "daily" : "monthly",
-    priority: route === "" ? 1.0 : route === "/locations/la-orange-county" ? 0.9 : 0.8,
+    changeFrequency:
+      route === "" || route === "/hibachi-at-home" || route === "/locations/la-orange-county" ? "daily" : "monthly",
+    priority:
+      route === "" ? 1.0 : route === "/hibachi-at-home" ? 0.95 : route === "/locations/la-orange-county" ? 0.9 : 0.8,
   }))
 
   let blogPostsSitemap: MetadataRoute.Sitemap = []

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
+import { trackBookingSubmitServer } from "@/lib/ga4-measurement-protocol"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
 import { sendSupportNotificationEmail, isOpsEmailEffectivelyHandled } from "@/lib/ops-notifications"
 import { createServerSupabaseClient } from "@/lib/supabase"
@@ -263,6 +264,7 @@ export async function POST(request: Request) {
     const kids = asNumber(body.kids)
     const quoteSummary = asString(body.quoteSummary)
     const leadSource = asString(body.leadSource) || "quote_builder"
+    const eventId = asString(body.eventId)
     const premiumUpgrades = Array.isArray(body.premiumUpgrades)
       ? body.premiumUpgrades.map((value) => String(value)).filter(Boolean)
       : []
@@ -396,6 +398,29 @@ export async function POST(request: Request) {
       })
     }
 
+    const sourcePage = resolvePathFromReferer(request.headers.get("referer"))
+    const bookingSubmitTracking = await trackBookingSubmitServer({
+      eventId,
+      leadId: leadResult?.leadId,
+      bookingId: bookingFallback?.bookingId,
+      leadSource,
+      sourcePage,
+      cityOrZip: location,
+      guestCount: adults + kids,
+      adults,
+      kids,
+      eventDate,
+      eventTime,
+      pricingTier: pricingTierLabel,
+      estimateLow,
+      estimateHigh,
+      value: estimateLow,
+      currency: "USD",
+      tablewareRental,
+      tent10x10,
+      premiumUpgradeCount: premiumUpgrades.length,
+    })
+
     if (!isOpsEmailEffectivelyHandled(supportNotification) && !leadResult && !bookingFallback?.persisted) {
       return NextResponse.json(
         {
@@ -405,6 +430,9 @@ export async function POST(request: Request) {
           customerConfirmation,
           leadPersistenceError,
           bookingFallback,
+          serverTracking: {
+            bookingSubmit: bookingSubmitTracking,
+          },
         },
         { status: 500 },
       )
@@ -421,6 +449,9 @@ export async function POST(request: Request) {
         error: leadPersistenceError,
       },
       bookingFallback,
+      serverTracking: {
+        bookingSubmit: bookingSubmitTracking,
+      },
     })
   } catch (error) {
     return NextResponse.json(

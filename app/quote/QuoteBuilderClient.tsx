@@ -404,8 +404,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
 
     const params = new URLSearchParams({
       source: variant === "B" ? "quoteB" : "quoteA",
-      customer_name: bookingConfirmation.customerName,
-      customer_email: bookingConfirmation.customerEmail,
       event_date: bookingConfirmation.eventDate,
       event_time: bookingConfirmation.eventTime,
       location: bookingConfirmation.location,
@@ -431,25 +429,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   }, [input.addOns.lobster, input.addOns.shrimp, input.addOns.steak])
   const selectedPremiumUpgradesText = selectedPremiumUpgrades.length > 0 ? selectedPremiumUpgrades.join(", ") : "None"
 
-  const buildQualifiedLeadPayload = (leadChannel: "sms" | "phone" | "email") => ({
-    lead_channel: leadChannel,
-    lead_source: quoteSurface,
-    lead_type: "quote_contact",
-    quote_summary: quoteSummary,
-    city_or_zip: input.location || "unspecified",
-    tableware_rental: input.tablewareRental,
-    tent_10x10: input.tent10x10,
-    quote_tier: input.pricingTier,
-    weekday_saver_proteins: weekdaySaverProteinsValue,
-    add_on_steak: input.addOns.steak,
-    add_on_shrimp: input.addOns.shrimp,
-    add_on_lobster: input.addOns.lobster,
-    estimate_low: result.totalRange.low,
-    estimate_high: result.totalRange.high,
-    customer_name: customerName || "unspecified",
-    event_time: eventTime || "unspecified",
-  })
-
   const onSmsClick = () => {
     if (contactDisabled) return
     trackEvent("contact_sms_click", {
@@ -463,10 +442,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       add_on_steak: input.addOns.steak,
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
-      customer_name: customerName || "unspecified",
       event_time: eventTime || "unspecified",
     })
-    trackEvent("lead_submit", buildQualifiedLeadPayload("sms"))
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
       return
     }
@@ -486,10 +463,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       add_on_steak: input.addOns.steak,
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
-      customer_name: customerName || "unspecified",
       event_time: eventTime || "unspecified",
     })
-    trackEvent("lead_submit", buildQualifiedLeadPayload("phone"))
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
       return
     }
@@ -509,10 +484,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       add_on_steak: input.addOns.steak,
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
-      customer_name: customerName || "unspecified",
       event_time: eventTime || "unspecified",
     })
-    trackEvent("lead_submit", buildQualifiedLeadPayload("email"))
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
       return
     }
@@ -600,6 +573,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
           premiumUpgrades: selectedPremiumUpgrades,
           quoteSummary,
           leadSource: quoteSurface,
+          eventId: bookingEventId,
           note: message,
         }),
       })

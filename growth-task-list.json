@@ -1,0 +1,543 @@
+{
+  "project": "realhibachi-marketing",
+  "created_at": "2026-06-01",
+  "owner_goal": "Turn Real Hibachi traffic from occasional visits into a stable, measurable booking engine across Google organic, Bing, ChatGPT referral, Google Ads, and offline booking outcomes.",
+  "execution_rule": "Complete one task at a time, verify it, then update this file before moving to the next task.",
+  "current_data_snapshot": {
+    "source": "GA4 Data API and Google Search Console API",
+    "generated_at": "2026-06-01",
+    "ga4_property_id": "357868554",
+    "ga4_property_name": "gothic-standard-378909",
+    "gsc_site": "sc-domain:realhibachi.com",
+    "raw_report_path": "/tmp/realhibachi-traffic-report-raw.json",
+    "ga4_date_range": "2026-05-02 to 2026-05-31",
+    "gsc_date_range": "2026-04-30 to 2026-05-29",
+    "key_findings": [
+      "GA4 recorded 95 sessions, 70 users, 26 engaged sessions, and 9 conversions in the 30-day window.",
+      "Direct traffic is the largest source with 59 sessions and 6 conversions.",
+      "chatgpt.com / referral already appears with 14 sessions, 2 users, 9 engaged sessions, and 3 conversions.",
+      "Google organic has 13 sessions and 0 conversions in the 30-day GA4 window.",
+      "Bing organic has 2 sessions and 0 conversions in the 30-day GA4 window.",
+      "Google paid search has 5 sessions and 0 conversions in the 30-day GA4 window.",
+      "Search Console shows impressions for high-intent queries including hibachi at home los angeles, hibachi at home orange county, mobile hibachi near me, and hibachi catering los angeles.",
+      "GA4 still reports lead_submit events, while booking_submit did not appear in the pulled 30-day event report.",
+      "Search Console still shows quoteA impressions, even though quoteA is intended to be noindex, follow."
+    ]
+  },
+  "success_metrics": {
+    "tracking_quality": [
+      "booking_submit is the single clean primary booking-request conversion.",
+      "deposit_completed is tracked as the strongest paid conversion.",
+      "lead_submit is either removed from production tracking or clearly deprecated and excluded from primary optimization."
+    ],
+    "organic_growth": [
+      "High-intent Google Search impressions increase week over week for hibachi at home, mobile hibachi, private hibachi chef, and hibachi catering queries.",
+      "Core SEO pages receive organic sessions and eventually booking_submit events."
+    ],
+    "ai_search_growth": [
+      "chatgpt.com referral sessions are tracked weekly.",
+      "ChatGPT referral landing pages are known.",
+      "ChatGPT referral booking_submit and deposit_completed events are tracked."
+    ],
+    "ads_learning": [
+      "Google Ads optimizes toward clean booking_submit or deposit_completed, not legacy lead_submit.",
+      "Search terms, paid landing pages, booking quality, and deposits are reviewed together."
+    ],
+    "business_quality": [
+      "Every meaningful lead can be reviewed for quality, contact outcome, deposit, confirmed event, revenue, and gross profit where possible."
+    ]
+  },
+  "phases": [
+    {
+      "id": "PHASE-1",
+      "title": "Data foundation",
+      "goal": "Make tracking reliable before scaling SEO, AEO, or ads.",
+      "status": "in_progress"
+    },
+    {
+      "id": "PHASE-2",
+      "title": "Organic and AEO page foundation",
+      "goal": "Give Google, Bing, and ChatGPT clear pages for high-intent hibachi-at-home queries.",
+      "status": "in_progress"
+    },
+    {
+      "id": "PHASE-3",
+      "title": "Indexing and structured understanding",
+      "goal": "Make important pages discoverable, crawlable, structured, and easy for answer engines to understand.",
+      "status": "in_progress"
+    },
+    {
+      "id": "PHASE-4",
+      "title": "Paid search learning loop",
+      "goal": "Connect Google Ads spend to clean conversions and real booking quality.",
+      "status": "pending"
+    },
+    {
+      "id": "PHASE-5",
+      "title": "Weekly measurement loop",
+      "goal": "Turn GA4, Search Console, Ads, ChatGPT referral, and offline outcomes into one recurring decision report.",
+      "status": "pending"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "DATA-001",
+      "phase": "PHASE-1",
+      "title": "Clean GA4 primary booking conversion tracking",
+      "status": "completed_verified",
+      "priority": "P0",
+      "type": "tracking_quality",
+      "why": "GA4 currently shows lead_submit events but not booking_submit in the pulled 30-day report. Ads learning, attribution, and weekly reporting need one clean primary booking-request signal.",
+      "target_files_or_systems": [
+        "app/quote/QuoteBuilderClient.tsx",
+        "app/api/booking-request/route.ts",
+        "lib/ga4-measurement-protocol.ts",
+        "lib/tracking",
+        "Google Tag Manager",
+        "GA4 Key Events",
+        "production quoteA flow"
+      ],
+      "acceptance_criteria": [
+        "True booking request submission fires booking_submit.",
+        "booking_submit appears in GA4 Realtime or DebugView during a production test.",
+        "booking_submit includes source, medium, landing page, quote variant, city or ZIP, guest count, and estimated value where available.",
+        "lead_submit is removed, deprecated, or explicitly excluded from primary reporting.",
+        "GA4 Key Events use the clean primary booking event."
+      ],
+      "verification": [
+        "Search codebase for lead_submit and booking_submit.",
+        "Inspect GTM and GA4 Key Events.",
+        "Submit a controlled production test booking request.",
+        "Pull GA4 realtime and event reports after the test.",
+        "Document final event mapping."
+      ],
+      "verification_result": [
+        "2026-06-01: Code inspection confirmed quoteA Book Now / booking request path emits booking_submit in app/quote/QuoteBuilderClient.tsx.",
+        "2026-06-01: Production quoteA JavaScript bundle contains booking_submit, so the implementation is deployed.",
+        "2026-06-01: Production quoteA JavaScript bundle still contains lead_submit for SMS, Call, and Email contact actions.",
+        "2026-06-01: Live chat still emits lead_submit when visitor email or phone is present.",
+        "2026-06-01: Contact page still emits lead_submit for booking_inquiry contact form submissions.",
+        "2026-06-01: GA4 Data API event reports for today, yesterday, last 7 days, and last 30 days did not show booking_submit.",
+        "2026-06-01: GA4 Data API reports still show lead_submit: 1 event in the last 7 days and 9 events in the last 30 days.",
+        "2026-06-01: Conclusion: booking_submit implementation exists and is deployed, but DATA-001 is not fully complete because GA4/GTM has not been proven to receive booking_submit and legacy lead_submit remains active in several lead paths.",
+        "2026-06-01: Implemented server-side GA4 Measurement Protocol fallback for booking_submit in app/api/booking-request/route.ts using trackBookingSubmitServer.",
+        "2026-06-01: Passed the same booking eventId from app/quote/QuoteBuilderClient.tsx to the booking request API so client and server tracking share one dedupe key.",
+        "2026-06-01: Removed active lead_submit production triggers from quote SMS, call, and email clicks; those interactions now keep only their specific contact_* events.",
+        "2026-06-01: Removed active lead_submit production trigger from live chat; live chat now keeps chat_lead_submitted.",
+        "2026-06-01: Changed contact booking inquiries from lead_submit to contact_booking_inquiry_submit.",
+        "2026-06-01: Removed customer_name from quote contact click tracking payloads to reduce GA4 PII risk.",
+        "2026-06-01: Removed customer_name and customer_email from the post-booking deposit link query string to reduce GA4 page path PII risk.",
+        "2026-06-01: Configured Vercel production env keys GA4_MEASUREMENT_ID and GA4_MP_API_SECRET for realhibachi-marketing; secret value is not stored in repo.",
+        "2026-06-01: Deployed production build dpl_8CUq9xhv5ZJH7HTNoYzLhzPb3cxy to realhibachi-marketing. Production aliases include www.realhibachi.com and realhibachi.com.",
+        "2026-06-01: Submitted controlled production booking request with event_id codex_ga4_booking_submit_20260601_1429. API returned success=true and serverTracking.bookingSubmit delivered=true with GA4 MP statusCode 204.",
+        "2026-06-01: GA4 Realtime Data API returned booking_submit eventCount=1 after the controlled production test.",
+        "2026-06-01: Production www.realhibachi.com quote bundle contains booking_submit and no lead_submit.",
+        "2026-06-01: GA4 Admin API confirmed booking_submit and deposit_completed are Key Events. GA4 still lists legacy lead_submit as a Key Event.",
+        "2026-06-01: Google Ads API confirmed LA Search - Clean Leads is paused, $80/day, Maximize Conversions, and campaign-level goals make DEFAULT/WEBSITE biddable while SUBMIT_LEAD_FORM/WEBSITE is non-biddable.",
+        "2026-06-01: Google Ads API confirmed gothic-standard-378909 (web) booking_submit is enabled, primary_for_goal=true, include_in_conversions_metric=true.",
+        "2026-06-01: Google Ads API confirmed gothic-standard-378909 (web) lead_submit is hidden, primary_for_goal=false, include_in_conversions_metric=false.",
+        "2026-06-01: Changed old Google Ads conversion action conversion_event_submit_lead_form_1 from primary to secondary. Verification confirmed primary_for_goal=false and include_in_conversions_metric=false.",
+        "2026-06-01: Google Ads API reported customer time zone America/Chicago, not America/Los_Angeles; serving account time zones are not changeable after creation according to Google Ads Help.",
+        "2026-06-02: Exchanged GA4 analytics.edit OAuth authorization code and removed legacy lead_submit from GA4 Key Events via Analytics Admin API.",
+        "2026-06-02: GA4 Admin API verification confirmed lead_submitStillKeyEvent=false, bookingSubmitStillKeyEvent=true, and depositCompletedStillKeyEvent=true.",
+        "2026-06-02: Refreshed Google Ads OAuth token after GA4 consent rotated the old token, then verified LA Search - Clean Leads ad schedule.",
+        "2026-06-02: Confirmed current Google Ads account timezone is America/Chicago, so schedule entries are two hours ahead of Los Angeles during daylight saving time.",
+        "2026-06-02: Confirmed Saturday schedule is Chicago 11:00-14:00, equivalent to Los Angeles 09:00-12:00; Saturday afternoon and evening are paused as intended.",
+        "2026-06-02: Decided to keep the current America/Chicago serving account and handle timezone explicitly in schedule interpretation and daily reports, instead of creating a new Los Angeles timezone account."
+      ],
+      "remaining_work": [],
+      "depends_on": []
+    },
+    {
+      "id": "DATA-002",
+      "phase": "PHASE-1",
+      "title": "Fix conversion attribution gaps such as landingPage '(not set)'",
+      "status": "pending",
+      "priority": "P0",
+      "type": "tracking_quality",
+      "why": "The GA4 pull showed ChatGPT conversions with landingPagePlusQueryString '(not set)'. That weakens channel and page-level learning.",
+      "target_files_or_systems": [
+        "GA4",
+        "GTM",
+        "Measurement Protocol fallback",
+        "quote and deposit events"
+      ],
+      "acceptance_criteria": [
+        "Primary conversion events attach source/medium and landing page when possible.",
+        "Server-side Measurement Protocol events include enough client/session context to avoid orphaned attribution when possible.",
+        "Weekly report flags any remaining '(not set)' conversion rows."
+      ],
+      "verification": [
+        "Pull GA4 conversion by landing page/source.",
+        "Test quote and deposit flows.",
+        "Compare client-side and server-side event payloads."
+      ],
+      "depends_on": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "phase": "PHASE-1",
+      "title": "Create UTM rules for controllable external links",
+      "status": "pending",
+      "priority": "P1",
+      "type": "attribution",
+      "why": "Direct traffic is currently the biggest source. Some of it may be untagged social, SMS, chat, or support traffic. UTM rules reduce attribution blind spots.",
+      "target_files_or_systems": [
+        "Instagram bio",
+        "SMS templates",
+        "support chat templates",
+        "Google Ads final URLs",
+        "internal operating notes"
+      ],
+      "acceptance_criteria": [
+        "UTM naming rules exist for instagram, sms, support chat, email, Google Ads, and partner links.",
+        "Quote links from owned channels include source, medium, and campaign.",
+        "Weekly reports separate true direct traffic from tagged owned traffic."
+      ],
+      "verification": [
+        "Review live external links where accessible.",
+        "Click test links and verify GA4 source/medium.",
+        "Document approved UTM patterns."
+      ],
+      "depends_on": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "SEO-004",
+      "phase": "PHASE-2",
+      "title": "Optimize /hibachi-at-home metadata and section copy for at-home intent",
+      "status": "verified_uncommitted",
+      "priority": "P1",
+      "type": "on_page_seo",
+      "source_task_file": "seo-task-list.json",
+      "why": "This page should be the main organic target for hibachi-at-home and comes-to-your-house searches.",
+      "current_status_note": "Code changes and local verification were completed, but changes are currently uncommitted in the working tree.",
+      "verification": [
+        "Metadata and service-summary copy verified locally.",
+        "Local /hibachi-at-home returned HTTP 200.",
+        "Targeted TS transpile and JSON checks passed."
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "AEO-001",
+      "phase": "PHASE-3",
+      "title": "Allow ChatGPT and Bing crawlers to access important SEO pages",
+      "status": "verified_uncommitted",
+      "priority": "P0",
+      "type": "technical_ai_search",
+      "source_task_file": "seo-task-list.json",
+      "why": "ChatGPT Search and Bing visibility require crawler access.",
+      "current_status_note": "robots.ts was updated and locally verified, but changes are currently uncommitted in the working tree.",
+      "verification": [
+        "Local /robots.txt returned HTTP 200.",
+        "OAI-SearchBot and Bingbot user-agent tests returned HTTP 200 on core pages."
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "AEO-002",
+      "phase": "PHASE-3",
+      "title": "Prepare Bing Webmaster sitemap submission and URL inspection",
+      "status": "site_side_verified_needs_bing_access",
+      "priority": "P0",
+      "type": "bing_indexing",
+      "source_task_file": "seo-task-list.json",
+      "why": "Bing needs a clean sitemap and URL inspection status for core pages before rankings and AI retrieval can stabilize.",
+      "current_status_note": "Site-side sitemap fixes were completed locally. Bing Webmaster dashboard submission and URL inspection still require browser access or manual confirmation.",
+      "verification": [
+        "Removed stale public/sitemap.xml that conflicted with app/sitemap.ts.",
+        "Local /sitemap.xml returned HTTP 200.",
+        "Local sitemap includes /hibachi-at-home, /locations/la-orange-county, and /gallery.",
+        "Local sitemap excludes /quoteA and /quoteB."
+      ],
+      "manual_next_steps": [
+        "Submit https://www.realhibachi.com/sitemap.xml in Bing Webmaster Tools.",
+        "Run URL Inspection for /hibachi-at-home, /locations/la-orange-county, and /gallery.",
+        "Record indexed/discovered/crawlable/block status."
+      ],
+      "depends_on": [
+        "AEO-001"
+      ]
+    },
+    {
+      "id": "SEO-005",
+      "phase": "PHASE-2",
+      "title": "Create /mobile-hibachi-los-angeles service page",
+      "status": "pending",
+      "priority": "P0",
+      "type": "new_seo_page",
+      "source_task_file": "seo-task-list.json",
+      "why": "Search Console shows mobile hibachi near me has visibility potential. This query deserves a clear landing page.",
+      "acceptance_criteria": [
+        "Page targets mobile hibachi Los Angeles and Orange County intent.",
+        "Page explains chef, grill, food, setup, service areas, event types, pricing/minimums, and quote CTA.",
+        "Page links to /quoteA with a dedicated source parameter.",
+        "Page is added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes the page.",
+        "Run targeted TypeScript check.",
+        "Request page locally."
+      ],
+      "depends_on": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "SEO-006",
+      "phase": "PHASE-2",
+      "title": "Create /private-hibachi-chef-los-angeles service page",
+      "status": "pending",
+      "priority": "P1",
+      "type": "new_seo_page",
+      "source_task_file": "seo-task-list.json",
+      "why": "Private chef searches have distinct hiring intent and should not be forced into a generic at-home page.",
+      "acceptance_criteria": [
+        "Page targets private hibachi chef and hire hibachi chef intent.",
+        "Page links to /quoteA with a dedicated SEO source parameter.",
+        "Page is added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes the page.",
+        "Run targeted TypeScript check.",
+        "Request page locally."
+      ],
+      "depends_on": [
+        "SEO-005"
+      ]
+    },
+    {
+      "id": "SEO-007",
+      "phase": "PHASE-2",
+      "title": "Create /hibachi-catering-los-angeles service page",
+      "status": "pending",
+      "priority": "P1",
+      "type": "new_seo_page",
+      "source_task_file": "seo-task-list.json",
+      "why": "Search Console shows hibachi catering Los Angeles variants. Catering/event intent should have a dedicated page.",
+      "acceptance_criteria": [
+        "Page targets hibachi catering Los Angeles and private event catering intent.",
+        "Page explains event types, setup, menu, service area, pricing, and quote CTA.",
+        "Page is added to sitemap."
+      ],
+      "verification": [
+        "Inspect metadata and H1.",
+        "Confirm sitemap includes the page.",
+        "Run targeted TypeScript check.",
+        "Request page locally."
+      ],
+      "depends_on": [
+        "SEO-005"
+      ]
+    },
+    {
+      "id": "AEO-004",
+      "phase": "PHASE-3",
+      "title": "Add structured data to core service pages",
+      "status": "pending",
+      "priority": "P0",
+      "type": "structured_data",
+      "source_task_file": "seo-task-list.json",
+      "why": "LocalBusiness, Service, FAQPage, and BreadcrumbList schema help Google, Bing, and answer engines understand Real Hibachi.",
+      "target_files_or_systems": [
+        "app/hibachi-at-home/page.tsx",
+        "app/locations/la-orange-county/page.tsx",
+        "future service pages"
+      ],
+      "acceptance_criteria": [
+        "Core service pages include valid JSON-LD.",
+        "FAQ schema matches visible FAQ content.",
+        "Service area includes Los Angeles and Orange County.",
+        "Schema avoids fake ratings or unsupported claims."
+      ],
+      "verification": [
+        "Parse JSON-LD locally.",
+        "Inspect rendered HTML.",
+        "Confirm visible FAQ and schema FAQ match."
+      ],
+      "depends_on": [
+        "SEO-005"
+      ]
+    },
+    {
+      "id": "AEO-005",
+      "phase": "PHASE-2",
+      "title": "Add answer-first sections for high-intent AI queries",
+      "status": "pending",
+      "priority": "P1",
+      "type": "answer_engine_content",
+      "why": "ChatGPT and Bing-style retrieval favor concise pages that directly answer buyer questions.",
+      "acceptance_criteria": [
+        "Core pages include 5-8 concise question-style sections.",
+        "Answers cover pricing, service area, included items, booking, weather, and event fit.",
+        "Answers route high-intent users to quoteA."
+      ],
+      "verification": [
+        "Search source for question headings.",
+        "Render pages locally and inspect visible copy.",
+        "Check quoteA CTA links."
+      ],
+      "depends_on": [
+        "SEO-005"
+      ]
+    },
+    {
+      "id": "GSC-001",
+      "phase": "PHASE-3",
+      "title": "Clean Search Console indexing of quoteA and sitemap.html",
+      "status": "pending",
+      "priority": "P1",
+      "type": "indexing_quality",
+      "why": "Search Console still shows quoteA and sitemap.html impressions. quoteA is intended as a conversion endpoint, not an organic landing page.",
+      "acceptance_criteria": [
+        "Production /quoteA returns noindex, follow.",
+        "Search Console URL Inspection confirms Google sees noindex for /quoteA.",
+        "A decision is made on whether sitemap.html should remain indexable or become noindex.",
+        "Follow-up review date is recorded."
+      ],
+      "verification": [
+        "Fetch production /quoteA HTML and inspect robots metadata.",
+        "Use Search Console URL Inspection.",
+        "Pull GSC pages report weekly until quoteA impressions decline."
+      ],
+      "depends_on": [
+        "AEO-002"
+      ]
+    },
+    {
+      "id": "ADS-001",
+      "phase": "PHASE-4",
+      "title": "Align Google Ads optimization with clean booking conversion",
+      "status": "pending",
+      "priority": "P0",
+      "type": "ads_conversion_quality",
+      "why": "Google Ads should optimize toward a clean booking request or deposit signal, not legacy lead_submit if that event is polluted.",
+      "target_files_or_systems": [
+        "Google Ads conversion goals",
+        "GA4 key events",
+        "LA Search - Clean Leads campaign"
+      ],
+      "acceptance_criteria": [
+        "Campaign uses the correct primary conversion action.",
+        "Legacy lead_submit is not the primary bidding signal unless explicitly justified.",
+        "Paid search final URLs include clear UTMs.",
+        "A test click or preview flow confirms attribution path."
+      ],
+      "verification": [
+        "Inspect Google Ads conversion goals.",
+        "Inspect GA4 key events.",
+        "Pull GA4 paid search conversion report.",
+        "Document final conversion mapping."
+      ],
+      "depends_on": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "REPORT-001",
+      "phase": "PHASE-5",
+      "title": "Create weekly GA4 + Search Console + ChatGPT referral report",
+      "status": "pending",
+      "priority": "P0",
+      "type": "measurement",
+      "why": "Stable growth requires a recurring report that shows traffic sources, search queries, landing pages, conversions, and AI referral signals.",
+      "target_files_or_systems": [
+        "Google Analytics Data API",
+        "Google Search Console API",
+        "Google Ads API if available",
+        "business-goal-tracker"
+      ],
+      "acceptance_criteria": [
+        "Report includes source/medium, landing pages, events, conversions, GSC queries, GSC pages, ChatGPT referral, Bing organic, and paid search.",
+        "Report highlights week-over-week changes.",
+        "Report lists actions for the next week.",
+        "Report separates data facts from interpretation."
+      ],
+      "verification": [
+        "Run API pull successfully.",
+        "Save raw JSON or CSV evidence.",
+        "Review report against GA4 and GSC UI for sanity."
+      ],
+      "depends_on": [
+        "DATA-001",
+        "DATA-002"
+      ]
+    },
+    {
+      "id": "REPORT-002",
+      "phase": "PHASE-5",
+      "title": "Connect offline lead quality, deposits, bookings, revenue, and gross profit",
+      "status": "pending",
+      "priority": "P0",
+      "type": "business_outcome_tracking",
+      "why": "Traffic and leads only matter if they become quality conversations, deposits, confirmed events, revenue, and profit.",
+      "target_files_or_systems": [
+        "business-goal-tracker skill",
+        "offline conversion notes",
+        "lead records",
+        "deposit records"
+      ],
+      "acceptance_criteria": [
+        "Each meaningful lead can be tagged with quality and outcome.",
+        "Deposits and confirmed bookings are connected to source/medium when possible.",
+        "Weekly report includes business outcome notes, not just traffic."
+      ],
+      "verification": [
+        "Record a sample offline outcome.",
+        "Review a weekly report that includes both marketing and business results."
+      ],
+      "depends_on": [
+        "REPORT-001"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "phase": "PHASE-5",
+      "title": "Commit and deploy verified SEO/AEO/data foundation changes",
+      "status": "pending",
+      "priority": "P0",
+      "type": "release_management",
+      "why": "Several verified SEO/AEO changes are currently uncommitted and must be deployed before they can affect production crawling or reporting.",
+      "target_files_or_systems": [
+        "app/hibachi-at-home/layout.tsx",
+        "app/hibachi-at-home/page.tsx",
+        "app/robots.ts",
+        "app/sitemap.ts",
+        "public/sitemap.xml",
+        "seo-task-list.json",
+        "growth-task-list.json"
+      ],
+      "acceptance_criteria": [
+        "Verified changes are committed together with a clear message.",
+        "Changes are pushed to main.",
+        "Production /robots.txt returns expected crawler rules.",
+        "Production /sitemap.xml returns HTTP 200 and includes core pages.",
+        "Production /hibachi-at-home returns updated metadata."
+      ],
+      "verification": [
+        "git status and git log.",
+        "curl production /robots.txt.",
+        "curl production /sitemap.xml.",
+        "curl production /hibachi-at-home."
+      ],
+      "depends_on": [
+        "SEO-004",
+        "AEO-001",
+        "AEO-002"
+      ]
+    }
+  ],
+  "recommended_next_task": "DATA-001",
+  "notes": [
+    "The next best task is DATA-001 because dirty conversion tracking will pollute SEO, ChatGPT referral, and Google Ads learning.",
+    "After DATA-001, continue SEO-005 for /mobile-hibachi-los-angeles because Search Console already shows mobile hibachi near me visibility potential.",
+    "AEO-002 is site-side verified but still needs Bing Webmaster dashboard access for sitemap submission and URL inspection.",
+    "OPS-001 should be done soon because several verified changes are currently uncommitted and not yet deployed."
+  ]
+}

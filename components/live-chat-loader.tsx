@@ -760,11 +760,6 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
           chat_has_phone: Boolean(visitorPhone.trim()),
           chat_session_id: trackedSessionId,
         })
-        trackEvent("lead_submit", {
-          lead_channel: "live_chat",
-          lead_source: "live_chat_widget",
-          quote_surface: mergedContext.page_group ?? getPageGroup(window.location.pathname),
-        })
       }
 
       return true
