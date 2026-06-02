@@ -152,7 +152,7 @@
       "id": "DATA-002",
       "phase": "PHASE-1",
       "title": "Fix conversion attribution gaps such as landingPage '(not set)'",
-      "status": "pending",
+      "status": "implemented_realtime_verified_waiting_standard_report_refresh",
       "priority": "P0",
       "type": "tracking_quality",
       "why": "The GA4 pull showed ChatGPT conversions with landingPagePlusQueryString '(not set)'. That weakens channel and page-level learning.",
@@ -171,6 +171,18 @@
         "Pull GA4 conversion by landing page/source.",
         "Test quote and deposit flows.",
         "Compare client-side and server-side event payloads."
+      ],
+      "verification_result": [
+        "2026-06-02: GA4 standard runReport for the last 30 days returned no booking_submit or deposit_completed rows yet, so landing-page attribution cannot be verified from standard reports immediately after the production tracking change.",
+        "2026-06-02: Implemented Measurement Protocol attribution hardening for server-side booking_submit: use browser _ga client_id when available, parse _ga_9852R0HD0R session_id when available, and send page_location, page_referrer, source_page, UTM fields, gclid, wbraid, and gbraid.",
+        "2026-06-02: Deployed production build 3dU4FNh3S625wUQW8yckp6FkjB2y with DATA-002 attribution changes.",
+        "2026-06-02: Submitted controlled production booking request with GA cookies, UTM attribution cookie, referer, and pageReferrer. API returned serverTracking.bookingSubmit delivered=true with GA4 MP statusCode 204.",
+        "2026-06-02: GA4 Realtime Data API returned booking_submit eventCount=1 after the controlled DATA-002 production test.",
+        "2026-06-02: Updated the daily Ads report automation to flag booking_submit and deposit_completed rows where landingPagePlusQueryString or pagePathPlusQueryString is '(not set)' when GA4 access is available."
+      ],
+      "remaining_work": [
+        "After GA4 standard reports refresh, pull booking_submit and deposit_completed by source/medium, landingPagePlusQueryString, and pagePathPlusQueryString to confirm '(not set)' has improved.",
+        "If '(not set)' persists for server-side booking_submit, inspect whether GA4 accepts session_id/client_id from production cookies and whether GTM client-side booking_submit is also firing for the same event_id."
       ],
       "depends_on": [
         "DATA-001"

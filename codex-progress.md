@@ -53,3 +53,26 @@ Verification completed:
 Verification blocked or still needed:
 - Full `tsc --noEmit` is blocked by pre-existing syntax errors in `examples/instagram-carousel-example.tsx`.
 - Continue using the existing `America/Chicago` serving account. Treat Los Angeles time as the business interpretation layer for ad schedule and reporting.
+
+## DATA-002 - Conversion Attribution Gaps
+
+Status: implemented and realtime verified; waiting for GA4 standard report refresh.
+
+What changed:
+- Hardened server-side `booking_submit` Measurement Protocol attribution.
+- Booking request API now reads the browser `_ga` cookie for GA client ID when available.
+- Booking request API now reads `_ga_9852R0HD0R` for GA session ID when available.
+- Server-side `booking_submit` now sends `page_location`, `page_referrer`, `source_page`, UTM fields, `gclid`, `wbraid`, and `gbraid` where available.
+- Quote flow now sends `document.referrer` as `pageReferrer` in the booking request payload.
+- Daily Ads report automation now flags GA4 `booking_submit` and `deposit_completed` rows where landing page or page path is `(not set)`.
+
+Verification completed:
+- Targeted ESLint passed for `lib/ga4-measurement-protocol.ts`, `app/api/booking-request/route.ts`, and `app/quote/QuoteBuilderClient.tsx`.
+- `git diff --check` passed.
+- Production deployment `3dU4FNh3S625wUQW8yckp6FkjB2y` completed successfully.
+- Controlled production booking request with GA cookies, UTM attribution cookie, referer, and page referrer returned `serverTracking.bookingSubmit.delivered=true` with status `204`.
+- GA4 Realtime Data API returned `booking_submit` with event count `1` after the DATA-002 test.
+
+Verification still needed:
+- GA4 standard reports did not yet return `booking_submit` or `deposit_completed` rows for the last 30 days immediately after the change.
+- Recheck standard GA4 source/medium plus landing-page report after report processing catches up.

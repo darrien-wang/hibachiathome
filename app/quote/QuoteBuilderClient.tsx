@@ -574,6 +574,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
           quoteSummary,
           leadSource: quoteSurface,
           eventId: bookingEventId,
+          pageReferrer: document.referrer || undefined,
           note: message,
         }),
       })

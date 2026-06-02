@@ -20,8 +20,20 @@ export type TrackBookingSubmitServerParams = {
   eventId?: string | null
   leadId?: string | null
   bookingId?: string | null
+  gaClientId?: string | null
+  gaSessionId?: string | null
   leadSource?: string | null
   sourcePage?: string | null
+  pageLocation?: string | null
+  pageReferrer?: string | null
+  utmSource?: string | null
+  utmMedium?: string | null
+  utmCampaign?: string | null
+  utmTerm?: string | null
+  utmContent?: string | null
+  gclid?: string | null
+  wbraid?: string | null
+  gbraid?: string | null
   cityOrZip?: string | null
   guestCount?: number
   adults?: number
@@ -59,6 +71,16 @@ function normalizeAmount(value: number | undefined): number | undefined {
     return undefined
   }
   return Number(value.toFixed(2))
+}
+
+function normalizeSessionId(value: string | null | undefined): number | undefined {
+  const raw = asNonEmptyString(value)
+  if (!raw || !/^\d+$/.test(raw)) {
+    return undefined
+  }
+
+  const parsed = Number(raw)
+  return Number.isSafeInteger(parsed) ? parsed : undefined
 }
 
 function fnv1a(value: string): number {
@@ -183,11 +205,12 @@ export async function trackBookingSubmitServer(
   params: TrackBookingSubmitServerParams,
 ): Promise<Ga4ServerTrackResult> {
   const dedupeEventId = buildBookingSubmitEventId(params)
-  const clientId = buildClientId(dedupeEventId)
+  const clientId = asNonEmptyString(params.gaClientId) ?? buildClientId(dedupeEventId)
   const leadId = asNonEmptyString(params.leadId)
   const bookingId = asNonEmptyString(params.bookingId)
   const currency = normalizeCurrency(params.currency)
   const value = normalizeAmount(params.value ?? params.estimateLow)
+  const sessionId = normalizeSessionId(params.gaSessionId)
 
   return sendGa4MeasurementEvent({
     clientId,
@@ -204,6 +227,17 @@ export async function trackBookingSubmitServer(
       contact_surface: asNonEmptyString(params.leadSource) ?? "quote_builder",
       quote_surface: asNonEmptyString(params.leadSource) ?? "quote_builder",
       source_page: asNonEmptyString(params.sourcePage),
+      page_location: asNonEmptyString(params.pageLocation),
+      page_referrer: asNonEmptyString(params.pageReferrer),
+      session_id: sessionId,
+      utm_source: asNonEmptyString(params.utmSource),
+      utm_medium: asNonEmptyString(params.utmMedium),
+      utm_campaign: asNonEmptyString(params.utmCampaign),
+      utm_term: asNonEmptyString(params.utmTerm),
+      utm_content: asNonEmptyString(params.utmContent),
+      gclid: asNonEmptyString(params.gclid),
+      wbraid: asNonEmptyString(params.wbraid),
+      gbraid: asNonEmptyString(params.gbraid),
       city_or_zip: asNonEmptyString(params.cityOrZip),
       guest_count: normalizeAmount(params.guestCount),
       adults: normalizeAmount(params.adults),

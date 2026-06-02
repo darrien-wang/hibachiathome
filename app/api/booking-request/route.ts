@@ -71,6 +71,69 @@ function resolvePathFromReferer(value: string | null): string | undefined {
   }
 }
 
+function resolveUrlFromReferer(value: string | null): string | undefined {
+  if (!value) return undefined
+  try {
+    const url = new URL(value)
+    return url.toString()
+  } catch {
+    return undefined
+  }
+}
+
+function readCookieValue(cookieHeader: string | null, name: string): string | undefined {
+  if (!cookieHeader) return undefined
+  const prefix = `${name}=`
+  const entry = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix))
+
+  if (!entry) return undefined
+
+  try {
+    return decodeURIComponent(entry.slice(prefix.length))
+  } catch {
+    return entry.slice(prefix.length)
+  }
+}
+
+function readGaClientId(cookieHeader: string | null): string | undefined {
+  const raw = readCookieValue(cookieHeader, "_ga")
+  if (!raw) return undefined
+
+  const parts = raw.split(".")
+  if (parts.length >= 4 && /^\d+$/.test(parts[2]) && /^\d+$/.test(parts[3])) {
+    return `${parts[2]}.${parts[3]}`
+  }
+
+  if (/^\d+\.\d+$/.test(raw)) {
+    return raw
+  }
+
+  return undefined
+}
+
+function readGaSessionId(cookieHeader: string | null): string | undefined {
+  const measurementId =
+    readNonEmptyEnv("GA4_MEASUREMENT_ID") ?? readNonEmptyEnv("NEXT_PUBLIC_GA4_MEASUREMENT_ID") ?? "G-9852R0HD0R"
+  const cookieName = `_ga_${measurementId.replace(/^G-/, "")}`
+  const raw = readCookieValue(cookieHeader, cookieName)
+  if (!raw) return undefined
+
+  const gs2SessionMatch = raw.match(/(?:^|[.$])s(\d+)(?:[$.]|$)/)
+  if (gs2SessionMatch?.[1]) {
+    return gs2SessionMatch[1]
+  }
+
+  const parts = raw.split(".")
+  if (parts.length >= 3 && /^\d+$/.test(parts[2])) {
+    return parts[2]
+  }
+
+  return undefined
+}
+
 async function persistBookingRequestFallback(params: {
   customerName: string
   customerEmail: string
@@ -356,6 +419,13 @@ export async function POST(request: Request) {
         }
       | null = null
     const supabase = createServerSupabaseClient()
+    const cookieHeader = request.headers.get("cookie")
+    const refererHeader = request.headers.get("referer")
+    const sourcePage = resolvePathFromReferer(refererHeader)
+    const pageLocation = resolveUrlFromReferer(refererHeader)
+    const gaClientId = readGaClientId(cookieHeader)
+    const gaSessionId = readGaSessionId(cookieHeader)
+    const attribution = readAttributionFromCookieHeader(cookieHeader)
 
     if (supabase) {
       try {
@@ -372,8 +442,8 @@ export async function POST(request: Request) {
           guestCount: adults + kids,
           touchpointType: "quote_book_online",
           touchpointSource: leadSource,
-          sourcePage: resolvePathFromReferer(request.headers.get("referer")),
-          attribution: readAttributionFromCookieHeader(request.headers.get("cookie")),
+          sourcePage,
+          attribution,
           rawPayload: body,
         })
       } catch (error) {
@@ -398,13 +468,24 @@ export async function POST(request: Request) {
       })
     }
 
-    const sourcePage = resolvePathFromReferer(request.headers.get("referer"))
     const bookingSubmitTracking = await trackBookingSubmitServer({
       eventId,
       leadId: leadResult?.leadId,
       bookingId: bookingFallback?.bookingId,
+      gaClientId,
+      gaSessionId,
       leadSource,
       sourcePage,
+      pageLocation,
+      pageReferrer: asString(body.pageReferrer),
+      utmSource: attribution.utm_source,
+      utmMedium: attribution.utm_medium,
+      utmCampaign: attribution.utm_campaign,
+      utmTerm: attribution.utm_term,
+      utmContent: attribution.utm_content,
+      gclid: attribution.gclid,
+      wbraid: attribution.wbraid,
+      gbraid: attribution.gbraid,
       cityOrZip: location,
       guestCount: adults + kids,
       adults,
