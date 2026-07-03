@@ -16,10 +16,4 @@ export const serviceAreas = {
     ],
     pagePath: "/locations/la-orange-county",
   },
-  newYorkMetro: {
-    label: "NYC & Long Island",
-    shortLabel: "NYC & Long Island",
-    cities: ["Manhattan", "Brooklyn", "Queens", "The Bronx", "Staten Island", "Long Island"],
-    pagePath: "/locations/nyc-long-island",
-  },
 }

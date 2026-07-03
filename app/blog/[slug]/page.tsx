@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { blogPosts } from "@/config/blog-posts"
 import { ArrowLeft, Calendar, Clock, Tag } from "lucide-react"
+import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const post = blogPosts.find((post) => post.slug === params.slug)
@@ -33,6 +34,21 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     notFound()
   }
 
+  const blogPostingJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    image: post.coverImage,
+    datePublished: new Date(post.date).toISOString(),
+    author: {
+      "@type": "Person",
+      name: post.author.name,
+    },
+    publisher: { "@id": BUSINESS_ID },
+    mainEntityOfPage: `https://www.realhibachi.com/blog/${post.slug}`,
+  }
+
   // Convert markdown content to HTML (simple version)
   const contentHtml = post.content
     .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
@@ -45,6 +61,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
   return (
     <div className="container py-24 mx-auto">
+      <JsonLd data={blogPostingJsonLd} />
       <Link href="/blog" className="inline-flex items-center text-gray-600 hover:text-primary mb-8 transition-colors">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to all posts

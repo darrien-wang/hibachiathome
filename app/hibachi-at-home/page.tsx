@@ -13,6 +13,9 @@ import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import SocialProofCounter from "@/components/social-proof-counter"
 import { trackEvent } from "@/lib/tracking"
+import Link from "next/link"
+import { cityPages } from "@/config/city-pages"
+import { JsonLd, hibachiAtHomeServiceJsonLd } from "@/components/structured-data"
 
 // FAQ data
 const faqs = [
@@ -80,19 +83,19 @@ const serviceFeatures = [
 const reviews = [
   {
     name: "Linda",
-    location: "NY",
+    location: "Anaheim, CA",
     rating: 5,
     text: "The best experience we've had at home. Fun, delicious, and easy to host.",
   },
   {
     name: "Michael",
-    location: "LA",
+    location: "Los Angeles, CA",
     rating: 5,
     text: "Our kids loved the fire show and the food was restaurant quality. Highly recommend!",
   },
   {
     name: "Sarah",
-    location: "Chicago",
+    location: "Newport Beach, CA",
     rating: 5,
     text: "Perfect for our anniversary. The chef was entertaining and professional.",
   },
@@ -103,28 +106,28 @@ const testimonials = [
   {
     name: "Sarah M.",
     text: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious. Perfect for my daughter's birthday party!",
-    location: "Boston, MA",
+    location: "Pasadena, CA",
     rating: 5,
     date: "2 months ago",
   },
   {
     name: "Michael T.",
     text: "We booked Real Hibachi for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
-    location: "Chicago, IL",
+    location: "Irvine, CA",
     rating: 5,
     date: "3 weeks ago",
   },
   {
     name: "Jennifer L.",
     text: "Our family gathering was transformed into an unforgettable event. The chef was professional, friendly, and put on an amazing show!",
-    location: "Atlanta, GA",
+    location: "Long Beach, CA",
     rating: 5,
     date: "1 month ago",
   },
   {
     name: "David W.",
     text: "The perfect solution for our office party. Everyone was impressed with both the performance and the delicious food. Will definitely book again!",
-    location: "Seattle, WA",
+    location: "San Diego, CA",
     rating: 5,
     date: "2 weeks ago",
   },
@@ -301,6 +304,7 @@ export default function HibachiAtHomePage() {
 
   return (
     <div className="min-h-screen">
+      <JsonLd data={hibachiAtHomeServiceJsonLd} />
       <HeroSection />
 
       {/* Los Angeles Service Area Highlight */}
@@ -901,6 +905,32 @@ export default function HibachiAtHomePage() {
           </div>
         </section>
       </AnimateOnScroll>
+
+      {/* Cities We Serve */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+              Hibachi at Home Across <span className="text-primary">Southern California</span>
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Find your city for local pricing, popular occasions, and neighborhood coverage.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+            {cityPages.map((city) => (
+              <Link
+                key={city.slug}
+                href={`/hibachi-at-home/${city.slug}`}
+                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white px-5 py-2.5 text-primary font-medium hover:bg-primary hover:text-white transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+                {city.city}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

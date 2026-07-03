@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import ContactPageClient from "./ContactPageClient"
 
 export const metadata: Metadata = {
-  title: "Contact & Booking Help | Real Hibachi",
+  title: "Contact & Booking Help",
   description:
     "Request booking help, availability confirmation, and next steps for your hibachi event. Real Hibachi responds quickly by phone, SMS, or email.",
   keywords:
@@ -10,12 +11,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contact & Booking Help | Real Hibachi",
     description: "Get booking help and event planning support by phone, SMS, WhatsApp, or form.",
-    url: "https://realhibachi.com/contact",
+    url: "https://www.realhibachi.com/contact",
     siteName: "Real Hibachi",
     type: "website",
   },
 }
 
 export default function ContactPage() {
-  return <ContactPageClient />
+  return (
+    <Suspense fallback={null}>
+      <ContactPageClient />
+    </Suspense>
+  )
 }

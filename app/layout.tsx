@@ -9,48 +9,57 @@ import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { SocialProofToast } from "@/components/social-proof-toast"
 import { LiveChatLoader } from "@/components/live-chat-loader"
+import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
 
 const DEFAULT_GTM_ID = "GTM-WQZNBK82"
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.realhibachi.com"),
   title: {
-    default: "Real Hibachi | Private Chef & Hibachi At Home Los Angeles",
-    template: "%s - Real Hibachi LA",
+    default: "Hibachi at Home Los Angeles, OC & SoCal | Real Hibachi",
+    template: "%s | Real Hibachi",
   },
   description:
-    "Book a professional hibachi chef at your home in Los Angeles & Orange County. Flat-rate $59.9 per person, authentic Japanese teppanyaki experience. Reserve now!",
-  keywords: "Hibachi at home Los Angeles, private chef LA, hibachi catering Los Angeles, teppanyaki Orange County, Japanese chef Los Angeles, hibachi party catering LA, Real Hibachi",
+    "Private hibachi chef at your home in Los Angeles, Orange County, San Diego & all of Southern California. $59.90 per adult flat rate — chef, grill, food, show, setup & cleanup included. Get an instant quote!",
+  keywords:
+    "hibachi at home, hibachi at home Los Angeles, private hibachi chef, mobile hibachi catering, hibachi party Orange County, teppanyaki at home Southern California, Real Hibachi",
   robots: "index,follow",
   authors: [{ name: "Real Hibachi" }],
-  
+  alternates: {
+    // Self-referencing canonical for every route (resolved against metadataBase)
+    canonical: "./",
+  },
+
   // Open Graph tags for social media
   openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://realhibachi.com',
-    siteName: 'Real Hibachi',
-    title: 'Real Hibachi | Professional Hibachi Chef At Your Home in Los Angeles',
-    description: 'Book a professional hibachi chef at your home in Los Angeles & Orange County. Flat-rate $59.9 per person, authentic Japanese teppanyaki experience. Reserve now!',
+    type: "website",
+    locale: "en_US",
+    url: "https://www.realhibachi.com",
+    siteName: "Real Hibachi",
+    title: "Real Hibachi | Private Hibachi Chef At Your Home in Southern California",
+    description:
+      "Book a professional hibachi chef at your home in Los Angeles, Orange County & all of SoCal. $59.90 per adult flat rate, authentic Japanese teppanyaki experience. Reserve now!",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png', // 请将图片上传到这个路径
+        url: "https://www.realhibachi.com/images/hibachi-flame-og.png",
         width: 1200,
         height: 630,
-        alt: 'Real Hibachi - Authentic Hibachi Cooking with Amazing Flames',
+        alt: "Real Hibachi - Authentic Hibachi Cooking with Amazing Flames",
       },
     ],
   },
-  
+
   // Twitter Cards
   twitter: {
-    card: 'summary_large_image',
-    site: '@realhibachi',
-    creator: '@realhibachi',
-    title: 'Real Hibachi | Professional Hibachi Chef At Your Home in LA',
-    description: 'Premium hibachi catering service in Los Angeles and Orange County. Book now for an authentic Japanese experience!',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    card: "summary_large_image",
+    site: "@realhibachi",
+    creator: "@realhibachi",
+    title: "Real Hibachi | Private Hibachi Chef At Your Home in SoCal",
+    description:
+      "Premium hibachi catering at your home across Los Angeles, Orange County & Southern California. Book now for an authentic Japanese experience!",
+    images: ["https://www.realhibachi.com/images/hibachi-flame-og.png"],
   },
-  
+
   icons: {
     icon: [
       {
@@ -61,7 +70,6 @@ export const metadata: Metadata = {
       url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
     },
   },
-  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -95,6 +103,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           rel="apple-touch-icon"
           href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
         />
+        <JsonLd data={[localBusinessJsonLd, webSiteJsonLd]} />
       </head>
       <body className="font-sans">
         {gtmId ? (
@@ -107,19 +116,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             ></iframe>
           </noscript>
         ) : null}
+        {/* Keep client-only trackers inside their own Suspense boundary so a
+            useSearchParams() bailout never swallows the page content below. */}
         <Suspense fallback={null}>
           <TrackingBootstrap />
           <LiveChatLoader />
         </Suspense>
-        <Suspense>
-          <Header />
-          <main>{children}</main>
-          <Footer />
+        <Header />
+        <main>{children}</main>
+        <Footer />
+        <Suspense fallback={null}>
           <SocialProofToast />
-          <Analytics />
-          {/* 在生产环境中取消注释下面这行 */}
-          {/* <SpeedInsights /> */}
         </Suspense>
+        <Analytics />
       </body>
     </html>
   )

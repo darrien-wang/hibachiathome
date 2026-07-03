@@ -1,4 +1,16 @@
 /** @type {import('next').NextConfig} */
+
+// Every alternate/mirror hostname pointed at this deployment must 301 to the
+// canonical host, otherwise Google indexes duplicate copies of the whole site
+// (hibachidoge.com and hibachifamily.party were indexed as mirrors).
+const MIRROR_HOSTS = [
+  "realhibachi.com",
+  "hibachidoge.com",
+  "www.hibachidoge.com",
+  "hibachifamily.party",
+  "www.hibachifamily.party",
+]
+
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -8,6 +20,22 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  async redirects() {
+    return [
+      ...MIRROR_HOSTS.map((host) => ({
+        source: "/:path*",
+        has: [{ type: "host", value: host }],
+        destination: "https://www.realhibachi.com/:path*",
+        permanent: true,
+      })),
+      // East Coast market discontinued (2026-07): SoCal only
+      {
+        source: "/locations/nyc-long-island",
+        destination: "/locations/la-orange-county",
+        permanent: true,
+      },
+    ]
   },
 }
 

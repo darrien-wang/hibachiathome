@@ -22,38 +22,6 @@ import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
 import { trackEvent } from "@/lib/tracking"
 
-// Testimonial data with ratings
-const testimonials = [
-  {
-    name: "Sarah M.",
-    text: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious. Perfect for my daughter's birthday party!",
-    location: "Boston, MA",
-    rating: 5,
-    date: "2 months ago",
-  },
-  {
-    name: "Michael T.",
-    text: "We booked Real Hibachi for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
-    location: "Chicago, IL",
-    rating: 5,
-    date: "3 weeks ago",
-  },
-  {
-    name: "Jennifer L.",
-    text: "Our family gathering was transformed into an unforgettable event. The chef was professional, friendly, and put on an amazing show!",
-    location: "Atlanta, GA",
-    rating: 5,
-    date: "1 month ago",
-  },
-  {
-    name: "David W.",
-    text: "The perfect solution for our office party. Everyone was impressed with both the performance and the delicious food. Will definitely book again!",
-    location: "Seattle, WA",
-    rating: 5,
-    date: "2 weeks ago",
-  },
-]
-
 // 视频加载超时组件
 function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
   const [showVideo, setShowVideo] = useState(true)
@@ -243,22 +211,13 @@ export default function Home() {
   const serviceRegionCards = [
     {
       id: "west-coast",
-      regionTag: "WEST COAST",
-      heading: "SOUTH CALIFORNIA",
+      regionTag: "SERVING ALL OF SOUTHERN CALIFORNIA",
+      heading: "SOUTHERN CALIFORNIA",
       mapSrc: "/socal-map.png",
-      mapAlt: "West coast map with Southern California highlighted",
+      mapAlt: "Map of Southern California hibachi at home service area",
       coverage:
         "LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County",
       quoteHref: "/quoteA?region=west-coast",
-    },
-    {
-      id: "east-coast-nj",
-      regionTag: "EAST COAST · OPEN AREA",
-      heading: "NEW JERSEY",
-      mapSrc: "/mapnortheast.png",
-      mapAlt: "East coast map with New Jersey highlighted as an open service area",
-      coverage: "Now open in NJ: Bergen, Hudson, Essex, Union, Middlesex, Monmouth, and nearby areas.",
-      quoteHref: "/quoteA?region=east-coast-nj",
     },
   ] as const
 
@@ -406,7 +365,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="max-w-xl mx-auto grid grid-cols-1 gap-6">
               {serviceRegionCards.map((region) => (
                 <div
                   key={region.id}
@@ -447,7 +406,7 @@ export default function Home() {
               ))}
             </div>
             <p className="text-center text-sm text-stone-600 mt-5">
-              East coast availability is currently focused on New Jersey, with more nearby areas opening soon.
+              Serving Los Angeles, Orange County, San Diego, Riverside, San Bernardino, and Ventura counties.
             </p>
           </div>
         </section>

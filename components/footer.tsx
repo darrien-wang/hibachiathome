@@ -4,6 +4,17 @@ import { Facebook, Instagram, Twitter, Phone, Mail, MessageSquare } from "lucide
 import { siteConfig } from "@/config/site"
 import { serviceAreas } from "@/config/service-areas"
 
+const popularCityLinks = [
+  { slug: "san-diego", name: "San Diego" },
+  { slug: "irvine", name: "Irvine" },
+  { slug: "anaheim", name: "Anaheim" },
+  { slug: "long-beach", name: "Long Beach" },
+  { slug: "pasadena", name: "Pasadena" },
+  { slug: "santa-monica", name: "Santa Monica" },
+  { slug: "huntington-beach", name: "Huntington Beach" },
+  { slug: "riverside", name: "Riverside" },
+]
+
 // Helper function to format phone number for WhatsApp link
 function formatPhoneForWhatsApp(phone: string) {
   return phone.replace(/\D/g, "") // Remove all non-digit characters
@@ -69,14 +80,6 @@ export default function Footer() {
                   className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
                 >
                   LA & Orange County Hibachi
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/locations/nyc-long-island"
-                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  NYC & Long Island Hibachi
                 </Link>
               </li>
               <li>
@@ -190,7 +193,15 @@ export default function Footer() {
                 {serviceAreas.southernCalifornia.label} cities.
               </p>
               <p className="text-[14px] text-[#A1A1A1]">
-                Also available in {serviceAreas.newYorkMetro.shortLabel}: {serviceAreas.newYorkMetro.cities.join(", ")}.
+                Popular cities:{" "}
+                {popularCityLinks.map((city, index) => (
+                  <span key={city.slug}>
+                    {index > 0 && " · "}
+                    <Link href={`/hibachi-at-home/${city.slug}`} className="hover:text-[#F1691B] hover:underline">
+                      {city.name}
+                    </Link>
+                  </span>
+                ))}
               </p>
               <p className="text-[14px]">
                 <Link href="/locations" className="text-[#F1691B] hover:underline">

@@ -4,9 +4,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Phone, Star, Clock, Users, ChefHat } from "lucide-react"
 import Link from "next/link"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
+import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
 export const metadata: Metadata = {
-  title: "Hibachi at Home Los Angeles | Private Chef Catering Service | Real Hibachi",
+  title: "Hibachi at Home Los Angeles & Orange County | Private Chef Catering",
   description:
     "Professional hibachi at home service in Los Angeles, Orange County & surrounding areas. Private hibachi chef brings authentic Japanese teppanyaki experience to your location. Book today!",
   keywords:
@@ -15,20 +16,20 @@ export const metadata: Metadata = {
     title: "Hibachi at Home Los Angeles | Private Chef Service",
     description:
       "Bring authentic hibachi experience to your home in LA. Professional chefs, premium ingredients, unforgettable entertainment.",
-    url: "https://realhibachi.com/locations/la-orange-county",
+    url: "https://www.realhibachi.com/locations/la-orange-county",
     siteName: "Real Hibachi",
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi at Home Los Angeles - Authentic Cooking with Amazing Flames',
       },
     ],
   },
-  
+
   // Twitter Cards
   twitter: {
     card: 'summary_large_image',
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     creator: '@realhibachi',
     title: 'Hibachi at Home Los Angeles | Private Chef Service',
     description: 'Authentic hibachi experience in LA & Orange County. Professional chefs bring Japanese teppanyaki to your home!',
-    images: ['https://realhibachi.com/images/hibachi-flame-og.png'],
+    images: ['https://www.realhibachi.com/images/hibachi-flame-og.png'],
   },
 }
 
@@ -102,9 +103,35 @@ const features = [
   },
 ]
 
+const laOcServiceJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "@id": "https://www.realhibachi.com/locations/la-orange-county#service",
+  name: "Hibachi at Home in Los Angeles & Orange County",
+  serviceType: "Private hibachi chef catering",
+  provider: { "@id": BUSINESS_ID },
+  description:
+    "Private hibachi chef service across Los Angeles County and Orange County. The chef brings the grill, fresh ingredients, live cooking show, setup, and cleanup to your home or event space.",
+  areaServed: serviceAreas.map((city) => ({ "@type": "City", name: `${city}, CA` })),
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "USD",
+    price: "59.90",
+    priceSpecification: {
+      "@type": "UnitPriceSpecification",
+      price: "59.90",
+      priceCurrency: "USD",
+      unitText: "per adult ($29.95 per child under 13, $599 event minimum)",
+    },
+    availability: "https://schema.org/InStock",
+    url: "https://www.realhibachi.com/locations/la-orange-county",
+  },
+}
+
 export default function LAOrangeCountyPage() {
   return (
     <div className="min-h-screen bg-white">
+      <JsonLd data={laOcServiceJsonLd} />
       {/* Hero Section */}
       <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
         <div className="container mx-auto px-4">

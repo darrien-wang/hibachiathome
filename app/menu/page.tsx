@@ -8,18 +8,18 @@ import { pricing } from "@/config/pricing"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Hibachi Menu & Packages Los Angeles | Real Hibachi",
+  title: "Hibachi at Home Menu & Pricing Los Angeles",
   description: "Explore our authentic hibachi menu and packages for Los Angeles & Orange County. Premium proteins, fresh vegetables, teppanyaki cooking. Starting at $59.9 per person.",
   keywords: "hibachi menu Los Angeles, teppanyaki packages LA, Japanese food catering Orange County, hibachi pricing Los Angeles, authentic Japanese cuisine LA",
   openGraph: {
-    title: "Hibachi Menu & Packages Los Angeles | Real Hibachi",
+    title: "Hibachi at Home Menu & Pricing | Real Hibachi",
     description: "Authentic hibachi menu and packages for Los Angeles. Premium Japanese cuisine brought to your home by professional chefs.",
-    url: "https://realhibachi.com/menu",
+    url: "https://www.realhibachi.com/menu",
     siteName: "Real Hibachi",
     type: "website",
     images: [
       {
-        url: 'https://realhibachi.com/images/hibachi-flame-og.png',
+        url: 'https://www.realhibachi.com/images/hibachi-flame-og.png',
         width: 1200,
         height: 630,
         alt: 'Hibachi Menu Los Angeles - Authentic Cooking Experience',

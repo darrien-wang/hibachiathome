@@ -1,7 +1,9 @@
 export const REGION_COOKIE_KEY = "rh_region"
 export const DEFAULT_REGION_CODE = "ca" as const
 
-export type RegionCode = "ca" | "nj"
+// Real Hibachi serves Southern California only (East Coast market discontinued 2026-07).
+// Legacy region aliases (e.g. ?region=east-coast-nj) resolve to null and fall back to "ca".
+export type RegionCode = "ca"
 export type PricingPolicyKey = "weekday_saver"
 export type RegionalDisplayModule = "quote_pricing_tiers" | "home_pricing_cards"
 
@@ -30,14 +32,6 @@ const REGION_DEFINITIONS: Record<RegionCode, RegionDefinition> = {
     aliases: ["ca", "california", "southern-california", "west-coast", "west_coast", "socal"],
     quoteRegionParam: "west-coast",
     enabledPricingPolicies: ["weekday_saver"],
-    enabledDisplayModules: ["quote_pricing_tiers", "home_pricing_cards"],
-  },
-  nj: {
-    code: "nj",
-    label: "New Jersey",
-    aliases: ["nj", "new-jersey", "east-coast", "east_coast", "east-coast-nj", "east_coast_nj"],
-    quoteRegionParam: "east-coast-nj",
-    enabledPricingPolicies: [],
     enabledDisplayModules: ["quote_pricing_tiers", "home_pricing_cards"],
   },
 } as const

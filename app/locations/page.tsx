@@ -3,18 +3,19 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { MapPin } from "lucide-react"
 import type { Metadata } from "next"
+import { cityPages } from "@/config/city-pages"
 
 export const metadata: Metadata = {
-  title: "Hibachi at Home Service Locations | Southern California & NYC | Real Hibachi",
+  title: "Hibachi at Home Service Areas | Southern California",
   description:
-    "Professional hibachi at home service in Southern California and NYC/Long Island. Authentic Japanese teppanyaki chefs for private events and parties.",
+    "Professional hibachi at home service across Southern California: Los Angeles, Orange County, San Diego, Riverside, San Bernardino & Ventura counties. Authentic Japanese teppanyaki chefs for private events and parties.",
   keywords:
-    "hibachi service locations, Los Angeles hibachi, Orange County hibachi, NYC hibachi, Long Island hibachi, private teppanyaki chef areas",
+    "hibachi service locations, Los Angeles hibachi, Orange County hibachi, San Diego hibachi, Inland Empire hibachi, private teppanyaki chef areas",
   openGraph: {
-    title: "Hibachi at Home Service Locations | Southern California & NYC",
+    title: "Hibachi at Home Service Areas | Southern California",
     description:
-      "Premium hibachi at home service in Southern California and NYC/Long Island. Professional Japanese teppanyaki chefs at your location.",
-    url: "https://realhibachi.com/locations",
+      "Premium hibachi at home service across all of Southern California. Professional Japanese teppanyaki chefs at your location.",
+    url: "https://www.realhibachi.com/locations",
     siteName: "Real Hibachi",
     type: "website",
   },
@@ -25,10 +26,15 @@ const locations = [
     id: "southern-california",
     name: "Southern California",
     state: "CA",
-    description: "Serving Los Angeles, Orange County and surrounding areas",
+    description:
+      "Serving Los Angeles, Orange County, San Diego, Riverside, San Bernardino, and Ventura counties",
     areas: [
       "Los Angeles",
       "Orange County",
+      "San Diego",
+      "Riverside",
+      "San Bernardino",
+      "Ventura",
       "Beverly Hills",
       "Santa Monica",
       "Pasadena",
@@ -43,15 +49,6 @@ const locations = [
     featured: true,
     learnMoreHref: "/locations/la-orange-county",
   },
-  {
-    id: "nyc-long-island",
-    name: "NYC & Long Island",
-    state: "NY",
-    description: "Serving Manhattan, Brooklyn, Queens, The Bronx, Staten Island, and Long Island",
-    areas: ["Manhattan", "Brooklyn", "Queens", "The Bronx", "Staten Island", "Long Island"],
-    featured: true,
-    learnMoreHref: "/locations/nyc-long-island",
-  },
 ]
 
 export default function LocationsPage() {
@@ -61,12 +58,12 @@ export default function LocationsPage() {
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Hibachi at Home Service Locations</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            We currently serve Southern California and NYC/Long Island. Our professional chefs bring authentic Japanese
-            teppanyaki experiences directly to your location.
+            We serve all of Southern California. Our professional chefs bring authentic Japanese teppanyaki
+            experiences directly to your location.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 gap-8 mb-12 max-w-2xl mx-auto">
           {locations.map((location) => (
             <Card key={location.id}>
               <CardHeader>
@@ -93,9 +90,24 @@ export default function LocationsPage() {
           ))}
         </div>
 
-        <div className="rounded-lg overflow-hidden border h-[400px] relative">
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <p className="text-gray-500">Map placeholder - Interactive map will be displayed here</p>
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Find Your City</h2>
+            <p className="text-gray-600">
+              Local pricing, popular occasions, and neighborhood coverage for every city we serve.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            {cityPages.map((city) => (
+              <Link
+                key={city.slug}
+                href={`/hibachi-at-home/${city.slug}`}
+                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white px-5 py-2.5 text-primary font-medium hover:bg-primary hover:text-white transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+                {city.city}
+              </Link>
+            ))}
           </div>
         </div>
 

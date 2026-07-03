@@ -1,6 +1,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Party Rentals | Tables, Chairs & Dinnerware",
+  description:
+    "Add tables, chairs, and dinnerware to your hibachi at home party in Southern California. Simple flat-rate rentals delivered with your chef.",
+  openGraph: {
+    title: "Party Rentals | Real Hibachi",
+    description:
+      "Tables, chairs, and dinnerware rentals for your at-home hibachi party.",
+    url: "https://www.realhibachi.com/rentals",
+    siteName: "Real Hibachi",
+    type: "website",
+  },
+}
 
 // Rental items data
 const rentalItems = [

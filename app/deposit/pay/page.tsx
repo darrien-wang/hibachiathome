@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -98,6 +98,14 @@ function calculateTotalAmount(booking: BookingPreview): number {
 }
 
 export default function DepositPaymentPage() {
+  return (
+    <Suspense fallback={null}>
+      <DepositPaymentPageInner />
+    </Suspense>
+  )
+}
+
+function DepositPaymentPageInner() {
   const searchParams = useSearchParams()
   const rawBookingId = searchParams.get("id") || ""
   const source = searchParams.get("source") || ""

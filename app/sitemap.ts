@@ -1,7 +1,13 @@
 import type { MetadataRoute } from "next"
-import { getBlogPosts } from "@/lib/blog" // Assuming you have a way to get blog posts
+import { getBlogPosts } from "@/lib/blog"
+import { cityPages } from "@/config/city-pages"
 
 const BASE_URL = "https://www.realhibachi.com"
+
+// Bump this date whenever page content meaningfully changes. Using
+// `new Date()` on every build claims constant freshness, which search
+// engines learn to distrust and then ignore lastmod entirely.
+const STATIC_PAGES_LAST_UPDATED = "2026-07-02T00:00:00.000Z"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
@@ -19,32 +25,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/rentals",
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
-    lastModified: new Date().toISOString(),
+    lastModified: STATIC_PAGES_LAST_UPDATED,
     changeFrequency:
-      route === "" || route === "/hibachi-at-home" || route === "/locations/la-orange-county" ? "daily" : "monthly",
+      route === "" || route === "/hibachi-at-home" || route === "/locations/la-orange-county" ? "weekly" : "monthly",
     priority:
       route === "" ? 1.0 : route === "/hibachi-at-home" ? 0.95 : route === "/locations/la-orange-county" ? 0.9 : 0.8,
   }))
 
+  const cityPagesSitemap: MetadataRoute.Sitemap = cityPages.map((city) => ({
+    url: `${BASE_URL}/hibachi-at-home/${city.slug}`,
+    lastModified: STATIC_PAGES_LAST_UPDATED,
+    changeFrequency: "monthly",
+    priority: 0.85,
+  }))
+
   let blogPostsSitemap: MetadataRoute.Sitemap = []
   try {
-    const blogPosts = await getBlogPosts() // Fetch your blog posts
+    const blogPosts = await getBlogPosts()
     blogPostsSitemap = blogPosts.map((post) => ({
       url: `${BASE_URL}/blog/${post.slug}`,
       lastModified: new Date(post.date).toISOString(),
-      changeFrequency: "weekly",
-      priority: 0.7,
+      changeFrequency: "monthly",
+      priority: 0.6,
     }))
   } catch (error) {
     console.error("Failed to fetch blog posts for sitemap:", error)
-    // Optionally, you could add a default blog page if posts can't be fetched
     blogPostsSitemap.push({
       url: `${BASE_URL}/blog`,
-      lastModified: new Date().toISOString(),
-      changeFrequency: "weekly",
-      priority: 0.7,
+      lastModified: STATIC_PAGES_LAST_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.6,
     })
   }
 
-  return [...staticPages, ...blogPostsSitemap]
+  return [...staticPages, ...cityPagesSitemap, ...blogPostsSitemap]
 }
