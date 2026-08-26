@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Phone, Star, Users, Clock, ChefHat, Check } from "lucide-react"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
+import { getCityClimate } from "@/config/city-climate"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
 const BASE_URL = "https://www.realhibachi.com"
@@ -104,8 +105,9 @@ export default function CityPage({ params }: { params: { city: string } }) {
   }
 
   const nearby = getNearbyCityPages(page)
+  const climate = getCityClimate(page.slug)
   const url = `${BASE_URL}/hibachi-at-home/${page.slug}`
-  const quoteHref = `/quoteA?source=city_${page.slug.replace(/-/g, "_")}`
+  const quoteHref = `/quote?source=city_${page.slug.replace(/-/g, "_")}`
 
   // City-specific questions first, then the ones every city gets asked.
   const faqs = [
@@ -448,6 +450,96 @@ export default function CityPage({ params }: { params: { city: string } }) {
           </p>
         </div>
       </section>
+
+      {/* When to book — measured, not guessed */}
+      {climate && (
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+                The Best Time of Year for a Party in <span className="text-primary">{page.city}</span>
+              </h2>
+              <p className="text-gray-600 mb-6">
+                This is a hibachi party in your own yard, so the weather decides more than the calendar does.
+                The numbers below are six years of daily observations for {page.city} (2019&ndash;2024) &mdash;
+                not a general Southern California average. Ten miles inland around here can mean fifteen degrees,
+                so a July evening in {page.city} is its own question.
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                <div className="rounded-xl border border-[#e7dbc6] bg-[#fffdf8] p-5">
+                  <h3 className="font-bold text-gray-900 mb-1">Best months for an evening party</h3>
+                  <p className="text-gray-700">{climate.bestEvening || "Comfortable evenings are limited here — ask us and we'll pick a date with you."}</p>
+                </div>
+                <div className="rounded-xl border border-[#e7dbc6] bg-[#fffdf8] p-5">
+                  <h3 className="font-bold text-gray-900 mb-1">Best months for a lunch party</h3>
+                  <p className="text-gray-700">{climate.bestLunch || "Midday is rarely comfortable here — evening is the better booking."}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-gray-600 mb-8">
+                <p>
+                  July in {page.city} averages a high of <strong>{climate.julyHigh}&deg;F</strong>, against{" "}
+                  <strong>{climate.januaryHigh}&deg;F</strong> in January.{" "}
+                  {climate.hotMonths
+                    ? `From ${climate.hotMonths} the afternoon is genuinely hot next to a teppanyaki grill, so we suggest starting at or after sunset in those months and saving lunch bookings for the cooler half of the year.`
+                    : `No month here averages above 93°F, which is why ${page.city} takes daytime bookings comfortably across most of the year.`}
+                </p>
+                <p>
+                  Rain is worth planning around in <strong>{climate.wettestMonth}</strong>, when about{" "}
+                  <strong>{climate.wettestPct}%</strong> of days see measurable precipitation. That is not a reason
+                  to avoid the month &mdash; it is a reason to have a plan: a 10&apos;x10&apos; pop-up tent over the
+                  chef&apos;s station, or seat your guests indoors and let the chef cook on the patio.
+                </p>
+                <p>
+                  Evenings run longest in <strong>{climate.latestSunsetMonth}</strong>, when the sun sets around{" "}
+                  <strong>{climate.latestSunset}</strong>. If you want the show finishing as the light goes &mdash;
+                  which is the version everyone photographs &mdash; start about ninety minutes before sunset for
+                  your month and work back from the table below.
+                </p>
+                <p>
+                  {page.city} is <strong>{climate.miles} miles</strong> from our base by road.{" "}
+                  {climate.travelFee === 0
+                    ? "That is inside our free 50-mile radius, so your quote carries no travel fee at all."
+                    : `Our first 50 miles are free, so the travel fee on a ${page.city} booking is about $${climate.travelFee} — one dollar for each mile past the free 50, not a flat surcharge.`}
+                </p>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">
+                    Monthly averages for {page.city}, 2019&ndash;2024
+                  </caption>
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 text-left font-medium">Month</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Avg high</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Avg low</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Rainy days</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Sunset</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {climate.months.map((m) => (
+                      <tr key={m.month} className="border-t border-gray-100">
+                        <th scope="row" className="px-4 py-2.5 text-left font-medium text-gray-900">{m.month}</th>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{m.high}&deg;F</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{m.low}&deg;F</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{m.rainPct}%</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{m.sunset}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-gray-500">
+                Averages from the Open-Meteo historical archive, 2019&ndash;2024. &ldquo;Rainy days&rdquo; is the
+                share of days with measurable rain. Driving distance via road routing from our base.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* How It Works */}
       <section className="py-16 bg-gray-50">
