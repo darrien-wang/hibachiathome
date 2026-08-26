@@ -10,7 +10,7 @@ I have run more than three hundred of these parties across Southern California o
 
 ## The short answer
 
-**Roughly $60 per adult, all in, for most parties in Los Angeles.**
+**Roughly $60 per adult, all in, for most parties in Los Angeles — or from $45.90 an adult if you can do a weeknight.**
 
 That is not a coincidence — nearly every mobile hibachi service in this market is priced around $60 per adult with a $600 minimum. Ours is $59.90 per adult, $29.95 per child under 13, with a $599 event minimum. Where services actually differ is everything *after* that number, which is the rest of this article.
 
@@ -88,11 +88,21 @@ That last one matters more than it sounds. Some services in this market charge $
 
 You do provide the tables, chairs, plates, and utensils — or you can rent them from us.
 
-## Weekday parties cost less
+## The Weekday Special: from $45.90 an adult
 
-Monday through Thursday with 15 or more guests, the rate drops to **$45.90 per adult**. On a 20-person party that's a difference of about $280 for the same food, same chef, same show.
+Monday through Thursday with 15 or more guests, the rate starts at **$45.90 per adult** instead of $59.90. Same chef, same grill, same show, same setup and cleanup. Guests pick two of three proteins — chicken, steak or shrimp — rather than the full five-protein menu, and premium upgrades aren't part of this tier. That's the whole difference.
 
-Weekday slots are also just easier to get. Weekend evenings in spring and graduation season go first.
+What it saves, in real numbers:
+
+| Guests | Standard | Weekday Special | You keep |
+|---|---|---|---|
+| 15 adults | $899 | **$689** | $210 |
+| 20 adults | $1,198 | **$918** | $280 |
+| 30 adults | $1,797 | **$1,377** | $420 |
+
+Weekday slots are also just easier to get — weekend evenings in spring and graduation season go first, and Monday to Thursday is the most open half of our calendar all year.
+
+And to be clear about the word "weekday": it's Monday through Thursday **all day**, lunch included. Corporate lunches, retirement parties and school-holiday kids' parties nearly all land in this window already, so a lot of people qualify without realising it.
 
 ## So how does this compare to a restaurant?
 

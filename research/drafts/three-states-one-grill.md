@@ -92,4 +92,4 @@ So if you've been holding off because your space feels too small, or too plain, 
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
+*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*

@@ -69,7 +69,7 @@ That's the trade. If the weather isn't cooperating — too hot at noon, too cold
 
 Weekend evenings go first, especially in spring and graduation season. Weekday lunch is the most available slot on our calendar by a wide margin.
 
-It's also the cheapest one. Monday through Thursday with 15 or more guests, the rate is **$45.90 per adult** instead of $59.90 — and that's the same chef, same food, same show. A 20-person weekday lunch runs about $280 less than the same party on a Saturday night.
+It's also the cheapest one. Our **Weekday Special starts at $45.90 per adult** — Monday through Thursday, 15 or more guests, and it covers lunch as well as dinner because "weekday" here means the whole day. Same chef, same food, same show; guests pick two of three proteins instead of the full menu. A 20-person weekday lunch runs about $280 less than the same party on a Saturday night.
 
 Corporate bookings, retirement lunches, and school-holiday kids' parties all tend to land Monday to Thursday anyway. If that's you, you're already in the cheaper, easier-to-book half of the week and you may not have realized it.
 
@@ -85,4 +85,4 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, $45.90 Monday–Thursday with 15+ guests, setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
+*$59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*

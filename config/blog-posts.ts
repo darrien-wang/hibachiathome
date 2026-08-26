@@ -104,7 +104,7 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quote), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+*$59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
 `,
     coverImage: "/images/chef-bling-at-the-grill.jpg",
     date: "2026-08-26",
@@ -190,7 +190,7 @@ That's the trade. If the weather isn't cooperating — too hot at noon, too cold
 
 Weekend evenings go first, especially in spring and graduation season. Weekday lunch is the most available slot on our calendar by a wide margin.
 
-It's also the cheapest one. Monday through Thursday with 15 or more guests, the rate is **$45.90 per adult** instead of $59.90 — and that's the same chef, same food, same show. A 20-person weekday lunch runs about $280 less than the same party on a Saturday night.
+It's also the cheapest one. Our **Weekday Special starts at $45.90 per adult** — Monday through Thursday, 15 or more guests, and it covers lunch as well as dinner because "weekday" here means the whole day. Same chef, same food, same show; guests pick two of three proteins instead of the full menu. A 20-person weekday lunch runs about $280 less than the same party on a Saturday night.
 
 Corporate bookings, retirement lunches, and school-holiday kids' parties all tend to land Monday to Thursday anyway. If that's you, you're already in the cheaper, easier-to-book half of the week and you may not have realized it.
 
@@ -206,7 +206,7 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, $45.90 Monday–Thursday with 15+ guests, setup and cleanup included, first 50 miles free. [Get an instant quote](/quote) or see [where we cook](/hibachi-at-home).*
+*$59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
 `,
     coverImage: "/images/chef-bling-at-the-grill.jpg",
     date: "2026-08-26",
@@ -233,7 +233,7 @@ I have run more than three hundred of these parties across Southern California o
 
 ## The short answer
 
-**Roughly $60 per adult, all in, for most parties in Los Angeles.**
+**Roughly $60 per adult, all in, for most parties in Los Angeles — or from $45.90 an adult if you can do a weeknight.**
 
 That is not a coincidence — nearly every mobile hibachi service in this market is priced around $60 per adult with a $600 minimum. Ours is $59.90 per adult, $29.95 per child under 13, with a $599 event minimum. Where services actually differ is everything *after* that number, which is the rest of this article.
 
@@ -311,11 +311,21 @@ That last one matters more than it sounds. Some services in this market charge $
 
 You do provide the tables, chairs, plates, and utensils — or you can rent them from us.
 
-## Weekday parties cost less
+## The Weekday Special: from $45.90 an adult
 
-Monday through Thursday with 15 or more guests, the rate drops to **$45.90 per adult**. On a 20-person party that's a difference of about $280 for the same food, same chef, same show.
+Monday through Thursday with 15 or more guests, the rate starts at **$45.90 per adult** instead of $59.90. Same chef, same grill, same show, same setup and cleanup. Guests pick two of three proteins — chicken, steak or shrimp — rather than the full five-protein menu, and premium upgrades aren't part of this tier. That's the whole difference.
 
-Weekday slots are also just easier to get. Weekend evenings in spring and graduation season go first.
+What it saves, in real numbers:
+
+| Guests | Standard | Weekday Special | You keep |
+|---|---|---|---|
+| 15 adults | $899 | **$689** | $210 |
+| 20 adults | $1,198 | **$918** | $280 |
+| 30 adults | $1,797 | **$1,377** | $420 |
+
+Weekday slots are also just easier to get — weekend evenings in spring and graduation season go first, and Monday to Thursday is the most open half of our calendar all year.
+
+And to be clear about the word "weekday": it's Monday through Thursday **all day**, lunch included. Corporate lunches, retirement parties and school-holiday kids' parties nearly all land in this window already, so a lot of people qualify without realising it.
 
 ## So how does this compare to a restaurant?
 
@@ -458,7 +468,7 @@ So if you've been holding off because your space feels too small, or too plain, 
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quote).*
+*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
 `,
     coverImage: "/hibachi-group-selfie.jpg",
     date: "2026-08-26",

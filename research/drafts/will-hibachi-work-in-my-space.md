@@ -98,4 +98,4 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+*$59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*

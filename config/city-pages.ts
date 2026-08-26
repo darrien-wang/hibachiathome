@@ -681,6 +681,276 @@ export const cityPages: CityPage[] = [
     nearby: ["glendale", "los-angeles", "pasadena"],
   },
   {
+    slug: "thousand-oaks",
+    city: "Thousand Oaks",
+    county: "Ventura County",
+    metaTitle: "Hibachi at Home Thousand Oaks CA | Private Hibachi Chef",
+    metaDescription:
+      "Private hibachi chef in Thousand Oaks and the Conejo Valley \u2014 big backyards, pool decks, and gated communities. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "The Conejo Valley has the two things that make a hibachi party easy: room and quiet. Backyards out here are big enough for a long table and thirty people, the streets are wide enough that the chef parks fifty feet from your gate, and nobody is close enough to mind an outdoor dinner running late.",
+      "We cook throughout Thousand Oaks, Westlake Village, Newbury Park, Agoura Hills, and the surrounding Conejo Valley. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+    ],
+    neighborhoods: [
+      "Westlake Village",
+      "Newbury Park",
+      "Agoura Hills",
+      "Oak Park",
+      "Lynn Ranch",
+      "Wildwood",
+      "North Ranch",
+      "Dos Vientos",
+      "Calabasas",
+      "Camarillo",
+    ],
+    occasions: [
+      {
+        title: "Graduation Season",
+        description:
+          "Thousand Oaks High, Westlake, and Newbury Park families hosting at home in May and June, usually with relatives flying in for the weekend.",
+      },
+      {
+        title: "Pool Party Birthdays",
+        description:
+          "Conejo Valley pools get used from May through October. Swim in the afternoon, hibachi at sunset, nobody gets in a car.",
+      },
+      {
+        title: "Big Family Gatherings",
+        description:
+          "Yards out here comfortably hold thirty, which makes reunions and holiday dinners far easier to host at home than in the city.",
+      },
+      {
+        title: "Corporate & Team Dinners",
+        description:
+          "Biotech and insurance teams along the 101 corridor celebrating at somebody's house instead of booking another private room.",
+      },
+    ],
+    venues: [
+      {
+        title: "North Ranch & Lynn Ranch Estates",
+        description:
+          "Large lots with terraces, lawn and hardscape both, and room for a table of thirty. Among the roomiest setups we do.",
+      },
+      {
+        title: "Pool Deck Setups",
+        description:
+          "Wide hardscaped decks with the grill placed well clear of the water. The everyday Conejo Valley configuration.",
+      },
+      {
+        title: "Gated Community Homes",
+        description:
+          "Westlake and North Ranch properties behind a guard gate. A gate code or the chef's name on the list is all we need.",
+      },
+    ],
+    logistics: [
+      "Thousand Oaks is one of the easiest cities we serve for load-in \u2014 long driveways, wide streets, and rarely a stair problem. If you are behind a guard gate in Westlake or North Ranch, send the code or add the chef to the list when you confirm; without it the chef waits at the kiosk while your party waits inside.",
+      "Two local factors. The Conejo Valley runs hot inland in July and August, so we suggest a sunset start in high summer and a lunch or afternoon booking from roughly October through May, when midday out here is genuinely lovely. And during red-flag fire conditions \u2014 which this corridor gets \u2014 we keep the setup on hardscape well clear of dry brush, especially on lots backing onto open hillside. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Thousand Oaks?",
+        answer:
+          "Usually not. Most Conejo Valley addresses fall inside our free 50-mile radius, and past that it is $1 for each mile beyond the free 50 \u2014 not $1 on the whole distance \u2014 shown upfront in your instant quote before you pay anything.",
+      },
+      {
+        question: "We are in a gated community. What do you need?",
+        answer:
+          "A gate code, or the chef added to the guard list under your booking name. Send it when you confirm and the chef drives straight in. Without it, entry can take fifteen minutes off your start time.",
+      },
+      {
+        question: "Can you handle 30 guests?",
+        answer:
+          "Yes \u2014 Conejo Valley yards are among the few that comfortably hold that many, and it is a regular booking for us here. Larger parties may use a second chef or a longer service window; give us the count when you book.",
+      },
+      {
+        question: "What does hibachi at home cost in Thousand Oaks?",
+        answer:
+          "$59.90 per adult, $29.95 per child under 13, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+      },
+    ],
+    nearby: ["woodland-hills", "santa-clarita", "malibu"],
+  },
+  {
+    slug: "west-covina",
+    city: "West Covina",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home West Covina CA | Private Hibachi Chef",
+    metaDescription:
+      "Private hibachi chef in West Covina and the eastern San Gabriel Valley \u2014 backyard parties, family banquets, graduations. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "West Covina is about fifteen minutes from where our chefs load the truck, which makes it one of the easiest cities we serve and one of the few where we can often take a booking on shorter notice. The yards are the classic eastern San Gabriel Valley kind: flat, fenced, concrete patio, room for a long folding table and twenty-five people.",
+      "We cook throughout West Covina, Covina, Walnut, La Puente, Baldwin Park, and the surrounding SGV. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "South Hills",
+      "Woodside Village",
+      "Covina",
+      "Walnut",
+      "La Puente",
+      "Baldwin Park",
+      "Hacienda Heights",
+      "Rowland Heights",
+      "Glendora",
+      "Azusa",
+    ],
+    occasions: [
+      {
+        title: "Family Banquets at Home",
+        description:
+          "The dinner that would otherwise be a restaurant banquet room \u2014 held in the backyard instead, with better seating and no time limit.",
+      },
+      {
+        title: "Graduation Parties",
+        description:
+          "West Covina, South Hills, and Mt. SAC families hosting in May and June, when every SGV restaurant with a private room is booked out.",
+      },
+      {
+        title: "Holiday Gatherings",
+        description:
+          "Lunar New Year, Thanksgiving and Christmas dinners where the host would otherwise spend two days in the kitchen.",
+      },
+      {
+        title: "Kids' Birthdays",
+        description:
+          "The show holds a yard full of children and their parents at the same time, which very few things do.",
+      },
+    ],
+    venues: [
+      {
+        title: "Classic SGV Backyards",
+        description:
+          "Flat lots with a concrete patio, a fruit tree or two, and room for a long folding table. The most common setup here by far.",
+      },
+      {
+        title: "South Hills Slope Homes",
+        description:
+          "Hillside lots with stepped rear patios and a view. A few stairs from the driveway, which is worth flagging at booking.",
+      },
+      {
+        title: "Pool & Covered Patio Homes",
+        description:
+          "Woodside Village and Covina properties with pool decks and permanent patio covers \u2014 good shade, which matters at a summer lunch.",
+      },
+    ],
+    logistics: [
+      "West Covina is close to base, so this is a city where we can sometimes fit a booking in on shorter notice than the coast allows, and where the chef arrives unhurried. Driveways are standard and the streets are wide; load-in is usually a couple of minutes rather than the twenty it can take on the Westside.",
+      "The one thing we plan around is overhead. Older SGV lots often have mature fruit trees or a permanent patio cover right over the natural grill spot, and that is the usual reason we shift a setup a few feet. Send a photo when you book and we will pick the position in advance. Summers here are hot and still, so we suggest an evening start from June through September and a lunch booking from roughly October through May. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance, on concrete or pavers rather than soft lawn.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to West Covina?",
+        answer:
+          "No. West Covina is well inside our free 50-mile radius, so your quote carries no travel fee at all.",
+      },
+      {
+        question: "Do you serve Covina, Walnut, and Baldwin Park too?",
+        answer:
+          "Yes \u2014 Covina, Walnut, La Puente, Baldwin Park, Hacienda Heights, Rowland Heights, Glendora and Azusa are all regular service areas, along with the rest of the San Gabriel Valley.",
+      },
+      {
+        question: "How late can we book?",
+        answer:
+          "Two to three weeks ahead is safe for a weekend, and holiday weekends fill first. That said, West Covina is close enough to base that we can sometimes accommodate shorter notice \u2014 it is worth asking. A $19.90 deposit locks your date, fully refundable with 72+ hours notice.",
+      },
+      {
+        question: "What does hibachi at home cost in West Covina?",
+        answer:
+          "$59.90 per adult, $29.95 per child under 13, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) is available.",
+      },
+    ],
+    nearby: ["rowland-heights", "diamond-bar", "whittier"],
+  },
+  {
+    slug: "whittier",
+    city: "Whittier",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home Whittier CA | Private Hibachi Chef",
+    metaDescription:
+      "Private hibachi chef in Whittier \u2014 Uptown bungalows, hillside patios, and family backyards. $59.90/adult flat rate, setup & cleanup included, no travel fee.",
+    intro: [
+      "Whittier has two kinds of backyard and we cook in both: the older Uptown and Hadley lots with deep yards and mature trees, and the hillside homes above Whittier Boulevard with stepped patios and a view over the basin. Both make good hibachi venues; they just need different setups.",
+      "We cook across Whittier, La Habra Heights, Santa Fe Springs, Pico Rivera, and the surrounding area. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Uptown Whittier",
+      "Hadley",
+      "Friendly Hills",
+      "East Whittier",
+      "La Habra Heights",
+      "Santa Fe Springs",
+      "Pico Rivera",
+      "Downey",
+      "La Mirada",
+      "Norwalk",
+    ],
+    occasions: [
+      {
+        title: "Backyard Birthdays",
+        description:
+          "Deep Uptown yards with string lights and a table for twenty. The everyday Whittier booking, and our most requested.",
+      },
+      {
+        title: "Graduation Parties",
+        description:
+          "Whittier College, Whittier High and California High families hosting at home in May and June with relatives in town.",
+      },
+      {
+        title: "Family Reunions",
+        description:
+          "Long afternoons and big tables, where the chef handles dinner so the host can actually be at the party.",
+      },
+      {
+        title: "Quinceañeras & Milestone Parties",
+        description:
+          "A live teppanyaki show works as the dinner and the entertainment at once, which takes a line item off the budget.",
+      },
+    ],
+    venues: [
+      {
+        title: "Uptown & Hadley Backyards",
+        description:
+          "Older lots with deep yards, real grass, and mature trees. Lovely, and the reason we ask about overhead clearance here.",
+      },
+      {
+        title: "Friendly Hills Terraces",
+        description:
+          "Hillside homes with stepped rear patios and a view over the basin. Usually a flight of stairs from the driveway.",
+      },
+      {
+        title: "Flat Tract Homes",
+        description:
+          "East Whittier lots with a driveway, a fence and a concrete patio \u2014 fast, simple setups.",
+      },
+    ],
+    logistics: [
+      "Whittier is close to base, so there is no travel fee and the chef arrives with time in hand. The two things worth telling us at booking are stairs and trees. Friendly Hills and the La Habra Heights side often mean a flight or two from where the chef parks down to the patio, which is completely workable as long as we know in advance and bring the cart.",
+      "The older Uptown and Hadley lots have the same mature-tree situation as Pasadena \u2014 beautiful, and low branches over the natural grill spot are the usual reason we move the setup a few feet. A photo sent with your quote request settles it before the day. Summer afternoons here run hot enough that we suggest an evening start from June through September; from roughly October through May a lunch or afternoon booking works well. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Whittier?",
+        answer:
+          "No. Whittier is comfortably inside our free 50-mile radius, so your quote carries no travel fee at all.",
+      },
+      {
+        question: "Our patio is up a flight of stairs from the driveway. Is that a problem?",
+        answer:
+          "Not at all \u2014 that is a normal Friendly Hills setup. Tell us when you book so the chef brings the right cart and we schedule enough arrival time. Stairs have never been the reason a party did not happen; not knowing about them is what shortens setup.",
+      },
+      {
+        question: "Do you serve Pico Rivera, Downey and La Mirada?",
+        answer:
+          "Yes \u2014 Pico Rivera, Downey, La Mirada, Norwalk, Santa Fe Springs and La Habra Heights are all regular service areas.",
+      },
+      {
+        question: "What does hibachi at home cost in Whittier?",
+        answer:
+          "$59.90 per adult, $29.95 per child under 13, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+      },
+    ],
+    nearby: ["west-covina", "long-beach", "downtown-los-angeles"],
+  },
+  {
     slug: "arcadia",
     city: "Arcadia",
     county: "Los Angeles County",
