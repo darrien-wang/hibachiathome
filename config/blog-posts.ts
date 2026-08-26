@@ -2,566 +2,452 @@ import type { BlogPost } from "@/types/blog"
 
 export const blogPosts: BlogPost[] = [
   {
-    id: "1",
-    title: "The Art and History of Hibachi Cooking",
-    slug: "art-history-hibachi-cooking",
+    id: "9",
+    title: "Will Hibachi Work in My Space? A Chef's Honest Answer",
+    slug: "will-hibachi-work-in-my-space",
     excerpt:
-      "Discover the rich history and cultural significance of hibachi cooking, from its origins in Japan to its modern popularity in the United States.",
+      "Stairs matter more than square footage, the grill can never come indoors but your guests can, and the smallest yard Chef Bling ever cooked in was not the lesser party. What actually decides whether hibachi at home works where you live.",
     content: `
-# The Art and History of Hibachi Cooking
+# Will Hibachi Work in My Space? A Chef's Honest Answer
 
-Hibachi cooking is more than just a meal—it's an experience that combines culinary skill, entertainment, and cultural tradition. In this article, we'll explore the fascinating history of hibachi cooking and how it has evolved over the centuries.
+The question I get more than any other, in some form, is: *is my place good enough for this?*
 
-## Origins in Japan
+Usually it's a backyard someone thinks is too small. Sometimes it's an apartment with a balcony and no yard at all. Sometimes it's a rental where they're not sure what's allowed.
 
-The word "hibachi" (火鉢) literally means "fire bowl" in Japanese. Traditional hibachi were heating devices, consisting of a round, cylindrical, or box-shaped open-topped container made of heat-resistant materials such as ceramic or metal. These were filled with burning charcoal and used primarily for heating homes during the winter months in Japan.
+I've run more than three hundred of these parties. Here's the real answer, including the parts that are inconvenient for me to admit.
 
-The cooking style we now associate with hibachi in the West actually originated from teppanyaki cooking. Teppanyaki uses an iron griddle with a flat, solid surface to cook food, unlike the open-grate design of traditional hibachi.
+## The two backyards I think about most
 
-## Evolution into Entertainment
+Last year I cooked a party at an estate in Beverly Hills. Everything you'd imagine: space, staff, a host who was extraordinarily generous — she sent every kid home with a gift, and she tipped in a way I still remember.
 
-The modern hibachi restaurant experience, where chefs cook at your table with flair and showmanship, was popularized in the United States by the Benihana restaurant chain, founded by Rocky Aoki in 1964. This style of cooking transformed the meal into dinner theater, with chefs performing tricks like the onion volcano, flipping shrimp into their pockets, and creating fiery displays.
+I also cooked a grandmother's birthday in Inglewood, in a yard so small I could barely turn around at the grill.
 
-## Hibachi at Home
+Here's the part I didn't expect. **The two parties felt the same.**
 
-Today, the hibachi experience has evolved further with services that bring the entertainment and delicious food directly to people's homes. Professional hibachi chefs can now set up portable grills in your dining room or backyard, creating a personalized restaurant experience without leaving home.
+Not similar. The same. Same warmth, same noise, same people leaning in. The money in Beverly Hills made that night memorable *to me*, but it is not what made it a good party — take away the gifts and the tip and it's still a family that clearly loved each other, which is exactly what Inglewood was.
 
-## The Culinary Techniques
+I've thought about this a lot, and it's the most useful thing I can tell you about whether your space is good enough: **the variable was never the yard, and it was never the budget.** It's whether the people in it want to be together.
 
-Hibachi cooking involves several key techniques:
+A big backyard doesn't give you a good party. It just gives you room.
 
-1. **High Heat Cooking**: The flat iron griddle is heated to very high temperatures, allowing for quick cooking that seals in flavors.
-2. **Simple Seasonings**: Traditional hibachi uses minimal seasonings, often just soy sauce, butter, salt, and pepper, letting the natural flavors of the ingredients shine.
-3. **Theatrical Cutting**: Chefs use rapid, precise knife work to cut meats and vegetables, often incorporating this into their performance.
-4. **Controlled Flames**: The signature flame bursts are created by adding oil to hot spots on the grill, creating momentary impressive fire displays.
+## What actually matters, in order
 
-## Popular Hibachi Dishes
+### 1. The path from the street — this is the real one
 
-Some classic hibachi menu items include:
+If I'm telling you the truth about what makes an event hard, it isn't the size of your yard. It's **how far the equipment has to travel to get to it.**
 
-- **Hibachi Steak**: Typically New York strip or ribeye, cooked to perfection on the griddle
-- **Hibachi Chicken**: Tender chicken breast pieces seasoned and grilled
-- **Hibachi Shrimp**: Large shrimp cooked quickly to maintain their tender texture
-- **Hibachi Vegetables**: Usually a mix of zucchini, onions, and mushrooms
-- **Hibachi Fried Rice**: Rice stir-fried with eggs, vegetables, and meat
+A teppanyaki grill, propane, coolers, and sometimes tables and chairs all have to come from my vehicle to your patio. On a normal party that's a few minutes. I have had one where it was **three flights of stairs plus a table-and-chair rental**, and load-in and load-out ran close to an hour.
 
-## The Cultural Impact
+I genuinely did not expect it to take that long, and I had another party after it. We were late. I still feel bad about it, and it changed how I schedule.
 
-Hibachi restaurants have become cultural institutions in America, often chosen for celebrations and special occasions. The interactive nature of the cooking creates shared experiences and memories, making hibachi more than just a meal—it's an event.
+So: stairs, a long walk, a narrow side gate, no parking within a block — **none of these are reasons you can't book.** They're reasons to tell us when you book. We bring different equipment and we block more arrival time. The problem was never the stairs. It was that nobody knew about the stairs.
 
-## Conclusion
+### 2. Overhead clearance
 
-From its humble beginnings as a heating device in Japan to the entertaining culinary performance it is today, hibachi cooking has undergone a remarkable transformation. Its enduring popularity speaks to our desire for not just delicious food, but memorable dining experiences that engage all our senses.
+I need roughly **10 feet of clear space above the grill**. The usual culprits are a low pergola, a patio cover with a crossbeam in the wrong place, and mature trees — Pasadena and the older San Gabriel Valley neighborhoods are full of beautiful low branches.
 
-Whether you're enjoying hibachi at a restaurant or in the comfort of your own home with a private chef, you're participating in a culinary tradition that has brought joy to millions of people around the world.
-    `,
-    coverImage: "/hibachi-chef.png",
-    date: "2023-05-15",
+This almost never kills a party. It just means we move the grill four feet. Send a photo of your space with your quote request and we'll pick the spot before the day instead of on it.
+
+### 3. A flat area about 6 by 8 feet
+
+That's the whole footprint. Concrete, pavers, a deck, a driveway — anything hard and level. Soft lawn isn't ideal.
+
+Most people who think their yard is too small have this and don't realize it.
+
+## Apartments, balconies and rooftops
+
+**Yes, we can do these.** Balconies and roof decks both work.
+
+I'll be straight with you: they're harder on the chef — access, elevators, no vehicle nearby. But they're not off-limits, and we do them.
+
+The thing that decides it isn't the space, it's **the building**. Before you book, ask your HOA or property manager one question: is propane cooking allowed on that balcony or roof deck? Some buildings say yes, some say no, and the answer usually comes from the association rather than the front desk. Get it a week ahead and everything after that is easy.
+
+Same idea for vacation rentals: check the listing for open-flame cooking rules before you book us. It's the one thing that genuinely cancels these parties, and it's a two-line message to your host.
+
+## The grill can't come inside. You can.
+
+This is the thing almost nobody knows.
+
+A teppanyaki grill is open flame. Indoors it throws heavy smoke and grease and **it will set off a smoke alarm.** So the grill stays outside — always, no exceptions.
+
+But your guests don't have to be outside with it. A completely normal setup: I cook on the patio, and plates come indoors as they're ready. Everyone eats at the dining table.
+
+That single option solves a hot afternoon, a cold night, a windy patio, and light rain. If your worry is "we don't want to eat outside" — you don't have to.
+
+## Rain
+
+The grill needs cover; the party doesn't.
+
+Most clients put up a **10'×10' pop-up tent** over the chef's station. They're inexpensive new, often cheap secondhand on Facebook Marketplace, and easy to rent. **We don't supply tents** — that's on you, and I'd rather tell you now than on the day.
+
+Beyond that: guests eat indoors, or you reschedule. Cancel or move your date with 72+ hours notice and your $19.90 deposit is refunded in full.
+
+## Have I ever said no?
+
+I've never had to walk into a space and tell a client we couldn't do it. Not once.
+
+There is one situation where a chef should walk away, and it isn't about the venue. A colleague of mine was once at a party where a guest said something openly racist to him. He stopped cooking and left. The host was mortified and apologized, and his company backed him.
+
+I mention it because you should know where the line is, and it has nothing to do with how big your yard is. Our chefs will cook in a driveway, in a parking lot, on a balcony, in a space where they can barely turn around. What they won't do is stand there and be abused.
+
+Everything else, we'll figure out with you.
+
+## So: will it work in your space?
+
+Almost certainly yes.
+
+Send us a photo when you request a quote. Tell us about stairs, gates, parking, and anything overhead. That's the entire diligence process, and it takes you two minutes.
+
+I've cooked in a Beverly Hills estate and in a yard the size of a parking space, and I can tell you the second one was not the lesser party.
+
+---
+
+*Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
+
+*$59.90 per adult, setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+`,
+    coverImage: "/images/chef-bling-at-the-grill.jpg",
+    date: "2026-08-26",
     author: {
-      name: "Chef Tanaka",
-      avatar: "/japanese-chef-portrait.png",
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
     },
-    category: "Cooking History",
-    tags: ["hibachi", "japanese cuisine", "cooking techniques", "food history"],
-    readTime: 8,
+    category: "Planning",
+    tags: ["hibachi at home", "backyard setup", "apartment balcony", "vacation rental", "planning"],
+    readTime: 7,
   },
   {
-    id: "2",
-    title: "5 Essential Hibachi Cooking Techniques Every Home Chef Should Know",
-    slug: "essential-hibachi-cooking-techniques",
+    id: "8",
+    title: "Nobody Talks About Lunch Hibachi. It's Half My Week.",
+    slug: "hibachi-lunch-daytime-socal",
     excerpt:
-      "Learn the fundamental techniques that professional hibachi chefs use and how you can apply them in your own kitchen for impressive results.",
+      "Company lunches, retirement parties, kids' birthdays and the arrival-day meal for family flying in. What daytime hibachi is really like in Southern California — including the part where it is calmer than the evening, and why that is sometimes what you want.",
     content: `
-# 5 Essential Hibachi Cooking Techniques Every Home Chef Should Know
+# Nobody Talks About Lunch Hibachi. It's Half My Week.
 
-Hibachi cooking is renowned for its theatrical presentation and delicious results. While you might not be able to create an onion volcano in your kitchen, there are several professional hibachi techniques you can master at home. Here are five essential skills that will elevate your cooking game.
+Every page about hibachi at home shows you the same picture: a backyard at sunset, string lights, everyone loud and happy. That party is real. I cook it constantly.
 
-## 1. The Perfect Sear
+But a large share of what I actually do happens at noon, and almost nobody writes about it — so if you've been assuming this is an evening-only thing, here's what daytime hibachi is really like, including the parts that are worse.
 
-Professional hibachi chefs know that a good sear is the foundation of flavor. Here's how to achieve it:
+## Who books lunch
 
-### Technique:
-- **Preheat thoroughly**: Your cooking surface needs to be extremely hot before food touches it. For home cooking, preheat your cast iron pan or griddle for at least 5-7 minutes on high heat.
-- **Dry your ingredients**: Pat meat and vegetables dry with paper towels before cooking. Moisture is the enemy of a good sear.
-- **Don't overcrowd**: Cook in batches if necessary. Overcrowding the pan lowers the temperature and causes steaming instead of searing.
-- **Minimal movement**: Once your protein hits the hot surface, resist the urge to move it around. Let it develop a crust before flipping.
+**Companies.** This is the biggest one. Team lunches, and farewell parties for someone leaving — I once cooked one for a company in their own parking lot, no yard anywhere in the picture, and it was a good event.
 
-### Application:
-This technique works beautifully for hibachi-style steak, chicken, or even firm tofu. The caramelization created by a proper sear develops the complex flavors that make hibachi cooking so delicious.
+**Retirement parties.** Almost always midday. It suits the guest of honor and it suits the age of the room.
 
-## 2. The Quick-Cut Method
+**Kids' birthdays.** Obvious once you say it. Nobody wants a 7pm start for a party full of six-year-olds.
 
-Hibachi chefs are known for their impressive knife skills, rapidly dicing and slicing ingredients on the hot surface.
+**Ordinary family meals.** Sunday lunch, relatives in town, no occasion required.
 
-### Technique:
-- **Sharp knife**: Keep your knife properly sharpened – a dull knife is dangerous and inefficient.
-- **Claw grip**: Curl your fingertips under while holding the food, using your knuckles as a guide for the knife.
-- **Consistent size**: Cut ingredients into uniform sizes to ensure even cooking.
-- **Prep ahead**: Have all ingredients cut and organized before you start cooking (mise en place).
+And the one that surprised me the first time: **the arrival-day lunch.** I cooked for about thirty people who had flown in from all over the country. They had something else on that evening, and some of them were flying out again — so lunch was the meal where everyone was actually in the same room. Feed the people who traveled, before the day pulls them apart.
 
-### Application:
-Practice your quick-cutting skills on vegetables like zucchini, onions, and mushrooms – staples of hibachi cooking. The uniform size ensures everything cooks at the same rate.
+If you've got out-of-town family landing on a Friday, that's the booking. It's a good one.
 
-## 3. The Flavor Infusion
+## What time lunch actually starts
 
-Hibachi cooking uses simple seasonings applied at the right moment for maximum impact.
+**Between 12 and 2.**
 
-### Technique:
-- **Layered seasoning**: Season at multiple stages of cooking, not just at the beginning or end.
-- **Garlic butter**: Create compound butter with minced garlic, a secret weapon of hibachi chefs.
-- **Soy sauce application**: Add soy sauce around the perimeter of the food, letting it cook slightly before mixing in.
-- **Steam capture**: Create small piles of food and cover briefly with a dome lid to steam and infuse flavors.
+Not 11. I've learned that at 11 a good portion of the party hasn't really woken up yet, and you end up cooking for a room that isn't ready. Noon to two is the window where it works.
 
-### Application:
-Try making hibachi vegetables by sautéing zucchini and onions, adding a touch of soy sauce around the edges, then incorporating garlic butter just before finishing.
+## The honest part: lunch is calmer, and quieter
 
-## 4. The Perfect Fried Rice Technique
+I'm not going to sell you something I don't believe.
 
-Hibachi fried rice is a crowd favorite, and there are specific techniques to make it authentic.
+An evening party is louder. People are done with their day, the sake is going, they're up for the show, they play along. That's when this thing is at its most fun.
 
-### Technique:
-- **Day-old rice**: Always use cold, day-old rice that has dried out slightly in the refrigerator.
-- **Hot and fast**: Cook at high heat and keep the ingredients moving.
-- **Egg well**: Create a well in the center of your cooking surface for eggs, then incorporate them into the rice.
-- **Separate and coat**: Use chopsticks or a spatula to separate rice grains and ensure each is coated with seasoning.
+**At lunch, people are more focused on eating.** The energy is lower. There's less of the shouting-and-catching part. As a chef, midday is honestly the easier shift — I do my job, the food goes out, and there's less need to work the room.
 
-### Application:
-Make hibachi-style fried rice by heating your pan until it's smoking hot, adding a touch of oil, then quickly cooking beaten eggs. Push them aside, add cold rice, and mix everything together with soy sauce and butter.
+But "calmer" is not the same as "worse." Some of the warmest parties I've cooked have been at noon. It's peaceful. It's gentle. Everyone can hear each other. If your group is elders, or small kids, or people who just want a good meal and real conversation rather than a performance — **lunch is the better booking, not the compromise.**
 
-## 5. The Timing Mastery
+Here's the simple version:
 
-Perhaps the most impressive skill of hibachi chefs is their ability to time everything perfectly so all components finish cooking simultaneously.
+- **Want it loud, high-energy, sake flowing?** Book the evening.
+- **Want it warm, relaxed, everyone able to talk?** Book lunch.
 
-### Technique:
-- **Know your cooking times**: Understand how long each ingredient takes to cook.
-- **Strategic placement**: Use different areas of your cooking surface for items with different cooking times.
-- **Temperature zones**: Create hotter and cooler zones on your cooking surface.
-- **Rest and hold**: Know which items can rest while others finish cooking.
+Both are good. They're just different rooms.
 
-### Application:
-When making a complete hibachi meal, start with items that take longest (like chicken), then add quicker-cooking items (like shrimp) later. Use the cooler edges of your pan to hold items that are done while others finish.
+## The thing about shade
 
-## Conclusion
+Almost every lunch party I do has some kind of cover — a patio roof, an awning, a shade structure. That's not a coincidence. The sun at midday can be genuinely hot, and your guests feel it more than I do.
 
-While the full hibachi experience includes entertainment elements that are difficult to replicate at home, these five fundamental techniques will help you create authentic hibachi flavors in your own kitchen. With practice, you'll develop the confidence and skill to create impressive hibachi-inspired meals that capture the essence of this beloved cooking style.
+So the question for a daytime party isn't really "is it too hot out." It's **"is there shade over where people will be sitting."** If yes, midday works in a lot more of the year than people assume. If no, that's the thing to solve before you pick a time.
 
-Remember, hibachi cooking is about more than just the food—it's about creating an experience. So invite some friends over, show off your new skills, and enjoy the delicious results together!
-    `,
-    coverImage: "/hibachi-chef-techniques.png",
-    date: "2023-06-22",
+Roughly: near the coast, midday is comfortable most of the year. Inland and in the Valley, lunch is genuinely lovely from about October through May, and high summer is better at sunset. In the desert, the daytime window is about November through March.
+
+## You can eat inside. The grill can't come in.
+
+This is the part almost nobody knows, and it changes what's possible.
+
+**A teppanyaki grill cannot go indoors.** It's open flame. It throws real smoke and grease, and it will set off a smoke alarm. The grill stays outside — always.
+
+**But your guests don't have to stay outside with it.**
+
+A very normal setup, especially at lunch: I cook on the patio, and the food comes inside as it's ready. Everyone eats at the dining table, in air conditioning, out of the sun. You still get the food fresh off the flat top; you just watch less of the show.
+
+That's the trade. If the weather isn't cooperating — too hot at noon, too cold at night, a bit of drizzle — this is the version that saves the party instead of cancelling it.
+
+## Lunch slots are easier to get
+
+Weekend evenings go first, especially in spring and graduation season. Weekday lunch is the most available slot on our calendar by a wide margin.
+
+It's also the cheapest one. Monday through Thursday with 15 or more guests, the rate is **$45.90 per adult** instead of $59.90 — and that's the same chef, same food, same show. A 20-person weekday lunch runs about $280 less than the same party on a Saturday night.
+
+Corporate bookings, retirement lunches, and school-holiday kids' parties all tend to land Monday to Thursday anyway. If that's you, you're already in the cheaper, easier-to-book half of the week and you may not have realized it.
+
+## So should you book lunch?
+
+Book lunch if: your guests are travelling, elderly, or small; you want conversation more than spectacle; your date is flexible and you'd like the weekday rate; or your only good outdoor space has shade but bakes in the evening sun.
+
+Book the evening if: you want the loud version, the sunset, and a group that's ready to play along.
+
+And if you're not sure — tell us your date, your city, and roughly who's coming. I'll tell you honestly which one I'd pick.
+
+---
+
+*Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
+
+*$59.90 per adult, $45.90 Monday–Thursday with 15+ guests, setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
+`,
+    coverImage: "/images/chef-bling-at-the-grill.jpg",
+    date: "2026-08-26",
     author: {
-      name: "Chef Michael Wong",
-      avatar: "/chef-michael-wong.png",
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
     },
-    category: "Cooking Techniques",
-    tags: ["hibachi", "cooking tips", "kitchen skills", "japanese cooking"],
-    readTime: 10,
+    category: "Chef's Notes",
+    tags: ["hibachi lunch", "daytime hibachi", "corporate catering", "southern california", "chef's notes"],
+    readTime: 6,
   },
   {
-    id: "3",
-    title: "Planning the Perfect Hibachi Party: Tips for Hosts",
-    slug: "planning-perfect-hibachi-party",
+    id: "7",
+    title: "What Hibachi at Home Actually Costs in Los Angeles",
+    slug: "hibachi-at-home-cost-los-angeles",
     excerpt:
-      "Everything you need to know about hosting a memorable hibachi party at home, from menu planning to creating the right atmosphere.",
+      "The base rate is about $60 an adult everywhere in this market. What actually separates one quote from another is travel fees, setup surcharges, deposits and tips — so here are the real totals for a 10, 20 and 30-person party in LA.",
     content: `
-# Planning the Perfect Hibachi Party: Tips for Hosts
+# What Hibachi at Home Actually Costs in Los Angeles — From a Chef Who Quotes It Every Week
 
-Hosting a hibachi party at home is a fantastic way to create a memorable experience for your guests. Whether you're hiring a professional chef or creating a DIY hibachi setup, this guide will help you plan and execute an unforgettable event.
+Most pages about hibachi catering cost give you a per-person number and stop. That number is not what lands on your card.
 
-## Choosing Between Professional or DIY
+I have run more than three hundred of these parties across Southern California over the last three years, and I quote them every week. So here is the whole thing: the base rate, what actually gets added, what usually doesn't, and what a real 10-, 20-, and 30-person party comes out to.
 
-### Hiring a Professional Chef
+## The short answer
 
-If your budget allows, hiring a professional hibachi chef to cook in your home creates the most authentic experience. Here's what to consider:
+**Roughly $60 per adult, all in, for most parties in Los Angeles.**
 
-- **Space requirements**: Ensure you have adequate space for the chef to set up their equipment and perform.
-- **Ventilation**: Professional hibachi cooking produces smoke, so good ventilation is essential.
-- **Booking in advance**: The best hibachi chefs often book out weeks or months in advance, especially during peak seasons.
-- **Menu customization**: Discuss dietary restrictions and preferences with your chef beforehand.
-- **Cost considerations**: Expect to pay $75-150 per person depending on your location and menu choices.
+That is not a coincidence — nearly every mobile hibachi service in this market is priced around $60 per adult with a $600 minimum. Ours is $59.90 per adult, $29.95 per child under 13, with a $599 event minimum. Where services actually differ is everything *after* that number, which is the rest of this article.
 
-### DIY Hibachi Setup
+## What a real party costs
 
-If you're feeling adventurous or working with a tighter budget, you can create your own hibachi experience:
+These are the ranges I see in practice, not a calculator output.
 
-- **Equipment options**: Consider an electric griddle, large cast iron pan, or portable gas-powered flat top grill.
-- **Cooking station**: Set up your cooking area where guests can gather around to watch.
-- **Preparation**: Do as much prep work as possible before guests arrive.
-- **Simple menu**: Start with a manageable menu of 2-3 proteins and 2-3 vegetables.
+| Guests | Typical total |
+|---|---|
+| 10 adults | **$600 – $700** |
+| 20 adults | **~$1,200** |
+| 30 adults | **~$1,800** |
 
-## Planning Your Menu
+The math is simple because the rate is flat: it is about $60 a head, and it scales in a straight line. There is no "event fee," no per-guest setup charge, and no minimum you have to buy your way up to once you're past ten people.
 
-A traditional hibachi menu typically includes:
+Two things move those numbers:
 
-### Appetizers
-- Edamame
-- Miso soup
-- Seaweed salad
-- Gyoza (dumplings)
+**Kids bring it down.** Children under 13 are $29.95 and under-4s eat free. A party of 12 adults and 6 kids is not an 18-person party on the invoice.
 
-### Main Course Options
-- Proteins: Steak (ribeye or NY strip), chicken breast, shrimp, salmon
-- Vegetables: Zucchini, onions, mushrooms, broccoli
-- Sides: Hibachi fried rice, noodles
+**Upgrades move it up, by choice.** Filet mignon is +$8 per guest, premium sea scallops +$6, spiny lobster tail +$12. Extra sides are ordered by the tray for the table rather than per person — gyoza $15, edamame $10, noodles $5. None of it is required, and plenty of parties add nothing.
 
-### Sauces
-- Yum yum sauce (mayo-based)
-- Ginger sauce
-- Mustard sauce
-- Soy sauce
+## Travel: the first 50 miles are free
 
-### Beverages
-- Sake (served warm or cold)
-- Japanese beer (Asahi, Sapporo, Kirin)
-- Green tea
-- Lychee martinis or other Asian-inspired cocktails
+This is where services differ the most, and where people get surprised.
 
-## Setting the Atmosphere
+**We don't charge a travel fee inside 50 miles of our base.** That radius covers essentially all of Los Angeles County and most of Orange County. Past 50 miles it's $1 per mile, calculated from your address and shown in your quote before you pay anything.
 
-The right atmosphere enhances the hibachi experience:
+We also discount or waive it fairly often, depending on final guest count and how the schedule looks that week. If your date is flexible, it's worth asking.
 
-### Décor Elements
-- Low tables with floor cushions for seating
-- Lantern lighting
-- Bamboo placemats
-- Chopsticks and small bowls
-- Bonsai plants or simple ikebana arrangements
+For comparison, and these are all publicly posted numbers in this market: one service gives you 20 free miles and then charges $2 per mile. Another adds a flat travel fee of about $75. Several don't publish a travel policy at all — you find out when the invoice arrives.
 
-### Music
-- Traditional Japanese instrumental music
-- Modern Japanese pop
-- Lo-fi beats with Asian influences
+For a Pasadena or Long Beach or Irvine address, our travel fee is $0. That is the single biggest gap between what you'd pay us and what you'd pay most of the market, and it doesn't show up in anybody's headline per-person price.
 
-### Dress Code
-Consider suggesting a casual dress code that's comfortable but special. You might even provide inexpensive yukata (casual kimono) for guests who want to fully embrace the theme.
+## Tipping: what people actually do
 
-## Timing Your Event
+Nobody in this business likes writing this section. Here are the real numbers anyway.
 
-A successful hibachi party requires thoughtful timing:
+**Most guests tip 20%.** That's the norm and it's what I'd budget for.
 
-### Sample Timeline
-- **30 minutes before**: Final setup and preparation
-- **Arrival**: Serve appetizers and drinks
-- **30-45 minutes after arrival**: Begin the main hibachi cooking
-- **During cooking**: Interact with guests, explain techniques
-- **After main course**: Serve dessert (mochi ice cream, green tea cake)
-- **Post-dinner**: Continue socializing with digestifs or tea
+**25% happens when the party is having a good time** — usually when the sake is flowing and the group is playing along.
 
-## Special Touches
+**Sometimes guests tip on their own**, separately from the host. It's not expected and you should not plan around it, but it happens.
 
-These details will make your event memorable:
+Tip is on top of everything above. So for a 20-person party at roughly $1,200, budget about $240 for gratuity and you'll be in the right neighborhood.
 
-### Interactive Elements
-- Teach guests basic chopstick skills
-- Have a sake tasting flight
-- Demonstrate a simple knife technique
-- Share interesting facts about hibachi history
+## The deposit
 
-### Take-Home Gifts
-- Custom chopsticks with guests' names
-- Small bottles of homemade sauce
-- Recipe cards for hibachi dishes
-- Japanese sweets or tea samples
+**$19.90 to lock your date.** Fully refundable if you cancel or reschedule with 72+ hours notice.
 
-## Accommodating Dietary Restrictions
+I mention it because deposits in this market run much higher — $150 is a number you'll see. If you're comparing services and one wants $150 before you've met the chef, that's a real difference in what you're risking to hold a Saturday.
 
-Be prepared to accommodate various dietary needs:
+## What's included that you might expect to pay for
 
-- **Vegetarian/Vegan**: Tofu, plant-based proteins, extra vegetables
-- **Gluten-Free**: Tamari instead of soy sauce, rice noodles instead of wheat
-- **Allergies**: Separate cooking areas for allergens, alternative ingredients
+- The chef and the mobile teppanyaki grill
+- Two proteins per guest — chicken, steak, shrimp, salmon, or tofu
+- Garlic butter fried rice, grilled vegetables, house salad, signature sauces
+- The full live show
+- **Complete setup and cleanup**, with no per-guest surcharge
 
-## Conclusion
+That last one matters more than it sounds. Some services in this market charge $8 to $10 *per guest* for table and chair setup. On a 20-person party that's $160 to $200 that never appears in the per-person price you compared.
 
-A hibachi party offers a unique combination of entertainment and dining that your guests will talk about long after the event. Whether you hire a professional or create your own experience, the key is thoughtful planning and attention to detail.
+You do provide the tables, chairs, plates, and utensils — or you can rent them from us.
 
-Remember that the heart of hibachi is the shared experience—the conversation, laughter, and connection that happens when people gather around the grill. Focus on creating those moments, and your hibachi party will be a resounding success.
-    `,
-    coverImage: "/hibachi-party.png",
-    date: "2023-07-10",
+## Weekday parties cost less
+
+Monday through Thursday with 15 or more guests, the rate drops to **$45.90 per adult**. On a 20-person party that's a difference of about $280 for the same food, same chef, same show.
+
+Weekday slots are also just easier to get. Weekend evenings in spring and graduation season go first.
+
+## So how does this compare to a restaurant?
+
+Take a group of 20 to a teppanyaki restaurant in LA on a Saturday and you're generally not getting out under $60 a head once drinks and tip are in — often more, and that's before parking and two cars' worth of driving.
+
+The honest difference isn't really the money. It's that at home nobody drives, nobody gets pushed off the table at 9pm, the kids can be kids, and the chef is cooking for your group only.
+
+## What I'd actually tell you to budget
+
+For a 20-adult party in Los Angeles with no upgrades:
+
+| | |
+|---|---|
+| Food & chef (20 × $59.90) | $1,198 |
+| Travel (inside 50 miles) | $0 |
+| Tip at 20% | ~$240 |
+| Deposit (applied to your total) | $19.90 |
+| **Realistic total** | **~$1,440** |
+
+Add roughly $160 if everyone upgrades to filet. Subtract about $280 if you move it to a Tuesday.
+
+That's the whole picture. No line item I haven't mentioned.
+
+---
+
+*Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
+
+*Get an exact number for your date, guest count, and address — [instant quote here](/quoteA), no contact form required to see pricing. Or see [hibachi at home in Los Angeles](/hibachi-at-home/los-angeles) and [everywhere else we cook](/hibachi-at-home).*
+`,
+    coverImage: "/images/chef-bling-at-the-grill.jpg",
+    date: "2026-08-26",
     author: {
-      name: "Emily Chen",
-      avatar: "/chef-emily-chen.png",
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
     },
-    category: "Entertainment",
-    tags: ["hibachi", "party planning", "home entertainment", "japanese food"],
-    readTime: 12,
+    category: "Pricing",
+    tags: ["hibachi catering cost", "hibachi at home price", "los angeles", "private chef cost", "pricing"],
+    readTime: 6,
   },
   {
-    id: "4",
-    title: "Hibachi vs. Teppanyaki: Understanding the Differences",
-    slug: "hibachi-vs-teppanyaki-differences",
+    id: "6",
+    title: "Three States, One Grill: What I've Learned Cooking Backyard Hibachi from California to Florida",
+    slug: "three-states-one-grill",
     excerpt:
-      "Many people confuse hibachi and teppanyaki cooking styles. Learn the key differences in equipment, techniques, and traditions between these two Japanese cooking methods.",
+      "Chef Bling has cooked teppanyaki in California, Illinois, and Florida, and run more than 300 private hibachi parties in three years. What each market taught him — and why Southern California is the best backyard in America.",
     content: `
-# Hibachi vs. Teppanyaki: Understanding the Differences
+# Three States, One Grill: What I've Learned Cooking Backyard Hibachi from California to Florida
 
-If you've ever been to a Japanese steakhouse in the United States where chefs cook on a flat grill at your table, you've likely heard it called a "hibachi restaurant." However, what you experienced was most likely teppanyaki cooking. The confusion between hibachi and teppanyaki is common, even among culinary enthusiasts. Let's clarify the differences between these two Japanese cooking styles.
+I spent a year learning teppanyaki behind a fixed grill, in a Benihana-style restaurant, where the room comes to you. The grill never moves. The lighting is always right. Somebody else set the table, and somebody else cleans it.
 
-## Historical Origins
+Then in 2023 I took the same grill into a stranger's backyard for the first time, and found out how little of that job transfers.
 
-### Hibachi
-The word "hibachi" (火鉢) translates to "fire bowl" in Japanese. Traditional hibachi are heating devices that date back to the Heian period (794-1185) in Japan. They were originally designed as portable heating devices, consisting of a round, cylindrical, or box-shaped container made of heat-resistant materials like ceramic or cast iron, filled with burning charcoal.
+It was ten people in Long Beach — a bachelorette party. First time I had ever cooked outside. I remember it clearly, because it went well in a way I hadn't earned yet: the group was warm, they helped without being asked, they laughed at the right moments, and at the end we all took a photo together.
 
-### Teppanyaki
-Teppanyaki is a much more recent development. The word comes from "teppan" (鉄板), meaning iron plate, and "yaki" (焼き), meaning grilled or cooked. This cooking style was popularized in Japan after World War II and was commercialized for Western tourists by the Misono restaurant chain in 1945. Benihana founder Rocky Aoki later brought this concept to America in 1964, where it became wildly popular.
+That was three years and more than three hundred parties ago. I still think about that one, because it taught me the thing that took me another two years to be able to say out loud: **the food is my job, but the party is theirs.**
 
-## Cooking Equipment
+Since then I have cooked in three states. Here is what each one taught me, and why I ended up back in Southern California.
 
-### Hibachi
-Traditional hibachi grills are small, portable grills with an open-grate design. They typically have:
-- An open-top design
-- A grate for the food to sit on
-- Charcoal as the heat source
-- No flat cooking surface
+## Chicago: half a year of nothing
 
-Modern hibachi grills sold in the West often resemble small charcoal barbecues and maintain the open-grate design.
+People assume the hard part about Chicago is cooking in the cold. It isn't. The hard part is that for a good stretch of the year, backyard hibachi simply does not happen. Winter closes the door. You are not fighting the weather — there is no party to fight for.
 
-### Teppanyaki
-Teppanyaki cooking uses a very different setup:
-- A large, flat iron griddle
-- Propane gas as the heat source in commercial settings
-- A solid cooking surface (no grates)
-- Temperature control zones
-- Built into a table where diners sit around the cooking surface
+That changes how you think about the work. In a city with a real winter, the outdoor season is a window, and everyone is competing inside it.
 
-## Cooking Techniques
+Guest-wise, though, Chicago and California felt about the same to me. Same energy, same sense of humor, same willingness to lean in when the flame goes up. The difference between markets is almost never the people. It's the sky.
 
-### Hibachi
-Traditional hibachi cooking involves:
-- Direct high-heat cooking over charcoal
-- Foods are typically skewered or placed directly on the grate
-- Smaller food items that cook quickly
-- Limited showmanship or tableside preparation
-- More focused on the grilled flavor imparted by the charcoal
+## Florida: rain, humidity, and one tablecloth in Pensacola
 
-### Teppanyaki
-Teppanyaki cooking features:
-- Flat surface cooking with oil
-- Theatrical preparation with utensil tricks and flourishes
-- Larger cuts of meat and seafood
-- Tableside preparation as entertainment
-- Simultaneous cooking of multiple items
-- The signature "onion volcano" and other performance elements
+Florida was the hardest place I have worked, and it was not close.
 
-## Typical Menu Items
+The rain does not warn you. It arrives heavy, it soaks everything, and it does it during rainy season with a regularity you have to plan your whole month around. In Pensacola I watched water come up in a way that was genuinely alarming — not "the party is delayed," but "this is a lot of water."
 
-### Hibachi
-Traditional Japanese hibachi might include:
-- Yakitori (skewered chicken)
-- Small cuts of marinated meats
-- Skewered vegetables
-- Seafood items like small fish or shellfish
+And then there's the humidity, which sits on everything all day.
 
-### Teppanyaki
-The teppanyaki menu commonly features:
-- Steak (usually ribeye or New York strip)
-- Chicken breast
-- Shrimp and lobster
-- Fried rice prepared on the griddle
-- Mixed vegetables (typically zucchini, onions, mushrooms)
-- Bean sprouts and cabbage
+The moment I think about most was a beach party there. The wind came off the water and took the tablecloth — not lifted it, *took* it, dramatically, in front of everyone. It's funny now. At the time I was standing at a hot grill watching the table try to leave.
 
-## The Dining Experience
+That party taught me something I now check for at every single event: an outdoor setup fights whatever the sky is doing that day, and the chef is the only person there whose job it is to have thought about that in advance.
 
-### Hibachi
-In Japan, traditional hibachi dining is:
-- Often more casual
-- Sometimes self-service where diners cook their own food
-- Focused on the food rather than performance
-- Not typically a communal experience with strangers
+## Southern California: the reason I stayed
 
-### Teppanyaki
-The teppanyaki experience is characterized by:
-- Theatrical cooking performances
-- Shared tables where multiple parties may be seated together
-- Chef interaction and entertainment
-- Elaborate knife and spatula tricks
-- Catching food in your mouth
-- The social aspect of watching food prepared
+I'm not going to pretend this is a complicated conclusion. Southern California is the best place in this country to have a party in your own backyard, and the reason is boring: the weather cooperates almost every day.
 
-## Why the Confusion?
+Evenings here land in the right place. Not cold enough that people go inside, not hot enough that standing near a grill is a punishment. The sun shows up nearly every day. And the sunsets — genuinely, the sunsets are part of the product. When the light goes gold behind a backyard and the grill is going, nobody is checking their phone. It's relaxed in a way I did not get in the other two markets.
 
-The term "hibachi" became popularized in America to describe the teppanyaki style of cooking largely due to marketing decisions when these restaurants first appeared in the United States. The word "hibachi" was likely deemed more accessible and memorable for American diners than "teppanyaki."
+That's not marketing. That's a chef who has done this in three climates telling you that one of them is easier than the others.
 
-This misnomer has persisted for decades, to the point where most Americans associate hibachi with the flat-top cooking style that is actually teppanyaki. Even many restaurant owners and chefs in the U.S. use the terms interchangeably, further cementing the confusion.
+*(A note, because people ask: Real Hibachi cooks in Southern California only. Chicago and Florida are where I learned, not places we serve.)*
 
-## Modern Adaptations
+## What I can tell about your party in the first ten seconds
 
-Today, both cooking styles have evolved:
+When I arrive at a house, I know pretty quickly whether the night is going to be smooth. I'm not looking at the size of the yard. I'm looking at **stairs**.
 
-### Modern Hibachi
-- Portable hibachi grills are popular for camping and tailgating
-- Electric hibachi grills eliminate the need for charcoal
-- Hibachi-inspired cooking is popular in outdoor settings
+A lot of steps between where I park and where I cook is the single biggest thing that makes an event harder. It's not that it can't be done — it's done all the time. It's that hauling a teppanyaki grill, propane, and coolers up two flights costs something, and what it costs is my focus. A chef who just spent fifteen minutes carrying equipment is not as sharp when the show starts as one who walked twenty feet.
 
-### Modern Teppanyaki
-- Mobile teppanyaki chefs bring the experience to private homes
-- Some restaurants combine teppanyaki with other cuisines for fusion experiences
-- Cooking schools offer teppanyaki classes for home chefs
+So if your place has stairs, a steep driveway, a narrow side gate, or a long walk from the street — that is not a problem, and it is not a reason to hesitate. **Just tell us before the day.** We bring different equipment and we schedule more arrival time. The stairs never ruin a party. Not knowing about the stairs is what shortens the setup.
 
-## Conclusion
+## Three things guests never think about
 
-While both hibachi and teppanyaki represent Japanese cooking traditions, they differ significantly in equipment, technique, and dining experience. What most Americans know as "hibachi" is actually teppanyaki cooking.
+Small things, all cheap, all make a real difference:
 
-Understanding these differences enhances appreciation for both cooking styles and their unique contributions to culinary culture. Whether you prefer the authentic charcoal-grilled flavors of true hibachi or the entertaining spectacle of teppanyaki, both offer delicious ways to experience Japanese cuisine.
+**Bug spray.** Some backyards have mosquitoes and nobody remembers until people are already seated. Have it out where guests can reach it.
 
-Next time you're at a Japanese steakhouse watching a chef flip a shrimp into his hat, you can impress your dining companions by correctly identifying it as teppanyaki cooking!
-    `,
-    coverImage: "/hibachi-vs-teppanyaki.png",
-    date: "2023-08-05",
+**Light.** If your party runs past dark and the yard has no lighting, the experience quietly gets worse — for the food, for the photos, for the mood. String lights, a lamp, anything. It matters more than people expect.
+
+**Clear the clutter.** Not a deep clean. Just move what's in the way so the setup and the seating aren't fighting for space.
+
+## The part I actually worry about
+
+It isn't rain and it isn't stairs. It's a quiet table.
+
+The hardest party for a chef is one where nobody interacts — where the sake sits untouched and the show plays to a silent room. I'll be honest that it can feel awkward up there.
+
+But I want to say clearly: **that is not a complaint about those guests.** Some people are shy. Some groups are just quiet with strangers, and I'm a stranger in their house. Those clients are welcome, and I like cooking for them. What I do is respect it — I stop pushing the performance, and I put everything into the food, and I get it to them hot and fast and excellent.
+
+If that's your family, book anyway. You will get a great dinner and nobody will make you perform.
+
+And if you *are* the kind of group that wants to play along — that's when this thing is at its best. The single biggest factor in how good the night is isn't the yard, the budget, or the menu. It's whether people let themselves loosen up.
+
+## The smallest backyard I ever cooked in
+
+I want to end with the party I think about most.
+
+It was in Inglewood, in a Los Angeles neighborhood, and the space was tiny. I could barely turn around at the grill. By every measure I'd use to judge a venue, it was a hard setup.
+
+It was a grandmother's birthday.
+
+I have cooked in big houses and small ones, in beach rentals and driveways. I once cooked a farewell party for a company in their own parking lot — a colleague was leaving, there was no yard anywhere in the picture, and it was a good night. And the Inglewood party made something clear to me that I'd only half understood before: **whether you're rich or not, everybody gets the same amount of time. And time with your family is worth the same to all of us.** Every hour you actually spend together is worth celebrating, even when the conditions aren't generous.
+
+A big backyard doesn't give you a good party. It just gives you room.
+
+So if you've been holding off because your space feels too small, or too plain, or not nice enough — I've cooked in smaller. Let's do it anyway.
+
+---
+
+*Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
+
+*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
+`,
+    coverImage: "/hibachi-group-selfie.jpg",
+    date: "2026-08-26",
     author: {
-      name: "Dr. James Nakamura",
-      avatar: "/dr-james-nakamura.png",
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
     },
-    category: "Food Education",
-    tags: ["hibachi", "teppanyaki", "japanese cuisine", "cooking methods"],
-    readTime: 9,
-  },
-  {
-    id: "5",
-    title: "Mastering Hibachi-Style Fried Rice at Home",
-    slug: "mastering-hibachi-fried-rice",
-    excerpt:
-      "Learn the secrets to creating restaurant-quality hibachi fried rice in your own kitchen with this detailed guide and recipe.",
-    content: `
-# Mastering Hibachi-Style Fried Rice at Home
-
-Hibachi-style fried rice is a beloved staple of Japanese steakhouse menus across America. With its savory flavor, perfect texture, and simple yet satisfying ingredients, it's no wonder this dish has become so popular. The good news is that you can recreate this restaurant favorite at home with the right techniques and ingredients.
-
-## The Secret to Authentic Hibachi Fried Rice
-
-Professional hibachi chefs have a few key secrets that make their fried rice exceptional:
-
-1. **Day-old rice**: Fresh rice contains too much moisture and will become mushy when fried.
-2. **High heat**: A screaming hot cooking surface creates the perfect sear and prevents sticking.
-3. **Quality butter**: Many hibachi restaurants use a combination of oil and butter for rich flavor.
-4. **Simple seasonings**: The classic flavor comes from just a few key ingredients.
-
-Let's break down how to recreate this at home, step by step.
-
-## Essential Equipment
-
-While you don't need a commercial teppanyaki grill, you do need:
-
-- A large, heavy-bottomed skillet or wok (cast iron works beautifully)
-- A flat-edged spatula for chopping and mixing
-- A hot cooking surface that can maintain high heat
-
-## Ingredients for Perfect Hibachi Fried Rice
-
-### Base Ingredients (Serves 4)
-- 4 cups cooked white rice, refrigerated overnight
-- 2 tablespoons vegetable oil
-- 3 tablespoons unsalted butter, divided
-- 1 small onion, finely diced
-- 2 carrots, finely diced
-- 3 cloves garlic, minced
-- 3 eggs, lightly beaten
-- 1/2 cup frozen peas
-- 3-4 green onions, thinly sliced
-
-### Seasonings
-- 3-4 tablespoons soy sauce (or to taste)
-- 1 tablespoon toasted sesame oil
-- 1/2 teaspoon white pepper
-- Salt to taste
-
-### Optional Add-ins
-- Diced chicken, steak, or shrimp (pre-cooked)
-- Bean sprouts
-- Diced bell peppers
-- Mushrooms
-
-## The Step-by-Step Process
-
-### Preparation
-1. **Break up the rice**: Before cooking, use your hands to break up any clumps in your cold rice. Each grain should be separate.
-2. **Mise en place**: Have all ingredients prepped and ready beside your cooking area. Once you start, the process moves quickly.
-
-### Cooking Method
-
-#### Step 1: Heat Your Pan
-1. Place your skillet or wok over high heat until it's very hot (about 2-3 minutes).
-2. Add vegetable oil and swirl to coat the surface.
-
-#### Step 2: Cook the Aromatics
-1. Add diced onions and carrots, stir-frying for 1-2 minutes until they begin to soften.
-2. Add minced garlic and cook for 30 seconds until fragrant.
-3. Push everything to one side of the pan.
-
-#### Step 3: Cook the Eggs
-1. Add 1 tablespoon of butter to the empty side of the pan.
-2. Pour in beaten eggs and scramble quickly as they cook.
-3. Once eggs are just set but still moist, mix them with the vegetables.
-
-#### Step 4: Add the Rice
-1. Add the cold rice to the pan, breaking up any remaining clumps with your spatula.
-2. Stir-fry for 2-3 minutes, allowing the rice to heat through and begin to toast slightly.
-3. Add remaining 2 tablespoons of butter and mix until melted and incorporated.
-
-#### Step 5: Season the Rice
-1. Drizzle soy sauce around the perimeter of the pan (this allows it to heat and caramelize slightly before mixing).
-2. Add white pepper and mix thoroughly.
-3. Add frozen peas and any pre-cooked proteins, mixing to incorporate.
-4. Continue stir-frying for another 2-3 minutes until everything is hot and well combined.
-
-#### Step 6: Finish the Dish
-1. Remove from heat and drizzle with sesame oil.
-2. Fold in sliced green onions, reserving some for garnish.
-3. Taste and adjust seasoning with additional soy sauce or salt if needed.
-
-## Common Mistakes to Avoid
-
-- **Using fresh rice**: This is perhaps the biggest mistake. Fresh rice will turn mushy when fried.
-- **Overcrowding the pan**: Cook in batches if necessary to maintain high heat.
-- **Not preheating enough**: Your pan must be very hot before adding ingredients.
-- **Overcomplicating the seasonings**: Authentic hibachi rice uses minimal seasonings.
-- **Stirring constantly**: Allow the rice to sit and toast for short periods between stirring.
-
-## Variations to Try
-
-### Garlic Butter Fried Rice
-Add 1 tablespoon of garlic butter at the final stage for extra richness.
-
-### Yum Yum Sauce Fried Rice
-Drizzle with Japanese steakhouse-style yum yum sauce just before serving.
-
-### Kimchi Fried Rice Fusion
-Add 1/2 cup of chopped kimchi with the vegetables for a Korean-Japanese fusion.
-
-## Serving Suggestions
-
-Hibachi fried rice pairs perfectly with:
-
-- Hibachi-style grilled meats or seafood
-- Yum yum sauce or ginger sauce
-- A side of miso soup
-- Japanese pickles
-- A cold Asahi or Sapporo beer
-
-## Storage and Reheating
-
-Hibachi fried rice stores well in the refrigerator for up to 3 days. To reheat:
-
-1. Add 1 tablespoon of water per cup of rice
-2. Cover and microwave, or
-3. Reheat in a hot skillet with a small amount of oil
-
-## Conclusion
-
-Mastering hibachi-style fried rice at home is all about technique and quality ingredients. The beauty of this dish lies in its simplicity—you don't need exotic ingredients or complicated methods, just attention to detail and proper execution.
-
-With practice, you'll develop the confidence to customize your fried rice with different proteins and vegetables while maintaining that authentic hibachi restaurant flavor. Your family and friends will be impressed with your Japanese steakhouse skills, and you'll save a fortune on dining out!
-    `,
-    coverImage: "/hibachi-fried-rice.png",
-    date: "2023-09-18",
-    author: {
-      name: "Lisa Yamamoto",
-      avatar: "/chef-lisa-yamamoto.png",
-    },
-    category: "Recipes",
-    tags: ["hibachi", "fried rice", "japanese recipes", "cooking tutorial"],
-    readTime: 11,
+    category: "Chef's Notes",
+    tags: ["hibachi at home", "backyard hibachi", "southern california", "private chef", "chef's notes"],
+    readTime: 7,
   },
 ]
