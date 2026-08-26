@@ -8,9 +8,17 @@ function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max))
 }
 
+// Real policy, confirmed by the chef 2026-08-26: the first 50 miles from our
+// base are free, then $1 for each mile BEYOND the free allowance. Two bugs
+// lived here: the allowance was 20 miles, and the fee was charged on the whole
+// distance rather than the excess, so crossing the threshold by one mile jumped
+// the quote from $0 to the full mileage. Bill the excess only.
+const FREE_TRAVEL_MILES = 50
+const FEE_PER_MILE = 1
+
 function mapTravelFeeRangeByMiles(distanceMiles: number): FeeRange {
-  if (distanceMiles <= 20) return { low: 0, high: 0 }
-  const fee = Math.round(distanceMiles * 1)
+  if (!Number.isFinite(distanceMiles) || distanceMiles <= FREE_TRAVEL_MILES) return { low: 0, high: 0 }
+  const fee = Math.round((distanceMiles - FREE_TRAVEL_MILES) * FEE_PER_MILE)
   return { low: fee, high: fee }
 }
 

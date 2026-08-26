@@ -2,50 +2,17 @@
 import type { Booking, BookingFormData, BookingResponse, AvailableTimesResponse } from "@/types/booking"
 import { pricing } from "@/config/pricing"
 
-// 计算旅行费用
-function calculateTravelFee(zipcode: string): number {
-  if (!zipcode || zipcode.length < 5) return 0
+// Travel fee, matching the live quote policy in app/api/quote/travel-fee:
+// the first 50 miles from our Southern California base are free, then $1 for
+// each mile beyond that allowance. The old version of this function carried a TX/NY/AZ/VA/FL zip table
+// left over from the out-of-state markets we no longer serve, and defaulted
+// every unlisted zip (i.e. every California one) to a flat $50.
+const FREE_TRAVEL_MILES = 50
+const FEE_PER_MILE = 1
 
-  const zipPrefix = zipcode.substring(0, 3)
-  const regions: Record<string, number> = {
-    // TX (Austin, Dallas, Houston, San Antonio)
-    "737": 50,
-    "750": 50,
-    "751": 50,
-    "752": 50,
-    "770": 50,
-    "771": 50,
-    "772": 50,
-    "782": 50,
-    // NY, NJ, PA, DE
-    "100": 50,
-    "101": 50,
-    "102": 50,
-    "070": 50,
-    "071": 50,
-    "190": 50,
-    "191": 50,
-    "197": 50,
-    // AZ (Phoenix Metropolitan)
-    "850": 50,
-    "851": 50,
-    "852": 50,
-    "853": 50,
-    // VA, MD, Washington DC
-    "200": 50,
-    "201": 50,
-    "220": 50,
-    "221": 50,
-    "208": 50,
-    "209": 50,
-    // FL (Miami, Orlando)
-    "331": 50,
-    "332": 50,
-    "328": 50,
-    "329": 50,
-  }
-
-  return regions[zipPrefix] || 50
+function travelFeeForMiles(distanceMiles: number): number {
+  if (!Number.isFinite(distanceMiles) || distanceMiles <= FREE_TRAVEL_MILES) return 0
+  return Math.round((distanceMiles - FREE_TRAVEL_MILES) * FEE_PER_MILE)
 }
 
 // 类型校验函数
@@ -182,8 +149,10 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
       return { success: false, error: "Invalid add_ons structure" };
     }
 
-    // 计算旅行费用
-    const travelFee = calculateTravelFee(formData.zipcode)
+    // 计算旅行费用。距离由 /api/quote/travel-fee 用 Google Distance Matrix 算出，
+    // 这里只按同一套规则（前 50 迈免费，之后 $1/迈）换算；拿不到距离时按 0 处理，
+    // 绝不再用邮编猜一个 $50 出来。
+    const travelFee = travelFeeForMiles(Number(formData.distanceMiles ?? 0))
 
     // 计算餐费（不含差旅费）
     let mealCost = 0

@@ -57,6 +57,10 @@ export interface BookingFormData {
   extraProteins: number
   noodles: number
   message?: string
+  // Road miles from our base, as returned by /api/quote/travel-fee. Optional
+  // because older callers do not supply it; when absent no travel fee is
+  // charged rather than guessing one from the ZIP.
+  distanceMiles?: number
 }
 
 export interface BookingResponse {
