@@ -503,9 +503,10 @@ function DepositPaymentPageInner() {
                 </p>
 
                 <p>
-                  <span className="font-semibold">Weather Policy:</span> If rain is in the forecast, we can provide a
-                  complimentary tent for your event. If you still need to cancel due to weather, please let us know at
-                  least 72 hours before your party for a full deposit refund.
+                  <span className="font-semibold">Weather Policy:</span> Cooking is outdoors. If rain is in the forecast
+                  we recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents.
+                  If you still need to cancel due to weather, please let us know at least 72 hours before your party
+                  for a full deposit refund.
                 </p>
               </div>
             </div>

@@ -41,9 +41,9 @@ export function TermsModal({ open, onClose }: { open: boolean; onClose: () => vo
             <p className="font-medium">Cancelation Policy & Weather Policy</p>
             <p>
               Please provide at least 72 hours notice for cancellations or rescheduled parties to receive a full
-              deposit refund. Changes made inside 72 hours may make the deposit non-refundable. If it rains, we can
-              provide a complimentary tent so the chef can stay dry. If you still need to cancel due to inclement
-              weather, please notify us at least 72 hours before the party.
+              deposit refund. Changes made inside 72 hours may make the deposit non-refundable. Cooking is outdoors, so if rain is possible we recommend putting a 10&apos;x10&apos; pop-up tent over the
+              chef&apos;s station — we do not supply tents. If you still need to cancel due to inclement weather,
+              please notify us at least 72 hours before the party.
             </p>
           </div>
           <div>

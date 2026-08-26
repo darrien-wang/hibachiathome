@@ -60,6 +60,6 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "What is your cancellation policy?",
     answer:
-      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules to receive a full deposit refund\n- Changes made inside 72 hours may make the deposit non-refundable\n- For rainy days, we can provide a complimentary tent for the chef setup\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",
+      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules to receive a full deposit refund\n- Changes made inside 72 hours may make the deposit non-refundable\n- For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",
   },
 ]

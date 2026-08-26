@@ -158,7 +158,7 @@ export default function BookingPage() {
             </div>
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Weather</p>
-              <p>Cooking is outdoors. If rain is expected, we can provide a complimentary tent for your event setup.</p>
+              <p>Cooking is outdoors. If rain is expected, plan on a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents. Guests are welcome to eat indoors while the chef cooks outside.</p>
             </div>
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Arrival Timing</p>
