@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Phone, Star, Users, Clock, ChefHat, Check } from "lucide-react"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
+import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
 const BASE_URL = "https://www.realhibachi.com"
@@ -53,6 +54,33 @@ const included = [
   "Complete setup and cleanup",
 ]
 
+// Category norms we can point at without naming anyone: several mobile hibachi
+// services in Southern California publish $150 deposits, $8–$10 per-guest table
+// and chair setup fees, or no price at all until you hand over contact details.
+// Every claim on our side of this list has to stay true to config/pricing.ts.
+const noSurprises = [
+  {
+    title: "A $19.90 deposit — not $150",
+    description:
+      "That is all it takes to lock your date, and it is fully refundable with 72+ hours notice. Plenty of mobile hibachi services ask for $150 or more up front.",
+  },
+  {
+    title: "Setup and cleanup are in the price",
+    description:
+      "No per-guest setup surcharge. Some services add $8–$10 per guest for table and chair setup, or leave the teardown to you.",
+  },
+  {
+    title: "The first 50 miles are free",
+    description:
+      "No travel fee at all inside 50 miles of our base, which covers most of Los Angeles and Orange County. Beyond that it is $1 per additional mile, calculated from your address and shown in your quote before you pay. Other services in this market start charging at 20 miles, or add a flat fee around $75.",
+  },
+  {
+    title: "The price is on this page",
+    description:
+      "$59.90 per adult, published, no form required. Several services in this market quote only after you hand over your contact details.",
+  },
+]
+
 const steps = [
   {
     title: "Get an instant quote",
@@ -78,6 +106,27 @@ export default function CityPage({ params }: { params: { city: string } }) {
   const nearby = getNearbyCityPages(page)
   const url = `${BASE_URL}/hibachi-at-home/${page.slug}`
   const quoteHref = `/quoteA?source=city_${page.slug.replace(/-/g, "_")}`
+
+  // City-specific questions first, then the ones every city gets asked.
+  const faqs = [
+    ...page.faqs,
+    {
+      question: `How much space do you need in ${page.city}?`,
+      answer: `About a 6x8 ft flat area for the grill plus roughly 10 ft of overhead clearance, in open air — a patio, deck, driveway, or yard all work. Enclosed rooms and covered balconies do not. Send a photo when you book and we'll confirm the setup spot before your date.`,
+    },
+    {
+      question: `Is this an indoor or outdoor party?`,
+      answer: `The cooking is outdoors; the eating does not have to be. A live teppanyaki grill throws real smoke and grease and will set off a smoke alarm indoors, so the grill always stays outside — on a patio, deck, driveway, yard, or roof terrace, with about 10 ft of overhead clearance. Your guests can absolutely sit and eat inside. Plenty of ${page.city} parties run exactly that way: the chef cooks on the patio and plates come indoors, which is what we'd suggest on a hot afternoon or a cold night.`,
+    },
+    {
+      question: `Can we book a lunch or daytime slot?`,
+      answer: `Yes. Because the party is outdoors, the right answer depends on your city and the season — midday stays comfortable near the coast for most of the year, while inland and Valley cities are best at lunch roughly October through May and better at sunset in high summer. Daytime slots are usually easier to get than weekend evenings. Tell us your date and preferred time and we'll tell you honestly whether it works.`,
+    },
+    {
+      question: `What happens if we need to cancel or reschedule?`,
+      answer: `Cancel or reschedule at least 72 hours before your event and your $19.90 deposit is refunded in full. Inside 72 hours the deposit may become non-refundable. If rain is the problem, a 10'x10' pop-up tent over the chef's station usually saves the party — you provide the tent, we do not supply them — and guests can eat indoors while the chef cooks outside.`,
+    },
+  ]
 
   const serviceJsonLd = {
     "@context": "https://schema.org",
@@ -109,7 +158,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: page.faqs.map((faq) => ({
+    mainEntity: faqs.map((faq) => ({
       "@type": "Question",
       name: faq.question,
       acceptedAnswer: { "@type": "Answer", text: faq.answer },
@@ -200,10 +249,10 @@ export default function CityPage({ params }: { params: { city: string } }) {
               </div>
               <p className="text-gray-600 mb-1">$29.95 per child under 13 · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
-                Weekday Saver: <strong>$45.90/adult</strong> for Mon–Thu parties with 15+ guests.
+                Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu parties with 15+ guests.
               </p>
               <p className="text-sm text-gray-500">
-                Any travel fee for {page.city} is calculated from your address and shown upfront in your quote.
+                The first 50 miles from our base are free — most {page.city} addresses have no travel fee at all. Past that it is $1 for each mile beyond the free 50, calculated from your address and shown upfront in your quote.
               </p>
             </div>
             <div className="bg-[#fffdf8] border border-[#e7dbc6] rounded-2xl p-6">
@@ -217,6 +266,32 @@ export default function CityPage({ params }: { params: { city: string } }) {
                 ))}
               </ul>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* No Surprise Line Items */}
+      <section className="py-16 bg-[#fffdf8] border-y border-[#e7dbc6]">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10 max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+              What Your {page.city} Quote <span className="text-primary">Actually Includes</span>
+            </h2>
+            <p className="text-gray-600">
+              Mobile hibachi pricing in Southern California clusters around the same headline number. The
+              difference between services shows up in the line items underneath it, so here are ours.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {noSurprises.map((item) => (
+              <div key={item.title} className="flex items-start gap-3 rounded-xl border border-[#e7dbc6] bg-white p-6">
+                <Check className="mt-1 h-5 w-5 shrink-0 text-primary" />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{item.description}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -238,6 +313,52 @@ export default function CityPage({ params }: { params: { city: string } }) {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Where We Cook */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+              Where We Cook in <span className="text-primary">{page.city}</span>
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              We have set the grill up in most kinds of {page.city} space there is. These are the three we see most.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {page.venues.map((venue) => (
+              <Card key={venue.title} className="h-full">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-bold mb-2">{venue.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{venue.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Parking, Space & Setup */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-6">
+              Parking, Space & Setup in <span className="text-primary">{page.city}</span>
+            </h2>
+            <div className="space-y-5">
+              {page.logistics.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)} className="text-gray-600 leading-relaxed">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            <p className="mt-6 text-sm text-gray-500">
+              Not sure your space works? Send a photo with your quote request and we will confirm the setup spot
+              before your date.
+            </p>
           </div>
         </div>
       </section>
@@ -264,6 +385,67 @@ export default function CityPage({ params }: { params: { city: string } }) {
               </span>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Menu */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10 max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+              The {page.city} Hibachi <span className="text-primary">Menu</span>
+            </h2>
+            <p className="text-gray-600">
+              Every guest picks two proteins, and everyone gets the full plate — garlic butter fried rice, grilled
+              vegetables, house salad, and our signature sauces. Guests can each choose differently; the chef cooks
+              to order at your table.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="rounded-xl border border-gray-200 p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Included proteins — pick 2 per guest</h3>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                {regularProteins.map((item) => (
+                  <li key={item.id} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{item.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Premium upgrades</h3>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                {premiumProteins.map((item) => (
+                  <li key={item.id} className="flex items-baseline justify-between gap-3">
+                    <span>{item.name.replace(" Upgrade", "")}</span>
+                    <span className="font-semibold text-gray-900 whitespace-nowrap">+${item.price}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-gray-500">Per guest, added to the flat rate. Entirely optional.</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Extra sides</h3>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                {sides.map((item) => (
+                  <li key={item.id} className="flex items-baseline justify-between gap-3">
+                    <span>{item.name}</span>
+                    <span className="font-semibold text-gray-900 whitespace-nowrap">+${item.price}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-gray-500">Ordered by the tray for the table, not per guest.</p>
+            </div>
+          </div>
+          <p className="text-center mt-8 text-gray-600 max-w-3xl mx-auto text-sm">
+            Vegetarian, vegan, and gluten-free guests are accommodated at the same per-person rate — just tell us
+            when you book. Our recipes contain no nuts and no sesame. See the{" "}
+            <Link href="/menu" className="text-primary hover:underline">
+              full menu
+            </Link>{" "}
+            for photos and details.
+          </p>
         </div>
       </section>
 
@@ -298,7 +480,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
             </h2>
           </div>
           <div className="max-w-3xl mx-auto space-y-4">
-            {page.faqs.map((faq) => (
+            {faqs.map((faq) => (
               <div key={faq.question} className="rounded-lg border bg-white p-6">
                 <h3 className="font-bold text-lg text-gray-900 mb-2">{faq.question}</h3>
                 <p className="text-gray-600">{faq.answer}</p>

@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     question: "What if it rains?",
-    answer: "If it rains, we can provide a complimentary tent for your setup. If you still need to cancel for weather, give us at least 72 hours notice to receive a full deposit refund.",
+    answer: "The grill needs cover, not the whole party. Most clients put up a 10'x10' pop-up tent over the chef's station — cheap to buy or rent, and we do not supply them. Guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, give us at least 72 hours notice to receive a full deposit refund.",
   },
   {
     question: "Can I cancel or reschedule?",
