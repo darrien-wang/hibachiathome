@@ -8,8 +8,8 @@ export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
     "Date: {{event_date}}",
     "Location: {{location}}",
     "Guests: {{guest_count}} (Adults {{adults}}, Kids {{kids}})",
+    "Menu: {{tier_menu}}",
     "Full setup (tables/chairs/utensils): {{tableware_rental}}",
-    "Canopies: {{tent_10x10}}",
     "Upgrades: {{upgrades}}",
     "Estimated total: {{estimate_low}} - {{estimate_high}}",
   ].join(" "),
@@ -21,8 +21,8 @@ export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
     "- Event date: {{event_date}}",
     "- Location: {{location}}",
     "- Guests: {{guest_count}} (Adults {{adults}}, Kids {{kids}})",
+    "- Menu: {{tier_menu}}",
     "- Tableware rental: {{tableware_rental}}",
-    "- Canopies: {{tent_10x10}}",
     "- Upgrades: {{upgrades}}",
     "- Estimated total range: {{estimate_low}} - {{estimate_high}}",
     "",
@@ -31,7 +31,7 @@ export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
     "Thank you.",
   ].join("\n"),
   callScript:
-    "Hi, I am calling about a quote for {{event_date}} in {{location}}. We have {{guest_count}} guests (Adults {{adults}}, Kids {{kids}}), full setup is {{tableware_rental}}, and canopies are {{tent_10x10}}.",
+    "Hi, I am calling about a quote for {{event_date}} in {{location}}. We have {{guest_count}} guests (Adults {{adults}}, Kids {{kids}}), and full setup is {{tableware_rental}}.",
 }
 
 function normalizeTemplateValue(value: string | undefined, fallback: string): string {

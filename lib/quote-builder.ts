@@ -276,7 +276,6 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Location: ${input.location || "TBD"}`,
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids ${input.kids || 0})`,
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
-    `10'x10' canopy: ${input.tent10x10 ? "yes" : "no"}`,
     input.pricingTier === "weekday_saver"
       ? `Weekday Special menu: ${formatWeekdaySaverProteinSummary()}`
       : `Upgrades: ${formatAddOnSummary(input.addOns)}`,
@@ -337,9 +336,6 @@ export function buildCallScript(input: QuoteInput, result: QuoteResult, template
     details.push(`We would like tableware rental at $15 per person.`)
   }
 
-  if (input.tent10x10) {
-    details.push(`We would like canopies for the setup.`)
-  }
 
   if (input.pricingTier !== "weekday_saver") {
     const selectedUpgrades = formatSelectedUpgradeLabels(input.addOns)

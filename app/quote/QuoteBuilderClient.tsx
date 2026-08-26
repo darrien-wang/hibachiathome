@@ -121,7 +121,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [customerPhone, setCustomerPhone] = useState("")
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
-  const [tentTooltipOpen, setTentTooltipOpen] = useState(false)
   const [weatherPreview, setWeatherPreview] = useState<WeatherPreview | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
@@ -521,7 +520,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
       `Pricing Tier: ${pricingTierLabel}`,
       `Estimated Total: $${result.totalRange.low.toFixed(0)} - $${result.totalRange.high.toFixed(0)}`,
       `Tableware Rental: ${input.tablewareRental ? "Yes" : "No"}`,
-      `Canopies: ${input.tent10x10 ? "Yes" : "No"}`,
       `Premium Upgrades: ${selectedPremiumUpgradesText}`,
       "",
       "Please contact this customer to finalize booking details.",
@@ -892,36 +890,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Includes: table, chairs, tableware, table cloth · $15 per person</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="tent-10x10"
-                    checked={input.tent10x10}
-                    onCheckedChange={(checked) => handleFieldChange("tent10x10", Boolean(checked))}
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <label htmlFor="tent-10x10" className="text-sm text-gray-700">
-                      Canopies (rainy day option)
-                    </label>
-                    <TooltipProvider>
-                      <Tooltip open={tentTooltipOpen} onOpenChange={setTentTooltipOpen}>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label="Canopy details"
-                            aria-expanded={tentTooltipOpen}
-                            onClick={() => setTentTooltipOpen((prev) => !prev)}
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 ring-offset-background transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          >
-                            <CircleHelp className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Canopies are available for rainy day setups · $50 per canopy</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
