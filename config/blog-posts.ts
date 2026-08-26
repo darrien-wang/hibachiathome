@@ -104,7 +104,7 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+*$59.90 per adult, setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quote), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
 `,
     coverImage: "/images/chef-bling-at-the-grill.jpg",
     date: "2026-08-26",
@@ -206,7 +206,7 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, $45.90 Monday–Thursday with 15+ guests, setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
+*$59.90 per adult, $45.90 Monday–Thursday with 15+ guests, setup and cleanup included, first 50 miles free. [Get an instant quote](/quote) or see [where we cook](/hibachi-at-home).*
 `,
     coverImage: "/images/chef-bling-at-the-grill.jpg",
     date: "2026-08-26",
@@ -223,7 +223,7 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
     title: "What Hibachi at Home Actually Costs in Los Angeles",
     slug: "hibachi-at-home-cost-los-angeles",
     excerpt:
-      "The base rate is about $60 an adult everywhere in this market. What actually separates one quote from another is travel fees, setup surcharges, deposits and tips — so here are the real totals for a 10, 20 and 30-person party in LA.",
+      "Real totals for a 10, 20 and 30-person party in LA, what upgrades and travel actually add, why we suggest 20% on tips, and the honest comparison against taking the same group to a teppanyaki restaurant.",
     content: `
 # What Hibachi at Home Actually Costs in Los Angeles — From a Chef Who Quotes It Every Week
 
@@ -243,9 +243,13 @@ These are the ranges I see in practice, not a calculator output.
 
 | Guests | Typical total |
 |---|---|
-| 10 adults | **$600 – $700** |
+| 10 adults | **~$600** |
 | 20 adults | **~$1,200** |
 | 30 adults | **~$1,800** |
+
+Those are the numbers for an address inside our free 50-mile radius, which
+is most of Los Angeles and Orange County. Travel is the only thing that moves
+them, and it moves them less than you'd think — see below.
 
 The math is simple because the rate is flat: it is about $60 a head, and it scales in a straight line. There is no "event fee," no per-guest setup charge, and no minimum you have to buy your way up to once you're past ten people.
 
@@ -253,15 +257,21 @@ Two things move those numbers:
 
 **Kids bring it down.** Children under 13 are $29.95 and under-4s eat free. A party of 12 adults and 6 kids is not an 18-person party on the invoice.
 
-**Upgrades move it up, by choice.** Filet mignon is +$8 per guest, premium sea scallops +$6, spiny lobster tail +$12. Extra sides are ordered by the tray for the table rather than per person — gyoza $15, edamame $10, noodles $5. None of it is required, and plenty of parties add nothing.
+**Under ten guests, we still come.** You're billed the $599 minimum rather than per head, so a party of six costs the same as a party of ten. Small groups are welcome; you just can't get under the minimum.
+
+**Upgrades move it up, by choice.** Filet mignon is +$8 per guest, premium sea scallops +$6, spiny lobster tail +$12. Filet and lobster are the two people actually pick.
+
+In practice a party that upgrades lands around **$65 a head**, not $80 — most guests take one upgrade, not three. Extra sides are ordered by the tray for the table rather than per person: gyoza $15, edamame $10, noodles $5. None of it is required, and plenty of parties add nothing at all.
 
 ## Travel: the first 50 miles are free
 
 This is where services differ the most, and where people get surprised.
 
-**We don't charge a travel fee inside 50 miles of our base.** That radius covers essentially all of Los Angeles County and most of Orange County. Past 50 miles it's $1 per mile, calculated from your address and shown in your quote before you pay anything.
+**We don't charge a travel fee inside 50 miles of our base.** That covers central and southern LA County, the San Gabriel Valley, and most of Orange County. Past 50 miles it's $1 for each mile beyond the free 50 — not $1 on the whole distance — calculated from your address and shown in your quote before you pay anything.
 
-We also discount or waive it fairly often, depending on final guest count and how the schedule looks that week. If your date is flexible, it's worth asking.
+Because we bill only the miles past the free 50, the numbers stay small even when you're far out. An address 65 miles away — roughly Malibu — is $15. San Diego, about the furthest we go, lands around $45. It is not a number that changes your decision.
+
+We also discount or waive it outright fairly often, especially on larger guest counts, depending on what promotions are running that week. Ask when you book — sometimes there's one, sometimes there isn't, and we'll tell you straight.
 
 For comparison, and these are all publicly posted numbers in this market: one service gives you 20 free miles and then charges $2 per mile. Another adds a flat travel fee of about $75. Several don't publish a travel policy at all — you find out when the invoice arrives.
 
@@ -271,13 +281,17 @@ For a Pasadena or Long Beach or Irvine address, our travel fee is $0. That is th
 
 Nobody in this business likes writing this section. Here are the real numbers anyway.
 
-**Most guests tip 20%.** That's the norm and it's what I'd budget for.
+**We suggest 20%, and most guests give it.** Budget that and you'll be in the right neighborhood — about $240 on a 20-person party.
 
-**25% happens when the party is having a good time** — usually when the sake is flowing and the group is playing along.
+**25% happens when the party is having a good time**, usually when the sake is flowing and the group is playing along. Sometimes guests tip separately from the host. Neither is expected; plan on 20%.
 
-**Sometimes guests tip on their own**, separately from the host. It's not expected and you should not plan around it, but it happens.
+Here's the part I want to be straight about, because it's the reason the number matters.
 
-Tip is on top of everything above. So for a 20-person party at roughly $1,200, budget about $240 for gratuity and you'll be in the right neighborhood.
+**We don't charge extra for hard access.** No stair fee, no long-carry fee, no upper-floor surcharge. The chef has carried a grill, propane, coolers, and rented tables and chairs up three floors and twenty-odd steps, and on a setup like that load-in and load-out alone can run over an hour and a half. That's not on your invoice anywhere. It shows up in the tip or it doesn't show up at all.
+
+So if your place is a haul, the tip is where that lands — and if it isn't, no hard feelings, but you should know the trade you're making.
+
+**And if the party was poor, don't tip.** I mean that. If something went wrong, say so, and we'll look into it on our side too. A tip you feel obligated to leave isn't worth anything to either of us.
 
 ## The deposit
 
@@ -305,9 +319,15 @@ Weekday slots are also just easier to get. Weekend evenings in spring and gradua
 
 ## So how does this compare to a restaurant?
 
-Take a group of 20 to a teppanyaki restaurant in LA on a Saturday and you're generally not getting out under $60 a head once drinks and tip are in — often more, and that's before parking and two cars' worth of driving.
+People assume at-home hibachi is the expensive option. Run the numbers and it usually isn't.
 
-The honest difference isn't really the money. It's that at home nobody drives, nobody gets pushed off the table at 9pm, the kids can be kids, and the chef is cooking for your group only.
+Look at what the $59.90 actually buys: **two proteins per guest, garlic fried rice, grilled vegetables, house salad, and sauces.** Order that same plate at a teppanyaki restaurant in LA and you're at roughly $40 to $50 before you've touched a drink.
+
+Now add what a restaurant night really costs on top of the plate — drinks, tax, 20% tip, parking for a group, and the gas and hour of driving to get everyone there and back. For a table of 20 on a Saturday, that comfortably clears what we charge.
+
+And the comparison isn't even fair on our side. Our $59.90 also covers the chef's travel, the equipment, the setup, and the cleanup — real costs a restaurant doesn't carry because you came to them.
+
+So the value argument is simple: **you pay about the same or less, and you get a private chef instead of a shared dining room.** Nobody drives. Nobody hands the table back at 9pm. The kids can be kids. The chef is cooking for your group and nobody else's, in your own backyard.
 
 ## What I'd actually tell you to budget
 
@@ -438,7 +458,7 @@ So if you've been holding off because your space feels too small, or too plain, 
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
+*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quote).*
 `,
     coverImage: "/hibachi-group-selfie.jpg",
     date: "2026-08-26",
