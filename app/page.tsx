@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Check, MessageSquare, Sparkles } from "lucide-react"
+import { ArrowRight, Check, MessageSquare, Sparkles, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 import {
@@ -256,17 +256,30 @@ export default function Home() {
                       className="mt-7 h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 text-base font-semibold shadow-md"
                     >
                       <Link href={activeRegionQuoteHref}>
-                        Check Weekday Saver
+                        Check Weekday Special
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>
                     <div className="mt-7 space-y-3 border-t border-emerald-200 pt-7">
-                      {weekdaySaverPolicy.homeFeatureList.map((item) => (
-                        <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-emerald-900">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                          <span>{item}</span>
-                        </div>
-                      ))}
+                      {weekdaySaverPolicy.homeFeatureList.map((item) => {
+                        const isRestriction = item.startsWith("No ")
+
+                        return (
+                          <div
+                            key={item}
+                            className={`flex items-start gap-3 text-[15px] leading-relaxed ${
+                              isRestriction ? "text-red-700" : "text-emerald-900"
+                            }`}
+                          >
+                            {isRestriction ? (
+                              <X className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                            ) : (
+                              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                            )}
+                            <span>{item}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </AnimateOnScroll>
@@ -687,7 +700,7 @@ export default function Home() {
                 {
                   question: "What is your cancellation policy?",
                   answer:
-                    "Our cancellation policy includes the following terms: 72 hours' notice required for cancellations or reschedules to receive a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable. For rainy days, we can provide a complimentary tent for the chef setup. If you still need to cancel due to weather, please let us know at least 72 hours beforehand.",
+                    "Our cancellation policy includes the following terms: 72 hours' notice required for cancellations or reschedules to receive a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable. For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents. If you still need to cancel due to weather, please let us know at least 72 hours beforehand.",
                 },
               ].map((faq, index) => (
                 <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">

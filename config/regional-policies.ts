@@ -39,19 +39,20 @@ const REGION_DEFINITIONS: Record<RegionCode, RegionDefinition> = {
 const PRICING_POLICY_DEFINITIONS: Record<PricingPolicyKey, PricingPolicyDefinition> = {
   weekday_saver: {
     key: "weekday_saver",
-    title: "Weekday Saver",
-    description: "For Monday-Thursday parties with 15+ guests and a fixed menu set.",
-    unavailableMessage: "Weekday Saver is currently available in Southern California only.",
+    title: "Weekday Special",
+    description:
+      "Includes the Standard food and chef show package. Difference: guests pick 2 of 3 proteins (chicken, steak, shrimp).",
+    unavailableMessage: "Weekday Special is currently available in Southern California only.",
     homeFeatureList: [
-      "$45.9 per adult",
-      "$22.95 per child (under 13, 50% food price)",
-      "Monday-Thursday events only",
-      "Minimum 15 total guests",
-      "Choose exactly 2 proteins: chicken, steak, shrimp",
-      "No add-ons or custom upgrade in this tier",
+      "$45.9/adult; $22.95/child under 13",
+      "Fried rice, fresh vegetables, and house salad included",
+      "Live chef performance and on-site grill cooking",
+      "Monday-Thursday events only; minimum 15 guests",
+      "No premium add-ons or custom menu upgrades",
       "Optional full setup: +$15 per guest",
     ],
-    quoteDescription: "$45.9/adult, $22.95/child (under 13), Monday-Thursday only, 15+ guests required",
+    quoteDescription:
+      "$45.9/adult, $22.95/child. Includes the Standard food/show package; guests pick 2 of 3 proteins (chicken/steak/shrimp).",
   },
 }
 

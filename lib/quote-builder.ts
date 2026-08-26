@@ -91,6 +91,10 @@ const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof WeekdaySaverProteins, string> =
   steak: "Steak",
   shrimp: "Shrimp",
 }
+const WEEKDAY_SAVER_INCLUDED_PROTEINS = Object.keys(WEEKDAY_SAVER_PROTEIN_LABELS) as Array<
+  keyof WeekdaySaverProteins
+>
+const WEEKDAY_SAVER_MENU_SUMMARY = "Guests pick 2 of 3 proteins: Chicken, Steak, Shrimp"
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100
@@ -128,17 +132,16 @@ function isMondayToThursday(eventDate: string): boolean {
   return dayOfWeek >= 1 && dayOfWeek <= 4
 }
 
-function getSelectedWeekdaySaverProteins(proteins: WeekdaySaverProteins): string[] {
-  return (Object.keys(WEEKDAY_SAVER_PROTEIN_LABELS) as Array<keyof WeekdaySaverProteins>).filter((key) => proteins[key])
+function getWeekdaySaverIncludedProteins(): string[] {
+  return WEEKDAY_SAVER_INCLUDED_PROTEINS.map((key) => WEEKDAY_SAVER_PROTEIN_LABELS[key])
 }
 
-function formatWeekdaySaverProteinSummary(proteins: WeekdaySaverProteins): string {
-  const selected = getSelectedWeekdaySaverProteins(proteins).map((key) => WEEKDAY_SAVER_PROTEIN_LABELS[key])
-  return selected.length > 0 ? selected.join(", ") : "none selected"
+function formatWeekdaySaverProteinSummary(): string {
+  return WEEKDAY_SAVER_MENU_SUMMARY
 }
 
 function getQuoteTierLabel(pricingTier: QuotePricingTier): string {
-  return pricingTier === "weekday_saver" ? "Weekday Saver ($45.9/adult, $22.95/child)" : "Standard Plan"
+  return pricingTier === "weekday_saver" ? "Weekday Special ($45.9/adult, $22.95/child)" : "Standard Plan"
 }
 
 export function getTravelFeeRange(location: string): QuoteRange {
@@ -155,17 +158,16 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   const pricingTier = input.pricingTier
   const isWeekdaySaver = pricingTier === "weekday_saver"
 
-  const selectedWeekdayProteins = getSelectedWeekdaySaverProteins(input.weekdaySaverProteins)
+  const selectedWeekdayProteins = getWeekdaySaverIncludedProteins()
   const selectedWeekdayProteinCount = selectedWeekdayProteins.length
   const isWeekdayEligible = isMondayToThursday(input.eventDate)
   const isGuestCountEligible = guestCount >= WEEKDAY_SAVER_MIN_GUESTS
-  const hasValidProteinSelection = selectedWeekdayProteinCount === 2
+  const hasValidProteinSelection = true
 
   const weekdayViolations: string[] = []
   if (isWeekdaySaver) {
-    if (!isWeekdayEligible) weekdayViolations.push("Weekday Saver is available only for Monday-Thursday events.")
-    if (!isGuestCountEligible) weekdayViolations.push("Weekday Saver requires at least 15 total guests.")
-    if (!hasValidProteinSelection) weekdayViolations.push("Weekday Saver requires exactly 2 proteins from chicken, steak, shrimp.")
+    if (!isWeekdayEligible) weekdayViolations.push("Weekday Special is available only for Monday-Thursday events.")
+    if (!isGuestCountEligible) weekdayViolations.push("Weekday Special requires at least 15 total guests.")
   }
 
   const weekdayIsEligible = isWeekdaySaver ? weekdayViolations.length === 0 : true
@@ -230,7 +232,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
       isGuestCountEligible,
       hasValidProteinSelection,
       selectedProteinCount: selectedWeekdayProteinCount,
-      selectedProteins: selectedWeekdayProteins.map((key) => WEEKDAY_SAVER_PROTEIN_LABELS[key]),
+      selectedProteins: selectedWeekdayProteins,
       isEligible: weekdayIsEligible,
       violations: weekdayViolations,
     },
@@ -276,9 +278,9 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
     `10'x10' canopy: ${input.tent10x10 ? "yes" : "no"}`,
     input.pricingTier === "weekday_saver"
-      ? `Weekday Saver proteins (pick 2): ${formatWeekdaySaverProteinSummary(input.weekdaySaverProteins)}`
+      ? `Weekday Special menu: ${formatWeekdaySaverProteinSummary()}`
       : `Upgrades: ${formatAddOnSummary(input.addOns)}`,
-    input.pricingTier === "weekday_saver" ? "Premium upgrades: not available in Weekday Saver" : null,
+    input.pricingTier === "weekday_saver" ? "Premium upgrades: not available in Weekday Special" : null,
     `Estimated total: ${formatCurrency(result.totalRange.low)} - ${formatCurrency(result.totalRange.high)}`,
   ]
     .filter((line): line is string => Boolean(line))
@@ -298,9 +300,9 @@ export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResul
     quote_tier: getQuoteTierLabel(input.pricingTier),
     tier_menu:
       input.pricingTier === "weekday_saver"
-        ? formatWeekdaySaverProteinSummary(input.weekdaySaverProteins)
-        : "Not applicable",
-    upgrades: input.pricingTier === "weekday_saver" ? "Not available for Weekday Saver" : formatAddOnSummary(input.addOns),
+        ? formatWeekdaySaverProteinSummary()
+        : "Standard Plan; 2 regular proteins per guest",
+    upgrades: input.pricingTier === "weekday_saver" ? "Not available for Weekday Special" : formatAddOnSummary(input.addOns),
     budget: input.budget ? formatCurrency(input.budget) : "Not provided",
     estimate_low: formatCurrency(result.totalRange.low),
     estimate_high: formatCurrency(result.totalRange.high),

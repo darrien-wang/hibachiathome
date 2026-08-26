@@ -37,7 +37,7 @@ const DEFAULT_INPUT: QuoteInput = {
   weekdaySaverProteins: {
     chicken: true,
     steak: true,
-    shrimp: false,
+    shrimp: true,
   },
   tablewareRental: false,
   tent10x10: false,
@@ -56,6 +56,9 @@ const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof QuoteInput["weekdaySaverProtein
   steak: "Steak",
   shrimp: "Shrimp",
 }
+const WEEKDAY_SAVER_MENU_PROTEINS = Object.values(WEEKDAY_SAVER_PROTEIN_LABELS)
+const WEEKDAY_SAVER_MENU_TEXT = WEEKDAY_SAVER_MENU_PROTEINS.join(", ")
+const WEEKDAY_SAVER_MENU_DETAIL = `Guests pick 2 of 3 proteins: ${WEEKDAY_SAVER_MENU_TEXT}`
 
 function encodeUrlComponent(value: string): string {
   return encodeURIComponent(value)
@@ -155,15 +158,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     [eventTime, input, result, contactTemplates.callScript],
   )
   const isWeekdaySaverTier = input.pricingTier === "weekday_saver"
-  const selectedWeekdayProteins = useMemo(
-    () =>
-      (Object.keys(input.weekdaySaverProteins) as Array<keyof QuoteInput["weekdaySaverProteins"]>)
-        .filter((key) => input.weekdaySaverProteins[key])
-        .map((key) => WEEKDAY_SAVER_PROTEIN_LABELS[key]),
-    [input.weekdaySaverProteins],
-  )
-  const selectedWeekdayProteinsText = selectedWeekdayProteins.length > 0 ? selectedWeekdayProteins.join(", ") : "none"
-  const weekdaySaverProteinsValue = isWeekdaySaverTier ? selectedWeekdayProteinsText : "n/a"
+  const weekdaySaverProteinsValue = isWeekdaySaverTier ? WEEKDAY_SAVER_MENU_DETAIL : "n/a"
 
   useEffect(() => {
     if (!weekdaySaverEnabled && input.pricingTier === "weekday_saver") {
@@ -352,24 +347,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     })
   }
 
-  const handleWeekdayProteinToggle = (key: keyof QuoteInput["weekdaySaverProteins"], checked: boolean) => {
-    setInput((prev) => {
-      const selectedCount = (Object.keys(prev.weekdaySaverProteins) as Array<keyof QuoteInput["weekdaySaverProteins"]>).filter(
-        (proteinKey) => prev.weekdaySaverProteins[proteinKey],
-      ).length
-      if (checked && !prev.weekdaySaverProteins[key] && selectedCount >= 2) {
-        return prev
-      }
-      return {
-        ...prev,
-        weekdaySaverProteins: {
-          ...prev.weekdaySaverProteins,
-          [key]: checked,
-        },
-      }
-    })
-  }
-
   const handleAddOnToggle = (key: keyof QuoteInput["addOns"], checked: boolean) => {
     if (input.pricingTier === "weekday_saver") return
     setInput((prev) => ({
@@ -398,7 +375,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const bookingRequestDisabled = missingRequiredBookingFields || weekdaySaverRulesFailed || bookingRequestSubmitting
   const bookingRequestHelperText = missingRequiredBookingFields
     ? "Fill name, email, phone, date, time, and core quote details first."
-    : "Weekday Saver must be Monday-Thursday, 15+ guests, and exactly 2 proteins selected."
+    : "Weekday Special must be Monday-Thursday with at least 15 total guests."
   const bookingConfirmationDepositHref = useMemo(() => {
     if (!bookingConfirmation) return "/deposit/pay"
 
@@ -855,37 +832,27 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 )}
                 {isWeekdaySaverTier && (
                   <p className="text-xs text-emerald-700">
-                    Weekday Saver rules: pick exactly 2 proteins (chicken/steak/shrimp), no premium add-ons, no custom
-                    upgrade.
+                    Weekday Special rules: guests pick 2 of 3 proteins (chicken, steak, shrimp). Includes chef show, rice,
+                    vegetables, and salad. No premium add-ons or custom upgrade.
                   </p>
                 )}
               </div>
 
               {isWeekdaySaverTier && (
                 <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
-                  <p className="text-sm font-medium text-emerald-900">Weekday Saver Protein Set (pick exactly 2)</p>
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    {(Object.keys(WEEKDAY_SAVER_PROTEIN_LABELS) as Array<keyof QuoteInput["weekdaySaverProteins"]>).map(
-                      (proteinKey) => {
-                        const checked = input.weekdaySaverProteins[proteinKey]
-                        const disableUnchecked = !checked && result.weekdaySaver.selectedProteinCount >= 2
-                        return (
-                          <div key={proteinKey} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`weekday-protein-${proteinKey}`}
-                              checked={checked}
-                              disabled={disableUnchecked}
-                              onCheckedChange={(value) => handleWeekdayProteinToggle(proteinKey, Boolean(value))}
-                            />
-                            <label htmlFor={`weekday-protein-${proteinKey}`} className="text-sm text-gray-800">
-                              {WEEKDAY_SAVER_PROTEIN_LABELS[proteinKey]}
-                            </label>
-                          </div>
-                        )
-                      },
-                    )}
+                  <p className="text-sm font-medium text-emerald-900">Weekday Special protein menu</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {WEEKDAY_SAVER_MENU_PROTEINS.map((protein) => (
+                      <div key={protein} className="flex items-center gap-2 rounded-md border border-emerald-100 bg-white/70 px-3 py-2">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                        <span className="text-sm text-gray-800">{protein}</span>
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-xs text-emerald-800">Selected proteins: {selectedWeekdayProteinsText}</p>
+                  <p className="text-xs text-emerald-800">
+                    Guests pick 2 of 3 proteins at the event. Fried rice, vegetables, salad, and the live chef show are
+                    included.
+                  </p>
                   {result.weekdaySaver.violations.length > 0 && (
                     <div className="space-y-1 rounded-md border border-red-200 bg-red-50 p-2">
                       {result.weekdaySaver.violations.map((message) => (
@@ -1000,7 +967,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                   </div>
                 </div>
                 {isWeekdaySaverTier ? (
-                  <p className="text-xs text-red-700">Premium add-ons are not available in the Weekday Saver tier.</p>
+                  <p className="text-xs text-red-700">Premium add-ons are not available in the Weekday Special tier.</p>
                 ) : (
                   <p className="text-xs text-gray-500">
                     Quick estimate assumes selected premium upgrades could be chosen by up to all guests.
@@ -1086,7 +1053,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
 
               <div className="space-y-2 text-sm text-gray-700">
                 <p>
-                  Selected tier: {isWeekdaySaverTier ? "Weekday Saver ($45.9/adult, $22.95/child)" : "Standard Plan"}
+                  Selected tier: {isWeekdaySaverTier ? "Weekday Special ($45.9/adult, $22.95/child)" : "Standard Plan"}
                 </p>
                 <p>Guest count: {result.guestCount}</p>
                 <p>Base subtotal: ${result.baseSubtotal.toFixed(0)}</p>
@@ -1099,8 +1066,8 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 <p>Full setup (tables/chairs/utensils): ${result.tablewareFee.toFixed(0)}</p>
                 {isWeekdaySaverTier ? (
                   <>
-                    <p>Weekday Saver proteins: {selectedWeekdayProteinsText}</p>
-                    <p>Premium upgrades impact: Not available in Weekday Saver</p>
+                    <p>Weekday Special menu: {WEEKDAY_SAVER_MENU_DETAIL}</p>
+                    <p>Premium upgrades impact: Not available in Weekday Special</p>
                   </>
                 ) : (
                   <p>
