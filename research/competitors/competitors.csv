@@ -1,0 +1,20 @@
+tier,brand,domain,type,scope,sitemap_urls,city_pages,la_county_cities,price_adult,price_child,minimum,travel_fee,setup_included,body_words_la_page,jsonld,platform,notes
+A,JustOne Hibachi,justonehibachi.com,直接对手,SoCal专精,240,55,"LA,Pasadena,Glendale,Burbank,Torrance,SantaMonica,WestHollywood,Malibu,SFV,WestCovina,Whittier,SantaClarita,ThousandOaks",询价,询价,未公开,未公开,加价$10/人,1841,0,Wix,唯一纯南加州打法；桌椅另收$10/人；不公开价格靠留资
+A,Awesome Hibachi,awesomehibachi.com,直接对手,全国pSEO,1176,889,"LA,Pasadena,Glendale,Burbank,Torrance,SantaMonica,LongBeach,SantaClarita,Pomona,Azusa",$60,$30,$600,未公开,是,1734,3,自建,889个城市页的全国程序化SEO；LA县实际只覆盖约9城
+A,Hibachi With Us,hibachiwithus.com,直接对手,全国,629,390,"LA,Pasadena,Torrance,LongBeach,SantaClarita,Hollywood,ThousandOaks",$60,$30,$600,约$75,否(客户自备桌椅),718,1,Wix,390城市页+178博客；明确收$75路费且不含桌椅——你的差异点
+A,Love Hibachi,lovehibachi.com,直接对手,全国,1833,~14SoCal,"LA,Glendale,LongBeach",$60档,$30档,$600档,未公开,是,1572,3,WordPress,1833个URL全站内容最厚；垄断"hibachi catering cost"类问答词=GEO主要引用源
+B,Let's Hibachi,letshibachi.com,直接对手,全国,212,4,"LA",$60,$30(5-12),$600(最少10人),前20迈免费后$2/迈,是,2165,5,WordPress,LA页正文2165词全场最厚+5个JSON-LD；路费规则最透明
+B,Let's Fire Hibachi,letsfirehibachi.com,本地游击,LA/NYC/CHI/FL,69,~55,"LA,DTLA,BeverlyHills,CulverCity,WestHollywood,Hollywood,Inglewood,Burbank,Glendale,SantaMonica,Pasadena",$60,$30(4-12),未公开,未公开,未公开,992,1,Wix,唯一覆盖BeverlyHills/CulverCity/Inglewood/DTLA的对手
+B,Hibachi Panda,hibachipanda2.com,本地游击,LA,173,3,"LA",$60,$30,$600,未公开,是,1560,5,WordPress,$150定金(你是$19.9——巨大转化优势)
+B,Hibachi2U,hibachi2u.com,直接对手,全国,176,6,"LA",$60,$30,$600,未公开,是,-,-,自建,自称LA第一
+B,Hibachi 4Ever LA,hibachi4everla.com,本地游击,LA/OC/PalmSprings,107,~34,"LA",询价,询价,$550,未公开,未公开,-,-,WordPress,内容全是真实派对故事(98岁奶奶生日等)——GEO叙事素材最强
+B,Hibachi At Home,hibachiathome.com,本地游击,LA,35,4,"LA",$45起,未公开,未公开,有折扣,桌椅+$8/人,-,-,自建,唯一低价位($45/pp)搅局者
+C,Mobile Hibachi 4U,mobilehibachi4u.com,直接对手,全国,341,~6,"LA",-,-,-,-,-,-,-,WordPress,SoCal覆盖薄
+C,Rockstar Hibachi,rockstarhibachi.com,直接对手,全国,82,3,"LA",-,-,-,-,-,-,-,WordPress,SoCal覆盖薄
+C,Kojin Hibachi,kojinhibachi.net,本地游击,LA/OC,16,1,"LA",-,-,-,-,-,-,-,Wix,站点极小
+C,Hibachi Catering LA,hibachicateringla.com,本地游击,LA,64,~21,"LA",-,-,-,-,-,-,-,WordPress,West Covina实体地址+Yelp16评论
+C,Hibachi Catering OC,hibachicateringoc.com,本地游击,OC,0,0,-,-,-,-,-,-,-,-,WordPress,站点报错(sitemap 500)——已半死
+D,Yelp 榜单页,yelp.com,渠道占位,-,-,-,-,-,-,-,-,-,-,-,"TOP 10 BEST Hibachi Catering in LA"多词霸屏；封锁抓取；必须入驻
+D,Thumbtack,thumbtack.com,渠道占位,-,-,-,-,-,-,-,-,-,-,-,Love Hibachi已入驻并排名
+D,More Sake More Fun,-,本地游击,LA,-,-,-,-,-,-,-,-,-,-,只在Yelp/口碑层出现，无独立站
+E,Real Hibachi(自己),realhibachi.com,本方,SoCal,33,16,"Pasadena,SantaMonica,Glendale,Torrance,LongBeach,SantaClarita",$59.90,$29.95,$599,未公开,是,676,是(Service/FAQPage/Breadcrumb/FoodEstablishment),Next.js,无/los-angeles页；城市页正文最薄
