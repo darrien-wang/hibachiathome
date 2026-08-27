@@ -46,7 +46,18 @@ export type CityPage = {
   logistics: string[]
   faqs: CityFaq[]
   nearby: string[]
+  // ISO date this page's content last meaningfully changed, for sitemap
+  // lastModified. Omit to fall back to CITY_PAGES_LAST_UPDATED. Set it per
+  // city when you edit one page on its own — a lastmod that claims every page
+  // changed on the same day is the kind of thing search engines learn to
+  // ignore, and so is one that never moves at all.
+  lastUpdated?: string
 }
+
+// The date the whole city-page set was last revised together. Bump this when a
+// change lands across all of them (a template edit, a pricing change); use a
+// per-city `lastUpdated` when only one page moves.
+export const CITY_PAGES_LAST_UPDATED = "2026-08-27T00:00:00.000Z"
 
 export const cityPages: CityPage[] = [
   {
