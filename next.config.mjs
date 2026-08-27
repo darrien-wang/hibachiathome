@@ -21,6 +21,31 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Internal chef handbook. Served as a standalone static file so its own
+  // stylesheet does not collide with the site chrome. Deliberately NOT in
+  // sitemap.ts and NOT disallowed in robots.ts - a robots.txt Disallow would
+  // publish the path to anyone who reads robots.txt. noindex headers + meta
+  // tags keep it out of search results instead.
+  async rewrites() {
+    return [
+      {
+        source: "/chef-handbook",
+        destination: "/chef-handbook.html",
+      },
+    ]
+  },
+  async headers() {
+    return [
+      {
+        source: "/chef-handbook",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+      {
+        source: "/chef-handbook.html",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+    ]
+  },
   async redirects() {
     return [
       ...MIRROR_HOSTS.map((host) => ({

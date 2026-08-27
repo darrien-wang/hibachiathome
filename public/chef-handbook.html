@@ -1,0 +1,1893 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Real Hibachi 厨师手册</title>
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Real Hibachi 内部厨师手册">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+  <style>*{margin:0;padding:0;box-sizing:border-box}</style>
+</head>
+<body>
+
+<style>
+:root{
+  --ground:#EDECE8;
+  --surface:#FBFAF8;
+  --surface-2:#E4E2DC;
+  --ink:#191A1A;
+  --ink-2:#3D4044;
+  --muted:#6E7076;
+  --rule:#D6D3CC;
+  --rule-strong:#B9B5AC;
+  --brass:#8F6420;
+  --brass-bright:#A9762C;
+  --brass-wash:#F1E7D4;
+  --danger:#B32E17;
+  --danger-wash:#F7E3DD;
+  --danger-ink:#7A1F0F;
+  --go:#2C5C48;
+  --go-wash:#E0EBE5;
+  --script-bg:#20232A;
+  --script-ink:#E6E3DB;
+  --script-muted:#8D949E;
+  --script-accent:#D9A954;
+  --shadow:0 1px 2px rgba(25,26,26,.05), 0 8px 24px -16px rgba(25,26,26,.22);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#121314;
+    --surface:#1A1C1D;
+    --surface-2:#232628;
+    --ink:#E9E7E1;
+    --ink-2:#C3C1BB;
+    --muted:#93959A;
+    --rule:#2D3032;
+    --rule-strong:#414548;
+    --brass:#D2A45C;
+    --brass-bright:#E0B570;
+    --brass-wash:#2A2419;
+    --danger:#E4694C;
+    --danger-wash:#301811;
+    --danger-ink:#F0A28C;
+    --go:#5E9C80;
+    --go-wash:#16241E;
+    --script-bg:#0C0D0F;
+    --script-ink:#E6E3DB;
+    --script-muted:#8D949E;
+    --script-accent:#D9A954;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121314;
+  --surface:#1A1C1D;
+  --surface-2:#232628;
+  --ink:#E9E7E1;
+  --ink-2:#C3C1BB;
+  --muted:#93959A;
+  --rule:#2D3032;
+  --rule-strong:#414548;
+  --brass:#D2A45C;
+  --brass-bright:#E0B570;
+  --brass-wash:#2A2419;
+  --danger:#E4694C;
+  --danger-wash:#301811;
+  --danger-ink:#F0A28C;
+  --go:#5E9C80;
+  --go-wash:#16241E;
+  --script-bg:#0C0D0F;
+  --script-ink:#E6E3DB;
+  --script-muted:#8D949E;
+  --script-accent:#D9A954;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Noto Sans SC","Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace}
+
+.shell{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.cols{display:grid;grid-template-columns:1fr;gap:0}
+@media (min-width:1000px){
+  .cols{grid-template-columns:216px minmax(0,1fr);gap:56px;align-items:start}
+}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:2px solid var(--ink);padding:clamp(32px,6vw,64px) 0 24px}
+.mast-kicker{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--brass);
+  display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:20px;
+}
+.mast h1{
+  font-family:"Archivo","Noto Sans SC",sans-serif;
+  font-weight:800;font-size:clamp(34px,7vw,62px);line-height:1.02;
+  letter-spacing:-.02em;margin:0 0 18px;text-wrap:balance;
+}
+.mast h1 em{font-style:normal;color:var(--brass)}
+.mast-sub{font-size:clamp(15px,2vw,18px);color:var(--ink-2);max-width:56ch;margin:0}
+.mast-meta{
+  display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:26px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+}
+.mast-meta b{color:var(--ink);font-weight:600}
+
+/* ---------- nav ---------- */
+.sidenav{display:none}
+@media (min-width:1000px){
+  .sidenav{display:block;position:sticky;top:0;padding:36px 0 40px;max-height:100vh;overflow-y:auto}
+}
+.sidenav-title{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 14px;
+}
+.sidenav ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.sidenav a{
+  display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:baseline;
+  text-decoration:none;color:var(--ink-2);font-size:13.5px;line-height:1.45;
+  padding:5px 8px 5px 0;border-radius:3px;
+}
+.sidenav a:hover{color:var(--brass)}
+.sidenav a span{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.sidenav a:hover span{color:var(--brass)}
+.sidenav a.red{color:var(--danger);font-weight:700}
+.sidenav a.red span{color:var(--danger)}
+.sidenav a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+.mobnav{padding:20px 0 4px;border-bottom:1px solid var(--rule)}
+@media (min-width:1000px){.mobnav{display:none}}
+.mobnav-title{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 10px;
+}
+.mobnav ol{
+  list-style:none;margin:0;padding:0 0 16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;
+}
+.mobnav a{text-decoration:none;color:var(--ink-2);font-size:13px;display:grid;grid-template-columns:24px 1fr;gap:6px}
+.mobnav a span{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
+.mobnav a.red{color:var(--danger);font-weight:700}
+.mobnav a.red span{color:var(--danger)}
+
+/* ---------- sections ---------- */
+main{padding-bottom:96px;min-width:0}
+section{padding:52px 0;border-bottom:1px solid var(--rule);scroll-margin-top:20px}
+section:last-of-type{border-bottom:none}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+.sec-num{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:12px;
+  letter-spacing:.1em;color:var(--brass);font-variant-numeric:tabular-nums;
+  border:1px solid var(--brass);border-radius:2px;padding:2px 7px;flex:none;
+}
+.sec-num.red{color:var(--danger);border-color:var(--danger)}
+h2{
+  font-family:"Archivo","Noto Sans SC",sans-serif;font-weight:700;
+  font-size:clamp(23px,3.6vw,32px);line-height:1.18;letter-spacing:-.015em;
+  margin:0;text-wrap:balance;
+}
+.sec-lede{color:var(--ink-2);font-size:16.5px;max-width:64ch;margin:14px 0 28px}
+h3{
+  font-family:"Archivo","Noto Sans SC",sans-serif;font-weight:700;
+  font-size:18px;letter-spacing:-.005em;margin:36px 0 12px;text-wrap:balance;
+}
+h4{font-size:14.5px;font-weight:700;margin:24px 0 8px}
+p{margin:0 0 14px;max-width:66ch}
+strong{font-weight:700}
+a{color:var(--brass);text-decoration-thickness:1px;text-underline-offset:2px}
+
+/* ---------- tags ---------- */
+.tag{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  font-weight:500;letter-spacing:.09em;text-transform:uppercase;
+  padding:2px 6px;border-radius:2px;vertical-align:2px;margin-left:6px;white-space:nowrap;
+}
+.tag-fixed{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--rule-strong)}
+.tag-draft{background:var(--brass-wash);color:var(--brass);border:1px solid var(--brass)}
+.legend{
+  display:flex;flex-wrap:wrap;gap:10px 22px;padding:14px 16px;margin:0 0 8px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  font-size:13px;color:var(--ink-2);
+}
+.legend div{display:flex;align-items:center;gap:8px}
+
+/* ---------- callouts ---------- */
+.note{border-left:3px solid var(--brass);background:var(--surface);padding:16px 18px;margin:22px 0;border-radius:0 4px 4px 0}
+.note p:last-child{margin-bottom:0}
+.note-label{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--brass);display:block;margin-bottom:6px;font-weight:600;
+}
+.note.warn{border-left-color:var(--danger);background:var(--danger-wash)}
+.note.warn .note-label{color:var(--danger)}
+.note.warn p{color:var(--danger-ink)}
+.note.good{border-left-color:var(--go);background:var(--go-wash)}
+.note.good .note-label{color:var(--go)}
+
+/* ---------- redline banner ---------- */
+.rl-banner{
+  background:var(--danger);color:#fff;border-radius:6px;padding:22px 24px;margin:0 0 30px;
+}
+.rl-banner p{color:#fff;margin:0;max-width:62ch;font-size:15.5px}
+.rl-banner b{font-weight:700}
+.rl-banner .rl-t{
+  font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(19px,3vw,24px);
+  letter-spacing:-.01em;margin:0 0 10px;line-height:1.2;
+}
+
+.redline{
+  border:1px solid var(--danger);border-left-width:5px;background:var(--danger-wash);
+  border-radius:0 6px 6px 0;padding:20px 22px;margin:22px 0;
+}
+.redline-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.redline-n{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:#fff;background:var(--danger);border-radius:2px;padding:3px 8px;
+}
+.redline-t{font-family:"Archivo","Noto Sans SC",sans-serif;font-weight:800;font-size:19px;color:var(--danger-ink);letter-spacing:-.01em}
+.redline p{color:var(--danger-ink);max-width:62ch}
+.redline ul{margin:12px 0;padding-left:20px}
+.redline li{color:var(--danger-ink);margin-bottom:7px;max-width:60ch;font-size:14.5px}
+.redline .verdict{
+  margin-top:14px;padding-top:13px;border-top:1px solid var(--danger);
+  font-weight:700;color:var(--danger-ink);font-size:15px;
+}
+
+/* ---------- stop cards ---------- */
+.stops{display:grid;gap:12px;margin:26px 0}
+.stop{
+  display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;
+  background:var(--surface);border:1px solid var(--rule-strong);
+  border-left:4px solid var(--danger);border-radius:0 5px 5px 0;padding:16px 18px;
+}
+.stop-n{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:12px;
+  color:var(--danger);border:1px solid var(--danger);border-radius:2px;padding:1px 6px;margin-top:3px;
+}
+.stop h4{margin:0 0 5px;font-size:16px;font-weight:700}
+.stop p{margin:0;font-size:14.5px;color:var(--ink-2);max-width:60ch}
+
+/* ---------- must-do moves ---------- */
+.moves{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden;margin:22px 0}
+.move{background:var(--surface);padding:15px 18px;display:grid;grid-template-columns:auto 1fr;gap:15px;align-items:start}
+.move-n{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;
+  color:#fff;background:var(--danger);border-radius:50%;width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px;
+}
+.move.opt .move-n{background:var(--brass);color:#fff}
+.move h4{margin:0 0 3px;font-size:15.5px}
+.move p{margin:0;font-size:14px;color:var(--ink-2);max-width:60ch}
+
+/* ---------- timeline ---------- */
+.tl{margin:26px 0;border-top:1px solid var(--rule)}
+.tl-row{display:grid;grid-template-columns:76px 1fr;gap:20px;padding:16px 0;border-bottom:1px solid var(--rule);align-items:start}
+@media (max-width:620px){.tl-row{grid-template-columns:62px 1fr;gap:14px}}
+.tl-t{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;color:var(--brass);font-variant-numeric:tabular-nums;padding-top:1px}
+.tl-row.zero{background:var(--brass-wash);margin:0 -14px;padding-left:14px;padding-right:14px;border-radius:4px}
+.tl-row.zero .tl-t{color:var(--brass-bright)}
+.tl h4{margin:0 0 4px;font-size:15.5px}
+.tl p{margin:0;font-size:14.5px;color:var(--ink-2);max-width:58ch}
+
+/* ---------- scripts ---------- */
+.script{background:var(--script-bg);border-radius:6px;padding:18px 20px;margin:18px 0;box-shadow:var(--shadow)}
+.script-head{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,.09);flex-wrap:wrap;
+}
+.script-when{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--script-accent);font-weight:600}
+.script-say{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--script-muted);border:1px solid rgba(255,255,255,.18);border-radius:2px;padding:2px 7px;
+}
+.script q{display:block;font-family:"IBM Plex Mono",monospace;font-size:14.5px;line-height:1.72;color:var(--script-ink);quotes:none;margin-bottom:11px}
+.script q:last-of-type{margin-bottom:0}
+.script q::before,.script q::after{content:""}
+.script .gloss{margin:14px 0 0;padding-top:12px;border-top:1px solid rgba(255,255,255,.09);font-size:13.5px;color:var(--script-muted);line-height:1.6;max-width:100%}
+.script .gloss b{color:var(--script-accent);font-weight:600}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:22px 0;border:1px solid var(--rule);border-radius:5px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;background:var(--surface-2);border-bottom:1px solid var(--rule-strong);
+}
+tbody tr:last-child td{border-bottom:none}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.yes{color:var(--go);font-weight:600}
+td.no{color:var(--danger);font-weight:600}
+tr.step-hi{background:var(--go-wash)}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;margin:20px 0;padding:0;display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.check li{background:var(--surface);margin:0}
+.check label{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:start;padding:12px 16px;cursor:pointer;font-size:14.5px;line-height:1.6}
+.check input{
+  appearance:none;-webkit-appearance:none;width:17px;height:17px;margin:4px 0 0;
+  border:1.5px solid var(--rule-strong);border-radius:3px;background:var(--surface);
+  cursor:pointer;flex:none;position:relative;
+}
+.check input:checked{background:var(--go);border-color:var(--go)}
+.check input:checked::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(43deg)}
+.check input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.check input:checked ~ span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--rule-strong)}
+.check span b{display:block;font-weight:700;font-size:14.5px}
+.check span em{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:2px}
+.check-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);margin-top:-6px}
+.check-bar button{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;background:none;
+  border:1px solid var(--rule-strong);color:var(--muted);padding:4px 11px;border-radius:3px;cursor:pointer;
+}
+.check-bar button:hover{border-color:var(--brass);color:var(--brass)}
+.check-bar button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ---------- open questions ---------- */
+.qs{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden;margin:22px 0}
+.q{background:var(--surface);padding:15px 17px}
+.q-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+.q-n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--brass);font-weight:600}
+.q-t{font-weight:700;font-size:15px}
+.q p{margin:0;font-size:14px;color:var(--ink-2);max-width:64ch}
+.q.conflict{background:var(--danger-wash)}
+.q.conflict .q-n{color:var(--danger)}
+.q.conflict p{color:var(--danger-ink)}
+
+/* ---------- money ---------- */
+.money{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden;margin:24px 0}
+.money div{background:var(--surface);padding:20px 18px}
+.money dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.money dd{margin:0;font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(24px,4vw,32px);line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.money dd small{display:block;font-family:"Noto Sans SC",sans-serif;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:8px;letter-spacing:0;line-height:1.5}
+.money .hi dd{color:var(--brass)}
+
+.grid2{display:grid;gap:20px;margin:22px 0}
+@media (min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:5px;padding:18px 20px}
+.card h4{margin-top:0}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+ul.plain{margin:0 0 14px;padding-left:20px}
+ul.plain li{margin-bottom:6px;max-width:62ch}
+.foot{padding:36px 0 60px;font-size:13px;color:var(--muted);border-top:2px solid var(--ink)}
+.foot p{max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="shell">
+
+  <header class="mast">
+    <div class="mast-kicker">
+      <span>Real Hibachi</span>
+      <span>南加州 · 上门铁板烧</span>
+      <span>厨师岗 · 入职培训</span>
+    </div>
+    <h1>从派单到<em>熄火</em><br>一场活动你要做的每一件事</h1>
+    <p class="mast-sub">这不是菜谱。这是你独立出第一场之前，必须走完的全流程。<b>先看第 01 章那三条红线</b>——每一条都是有人真的踩过、真的赔过、真的受过伤才写进来的。</p>
+    <div class="rl-banner" style="margin-top:26px;margin-bottom:0">
+      <p class="rl-t">活动当晚出任何问题，打这个电话</p>
+      <p><b>Darrien　<a href="tel:+15627134832" style="color:#fff">(562) 713-4832</a></b><br>点不着火、场地不安全、客人加人、烧坏东西、有人受伤——先打电话，别自己扛。</p>
+    </div>
+
+    <div class="mast-meta">
+      <span>版本 <b>v1.0</b></span>
+      <span>更新 <b>2026-08-26</b></span>
+      <span>读完约 <b>30 分钟</b></span>
+    </div>
+  </header>
+
+  <div class="cols">
+
+    <nav class="sidenav" aria-label="章节目录">
+      <p class="sidenav-title">目录</p>
+      <ol>
+        <li><a href="#s0"><span>00</span>你是干什么的</a></li>
+        <li><a class="red" href="#s1"><span>01</span>三条红线</a></li>
+        <li><a href="#s2"><span>02</span>你的装备</a></li>
+        <li><a href="#s3"><span>03</span>接到派单</a></li>
+        <li><a href="#s4"><span>04</span>五条停做条件</a></li>
+        <li><a href="#s5"><span>05</span>搭台时间轴</a></li>
+        <li><a href="#s6"><span>06</span>出品标准</a></li>
+        <li><a class="red" href="#s7"><span>07</span>六个必做动作</a></li>
+        <li><a href="#s8"><span>08</span>收款与收尾</a></li>
+        <li><a href="#s9"><span>09</span>出事怎么办</a></li>
+        <li><a href="#s10"><span>10</span>钱与晋升</a></li>
+        <li><a href="#s11"><span>11</span>上岗路径</a></li>
+        <li><a href="#a"><span>A</span>出车清单</a></li>
+        <li><a href="#b"><span>B</span>话术速查</a></li>
+        <li><a href="#about"><span>※</span>关于本手册</a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <nav class="mobnav" aria-label="章节目录">
+        <p class="mobnav-title">目录</p>
+        <ol>
+          <li><a href="#s0"><span>00</span>你是干什么的</a></li>
+          <li><a class="red" href="#s1"><span>01</span>三条红线</a></li>
+          <li><a href="#s2"><span>02</span>你的装备</a></li>
+          <li><a href="#s3"><span>03</span>接到派单</a></li>
+          <li><a href="#s4"><span>04</span>停做条件</a></li>
+          <li><a href="#s5"><span>05</span>搭台时间轴</a></li>
+          <li><a href="#s6"><span>06</span>出品标准</a></li>
+          <li><a class="red" href="#s7"><span>07</span>必做动作</a></li>
+          <li><a href="#s8"><span>08</span>收款与收尾</a></li>
+          <li><a href="#s9"><span>09</span>出事怎么办</a></li>
+          <li><a href="#s10"><span>10</span>钱与晋升</a></li>
+          <li><a href="#s11"><span>11</span>上岗路径</a></li>
+          <li><a href="#a"><span>A</span>出车清单</a></li>
+          <li><a href="#b"><span>B</span>话术速查</a></li>
+          <li><a href="#about"><span>※</span>关于本手册</a></li>
+        </ol>
+      </nav>
+
+      <!-- ============ 00 ============ -->
+      <section id="s0">
+        <div class="sec-head"><span class="sec-num">00</span><h2>你是干什么的</h2></div>
+        <p class="sec-lede">客人花 $59.90 一位买的，一半是饭，一半是那 90 分钟。你不是后厨，你是全场唯一露脸的人。</p>
+
+        <div class="legend">
+          <div><span class="tag tag-fixed">公司口径</span> 已经定死的，照做，别自己改。</div>
+        </div>
+
+        <h3>你同时在干三份活</h3>
+        <ul class="plain">
+          <li><b>厨师</b>——每人两份蛋白做到位，牛排熟度不出错。这是及格线，不是加分项。</li>
+          <li><b>表演者</b>——第 07 章那六个动作，一个都不能少。客人拍下来的视频是公司下个月的订单。</li>
+          <li><b>公司的脸</b>——客人这辈子接触 Real Hibachi 的全部，就是你这 90 分钟。</li>
+        </ul>
+
+        <h3>你的钱怎么来</h3>
+        <p>工资是阶梯的，越干越高；小费是浮动的，做得好能翻倍。两块都握在你自己手里。</p>
+
+        <dl class="money">
+          <div><dt>试用期单价</dt><dd>$11<small>每位客人，单场保底 $100</small></dd></div>
+          <div><dt>大师傅单价</dt><dd>$13<small>连续无投诉一路升上去</small></dd></div>
+          <div class="hi"><dt>建议小费</dt><dd>20%<small>客人当天直接给你，公司一分不碰</small></dd></div>
+          <div><dt>指名单</dt><dd>$15<small>客人指名要你，单价比大师傅还高</small></dd></div>
+        </dl>
+
+        <p><strong>一场 10 人的活动：工资 $110–130，20% 小费大约 $120。</strong> 六个必做动作做全，小费基本稳；做得让人想拍视频，小费还能再往上走。完整的晋升规则在<a href="#s10">第 10 章</a>。</p>
+
+        <div class="note">
+          <span class="note-label">这句话你要一直记着</span>
+          <p>小费不是靠开口要来的，是靠三件事挣来的：<b>准时、安全、让人笑出声</b>。这本手册剩下的部分，都是在教你怎么稳定做到这三件事。</p>
+        </div>
+      </section>
+
+      <!-- ============ 01 红线 ============ -->
+      <section id="s1">
+        <div class="sec-head"><span class="sec-num red">01</span><h2>三条红线</h2></div>
+
+        <div class="rl-banner">
+          <p class="rl-t">这几条不是假设。每一条都真实发生过。</p>
+          <p>下面写的每一种翻车方式，都是有人真的踩过、真的赔过、真的受过伤才写进来的。<b>前两条是钱：踩了公司不兜底，损失你自己承担。第三条是你的身体。</b></p>
+          <p>本章最后还有一条：<b>公司不罚款，但有两条退出机制</b>——底线问题一次就终止，普通问题事不过三。看完再往下读。</p>
+        </div>
+
+        <div class="redline">
+          <div class="redline-h"><span class="redline-n">红线一</span><span class="redline-t">钱不能收错</span></div>
+          <p><b>你不算账。一切以客服给你的最新 invoice 为准。</b>上面写多少你就收多少，不用验算、不用推敲、不用琢磨含不含什么。</p>
+          <p>客人想改任何东西——加人、升级蛋白、加租赁、改菜——<b>一律让客人自己联系客服</b>，客服会重开一张新的 invoice 给你。你不报价、不计算，也不替客人转达。</p>
+
+          <div class="note good" style="margin:16px 0">
+            <span class="note-label">先说你不用负的责任</span>
+            <p><b>invoice 上的数字算错了，不算你的。</b>那是客服的事。<br>你只对"照着最新那张 invoice 把钱收对"负责——这是一条很窄的责任，也正因为窄，你没有任何借口做不到。</p>
+          </div>
+
+          <p>所以真正会翻车的只有这四种，全都跟算账无关：</p>
+          <ul>
+            <li><b>用了过期的 invoice</b>——客人中途改过单，客服重开了一张，你还拿着旧的那张收钱。<b>收款前确认手上是最新版</b></li>
+            <li><b>转到错误的账户</b>——收款码发错、账号报错、客人转给了别人。<b>账户以客服本单告知的为准，不要凭记忆</b></li>
+            <li><b>没跟客人对一遍</b>——照着 invoice 念一遍总额，让客人确认，避免事后争议</li>
+            <li><b>客人说转了，你没核实、没截图就走了</b>——事后钱没到，算你的</li>
+          </ul>
+          <p class="verdict">规矩：确认手上是最新 invoice → 照着念一遍总额 → 收款后在<b>你自己的账户里</b>确认到账（不是看客人的截图）→ 截图当场发给公司。<br>invoice 上的数字有任何看不懂的，让客人打给客服，你不解释、不拍板。</p>
+        </div>
+
+        <div class="redline">
+          <div class="redline-h"><span class="redline-n">红线二</span><span class="redline-t">该做的流程一样都不能少</span></div>
+          <p>第 07 章的<b>六个必做动作</b>，以及该铺地垫的场地必须铺地垫。因为流程没做到位引起的客人投诉，<b>公司不承担，算你的</b>。</p>
+          <ul>
+            <li>六个必做动作少了任何一个，客人投诉时点了名——你的责任</li>
+            <li><b>铺装过的地面没铺地垫</b>——砖地、大理石、木地板、人造草坪，<b>水泥地和车道也算</b>。只有没铺装的土路可以不铺</li>
+            <li>真出了意外（溅油、留渍），<b>当场就把清洁做掉</b>，不许留到走人之后</li>
+          </ul>
+          <p class="verdict">这六个动作是公司卖给客人的东西，不是你的自选题。它们是拿到 20% 小费的底线，不是上限。</p>
+        </div>
+
+        <div class="redline">
+          <div class="redline-h"><span class="redline-n">红线三</span><span class="redline-t">保护好自己：别把自己烧了</span></div>
+          <p><b>这条是三条里唯一一条赔钱都补不回来的。</b>已经真实发生过一次大面积烧伤，而原因非常具体：<b>那位师傅拿 75% 的消毒酒精去点火</b>。火顺着酒液窜回瓶子，瓶内蒸气瞬间爆燃，瓶子在他手上炸开。</p>
+          <p><b>点火只用伏特加，装在挤压瓶里。</b></p>
+          <ul>
+            <li><b>消毒酒精绝对不许用来点火。</b>那东西是<b>用来消毒的</b>，不是燃料。75% 的浓度挥发快、蒸气浓，一点就炸——伏特加只有 40% 上下，火势可控得多。</li>
+            <li>车上如果同时带着消毒酒精和伏特加，<b>分开放、看清楚标签再拿</b>。事故往往就发生在顺手抓错瓶子的那一秒。</li>
+            <li><b>绝对不许一手拿着火、一手拿着酒瓶在火焰上方挤。</b>正确顺序永远是：<b>先把酒挤到铁板上 → 瓶子放远 → 人退开半步 → 再点火。</b></li>
+            <li><b>中途要补燃料，一样是站远了、把酒挤到铁板上去引燃</b>——手和瓶子都不要凑近火。</li>
+            <li><b>挤的时候别太用力。</b>用力挤出来的是<b>一条连续的液柱</b>，那就是火往回爬的路；轻轻挤出来的是断续的液滴，火接不上去。</li>
+            <li>瓶口和火之间任何时候都不能有一条连续的液柱——火就是顺着那条液柱爬回瓶里的。</li>
+            <li>酒宁少勿多。宁可放两次小的，不要为了效果一次倒一大摊。</li>
+          </ul>
+          <p class="verdict">瓶口一旦对着火，你手里拿的就不是道具，是一个点着引信的燃烧瓶。这个动作没有"小心一点就行"，只有做对和做错。</p>
+        </div>
+
+        <h3>什么情况公司替你兜</h3>
+        <p>红线不是用来甩锅给厨师的。下面两种情况，投诉和赔偿都由公司承担，<b>不算在你头上、也不影响你的晋升计数</b>：</p>
+
+        <div class="grid2">
+          <div class="card">
+            <h4>一、接单时就预判到的难搞客人</h4>
+            <p>有些单在谈的时候公司就看出客人不好伺候。<b>客服会在出发前私聊提醒你</b>——投诉公司认，赔偿公司出，也不计入你的连续台数。你照常把流程做完就行。<br><b>没收到提醒但现场发现客人明显难搞</b>，当场打电话报备，事后按申诉处理。</p>
+          </div>
+          <div class="card">
+            <h4>二、连台排程本身有问题</h4>
+            <p>上一场压到下一场、路上明显赶不及——这是排程的问题，不是你的问题。公司会重新安排，或者给客人 discount。<b>这类投诉不计入你的连续无投诉台数。</b></p>
+          </div>
+        </div>
+
+        <div class="note">
+          <span class="note-label">连台是为你设计的，不是义务</span>
+          <p>公司完全可以多招师傅、一人一台，那样最省事。之所以排连台，是为了<b>让你一天多赚一场的钱</b>，把每天的效率做到最高。所以连台带来的排程性投诉不算你的。</p>
+          <p><b>但这不是可以压线的理由——恰恰相反。</b>你事先就知道今天要连台、知道会赶，那你要做的是<b>把每一场都尽量提前完成</b>，而不是掐着点开始。</p>
+          <p><b>该做的六个动作一个都不能减。</b>压缩流程去补时间是红线二，投诉照样算你的。<br><br>做得好的师傅会<b>提前两个小时到下一家附近等着</b>，就为了确认连得上。公司也<b>考核准点率</b>——见<a href="#s10">第 10 章</a>。</p>
+        </div>
+      
+        <h3>公司不罚款，但有两条退出机制</h3>
+
+        <div class="rl-banner" style="background:var(--go)">
+          <p class="rl-t">先说清楚：公司没有罚款机制。</p>
+          <p>你不会因为做错事被扣工资。前面红线里说的"损失你自己承担"，指的是<b>赔偿责任</b>——你收错的钱、你烧坏的东西，那是本来就该谁的算谁的，<b>不是公司罚你</b>。</p>
+        </div>
+
+        <p>但有两种情况会结束合作，<b>而且这两种的处理方式完全不同</b>：</p>
+
+        <div class="redline">
+          <div class="redline-h"><span class="redline-n">底线</span><span class="redline-t">一经发现，直接终止，没有第二次</span></div>
+          <p>这些不是"做得不好"，是<b>诚信问题</b>。没有提醒、没有警告、没有累计：</p>
+          <ul>
+            <li><b>偷拿客人或公司的东西</b></li>
+            <li><b>私吞、挪用客人的钱</b>——包括收了款不上报</li>
+            <li><b>隐瞒事故</b>——烧坏东西、有人受伤，不报</li>
+            <li><b>私下接走公司的客人</b></li>
+            <li><b>对客人撒谎、编造情况</b></li>
+          </ul>
+          <p class="verdict">这几条一次都不能有。发现即终止合作。</p>
+        </div>
+
+        <div class="redline" style="border-left-color:var(--brass);border-color:var(--brass);background:var(--brass-wash)">
+          <div class="redline-h"><span class="redline-n" style="background:var(--brass)">事不过三</span><span class="redline-t" style="color:var(--brass)">普通问题，累计三次才终止</span></div>
+          <p style="color:var(--ink-2)">日常工作里的毛病，公司会先提醒你，给你改的机会：</p>
+          <ul style="color:var(--ink-2)">
+            <li><b>合理的要求反复提醒，还是不改</b>——同一件事说到第三次</li>
+            <li><b>态度暧昧、阳奉阴违</b>——当面答应，转头照旧</li>
+          </ul>
+          <p class="verdict" style="color:var(--ink-2);border-top-color:var(--brass)">这类问题会明确告诉你是第几次。第三次之后结束合作。</p>
+        </div>
+
+        <div class="note">
+          <span class="note-label">为什么手艺问题一条都不在上面</span>
+          <p><b>能力问题公司可以带你，态度和诚信问题没法带。</b></p>
+          <p>牛排做过头、火山放砸了、第一场手忙脚乱——<b>这些都不在上面任何一条里</b>，因为那是练出来的，不是选出来的。带你的师傅、这本手册、$0 的跟场阶段，全都是为了解决能力问题。</p>
+          <p>但"说了三次还是不做"教不会，"拿了不该拿的"更不是教的问题。<b>做不好可以教，不想做没法教，不该做的一次都不能有。</b></p>
+        </div>
+      </section>
+
+      <!-- ============ 02 ============ -->
+      <section id="s2">
+        <div class="sec-head"><span class="sec-num">02</span><h2>你的装备</h2></div>
+        <p class="sec-lede">你要自己置办的家伙，都在这一章。<b>这些东西会跟你很多年</b>——买之前先看看下面这笔账。</p>
+
+        <!-- 已删除「硬条件」表：铁板炉与丙烷气瓶已并入下方采购清单，不再重复列出。
+     曾经隐藏于此、需要时可恢复的两项：
+       California Food Handler Card —— 在有效期内，复印件交给公司（厨师协议 §8）
+       责任险 COI —— 把 Real Hibachi 列为 additional insured，第一场前交（厨师协议 §3）
+-->
+        <h3>装备采购清单</h3>
+
+        <div class="note good">
+          <span class="note-label">为什么让你自己置办，而不是公司发</span>
+          <p>不是公司舍不得花这个钱。<b>只有自己的家伙才是最顺手的</b>——你知道哪把铲子的重心在哪、火头几秒能上来、哪个角落最好翻面。公用工具你永远差那么一点手感，而那一点手感，就是"表演"和"翻车"之间的距离。</p>
+          <p>而且这些东西会跟你很多年。<b>哪天你不做了，公司可以按市价二手回收</b>——所以这不是沉没成本，是一笔能退出的投入。</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>装备</th><th>数量</th><th>去哪买 / 要注意的</th></tr></thead>
+            <tbody>
+              <tr class="step-hi"><td><b><a href="https://www.facebook.com/marketplace/search?query=blackstone%2036%20griddle" target="_blank" rel="noopener">铁板 · Blackstone 36 吋</a></b></td><td class="num">1<br><small>约 $250</small></td><td><b>认准 36 吋这一款</b>，Facebook Marketplace 上二手大概 $250。这是全套装备里最大的一笔，其余都是小钱。<br>Blackstone 配件到处买得到，将来也好出手</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=SUNRISE+stainless+steel+turner+spatula+meat+fork" target="_blank" rel="noopener">叉子 + 铲子</a></b></td><td class="num">2 副</td><td>认准 <b>SUNRISE Stainless Steel Turner Spatula &amp; Meat Fork</b></td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=griddle+scraper" target="_blank" rel="noopener">铲油的（刮板）</a></b></td><td class="num">1</td><td>收尾刮铁板用</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=chef+knife+8+inch" target="_blank" rel="noopener">切肉刀</a></b></td><td class="num">1</td><td>8 吋主厨刀就够</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=santoku+knife" target="_blank" rel="noopener">切菜刀</a></b></td><td class="num">1</td><td>三德刀顺手</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=vegetable+peeler" target="_blank" rel="noopener">削皮工具</a></b></td><td class="num">1</td><td>—</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=kitchen+shears" target="_blank" rel="noopener">剪刀</a></b></td><td class="num">1</td><td>—</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=heat+resistant+cooking+gloves" target="_blank" rel="noopener">手套</a></b></td><td class="num">—</td><td>选耐热的，别买普通劳保手套</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=squirt+gun" target="_blank" rel="noopener">水枪 Squirt Gun</a></b></td><td class="num">2</td><td>表演道具</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=pee+pee+boy" target="_blank" rel="noopener">Peepee boy</a></b></td><td class="num">1</td><td>表演道具，铁板烧的经典桥段</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=wooden+egg" target="_blank" rel="noopener">Wooden egg</a></b></td><td class="num">1</td><td>木蛋不会破，练手和上场都用它</td></tr>
+              <tr><td><b><a href="https://www.bluerhino.com/tank-exchange/find-a-location/" target="_blank" rel="noopener">煤气罐</a></b></td><td class="num">2</td><td>就近的 Home Depot / 超市门口换气点买最省事。<b>一罐大约够 7 台（新手 6 台）</b>——一个在用、一个备用，<b>永远不要只带一个出门</b></td></tr>
+              <tr class="step-hi"><td><b><a href="https://www.amazon.com/s?k=electric+arc+lighter" target="_blank" rel="noopener">点火器</a></b></td><td class="num">1 + 备用</td><td><b>买电子（electric / arc）点火器</b>，比明火打火机安全，也不怕风</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=stainless+steel+food+container" target="_blank" rel="noopener">分菜容器（不锈钢）</a></b></td><td class="num">—</td><td>要 <b>Stainless Steel</b> 的，别买塑料。按你常接的人数配，够把每个人的蛋白分组摆开</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=large+stainless+steel+serving+spoon" target="_blank" rel="noopener">分饭的大勺子</a></b></td><td class="num">1</td><td>盛炒饭用</td></tr>
+              <tr><td><b>挤压瓶</b></td><td class="num">4</td><td class="yes"><b>不用自己买——公司免费发一套 4 个</b>：酱油、油、teriyaki、伏特加</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=heavy+duty+tarp" target="_blank" rel="noopener">地垫（tarp 就行）</a></b></td><td class="num">带够</td><td class="no"><b>红线二</b>：普通防水布 tarp 就够用，挡的是油和酱汁。除了没铺装的土路一律要铺，判断标准见<a href="#s5">第 05 章</a></td></tr>
+              <tr><td><b>工服</b></td><td class="num">—</td><td class="yes"><b>公司统一发放，不用自己买</b></td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=Igloo+48+QT+Laguna+Hard+Sided+Ice+Chest+Cooler+Red" target="_blank" rel="noopener">保温箱 Cooler</a></b><br><small class="mono" style="font-size:11px;color:var(--muted)">Igloo 48 QT Laguna Hard Sided<br>Ice Chest Cooler, Red</small></td><td class="num">1</td><td rowspan="3"><b>这三样一律厨师自备</b>，原因见下方</td></tr>
+              <tr><td><b><a href="https://www.amazon.com/s?k=Igloo+2+Gallon+Sports+Plastic+Beverage+Jug+with+Hooks+Blue" target="_blank" rel="noopener">sake 桶</a></b><br><small class="mono" style="font-size:11px;color:var(--muted)">Igloo 2 Gallon Sports Plastic<br>Beverage Jug with Hooks, Blue</small></td><td class="num">1</td></tr>
+              <tr><td><b>冰块（Ice Block）</b></td><td class="num">每场 5 块</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <span class="note-label">关于上面的链接</span>
+          <p>点开的是<b>搜索页，不是指定型号</b>——商品页会下架、会变价，搜索链接不会失效。按你的预算和评价自己挑就行。<br>唯一建议认准的是<b>铁板买 Blackstone 36 吋</b>（配件通用、二手好出手）和<b>电子点火器</b>。</p>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">保温箱、sake 桶、冰块，一律自己准备</span>
+          <p>尤其是<b>冰块</b>。以前这块由公司统一配，结果为了"多一块少一块"扯皮太多，这条线现在划干净：<b>你的冰你自己买，不用跟任何人对账。</b></p>
+          <p><b>每场按 5 块 ice block 准备。</b>要买整块的（block），不要买碎冰——碎冰化得太快，撑不完一整场。</p>
+          <p>顺手备着就行——省下来的是那些完全没必要的争执。</p>
+        </div>
+
+        <h3>这笔钱多久能赚回来</h3>
+
+        <div class="rl-banner" style="background:var(--go)">
+          <p class="rl-t">基本上一到两台就回本了。</p>
+          <p>把账摆出来你就知道这笔投入有多轻——下面按<b>试用期最低的 $11/人</b>算，小费按客人账单的 20% 估：</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>一台的规模</th><th>工资（$11/人）</th><th>小费（约 20%）</th><th>你这一晚拿到</th></tr></thead>
+            <tbody>
+              <tr><td><b>10 人</b></td><td class="num">$110</td><td class="num">约 $120</td><td class="num yes">约 $230</td></tr>
+              <tr><td><b>15 人</b></td><td class="num">$165</td><td class="num">约 $180</td><td class="num yes">约 $345</td></tr>
+              <tr class="step-hi"><td><b>20 人</b></td><td class="num">$220</td><td class="num">约 $240</td><td class="num yes">约 $460</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>$250 的铁板，一台 10 人的活动就赚回来了。</b>整套家伙通常一到两台回本——而它们会跟着你干很多年，之后每一台都是净赚。</p>
+        <p class="mono" style="font-size:13px;color:var(--muted)">上表是试用期单价。到正式师傅 $12、大师傅 $13，同样的场次还要再往上走；指名单是 $15 一位，10 人就是 $150。</p>
+
+        <h3>钱不够怎么办</h3>
+        <p><b>公司可以先帮你把这一整套垫上，之后从工钱里慢慢扣。</b>没有人会因为一时拿不出这笔钱就上不了工——想走这条路，直接跟老板说。</p>
+
+        <div class="note">
+          <span class="note-label">但老板的原话是：他更希望你自己下决心买齐</span>
+          <p>这不是为了省公司的钱——垫付的钱最后一分不少要还，对公司来说没差别。</p>
+          <p>差别在你身上。<b>自己掏钱买的家伙，你会当回事：</b>会记得擦、会记得检查、会心疼、会琢磨怎么用得更顺手。垫付来的东西，很容易变成"公司的工具"，用坏了也就那样。</p>
+          <p>还有很实际的一点：<b>选了垫付，你前几台的实收会变少。</b>新手本来就还在试用期单价，扣款期正好撞上收入最低的那段时间，心里要先有数。<br>反过来说——既然一到两台就回本，<b>自己先垫这一笔，压力其实没有想象中大。</b></p>
+          <p class="mono" style="font-size:13px;color:var(--muted);margin-top:12px">两条路都行，公司不会因为你选哪条而区别对待。</p>
+        </div>
+
+        <div class="note">
+          <span class="note-label">丙烷什么时候换：数台数，别等它烧完</span>
+          <p><b>一罐气大约够 7 台。新手按 6 台算</b>——因为火候还不熟，火开得偏大、预热偏久、动作慢的时候灶一直在烧，气耗得比老师傅快。</p>
+          <p>所以<b>做到第 6 台就该去换一罐</b>，别掐着极限用。<br>顺带一提：第 07 章说的"怕焦就把火调小"，除了保住食物，也是在省你自己的气。</p>
+          <p><b>这就是采购清单里要两个罐的原因。</b>气在客人面前烧完，你不是省了一趟换气的路，你是砸了一台。</p>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">费用归谁</span>
+          <p>丙烷、油钱、车、设备维修，全部由你自己从工资里出。公司只出<b>食材、蛋白、酱料和食用油</b>。接单前把这笔账算进去。</p>
+        </div>
+
+<!-- 保险提示：暂时隐藏，恢复时去掉本段注释
+        <div class="note">
+          <span class="note-label">保险有个坑，签字前问清楚</span>
+          <p>很多责任险的标准条款会把明火、丙烷、以及独立承包人自有设备排除在外。签字之前务必让公司书面确认承保范围覆盖你的丙烷设备，或者加批单。</p>
+        </div>
+-->
+      </section>
+
+      <!-- ============ 03 ============ -->
+      <section id="s3">
+        <div class="sec-head"><span class="sec-num">03</span><h2>接到派单之后</h2></div>
+        <p class="sec-lede"><b>派单发在微信群里。</b>派单到手别急着存日历，先把这八项对一遍——缺哪一项，当场问回去，不要到现场才发现。</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>要确认的</th><th>为什么这条会出事</th></tr></thead>
+            <tbody>
+              <tr><td><b>1. 日期 + 开始时间</b></td><td>周末旺季一晚可能连台，时间对不上就是连环迟到</td></tr>
+              <tr><td><b>2. 完整地址 + 邮编</b></td><td>决定你几点出门；也决定这单有没有超里程</td></tr>
+              <tr><td><b>3. 人数：几大人 / 几小孩</b></td><td>决定备料和你的工资。6–12 岁半价，5 岁以下免费但照样要吃</td></tr>
+              <tr><td><b>4. 每人的两份蛋白</b></td><td>没提前定就得现场问一圈，开场直接乱掉</td></tr>
+              <tr><td><b>5. 过敏 / 素食 / 无麸质</b></td><td>无麸质要单独开一块区域做，你得提前知道怎么排</td></tr>
+              <tr><td><b>6. 有没有租桌椅餐具</b></td><td>租了就得算搬运和摆台时间，这是额外的 20 分钟。<b>按派单数量装车——现场没法临时加</b></td></tr>
+              <tr><td><b>7. 停车 / 大门密码 / 有没有台阶</b></td><td>推着炉子上三层台阶，是新厨师迟到的头号原因</td></tr>
+              <tr><td><b>8. 客服给的 invoice 和收款账户</b></td><td class="no">红线一。出发前拿到 invoice，<b>现场收款前再确认一次是不是最新版</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>几点出门</h3>
+        <p>公司对客人的承诺已经明确定义为<b>「按门铃时间」</b>：<b>活动开始前 20 分钟按门铃。</b><span class="tag tag-fixed">公司口径</span></p>
+        <p>那是<b>按门铃</b>的时间，不是你到街区的时间。新手按<b>提前 60 分钟</b>到达客人所在街区规划，熟手 40 分钟——早到的那段时间不是浪费，是用来勘场和在车上分装备料的，见第 05 章的时间轴。</p>
+
+        <div class="note warn">
+          <span class="note-label">注意：准点率不看你几点按门铃</span>
+          <p>准点率以<b>实际开火</b>为准，晚于约定开始时间 10 分钟以上就记一次。也就是说<b>按门铃到开火这 20 分钟是你的，超了算你的</b>。<br>所以能在车上做完的准备，绝对不要留到进门以后。</p>
+        </div>
+
+        <div class="note">
+          <span class="note-label">连台的单，提前量要翻倍</span>
+          <p>今天要连台，就意味着你<b>事先已经知道会赶</b>——那就更要提前，不是掐点。做得好的师傅会<b>提前两个小时到下一家附近等着</b>，先确认连得上，再决定要不要通知公司调整。</p>
+          <p><b>连台的日子一口酒都不能沾</b>——你等下还要开车去下一家。<br>提前到了没关系，在车里等就是了。<b>压线开始才是问题</b>：一旦压线，你要么迟到，要么就得砍动作补时间——砍动作是红线二，投诉算你的。</p>
+          <p><b>准点率是公司考核项。</b>见<a href="#s10">第 10 章</a>。</p>
+        </div>
+      </section>
+
+      <!-- ============ 04 ============ -->
+      <section id="s4">
+        <div class="sec-head"><span class="sec-num red">04</span><h2>五条停做条件</h2></div>
+        <p class="sec-lede">到了现场先别搬东西——用两分钟看场地。下面五条命中任何一条，你<b>停下来，打电话</b>，不要硬着头皮开火。这跟第 01 章的红线不一样：红线是你会赔钱，这五条是你必须停手。</p>
+
+        <div class="stops">
+          <div class="stop">
+            <span class="stop-n">01</span>
+            <div><h4>只能在室内做</h4><p>公司规定所有烹饪一律在户外：露台、阳台、后院、车道，或者敞开的雨棚/帐篷下。客人可以在室内吃，炉子必须在外面。<br><b>车库不算户外——哪怕门是开的，一律不做。</b></p></div>
+          </div>
+          <div class="stop">
+            <span class="stop-n">02</span>
+            <div><h4>头顶净空不够</h4><p>遮阳伞、布雨棚、低垂树枝、二楼阳台底下、屋檐下——火焰会窜起来。达不到设备说明书要求的净空距离，就换位置；换不了就停。</p></div>
+          </div>
+          <div class="stop">
+            <span class="stop-n">03</span>
+            <div><h4>场地本身禁明火</h4><p>HOA、公寓楼、公园、某些场馆，以及消防部门的临时禁火令。物业或客人说"应该没事"不算数——不能明火就是不能做。</p></div>
+          </div>
+          <div class="stop">
+            <span class="stop-n">04</span>
+            <div><h4>地面没法保护</h4><p>铺了地垫也盖不住的情况——比如满铺地毯、刚做完的木露台。烧坏地面是厨师自己赔，这一条你输不起。铺垫判断标准见第 05 章。</p></div>
+          </div>
+          <div class="stop">
+            <span class="stop-n">05</span>
+            <div><h4>大风或下雨、且没有帐篷</h4><p>下雨天客人要自备 10×10 的 pop-up 帐篷罩住灶台，公司不提供帐篷。没帐篷 + 下雨，或者风大到火苗压不住，停。</p></div>
+          </div>
+        </div>
+
+        <div class="note good">
+          <span class="note-label">你有最终决定权，而且不会因此被罚</span>
+          <p><b>公司的规矩很清楚：你有权拒绝或中止在任何你判断不安全的场地作业，公司不会因此处罚你。</b>而且这种情况按"客人取消"处理——<b>你照拿全额单场保底</b>。<br><br>新厨师最常犯的错，是怕丢单硬着头皮开火。别怕。烧了东西你赔，赔的是你几十场的工资。</p>
+        </div>
+
+        <p>拒绝的时候怎么说，直接照念<a href="#s7">第 07 章</a>的「场地不安全」话术卡。</p>
+      </section>
+
+      <!-- ============ 05 ============ -->
+      <section id="s5">
+        <div class="sec-head"><span class="sec-num">05</span><h2>搭台时间轴</h2></div>
+        <p class="sec-lede">T-0 是客人约定的开始时间。第一场就按这个表走，做熟了自然会压缩。</p>
+
+        <div class="tl">
+          <div class="tl-row"><span class="tl-t">出发前</span><div><h4>去工作室领食材</h4><p><b>食材统一从工作室领。</b>按派单人数点一遍再走——牛排、无麸质那份单独装、单独标记。<b>保温箱和冰块你自己带。</b></p></div></div>
+          <div class="tl-row"><span class="tl-t">出发时</span><div><h4>给客人发一条短信</h4><p><b>告诉客人你已经出发、大概几点到。</b>让他心里有数，不用一直猜你到哪了。话术见下方。</p></div></div>
+          <div class="tl-row"><span class="tl-t">T-60</span><div><h4>到达街区，停好车</h4><p>先别按门铃。绕到后院或者从门口看一眼场地，把第 04 章那五条过一遍。有问题现在打电话，还来得及。<br><small>熟手可以压到 T-40。</small></p></div></div>
+          <div class="tl-row"><span class="tl-t">T-45</span><div><h4>在车上先把能做的都做掉</h4><p><b>这一步是 20 分钟搭完台的全部秘密。</b>蛋白按人数分好组、牛排单独放、无麸质那份隔开、道具清点、桌椅逐把检查——<b>这些都不需要进客人家门。</b></p></div></div>
+          <div class="tl-row zero"><span class="tl-t">T-20</span><div><h4>按门铃　<span class="mono" style="font-size:12px">对客口径</span></h4><p>这是公司对客人承诺的到达时间。<b>自我介绍，问清楚灶台放哪、垃圾丢哪、洗手池在哪，确认今晚实到多少人。</b></p></div></div>
+          <div class="tl-row"><span class="tl-t">T-18</span><div><h4>搬设备</h4><p>铁板、气罐、料箱、地垫、桌椅。一趟一趟来，别为省事一次抱太多。</p></div></div>
+          <div class="tl-row"><span class="tl-t">T-15</span><div><h4>铺垫、接气、检漏</h4><p><b>先铺地垫，再摆铁板。</b>接好气路后必须做检漏（肥皂水抹接口，看有没有鼓泡）。</p></div></div>
+          <div class="tl-row"><span class="tl-t">T-10</span><div><h4>点火、预热、抹油</h4><p>确认火力可控、火苗颜色正常。<b>点不着火不要慌</b>——按本章后面的六步复位流程走。</p></div></div>
+          <div class="tl-row"><span class="tl-t">T-8</span><div><h4>摆料、沙拉上桌</h4><p>车上已经分好组的料摆开。沙拉先上，人一坐下就有东西吃，等待感立刻消失。</p></div></div>
+          <div class="tl-row"><span class="tl-t">T-3</span><div><h4>最后一次跟客人对齐</h4><p><b>问过敏、问牛排熟度、点最终人数。</b>这三样必须开口问，不能靠派单上的信息想当然。</p></div></div>
+          <div class="tl-row"><span class="tl-t">T-2</span><div><h4>打卡：拍照，群里 @老板</h4><p>准备好之后拍一张全景发群里 @老板。这是你的开火打卡，也是准点率唯一的记录点。</p></div></div>
+          <div class="tl-row zero"><span class="tl-t">T-0</span><div><h4>开火，开场</h4><p>自我介绍 → 安全提醒 → 打秀。<b>准点率就是从这一刻算的。</b></p></div></div>
+        </div>
+
+        <h3>出发时那条短信</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">每一台，上车出发的时候</span><span class="script-say">照着发</span></div>
+          <q>Hi [客人名字] — this is [你的名字], your Real Hibachi chef tonight.</q>
+          <q>Just heading out now, I should be at your place around [到达时间]. See you soon!</q>
+          <p class="gloss"><b>为什么这条短信值钱：</b>客人在等你的这一小时里，脑子里只有一个问题——"他到底会不会准时来"。一条短信就把那个问题消掉了。<br><br>更重要的是，<b>它把你从"一个上门的服务人员"变成了"今晚的主厨"</b>——客人还没见到你，就已经知道你的名字了。<br><br><b>小费是从每一个细节开始攒的，不是等到最后开口要来的。</b>这条短信是你今晚攒的第一个。</p>
+        </div>
+
+        <div class="rl-banner">
+          <p class="rl-t">每一台都要打卡：准备好 → 拍照 → 群里 @老板 → 开始。</p>
+          <p>这张照片有三个用处，全都是<b>保护你自己</b>的：</p>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h4>它是你的准点证明</h4>
+            <p>准点率以<b>实际开火</b>为准，这张照片的时间戳就是那个时刻。不打卡，出了投诉你没有任何东西证明自己是准时的。</p>
+          </div>
+          <div class="card">
+            <h4>它是你的搭台证明</h4>
+            <p>照片里应该看得到<b>地垫铺了、桌椅摆好、灶台净空正常</b>。将来客人投诉地面留印，这张照片就是你的证据。<b>拍全景，别只拍铁板。</b></p>
+          </div>
+        </div>
+
+        <p><b>连台的时候尤其别忘了。</b>第二台的打卡时间是判断"是不是被前一场拖累"的唯一依据——没有它，排程责任就说不清，只能算到你头上。</p>
+
+        <h3>地垫铺不铺</h3>
+        <div class="rl-banner">
+          <p class="rl-t">默认全部要铺。唯一的例外是没有铺装的土路。</p>
+          <p>这是红线二的内容——<b>该铺没铺，客人投诉算你的。</b>不要自己判断"这个地面应该没事"。</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>地面类型</th><th>铺不铺</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>砖铺地面 / 拼接砖</td><td class="no">必须铺</td><td>砖缝吸油，渗进去洗不掉</td></tr>
+              <tr><td>抛光大理石 / 瓷砖</td><td class="no">必须铺</td><td>会留油渍印，溅上热油还可能炸裂</td></tr>
+              <tr><td>木地板 / 木露台 deck</td><td class="no">必须铺</td><td>木头最怕油渍渗进去，洗不掉。<b>另外注意灶脚离木面的距离</b>——tarp 挡污不挡热</td></tr>
+              <tr><td>人造草坪</td><td class="no">必须铺</td><td>遇热熔化，比真草危险</td></tr>
+              <tr class="step-hi"><td><b>水泥地 / 车道</b></td><td class="no">必须铺</td><td><b>最容易被想当然跳过的一种。</b>水泥一样吸油留印，而且是客人天天看得见的位置</td></tr>
+              <tr><td>真草地</td><td class="yes">可不铺</td><td>草地本来就不留印。<b>但要留意干草的火险</b>——灶脚周围的干草先清一清</td></tr>
+              <tr><td><b>未铺装的土路 / 泥地</b></td><td class="yes">可不铺</td><td>唯一的例外</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>一句话记法：脚下只要是铺装过的地面，一律铺。</b>多花两分钟铺一块垫子，比事后赔一块地板便宜太多。真的溅了、洒了，<b>当场清理干净再走</b>——不要指望客人第二天不会发现。</p>
+
+        <h3>桌椅餐具租赁</h3>
+        <p>公司口径只有一套：<b>桌 + 椅 + 桌布 $10/位</b>，<b>餐具另加 $5/位</b>。<span class="tag tag-fixed">公司口径</span> 客人自己有桌椅也完全可以，派单上会写。</p>
+        <p><b>每 4 位客人配 1 张桌子，每张桌子配 1 块桌布。</b>装车前拿这个数自己核一遍：12 人要 3 张桌，20 人要 5 张。派单上的数量对不上就先问客服，别到了现场才发现。</p>
+
+        <div class="note">
+          <span class="note-label">永远多带一两把椅子和一两块桌布</span>
+          <p>这是冗余，不是浪费。客人临时多来一个人、一块桌布弄脏了、一把椅子腿松了——有备件你三十秒解决，没备件就是一次投诉。<b>椅子和桌布都不占地方，多带的成本几乎是零。</b></p>
+        </div>
+
+        <h3>点不着火：新手最常见的一次慌张</h3>
+
+        <div class="rl-banner">
+          <p class="rl-t">别慌，这几乎从来不是铁板坏了。</p>
+          <p>十有八九是<b>安全保护装置被触发了</b>——铁板的旋钮没有全部处在关火状态时就开了气，调压阀判定为漏气，直接把气流锁死。<br>另外两种常见原因：<b>煤气罐根本没打开</b>，或者<b>接口没拧紧</b>。</p>
+        </div>
+
+        <p><b>第一件事：打电话给公司。</b>不是为了让别人替你修，是让公司知道你这一台可能会晚——他们可以先跟客人打招呼。报完继续按下面的步骤走。</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>步骤</th><th>动作</th></tr></thead>
+            <tbody>
+              <tr><td class="num">1</td><td><b>关掉煤气罐</b>阀门</td></tr>
+              <tr><td class="num">2</td><td><b>把管子从气罐上解开</b></td></tr>
+              <tr class="step-hi"><td class="num">3</td><td><b>把铁板上所有旋钮都转到关火位置</b>——这一步是关键，漏掉它前面白做</td></tr>
+              <tr><td class="num">4</td><td>重新<b>接上管子，拧紧</b></td></tr>
+              <tr><td class="num">5</td><td><b>慢慢打开煤气罐</b></td></tr>
+              <tr><td class="num">6</td><td><b>先点火，再拧旋钮</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <span class="note-label">为什么顺序不能乱</span>
+          <p>调压阀里有个限流保护：<b>如果开气的瞬间气流冲得太猛</b>（旋钮开着就是这个情况），它会认为管路破了，于是把流量掐到几乎为零——火自然就点不着，而且你怎么试都没用。</p>
+          <p>它只有在<b>「全部关火 → 重新接管 → 慢慢开气」</b>这个顺序下才会复位。所以这不是玄学，是每次都能修好的固定动作。<b>把这六步背下来，第一场就不会在客人面前手足无措。</b></p>
+        </div>
+
+        <div class="note good">
+          <span class="note-label">这也是为什么公司坚持让你用自己的铁板</span>
+          <p>你自己的铁板，哪个旋钮松、哪个接口要拧几圈、上次是怎么复位的，你都心里有数。<b>用一台随手借来的、别人的铁板，出了问题你连它平时正不正常都不知道</b>——同样一个故障，自己的十分钟解决，别人的可能整晚都搞不定。</p>
+        </div>
+
+        <h3>桌椅要逐件检查，这是安全问题不是体面问题</h3>
+
+        <div class="rl-banner">
+          <p class="rl-t">客人从椅子上摔下来，是这行最麻烦的一种事故。</p>
+          <p>不是赔一块地板那种麻烦——那是<b>人身伤害</b>。<b>老年人尤其危险</b>，一次摔倒可能就是骨折、送医、住院，后面跟着的是保险和法律程序。</p>
+        </div>
+
+        <p>桌椅是<b>消耗品</b>，每用一次都在磨损。折叠椅的铰链会松、椅腿会变形、塑料件会在太阳下脆化，木桌的支架会晃。这些不会有人替你发现——<b>只有你在装车和摆台时能发现。</b></p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>什么时候查</th><th>查什么</th></tr></thead>
+            <tbody>
+              <tr><td><b>装车时</b></td><td>每把椅子打开、压一下；铰链松动、椅腿弯曲、塑料发白开裂、螺丝缺失的，<b>直接不装车</b></td></tr>
+              <tr><td><b>摆台时</b></td><td>再过一遍，四脚落地是否平稳。地面不平的位置尤其要试</td></tr>
+              <tr class="step-hi"><td class="no"><b>发现有问题</b></td><td class="no"><b>当场撤下来，绝不给客人用</b>，并在微信群 <b>@Darrien</b> 报损，让它退出周转</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note good">
+          <span class="note-label">摆台时的一个习惯，能省掉很多麻烦</span>
+          <p>看一眼今晚有没有<b>老人、孕妇、行动不便的客人</b>，<b>把最稳的那几把椅子留给他们</b>，位置也安排在进出方便、不用绕过灶台的地方。<br><br>这个动作不花时间，客人也不会注意到——但它挡掉的是这份工作里最贵的一类风险。</p>
+        </div>
+
+        <p><b>发现损坏一定要上报，不要自己收着下次接着用。</b>你今天觉得"还能凑合"的那把椅子，下一场可能就坐了一位七十岁的老太太。</p>
+        <p>公司<b>每两个月做一次整批检查</b>，但两个月之间会坏的东西，只有你能发现。</p>
+        <div class="note good">
+          <span class="note-label">主动报损不会算到你头上</span>
+          <p><b>桌椅是消耗品，用坏是正常的，报损不扣你的钱、也不影响你的台数。</b>公司要的是让坏东西尽快退出周转，不是找谁负责。</p>
+          <p>所以看到问题就直接报，不用犹豫——<b>怕担责而把它放回车里，才是真正会出事的做法。</b></p>
+        </div>
+        <p><b>现场加租不了。</b>你车上带的就是派单上的数量，多的没有——这个直接跟客人说明就行，不用绕。</p>
+
+        <h3>搬椅子不是白搬的：$6 一把</h3>
+
+        <div class="rl-banner" style="background:var(--go)">
+          <p class="rl-t">每搬一把椅子，你分 $4。</p>
+          <p>但这还不是全部——<b>桌椅费也算在客人的账单里，那部分的 20% 小费同样归你。</b>两笔加起来，一把椅子实际到手 <b>$6</b>。</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>人数</th><th>客人付的桌椅费</th><th>你的搬运分成</th><th>桌椅带来的小费</th><th>你实际到手</th></tr></thead>
+            <tbody>
+              <tr><td><b>10 人</b></td><td class="num">$100</td><td class="num">$40</td><td class="num">$20</td><td class="num yes">$60</td></tr>
+              <tr class="step-hi"><td><b>20 人</b></td><td class="num">$200</td><td class="num">$80</td><td class="num">$40</td><td class="num yes">$120</td></tr>
+              <tr><td><b>30 人</b></td><td class="num">$300</td><td class="num">$120</td><td class="num">$60</td><td class="num yes">$180</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>不管多少人，折算下来都是每把 $6。</b>一台 20 人的租赁单，光搬桌椅这一项就是 $120——比你那台的基础工资还多。</p>
+        <p>所以看到派单上带租赁，别觉得是多出来的苦力活。<b>那是这一台里最值钱的一段体力。</b></p>
+
+        <div class="note good">
+          <span class="note-label">但也别太死板</span>
+          <p>万一你发现少带了一张桌子或几把椅子，<b>大方开口跟客人借一张</b>，别僵在那里。客人家里几乎都有备用的，借一张桌子是三十秒的事，而你站在那里为难是全场都看得见的。</p>
+          <p>把它说成安排的一部分，不要说成"我带少了"——客人多半根本不会意识到出过纰漏。<b>能当场圆过去的小失误，就不该变成一次投诉。</b></p>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">永远不能省的两件事</span>
+          <p><b>一、接气后检漏。</b>二、<b>点着的炉子绝不离开视线。</b>要去车上拿东西，先关火。这两条没有例外，也是所有事故的源头。</p>
+        </div>
+      </section>
+
+      <!-- ============ 06 ============ -->
+      <section id="s6">
+        <div class="sec-head"><span class="sec-num">06</span><h2>出品标准</h2></div>
+        <p class="sec-lede">客人付的钱对应的是一份很具体的东西。少给会投诉，多给会亏公司的毛利。</p>
+
+        <h3>标准套餐，每位客人拿到什么</h3>
+        <p>每人<b>两份常规蛋白</b>，加上蒜香炒饭、铁板蔬菜、配餐沙拉、以及 yum yum sauce。<span class="tag tag-fixed">公司口径</span></p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>常规蛋白（选 2）</th><th>过敏原</th><th>要注意的</th></tr></thead>
+            <tbody>
+              <tr><td><b>Chicken</b> 鸡胸</td><td>无</td><td>无麸质</td></tr>
+              <tr><td><b>Steak</b> 牛排 (USDA Choice)</td><td>无</td><td><b>必须逐人问熟度</b></td></tr>
+              <tr><td><b>Shrimp</b> 大虾</td><td>贝类</td><td>熟得快，放最后做</td></tr>
+              <tr><td><b>Salmon</b> 三文鱼</td><td>鱼类</td><td>易碎，翻面轻一点</td></tr>
+              <tr><td><b>Tofu</b> 豆腐</td><td>大豆</td><td>素食客人的默认选项</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>升级蛋白（客人已额外付费）</th><th>加价</th><th>要注意的</th></tr></thead>
+            <tbody>
+              <tr><td><b>Filet Mignon</b> 菲力 (USDA Prime)</td><td class="num">+$8</td><td>也要问熟度；别做过头</td></tr>
+              <tr><td><b>Sea Scallops</b> U-10 大干贝</td><td class="num">+$6</td><td>两面煎出金壳，中心保持嫩</td></tr>
+              <tr><td><b>Spiny Lobster Tail</b> 龙虾尾</td><td class="num">+$12</td><td>澳洲龙虾尾，澄清黄油煎</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">现场要改单 = 直接转给客服</span>
+          <p>客人现场想加升级蛋白、加人，<b>让客人自己联系客服</b>。你不报价、不计算、不代收差额，也不要替客人转达。</p>
+          <p><b>桌椅餐具现场加不了</b>——你车上带的就是派单上那些，多的没有。这个可以直接跟客人说清楚。</p>
+        </div>
+
+        <div class="note">
+          <span class="note-label">Weekday Special 不一样</span>
+          <p>派单写 <b>Weekday Special</b> 的话，规则和标准单完全不同：</p>
+          <ul class="plain">
+            <li>大人 <b>$45.90</b>，<b>13 岁以下小孩 $22.95</b>（不是标准单的 $29.90）</li>
+            <li>仅限<b>周一至周四</b>，且<b>至少 15 位客人</b></li>
+            <li>蛋白只有 <b>chicken / steak / shrimp</b> 三样可选，<b>每位客人从这三样里挑 2 样</b></li>
+            <li><b>不能升级</b>，没有 premium、没有自定义菜单</li>
+            <li>全套桌椅餐具是 <b>+$15/位</b></li>
+            <li>目前<b>只在南加州</b>供应</li>
+          </ul>
+          <p>客人现场想换三文鱼、豆腐或任何 premium，让他联系客服——这一档就是不带升级的。</p>
+        </div>
+
+        <h3>价目速查</h3>
+        <div class="note warn">
+          <span class="note-label">这是让你能回答客人，不是让你算账</span>
+          <p>客人在席间一定会问价——问的往往是"下次我叫多少人合适"。你答得上来，回头客和指名单就是从这种闲聊里来的。<br><b>但收多少钱，永远以客服给你的最新 invoice 为准。</b>你报的是价目，不是账单。</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>项目</th><th>标准单</th><th>Weekday Special</th></tr></thead>
+            <tbody>
+              <tr><td><b>大人</b></td><td class="num">$59.90</td><td class="num">$45.90</td></tr>
+              <tr><td><b>小孩（13 岁以下）</b></td><td class="num">$29.90</td><td class="num">$22.95</td></tr>
+              <tr><td><b>5 岁以下</b></td><td class="num yes">免费</td><td class="num yes">免费</td></tr>
+              <tr><td><b>单场最低消费</b></td><td class="num">$599</td><td class="num">$599</td></tr>
+              <tr><td><b>桌椅桌布</b></td><td class="num">$10 / 位</td><td class="num">+$15 / 位<br><small>全套</small></td></tr>
+              <tr><td><b>餐具</b></td><td class="num">$5 / 位</td><td class="num">含在上面</td></tr>
+              <tr><td><b>定金</b></td><td class="num">$19.90</td><td class="num">$19.90</td></tr>
+              <tr><td><b>建议小费</b></td><td class="num" colspan="2">20%，直接给你，非强制</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>$599 最低消费</b>是最常被问到的一条：不足 10 位大人的场次，总价仍然按 $599 算。所以客人问"我们只有 7 个人行不行"，答案是可以，但价钱一样——<b>多叫三个朋友来更划算</b>。这句话你说出口，客人往往就真的去叫人了。</p>
+
+        <h3>牛排熟度，五档</h3>
+        <p>Rare / Medium Rare / Medium / Medium Well / Well Done。<b>一个一个人问，记在心里或者记在纸上。</b>做错熟度是这行最常见的差评来源，而且没法补救。</p>
+
+        <h3>特殊饮食，公司已经对客人承诺的口径</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>情况</th><th>怎么做</th></tr></thead>
+            <tbody>
+              <tr><td><b>坚果 / 芝麻过敏</b></td><td class="yes">可以直接安抚——公司所有配方本来就不含坚果和芝麻</td></tr>
+              <tr><td><b>无麸质</b></td><td>客人自备无麸质酱油和照烧酱，你<b>在单独一块区域、用单独器具</b>做</td></tr>
+              <tr><td><b>素食 / 纯素</b></td><td>豆腐加双倍蔬菜，<b>同价</b>，不加钱</td></tr>
+              <tr><td><b>客人想自己带肉来做</b></td><td class="no">拒绝。公司政策：所有蛋白必须由公司提供</td></tr>
+              <tr><td><b>其他过敏</b></td><td>派单上应该已经注明；现场才说的，开火前先打电话给公司</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>上菜顺序</h3>
+        <p>沙拉在开火前就上桌（T-15）。铁板上的顺序是固定的：<b>蒜香炒饭 → 铁板蔬菜 → 蛋白</b>。</p>
+        <p>蛋白里<b>鸡肉先、牛排次、虾最后</b>——虾熟得快，放最后保证是热的上桌。做好可以一起端上桌，不必每做完一样就跑一趟。</p>
+      </section>
+
+      <!-- ============ 07 必做动作 ============ -->
+      <section id="s7">
+        <div class="sec-head"><span class="sec-num red">07</span><h2>六个必做动作</h2></div>
+        <p class="sec-lede">这六个是公司卖给客人的东西，也是红线二的具体内容。<b>一个都不能少。</b>它们保证你拿到 20% 小费的底线——想拿更多，靠后面的自选特色。</p>
+
+        <div class="rl-banner">
+          <p class="rl-t">少做一个，客人投诉时点了名，责任在你。</p>
+          <p>赶时间也要做完。真的赶不及，<b>提前打电话</b>让公司去跟客人沟通，不要自己压缩流程。</p>
+        </div>
+
+        <h3>必做 · 六个</h3>
+        <div class="moves">
+          <div class="move"><span class="move-n">1</span><div><h4>打秀（开场铲技）</h4><p>铲子、叉子的敲击节奏和抛接。开场第一分钟就要有，这是让客人放下手机抬头看你的动作。</p></div></div>
+          <div class="move"><span class="move-n">2</span><div><h4>厨师帽接鸡蛋</h4><p>让客人自己拿着厨师帽去接你弹起来的鸡蛋。<b>一般在炒饭的时候玩</b>——那段时间铁板上不需要你盯着，正好腾出手来。<br>这是全场参与度最高的一个动作，小孩和年轻人尤其买账。</p></div></div>
+          <div class="move"><span class="move-n">3</span><div><h4>洋葱火山</h4><p>全场最大的一个动作，被拍下来最多。<b>看时间做，最好等天黑</b>——同样的火焰，天黑时的效果和白天完全是两回事。<br>先喊客人掏手机，再倒数三秒。<b>如果这场是生日，火山的时候顺势唱生日歌。</b></p></div></div>
+          <div class="move"><span class="move-n">4</span><div><h4>抛食物给客人接</h4><p><b>用西葫芦（zucchini）</b>，不是虾。西葫芦轻、不涉及贝类过敏、生熟都能吃，是这个动作最安全的道具。<br><b>小孩一律用手接，不许用嘴。</b>喝多了的客人跳过。</p></div></div>
+          <div class="move"><span class="move-n">5</span><div><h4>用 sake gun 灌酒</h4><p>用 sake gun 往客人嘴里灌清酒，<b>清酒由公司提供</b>。<b>这个动作是用来填空档的</b>——等铁板上的东西慢慢熟的那几分钟，正好拿来灌一圈。<br><b>只对自愿的成年人做</b>，未成年人和已经喝多的一律跳过。<b>你自己一口都不能喝</b>，见下方。</p><p><b>全场都是小孩、或者客人不喝酒怎么办：</b>先换 <b>peepee boy</b>，或者<b>把果汁装进 sake gun</b> 照样玩。<b>两样都不合适，这一台就算了，不算你少做动作。</b>这种事你在现场自己判断就行，公司信你——不用报备，也不会有人回头查。</p></div></div>
+          <div class="move"><span class="move-n">6</span><div><h4>摆爱心</h4><p>用炒饭或酱汁在铁板上摆出爱心。收尾阶段做，是客人拍第二轮照片的时机。</p></div></div>
+        </div>
+
+        <h3>怎么把表演塞进烹饪的空档</h3>
+        <p>新手最容易犯的错，是把表演和做菜当成两件事——玩得开心，回头一看东西糊了。<b>这六个动作的位置不是随便挑的，每一个都对应铁板上的一段空档。</b></p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>铁板上在干什么</th><th>你同时可以玩什么</th></tr></thead>
+            <tbody>
+              <tr><td>还没开火</td><td><b>打秀</b>——开场第一分钟</td></tr>
+              <tr><td><b>炒饭</b>（不用一直盯）</td><td><b>厨师帽接鸡蛋</b></td></tr>
+              <tr><td>蔬菜慢慢煨</td><td><b>sake gun 灌酒</b>、抛西葫芦</td></tr>
+              <tr class="step-hi"><td class="no"><b>做牛排</b></td><td class="no"><b>什么都不玩，专心看火。</b>牛排最容易 overcook，做废了没法补救</td></tr>
+              <tr><td>天黑之后的任意空档</td><td><b>洋葱火山</b>（生日场顺势唱生日歌）</td></tr>
+              <tr><td>收尾装盘</td><td><b>摆爱心</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <span class="note-label">灌 sake 的时候，别忘了铁板还在烧</span>
+          <p>灌酒一上头很容易连着灌完一圈，<b>等你回头，铁板上的东西已经焦了</b>。<br><b>大概每灌五个人回去翻一次</b>——但这只是个参考，不是死规矩。</p>
+          <p>真正要练的是<b>你自己对节奏和火候的感觉</b>：这一板东西还能撑多久、你还能离开多久。这个感觉练出来了，你就不用数人头了。</p>
+          <p><b>怕焦，就先把火调小一点。</b>火小一点，你能玩的时间就宽裕一点——这比掐着人数回头翻要可靠得多，也是新手和熟手最明显的分水岭。</p>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">牛排是唯一不能分心的环节</span>
+          <p>鸡肉、虾、蔬菜、炒饭都有容错空间，<b>牛排没有</b>。客人点的熟度一旦做过头，你没有第二块可以补，那一桌的体验直接就毁了——而且这是最常见的差评来源。<br><br><b>做牛排的时候把所有花活停掉。</b>客人不会因为你少玩一次而失望，但一定会因为 medium rare 上桌变成 well done 而投诉。</p>
+        </div>
+
+        <h3>自选 · 你的个人特色</h3>
+        <p>这些<b>不是必做</b>，但做了好评率和小费都会明显更高。每个师傅可以有自己的招牌：</p>
+        <div class="moves">
+          <div class="move opt"><span class="move-n">+</span><div><h4>打火棍</h4><p>火焰棍表演。风大就别做。</p></div></div>
+          <div class="move opt"><span class="move-n">+</span><div><h4>变玫瑰花</h4><p>用食材或餐巾变一朵，送给寿星或女主人，很容易换来一条五星评价。</p></div></div>
+          <div class="move opt"><span class="move-n">+</span><div><h4>讲笑话</h4><p>准备三五个能反复用的段子，英文的。比临场发挥稳。</p></div></div>
+          <div class="move opt"><span class="move-n">+</span><div><h4>跳舞</h4><p>配合客人的音乐来一段，气氛类客户特别吃这套。</p></div></div>
+          <div class="move opt"><span class="move-n">+</span><div><h4>互动小游戏</h4><p>接食物比赛、猜熟度之类，把小孩和年轻人都带进来。</p></div></div>
+        </div>
+
+        <div class="rl-banner">
+          <p class="rl-t">只用伏特加。先倒酒，再点火。永远不要倒过来。</p>
+          <p>这是<a href="#s1" style="color:#fff;text-decoration:underline">红线三</a>。上一次大面积烧伤，是师傅拿 <b>75% 的消毒酒精</b>当燃料——<b>消毒酒精是用来消毒的，不是用来点火的。</b></p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>项目</th><th>怎么做</th></tr></thead>
+            <tbody>
+              <tr class="step-hi"><td><b>用什么酒</b></td><td class="yes"><b>伏特加（约 40%）</b>，装在<b>挤压瓶</b>里</td></tr>
+              <tr><td class="no"><b>绝对不能用</b></td><td class="no"><b>75% 消毒酒精</b>——那是消毒用品，不是燃料</td></tr>
+              <tr><td><b>倒酒</b></td><td>人退开或火关掉，把酒挤到铁板上，<b>瓶子放到伸手够不到火的地方</b></td></tr>
+              <tr><td><b>点火</b></td><td>确认瓶子已经离手、离火，人站稳，再点</td></tr>
+              <tr><td class="no"><b>绝对禁止</b></td><td class="no">一手拿火、一手拿瓶，在火焰上方挤压或倾倒</td></tr>
+              <tr><td><b>中途补燃料</b></td><td><b>站远，把酒挤到铁板上引燃。别太用力</b>——大力挤出的连续液柱就是火往回爬的路</td></tr>
+              <tr><td><b>用量</b></td><td>宁少勿多。宁可放两次小的，不要一次倒一大摊</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">车上如果同时带着消毒酒精，分开放</span>
+          <p>两个瓶子长得都差不多，事故往往就发生在<b>顺手抓错瓶子</b>的那一秒。伏特加和消毒酒精不要放在同一个箱子里，拿之前看一眼标签。</p>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">其余的安全边界</span>
+          <p>火焰高度控制在你自己够得着的范围；<b>永远不要对着人的方向出火</b>；<b>风大就整场取消火山和火棍</b>——少一个火焰没人会给差评，烧到人就全完了。<br><br>身上不要穿化纤——遇火会熔在皮肤上。灶边常备一条<b>湿毛巾</b>，那是烧到自己或者小面积着火时第一时间能用上的东西。</p>
+        </div>
+
+        <h3>话术：开场</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">T-0 自我介绍 + 过敏确认</span><span class="script-say">照着念</span></div>
+          <q>Hey everyone! I'm [你的名字], I'm your chef tonight.</q>
+          <q>Quick thing before I fire this up — is anyone allergic to anything? Shellfish, eggs, soy, dairy?</q>
+          <q>Good news: nothing I cook tonight has nuts or sesame in it.</q>
+          <q>And who's having steak? I need to know how you like it — rare, medium rare, medium, medium well, or well done?</q>
+          <p class="gloss"><b>为什么这么开场：</b>过敏这句必须当着所有人问一遍，不能只信派单。当众问一次也是在告诉客人"这个厨师很专业"——小费的印象分从这一句开始。</p>
+        </div>
+
+        <h3>话术：点火前清场</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">开火前，必说</span><span class="script-say">照着念</span></div>
+          <q>One rule tonight: the grill is mine, everything else is yours.</q>
+          <q>Please keep kids and drinks about six feet back from the flame. If you want a photo, stand behind me — best angle anyway.</q>
+          <p class="gloss"><b>为什么这么说：</b>用一句玩笑把小孩和酒杯挡在安全距离外，比板着脸说"危险"有效得多。「站我后面拍最好看」既是安全指令，又给了客人他们想要的东西。</p>
+        </div>
+
+        <h3>话术：洋葱火山</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">必做动作 3 · 最好等天黑</span><span class="script-say">照着念</span></div>
+          <q>Alright — everybody phones out. You're gonna want this one.</q>
+          <q>This is the volcano. Do NOT try this at home.</q>
+          <q>Three… two… one —</q>
+          <p class="gloss"><b>为什么先喊掏手机：</b>你要的就是他们拍。那段视频是公司最便宜的广告。<b>先给三秒倒数</b>，所有人才来得及按下录制——没人拍到的火山等于白放。<br><br><b>挑天黑之后做。</b>同样的火焰，天黑时拍出来的效果和白天完全是两回事。夏天六点的场次，可以先做别的，把火山留到后面。</p>
+        </div>
+
+        <h3>话术：厨师帽接鸡蛋（炒饭时）</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">必做动作 2</span><span class="script-say">照着念</span></div>
+          <q>I need a volunteer — who's got good hands?</q>
+          <q>Here, take my hat. Hold it right there… don't move.</q>
+          <q>Ready? Here we go — one, two…</q>
+          <p class="gloss"><b>为什么放在炒饭那一段：</b>炒饭不需要你一直盯着，正好腾出手。<br><b>挑人的技巧：</b>先问"谁手好"，让客人自己举手，比你随手点一个更热闹。小孩举手就优先给小孩——家长拍小孩的视频，比拍你还起劲。</p>
+        </div>
+
+        <h3>话术：生日场</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">派单写了生日，配合火山一起做</span><span class="script-say">照着念</span></div>
+          <q>Wait — I heard somebody's got a birthday tonight. Who is it?</q>
+          <q>Everybody, on three — one, two, three…</q>
+          <q>♪ Happy birthday to you… ♪</q>
+          <p class="gloss"><b>接在火山后面做</b>，火焰刚起来、所有人手机都还举着，那一刻唱生日歌的画面是全场最值钱的一段视频。<br><b>派单上写了生日的场次，这个不能漏。</b>寿星家属是最愿意写 Google 评价的一群人。</p>
+        </div>
+
+        <h3>话术：抛食物 / 灌 sake</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">必做动作 4 与 5</span><span class="script-say">照着念</span></div>
+          <q>Who wants to catch some zucchini? Open up!</q>
+          <q>Kids — you catch with your hands, not your mouth. Deal?</q>
+          <q>Any sake drinkers tonight? Head back, open up — here it comes.</q>
+          <p class="gloss"><b>道具是西葫芦，不是虾</b>——轻、不涉及贝类过敏、生熟都能入口。<br><br><b>硬规矩：</b>用嘴接只对<b>清醒的成年人、且他自己要求</b>。小孩一律用手接。灌 sake 只对<b>成年人</b>，未成年人绝对不做，喝多了的一律跳过。这是窒息和酒精风险，没有任何气氛值得赌。</p>
+        </div>
+
+        <div class="rl-banner">
+          <p class="rl-t">你负责倒，不负责喝。已经有师傅被查酒驾了。</p>
+          <p>灌 sake 的时候气氛最好，主人一高兴就会起哄让你也来一口——<b>这是全场最难拒绝、也最不能松口的一刻。</b></p>
+        </div>
+
+        <ul class="plain">
+          <li><b>不要觉得自己酒量好。</b>查酒驾看的是血液浓度，不是你感觉清不清醒。</li>
+          <li><b>连台的日子尤其一滴都不能沾</b>——你等下还要开车去下一家，而且那一路通常是晚上。</li>
+          <li>客人反复劝，就用下面这句挡回去。<b>说得干脆，没有人会不高兴。</b></li>
+        </ul>
+
+        <div class="script">
+          <div class="script-head"><span class="script-when">客人起哄让你喝</span><span class="script-say">照着念</span></div>
+          <q>Ha — I'd love to, but chef's rule: I pour, you drink.</q>
+          <q>Somebody's gotta drive this grill home. You have one for me!</q>
+          <p class="gloss"><b>为什么这么说：</b>用"chef's rule"把拒绝变成职业规矩，而不是扫兴——客人不会为难一个有规矩的厨师。<br>最后一句 <b>"You have one for me"</b> 把杯子推回给客人，气氛不但没掉，还更热了。</p>
+        </div>
+
+        <h3>话术：上菜</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">上菜时报顺序</span><span class="script-say">照着念</span></div>
+          <q>Salad's up. Fried rice is coming next, then the vegetables, then your proteins — chicken first, steak after, shrimp last so it hits your plate hot.</q>
+          <q>Medium rare — who was that? Here you go.</q>
+          <p class="gloss"><b>为什么要报顺序：</b>客人一旦知道后面还有什么，就不会因为"我的还没上"而焦虑。报菜名同时也在展示你记得住每个人点了什么。</p>
+        </div>
+
+        <h3>话术：场地不安全，需要拒绝</h3>
+        <div class="script">
+          <div class="script-head"><span class="script-when">第 04 章五条命中任意一条</span><span class="script-say">照着念</span></div>
+          <q>I'm really sorry — I can't set up safely here. There isn't enough clearance above the grill, and with an open flame that's a fire risk I can't take with your house.</q>
+          <q>Is there anywhere else in the yard we could move to? Driveway, patio, anywhere open above.</q>
+          <q>If there's nowhere that works, let me call my office right now and we'll sort it out for you.</q>
+          <p class="gloss"><b>三句话的顺序很重要：</b>先说清楚<b>理由</b>（为了保护他的房子，不是你偷懒）→ 再给<b>替代方案</b> → 最后把决定权交回公司。<br><br>把「clearance above the grill」换成实际原因即可：<b>HOA prohibits open flame</b> / <b>the deck can't be protected</b> / <b>the wind is too strong tonight</b>。</p>
+        </div>
+      </section>
+
+      <!-- ============ 08 ============ -->
+      <section id="s8">
+        <div class="sec-head"><span class="sec-num">08</span><h2>收款与收尾</h2></div>
+        <p class="sec-lede">最后二十分钟同时管着两件事：<b>红线一（钱别出错）</b>和<b>公司的 Google 排名</b>。别急着走。</p>
+
+        <h3>收款五步，一步都不能跳<span class="tag tag-fixed">红线一</span></h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>步骤</th><th>做什么</th><th>为什么</th></tr></thead>
+            <tbody>
+              <tr class="step-hi"><td class="num">1</td><td><b>确认手上是最新 invoice</b></td><td class="no">客人中途改过单的话，客服会重开一张。<b>用旧的那张收钱，是你的责任</b></td></tr>
+              <tr><td class="num">2</td><td><b>照着 invoice 念一遍总额</b></td><td>让客人确认数字和包含项。<b>你只念，不算</b></td></tr>
+              <tr><td class="num">3</td><td><b>报准收款账户</b></td><td><b>账户由客服每单告知</b>，不要凭记忆报。转错账户的钱要不回来，而且算你的</td></tr>
+              <tr><td class="num">4</td><td><b>在你自己账户里确认到账</b></td><td class="no">不是看客人的截图——看你自己的账户。这一步是最常被跳过、也最常出事的一步</td></tr>
+              <tr><td class="num">5</td><td><b>截图，当场发给公司</b></td><td>留证。人走了再补，就来不及了</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="script">
+          <div class="script-head"><span class="script-when">收款前，复述金额</span><span class="script-say">照着念</span></div>
+          <q>Before we settle up, let me read this off your invoice — [N] adults and [N] kids, that comes to $[金额] total, tax included.</q>
+          <q>Gratuity is separate and goes to me directly, so it's not in that number. Does that match what you have?</q>
+          <q>Perfect. Let me just confirm it landed on my end — one second… got it. Thank you!</q>
+          <p class="gloss"><b>「read this off your invoice」这个说法很重要</b>——它告诉客人这个数字不是你现编的，是系统出的。客人要争也是去找客服争，不会跟你争。<br><br><b>最后一句是全场最重要的一句英文。</b>「let me just confirm it landed on my end」把"当场核实到账"变成一个礼貌的、正常的动作，客人不会觉得你在怀疑他。<b>不核实就放人走，钱没到就是你的损失。</b></p>
+        </div>
+
+        <h3>清洁到什么程度</h3>
+        <p>公司对客人的承诺是<b>清理烹饪区域</b>。<span class="tag tag-fixed">公司口径</span> 也就是你的灶台、操作区、你造成的油污和垃圾。不包括洗客人的碗、收客人的桌、扫整个院子。</p>
+        <ul class="plain">
+          <li>刮净铁板，废油收进你自己的容器带走，<b>不要倒进客人家水槽或下水道</b></li>
+          <li><b>溅出去的酱汁和油当场处理干净</b>——这是红线二的一部分</li>
+          <li>地垫收走前看一眼底下有没有渗油，有就擦掉</li>
+          <li>你产生的垃圾原则上带走；要丢在客人家，先开口问</li>
+        </ul>
+
+        <h3>要评价——这是公司最看重的一件事</h3>
+        <p>公司的目标是<b>南加州排名第一</b>，排名靠 Google 评价堆出来。你一场活动带回一条真实五星，价值远超这一单的毛利。挑客人吃饱了、最放松的那个时刻开口。</p>
+
+        <div class="script">
+          <div class="script-head"><span class="script-when">客人吃完、气氛最好的那一刻</span><span class="script-say">照着念</span></div>
+          <q>Did you guys have a good time tonight?</q>
+          <q>That really means a lot. Honestly, the one thing that helps us most is a Google review — we're a small local team, and it's how people find us.</q>
+          <q>Takes about thirty seconds. Can I text you the link right now while you're thinking about it?</q>
+          <q>One favor — could you put my name, [你的名字], in the review? That's how they know it was my table.</q>
+          <q>And if you got any photos of the volcano, throw one in — those always help.</q>
+          <p class="gloss"><b>三个关键设计：</b>先让客人<b>自己说出"很棒"</b>（说出口的人更愿意写）；点明是 small local team；<b>当场发链接</b>——说"回头写"的客人 90% 不会写。<br><br><b>最后两句直接关系到你的钱：</b>带名字的评价才算到你头上（$2/条），<b>带图的是 $3/条</b>。客人手机里已经有火山的视频和照片了，你只要提醒他放一张上去，就多 $1。<br><br><b>公司有评价卡片，客人直接扫码就能写</b>——比发链接更快，客人也不用找。<b>出车前带够张数，一桌一人一张。</b><br><br><b>别只给主人一张。</b>一台 10 个客人就是 10 条的可能，按 $2–3 一条算，这五分钟值 $20–30。见<a href="#s10">第 10 章</a>。</p>
+        </div>
+
+        <h3>小费</h3>
+        <p><b>不要开口要小费。</b>建议 20% 已经写在客人的报价单上，客人知道。你开口反而会把气氛弄尴尬，还可能让本来想给 25% 的人只给 15%。</p>
+        <p>你能做的是：准时、六个动作做全、干净、记得住每个人的熟度、跟小孩多互动一句、走之前跟主人握手道谢。小费是这些东西的结果。</p>
+
+        <h3>离场前的最后检查</h3>
+        <ul class="plain">
+          <li><b>收款截图已发给公司</b></li>
+          <li>气阀关闭，软管断开，气瓶直立固定进车</li>
+          <li>铁板已冷却到可以搬运</li>
+          <li>地垫、铲子、调料瓶清点——铲子是最常落在客人家的东西</li>
+          <li>灶台位置的地面看一眼：没有油渍、没有烧痕</li>
+        </ul>
+      </section>
+
+      <!-- ============ 09 ============ -->
+      <section id="s9">
+        <div class="sec-head"><span class="sec-num">09</span><h2>出事怎么办</h2></div>
+        <p class="sec-lede">原则只有一条：<b>涉及钱和责任的，你不做决定，公司做决定。</b>你的工作是照实上报，不是当场解决。</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>现场情况</th><th>你怎么做</th><th>谁承担</th></tr></thead>
+            <tbody>
+              <tr><td><b>客人临时加人 / 加菜</b></td><td>先做，同时<b>让客人自己联系客服</b>改单。你不报价、不计算、不转达</td><td class="yes">客服</td></tr>
+              <tr><td><b>实到人数比派单少</b></td><td>照原人数算钱。没来的人照样计入你的工资</td><td>公司</td></tr>
+              <tr><td><b>客人说 invoice 上的数字不对</b></td><td>不要跟客人争，也不要自己改。<b>让客人打给客服</b>，客服重开一张你再收</td><td class="yes">客服</td></tr>
+              <tr><td><b>客人说已经转账了，但你没收到</b></td><td><b>当场核实、当场解决，不要放人走。</b>解决不了立刻打电话</td><td class="no">厨师（红线一）</td></tr>
+              <tr><td><b>点不着火 / 设备不工作</b></td><td><b>先打电话报备，再按<a href="#s5">第 05 章</a>的六步复位流程走。</b>八成是保护装置被触发，不是坏了</td><td>多半自己能修好</td></tr>
+              <tr><td><b>设备真的坏了，活动做不下去</b></td><td>立刻通知公司</td><td class="no">厨师</td></tr>
+              <tr><td><b>烧坏 / 刮伤客人财物</b></td><td><b>当天上报，最好离场前就报。</b>绝不当场认责，绝不当场承诺赔偿。<b>瞒着不报是底线问题</b></td><td>视情况</td></tr>
+              <tr><td><b>发现桌椅松动 / 开裂 / 变形</b></td><td><b>当场撤下不给客人用</b>，微信群 <b>@Darrien</b> 报损。不要"凑合再用一次"</td><td>公司（更换）</td></tr>
+              <tr><td><b>客人从椅子上摔倒</b></td><td>先照顾人、必要时叫救护车。<b>立刻通知公司</b>，把那把椅子<b>留在现场别动、拍照</b>。绝不当场认责</td><td class="no">人身伤害，公司 + 保险</td></tr>
+              <tr><td><b>有人受伤，或者差点出事</b></td><td>同上——<b>当天必须报</b>，哪怕最后没事。差点出事也要报</td><td>公司处理</td></tr>
+              <tr><td><b>客人一直劝你喝酒</b></td><td>用"chef's rule"挡回去，见<a href="#s7">第 07 章</a>。<b>一口都不能沾——已经有师傅被查酒驾</b></td><td class="no">酒驾是你自己的刑事责任</td></tr>
+              <tr><td><b>客人喝多了要上手玩火</b></td><td>关小火，退一步，用玩笑挡回去。挡不住就停火打电话</td><td>你有中止权</td></tr>
+              <tr><td><b>连台可能赶不及</b></td><td><b>一发现苗头就打电话，不要等到已经迟了。</b>绝不自己砍动作补时间</td><td class="yes">公司（排程责任）</td></tr>
+              <tr><td><b>你自己出门晚了导致迟到</b></td><td>照实报。没有投诉就过去了；有投诉，复盘查到你头上就是你的</td><td class="no">记录在案，投诉时追责</td></tr>
+              <tr><td><b>公司事先说过是难搞客人</b></td><td>照常把流程做完，投诉不用你扛</td><td class="yes">公司</td></tr>
+              <tr><td><b>客人问能不能下次直接找你</b></td><td>婉拒，并<b>事后告诉公司</b>。12 个月内不得主动招揽。<b>私下接走客人是底线问题</b></td><td>公司规矩</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="script">
+          <div class="script-head"><span class="script-when">客人现场想加人 / 加菜 / 改单</span><span class="script-say">照着念</span></div>
+          <q>Happy to cook it — I just don't handle pricing out here. Text our office and they'll update your invoice in a minute.</q>
+          <q>Here's the number. Once they've got you sorted, I'll take care of the rest.</q>
+          <p class="gloss"><b>为什么不能由你转达：</b>你一转达，这笔账就变成你算的，出错就是红线一。<b>让客人直接对客服</b>——金额、改单、发票全部由客服处理，你手上永远只有客服最后给你的那一个数字。<br><br>这句话说出来不掉价：客人听到的是"这个厨师有专门的团队"，不是"这个厨师不会算"。</p>
+        </div>
+
+        <div class="script">
+          <div class="script-head"><span class="script-when">发生损坏时，对客人说的唯一一句</span><span class="script-say">照着念</span></div>
+          <q>I'm going to report this to my office right away, and someone will follow up with you tonight.</q>
+          <p class="gloss"><b>不能说的：</b>"That's my fault" / "We'll pay for it" / "Don't worry, I'll take care of it."<br>你当场的一句承诺，可能变成一笔赔付。<b>只说会上报，不说谁的责任。</b></p>
+        </div>
+
+        <div class="script">
+          <div class="script-head"><span class="script-when">客人想私下找你接单</span><span class="script-say">照着念</span></div>
+          <q>That's really kind of you — but I book everything through Real Hibachi. Just request me by name and I'll come back.</q>
+          <p class="gloss"><b>为什么这句是双赢：</b>既守住了规矩，又把客人变成<b>指名要你</b>的回头客——<b>指名单按 $15 一位算</b>，比你平时的单价还高。<br>私接一单赚一次，指名回头能赚很多次，而且每一次都比普通单赚得多。</p>
+        </div>
+      </section>
+
+      <!-- ============ 10 ============ -->
+      <section id="s10">
+        <div class="sec-head"><span class="sec-num">10</span><h2>钱与晋升</h2></div>
+        <p class="sec-lede">工资是阶梯的，靠"连续无投诉台数"往上走。这是你能自己控制的部分。</p>
+
+        <h3>晋升机制</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>阶段</th><th>单价</th><th>条件</th></tr></thead>
+            <tbody>
+              <tr><td><b>试用期师傅</b></td><td class="num">$11 / 位</td><td>入职起步</td></tr>
+              <tr><td><b>正式师傅</b></td><td class="num">$12 / 位</td><td>连续 <b>10 台</b>无投诉 <b>+ 老板确认</b></td></tr>
+              <tr class="step-hi"><td><b>全职大师傅</b></td><td class="num">$13 / 位</td><td>连续 <b>50 台</b>无投诉 <b>+ 老板确认</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ul class="plain">
+          <li><b>每周六结算时，会顺带告诉你当前的连续无投诉台数</b>——你随时知道自己走到哪了。</li>
+          <li><b>台数是必要条件，不是充分条件。</b>够了台数还要老板点头——不出投诉只说明你没犯错，涨薪看的是你整体做到什么水平。</li>
+          <li><b>每发生一次投诉，连续计数清零，从头再来。</b></li>
+          <li><b>排程问题导致的连台投诉不计入</b>——那是公司的责任，不是你的。</li>
+          <li>公司事先判定的难搞客人产生的投诉，同样不计入。</li>
+        </ul>
+
+        <p>从 $11 走到 $13 是 <b>18% 的加薪</b>。10 人的场，从 $110 变成 $130；一年跑 100 台，差出来的是实打实的一笔钱。而路径完全掌握在你手里：<b>把六个动作做全、把地垫铺好、把钱收清楚</b>，就不会有投诉。</p>
+
+        <h3>什么算一次「投诉」</h3>
+        <div class="rl-banner">
+          <p class="rl-t">客人只要有不爽反馈到客服，就算一次投诉。</p>
+          <p>不看严重程度，不看客人有没有要求退款。<b>因为没有客人会没事找事</b>——他愿意专门跟客服说一句，就说明现场确实有让他不舒服的地方。</p>
+        </div>
+        <p>这个定义故意定得宽，因为它要的不是"抓你的错"，而是<b>让你把标准往上顶</b>。反过来，前面说过的两种情况仍然不算你的：<b>公司事先判定的难搞客人</b>，以及<b>排程问题导致的连台迟到</b>。</p>
+
+        <div class="note good">
+          <span class="note-label">你有一次申诉机会</span>
+          <p>觉得这次投诉不该算你的，<b>每一次投诉都可以申诉一次，由老板终裁</b>，结果会明确告诉你。</p><p><b>同一次投诉只能申诉一次</b>——终裁之后不再重开，所以把话一次说清楚。</p>
+        </div>
+
+        <h3>好评奖励</h3>
+        <p>除了工资和小费，客人写的 Google 评价<b>直接换钱</b>：</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>类型</th><th>奖励</th><th>条件</th></tr></thead>
+            <tbody>
+              <tr><td><b>纯文字好评</b></td><td class="num">$2 / 条</td><td rowspan="2"><b>评价里必须带上你的名字</b>，否则算不到你头上</td></tr>
+              <tr class="step-hi"><td><b>带图好评</b></td><td class="num yes">$3 / 条</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><b>让客人带上你的名字，是这笔钱唯一的统计依据。</b>要评价的时候顺口加一句就行——见第 08 章的话术。带图的多给 $1，所以值得提醒客人把今晚拍的火山照片一起放上去，反正他手机里已经有了。</p>
+
+        <div class="rl-banner" style="background:var(--go)">
+          <p class="rl-t">算笔账：一台不是只能拿一条好评。</p>
+          <p>一桌 10 个客人，每个人都可以写。<b>收尾时多花 5 分钟，一台就可能多拿 $20–30。</b></p>
+        </div>
+
+        <p>大部分师傅只跟主人说一句就走了，结果一台拿一条 $2。真正会做的师傅是<b>趁大家还坐在桌边、气氛正好的时候，把卡片挨个递过去</b>——那五分钟，比你多跑半个小时的路值钱。</p>
+
+        <div class="note warn">
+          <span class="note-label">这个政策随时可能取消</span>
+          <p>好评奖励是公司现阶段为了冲排名额外加的，<b>不是长期承诺，说停就会停</b>。</p>
+          <p>所以趁现在有，多花那 5 分钟。<b>等哪天没有了，同样的五分钟就只值一句谢谢。</b></p>
+        </div>
+
+        <h3>指名单：每人 $15</h3>
+        <div class="note good">
+          <span class="note-label">回头客指名要你，单价直接跳到 $15</span>
+          <p>客人下次订单时<b>指名要你</b>，那一台<b>按 $15 一位算</b>——比大师傅的 $13 还高，试用期师傅更是直接从 $11 跳到 $15。</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>人数</th><th>试用期 $11</th><th>大师傅 $13</th><th>指名单 $15</th></tr></thead>
+            <tbody>
+              <tr><td><b>10 人</b></td><td class="num">$110</td><td class="num">$130</td><td class="num yes">$150</td></tr>
+              <tr><td><b>20 人</b></td><td class="num">$220</td><td class="num">$260</td><td class="num yes">$300</td></tr>
+              <tr class="step-hi"><td><b>30 人</b></td><td class="num">$330</td><td class="num">$390</td><td class="num yes">$450</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>指名单没有上限，人越多差得越多。</b>一台 30 人的指名单，比你在试用期做同样一台多 $120——而你要做的只是让上一桌客人记住你的名字。</p>
+        <p>这也是为什么第 09 章说，客人想私下找你时要回一句 <b>"Request me by name and I'll come back"</b>——那句话不是在守规矩，<b>那是在给自己攒指名单。</b></p>
+
+        <h3>每周人头配额：你能接多少活</h3>
+        <p>公司会按你的表现<b>逐步上调你每周能接的人头数</b>。这不是随机派单，是一条明确的路径：</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>阶段</th><th>每周人头</th><th>大致收入含义</th></tr></thead>
+            <tbody>
+              <tr><td><b>新手</b></td><td class="num">10 – 20</td><td>一周约一到两台</td></tr>
+              <tr><td><b>稳定期</b></td><td class="num">20 – 30</td><td>一周两到三台</td></tr>
+              <tr class="step-hi"><td><b>成熟师傅</b></td><td class="num yes">40 – 50</td><td>一周四到五台</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>换算成月收入</h3>
+        <p>单价和配额是两条独立的通道，但由同一件事驱动：<b>不出投诉</b>。两条线叠加，差距比你想的大：</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>阶段</th><th>单价 + 小费</th><th>每周人头</th><th>周收入</th><th>月收入</th></tr></thead>
+            <tbody>
+              <tr><td><b>新手</b></td><td class="num">$11 + $12 = <b>$23</b></td><td class="num">10 – 20</td><td class="num">$230 – $460</td><td class="num">约 $1,000 – $2,000</td></tr>
+              <tr><td><b>稳定期</b></td><td class="num">$12 + $12 = <b>$24</b></td><td class="num">20 – 30</td><td class="num">$480 – $720</td><td class="num">约 $2,100 – $3,100</td></tr>
+              <tr class="step-hi"><td><b>成熟师傅</b></td><td class="num">$13 + $12 = <b>$25</b></td><td class="num">40 – 50</td><td class="num">$1,000 – $1,250</td><td class="num yes">约 $4,300 – $5,400</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>从新手做到成熟师傅，月收入差大约四到五倍。</b>而这两级之间隔的不是运气，是"连续不出投诉"这一件事。</p>
+
+        <h3>换算成时薪</h3>
+        <p>月收入看不出这份活值不值。真正该算的是<b>门到门一共搭进去多少小时</b>：</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>环节</th><th>耗时</th></tr></thead>
+            <tbody>
+              <tr><td>准备食材（含领料）</td><td class="num">1 小时</td></tr>
+              <tr><td>去程</td><td class="num">1 – 2 小时</td></tr>
+              <tr><td>到场准备（T-40 → T-0）</td><td class="num">40 分钟</td></tr>
+              <tr class="step-hi"><td><b>活动本身</b></td><td class="num">90 分钟</td></tr>
+              <tr><td>收尾 + 装车</td><td class="num">30 分钟</td></tr>
+              <tr><td>返程</td><td class="num">1 – 2 小时</td></tr>
+              <tr><td><b>单台合计</b></td><td class="num yes"><b>约 5.7 – 7.7 小时</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rl-banner">
+          <p class="rl-t">路上的时间，是这份活最大的成本。</p>
+          <p>真正在客人面前只有 <b>90 分钟</b>，其余四到六小时全是准备和开车。<b>单程从 1 小时变成 2 小时，你的时薪直接掉三分之一。</b></p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>一台的规模</th><th>单程 1 小时</th><th>单程 2 小时</th></tr></thead>
+            <tbody>
+              <tr><td><b>10 人</b>（试用期）</td><td class="num">$41 / 小时</td><td class="num">$30 / 小时</td></tr>
+              <tr><td><b>15 人</b>（大师傅）</td><td class="num">$66 / 小时</td><td class="num">$49 / 小时</td></tr>
+              <tr class="step-hi"><td><b>20 人</b>（大师傅）</td><td class="num yes">$88 / 小时</td><td class="num">$65 / 小时</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>两个结论，都很实用：</b></p>
+        <ul class="plain">
+          <li><b>人越多越划算。</b>多做 10 个人，路程和准备时间几乎不变，钱却翻倍——20 人的时薪是 10 人的两倍还多。</li>
+          <li><b>远单要算清楚再接。</b>同样一台，跑两小时和跑一小时，时薪差三分之一。<b>超过 50 英里有里程补助</b>（总里程 × $1），那笔钱正是补这个的。</li>
+        </ul>
+
+        <h3>周末打法：两天三台</h3>
+
+        <div class="rl-banner" style="background:var(--go)">
+          <p class="rl-t">一周只干两天，月入四千多。</p>
+          <p><b>周六连两台，周五或周日再一台</b>——一周三台，正好落在成熟师傅每周 40–50 人头的配额里。</p>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th></th><th>台数</th><th>工时（单程 1h）</th><th>收入（大师傅 · 15 人/台）</th></tr></thead>
+            <tbody>
+              <tr><td><b>周六</b></td><td class="num">2 台（连台）</td><td class="num">约 9.3 小时</td><td class="num">$750</td></tr>
+              <tr><td><b>周五或周日</b></td><td class="num">1 台</td><td class="num">约 5.7 小时</td><td class="num">$375</td></tr>
+              <tr class="step-hi"><td><b>两天合计</b></td><td class="num">3 台</td><td class="num">约 15 小时</td><td class="num yes">$1,125</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><b>时薪约 $75，月收入约 $4,800——而你一周只出门两天。</b>剩下五天完全是你自己的，可以打另一份工，也可以休息。（单程两小时的话，工时约 19 小时，时薪约 $59。）</p>
+        <p>连台之所以值得跑，就是这个道理：<b>周六第二台不用再备一次料、也省掉一趟去程</b>，多出来的钱几乎是白赚的。这也是为什么公司愿意帮你排连台。</p>
+
+        <div class="note">
+          <span class="note-label">这张表怎么算出来的</span>
+          <p>小费按客人账单的 20% 估：大人 $59.90 × 20% ≈ <b>每位 $12</b>，直接归你。月收入按每月 4.3 周算。</p>
+          <p><b>还没算进去的：</b>好评奖励（$2–3 一条，一台可能 $20–30）、指名单（$15 一位）、<b>搬桌椅（$6 一把，20 人的租赁单就是 $120）</b>、超 50 英里的里程补助。这几样都是往上加的。</p>
+          <p><b>要从里面扣掉的：</b>你自己的丙烷、油钱、车和设备折旧。这是毛收入，不是到手。</p>
+        </div>
+
+        <h3>出台状态决定你拿多少</h3>
+        <p>上面那张阶梯表说的是<b>独立出台</b>的价钱。你是不是一个人出的台，直接决定这笔钱归谁。</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>状态</th><th>现场情况</th><th>你拿到</th></tr></thead>
+            <tbody>
+              <tr><td><b>跟场学习</b></td><td>主厨主刀，你在旁边看、打下手</td><td class="num no">$0</td></tr>
+              <tr><td><b>半独立</b></td><td>你主刀，带教师傅在旁边兜底</td><td class="num no">$0</td></tr>
+              <tr><td><b>Helper</b></td><td>公司把你排为帮工，不是学徒。<b>公司出钱</b></td><td class="num">$20 / 小时<br><small>从 party 开始算<br>一般 $20–30</small></td></tr>
+              <tr class="step-hi"><td><b>独立</b></td><td>你一个人出台</td><td class="num yes">全额 $11 / $12 / $13</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rl-banner">
+          <p class="rl-t">跟场和半独立都没有钱。你在学本事，不是在上班。</p>
+          <p><b>半独立那台也是 $0</b>——那台本来就是师傅的台，他<b>让给你练手</b>，不是他炒不动。他人在旁边，是替你兜住所有你还兜不住的东西：场地判断、火候、客人情绪、出事时怎么说话。<br><br>想在这个阶段就有收入，只有一条路：<b>被公司排成 Helper，按 $20/hr 结算，公司出钱</b>——那时候你的身份是帮工，不是学徒。<br><b>计时从 party 开始算</b>，不是从你到现场算，所以一台下来通常是 <b>$20–30</b>。</p>
+        </div>
+
+        <div class="note good">
+          <span class="note-label">这条规则是对称的，别只看眼前</span>
+          <p>你现在白干的这几台，是拿别人的台换来的练手机会。<b>等你独立之后开始带新人，那台的钱就是你的</b>——你把台让给徒弟练，钱照样归你。今天你欠的这几台，将来会以同样的方式回来。</p>
+          <p>而且带得出人的师傅，收入结构比只会自己炒台的师傅<b>厚一层</b>：你自己那台照拿，让出去的那台也照拿。<b>这是这行里唯一能跳出"一天只有一双手"的方式。</b></p>
+        </div>
+
+        <h3>准点率</h3>
+        <p>除了投诉，公司还记录你的准点率。规则很简单：</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>项目</th><th>规则</th></tr></thead>
+            <tbody>
+              <tr><td><b>以什么时刻为准</b></td><td><b>实际开火时间</b>——不是你到门口的时间，也不是你搭好台的时间</td></tr>
+              <tr><td><b>怎么记录</b></td><td>你自己打卡：<b>准备好之后拍照发群里 @老板</b>。见<a href="#s5">第 05 章</a></td></tr>
+              <tr><td><b>忘了打卡</b></td><td><b>只要那台没有投诉，就不是问题。</b>打卡是出事时替你说话的东西，不是用来罚你的</td></tr>
+              <tr><td><b>迟到多久起算</b></td><td>晚于约定开始时间 <b>10 分钟以上</b>，记一次</td></tr>
+              <tr><td><b>连台被前一场拖累</b></td><td class="no"><b>照样记。</b>准点率只记录事实，不分对错</td></tr>
+              <tr class="step-hi"><td><b>影不影响涨薪</b></td><td class="yes"><b>不影响。只做记录，不直接扣钱、不影响晋升。</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rl-banner">
+          <p class="rl-t">公司只看结果。投诉才是触发点。</p>
+          <p><b>迟到了但客人没投诉——这事就过去了</b>，公司不会为此单独找你，也不会小题大做。<br><br>但<b>一旦有投诉，公司一定回头查原因</b>。查出来是排程的问题，<b>公司认</b>；查出来是你出门晚了、提前量不够、压线开始，<b>你自己负责</b>。准点记录的用处就在这里——投诉复盘时，它是唯一的事实依据。</p>
+        </div>
+
+        <p>所以这套规则对你的实际意义是：<b>规则先摆在这儿，但公司不盯着你的每一分钟。</b>你把提前量给够，绝大多数情况下这一页跟你没有关系。真出了投诉，你也不用担心被冤枉——记录会说明当天到底发生了什么。</p>
+
+        <p><b>为什么"被拖累的也算"不是坑你：</b>记录的是事实，认定的是责任，这是两件事。连台被拖累的那次照样出现在记录里，但只要复盘查出是排程原因，责任就不在你、也不影响你的晋升计数。<b>反过来，如果记录上你的迟到集中在没有连台的普通单上，那说明的就是你自己的提前量。</b></p>
+
+        <div class="grid2">
+          <div class="card">
+            <h4>准点是你唯一能 100% 控制的指标</h4>
+            <p>做菜有手感、表演有状态、客人有脾气，只有出门时间完全由你决定。<b>准点率低，说明的不是路况，是你的提前量给得不够。</b></p>
+          </div>
+          <div class="card">
+            <h4>提前到没有代价，压线有</h4>
+            <p>早到就在车里等，损失是零。压线一旦出意外，你要么迟到、要么砍动作——<b>砍动作是红线二，投诉还要算你的</b>。两边都亏。</p>
+          </div>
+        </div>
+
+        <p><b>连台的日子尤其看这一项。</b>做得好的师傅提前两个小时到下一家附近等着，就为了确认连得上。那不是浪费时间，那是把当天两场的钱都拿稳。</p>
+
+        <div class="note">
+          <span class="note-label">注意「实际开火」这个口径的含义</span>
+          <p>计时点是<b>开火</b>，不是到门口。也就是说<b>搭台、接气、检漏、备料的时间全部算在你头上</b>——你 6:00 准时按门铃、6:25 才点着火，那是迟到 25 分钟。<br><br>这正是第 05 章要求 T-60 到街区、T-40 就开始接气的原因。按那张时间轴走，开火时间自然是准的。</p>
+        </div>
+
+        <h3>其他收入</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>项目</th><th>金额</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><b>小费</b></td><td class="num yes">100% 归你</td><td>公司不留存、不分成、不代管</td></tr>
+              <tr><td><b>单场保底</b></td><td class="num">$100</td><td>人少也保底 $100</td></tr>
+              <tr><td><b>好评奖励</b></td><td class="num">$2 / $3</td><td>纯文字 $2，带图 $3。评价里要带你的名字</td></tr>
+              <tr><td><b>指名单</b></td><td class="num yes">$15 / 位</td><td>客人指名要你的那一台，单价比大师傅还高</td></tr>
+              <tr><td><b>搬桌椅</b></td><td class="num yes">$6 / 把</td><td>分成 $4 + 桌椅费带来的 20% 小费。见<a href="#s5">第 05 章</a></td></tr>
+              <tr><td><b>里程补助</b></td><td class="num">见下</td><td>超过 50 miles 才有，规则见下方</td></tr>
+              <tr><td><b>结算周期</b></td><td class="num">每周六</td><td>每周六结上一周的账</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>取消和未完成，你拿多少</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>情况</th><th>你拿到</th></tr></thead>
+            <tbody>
+              <tr><td>客人提前 48 小时以上取消</td><td class="num">$0</td></tr>
+              <tr><td>客人 48 小时内取消，或者放你鸽子</td><td class="num">$0，没有违约金</td></tr>
+              <tr><td><b>你到了现场，判定不安全或禁明火</b></td><td class="num yes">全额单场保底</td></tr>
+              <tr><td>你提前 72 小时以上取消</td><td class="num">$0，不罚</td></tr>
+              <tr><td>你在 72 小时内取消，或者没出现</td><td class="num no">$0，且公司可追偿替代成本</td></tr>
+              <tr><td>你的设备故障导致活动无法进行</td><td class="num no">$0，并适用赔偿条款</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>里程补助</h3>
+        <p><b>50 miles 之内没有补助</b>——公司对客人也是「first 50 miles free」，这一段算在基本工资里。超过 50 miles，补助按<b>总里程 × $1</b> 给，不是只算超出的部分。</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>单程里程</th><th>你拿到的补助</th></tr></thead>
+            <tbody>
+              <tr><td class="num">49 miles</td><td class="num no">$0</td></tr>
+              <tr><td class="num">50 miles</td><td class="num no">$0</td></tr>
+              <tr class="step-hi"><td class="num">51 miles</td><td class="num yes">$51</td></tr>
+              <tr><td class="num">70 miles</td><td class="num yes">$70</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>你自己承担的成本</h3>
+        <p>丙烷、车、油钱、设备维修与折旧，全部从单场费里出。公司负责所有食材、蛋白、酱料和食用油。</p>
+
+        <div class="note">
+          <span class="note-label">这一章就是你和公司的约定</span>
+          <p>这一章写的每一个数字——三档单价、$100 保底、每周六结算、好评奖励、指名单 $15 一位、每周人头配额、里程补助——<b>就是实际执行的标准</b>，不是参考。</p>
+          <p><b>有任何一条跟你理解的不一样，现在就问清楚</b>，别等到第一次结算才发现对不上。</p>
+        </div>
+      </section>
+
+      <!-- ============ 11 ============ -->
+      <section id="s11">
+        <div class="sec-head"><span class="sec-num">11</span><h2>上岗路径</h2></div>
+        <p class="sec-lede">四个阶段，大概七到九台。但<b>台数只是参考——真正的标准是带你的师傅点不点头。</b></p>
+
+        <div class="tl">
+          <div class="tl-row"><span class="tl-t">1–3 台</span><div><h4>跟场　<span class="mono" style="color:var(--danger)">$0</span></h4><p>不碰炉子。掐表记时间轴、看师傅怎么勘场铺垫、把六个必做动作从头看一遍、听英文话术怎么说。</p></div></div>
+          <div class="tl-row"><span class="tl-t">4 台</span><div><h4>半独立　<span class="mono" style="color:var(--danger)">$0</span></h4><p>你主刀，师傅在旁边随时纠正。搭台、铺垫、检漏、备料、烹饪、表演，整套自己走一遍。</p></div></div>
+          <div class="tl-row"><span class="tl-t">2 台</span><div><h4>师傅闭嘴，你自己炒　<span class="mono" style="color:var(--danger)">$0</span></h4><p>师傅在场，但<b>全程不说话、不插手</b>，只在旁边看。这两台等于是考试——他要看的是你没人提醒时会漏掉什么。</p></div></div>
+          <div class="tl-row zero"><span class="tl-t">出师</span><div><h4>师傅点头 → 独立　<span class="mono" style="color:var(--brass-bright)">全额</span></h4><p>从这一台开始拿全额 per-head，也从这一台开始计入你的连续无投诉台数。</p></div></div>
+        </div>
+
+        <div class="rl-banner" style="background:var(--go)">
+          <p class="rl-t">关键不是台数，是师傅觉得你行不行。</p>
+          <p>上面的数字是大致节奏，不是打卡指标。<b>师傅觉得你四台就稳了，你四台就能独立；觉得还不行，十台也照样带着你。</b></p>
+        </div>
+
+        <h3>所以，主动多干活是划算的</h3>
+        <p><b>这不是压榨免费劳动力，这是学习。</b>没有人是靠"熬够台数"学会这门手艺的——<b>人是靠反复练、高频率地练才学得快。</b>同样是十台，两个月跑完和半年跑完，学到的完全是两回事。</p>
+
+        <div class="note good">
+          <span class="note-label">公司这边没有"熬资历"这一说</span>
+          <p><b>没有最短时间要求，没有必须干满几个月的规定。达标就能独立，就这么简单。</b></p>
+          <p>所以主动去跟场、主动要求上手、主动问师傅"我刚才哪里做得不对"——<b>你每多干一台，独立的那天就早一点，$0 的阶段就短一点。</b>这笔账是你自己的，不是公司的。</p>
+        </div>
+
+        <h3>打秀要每天练，不要指望上场现学</h3>
+        <p>洋葱火山、帽子接蛋、抛西葫芦、铲子敲击节奏——这些<b>没有一样是在客人家里能学会的</b>。上场是检验，不是练习。</p>
+
+        <div class="grid2">
+          <div class="card">
+            <h4>每天都要摸铲子</h4>
+            <p><b>用你自己的那副铲子和叉子练</b>，不要用别人的。重量、平衡、手感全都不一样，换一副手就生了。这也是第 02 章让你自己置办家伙的原因之一。</p>
+          </div>
+          <div class="card">
+            <h4>多看视频</h4>
+            <p>YouTube 上铁板烧师傅的表演视频非常多，<a href="https://www.youtube.com/results?search_query=hibachi+chef+spatula+tricks" target="_blank" rel="noopener">从这里开始翻</a>。看别人怎么走位、怎么带节奏、怎么跟客人搭话，比自己闷头琢磨快得多。</p>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">但火别在客人家练</span>
+          <p>铲技和抛接可以随时练，<b>洋葱火山和明火动作必须先在自己院子里练到稳定</b>。第一场哪怕一个花活都不做，只要准时、干净、熟度全对，客人一样会给小费——但烧到人就全完了。</p>
+        </div>
+
+        <h3>什么时候算合格</h3>
+        <p>师傅最终看的是这四条：</p>
+        <ul class="plain">
+          <li><b>零安全事故</b>——尤其是红线三，点火顺序不能错</li>
+          <li><b>零收款差错</b>——红线一</li>
+          <li><b>六个必做动作能独立完整做完</b>——红线二</li>
+          <li><b>全程准点</b>——按第 05 章的时间轴走，开火不拖</li>
+        </ul>
+        </section>
+
+      <!-- ============ A ============ -->
+      <section id="a">
+        <div class="sec-head"><span class="sec-num">A</span><h2>出车前清单</h2></div>
+        <p class="sec-lede">每次出车前从头点一遍。勾选状态存在你自己的浏览器里，下次打开还在。</p>
+
+        <div class="note">
+          <span class="note-label">这张清单只管「今天要带上车的东西」</span>
+          <p>清单里没有的东西不代表不需要，只代表<b>不需要每场清点</b>。工服、评价卡片这类拿一次用很久的，放车上常备就行。</p>
+        </div>
+
+        <ul class="check" id="cl">
+          <li><label><input type="checkbox" data-k="c1"><span><b>铁板炉</b><em>装车前确认台面干净、无变形</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c2"><span><b>丙烷气瓶（在用 + 备用）</b><em>一罐约 7 台、新手 6 台。直立固定、通风，别放后备箱闷着</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c4"><span><b>点火器 + 备用</b><em>电子点火器为主，另带一个备用</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c17"><span><b>湿毛巾</b><em>红线三。烧到自己或小面积着火时第一时间用它</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c6"><span><b>地垫（带够）</b><em>红线二。除了没铺装的土路，一律要铺——水泥地和车道也要</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c7"><span><b>六个必做动作的道具</b><em>洋葱、鸡蛋、西葫芦、伏特加挤压瓶、清酒 + sake gun（清酒公司出）、干净的厨师帽</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c19"><span><b>桌椅逐件检查过</b><em>每把椅子打开压一下。松动、开裂、变形的不装车，并报给公司</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c20"><span><b>多带一两把椅子 + 一两块桌布</b><em>每 4 人 1 桌，每桌 1 布，再加冗余</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c8"><span><b>铲子、刮板、油瓶、调料瓶</b><em>铲子备一套——最常丢的就是它</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c9"><span><b>食材已从工作室领，按人数点过一遍</b><em>牛排、无麸质那份单独装、单独标记</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c10"><span><b>Cooler + 5 块 ice block + sake 桶</b><em>这三样自备。生鲜全程保冷，从领料到上菜的温度由你负责</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c11"><span><b>清洁：刮铲、抹布、垃圾袋</b><em>你造成的油污和垃圾自己收</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c12"><span><b>客服给的 invoice + 收款账户</b><em>红线一。照着最新那张收，收之前再确认一次版本</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c21"><span><b>出发时给客人发短信</b><em>告知预计到达时间。小费是从每个细节开始攒的</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c15"><span><b>派单信息看过一遍</b><em>人数、蛋白、过敏、熟度、租赁、停车、是不是生日场</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c16"><span><b>评价卡片（公司发的）</b><em>收尾时给客人扫码，比发链接快</em></span></label></li>
+          <li><label><input type="checkbox" data-k="c18"><span><b>记得打卡</b><em>准备好之后拍全景照发群里 @老板。这是你的准点证明和搭台证明</em></span></label></li>
+        </ul>
+        <div class="check-bar">
+          <span id="clcount">已勾 0 / 17</span>
+          <button type="button" id="clreset">全部清空</button>
+        </div>
+      </section>
+
+      <!-- ============ B ============ -->
+      <section id="b">
+        <div class="sec-head"><span class="sec-num">B</span><h2>英文话术速查</h2></div>
+        <p class="sec-lede">现场用的一页。按发生顺序排好了。</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>时机</th><th>照着念</th></tr></thead>
+            <tbody>
+              <tr><td><b>出发时（短信）</b></td><td class="mono">Hi [名字] — this is [你的名字], your Real Hibachi chef tonight. Just heading out, I should be there around [时间]. See you soon!</td></tr>
+              <tr><td><b>到门口</b></td><td class="mono">Hi, I'm [名字] from Real Hibachi — I'm your chef tonight. Where would you like me to set up?</td></tr>
+              <tr><td><b>问过敏</b></td><td class="mono">Before I fire this up — is anyone allergic to anything? Nothing I cook has nuts or sesame.</td></tr>
+              <tr><td><b>问熟度</b></td><td class="mono">Who's having steak? Rare, medium rare, medium, medium well, or well done?</td></tr>
+              <tr><td><b>清场</b></td><td class="mono">Keep kids and drinks about six feet back from the flame. Best photo spot is behind me.</td></tr>
+              <tr><td><b>帽子接蛋</b></td><td class="mono">I need a volunteer — who's got good hands? Here, take my hat. Hold it right there… don't move.</td></tr>
+              <tr><td><b>火山</b></td><td class="mono">Phones out — you're gonna want this one. Three… two… one —</td></tr>
+              <tr><td><b>生日场</b></td><td class="mono">I heard somebody's got a birthday tonight. Everybody, on three — one, two, three…</td></tr>
+              <tr><td><b>抛食物</b></td><td class="mono">Who wants to catch some zucchini? Kids — hands, not mouths. Deal?</td></tr>
+              <tr><td><b>客人劝你喝酒</b></td><td class="mono">Ha — chef's rule: I pour, you drink. Somebody's gotta drive this grill home. You have one for me!</td></tr>
+              <tr><td><b>灌 sake</b></td><td class="mono">Any sake drinkers tonight? Head back, open up — here it comes.</td></tr>
+              <tr><td><b>上菜</b></td><td class="mono">Fried rice, then vegetables, then proteins — chicken first, steak after, shrimp last so it hits your plate hot.</td></tr>
+              <tr><td><b>场地不安全</b></td><td class="mono">I can't set up safely here — [原因]. Anywhere else we could move to? If not, let me call my office.</td></tr>
+              <tr><td><b>客人要改单</b></td><td class="mono">Happy to cook it — I just don't handle pricing out here. Text our office and they'll update your invoice.</td></tr>
+              <tr><td><b>收款复述</b></td><td class="mono">Let me read this off your invoice — [N] adults, [N] kids, $[金额] total, tax included. Gratuity's separate. Does that match?</td></tr>
+              <tr><td><b>核实到账</b></td><td class="mono">Let me just confirm it landed on my end — one second… got it. Thank you!</td></tr>
+              <tr><td><b>发生损坏</b></td><td class="mono">I'm going to report this to my office right away, and someone will follow up with you tonight.</td></tr>
+              <tr><td><b>要评价</b></td><td class="mono">The one thing that helps us most is a Google review. Can I text you the link right now?</td></tr>
+              <tr><td><b>私下接单</b></td><td class="mono">That's kind of you — but I book through Real Hibachi. Request me by name and I'll come back.</td></tr>
+              <tr><td><b>道别</b></td><td class="mono">Thanks for having me — this was a fun one. Enjoy the rest of your night!</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+<!-- 「还需要老板拍板」一节已从手册中移除（内部议题，不适合给师傅看）。
+     内容存档如下，需要时可参考：
+
+C还需要老板拍板
+        手册里的规则都已经定死了。剩下这两件事在公司这边，跟师傅无关——但都跟「不签书面合同」这个决定直接相关，值得先想清楚。
+        必须先解决的冲突
+            01口头约定没有书面依据，这本手册就是唯一的记录
+            公司和师傅之间不签书面合同，只有口头约定。那么这本手册实际上就是双方唯一写下来的东西——薪酬、晋升、投诉认定、赔偿归属、事不过三，全在里面。
+            好处是：写下来了，就不会各说各话。但要配两件事才站得住——①每个新师傅入职时确认自己读过这一版；②改了规则要通知所有人，而不是默默改页面。否则将来出争议，师傅会说"我看到的版本不是这样"。
+            建议至少留一条微信记录：把手册链接发给师傅，让他回一句"已读"。这是零成本的，但在加州的劳动争议里，它的分量比你想象中大。
+        投诉认定，需要一套明确规则
+        协议里还空着的格子
+        手册没法自己回答的运营问题
+          15用工性质要不要请律师看加州 AB5 的 ABC 测试下，B 项几乎必然不成立——铁板烧厨师给铁板烧公司做铁板烧，属于公司主营业务范围内。而手册里的六个必做动作、准点考核、晋升机制、事不过三，都是"公司控制工作方式"的直接证据，在分类争议里对公司不利。不签书面合同并不能降低这个风险，反而更高——没有任何文件主张过独立承包人关系，实际执行却处处体现管理。扩大厨师规模前，建议先找加州劳动法律师过一遍。
+-->
+
+
+
+      <!-- ============ 关于这本手册 ============ -->
+      <section id="about">
+        <div class="sec-head"><span class="sec-num">※</span><h2>关于这本手册</h2></div>
+        <p class="sec-lede">这一节不长，但请读完——它决定了前面所有内容该怎么理解。</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>条目</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr class="step-hi">
+                <td><b>解释权</b></td>
+                <td>本手册由 Real Hibachi 制定、更新和解释。<b>条款含义有分歧时，以公司的解释为准。</b>有疑问先问，不要自行推定</td>
+              </tr>
+              <tr>
+                <td><b>版本</b></td>
+                <td>内容会随业务调整更新，<b>始终以最新版本为准</b>。重要改动会在微信群通知</td>
+              </tr>
+              <tr>
+                <td><b>收入测算</b></td>
+                <td>手册里的月收入、时薪、回本时间，都是<b>基于假设的举例，不构成收入承诺</b>。实际取决于单量、人数、小费和你自己的成本</td>
+              </tr>
+              <tr>
+                <td><b>每周人头配额</b></td>
+                <td>是公司的<b>排班目标，不是保底单量</b>。实际派单受季节、区域、客户需求影响，淡旺季差别很大</td>
+              </tr>
+              <tr>
+                <td><b>激励政策</b></td>
+                <td>好评奖励、指名单加价、里程补助、搬桌椅分成等，<b>公司可以随时调整或取消</b>，以调整时的通知为准</td>
+              </tr>
+              <tr>
+                <td><b>装备二手回收</b></td>
+                <td>按<b>回收当时的市价、视成色</b>核定，具体金额以双方确认为准，不是按原价</td>
+              </tr>
+              <tr>
+                <td><b>价格与菜单</b></td>
+                <td>标注「公司口径」的内容是对客人公开承诺过的，<b>不得自行更改</b>；实际收款一律以客服的最新 invoice 为准</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <span class="note-label">为什么要写这一节</span>
+          <p>手册里给了很多具体数字——月收入、时薪、多久回本。<b>那些是帮你判断这份活值不值得做，不是公司给你的保证。</b></p>
+          <p>把这层说清楚，对双方都好：你不会按最理想的数字去规划生活，公司也不用在淡季为一个测算表跟你解释。<b>真正定死的只有一件事——每一台你实际做了多少人、拿多少单价，这个从来不会含糊。</b></p>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <p><b>Real Hibachi 厨师手册 · v1.0 · 2026-08-26</b></p>
+        <p>薪酬、晋升、投诉认定、赔偿归属、行为红线，均以本手册为准。<br>标注「公司口径」的内容同时也是对客人公开承诺过的，不能自行更改。</p>
+        <p>本手册不构成法律意见。</p>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY = "rh-chef-checklist-v2";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("#cl input[type=checkbox]"));
+  var count = document.getElementById("clcount");
+  var reset = document.getElementById("clreset");
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return {};
+      return JSON.parse(raw) || {};
+    }catch(e){ return {}; }
+  }
+  function save(state){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+  function render(){
+    var n = boxes.filter(function(b){ return b.checked; }).length;
+    count.textContent = "已勾 " + n + " / " + boxes.length;
+  }
+
+  var state = load();
+  boxes.forEach(function(b){
+    if(state[b.dataset.k]) b.checked = true;
+    b.addEventListener("change", function(){
+      var s = load();
+      if(b.checked){ s[b.dataset.k] = 1; } else { delete s[b.dataset.k]; }
+      save(s);
+      render();
+    });
+  });
+  reset.addEventListener("click", function(){
+    boxes.forEach(function(b){ b.checked = false; });
+    save({});
+    render();
+  });
+  render();
+})();
+</script>
+
+</body>
+</html>
