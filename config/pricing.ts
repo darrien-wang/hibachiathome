@@ -1,23 +1,29 @@
-// Pricing configuration for packages and promotions
+// Display-facing pricing figures.
+// The authoritative rules live in ./pricing-rules — this file only reshapes
+// them for the marketing components that already consume `pricing`.
+import { GUEST_TIERS, MINIMUM_SPEND } from "./pricing-rules"
+
 export const pricing = {
   // Package base prices per person
   packages: {
     basic: {
       originalPrice: 60,
-      perPerson: 59.9,
-      minimum: 599,
+      perPerson: GUEST_TIERS.adult.price,
+      minimum: MINIMUM_SPEND,
     },
     buffet: {
       originalPrice: 60,
-      perPerson: 59.9,
+      perPerson: GUEST_TIERS.adult.price,
       minimum: 998,
     },
   },
 
   // Child pricing
   children: {
-    basic: 29.9,
+    basic: GUEST_TIERS.child.price,
     buffet: 25,
+    // Kids under 5 are a flat small-plate charge.
+    underFive: GUEST_TIERS.toddler.price,
   },
 
   // Promotional discounts (can be updated during promotions)
@@ -30,9 +36,10 @@ export const pricing = {
 
   // Pricing banner display values
   pricingBanner: {
-    adultPrice: 59.9,
-    childPrice: 29.9,
-    minimumTotal: 599,
+    adultPrice: GUEST_TIERS.adult.price,
+    childPrice: GUEST_TIERS.child.price,
+    underFivePrice: GUEST_TIERS.toddler.price,
+    minimumTotal: MINIMUM_SPEND,
   },
 }
 

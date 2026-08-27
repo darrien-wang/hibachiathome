@@ -47,9 +47,9 @@ const PRICING_POLICY_DEFINITIONS: Record<PricingPolicyKey, PricingPolicyDefiniti
       "$45.9/adult; $22.95/child under 13",
       "Fried rice, fresh vegetables, and house salad included",
       "Live chef performance and on-site grill cooking",
-      "Monday-Thursday events only; minimum 15 guests",
+      "Monday-Thursday events only; 15+ guests (a child counts as half, under-5s do not count)",
       "No premium add-ons or custom menu upgrades",
-      "Optional full setup: +$15 per guest",
+      "Optional full setup (tables, chairs, utensils): +$15 per guest",
     ],
     quoteDescription:
       "$45.9/adult, $22.95/child. Includes the Standard food/show package; guests pick 2 of 3 proteins (chicken/steak/shrimp).",

@@ -10,9 +10,11 @@ export type DepositRule =
       maximumAmount?: number
     }
 
+import { DEPOSIT_AMOUNT } from "./pricing-rules"
+
 export const depositRule: DepositRule = {
   mode: "fixed",
-  amount: 19.9,
+  amount: DEPOSIT_AMOUNT,
 }
 
 function roundCurrency(value: number): number {

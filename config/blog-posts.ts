@@ -255,7 +255,7 @@ The math is simple because the rate is flat: it is about $60 a head, and it scal
 
 Two things move those numbers:
 
-**Kids bring it down.** Children under 13 are $29.95 and under-4s eat free. A party of 12 adults and 6 kids is not an 18-person party on the invoice.
+**Kids bring it down.** Children 5-12 are $29.95 and kids under 5 are a flat $5. A party of 12 adults and 6 kids is not an 18-person party on the invoice.
 
 **Under ten guests, we still come.** You're billed the $599 minimum rather than per head, so a party of six costs the same as a party of ten. Small groups are welcome; you just can't get under the minimum.
 

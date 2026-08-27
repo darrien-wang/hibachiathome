@@ -598,7 +598,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Is this good for a kids' birthday party?",
         answer:
-          "It is one of the best things we do. The show holds children and adults at the same time, kids under 13 are $29.95, and under-4s eat free. We keep the flame work at a safe distance from the seating.",
+          "It is one of the best things we do. The show holds children and adults at the same time, kids 5-12 are $29.95, and kids under 5 are a flat $5. We keep the flame work at a safe distance from the seating.",
       },
       {
         question: "What does hibachi at home cost in Culver City?",
@@ -1133,7 +1133,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook for a big extended-family party?",
         answer:
-          "Yes. Larger guest counts may use a second chef or a longer service window — give us the number when you book and we will scope it. Kids under 13 are $29.95 and under-4s eat free, which matters at a family party.",
+          "Yes. We add a second chef past 28 guests — give us the number when you book and we will scope it. Kids 5-12 are $29.95 and kids under 5 are a flat $5, which matters at a family party.",
       },
       {
         question: "Our backyard is small and paved. Is that a problem?",

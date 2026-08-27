@@ -1,3 +1,17 @@
+import {
+  GUEST_TIERS,
+  WEEKDAY_SPECIAL,
+  MINIMUM_SPEND as RULES_MINIMUM_SPEND,
+  FULL_SETUP_PER_GUEST as RULES_FULL_SETUP,
+  TRAVEL_FREE_RADIUS_MILES,
+  TRAVEL_RATE_PER_MILE,
+  CALL_OUT_FEE_PER_CHEF,
+  calcChefCount,
+  calcAdultEquivalents,
+  isPromotionActive,
+  isWeekdayEligibleDate,
+} from "@/config/pricing-rules"
+
 export type QuoteAddOns = {
   steak: boolean
   shrimp: boolean
@@ -16,7 +30,10 @@ export type QuoteInput = {
   eventDate: string
   location: string
   adults: number
+  /** Children 5-12. */
   kids: number
+  /** Kids under 5 — flat $5 each. */
+  toddlers?: number
   pricingTier: QuotePricingTier
   weekdaySaverProteins: WeekdaySaverProteins
   tablewareRental: boolean
@@ -33,6 +50,10 @@ export type QuoteRange = {
 export type QuoteResult = {
   hasCoreInputs: boolean
   guestCount: number
+  adultEquivalents: number
+  chefCount: number
+  callOutFee: number
+  callOutFeeWaived: boolean
   pricingTier: QuotePricingTier
   baseSubtotal: number
   minimumSpend: number
@@ -72,13 +93,16 @@ export type QuoteTemplateContext = {
   quote_summary: string
 }
 
-const ADULT_PRICE = 59.9
-const KID_FOOD_PRICE = 29.95
-const FULL_SETUP_PER_GUEST = 15
-const MINIMUM_SPEND = 599
-const WEEKDAY_SAVER_ADULT_PRICE = 45.9
-const WEEKDAY_SAVER_KID_PRICE = 22.95
-const WEEKDAY_SAVER_MIN_GUESTS = 15
+// Every figure below comes from config/pricing-rules.ts so the marketing
+// quote and the invoice can never disagree.
+const ADULT_PRICE = GUEST_TIERS.adult.price
+const KID_FOOD_PRICE = GUEST_TIERS.child.price
+const TODDLER_PRICE = GUEST_TIERS.toddler.price
+const FULL_SETUP_PER_GUEST = RULES_FULL_SETUP
+const MINIMUM_SPEND = RULES_MINIMUM_SPEND
+const WEEKDAY_SAVER_ADULT_PRICE = GUEST_TIERS.adult.weekdayPrice
+const WEEKDAY_SAVER_KID_PRICE = GUEST_TIERS.child.weekdayPrice
+const WEEKDAY_SAVER_MIN_GUESTS = WEEKDAY_SPECIAL.minAdultEquivalents
 
 const ADD_ON_PER_GUEST = {
   steak: 8,
@@ -105,33 +129,6 @@ function normalizeGuests(input: number): number {
   return Math.floor(input)
 }
 
-function getEventDayOfWeek(eventDate: string): number | null {
-  if (!eventDate) return null
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(eventDate)
-  if (!match) return null
-
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
-  const parsed = new Date(year, month - 1, day)
-
-  if (
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
-    return null
-  }
-
-  return parsed.getDay()
-}
-
-function isMondayToThursday(eventDate: string): boolean {
-  const dayOfWeek = getEventDayOfWeek(eventDate)
-  if (dayOfWeek === null) return false
-  return dayOfWeek >= 1 && dayOfWeek <= 4
-}
-
 function getWeekdaySaverIncludedProteins(): string[] {
   return WEEKDAY_SAVER_INCLUDED_PROTEINS.map((key) => WEEKDAY_SAVER_PROTEIN_LABELS[key])
 }
@@ -144,39 +141,68 @@ function getQuoteTierLabel(pricingTier: QuotePricingTier): string {
   return pricingTier === "weekday_saver" ? "Weekday Special ($45.9/adult, $22.95/child)" : "Standard Plan"
 }
 
+/**
+ * The first 50 driving miles are free, so a quote cannot name a figure until
+ * the address is routed. The high end covers a typical SoCal out-of-area
+ * booking at $1/mile; the invoice replaces it with the routed distance.
+ */
+export const TRAVEL_FEE_POLICY = {
+  freeRadiusMiles: TRAVEL_FREE_RADIUS_MILES,
+  ratePerMile: TRAVEL_RATE_PER_MILE,
+  basis: "driving miles" as const,
+}
+
+const TYPICAL_OUT_OF_AREA_MILES = 75
+
 export function getTravelFeeRange(location: string): QuoteRange {
   const normalizedLocation = location.trim()
   if (!normalizedLocation) return { low: 0, high: 0 }
-  return { low: 0, high: 0 }
+  return {
+    low: 0,
+    high: roundCurrency(
+      Math.max(0, TYPICAL_OUT_OF_AREA_MILES - TRAVEL_FREE_RADIUS_MILES) * TRAVEL_RATE_PER_MILE,
+    ),
+  }
 }
 
 export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: QuoteRange): QuoteResult {
   const adults = normalizeGuests(input.adults)
   const kids = normalizeGuests(input.kids)
-  const guestCount = adults + kids
+  const toddlers = normalizeGuests(input.toddlers ?? 0)
+  const guestCount = adults + kids + toddlers
+  const adultEquivalents = calcAdultEquivalents({ adult: adults, child: kids, toddler: toddlers })
   const hasCoreInputs = Boolean(input.eventDate && input.location.trim() && guestCount > 0)
   const pricingTier = input.pricingTier
   const isWeekdaySaver = pricingTier === "weekday_saver"
 
   const selectedWeekdayProteins = getWeekdaySaverIncludedProteins()
   const selectedWeekdayProteinCount = selectedWeekdayProteins.length
-  const isWeekdayEligible = isMondayToThursday(input.eventDate)
-  const isGuestCountEligible = guestCount >= WEEKDAY_SAVER_MIN_GUESTS
+  const isWeekdayEligible = isWeekdayEligibleDate(input.eventDate)
+  const isGuestCountEligible = adultEquivalents >= WEEKDAY_SAVER_MIN_GUESTS
   const hasValidProteinSelection = true
 
   const weekdayViolations: string[] = []
   if (isWeekdaySaver) {
     if (!isWeekdayEligible) weekdayViolations.push("Weekday Special is available only for Monday-Thursday events.")
-    if (!isGuestCountEligible) weekdayViolations.push("Weekday Special requires at least 15 total guests.")
+    if (!isGuestCountEligible)
+      weekdayViolations.push(
+        `Weekday Special requires ${WEEKDAY_SAVER_MIN_GUESTS}+ guests (a child counts as half an adult; under-5s do not count).`,
+      )
   }
 
   const weekdayIsEligible = isWeekdaySaver ? weekdayViolations.length === 0 : true
 
   const baseSubtotal = isWeekdaySaver
-    ? roundCurrency(adults * WEEKDAY_SAVER_ADULT_PRICE + kids * WEEKDAY_SAVER_KID_PRICE)
-    : roundCurrency(adults * ADULT_PRICE + kids * KID_FOOD_PRICE)
+    ? roundCurrency(adults * WEEKDAY_SAVER_ADULT_PRICE + kids * WEEKDAY_SAVER_KID_PRICE + toddlers * TODDLER_PRICE)
+    : roundCurrency(adults * ADULT_PRICE + kids * KID_FOOD_PRICE + toddlers * TODDLER_PRICE)
   const tablewareFee = input.tablewareRental ? roundCurrency(guestCount * FULL_SETUP_PER_GUEST) : 0
-  const packageSubtotal = roundCurrency(baseSubtotal + tablewareFee)
+
+  // One chef per 28 guests, one call-out fee per chef — currently waived.
+  const chefCount = calcChefCount(guestCount)
+  const callOutFeeWaived = isPromotionActive("call_out_fee_waived")
+  const callOutFee = callOutFeeWaived ? 0 : roundCurrency(chefCount * CALL_OUT_FEE_PER_CHEF)
+
+  const packageSubtotal = roundCurrency(baseSubtotal + tablewareFee + callOutFee)
 
   const travelFeeRange = travelFeeRangeOverride ?? getTravelFeeRange(input.location)
 
@@ -219,6 +245,10 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   return {
     hasCoreInputs,
     guestCount,
+    adultEquivalents,
+    chefCount,
+    callOutFee,
+    callOutFeeWaived,
     pricingTier,
     baseSubtotal,
     minimumSpend: MINIMUM_SPEND,
@@ -274,7 +304,7 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Plan: ${getQuoteTierLabel(input.pricingTier)}`,
     `Date: ${input.eventDate || "TBD"}`,
     `Location: ${input.location || "TBD"}`,
-    `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids ${input.kids || 0})`,
+    `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids 5-12 ${input.kids || 0}, Under 5 ${input.toddlers || 0})`,
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
     input.pricingTier === "weekday_saver"
       ? `Weekday Special menu: ${formatWeekdaySaverProteinSummary()}`
