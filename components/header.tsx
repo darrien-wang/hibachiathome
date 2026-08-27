@@ -15,7 +15,7 @@ const navItems = [
   { name: "Menu", href: "/menu", disabled: false },
   { name: "Pricing", href: "/#pricing", disabled: false },
   { name: "Blog", href: "/blog", disabled: false },
-  { name: "Locations", href: "/locations", disabled: true },
+  { name: "Locations", href: "/locations", disabled: false },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
   { name: "Equipment Rentals", href: "/rentals", disabled: true },
