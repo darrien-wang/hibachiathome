@@ -121,7 +121,7 @@ const laOcServiceJsonLd = {
       "@type": "UnitPriceSpecification",
       price: "59.90",
       priceCurrency: "USD",
-      unitText: "per adult ($29.90 per child under 13, $599 event minimum)",
+      unitText: "per adult ($29.90 per child 5–12, $5 per kid under 5, $599 event minimum)",
     },
     availability: "https://schema.org/InStock",
     url: "https://www.realhibachi.com/locations/la-orange-county",

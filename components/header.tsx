@@ -14,7 +14,7 @@ const navItems = [
   { name: "Home", href: "/", disabled: false },
   { name: "Menu", href: "/menu", disabled: false },
   { name: "Pricing", href: "/#pricing", disabled: false },
-  { name: "Blog", href: "/blog", disabled: true },
+  { name: "Blog", href: "/blog", disabled: false },
   { name: "Locations", href: "/locations", disabled: true },
   { name: "Gallery", href: "/gallery", disabled: false },
   { name: "FAQ", href: "/faq", disabled: false },
