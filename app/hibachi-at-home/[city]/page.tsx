@@ -8,6 +8,7 @@ import { MapPin, Phone, Star, Users, Clock, ChefHat, Check } from "lucide-react"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { getCityClimate } from "@/config/city-climate"
+import SourcingSpec from "@/components/menu/sourcing-spec"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
 const BASE_URL = "https://www.realhibachi.com"
@@ -80,39 +81,6 @@ const noSurprises = [
     title: "The price is on this page",
     description:
       "$59.90 per adult, published, no form required. Several services in this market quote only after you hand over your contact details.",
-  },
-]
-
-const sourcing = [
-  {
-    item: "Beef",
-    spec: "USDA Choice Angus top sirloin",
-    note: "Choice is the grade above Select. We buy Angus program beef rather than whatever is cheapest that week.",
-  },
-  {
-    item: "Shrimp",
-    spec: "BAP-certified",
-    note: "Best Aquaculture Practices — an independent certification covering the farm, the hatchery, the feed and the processing plant.",
-  },
-  {
-    item: "Salmon",
-    spec: "Atlantic salmon fillet, skinless",
-    note: "Portioned fillet, not trim or belly offcuts.",
-  },
-  {
-    item: "Chicken",
-    spec: "Boneless, skinless breast",
-    note: "Hatched, raised and harvested in the USA. Breast meat only — no thigh substitution.",
-  },
-  {
-    item: "Lobster tail",
-    spec: "Wild-caught Caribbean spiny lobster",
-    note: "Our premium upgrade. Wild-caught, not farmed.",
-  },
-  {
-    item: "Sauces",
-    spec: "Terry Ho’s yum yum sauce and Japanese ginger dressing",
-    note: "The ones you already recognise from the restaurant. Both contain egg.",
   },
 ]
 
@@ -621,34 +589,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
       {/* What we buy */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-              What We Actually <span className="text-primary">Buy</span>
-            </h2>
-            <p className="text-gray-600 mb-8 max-w-3xl">
-              Almost nobody in mobile hibachi will tell you the grade of what goes on the grill &mdash; you get
-              &ldquo;fresh ingredients&rdquo; and a photo. Here is the actual spec for a {page.city} party, because
-              at $59.90 a head you should be able to check.
-            </p>
-            <dl className="grid sm:grid-cols-2 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200">
-              {sourcing.map((row) => (
-                <div key={row.item} className="bg-white p-5">
-                  <dt className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-1">{row.item}</dt>
-                  <dd>
-                    <p className="font-bold text-gray-900">{row.spec}</p>
-                    <p className="mt-1 text-sm text-gray-600 leading-relaxed">{row.note}</p>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-4 text-sm text-gray-500">
-              Allergies: our standard soy sauce is <strong>not</strong> gluten free, so a gluten-free guest should
-              have their own gluten-free soy and teriyaki on hand and we&apos;ll cook their portion with it. We
-              can&apos;t promise a nut- or sesame-free table &mdash; the sauces and gyoza are commercial products,
-              the gyoza contain sesame, and one sauce is made in a plant that also handles peanuts. Tell us the
-              allergy when you book and we&apos;ll check the labels in use for your date.
-            </p>
-          </div>
+          <SourcingSpec city={page.city} />
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import MenuDetails from "@/components/menu/menu-details"
+import SourcingSpec from "@/components/menu/sourcing-spec"
 import PricingBanner from "@/components/menu/pricing-banner"
 import PriceTransparency from "@/components/menu/price-transparency"
 import ServiceNotes from "@/components/menu/service-notes"
@@ -60,6 +61,12 @@ export default function MenuPage() {
 
         <AnimateOnScroll>
           <MenuDetails proteins={regularProteins} premiumProteins={premiumProteins} sides={sides} />
+        </AnimateOnScroll>
+
+        <AnimateOnScroll>
+          <div className="mt-16">
+            <SourcingSpec adultPrice={pricing.packages.basic.perPerson} />
+          </div>
         </AnimateOnScroll>
 
       </div>
