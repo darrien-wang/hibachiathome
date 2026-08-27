@@ -1,19 +1,14 @@
 "use server"
 import type { Booking, BookingFormData, BookingResponse, AvailableTimesResponse } from "@/types/booking"
 import { pricing } from "@/config/pricing"
+import { calcTravelFee } from "@/config/pricing-rules"
 
-// Travel fee, matching the live quote policy in app/api/quote/travel-fee:
-// the first 50 miles from our Southern California base are free, then $1 for
-// each mile beyond that allowance. The old version of this function carried a TX/NY/AZ/VA/FL zip table
-// left over from the out-of-state markets we no longer serve, and defaulted
-// every unlisted zip (i.e. every California one) to a flat $50.
-const FREE_TRAVEL_MILES = 50
-const FEE_PER_MILE = 1
-
-function travelFeeForMiles(distanceMiles: number): number {
-  if (!Number.isFinite(distanceMiles) || distanceMiles <= FREE_TRAVEL_MILES) return 0
-  return Math.round((distanceMiles - FREE_TRAVEL_MILES) * FEE_PER_MILE)
-}
+// Travel fee comes from the shared policy in config/pricing-rules.ts, the same
+// module the quote route and the invoice app read, so a booking total cannot
+// drift from the quote the customer was shown. The old version of this
+// function carried a TX/NY/AZ/VA/FL zip table left over from the out-of-state
+// markets we no longer serve, and defaulted every unlisted zip (i.e. every
+// California one) to a flat $50.
 
 // 类型校验函数
 function isValidProteinItem(item: any): item is { name: string; quantity: number; unit_price: number } {
@@ -152,7 +147,7 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
     // 计算旅行费用。距离由 /api/quote/travel-fee 用 Google Distance Matrix 算出，
     // 这里只按同一套规则（前 50 迈免费，之后 $1/迈）换算；拿不到距离时按 0 处理，
     // 绝不再用邮编猜一个 $50 出来。
-    const travelFee = travelFeeForMiles(Number(formData.distanceMiles ?? 0))
+    const travelFee = calcTravelFee(Number(formData.distanceMiles ?? 0))
 
     // 计算餐费（不含差旅费）
     let mealCost = 0

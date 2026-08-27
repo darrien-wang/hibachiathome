@@ -142,9 +142,10 @@ function getQuoteTierLabel(pricingTier: QuotePricingTier): string {
 }
 
 /**
- * The first 50 driving miles are free, so a quote cannot name a figure until
- * the address is routed. The high end covers a typical SoCal out-of-area
- * booking at $1/mile; the invoice replaces it with the routed distance.
+ * Travel is priced on routed driving miles, so a quote cannot name a figure
+ * until the address is looked up. /api/quote/travel-fee does that and the
+ * client passes the answer in as travelFeeRangeOverride; this is only the
+ * before-we-know-anything default.
  */
 export const TRAVEL_FEE_POLICY = {
   freeRadiusMiles: TRAVEL_FREE_RADIUS_MILES,
@@ -152,17 +153,9 @@ export const TRAVEL_FEE_POLICY = {
   basis: "driving miles" as const,
 }
 
-const TYPICAL_OUT_OF_AREA_MILES = 75
-
 export function getTravelFeeRange(location: string): QuoteRange {
-  const normalizedLocation = location.trim()
-  if (!normalizedLocation) return { low: 0, high: 0 }
-  return {
-    low: 0,
-    high: roundCurrency(
-      Math.max(0, TYPICAL_OUT_OF_AREA_MILES - TRAVEL_FREE_RADIUS_MILES) * TRAVEL_RATE_PER_MILE,
-    ),
-  }
+  void location
+  return { low: 0, high: 0 }
 }
 
 export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: QuoteRange): QuoteResult {

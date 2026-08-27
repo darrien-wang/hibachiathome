@@ -1,127 +1,74 @@
 import { NextResponse } from "next/server"
+import { getDrivingMiles, TravelDistanceError } from "@/lib/travel-distance"
+import {
+  calcTravelFee,
+  TRAVEL_FREE_RADIUS_MILES,
+  TRAVEL_RATE_PER_MILE,
+} from "@/config/pricing-rules"
+
+export const runtime = "nodejs"
 
 const ORIGIN_ZIP = "91748"
 
-type FeeRange = { low: number; high: number }
-
-function clampNumber(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(value, max))
-}
-
-// Real policy, confirmed by the chef 2026-08-26: the first 50 miles from our
-// base are free, then $1 for each mile BEYOND the free allowance. Two bugs
-// lived here: the allowance was 20 miles, and the fee was charged on the whole
-// distance rather than the excess, so crossing the threshold by one mile jumped
-// the quote from $0 to the full mileage. Bill the excess only.
-const FREE_TRAVEL_MILES = 50
-const FEE_PER_MILE = 1
-
-function mapTravelFeeRangeByMiles(distanceMiles: number): FeeRange {
-  if (!Number.isFinite(distanceMiles) || distanceMiles <= FREE_TRAVEL_MILES) return { low: 0, high: 0 }
-  const fee = Math.round((distanceMiles - FREE_TRAVEL_MILES) * FEE_PER_MILE)
-  return { low: fee, high: fee }
-}
-
-function fallbackFeeRange(destination: string): { distanceMiles: number; feeRange: FeeRange } {
-  const normalized = destination.trim().toLowerCase()
-  if (!normalized) {
-    return { distanceMiles: 0, feeRange: { low: 0, high: 0 } }
-  }
-
-  // Fallback estimate without external API.
-  const zipMatch = normalized.match(/\b(\d{5})\b/)
-  if (zipMatch) {
-    const zip = Number.parseInt(zipMatch[1], 10)
-    const origin = Number.parseInt(ORIGIN_ZIP, 10)
-    const pseudoMiles = clampNumber(Math.abs(zip - origin) / 35, 0, 120)
-    return { distanceMiles: Math.round(pseudoMiles), feeRange: mapTravelFeeRangeByMiles(pseudoMiles) }
-  }
-
-  // If user enters city text only, return conservative local estimate.
-  const pseudoMiles = 18
-  return { distanceMiles: pseudoMiles, feeRange: mapTravelFeeRangeByMiles(pseudoMiles) }
-}
-
+// Policy lives in config/pricing-rules.ts and is shared with the invoice app,
+// so a quote and the invoice that follows it can never disagree. This route
+// only turns an address into driving miles and applies that policy.
+//
+// Distance comes from OSRM by default — free and keyless, matching the
+// OpenStreetMap geocoder — and from Google Distance Matrix when
+// GOOGLE_MAPS_API_KEY is set. When neither can answer we say so instead of
+// inventing a number: the previous version derived "miles" from the arithmetic
+// difference between zip codes, which quoted travel fees off a figure that was
+// not a distance at all.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const destinationRaw = searchParams.get("destination") ?? ""
-  const destination = destinationRaw.trim()
+  const destination = (searchParams.get("destination") ?? "").trim()
 
   if (!destination) {
     return NextResponse.json(
       {
         error: "Missing destination",
         origin_zip: ORIGIN_ZIP,
-        distance_miles: 0,
+        distance_miles: null,
         travel_fee_range: { low: 0, high: 0 },
+        free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
+        rate_per_mile: TRAVEL_RATE_PER_MILE,
+        source: "missing_destination",
       },
       { status: 400 },
     )
   }
 
-  const zipMatch = destination.match(/\b\d{5}\b/)
-  const destinationQuery = zipMatch ? zipMatch[0] : destination
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY
-
-  if (!apiKey) {
-    const fallback = fallbackFeeRange(destinationQuery)
-    return NextResponse.json({
-      origin_zip: ORIGIN_ZIP,
-      destination: destinationQuery,
-      distance_miles: fallback.distanceMiles,
-      travel_fee_range: fallback.feeRange,
-      source: "fallback_no_api_key",
-    })
-  }
-
   try {
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
-      ORIGIN_ZIP,
-    )}&destinations=${encodeURIComponent(destinationQuery)}&key=${apiKey}&units=imperial`
+    const result = await getDrivingMiles(ORIGIN_ZIP, destination)
+    const fee = calcTravelFee(result.drivingMiles)
 
-    const response = await fetch(url, { cache: "no-store" })
-    if (!response.ok) {
-      const fallback = fallbackFeeRange(destinationQuery)
-      return NextResponse.json({
-        origin_zip: ORIGIN_ZIP,
-        destination: destinationQuery,
-        distance_miles: fallback.distanceMiles,
-        travel_fee_range: fallback.feeRange,
-        source: "fallback_http_error",
-      })
-    }
-
-    const data = await response.json()
-    const element = data?.rows?.[0]?.elements?.[0]
-    const meters = Number(element?.distance?.value ?? NaN)
-
-    if (!Number.isFinite(meters)) {
-      const fallback = fallbackFeeRange(destinationQuery)
-      return NextResponse.json({
-        origin_zip: ORIGIN_ZIP,
-        destination: destinationQuery,
-        distance_miles: fallback.distanceMiles,
-        travel_fee_range: fallback.feeRange,
-        source: "fallback_bad_distance",
-      })
-    }
-
-    const miles = Math.round((meters / 1609.344) * 10) / 10
     return NextResponse.json({
       origin_zip: ORIGIN_ZIP,
-      destination: destinationQuery,
-      distance_miles: miles,
-      travel_fee_range: mapTravelFeeRangeByMiles(miles),
-      source: "google_distance_matrix",
+      destination: result.destination.label,
+      distance_miles: result.drivingMiles,
+      chargeable_miles: Math.round(Math.max(0, result.drivingMiles - TRAVEL_FREE_RADIUS_MILES) * 10) / 10,
+      travel_fee_range: { low: fee, high: fee },
+      free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
+      rate_per_mile: TRAVEL_RATE_PER_MILE,
+      source: result.provider,
     })
-  } catch {
-    const fallback = fallbackFeeRange(destinationQuery)
-    return NextResponse.json({
-      origin_zip: ORIGIN_ZIP,
-      destination: destinationQuery,
-      distance_miles: fallback.distanceMiles,
-      travel_fee_range: fallback.feeRange,
-      source: "fallback_exception",
-    })
+  } catch (error) {
+    // No usable route: quote $0 travel and let the team confirm, rather than
+    // showing a guessed fee the invoice would then contradict.
+    const code = error instanceof TravelDistanceError ? error.code : "provider_unavailable"
+    return NextResponse.json(
+      {
+        origin_zip: ORIGIN_ZIP,
+        destination,
+        distance_miles: null,
+        travel_fee_range: { low: 0, high: 0 },
+        free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
+        rate_per_mile: TRAVEL_RATE_PER_MILE,
+        source: "unavailable",
+        code,
+      },
+      { status: 200 },
+    )
   }
 }
