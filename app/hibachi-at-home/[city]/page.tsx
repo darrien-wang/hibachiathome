@@ -83,6 +83,39 @@ const noSurprises = [
   },
 ]
 
+const sourcing = [
+  {
+    item: "Beef",
+    spec: "USDA Choice Angus top sirloin",
+    note: "Choice is the grade above Select. We buy Angus program beef rather than whatever is cheapest that week.",
+  },
+  {
+    item: "Shrimp",
+    spec: "BAP-certified",
+    note: "Best Aquaculture Practices — an independent certification covering the farm, the hatchery, the feed and the processing plant.",
+  },
+  {
+    item: "Salmon",
+    spec: "Atlantic salmon fillet, skinless",
+    note: "Portioned fillet, not trim or belly offcuts.",
+  },
+  {
+    item: "Chicken",
+    spec: "Boneless, skinless breast",
+    note: "Hatched, raised and harvested in the USA. Breast meat only — no thigh substitution.",
+  },
+  {
+    item: "Lobster tail",
+    spec: "Wild-caught Caribbean spiny lobster",
+    note: "Our premium upgrade. Wild-caught, not farmed.",
+  },
+  {
+    item: "Sauces",
+    spec: "Terry Ho’s yum yum sauce and Japanese ginger dressing",
+    note: "The ones you already recognise from the restaurant. Both contain egg.",
+  },
+]
+
 const steps = [
   {
     title: "Get an instant quote",
@@ -440,7 +473,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
             </h2>
             <p className="text-gray-600">
               Every guest picks two proteins, and everyone gets the full plate — garlic butter fried rice, grilled
-              vegetables, house salad, and our signature sauces. Guests can each choose differently; the chef cooks
+              vegetables, house salad, and sauces. Guests can each choose differently; the chef cooks
               to order at your table.
             </p>
           </div>
@@ -482,8 +515,11 @@ export default function CityPage({ params }: { params: { city: string } }) {
             </div>
           </div>
           <p className="text-center mt-8 text-gray-600 max-w-3xl mx-auto text-sm">
-            Vegetarian, vegan, and gluten-free guests are accommodated at the same per-person rate — just tell us
-            when you book. Our recipes contain no nuts and no sesame. See the{" "}
+            Vegetarian, vegan, and gluten-free guests are served at the same per-person rate — just tell us when
+            you book. Our standard soy sauce is not gluten free, so a gluten-free guest should have their own on
+            hand and we&apos;ll cook their portion with it. We can&apos;t promise a nut- or sesame-free table:
+            the sauces and gyoza are commercial products and both sauces contain egg, so tell us the allergy and
+            we&apos;ll check the labels in use for your date. See the{" "}
             <Link href="/menu" className="text-primary hover:underline">
               full menu
             </Link>{" "}
@@ -581,6 +617,40 @@ export default function CityPage({ params }: { params: { city: string } }) {
           </div>
         </section>
       )}
+
+      {/* What we buy */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
+              What We Actually <span className="text-primary">Buy</span>
+            </h2>
+            <p className="text-gray-600 mb-8 max-w-3xl">
+              Almost nobody in mobile hibachi will tell you the grade of what goes on the grill &mdash; you get
+              &ldquo;fresh ingredients&rdquo; and a photo. Here is the actual spec for a {page.city} party, because
+              at $59.90 a head you should be able to check.
+            </p>
+            <dl className="grid sm:grid-cols-2 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200">
+              {sourcing.map((row) => (
+                <div key={row.item} className="bg-white p-5">
+                  <dt className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-1">{row.item}</dt>
+                  <dd>
+                    <p className="font-bold text-gray-900">{row.spec}</p>
+                    <p className="mt-1 text-sm text-gray-600 leading-relaxed">{row.note}</p>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-4 text-sm text-gray-500">
+              Allergies: our standard soy sauce is <strong>not</strong> gluten free, so a gluten-free guest should
+              have their own gluten-free soy and teriyaki on hand and we&apos;ll cook their portion with it. We
+              can&apos;t promise a nut- or sesame-free table &mdash; the sauces and gyoza are commercial products,
+              the gyoza contain sesame, and one sauce is made in a plant that also handles peanuts. Tell us the
+              allergy when you book and we&apos;ll check the labels in use for your date.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* How It Works */}
       <section className="py-16 bg-gray-50">

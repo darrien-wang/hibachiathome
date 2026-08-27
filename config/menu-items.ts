@@ -40,7 +40,7 @@ export const regularProteins: MenuItem[] = [
   {
     id: "chicken",
     name: "Chicken",
-    description: "Tender chicken breast, marinated in our signature sauce",
+    description: "Tender chicken breast, marinated in our house marinade",
     price: 10,
     category: "regular-protein",
     allergens: ["none"],

@@ -36,7 +36,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "Do you use nuts or sesame?",
     answer:
-      "No. Our recipes are free of nuts and sesame. If anyone in your party has other allergies, just inform your booking agent and we'll accommodate.",
+      "We cannot promise a nut-free or sesame-free table, and we would rather say so than guess. Our sauces and gyoza are commercial products: the gyoza contain sesame, and one of our sauces is made in a facility that also handles peanuts. Both sauces contain egg. Tell your booking agent about any allergy and we will check the labels of the products in use for your date and tell you honestly whether we can serve that guest safely.",
   },
   {
     question: "Can you handle gluten-free guests?",

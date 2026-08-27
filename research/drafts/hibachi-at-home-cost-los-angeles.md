@@ -80,7 +80,7 @@ I mention it because deposits in this market run much higher — $150 is a numbe
 
 - The chef and the mobile teppanyaki grill
 - Two proteins per guest — chicken, steak, shrimp, salmon, or tofu
-- Garlic butter fried rice, grilled vegetables, house salad, signature sauces
+- Garlic butter fried rice, grilled vegetables, house salad, and sauces
 - The full live show
 - **Complete setup and cleanup**, with no per-guest surcharge
 
