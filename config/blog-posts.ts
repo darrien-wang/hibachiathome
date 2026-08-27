@@ -235,7 +235,7 @@ I have run more than three hundred of these parties across Southern California o
 
 **Roughly $60 per adult, all in, for most parties in Los Angeles — or from $45.90 an adult if you can do a weeknight.**
 
-That is not a coincidence — nearly every mobile hibachi service in this market is priced around $60 per adult with a $600 minimum. Ours is $59.90 per adult, $29.95 per child under 13, with a $599 event minimum. Where services actually differ is everything *after* that number, which is the rest of this article.
+That is not a coincidence — nearly every mobile hibachi service in this market is priced around $60 per adult with a $600 minimum. Ours is $59.90 per adult, $29.90 per child under 13, with a $599 event minimum. Where services actually differ is everything *after* that number, which is the rest of this article.
 
 ## What a real party costs
 
@@ -255,7 +255,7 @@ The math is simple because the rate is flat: it is about $60 a head, and it scal
 
 Two things move those numbers:
 
-**Kids bring it down.** Children 5-12 are $29.95 and kids under 5 are a flat $5. A party of 12 adults and 6 kids is not an 18-person party on the invoice.
+**Kids bring it down.** Children 5-12 are $29.90 and kids under 5 are a flat $5. A party of 12 adults and 6 kids is not an 18-person party on the invoice.
 
 **Under ten guests, we still come.** You're billed the $599 minimum rather than per head, so a party of six costs the same as a party of ten. Small groups are welcome; you just can't get under the minimum.
 

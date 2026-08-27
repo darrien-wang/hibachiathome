@@ -33,7 +33,7 @@ export const GUEST_TIERS = {
     id: "child" as const,
     label: "Child",
     ageLabel: "5-12",
-    price: 29.95,
+    price: 29.9,
     weekdayPrice: 22.95,
     adultEquivalent: 0.5,
     servesFullPortion: true,

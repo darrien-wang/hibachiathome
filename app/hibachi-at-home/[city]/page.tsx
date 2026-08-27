@@ -151,7 +151,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
         "@type": "UnitPriceSpecification",
         price: "59.90",
         priceCurrency: "USD",
-        unitText: "per adult ($29.95 per child under 13, $599 event minimum)",
+        unitText: "per adult ($29.90 per child under 13, $599 event minimum)",
       },
       availability: "https://schema.org/InStock",
       url,
@@ -250,7 +250,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
                 <span className="text-5xl font-black text-gray-900">$59.90</span>
                 <span className="text-lg text-gray-500">/adult</span>
               </div>
-              <p className="text-gray-600 mb-1">$29.95 per child under 13 · $599 event minimum</p>
+              <p className="text-gray-600 mb-1">$29.90 per child under 13 · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
                 Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu parties with 15+ guests.
               </p>

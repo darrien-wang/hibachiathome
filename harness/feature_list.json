@@ -1078,7 +1078,7 @@
     "description": "Redesign homepage pricing presentation to a modern dual-plan card layout with clear standard-plan CTA and custom-plan contact path.",
     "steps": [
       "Replace the existing 3-column text pricing cards in homepage package section with 2 pricing plan cards (Standard and Custom) styled similar to requested reference.",
-      "Keep pricing facts accurate ($59.90/adult, $29.95/child, $599 minimum, optional setup pricing) and present them in a scannable feature list.",
+      "Keep pricing facts accurate ($59.90/adult, $29.90/child, $599 minimum, optional setup pricing) and present them in a scannable feature list.",
       "Add strong CTA buttons per card (instant quote for standard, contact sales for custom) with desktop/mobile responsive behavior.",
       "Validate visual spacing and readability on both desktop and mobile breakpoints."
     ],

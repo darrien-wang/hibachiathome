@@ -775,7 +775,7 @@ export default function QuoteBuilderClient() {
                     }`}
                   >
                     <p className="text-sm font-semibold text-gray-900">Standard Plan</p>
-                    <p className="mt-1 text-xs text-gray-600">$59.90/adult, $29.95/child, add-ons available</p>
+                    <p className="mt-1 text-xs text-gray-600">$59.90/adult, $29.90/child, add-ons available</p>
                   </button>
                   {weekdaySaverEnabled && (
                     <button

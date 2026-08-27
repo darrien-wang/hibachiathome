@@ -58,7 +58,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef anywhere in Los Angeles — backyards, rooftops, and rentals from the Westside to the Valley. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
     intro: [
       "Los Angeles is the reason we do this. In a city where a Saturday dinner reservation for twelve means three cars, ninety minutes of traffic, and a table you get pushed off at 9pm, a private hibachi chef in your own backyard is simply the better version of the evening. We bring the mobile teppanyaki grill, the food, and the full show — you stay home.",
-      "We cook across the whole city: Westside backyards, Hollywood Hills decks, Valley pools, DTLA rooftops, and Eastside bungalows. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, with setup and cleanup always included and any travel fee shown upfront before you pay anything.",
+      "We cook across the whole city: Westside backyards, Hollywood Hills decks, Valley pools, DTLA rooftops, and Eastside bungalows. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, with setup and cleanup always included and any travel fee shown upfront before you pay anything.",
     ],
     neighborhoods: [
       "Downtown LA",
@@ -138,7 +138,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Los Angeles?",
         answer:
-          "$59.90 per adult and $29.95 per child under 13, with a $599 event minimum. That covers the chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) is available too.",
+          "$59.90 per adult and $29.90 per child under 13, with a $599 event minimum. That covers the chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) is available too.",
       },
       {
         question: "Do I need to provide tables and chairs?",
@@ -157,7 +157,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef for DTLA lofts, rooftops, and offices. Arts District to South Park. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
     intro: [
       "Downtown LA parties happen on roofs, in loft courtyards, and in office spaces after hours — and almost none of them have a backyard. That is fine. Our teppanyaki grill is mobile, and a DTLA rooftop at sunset with the skyline behind the flame is one of the best rooms we cook in all year.",
-      "We serve the Arts District, South Park, Historic Core, Little Tokyo, Chinatown, and the surrounding blocks. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We serve the Arts District, South Park, Historic Core, Little Tokyo, Chinatown, and the surrounding blocks. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Arts District",
@@ -233,7 +233,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Downtown LA?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, plus any disclosed travel fee.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, plus any disclosed travel fee.",
       },
     ],
     nearby: ["los-angeles", "pasadena", "glendale"],
@@ -247,7 +247,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Hollywood and the Hollywood Hills — decks, pools, and rentals. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
     intro: [
       "Hollywood parties are usually one of two things: a hillside deck with a view, or a flats bungalow with a yard and string lights. Both are great hibachi venues, and both are far better than trying to get a group of fifteen into a Sunset restaurant on a Saturday night.",
-      "We cook throughout Hollywood, the Hollywood Hills, Beachwood Canyon, Los Feliz, and the surrounding blocks. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Hollywood, the Hollywood Hills, Beachwood Canyon, Los Feliz, and the surrounding blocks. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Hollywood Hills",
@@ -323,7 +323,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Hollywood?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
       },
     ],
     nearby: ["los-angeles", "west-hollywood", "glendale"],
@@ -337,7 +337,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in West Hollywood — courtyards, rooftop decks, and Norma Triangle backyards. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "West Hollywood is dense, walkable, and full of small outdoor spaces that turn out to be perfect hibachi venues — a Norma Triangle backyard, a building courtyard, a rooftop deck off Santa Monica Boulevard. The party is close-in, and the show reads better at close range than it does across a big lawn.",
-      "We cook throughout WeHo, from the Sunset Strip down to Beverly Grove and across to the Design District. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout WeHo, from the Sunset Strip down to Beverly Grove and across to the Design District. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Norma Triangle",
@@ -413,7 +413,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in West Hollywood?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included.",
       },
     ],
     nearby: ["beverly-hills", "hollywood", "los-angeles"],
@@ -427,7 +427,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Beverly Hills — poolside terraces, garden dinners, and estate events. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Beverly Hills homes were built for exactly this kind of evening: a terrace, a pool, a garden with room for a long table, and enough separation from the street that a live teppanyaki show never feels like an imposition. We bring the grill and the performance to you, and your guests never leave the property.",
-      "We cook across Beverly Hills, from the Flats to Trousdale and up into the canyons, plus Beverly Grove and Century City nearby. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included, with any travel fee disclosed upfront.",
+      "We cook across Beverly Hills, from the Flats to Trousdale and up into the canyons, plus Beverly Grove and Century City nearby. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included, with any travel fee disclosed upfront.",
     ],
     neighborhoods: [
       "The Flats",
@@ -513,7 +513,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Beverly Hills?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, with a $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup all included. Premium upgrades like filet and lobster are available.",
+          "$59.90 per adult, $29.90 per child under 13, with a $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup all included. Premium upgrades like filet and lobster are available.",
       },
     ],
     nearby: ["west-hollywood", "culver-city", "santa-monica"],
@@ -527,7 +527,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Culver City — backyard birthdays, studio team dinners, and Westside gatherings. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Culver City has the thing most of the Westside does not: actual backyards, on flat streets, with driveways to park in. That makes it one of the easiest cities we cook in, and one of the best value-for-effort hibachi venues in Los Angeles — the setup is simple, so the whole evening runs on time.",
-      "We cook throughout Culver City and the surrounding Westside, from Blair Hills and Carlson Park out to Mar Vista and Playa Vista. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Culver City and the surrounding Westside, from Blair Hills and Carlson Park out to Mar Vista and Playa Vista. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Carlson Park",
@@ -598,12 +598,12 @@ export const cityPages: CityPage[] = [
       {
         question: "Is this good for a kids' birthday party?",
         answer:
-          "It is one of the best things we do. The show holds children and adults at the same time, kids 5-12 are $29.95, and kids under 5 are a flat $5. We keep the flame work at a safe distance from the seating.",
+          "It is one of the best things we do. The show holds children and adults at the same time, kids 5-12 are $29.90, and kids under 5 are a flat $5. We keep the flame work at a safe distance from the seating.",
       },
       {
         question: "What does hibachi at home cost in Culver City?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) is available.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) is available.",
       },
     ],
     nearby: ["santa-monica", "beverly-hills", "los-angeles"],
@@ -617,7 +617,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Burbank — Magnolia Park backyards, studio team dinners, and Valley pool parties. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Burbank backyards are exactly the right size for this. Flat lots, real grass, a driveway to park in, and a fence line to set the grill against — it is the kind of setup where the chef is cooking within ten minutes of arriving and the whole evening runs early rather than late.",
-      "We cook across Burbank, Magnolia Park, the Rancho district, and the surrounding Valley cities. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook across Burbank, Magnolia Park, the Rancho district, and the surrounding Valley cities. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Magnolia Park",
@@ -693,7 +693,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Burbank?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["glendale", "los-angeles", "pasadena"],
@@ -707,7 +707,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Thousand Oaks and the Conejo Valley \u2014 big backyards, pool decks, and gated communities. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "The Conejo Valley has the two things that make a hibachi party easy: room and quiet. Backyards out here are big enough for a long table and thirty people, the streets are wide enough that the chef parks fifty feet from your gate, and nobody is close enough to mind an outdoor dinner running late.",
-      "We cook throughout Thousand Oaks, Westlake Village, Newbury Park, Agoura Hills, and the surrounding Conejo Valley. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Thousand Oaks, Westlake Village, Newbury Park, Agoura Hills, and the surrounding Conejo Valley. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Westlake Village",
@@ -783,7 +783,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Thousand Oaks?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["woodland-hills", "santa-clarita", "malibu"],
@@ -797,7 +797,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in West Covina and the eastern San Gabriel Valley \u2014 backyard parties, family banquets, graduations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "West Covina is about fifteen minutes from where our chefs load the truck, which makes it one of the easiest cities we serve and one of the few where we can often take a booking on shorter notice. The yards are the classic eastern San Gabriel Valley kind: flat, fenced, concrete patio, room for a long folding table and twenty-five people.",
-      "We cook throughout West Covina, Covina, Walnut, La Puente, Baldwin Park, and the surrounding SGV. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included, and no travel fee.",
+      "We cook throughout West Covina, Covina, Walnut, La Puente, Baldwin Park, and the surrounding SGV. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included, and no travel fee.",
     ],
     neighborhoods: [
       "South Hills",
@@ -873,7 +873,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in West Covina?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) is available.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) is available.",
       },
     ],
     nearby: ["rowland-heights", "diamond-bar", "whittier"],
@@ -887,7 +887,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Whittier \u2014 Uptown bungalows, hillside patios, and family backyards. $59.90/adult flat rate, setup & cleanup included, no travel fee.",
     intro: [
       "Whittier has two kinds of backyard and we cook in both: the older Uptown and Hadley lots with deep yards and mature trees, and the hillside homes above Whittier Boulevard with stepped patios and a view over the basin. Both make good hibachi venues; they just need different setups.",
-      "We cook across Whittier, La Habra Heights, Santa Fe Springs, Pico Rivera, and the surrounding area. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included, and no travel fee.",
+      "We cook across Whittier, La Habra Heights, Santa Fe Springs, Pico Rivera, and the surrounding area. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included, and no travel fee.",
     ],
     neighborhoods: [
       "Uptown Whittier",
@@ -963,7 +963,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Whittier?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["west-covina", "long-beach", "downtown-los-angeles"],
@@ -977,7 +977,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Arcadia — large backyards, family banquets, and Lunar New Year gatherings. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Arcadia has some of the largest residential lots in the San Gabriel Valley, and large lots are what make a hibachi party easy: room for the grill, room for a long table, and room for twenty-five people without anyone standing in the driveway. It is one of the best backyard-party cities in LA County and one of the least served by mobile hibachi chefs.",
-      "We cook throughout Arcadia, Santa Anita Oaks, Baldwin Stocker, and the neighboring SGV cities. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Arcadia, Santa Anita Oaks, Baldwin Stocker, and the neighboring SGV cities. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Santa Anita Oaks",
@@ -1053,7 +1053,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Arcadia?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) is available.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) is available.",
       },
     ],
     nearby: ["pasadena", "san-gabriel", "glendale"],
@@ -1067,7 +1067,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in San Gabriel and the SGV — family banquets, red egg parties, and backyard celebrations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "San Gabriel is one of the best food cities in America, which makes it a demanding place to cook — and a great one. The hibachi pitch here is not novelty; it is that a chef cooking teppanyaki in your own backyard means the whole family eats together, hot, at the same time, and nobody hosts from the kitchen all night.",
-      "We cook throughout San Gabriel, Alhambra, Rosemead, Monterey Park, and the surrounding SGV. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout San Gabriel, Alhambra, Rosemead, Monterey Park, and the surrounding SGV. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Mission District",
@@ -1133,7 +1133,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook for a big extended-family party?",
         answer:
-          "Yes. We add a second chef past 28 guests — give us the number when you book and we will scope it. Kids 5-12 are $29.95 and kids under 5 are a flat $5, which matters at a family party.",
+          "Yes. We add a second chef past 28 guests — give us the number when you book and we will scope it. Kids 5-12 are $29.90 and kids under 5 are a flat $5, which matters at a family party.",
       },
       {
         question: "Our backyard is small and paved. Is that a problem?",
@@ -1143,7 +1143,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in San Gabriel?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included, with no per-guest setup surcharge.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included, with no per-guest setup surcharge.",
       },
     ],
     nearby: ["arcadia", "pasadena", "rowland-heights"],
@@ -1157,7 +1157,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Rowland Heights — hillside backyards, family gatherings, and holiday banquets. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Rowland Heights sits on the hill side of the San Gabriel Valley, which means bigger lots, sloped yards, and views — and a lot of homes with the kind of wide rear patio a teppanyaki grill was made for. It is a strong hibachi city that almost nobody in this business serves properly.",
-      "We cook throughout Rowland Heights, Hacienda Heights, Walnut, Diamond Bar, and the eastern SGV. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Rowland Heights, Hacienda Heights, Walnut, Diamond Bar, and the eastern SGV. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Hacienda Heights",
@@ -1233,7 +1233,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Rowland Heights?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included.",
       },
     ],
     nearby: ["diamond-bar", "san-gabriel", "corona"],
@@ -1247,7 +1247,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Diamond Bar — hillside yards, pool decks, and family celebrations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Diamond Bar is hillside suburbia at its most hibachi-friendly: big lots, wide patios, pools, and quiet streets where an outdoor dinner party runs late without anyone minding. It sits at the corner of three counties and gets served properly by almost no one in this business.",
-      "We cook throughout Diamond Bar, Walnut, Chino Hills, Rowland Heights, and the surrounding area. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Diamond Bar, Walnut, Chino Hills, Rowland Heights, and the surrounding area. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "The Country Estates",
@@ -1323,7 +1323,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Diamond Bar?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["rowland-heights", "corona", "san-gabriel"],
@@ -1337,7 +1337,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Inglewood — backyard parties, game-day gatherings near SoFi, and family celebrations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Inglewood backyards are flat, fenced, and a good size — which is most of what a hibachi party needs. Add a game or a concert at SoFi and the Forum a few minutes away, and hosting at home stops being the fallback and starts being the obviously better plan.",
-      "We cook throughout Inglewood, Westchester, Hawthorne, Lennox, and the surrounding South Bay and Westside. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook throughout Inglewood, Westchester, Hawthorne, Lennox, and the surrounding South Bay and Westside. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Morningside Park",
@@ -1423,7 +1423,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Inglewood?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no per-guest setup surcharge.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no per-guest setup surcharge.",
       },
     ],
     nearby: ["culver-city", "torrance", "los-angeles"],
@@ -1437,7 +1437,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Malibu — oceanfront decks, canyon homes, and vacation rentals. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "A teppanyaki grill on a Malibu deck at sunset is close to the best version of this that exists. The ocean does the scenery, the chef does the show, and nobody has to drive PCH twice in one evening to get dinner.",
-      "We cook along the Malibu coast and up into the canyons, from Las Flores to Point Dume and Trancas. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included, with any travel fee disclosed upfront.",
+      "We cook along the Malibu coast and up into the canyons, from Las Flores to Point Dume and Trancas. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included, with any travel fee disclosed upfront.",
     ],
     neighborhoods: [
       "Point Dume",
@@ -1513,7 +1513,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Malibu?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup, and cleanup included, plus the disclosed travel fee.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup, and cleanup included, plus the disclosed travel fee.",
       },
     ],
     nearby: ["santa-monica", "culver-city", "woodland-hills"],
@@ -1527,7 +1527,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Woodland Hills and the West Valley — pool parties, big backyards, and family gatherings. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "The West Valley has the biggest backyards and the most pools of anywhere in the city, and from spring through fall those yards get used constantly. Woodland Hills is one of our highest-volume areas for exactly that reason — the setup is easy, the space is real, and the party stays outside all evening.",
-      "We cook across Woodland Hills, Warner Center, Tarzana, Encino, Calabasas, and the West Valley. Flat rate $59.90 per adult, $29.95 per child under 13, $599 event minimum, setup and cleanup included.",
+      "We cook across Woodland Hills, Warner Center, Tarzana, Encino, Calabasas, and the West Valley. Flat rate $59.90 per adult, $29.90 per child under 13, $599 event minimum, setup and cleanup included.",
     ],
     neighborhoods: [
       "Warner Center",
@@ -1603,7 +1603,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Woodland Hills?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon-Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["burbank", "santa-clarita", "malibu"],
@@ -1695,7 +1695,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How much does hibachi at home cost in San Diego?",
         answer:
-          "$59.90 per adult and $29.95 per child under 13, with a $599 event minimum. That includes the chef, grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup, and cleanup.",
+          "$59.90 per adult and $29.90 per child under 13, with a $599 event minimum. That includes the chef, grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup, and cleanup.",
       },
     ],
     nearby: ["oceanside", "temecula", "corona"],
@@ -1785,7 +1785,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Irvine?",
         answer:
-          "$59.90 per adult and $29.95 per child under 13 with a $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon–Thu, 15+ guests) is also available in California.",
+          "$59.90 per adult and $29.90 per child under 13 with a $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon–Thu, 15+ guests) is also available in California.",
       },
     ],
     nearby: ["newport-beach", "huntington-beach", "anaheim"],
@@ -1875,7 +1875,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Anaheim?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — including chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — including chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup.",
       },
     ],
     nearby: ["irvine", "huntington-beach", "long-beach"],
@@ -1974,7 +1974,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Long Beach?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, with a $599 event minimum — covering chef, grill, food, live show, setup, and cleanup.",
+          "$59.90 per adult, $29.90 per child under 13, with a $599 event minimum — covering chef, grill, food, live show, setup, and cleanup.",
       },
     ],
     nearby: ["torrance", "huntington-beach", "anaheim"],
@@ -2064,7 +2064,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Pasadena?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup all included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup all included.",
       },
     ],
     nearby: ["glendale", "santa-clarita", "santa-monica"],
@@ -2154,7 +2154,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Santa Monica?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
       },
     ],
     nearby: ["torrance", "glendale", "pasadena"],
@@ -2243,7 +2243,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Huntington Beach?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
       },
     ],
     nearby: ["newport-beach", "irvine", "long-beach"],
@@ -2333,7 +2333,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Riverside?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — everything included. Weekday Special ($45.90/adult, Mon–Thu, 15+ guests) applies in California too.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — everything included. Weekday Special ($45.90/adult, Mon–Thu, 15+ guests) applies in California too.",
       },
     ],
     nearby: ["corona", "temecula", "anaheim"],
@@ -2423,7 +2423,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Temecula?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
       },
     ],
     nearby: ["riverside", "corona", "oceanside"],
@@ -2512,7 +2512,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Santa Clarita?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
       },
     ],
     nearby: ["glendale", "pasadena", "santa-monica"],
@@ -2602,7 +2602,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Torrance?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
       },
     ],
     nearby: ["long-beach", "santa-monica", "huntington-beach"],
@@ -2692,7 +2692,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Newport Beach?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Upgrades optional.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Upgrades optional.",
       },
     ],
     nearby: ["irvine", "huntington-beach", "anaheim"],
@@ -2781,7 +2781,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Glendale?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
       },
     ],
     nearby: ["pasadena", "santa-clarita", "santa-monica"],
@@ -2870,7 +2870,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Corona?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special ($45.90/adult, Mon–Thu, 15+ guests) also applies.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special ($45.90/adult, Mon–Thu, 15+ guests) also applies.",
       },
     ],
     nearby: ["riverside", "anaheim", "temecula"],
@@ -2959,7 +2959,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Oceanside?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
       },
     ],
     nearby: ["san-diego", "temecula", "irvine"],
@@ -3049,7 +3049,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Palm Springs?",
         answer:
-          "$59.90 per adult, $29.95 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included, plus any disclosed travel fee.",
+          "$59.90 per adult, $29.90 per child under 13, $599 event minimum — chef, grill, food, show, setup, and cleanup included, plus any disclosed travel fee.",
       },
     ],
     nearby: ["temecula", "riverside", "corona"],
