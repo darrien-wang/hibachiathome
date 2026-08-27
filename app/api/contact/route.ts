@@ -167,11 +167,16 @@ export async function POST(request: Request) {
         })
       } catch (leadError) {
         leadPersistenceError = leadError instanceof Error ? leadError.message : String(leadError)
-        console.error("Lead upsert failed:", leadError)
+        console.error("[LEAD_PERSISTENCE_FAILED] contact", {
+          error: leadPersistenceError,
+          email,
+          phone,
+          sourcePage: resolvePathFromReferer(request.headers.get("referer")),
+        })
       }
     } else {
       leadPersistenceError = "Lead persistence is unavailable"
-      console.warn("[contact] Supabase is not configured; support notification path only.")
+      console.error("[LEAD_PERSISTENCE_FAILED] contact: Supabase client unavailable", { email })
     }
 
     if (!isOpsEmailEffectivelyHandled(supportNotification)) {

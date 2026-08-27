@@ -448,9 +448,23 @@ export async function POST(request: Request) {
         })
       } catch (error) {
         leadPersistenceError = error instanceof Error ? error.message : String(error)
+        // Loud on purpose: a booking request that reaches email but never reaches
+        // the database loses its UTM and gclid, which is how ad spend stops being
+        // attributable. Alert on the LEAD_PERSISTENCE_FAILED string.
+        console.error("[LEAD_PERSISTENCE_FAILED] booking-request", {
+          error: leadPersistenceError,
+          customerEmail,
+          customerPhone,
+          leadSource,
+          sourcePage,
+        })
       }
     } else {
       leadPersistenceError = "Lead persistence is unavailable"
+      console.error("[LEAD_PERSISTENCE_FAILED] booking-request: Supabase client unavailable", {
+        customerEmail,
+        leadSource,
+      })
     }
 
     if (!leadResult) {
