@@ -32,6 +32,14 @@ export type CityPage = {
   neighborhoods: string[]
   occasions: CityOccasion[]
   venues: CityVenue[]
+  // A party Chef Bling actually cooked in this city, in his own words.
+  // OPTIONAL AND STAYS OPTIONAL: only add one when there is a real party to
+  // describe. An invented story here would undo the point of the whole page.
+  story?: {
+    heading: string
+    body: string[]
+    readMore?: { label: string; href: string }
+  }
   // Two paragraphs on the practical stuff that is genuinely different in this
   // city: parking and street rules, HOA/permit reality, clearance, timing.
   // This is the section that proves we have actually worked here.
@@ -476,6 +484,16 @@ export const cityPages: CityPage[] = [
       "Gates and access are the Beverly Hills planning items. Many properties here have a call box, a gate code, or staff who need the chef's name in advance — without that, the chef sits at the gate while your party waits. Send the code or add the chef to the list when you confirm, and note whether the service entrance or the main drive is the right approach.",
       "Street parking is restricted on most residential blocks and enforced seriously, so a spot in the motor court or driveway for the chef is the norm here rather than a favor. Beyond that, Beverly Hills setups are among the smoothest we do: level hardscape, real space, and rarely a stair problem. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance — deep loggias and low pergolas are the one thing worth a photo in advance. During red-flag fire conditions in the canyons we keep the setup on hardscape well clear of brush.",
     ],
+    story: {
+      heading: "An estate here taught me the thing I did not expect",
+      body: [
+        "I cooked a party at a Beverly Hills estate that was everything you would imagine: space, staff, and a host who was extraordinarily generous. She sent every child home with a gift, and she tipped in a way I still remember.",
+        "The same year I cooked a grandmother's birthday in Inglewood, in a yard so small I could barely turn around.",
+        "Here is what I did not expect: the two parties felt the same. Not similar — the same. Same warmth, same noise, same people leaning in. The money here made that night memorable to me, but it is not what made it a good party. Take away the gifts and the tip and it is still a family that clearly loved each other, which is exactly what Inglewood was.",
+        "So when people ask whether their place is nice enough for this, that is my honest answer. The variable was never the yard, and it was never the budget.",
+      ],
+      readMore: { label: "Read the full story", href: "/blog/will-hibachi-work-in-my-space" },
+    },
     faqs: [
       {
         question: "Do you need gate access details in advance?",
@@ -1376,6 +1394,16 @@ export const cityPages: CityPage[] = [
       "Event days are the one thing to plan around in Inglewood. When SoFi, the Forum, or the Intuit Dome has something on, surrounding streets get closed, restricted, or filled by mid-afternoon, and getting a vehicle with a grill and coolers to your door becomes the hard part. Tell us if your date coincides with an event and we will set an earlier arrival window — it works fine, it just cannot be improvised on the day.",
       "The rest is simple: most Inglewood homes have a driveway, streets are flat, and load-in is short. Marine-layer evenings come in cool and a little damp near the coast side, so an earlier start or a patio heater keeps guests comfortable. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance, set on hardscape rather than soft lawn.",
     ],
+    story: {
+      heading: "The smallest backyard I ever cooked in was here",
+      body: [
+        "The space was tiny. I could barely turn around at the grill. By every measure I use to judge a venue — room, access, a flat spot for the station — it was a hard setup.",
+        "It was a grandmother's birthday.",
+        "I have cooked in big houses and small ones, and that night made something clear to me that I had only half understood before: whether you are rich or not, everybody gets the same amount of time, and time with your family is worth the same to all of us. Every hour you actually spend together is worth celebrating, even when the conditions are not generous.",
+        "A big backyard does not give you a good party. It just gives you room. So if you have been holding off because your Inglewood yard feels too small — I have cooked in smaller.",
+      ],
+      readMore: { label: "Read the full story", href: "/blog/will-hibachi-work-in-my-space" },
+    },
     faqs: [
       {
         question: "Can you still come if there is an event at SoFi that day?",
@@ -1918,6 +1946,15 @@ export const cityPages: CityPage[] = [
       "Belmont Shore and Naples parking is the biggest variable in a Long Beach booking. Second Street and the canal blocks are permit-heavy and full by early evening; if you can hold a driveway space or a spot on your block for the chef, do it. Naples in particular often means a walk over a bridge or down a walk-street, which is fine — just tell us at booking so the chef brings the cart.",
       "Coastal wind off the water is the other Long Beach factor. It rarely stops a party, but a grill placed in an exposed corner will fight it, so we look for a wall or fence to set against. Most Belmont Shore and Naples yards are small enough that the grill goes at one end and the table along the fence. The upside of the coastal air is that midday stays comfortable here most of the year, so lunch and afternoon bookings are a real option rather than a summer-only compromise. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance; low canal-side pergolas are worth photographing for us in advance.",
     ],
+    story: {
+      heading: "My very first at-home party was in Long Beach",
+      body: [
+        "I learned teppanyaki behind a fixed grill in a Benihana-style restaurant, where the room comes to you. In 2023 I took the same grill into a stranger's backyard for the first time, and it was here — ten people, a bachelorette party.",
+        "It went well in a way I had not earned yet. The group was warm, they helped without being asked, they laughed at the right moments, and at the end we all took a photo together.",
+        "That was three years and more than three hundred parties ago, and I still think about it, because it taught me the thing it took me another two years to be able to say out loud: the food is my job, but the party is theirs.",
+      ],
+      readMore: { label: "Read the full story", href: "/blog/three-states-one-grill" },
+    },
     faqs: [
       {
         question: "Our patio gets harbor wind in the evening — is that a problem?",

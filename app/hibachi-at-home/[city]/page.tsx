@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -318,6 +319,46 @@ export default function CityPage({ params }: { params: { city: string } }) {
           </div>
         </div>
       </section>
+
+      {/* A party we actually cooked here */}
+      {page.story && (
+        <section className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <figure className="max-w-3xl mx-auto rounded-2xl border border-[#e7dbc6] bg-[#fffdf8] p-8 md:p-10">
+              <p className="text-xs font-medium uppercase tracking-widest text-primary mb-3">
+                From the chef
+              </p>
+              <h2 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-5">
+                {page.story.heading}
+              </h2>
+              <blockquote className="space-y-4">
+                {page.story.body.map((paragraph) => (
+                  <p key={paragraph.slice(0, 32)} className="text-gray-700 leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))}
+              </blockquote>
+              <figcaption className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#e7dbc6] pt-5">
+                <Image
+                  src="/images/chef-bling.jpg"
+                  alt="Chef Bling"
+                  width={44}
+                  height={44}
+                  className="rounded-full object-cover"
+                />
+                <span className="text-sm text-gray-600">
+                  <strong className="text-gray-900">Chef Bling</strong> — Real Hibachi
+                </span>
+                {page.story.readMore && (
+                  <Link href={page.story.readMore.href} className="text-sm text-primary hover:underline">
+                    {page.story.readMore.label} →
+                  </Link>
+                )}
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+      )}
 
       {/* Where We Cook */}
       <section className="py-16 bg-white">
