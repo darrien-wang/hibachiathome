@@ -359,8 +359,25 @@ export default function QuoteBuilderClient() {
     || !eventTime
   const weekdaySaverRulesFailed = isWeekdaySaverTier && !result.weekdaySaver.isEligible
   const bookingRequestDisabled = missingRequiredBookingFields || weekdaySaverRulesFailed || bookingRequestSubmitting
+  // Name what is actually still empty. The old copy listed every required field
+  // regardless, which left the user hunting up a five-screen page for the one
+  // box they had missed.
+  const missingFieldLabels = [
+    !customerName.trim() && "your name",
+    !customerEmail.trim() && "email",
+    !customerPhone.trim() && "phone",
+    !input.eventDate && "event date",
+    !eventTime && "event time",
+    !input.location.trim() && "city or ZIP",
+    result.guestCount <= 0 && "guest count",
+  ].filter((label): label is string => Boolean(label))
+
   const bookingRequestHelperText = missingRequiredBookingFields
-    ? "Fill name, email, phone, date, time, and core quote details first."
+    ? `Still need ${
+        missingFieldLabels.length > 1
+          ? `${missingFieldLabels.slice(0, -1).join(", ")} and ${missingFieldLabels[missingFieldLabels.length - 1]}`
+          : missingFieldLabels[0]
+      }.`
     : "Weekday Special must be Monday-Thursday with at least 15 total guests."
   const bookingConfirmationDepositHref = useMemo(() => {
     if (!bookingConfirmation) return "/deposit/pay"
@@ -676,37 +693,6 @@ export default function QuoteBuilderClient() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-2">Customer Name *</label>
-                <Input
-                  type="text"
-                  value={customerName}
-                  placeholder="Your full name"
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Email *</label>
-                  <Input
-                    type="email"
-                    value={customerEmail}
-                    placeholder="you@example.com"
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Phone *</label>
-                  <Input
-                    type="tel"
-                    value={customerPhone}
-                    placeholder="(213) 555-1234"
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium mb-2">Event Date *</label>
                 <Input
                   type="date"
@@ -929,10 +915,47 @@ export default function QuoteBuilderClient() {
                 </p>
               </div>
 
+              {/* Contact details live here, not at the top of the form. On mobile the
+                  two cards stack, and having these 1,300px above the submit button was
+                  why phone users could see a price but never send a request. */}
+              <div className="rounded-lg border border-gray-200 p-4 space-y-4">
+                <p className="text-sm font-medium text-gray-900">Where should we send it?</p>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Customer Name *</label>
+                  <Input
+                    type="text"
+                    value={customerName}
+                    placeholder="Your full name"
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Email *</label>
+                    <Input
+                      type="email"
+                      value={customerEmail}
+                      placeholder="you@example.com"
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Phone *</label>
+                    <Input
+                      type="tel"
+                      value={customerPhone}
+                      placeholder="(213) 555-1234"
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {QUOTE_SLOTS_URGENCY_ENABLED && slotsLeft !== null && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
                   <p className="font-semibold">
-                    Only {slotsLeft} prime {slotsNoun} left for this date and time. Send your booking request now.
+                    Only {slotsLeft} prime {slotsNoun} left for this date and time.
+                    {bookingRequestDisabled ? " Finish the details above to hold it." : " Send your booking request now."}
                   </p>
                   <Button
                     onClick={onDepositLockClick}

@@ -106,7 +106,7 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *$59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
 `,
-    coverImage: "/images/chef-bling-at-the-grill.jpg",
+    coverImage: "/gallery/blog/real-hibachi-party-los-angeles-backyard-event-02.jpg",
     date: "2026-08-26",
     author: {
       name: "Chef Bling",
@@ -208,7 +208,7 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
 
 *$59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
 `,
-    coverImage: "/images/chef-bling-at-the-grill.jpg",
+    coverImage: "/gallery/blog/real-hibachi-party-orange-county-family-event-04.jpg",
     date: "2026-08-26",
     author: {
       name: "Chef Bling",
@@ -361,7 +361,7 @@ That's the whole picture. No line item I haven't mentioned.
 
 *Get an exact number for your date, guest count, and address — [instant quote here](/quoteA), no contact form required to see pricing. Or see [hibachi at home in Los Angeles](/hibachi-at-home/los-angeles) and [everywhere else we cook](/hibachi-at-home).*
 `,
-    coverImage: "/images/chef-bling-at-the-grill.jpg",
+    coverImage: "/gallery/blog/real-hibachi-party-los-angeles-group-dinner-09.jpg",
     date: "2026-08-26",
     author: {
       name: "Chef Bling",
@@ -470,7 +470,7 @@ So if you've been holding off because your space feels too small, or too plain, 
 
 *Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or from $45.90 with the Weekday Special (Mon–Thu, 15+ guests). Setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
 `,
-    coverImage: "/hibachi-group-selfie.jpg",
+    coverImage: "/gallery/blog/real-hibachi-party-los-angeles-chef-show-07.jpg",
     date: "2026-08-26",
     author: {
       name: "Chef Bling",
