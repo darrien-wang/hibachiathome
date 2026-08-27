@@ -25,6 +25,6 @@ export default function EstimationLegacyPage({ searchParams = {} }: EstimationLe
     query.set(key, value)
   }
 
-  const destination = query.toString() ? `/quoteA?${query.toString()}` : "/quoteA"
+  const destination = query.toString() ? `/quote?${query.toString()}` : "/quote"
   redirect(destination)
 }

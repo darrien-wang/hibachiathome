@@ -216,7 +216,7 @@ export default function HibachiAtHomePage() {
 
   const handleOnlineBooking = () => {
     trackEvent("lead_start")
-    router.push("/quoteA?source=seo_hibachi_at_home")
+    router.push("/quote?source=seo_hibachi_at_home")
   }
 
   const handleBookNow = (packageType: string) => {
@@ -231,7 +231,7 @@ export default function HibachiAtHomePage() {
     }
 
     trackEvent("lead_start")
-    router.push(`/quoteA?source=seo_hibachi_at_home_package&package=${packageType}`)
+    router.push(`/quote?source=seo_hibachi_at_home_package&package=${packageType}`)
   }
 
   const handleViewMenu = () => {
@@ -345,7 +345,7 @@ export default function HibachiAtHomePage() {
                 </div>
               </div>
               <Button asChild className="bg-primary hover:bg-primary/90">
-                <a href="/quoteA?source=seo_hibachi_at_home_la_oc">Book Hibachi at Home in LA</a>
+                <a href="/quote?source=seo_hibachi_at_home_la_oc">Book Hibachi at Home in LA</a>
               </Button>
             </div>
           </div>

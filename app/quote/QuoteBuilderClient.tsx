@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, X } from "lucide-react"
 import { siteConfig } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
+import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
 import {
   DEFAULT_REGION_CODE,
   getRegionalPolicySnapshot,
@@ -64,12 +65,6 @@ function encodeUrlComponent(value: string): string {
   return encodeURIComponent(value)
 }
 
-type QuoteBuilderVariant = "A" | "B"
-
-type QuoteBuilderClientProps = {
-  variant?: QuoteBuilderVariant
-}
-
 type WeatherPreview = {
   eventTimeLabel: string
   sunsetTime: string
@@ -113,7 +108,7 @@ function calculateSlotsLeft(eventDate: string, location: string): number | null 
   return (Math.abs(hash) % 4) + 1
 }
 
-export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClientProps) {
+export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
   const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
   const [customerName, setCustomerName] = useState("")
@@ -131,7 +126,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
   const [bookingRequestSubmitting, setBookingRequestSubmitting] = useState(false)
   const [bookingRequestError, setBookingRequestError] = useState("")
   const [bookingConfirmation, setBookingConfirmation] = useState<BookingConfirmation | null>(null)
-  const quoteSurface = variant === "B" ? "quote_builder_b" : "quote_builder_a"
+  const quoteSurface = "quote_builder"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
   const activeRegionDefinition = regionPolicySnapshot.region
   const weekdaySaverPolicy = regionPolicySnapshot.pricingPolicies.weekday_saver.definition
@@ -306,14 +301,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     }
   }, [input, result, quoteCompletedTracked, quoteSurface, weekdaySaverProteinsValue])
 
-  useEffect(() => {
-    trackEvent("ab_test_exposure", {
-      experiment_id: "quote_route_split_v1",
-      quote_variant: variant,
-      quote_surface: quoteSurface,
-    })
-  }, [quoteSurface, variant])
-
   const handleFieldChange = (field: keyof QuoteInput, value: string | number | boolean | undefined) => {
     if (!quoteStartIntentCaptured && QUOTE_STARTED_INPUT_FIELDS.includes(field)) {
       setQuoteStartIntentCaptured(true)
@@ -379,7 +366,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     if (!bookingConfirmation) return "/deposit/pay"
 
     const params = new URLSearchParams({
-      source: variant === "B" ? "quoteB" : "quoteA",
+      source: QUOTE_SOURCE,
       event_date: bookingConfirmation.eventDate,
       event_time: bookingConfirmation.eventTime,
       location: bookingConfirmation.location,
@@ -395,7 +382,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     }
 
     return `/deposit/pay?${params.toString()}`
-  }, [bookingConfirmation, variant])
+  }, [bookingConfirmation])
   const selectedPremiumUpgrades = useMemo(() => {
     const labels: string[] = []
     if (input.addOns.steak) labels.push("Filet Mignon")
@@ -474,21 +461,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
     setBookingRequestSubmitting(true)
     setBookingRequestError("")
     const bookingEventId = `booking_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-
-    trackEvent("ab_test_conversion", {
-      experiment_id: "quote_route_split_v1",
-      quote_variant: variant,
-      conversion_type: conversionType,
-      lead_source: quoteSurface,
-      city_or_zip: input.location || "unspecified",
-      event_date: input.eventDate || "unspecified",
-      event_time: eventTime || "unspecified",
-      tent_10x10: input.tent10x10,
-      quote_tier: input.pricingTier,
-      weekday_saver_proteins: weekdaySaverProteinsValue,
-      estimate_low: result.totalRange.low,
-      estimate_high: result.totalRange.high,
-    })
 
     trackEvent("booking_submit", {
       lead_source: quoteSurface,
@@ -685,9 +657,6 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
         ) : null}
 
         <div className="text-center mb-10">
-          <Badge variant="secondary" className="mb-4">
-            {variant === "B" ? "Quote Variant B" : "Quote Variant A"}
-          </Badge>
           <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Enter a few details to see an estimated range in seconds, then contact us with your quote prefilled.
@@ -960,7 +929,7 @@ export default function QuoteBuilderClient({ variant = "A" }: QuoteBuilderClient
                 </p>
               </div>
 
-              {variant === "B" && slotsLeft !== null && (
+              {QUOTE_SLOTS_URGENCY_ENABLED && slotsLeft !== null && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
                   <p className="font-semibold">
                     Only {slotsLeft} prime {slotsNoun} left for this date and time. Send your booking request now.

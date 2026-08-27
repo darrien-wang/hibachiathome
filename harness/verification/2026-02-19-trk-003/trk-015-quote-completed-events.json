@@ -1,0 +1,20 @@
+[
+  {
+    "event": "quote_completed",
+    "page_path": "/quote",
+    "page_title": "Get an Instant Hibachi Quote | Real Hibachi | Real Hibachi",
+    "quote_surface": "quote_builder",
+    "quote_tier": "standard",
+    "city_or_zip": "Irvine",
+    "tableware_rental": false,
+    "tent_10x10": false,
+    "add_on_steak": false,
+    "add_on_shrimp": false,
+    "add_on_lobster": false,
+    "weekday_saver_proteins": "n/a",
+    "guest_count": 10,
+    "estimate_low": 599,
+    "estimate_high": 599,
+    "budget_fit": "not_provided"
+  }
+]

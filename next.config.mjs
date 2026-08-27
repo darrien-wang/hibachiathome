@@ -35,6 +35,19 @@ const nextConfig = {
         destination: "/locations/la-orange-county",
         permanent: true,
       },
+      // Quote A/B routes consolidated into /quote (2026-08). The split test
+      // never ran - see config/quote-features.ts. These links are in the wild
+      // (blog posts, city pages, Marketplace replies), so keep them redirecting.
+      {
+        source: "/quoteA",
+        destination: "/quote",
+        permanent: true,
+      },
+      {
+        source: "/quoteB",
+        destination: "/quote",
+        permanent: true,
+      },
     ]
   },
 }

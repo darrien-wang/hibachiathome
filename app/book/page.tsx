@@ -12,15 +12,15 @@ export default function BookingPage() {
 
   const handleEstimation = () => {
     trackEvent("booking_funnel_start")
-    router.push("/quoteA?source=booking")
+    router.push("/quote?source=booking")
   }
 
   const handleInstantQuote = () => {
     trackEvent("booking_funnel_start", {
-      funnel_destination: "quoteA",
+      funnel_destination: "quote",
       funnel_entry: "book_instant_quote",
     })
-    router.push("/quoteA")
+    router.push("/quote")
   }
 
   return (

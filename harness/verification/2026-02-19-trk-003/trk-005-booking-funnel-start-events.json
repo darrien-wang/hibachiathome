@@ -1,0 +1,10 @@
+[
+  {
+    "event": "booking_funnel_start",
+    "page_path": "/book",
+    "page_title": "Book a Hibachi Chef | Reserve Your Date | Real Hibachi",
+    "funnel_destination": "quote",
+    "funnel_entry": "book_instant_quote",
+    "gtm.uniqueEventId": 4
+  }
+]

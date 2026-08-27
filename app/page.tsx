@@ -108,7 +108,7 @@ export default function Home() {
 
   const handleOnlineBooking = () => {
     trackEvent("lead_start")
-    router.push("/quoteA?source=booking")
+    router.push("/quote?source=booking")
   }
 
   const handleBookNow = (packageType: string) => {
@@ -217,7 +217,7 @@ export default function Home() {
       mapAlt: "Map of Southern California hibachi at home service area",
       coverage:
         "LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County",
-      quoteHref: "/quoteA?region=west-coast",
+      quoteHref: "/quote?region=west-coast",
     },
   ] as const
 
@@ -754,7 +754,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
                 <Button asChild className="bg-white text-amber-700 hover:bg-amber-50 min-w-[170px]">
-                  <Link href="/quoteA">Get Instant Quote</Link>
+                  <Link href="/quote">Get Instant Quote</Link>
                 </Button>
                 <Button
                   asChild

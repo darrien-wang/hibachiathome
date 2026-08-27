@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-02",
+  "owner": "Real Hibachi",
+  "default_landing_url": "https://www.realhibachi.com/quote",
+  "naming_rules": {
+    "case": "lowercase",
+    "separator": "_",
+    "allowed_pattern": "^[a-z0-9_{}-]+$",
+    "required_parameters": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign"
+    ],
+    "optional_parameters": [
+      "utm_content",
+      "utm_term"
+    ],
+    "do_not_use": [
+      "spaces",
+      "mixed casing",
+      "personal names",
+      "customer phone numbers",
+      "customer emails",
+      "free-form notes"
+    ]
+  },
+  "canonical_campaigns": {
+    "owned_2026_booking": {
+      "purpose": "Owned-channel quote and booking links that should not be counted as true direct traffic.",
+      "primary_url": "https://www.realhibachi.com/quote?utm_source={source}&utm_medium={medium}&utm_campaign=owned_2026_booking&utm_content={content}"
+    },
+    "la_search_clean_leads": {
+      "purpose": "Google Ads LA Search - Clean Leads final URL suffix or landing URL tagging.",
+      "primary_url": "https://www.realhibachi.com/quote?utm_source=google&utm_medium=cpc&utm_campaign=la_search_clean_leads&utm_term={keyword}&utm_content={creative}"
+    },
+    "partner_2026_booking": {
+      "purpose": "Partner or referral links where the partner name is known and stable.",
+      "primary_url": "https://www.realhibachi.com/quote?utm_source=partner_{partner_slug}&utm_medium=referral&utm_campaign=partner_2026_booking&utm_content={placement}"
+    }
+  },
+  "approved_channel_links": [
+    {
+      "channel": "instagram_bio",
+      "utm_source": "instagram",
+      "utm_medium": "social_profile",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "bio",
+      "url": "https://www.realhibachi.com/quote?utm_source=instagram&utm_medium=social_profile&utm_campaign=owned_2026_booking&utm_content=bio"
+    },
+    {
+      "channel": "instagram_story",
+      "utm_source": "instagram",
+      "utm_medium": "social_story",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "story_booking",
+      "url": "https://www.realhibachi.com/quote?utm_source=instagram&utm_medium=social_story&utm_campaign=owned_2026_booking&utm_content=story_booking"
+    },
+    {
+      "channel": "sms_manual_followup",
+      "utm_source": "sms",
+      "utm_medium": "sms",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "manual_followup",
+      "url": "https://www.realhibachi.com/quote?utm_source=sms&utm_medium=sms&utm_campaign=owned_2026_booking&utm_content=manual_followup"
+    },
+    {
+      "channel": "sms_deposit_followup",
+      "utm_source": "sms",
+      "utm_medium": "sms",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "deposit_followup",
+      "url": "https://www.realhibachi.com/quote?utm_source=sms&utm_medium=sms&utm_campaign=owned_2026_booking&utm_content=deposit_followup"
+    },
+    {
+      "channel": "support_chat_quote_link",
+      "utm_source": "livechat",
+      "utm_medium": "chat",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "support_quote_link",
+      "url": "https://www.realhibachi.com/quote?utm_source=livechat&utm_medium=chat&utm_campaign=owned_2026_booking&utm_content=support_quote_link"
+    },
+    {
+      "channel": "email_signature",
+      "utm_source": "email",
+      "utm_medium": "email",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "signature",
+      "url": "https://www.realhibachi.com/quote?utm_source=email&utm_medium=email&utm_campaign=owned_2026_booking&utm_content=signature"
+    },
+    {
+      "channel": "email_booking_followup",
+      "utm_source": "email",
+      "utm_medium": "email",
+      "utm_campaign": "owned_2026_booking",
+      "utm_content": "booking_followup",
+      "url": "https://www.realhibachi.com/quote?utm_source=email&utm_medium=email&utm_campaign=owned_2026_booking&utm_content=booking_followup"
+    },
+    {
+      "channel": "google_ads_final_url",
+      "utm_source": "google",
+      "utm_medium": "cpc",
+      "utm_campaign": "la_search_clean_leads",
+      "utm_term": "{keyword}",
+      "utm_content": "{creative}",
+      "url": "https://www.realhibachi.com/quote?utm_source=google&utm_medium=cpc&utm_campaign=la_search_clean_leads&utm_term={keyword}&utm_content={creative}"
+    },
+    {
+      "channel": "partner_link",
+      "utm_source": "partner_{partner_slug}",
+      "utm_medium": "referral",
+      "utm_campaign": "partner_2026_booking",
+      "utm_content": "{placement}",
+      "url": "https://www.realhibachi.com/quote?utm_source=partner_{partner_slug}&utm_medium=referral&utm_campaign=partner_2026_booking&utm_content={placement}"
+    }
+  ],
+  "reporting_rules": {
+    "true_direct_definition": "sessionDefaultChannelGroup is Direct and there is no utm_source, utm_medium, utm_campaign, gclid, wbraid, or gbraid attached to the session or conversion.",
+    "owned_traffic_group": [
+      "instagram / social_profile",
+      "instagram / social_story",
+      "sms / sms",
+      "livechat / chat",
+      "email / email"
+    ],
+    "paid_search_group": [
+      "google / cpc"
+    ],
+    "partner_group_pattern": "partner_* / referral",
+    "weekly_report_requirement": "Break out true direct, owned tagged traffic, paid search, organic search, ChatGPT referral, Bing organic, and partner referral before judging source quality."
+  }
+}

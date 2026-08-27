@@ -192,7 +192,7 @@
       "id": "DATA-003",
       "phase": "PHASE-1",
       "title": "Create UTM rules for controllable external links",
-      "status": "pending",
+      "status": "completed_verified",
       "priority": "P1",
       "type": "attribution",
       "why": "Direct traffic is currently the biggest source. Some of it may be untagged social, SMS, chat, or support traffic. UTM rules reduce attribution blind spots.",
@@ -212,6 +212,19 @@
         "Review live external links where accessible.",
         "Click test links and verify GA4 source/medium.",
         "Document approved UTM patterns."
+      ],
+      "verification_result": [
+        "2026-06-02: Added machine-readable UTM naming rules and approved channel link templates in config/utm-rules.json.",
+        "2026-06-02: Added operator-facing UTM attribution rules in harness/docs/utm-attribution-rules.md covering Instagram, SMS, support chat, email, Google Ads, and partner links.",
+        "2026-06-02: Verified each approved quote link includes utm_source, utm_medium, and utm_campaign.",
+        "2026-06-02: Defined weekly reporting rules to separate true direct traffic from owned tagged traffic, paid search, organic search, ChatGPT referral, and partner referral.",
+        "2026-06-02: Full click-to-GA4 source/medium verification is pending live replacement of Instagram bio, SMS templates, support chat templates, and partner links with the approved URLs."
+      ],
+      "remaining_work": [
+        "Replace the live Instagram bio link with the approved instagram/social_profile URL.",
+        "Replace SMS and support chat templates with the approved tagged URLs.",
+        "If Google Ads final URL suffix is used, apply the approved google/cpc/la_search_clean_leads UTM suffix without removing gclid auto-tagging.",
+        "After the live links are used, verify source/medium rows in GA4 standard reports."
       ],
       "depends_on": [
         "DATA-001"

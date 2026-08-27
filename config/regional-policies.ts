@@ -96,7 +96,7 @@ export function isDisplayModuleEnabledForRegion(module: RegionalDisplayModule, r
 }
 
 export function getRegionQuoteHref(region: RegionCode): string {
-  return `/quoteA?region=${REGION_DEFINITIONS[region].quoteRegionParam}`
+  return `/quote?region=${REGION_DEFINITIONS[region].quoteRegionParam}`
 }
 
 export type RegionalPolicySnapshot = {

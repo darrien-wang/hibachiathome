@@ -112,7 +112,7 @@ test("TRK-005: booking funnel start event fires on first booking interaction", a
   )
 
   await page.getByRole("button", { name: "Get Instant Quote" }).click()
-  await page.waitForURL(/\/quoteA(?:\?.*)?$/, { timeout: 20_000 })
+  await page.waitForURL(/\/quote(?:\?.*)?$/, { timeout: 20_000 })
 
   await page.waitForFunction(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
@@ -142,8 +142,8 @@ test("TRK-006: quote completion event includes required payload without undefine
 
   test.setTimeout(90_000)
 
-  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
-  await expect(page).toHaveTitle(/Quote A|Real Hibachi/i, { timeout: 20_000 })
+  await page.goto("/quote", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
 
   await page.waitForFunction(() =>
     Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
@@ -188,7 +188,7 @@ test("TRK-006: quote completion event includes required payload without undefine
 
   const undefinedEntries = Object.entries(latestEvent).filter(([, value]) => value === undefined)
   await expect(undefinedEntries).toHaveLength(0)
-  await expect(latestEvent.page_path).toBe("/quoteA")
+  await expect(latestEvent.page_path).toBe("/quote")
   await expect(Number(latestEvent.estimate_low)).toBeGreaterThan(0)
   await expect(Number(latestEvent.estimate_high)).toBeGreaterThanOrEqual(Number(latestEvent.estimate_low))
 
@@ -294,8 +294,8 @@ test("TRK-009: quote start emits quote_started with expected quote context", asy
 
   test.setTimeout(60_000)
 
-  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
-  await expect(page).toHaveTitle(/Quote A|Real Hibachi/i, { timeout: 20_000 })
+  await page.goto("/quote", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
 
   await page.waitForFunction(() =>
     Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
@@ -313,7 +313,7 @@ test("TRK-009: quote start emits quote_started with expected quote context", asy
 
   await expect(quoteStartedEvents.length).toBeGreaterThan(0)
   const latestEvent = quoteStartedEvents[quoteStartedEvents.length - 1] as Record<string, unknown>
-  await expect(latestEvent.quote_surface).toBe("quote_builder_a")
+  await expect(latestEvent.quote_surface).toBe("quote_builder")
   await expect(Number(latestEvent.adults)).toBeGreaterThan(0)
   await expect(typeof latestEvent.tableware_rental).toBe("boolean")
   await expect(typeof latestEvent.tent_10x10).toBe("boolean")
@@ -542,8 +542,8 @@ test("TRK-015: quote completion emits quote_completed with numeric estimate rang
 
   test.setTimeout(90_000)
 
-  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
-  await expect(page).toHaveTitle(/Quote A|Real Hibachi/i, { timeout: 20_000 })
+  await page.goto("/quote", { waitUntil: "domcontentloaded" })
+  await expect(page).toHaveTitle(/Real Hibachi/i, { timeout: 20_000 })
 
   await page.waitForFunction(() =>
     Array.isArray((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer),
@@ -697,7 +697,7 @@ test("TRK-018: core pages stay interactive on desktop and mobile after tracking 
 
   start = Date.now()
   await page.getByRole("button", { name: "Get Instant Quote" }).click()
-  await page.waitForURL(/\/quoteA(?:\?.*)?$/, { timeout: 20_000 })
+  await page.waitForURL(/\/quote(?:\?.*)?$/, { timeout: 20_000 })
   interactionLatency.desktop_book_to_quote_ms = Date.now() - start
 
   start = Date.now()

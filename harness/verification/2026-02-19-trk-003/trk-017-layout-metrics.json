@@ -1,0 +1,36 @@
+[
+  {
+    "path": "/",
+    "before": {
+      "x": 16,
+      "y": 41,
+      "width": 61.59375,
+      "height": 32
+    },
+    "after": {
+      "x": 16,
+      "y": 41,
+      "width": 61.59375,
+      "height": 32
+    },
+    "deltaY": 0,
+    "deltaHeight": 0
+  },
+  {
+    "path": "/book",
+    "before": {
+      "x": 16,
+      "y": 41,
+      "width": 61.59375,
+      "height": 32
+    },
+    "after": {
+      "x": 16,
+      "y": 41,
+      "width": 61.59375,
+      "height": 32
+    },
+    "deltaY": 0,
+    "deltaHeight": 0
+  }
+]

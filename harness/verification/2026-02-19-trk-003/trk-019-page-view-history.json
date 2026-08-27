@@ -1,0 +1,44 @@
+[
+  {
+    "event": "page_view",
+    "page_path": "/",
+    "page_title": "Hibachi at Home Los Angeles, OC & SoCal | Real Hibachi",
+    "gtm.uniqueEventId": 6
+  },
+  {
+    "event": "page_view",
+    "page_path": "/menu",
+    "page_title": "Hibachi at Home Menu & Pricing Los Angeles | Real Hibachi",
+    "gtm.uniqueEventId": 15
+  },
+  {
+    "event": "page_view",
+    "page_path": "/faq",
+    "page_title": "Hibachi at Home FAQ | Pricing, Setup & Booking Questions | Real Hibachi",
+    "gtm.uniqueEventId": 17
+  },
+  {
+    "event": "page_view",
+    "page_path": "/menu",
+    "page_title": "Hibachi at Home Menu & Pricing Los Angeles | Real Hibachi",
+    "gtm.uniqueEventId": 18
+  },
+  {
+    "event": "page_view",
+    "page_path": "/",
+    "page_title": "Hibachi at Home Los Angeles, OC & SoCal | Real Hibachi",
+    "gtm.uniqueEventId": 19
+  },
+  {
+    "event": "page_view",
+    "page_path": "/menu",
+    "page_title": "Hibachi at Home Menu & Pricing Los Angeles | Real Hibachi",
+    "gtm.uniqueEventId": 24
+  },
+  {
+    "event": "page_view",
+    "page_path": "/faq",
+    "page_title": "Hibachi at Home FAQ | Pricing, Setup & Booking Questions | Real Hibachi",
+    "gtm.uniqueEventId": 25
+  }
+]

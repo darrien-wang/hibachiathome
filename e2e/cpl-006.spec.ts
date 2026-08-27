@@ -10,7 +10,7 @@ function writeEvidence(filename: string, payload: unknown) {
 }
 
 test("CPL-006: quote SMS/Call/Email clicks emit lead_submit with qualified channel payload", async ({ page }) => {
-  await page.goto("/quoteA")
+  await page.goto("/quote")
 
   await page.evaluate(() => {
     ;(window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__ = true
@@ -65,7 +65,7 @@ test("CPL-006: quote SMS/Call/Email clicks emit lead_submit with qualified chann
         (entry) =>
           entry.lead_channel === check.channel &&
           entry.lead_type === "quote_contact" &&
-          entry.lead_source === "quote_builder_a",
+          entry.lead_source === "quote_builder",
       ) ?? null
 
     results.push({

@@ -53,7 +53,7 @@ test("CPL-009: quote deep link forwards CRM context into livechat message payloa
   })
 
   await page.goto(
-    "/quoteA?crm_conversation_id=conv_001&crm_channel=sms&crm_contact_id=ct_001&booking_id=RH-20260311-1234",
+    "/quote?crm_conversation_id=conv_001&crm_channel=sms&crm_contact_id=ct_001&booking_id=RH-20260311-1234",
     { waitUntil: "domcontentloaded" },
   )
 
@@ -75,9 +75,9 @@ test("CPL-009: quote deep link forwards CRM context into livechat message payloa
     Boolean(capturedRequest) &&
     capturedRequest?.source === "marketing_page" &&
     typeof capturedRequest?.initialPageUrl === "string" &&
-    capturedRequest.initialPageUrl.includes("/quoteA?") &&
+    capturedRequest.initialPageUrl.includes("/quote?") &&
     Boolean(contextMetadata) &&
-    contextMetadata?.path === "/quoteA" &&
+    contextMetadata?.path === "/quote" &&
     contextMetadata?.intent === "quote" &&
     contextMetadata?.page_group === "quote" &&
     contextMetadata?.source === "realhibachi-marketing" &&

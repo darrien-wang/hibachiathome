@@ -206,9 +206,14 @@ function mergeAttributionSources(params: {
   return normalizeAttributionInput(merged)
 }
 
+// "quote" is the current source; "quoteA"/"quoteB" are kept so in-flight
+// sessions and already-issued deposit links keep prefilling after the
+// /quoteA + /quoteB -> /quote consolidation.
+const PREFILL_SOURCES = new Set(["quote", "quoteA", "quoteB", "estimation"])
+
 function isPrefillSource(source?: string): boolean {
   if (!source) return false
-  return source === "quoteA" || source === "quoteB" || source === "estimation"
+  return PREFILL_SOURCES.has(source)
 }
 
 function resolveBookingId(input: { bookingId?: string; source?: string }): string | undefined {

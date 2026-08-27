@@ -10,7 +10,7 @@ function writeEvidence(filename: string, payload: unknown) {
 }
 
 test("CPL-008: quote_started emits only after first real input and only once", async ({ page }) => {
-  await page.goto("/quoteA")
+  await page.goto("/quote")
 
   const quoteStartedOnLoad = await page.evaluate(() => {
     const dataLayer = (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []
@@ -47,7 +47,7 @@ test("CPL-008: quote_started emits only after first real input and only once", a
     pass:
       quoteStartedOnLoad.length === 0 &&
       quoteStartedAfterAdditionalInputs.length === 1 &&
-      quoteStartedAfterAdditionalInputs[0]?.quote_surface === "quote_builder_a",
+      quoteStartedAfterAdditionalInputs[0]?.quote_surface === "quote_builder",
   }
 
   writeEvidence("cpl-008-quote-started-gating.json", summary)

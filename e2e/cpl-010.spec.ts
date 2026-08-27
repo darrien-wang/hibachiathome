@@ -18,7 +18,7 @@ test("CPL-010: launcher opens the embedded support panel and exposes expanded st
     })
   })
 
-  await page.goto("/quoteA", { waitUntil: "domcontentloaded" })
+  await page.goto("/quote", { waitUntil: "domcontentloaded" })
 
   const launcher = page.locator("#rh-livechat-widget-root button[aria-expanded]").first()
   await expect(launcher).toBeVisible({ timeout: 20_000 })
