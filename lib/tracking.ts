@@ -14,7 +14,6 @@ type TrackingEventName =
   | "social_video_engagement"
   | "phone_click"
   | "sms_click"
-  | "estimate_completed"
   | "lead_start"
   | "chat_widget_opened"
   | "chat_prompt_shown"

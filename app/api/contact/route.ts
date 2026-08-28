@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { createServerSupabaseClient } from "@/lib/supabase"
@@ -74,6 +75,12 @@ function extractContactDetailsFromMessage(message: string | undefined) {
 }
 
 export async function POST(request: Request) {
+  const limit = await rateLimit("contact", request, 5, 60)
+  if (!limit.ok) {
+    const { status, body } = tooManyRequests()
+    return NextResponse.json(body, { status })
+  }
+
   try {
     // Parse the request body
     const body = (await request.json()) as Record<string, unknown>
@@ -98,9 +105,13 @@ export async function POST(request: Request) {
     console.log("Received form submission:", { name, email, reason })
 
     // Validate required fields
-    if (!name || !email || !message) {
+    // A booking inquiry carries its substance in the date/headcount/location
+    // fields, not in prose. Requiring a written message turned "I want a quote"
+    // into "compose a paragraph first", which is the kind of ask a stranger on a
+    // phone declines. Name and email are what we actually cannot proceed without.
+    if (!name || !email) {
       console.log("Validation failed: Missing required fields")
-      return NextResponse.json({ error: "Name, email, and message are required" }, { status: 400 })
+      return NextResponse.json({ error: "Name and email are required" }, { status: 400 })
     }
 
     // Prepare email content

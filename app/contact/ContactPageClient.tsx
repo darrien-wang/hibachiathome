@@ -16,8 +16,7 @@ const SUPPORT_REASON_PATTERN = /support|feedback|refund|cancel|cancellation|resc
 export default function ContactPageClient() {
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
     phone: "",
     eventDate: "",
@@ -36,6 +35,7 @@ export default function ContactPageClient() {
     : "booking_inquiry"
   const submissionEventName: "contact_booking_inquiry_submit" | "support_submit" =
     submissionIntent === "booking_inquiry" ? "contact_booking_inquiry_submit" : "support_submit"
+  const isBookingInquiry = submissionIntent === "booking_inquiry"
   const submissionReason = reason || (submissionIntent === "booking_inquiry" ? "Booking Inquiry" : "Customer Support")
 
   useEffect(() => {
@@ -72,9 +72,15 @@ export default function ContactPageClient() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          name: formData.name.trim(),
           email: formData.email,
           phone: formData.phone,
+          // The API has always accepted these three (route.ts:95-104); the form just
+          // never sent them, so every inquiry arrived missing the date, headcount and
+          // location needed to actually quote it.
+          eventDate: formData.eventDate,
+          guestCount: formData.guestCount,
+          cityOrZip: formData.cityOrZip,
           reason: submissionReason,
           leadSource: "contact_page",
           leadChannel: "contact_form",
@@ -94,8 +100,7 @@ export default function ContactPageClient() {
         })
         setSubmitStatus("success")
         setFormData({
-          firstName: "",
-          lastName: "",
+          name: "",
           email: "",
           phone: "",
           eventDate: "",
@@ -147,7 +152,9 @@ export default function ContactPageClient() {
           </div>
 
           <div>
-            <h3 className="text-4xl font-serif font-bold mb-6 text-gray-900">Tell Us Your Event Details</h3>
+            <h3 className="text-4xl font-serif font-bold mb-6 text-gray-900">
+              {isBookingInquiry ? "Tell Us Your Event Details" : "How Can We Help?"}
+            </h3>
             <div className="space-y-6">
               {submitStatus === "success" && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -162,62 +169,120 @@ export default function ContactPageClient() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name (required)</label>
-                    <Input
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      required
-                      className="h-12 bg-white border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name (required)</label>
-                    <Input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      required
-                      className="h-12 bg-white border-gray-300"
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email (required)</label>
+                  <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-2">Name (required)</label>
                   <Input
-                    type="email"
-                    name="email"
-                    value={formData.email}
+                    id="contact-name"
+                    type="text"
+                    name="name"
+                    value={formData.name}
                     onChange={handleInputChange}
                     required
+                    autoComplete="name"
                     className="h-12 bg-white border-gray-300"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <Input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="h-12 bg-white border-gray-300"
-                  />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone {isBookingInquiry ? "(required)" : "(optional)"}
+                    </label>
+                    <Input
+                      id="contact-phone"
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required={isBookingInquiry}
+                      autoComplete="tel"
+                      inputMode="tel"
+                      className="h-12 bg-white border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">Email (required)</label>
+                    <Input
+                      id="contact-email"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      autoComplete="email"
+                      inputMode="email"
+                      className="h-12 bg-white border-gray-300"
+                    />
+                  </div>
                 </div>
 
+                {/* Without these three we cannot price anything, so we ask up front
+                    instead of spending an email round-trip on it. They stay optional:
+                    a half-filled inquiry still beats a bounced one. */}
+                {isBookingInquiry && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="contact-event-date" className="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
+                      <Input
+                        id="contact-event-date"
+                        type="date"
+                        name="eventDate"
+                        value={formData.eventDate}
+                        onChange={handleInputChange}
+                        className="h-12 bg-white border-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="contact-guest-count" className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+                      <Input
+                        id="contact-guest-count"
+                        type="number"
+                        min="1"
+                        name="guestCount"
+                        value={formData.guestCount}
+                        onChange={handleInputChange}
+                        inputMode="numeric"
+                        placeholder="10"
+                        className="h-12 bg-white border-gray-300"
+                      />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label htmlFor="contact-city-or-zip" className="block text-sm font-medium text-gray-700 mb-2">City or ZIP</label>
+                      <Input
+                        id="contact-city-or-zip"
+                        type="text"
+                        name="cityOrZip"
+                        value={formData.cityOrZip}
+                        onChange={handleInputChange}
+                        autoComplete="postal-code"
+                        placeholder="Irvine or 92602"
+                        className="h-12 bg-white border-gray-300"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Message (required)</label>
+                  <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-2">
+                    Message{" "}
+                    {isBookingInquiry ? (
+                      <span className="font-normal text-gray-500">(optional)</span>
+                    ) : (
+                      "(required)"
+                    )}
+                  </label>
                   <Textarea
+                    id="contact-message"
                     name="message"
                     value={formData.message}
                     onChange={handleInputChange}
-                    required
-                    rows={6}
+                    required={!isBookingInquiry}
+                    rows={4}
+                    placeholder={
+                      isBookingInquiry
+                        ? "Allergies, parking, indoor or outdoor — anything else we should know."
+                        : "Tell us what happened and we’ll make it right."
+                    }
                     className="bg-white border-gray-300"
                   />
                 </div>
