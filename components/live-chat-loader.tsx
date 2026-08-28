@@ -879,9 +879,16 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
         }}
       />
       {open ? (
+        // The panel is anchored to the bottom and grows upward, so its height has
+        // to be measured against the height the user can actually see. On Chrome
+        // for Android 100vh is the LARGE viewport - the height the page would have
+        // if the address bar were hidden - so while the address bar is showing the
+        // panel overshoots the top of the screen by roughly its height and clips
+        // its own header. 100dvh tracks the visible viewport instead. The vh rule
+        // stays first as the fallback for browsers without dvh (iOS < 15.4).
         <div
           id="rh-livechat-panel"
-          className="pointer-events-auto fixed bottom-24 right-4 z-[2147483000] flex h-[min(42rem,calc(100vh-8rem))] w-[min(94vw,25rem)] flex-col overflow-hidden rounded-[28px] border border-amber-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.24)]"
+          className="pointer-events-auto fixed bottom-24 right-4 z-[2147483000] flex h-[min(42rem,calc(100vh-8rem))] supports-[height:100dvh]:h-[min(42rem,calc(100dvh-8rem))] w-[min(94vw,25rem)] flex-col overflow-hidden rounded-[28px] border border-amber-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.24)]"
         >
           <div className="flex items-start justify-between gap-3 bg-[linear-gradient(135deg,#111827,#c2410c)] px-4 py-3 text-white">
             <div className="min-w-0">
