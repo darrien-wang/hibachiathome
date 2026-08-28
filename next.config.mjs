@@ -1,15 +1,14 @@
 /** @type {import('next').NextConfig} */
 
-// Every alternate/mirror hostname pointed at this deployment must 301 to the
-// canonical host, otherwise Google indexes duplicate copies of the whole site
-// (hibachidoge.com and hibachifamily.party were indexed as mirrors).
-const MIRROR_HOSTS = [
-  "realhibachi.com",
-  "hibachidoge.com",
-  "www.hibachidoge.com",
-  "hibachifamily.party",
-  "www.hibachifamily.party",
-]
+// The bare apex must 301 to the canonical www host, otherwise Google indexes
+// duplicate copies of the whole site.
+//
+// hibachidoge.com and hibachifamily.party used to redirect here as well, after
+// both were indexed as mirrors. Neither domain resolves any more (NXDOMAIN on
+// 2026-08-28), so those four rules matched nothing and are gone. If either is
+// ever re-registered and pointed at this deployment, add it back here before
+// it can be indexed as a mirror again.
+const MIRROR_HOSTS = ["realhibachi.com"]
 
 const nextConfig = {
   eslint: {
