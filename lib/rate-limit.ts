@@ -4,16 +4,22 @@
  * Uses Upstash Redis over its REST API via plain `fetch` - NO npm dependency,
  * so it never affects the build. It is ENV-GATED: if UPSTASH_REDIS_REST_URL /
  * UPSTASH_REDIS_REST_TOKEN are not set, every request is allowed (fail-open),
- * so the site behaves exactly as before until you provision Upstash and add
- * the two env vars in Vercel. Any Redis/network error also fails open, so a
+ * so the site behaves exactly as before until an Upstash database is attached.
+ * KV_REST_API_URL / KV_REST_API_TOKEN are accepted as equivalents. Any Redis/network error also fails open, so a
  * rate-limiter outage can never take the site down.
  *
  * Algorithm: fixed window. INCR a per-window counter and set its TTL on first
  * hit. Best-effort and stateless-friendly (works on Vercel serverless).
  */
 
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL?.trim()
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
+// Two naming conventions reach the same Upstash REST endpoint, and which one
+// you get depends on how the database was attached. Connecting a database
+// through the Vercel Marketplace injects the KV_REST_API_* pair; creating one
+// at upstash.com and pasting the values yourself gives you UPSTASH_REDIS_REST_*.
+// Accept either, so the limiter turns on whichever route was taken rather than
+// silently staying a no-op because the names did not match.
+const REDIS_URL = (process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL)?.trim()
+const REDIS_TOKEN = (process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN)?.trim()
 
 export type RateLimitResult = {
   ok: boolean
