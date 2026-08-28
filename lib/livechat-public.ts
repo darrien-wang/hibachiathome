@@ -2,7 +2,19 @@ import { createHash, randomUUID } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 export const LIVECHAT_VISITOR_COOKIE_NAME = "rh_livechat_visitor"
-export const LIVECHAT_FIRST_REPLY_TIMEOUT_MS = 5 * 60 * 1000
+// How long a visitor waits for a human before the widget answers for us.
+//
+// Five minutes was long enough that people left first: someone asked "What are
+// the steps to book?" and got the auto-reply five minutes later, by which point
+// the question had gone unanswered longer than most visitors stay on the site.
+// Ninety seconds is roughly how long someone will sit and watch a chat window
+// before giving up, and the reply now carries a link that answers the question
+// on its own, so firing it early costs nothing even when an agent is about to
+// arrive - the conversation stays open and a human can still reply after it.
+//
+// Set for peak season (Sept-Dec). Worth lengthening again when there is someone
+// reliably watching the inbox.
+export const LIVECHAT_FIRST_REPLY_TIMEOUT_MS = 90 * 1000
 // Sent when nobody has answered a visitor within LIVECHAT_FIRST_REPLY_TIMEOUT_MS.
 // The previous version asked them to phone us, which hands the next step to
 // whoever is too busy to be typing. Lead with the path that needs nobody: the
