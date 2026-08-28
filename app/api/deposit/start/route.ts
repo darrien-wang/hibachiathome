@@ -5,8 +5,16 @@ import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
+import { escapeHtml } from "@/lib/escape-html"
 
 export const runtime = "nodejs"
+
+// Public, unauthenticated endpoint that creates a Stripe session, inserts a
+// booking row, and sends an ops email on every hit - throttle per IP to block
+// spam/cost-amplification abuse. No-ops until Upstash env vars are set.
+const DEPOSIT_START_LIMIT = 8
+const DEPOSIT_START_WINDOW_SECONDS = 60
 
 type DepositStartPayload = {
   bookingId?: string
@@ -612,12 +620,12 @@ async function sendOpsLeadNotification(params: {
     "<p>New Real Hibachi lead reached deposit checkout.</p>",
     `<p><strong>Booking Ref:</strong> ${bookingRef}</p>`,
     `<p><strong>Stripe Session ID:</strong> ${params.sessionId}</p>`,
-    `<p><strong>Source:</strong> ${source}</p>`,
-    `<p><strong>Customer Name:</strong> ${params.payload.customerName ?? "N/A"}</p>`,
-    `<p><strong>Customer Email:</strong> ${params.payload.customerEmail ?? "N/A"}</p>`,
-    `<p><strong>Event Date:</strong> ${params.payload.eventDate ?? "N/A"}</p>`,
-    `<p><strong>Event Time:</strong> ${params.payload.eventTime ?? "N/A"}</p>`,
-    `<p><strong>Location:</strong> ${params.payload.location ?? "N/A"}</p>`,
+    `<p><strong>Source:</strong> ${escapeHtml(source)}</p>`,
+    `<p><strong>Customer Name:</strong> ${escapeHtml(params.payload.customerName ?? "N/A")}</p>`,
+    `<p><strong>Customer Email:</strong> ${escapeHtml(params.payload.customerEmail ?? "N/A")}</p>`,
+    `<p><strong>Event Date:</strong> ${escapeHtml(params.payload.eventDate ?? "N/A")}</p>`,
+    `<p><strong>Event Time:</strong> ${escapeHtml(params.payload.eventTime ?? "N/A")}</p>`,
+    `<p><strong>Location:</strong> ${escapeHtml(params.payload.location ?? "N/A")}</p>`,
     `<p><strong>Guests:</strong> adults=${params.payload.adults ?? 0}, kids=${params.payload.kids ?? 0}</p>`,
     `<p><strong>Estimate Range:</strong> ${estimateRange}</p>`,
     `<p><strong>Deposit Amount:</strong> ${formatUsd(params.depositAmount)}</p>`,
@@ -705,6 +713,12 @@ async function createCheckoutSession(
 }
 
 export async function POST(request: NextRequest) {
+  const limit = await rateLimit("deposit-start", request, DEPOSIT_START_LIMIT, DEPOSIT_START_WINDOW_SECONDS)
+  if (!limit.ok) {
+    const { status, body } = tooManyRequests()
+    return NextResponse.json(body, { status })
+  }
+
   let rawPayload: unknown
 
   try {
@@ -746,6 +760,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const limit = await rateLimit("deposit-start", request, DEPOSIT_START_LIMIT, DEPOSIT_START_WINDOW_SECONDS)
+  if (!limit.ok) {
+    const { status, body } = tooManyRequests()
+    return NextResponse.json(body, { status })
+  }
+
   const payload = parseGetPayload(request)
   const attribution = buildResolvedAttribution(request, payload)
 

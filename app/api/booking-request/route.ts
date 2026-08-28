@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
+import { escapeHtml } from "@/lib/escape-html"
+
 import { trackBookingSubmitServer } from "@/lib/ga4-measurement-protocol"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
 import { sendSupportNotificationEmail, isOpsEmailEffectivelyHandled } from "@/lib/ops-notifications"
@@ -260,15 +263,15 @@ async function sendCustomerBookingConfirmationEmail(params: {
 
   const html = `
     <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-      <p>Hi ${params.customerName},</p>
+      <p>Hi ${escapeHtml(params.customerName)},</p>
       <p>Your booking request has been received.</p>
       <p>We will contact you as soon as possible to confirm menu details, chef availability, and the remaining booking steps.</p>
       <div style="margin: 20px 0; padding: 16px; border: 1px solid #d1d5db; border-radius: 16px; background: #f8fafc;">
-        <p><strong>Event Date:</strong> ${params.eventDate}</p>
-        <p><strong>Event Time:</strong> ${params.eventTime}</p>
-        <p><strong>Location:</strong> ${params.location}</p>
+        <p><strong>Event Date:</strong> ${escapeHtml(params.eventDate)}</p>
+        <p><strong>Event Time:</strong> ${escapeHtml(params.eventTime)}</p>
+        <p><strong>Location:</strong> ${escapeHtml(params.location)}</p>
         <p><strong>Guests:</strong> ${params.adults} adults, ${params.kids} kids</p>
-        <p><strong>Pricing Tier:</strong> ${params.pricingTierLabel}</p>
+        <p><strong>Pricing Tier:</strong> ${escapeHtml(params.pricingTierLabel)}</p>
         <p><strong>Estimated Range:</strong> $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}</p>
       </div>
       <p>If you need anything in the meantime, reply to this email or contact <a href="mailto:support@realhibachi.com">support@realhibachi.com</a>.</p>
@@ -311,6 +314,12 @@ async function sendCustomerBookingConfirmationEmail(params: {
 }
 
 export async function POST(request: Request) {
+  const limit = await rateLimit("booking-request", request, 5, 60)
+  if (!limit.ok) {
+    const { status, body } = tooManyRequests()
+    return NextResponse.json(body, { status })
+  }
+
   try {
     const body = (await request.json()) as Record<string, unknown>
 
@@ -371,44 +380,6 @@ export async function POST(request: Request) {
       "No deposit was collected. Please contact this customer to finalize the booking.",
     ].join("\n")
 
-    const supportHtml = `
-      <h2>New Website Booking Request</h2>
-      <p><strong>Customer:</strong> ${customerName}</p>
-      <p><strong>Email:</strong> ${customerEmail}</p>
-      <p><strong>Phone:</strong> ${customerPhone}</p>
-      <p><strong>Event Date:</strong> ${eventDate}</p>
-      <p><strong>Event Time:</strong> ${eventTime}</p>
-      <p><strong>Location:</strong> ${location}</p>
-      <p><strong>Guests:</strong> ${adults} adults, ${kids} kids</p>
-      <p><strong>Pricing Tier:</strong> ${pricingTierLabel}</p>
-      <p><strong>Estimated Range:</strong> $${estimateLow.toFixed(0)} - $${estimateHigh.toFixed(0)}</p>
-      <p><strong>Tableware Rental:</strong> ${tablewareRental ? "Yes" : "No"}</p>
-      <p><strong>10'x10' Tent:</strong> ${tent10x10 ? "Yes" : "No"}</p>
-      <p><strong>Premium Upgrades:</strong> ${premiumUpgrades.length > 0 ? premiumUpgrades.join(", ") : "None"}</p>
-      <p><strong>Quote Summary:</strong> ${quoteSummary || "N/A"}</p>
-      <p><strong>Next Step:</strong> No deposit was collected. Please contact this customer to finalize the booking.</p>
-    `
-
-    const supportNotification = await sendSupportNotificationEmail({
-      subject: "Website Booking Request",
-      text: supportText,
-      html: supportHtml,
-      replyTo: customerEmail,
-    })
-
-    const customerConfirmation = await sendCustomerBookingConfirmationEmail({
-      customerEmail,
-      customerName,
-      eventDate,
-      eventTime,
-      location,
-      adults,
-      kids,
-      estimateLow,
-      estimateHigh,
-      pricingTierLabel,
-    })
-
     let leadResult: Awaited<ReturnType<typeof upsertLeadFromContact>> | null = null
     let leadPersistenceError: string | null = null
     let bookingFallback:
@@ -466,6 +437,59 @@ export async function POST(request: Request) {
         leadSource,
       })
     }
+
+    // A lead that reaches this inbox but never reached the database is only
+    // recoverable if whoever opens the email knows to copy it out. Say so at the
+    // top, where it cannot be missed, instead of only in a log nobody opens.
+    const leadWarningHtml = leadPersistenceError
+      ? `<div style="border:2px solid #b91c1c;background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px">
+          <p style="margin:0;color:#7f1d1d;font-weight:bold">NOT SAVED TO THE DATABASE &mdash; copy these details out of this email.</p>
+          <p style="margin:6px 0 0;color:#7f1d1d">Reason: ${escapeHtml(leadPersistenceError)}</p>
+        </div>`
+      : ""
+    const leadWarningText = leadPersistenceError
+      ? `!! NOT SAVED TO THE DATABASE - copy these details out of this email.\n!! Reason: ${leadPersistenceError}\n\n`
+      : ""
+
+    const supportHtml = `
+      ${leadWarningHtml}
+      <h2>New Website Booking Request</h2>
+      <p><strong>Customer:</strong> ${escapeHtml(customerName)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(customerEmail)}</p>
+      <p><strong>Phone:</strong> ${escapeHtml(customerPhone)}</p>
+      <p><strong>Event Date:</strong> ${escapeHtml(eventDate)}</p>
+      <p><strong>Event Time:</strong> ${escapeHtml(eventTime)}</p>
+      <p><strong>Location:</strong> ${escapeHtml(location)}</p>
+      <p><strong>Guests:</strong> ${adults} adults, ${kids} kids</p>
+      <p><strong>Pricing Tier:</strong> ${escapeHtml(pricingTierLabel)}</p>
+      <p><strong>Estimated Range:</strong> $${estimateLow.toFixed(0)} - $${estimateHigh.toFixed(0)}</p>
+      <p><strong>Tableware Rental:</strong> ${tablewareRental ? "Yes" : "No"}</p>
+      <p><strong>10'x10' Tent:</strong> ${tent10x10 ? "Yes" : "No"}</p>
+      <p><strong>Premium Upgrades:</strong> ${escapeHtml(premiumUpgrades.length > 0 ? premiumUpgrades.join(", ") : "None")}</p>
+      <p><strong>Quote Summary:</strong> ${escapeHtml(quoteSummary || "N/A")}</p>
+      <p><strong>Next Step:</strong> No deposit was collected. Please contact this customer to finalize the booking.</p>
+    `
+
+    const supportNotification = await sendSupportNotificationEmail({
+      subject: leadPersistenceError ? "Website Booking Request [NOT SAVED TO DB]" : "Website Booking Request",
+      text: leadWarningText + supportText,
+      html: supportHtml,
+      replyTo: customerEmail,
+    })
+
+    const customerConfirmation = await sendCustomerBookingConfirmationEmail({
+      customerEmail,
+      customerName,
+      eventDate,
+      eventTime,
+      location,
+      adults,
+      kids,
+      estimateLow,
+      estimateHigh,
+      pricingTierLabel,
+    })
+
 
     if (!leadResult) {
       bookingFallback = await persistBookingRequestFallback({

@@ -34,7 +34,26 @@ const nextConfig = {
     ]
   },
   async headers() {
+    // Baseline security headers applied to every route. Intentionally omits a
+    // Content-Security-Policy: the site loads Google Maps, GA, and Stripe, so
+    // a CSP must be authored separately (start with Report-Only) to avoid
+    // breaking those third parties. HSTS uses includeSubDomains but NOT
+    // preload - add `; preload` and submit to hstspreload.org only once every
+    // subdomain is guaranteed HTTPS, since preload is hard to reverse.
+    const securityHeaders = [
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "geolocation=(), microphone=(), camera=()" },
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+    ]
+
     return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
       {
         source: "/chef-handbook",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { escapeHtml } from "@/lib/escape-html"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
@@ -114,42 +115,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 })
     }
 
-    // Prepare email content
-    const emailHtml = `
-      <h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
-      <p><strong>Reason:</strong> ${reason || "Not specified"}</p>
-      ${eventDate ? `<p><strong>Event Date:</strong> ${eventDate}</p>` : ""}
-      ${guestCount ? `<p><strong>Guest Count:</strong> ${guestCount}</p>` : ""}
-      ${cityOrZip ? `<p><strong>City/ZIP:</strong> ${cityOrZip}</p>` : ""}
-      <h3>Message:</h3>
-      <p>${message.replace(/\n/g, "<br>")}</p>
-    `
-    const emailText = [
-      "New Contact Form Submission",
-      `Name: ${name}`,
-      `Email: ${email}`,
-      `Reason: ${reason || "Not specified"}`,
-      phone ? `Phone: ${phone}` : null,
-      eventDate ? `Event Date: ${eventDate}` : null,
-      guestCount ? `Guest Count: ${guestCount}` : null,
-      cityOrZip ? `City/ZIP: ${cityOrZip}` : null,
-      "",
-      "Message:",
-      message,
-    ]
-      .filter((line): line is string => Boolean(line))
-      .join("\n")
-
-    const supportNotification = await sendSupportNotificationEmail({
-      subject: `Contact Form: ${reason || "General Inquiry"}`,
-      text: emailText,
-      html: emailHtml,
-      replyTo: email,
-    })
-
     let leadResult: Awaited<ReturnType<typeof upsertLeadFromContact>> | null = null
     let leadPersistenceError: string | null = null
 
@@ -189,6 +154,57 @@ export async function POST(request: Request) {
       leadPersistenceError = "Lead persistence is unavailable"
       console.error("[LEAD_PERSISTENCE_FAILED] contact: Supabase client unavailable", { email })
     }
+
+    // A lead that reaches this inbox but never reached the database is only
+    // recoverable if whoever opens the email knows to copy it out. Say so at the
+    // top, where it cannot be missed, instead of only in a log nobody opens.
+    const leadWarningHtml = leadPersistenceError
+      ? `<div style="border:2px solid #b91c1c;background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px">
+          <p style="margin:0;color:#7f1d1d;font-weight:bold">NOT SAVED TO THE DATABASE &mdash; copy these details out of this email.</p>
+          <p style="margin:6px 0 0;color:#7f1d1d">Reason: ${escapeHtml(leadPersistenceError)}</p>
+        </div>`
+      : ""
+    const leadWarningText = leadPersistenceError
+      ? `!! NOT SAVED TO THE DATABASE - copy these details out of this email.\n!! Reason: ${leadPersistenceError}\n\n`
+      : ""
+
+    // Prepare email content
+    const emailHtml = `
+      ${leadWarningHtml}
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+      ${phone ? `<p><strong>Phone:</strong> ${escapeHtml(phone)}</p>` : ""}
+      <p><strong>Reason:</strong> ${escapeHtml(reason || "Not specified")}</p>
+      ${eventDate ? `<p><strong>Event Date:</strong> ${escapeHtml(eventDate)}</p>` : ""}
+      ${guestCount ? `<p><strong>Guest Count:</strong> ${escapeHtml(guestCount)}</p>` : ""}
+      ${cityOrZip ? `<p><strong>City/ZIP:</strong> ${escapeHtml(cityOrZip)}</p>` : ""}
+      <h3>Message:</h3>
+      <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
+    `
+    const emailText = [
+      "New Contact Form Submission",
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Reason: ${reason || "Not specified"}`,
+      phone ? `Phone: ${phone}` : null,
+      eventDate ? `Event Date: ${eventDate}` : null,
+      guestCount ? `Guest Count: ${guestCount}` : null,
+      cityOrZip ? `City/ZIP: ${cityOrZip}` : null,
+      "",
+      "Message:",
+      message,
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join("\n")
+
+    const supportNotification = await sendSupportNotificationEmail({
+      subject: `Contact Form: ${reason || "General Inquiry"}${leadPersistenceError ? " [NOT SAVED TO DB]" : ""}`,
+      text: leadWarningText + emailText,
+      html: emailHtml,
+      replyTo: email,
+    })
+
 
     if (!isOpsEmailEffectivelyHandled(supportNotification)) {
       console.error("[contact] Support notification was not delivered.", {
