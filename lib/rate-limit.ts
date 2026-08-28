@@ -12,14 +12,57 @@
  * hit. Best-effort and stateless-friendly (works on Vercel serverless).
  */
 
-// Two naming conventions reach the same Upstash REST endpoint, and which one
-// you get depends on how the database was attached. Connecting a database
-// through the Vercel Marketplace injects the KV_REST_API_* pair; creating one
-// at upstash.com and pasting the values yourself gives you UPSTASH_REDIS_REST_*.
-// Accept either, so the limiter turns on whichever route was taken rather than
-// silently staying a no-op because the names did not match.
-const REDIS_URL = (process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL)?.trim()
-const REDIS_TOKEN = (process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN)?.trim()
+// Finding the credentials is its own problem. The same Upstash REST endpoint
+// arrives under different names depending on how the database was attached:
+// UPSTASH_REDIS_REST_URL/TOKEN when the values are pasted in by hand,
+// KV_REST_API_URL/TOKEN through the Vercel Marketplace - and the Marketplace
+// dialog also offers a "Custom Prefix" that renames the pair to anything at all.
+//
+// A name that does not match produces no error, just a limiter that quietly
+// never limits, which is indistinguishable from a working one until someone
+// abuses the endpoint. So: try the two known pairs, then fall back to finding
+// any prefix that carries both a URL and a token. There is one Redis here, so
+// an unambiguous match is the right one.
+function resolveRedisCredentials(): { url?: string; token?: string; source: string } {
+  const known: Array<[string, string]> = [
+    ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+    ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
+  ]
+
+  for (const [urlKey, tokenKey] of known) {
+    const url = process.env[urlKey]?.trim()
+    const token = process.env[tokenKey]?.trim()
+    if (url && token) return { url, token, source: urlKey }
+  }
+
+  // Custom prefix: <PREFIX>_REST_API_URL / <PREFIX>_REST_API_TOKEN, or
+  // <PREFIX>_REDIS_REST_URL / <PREFIX>_REDIS_REST_TOKEN.
+  for (const suffix of ["_REST_API_URL", "_REDIS_REST_URL"]) {
+    for (const key of Object.keys(process.env)) {
+      if (!key.endsWith(suffix)) continue
+      const url = process.env[key]?.trim()
+      const tokenKey = key.slice(0, -"_URL".length) + "_TOKEN"
+      const token = process.env[tokenKey]?.trim()
+      // Only REST endpoints work over fetch; a redis:// connection string does not.
+      if (url && token && /^https?:\/\//.test(url)) {
+        return { url, token, source: key }
+      }
+    }
+  }
+
+  return { source: "none" }
+}
+
+const { url: REDIS_URL, token: REDIS_TOKEN, source: REDIS_CREDENTIAL_SOURCE } = resolveRedisCredentials()
+
+// One line at cold start saying whether limiting is on, and which variable it
+// came from. Without it, "configured but not working" and "not configured" look
+// identical from the outside.
+console.log(
+  REDIS_URL && REDIS_TOKEN
+    ? `[rate-limit] active, credentials from ${REDIS_CREDENTIAL_SOURCE}`
+    : "[rate-limit] INACTIVE - no Upstash REST credentials found; every request is allowed",
+)
 
 export type RateLimitResult = {
   ok: boolean
