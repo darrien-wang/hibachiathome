@@ -17,7 +17,7 @@ export default function MenuItemCard({ id, title, price, image, description }: M
         <Image
           src={
             image ||
-            "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/chiken_shrimps-gk9raxJIf9vMkA73P0D1R7AxNnwx4J.jpg" ||
+            "/images/menu/chicken-and-beef.jpg" ||
             "/placeholder.svg"
           }
           alt={title}

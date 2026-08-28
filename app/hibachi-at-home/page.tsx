@@ -598,8 +598,8 @@ export default function HibachiAtHomePage() {
                     autoPlay
                     muted
                     loop
-                    poster="/hibachi-party.png"
-                    src="/videos/hibachi-party-experience.mp4"
+                    poster="/gallery/real-hibachi-party-orange-county-backyard-video-02-poster.jpg"
+                    src="/gallery/real-hibachi-party-orange-county-backyard-video-02.mp4"
                   />
                 </div>
               </div>
@@ -645,8 +645,8 @@ export default function HibachiAtHomePage() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real%20fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                    poster="/gallery/real-hibachi-party-los-angeles-live-cooking-video-03-poster.jpg"
+                    src="/videos/real-fire.mp4"
                   />
                 </div>
               </div>
@@ -678,18 +678,18 @@ export default function HibachiAtHomePage() {
             </AnimateOnScroll>
 
             <AnimateOnScroll>
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
+              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[177.78%] h-0">
                   <video
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                    poster="/gallery/real-hibachi-party-southern-california-event-video-04-poster.jpg"
                   >
                     <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                      src="/gallery/real-hibachi-party-southern-california-event-video-04.mp4"
                       type="video/mp4"
                     />
                     Your browser does not support the video tag.
@@ -891,8 +891,8 @@ export default function HibachiAtHomePage() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/signature-fried-rice-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/signature-fried-rice-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                    poster="/images/design-mode/fried-rice.jpg"
+                    src="/videos/fried-rice.mp4"
                   />
                 </div>
               </div>

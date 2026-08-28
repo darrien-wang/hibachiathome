@@ -20,7 +20,7 @@ export const localBusinessJsonLd = {
   priceRange: "$$",
   servesCuisine: ["Japanese", "Hibachi", "Teppanyaki"],
   image: `${BASE_URL}/images/hibachi-flame-og.png`,
-  logo: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
+  logo: "https://www.realhibachi.com/images/logo-realhibachi.png",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Los Angeles",

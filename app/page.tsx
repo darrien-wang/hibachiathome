@@ -448,8 +448,8 @@ export default function Home() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/signature-fried-rice-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/fried%20rice%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8Clipchamp%E5%88%B6%E4%BD%9C%20%281%29-KokWcVkQaH2bx0S1MqMxI675DrVvlm.mp4"
+                    poster="/images/design-mode/fried-rice.jpg"
+                    src="/videos/fried-rice.mp4"
                   />
                 </div>
               </div>
@@ -481,8 +481,8 @@ export default function Home() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/hibachi-shrimp-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/%E6%97%A0%E6%A0%87%E9%A2%98%E8%A7%86%E9%A2%91%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8Clipchamp%E5%88%B6%E4%BD%9C%20%286%29-GPDBGmtsQpjD214EDrt1aM2QxyJmex.mp4"
+                    poster="/gallery/real-hibachi-party-los-angeles-chef-show-video-01-poster.jpg"
+                    src="/videos/hibachi-show.mp4"
                   />
                 </div>
               </div>
@@ -514,8 +514,8 @@ export default function Home() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/hibachi-steak-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/AQMZeMY8EF_j_fglcE3cfFprzTeRb6_2VViMqKLTk8A74DzytNZ4EcprS7wY6vKzNmvEcY3CjYdVVPFDJtcmX69ccg_95g7mEZyVMAU.-rxB2mXpQhOkR95B8v11qxN072QyNyy.mp4"
+                    poster="/gallery/real-hibachi-party-orange-county-backyard-video-02-poster.jpg"
+                    src="/videos/party-highlight.mp4"
                   />
                 </div>
               </div>
@@ -560,8 +560,8 @@ export default function Home() {
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251kebnwwqnqr8l.public.blob.vercel-storage.com/hero/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20250514132251-CecaVfadScFYbfD1eg3HcM8jTxxgzi.png"
-                    src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/video/realhibachi%20real fire-DMEwPxa4BNviYf8qhGyapmtJ21SvvS.mp4"
+                    poster="/gallery/real-hibachi-party-los-angeles-live-cooking-video-03-poster.jpg"
+                    src="/videos/real-fire.mp4"
                   />
                 </div>
               </div>
@@ -602,18 +602,18 @@ export default function Home() {
             </AnimateOnScroll>
 
             <AnimateOnScroll>
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
+              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative pb-[177.78%] h-0">
                   <video
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
                     autoPlay
                     muted
                     loop
-                    poster="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/customer-atmosphere-poster-Hs7ixFQesPB2wRPyaCJabQ5nGIPH4V.jpg"
+                    poster="/gallery/real-hibachi-party-southern-california-event-video-04-poster.jpg"
                   >
                     <source
-                      src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/30b01ba0204ff67ea8338ece25c7ae82_raw-2OQNVBAofaEcT6HTpYfBzc29S6JuSE.mp4"
+                      src="/gallery/real-hibachi-party-southern-california-event-video-04.mp4"
                       type="video/mp4"
                     />
                     Your browser does not support the video tag.

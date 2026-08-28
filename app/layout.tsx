@@ -63,11 +63,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
+        url: "https://www.realhibachi.com/images/logo-realhibachi.png",
       },
     ],
     apple: {
-      url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
+      url: "https://www.realhibachi.com/images/logo-realhibachi.png",
     },
   },
 }
@@ -96,12 +96,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         ) : null}
         <link
           rel="icon"
-          href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+          href="https://www.realhibachi.com/images/logo-realhibachi.png"
           type="image/png"
         />
         <link
           rel="apple-touch-icon"
-          href="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png"
+          href="https://www.realhibachi.com/images/logo-realhibachi.png"
         />
         <JsonLd data={[localBusinessJsonLd, webSiteJsonLd]} />
       </head>

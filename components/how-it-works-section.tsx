@@ -46,7 +46,7 @@ export default function HowItWorksSection() {
         muted
         loop
         playsInline
-        src="https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachi%20video/smallfire-EtpxGU9GpXZMkOHfBSrfm4qWNxXChh.mp4"
+        src="/videos/smallfire.mp4"
       />
       <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 z-10"></div>
       <div className="container mx-auto px-4 relative z-20">

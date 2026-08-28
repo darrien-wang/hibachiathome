@@ -225,7 +225,7 @@ export default function HeroSection() {
             playsInline
             poster="/images/hibachi-dinner-party.jpg"
           >
-            <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_uq6V65eQcr9o6oIao946e8dPfR9o/1FpnWn5XCebSoLHXdVLIqc/public/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+            <source src="/videos/hero-loop.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
           {/* 视频遮罩层 */}
@@ -243,7 +243,7 @@ export default function HeroSection() {
             playsInline
             poster="/images/hibachi-dinner-party.jpg"
           >
-            <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_uq6V65eQcr9o6oIao946e8dPfR9o/1FpnWn5XCebSoLHXdVLIqc/public/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+            <source src="/videos/hero-loop.mp4" type="video/mp4" />
           </video>
           
           {/* 深色遮罩 */}
@@ -260,7 +260,7 @@ export default function HeroSection() {
                 playsInline
                 poster="/images/hibachi-dinner-party.jpg"
               >
-                <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_uq6V65eQcr9o6oIao946e8dPfR9o/1FpnWn5XCebSoLHXdVLIqc/public/video/00ebf7a19327d6f30078329b3e163952.mp4" type="video/mp4" />
+                <source src="/videos/hero-loop.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
               

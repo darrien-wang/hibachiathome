@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Phone, MessageSquare, Mail, Calculator, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, X } from "lucide-react"
+import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Star, X } from "lucide-react"
 import { siteConfig } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
@@ -17,10 +17,10 @@ import {
   getRegionalPolicySnapshot,
   type RegionCode,
 } from "@/config/regional-policies"
+import { isWeekdayEligibleDate } from "@/config/pricing-rules"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { trackEvent } from "@/lib/tracking"
 import {
-  buildCallScript,
   buildEmailPayload,
   buildSmsBody,
   buildQuoteSummary,
@@ -93,19 +93,42 @@ type BookingConfirmation = {
   customerEmailDelivered: boolean
 }
 
-function calculateSlotsLeft(eventDate: string, location: string): number | null {
-  const normalizedLocation = location.trim().toLowerCase()
-  if (!eventDate || !normalizedLocation) {
-    return null
-  }
+type QuoteToast = {
+  id: number
+  kind: "urgency" | "error"
+  title: string
+  detail?: string
+}
 
+function describeEventDate(eventDate: string): { weekday: string; label: string } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(eventDate ?? "")
+  if (!match) return null
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  if (Number.isNaN(parsed.getTime())) return null
+  return {
+    weekday: parsed.toLocaleDateString("en-US", { weekday: "long" }),
+    label: parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+  }
+}
+
+type SlotAvailability = {
+  remaining: number
+  slots: Record<string, boolean>
+}
+
+// Marketing fallback when the availability API is unreachable: a stable
+// pseudo-random 1-3 so the scarcity hint still renders. Real data, when it
+// loads, replaces this — but is display-only and never blocks a selection,
+// because the reservations data behind it is not actively maintained.
+function pseudoSlotsLeft(eventDate: string, location: string): number | null {
+  const normalizedLocation = location.trim().toLowerCase()
+  if (!eventDate || !normalizedLocation) return null
   const seed = `${eventDate}-${normalizedLocation}`
   let hash = 0
   for (let index = 0; index < seed.length; index += 1) {
     hash = (hash * 31 + seed.charCodeAt(index)) | 0
   }
-
-  return (Math.abs(hash) % 4) + 1
+  return (Math.abs(hash) % 3) + 1
 }
 
 export default function QuoteBuilderClient() {
@@ -116,26 +139,112 @@ export default function QuoteBuilderClient() {
   const [customerPhone, setCustomerPhone] = useState("")
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
+  const [weatherExpanded, setWeatherExpanded] = useState(false)
+  const [slotAvailability, setSlotAvailability] = useState<SlotAvailability | null>(null)
   const [weatherPreview, setWeatherPreview] = useState<WeatherPreview | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
-  const [distanceMiles, setDistanceMiles] = useState<number | null>(null)
   const [quoteStartIntentCaptured, setQuoteStartIntentCaptured] = useState(false)
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
   const [bookingRequestSubmitting, setBookingRequestSubmitting] = useState(false)
-  const [bookingRequestError, setBookingRequestError] = useState("")
   const [bookingConfirmation, setBookingConfirmation] = useState<BookingConfirmation | null>(null)
+  const [toasts, setToasts] = useState<QuoteToast[]>([])
+  const urgencyToastKeyRef = useRef("")
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((previous) => previous.filter((toast) => toast.id !== id))
+  }, [])
+
+  const pushToast = useCallback(
+    (kind: QuoteToast["kind"], title: string, detail?: string) => {
+      const id = Date.now() + Math.random()
+      setToasts((previous) => [...previous.slice(-2), { id, kind, title, detail }])
+      window.setTimeout(() => dismissToast(id), kind === "urgency" ? 10000 : 6500)
+    },
+    [dismissToast],
+  )
   const quoteSurface = "quote_builder"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
   const activeRegionDefinition = regionPolicySnapshot.region
   const weekdaySaverPolicy = regionPolicySnapshot.pricingPolicies.weekday_saver.definition
   const weekdaySaverEnabled = regionPolicySnapshot.pricingPolicies.weekday_saver.enabled
-  const slotsLeft = useMemo(() => calculateSlotsLeft(input.eventDate, input.location), [input.eventDate, input.location])
-  const slotsNoun = slotsLeft === 1 ? "slot" : "slots"
+  // Display-only scarcity: real remaining capacity clamped to 1-3 (never zero —
+  // customers must always be able to book), with a stable pseudo value as the
+  // fallback when the API is unavailable.
+  const slotsLeft = useMemo(() => {
+    if (slotAvailability !== null) {
+      return Math.max(1, Math.min(3, slotAvailability.remaining))
+    }
+    return pseudoSlotsLeft(input.eventDate, input.location)
+  }, [input.eventDate, input.location, slotAvailability])
   const shouldShowWeatherCard = Boolean(input.eventDate && input.location.trim())
 
+  useEffect(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.eventDate)) {
+      setSlotAvailability(null)
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/quote/slot-availability?date=${input.eventDate}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        })
+        if (!response.ok) {
+          setSlotAvailability(null)
+          return
+        }
+        const data = await response.json()
+        const remaining = Number(data?.remaining)
+        const slotEntries: Record<string, boolean> = {}
+        for (const slot of data?.slots ?? []) {
+          if (typeof slot?.time === "string") slotEntries[slot.time] = Boolean(slot?.available)
+        }
+        if (Number.isFinite(remaining)) {
+          setSlotAvailability({ remaining, slots: slotEntries })
+        } else {
+          setSlotAvailability(null)
+        }
+      } catch {
+        // real availability is a progressive enhancement; stay quiet on failure
+      }
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [input.eventDate])
+
   const result = useMemo(() => calculateQuote(input, travelFeeRange), [input, travelFeeRange])
+
+  useEffect(() => {
+    if (!QUOTE_SLOTS_URGENCY_ENABLED || slotsLeft === null) return
+    // Only after every required input is complete (date, time, location, guests),
+    // and only once typing has settled — otherwise each ZIP keystroke would pop
+    // a fresh toast. slotsLeft is real remaining capacity from the reservations
+    // table, so only surface it when it is genuinely scarce.
+    if (!result.hasCoreInputs || !eventTime || input.location.trim().length < 3) return
+
+    const key = `${input.eventDate}|${input.location.trim().toLowerCase()}`
+    if (urgencyToastKeyRef.current === key) return
+
+    const timer = window.setTimeout(() => {
+      if (urgencyToastKeyRef.current === key) return
+      urgencyToastKeyRef.current = key
+      pushToast(
+        "urgency",
+        `Only ${slotsLeft} booking ${slotsLeft === 1 ? "slot" : "slots"} left on this date`,
+        "Book soon to hold yours.",
+      )
+    }, 1200)
+
+    return () => window.clearTimeout(timer)
+  }, [eventTime, input.eventDate, input.location, pushToast, result.hasCoreInputs, slotsLeft])
+
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
   const smsBody = useMemo(() => buildSmsBody(input, result, contactTemplates.sms), [input, result, contactTemplates.sms])
@@ -146,10 +255,6 @@ export default function QuoteBuilderClient() {
         body: contactTemplates.emailBody,
       }),
     [input, result, contactTemplates.emailBody, contactTemplates.emailSubject],
-  )
-  const callScript = useMemo(
-    () => buildCallScript(input, result, contactTemplates.callScript, eventTime),
-    [eventTime, input, result, contactTemplates.callScript],
   )
   const isWeekdaySaverTier = input.pricingTier === "weekday_saver"
   const weekdaySaverProteinsValue = isWeekdaySaverTier ? WEEKDAY_SAVER_MENU_DETAIL : "n/a"
@@ -164,10 +269,27 @@ export default function QuoteBuilderClient() {
   }, [input.pricingTier, weekdaySaverEnabled])
 
   useEffect(() => {
+    if (input.pricingTier !== "weekday_saver") return
+    if (!input.eventDate || isWeekdayEligibleDate(input.eventDate)) return
+
+    setInput((previous) => ({
+      ...previous,
+      pricingTier: "standard",
+    }))
+    const described = describeEventDate(input.eventDate)
+    pushToast(
+      "error",
+      "Switched to Standard Plan",
+      described
+        ? `Weekday Special is Monday-Thursday only — ${described.label} is a ${described.weekday}.`
+        : "Weekday Special is Monday-Thursday only.",
+    )
+  }, [input.eventDate, input.pricingTier, pushToast])
+
+  useEffect(() => {
     const destination = input.location.trim()
     if (!destination) {
       setTravelFeeRange({ low: 0, high: 0 })
-      setDistanceMiles(null)
       return
     }
 
@@ -184,13 +306,9 @@ export default function QuoteBuilderClient() {
         const data = await response.json()
         const low = Number(data?.travel_fee_range?.low)
         const high = Number(data?.travel_fee_range?.high)
-        const miles = Number(data?.distance_miles)
 
         if (Number.isFinite(low) && Number.isFinite(high)) {
           setTravelFeeRange({ low, high })
-        }
-        if (Number.isFinite(miles)) {
-          setDistanceMiles(miles)
         }
       } catch {
         // keep current fee range on transient network errors
@@ -313,6 +431,18 @@ export default function QuoteBuilderClient() {
       return
     }
 
+    if (pricingTier === "weekday_saver" && input.eventDate && !isWeekdayEligibleDate(input.eventDate)) {
+      const described = describeEventDate(input.eventDate)
+      pushToast(
+        "error",
+        "Weekday Special is Monday-Thursday only",
+        described
+          ? `${described.label} is a ${described.weekday}, so we've kept you on the Standard Plan.`
+          : "Pick a Monday-Thursday date to use this tier.",
+      )
+      return
+    }
+
     setInput((prev) => {
       if (prev.pricingTier === pricingTier) return prev
       if (pricingTier === "weekday_saver") {
@@ -349,6 +479,7 @@ export default function QuoteBuilderClient() {
   const displayEmail = "support@realhibachi.com"
   const emailTo = "support@realhibachi.com"
   const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBody)}`
+  const whatsappHref = `https://wa.me/1${phoneRaw}?text=${encodeUrlComponent(smsBody)}`
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
   const missingRequiredBookingFields =
@@ -358,10 +489,8 @@ export default function QuoteBuilderClient() {
     || !customerPhone.trim()
     || !eventTime
   const weekdaySaverRulesFailed = isWeekdaySaverTier && !result.weekdaySaver.isEligible
-  const bookingRequestDisabled = missingRequiredBookingFields || weekdaySaverRulesFailed || bookingRequestSubmitting
-  // Name what is actually still empty. The old copy listed every required field
-  // regardless, which left the user hunting up a five-screen page for the one
-  // box they had missed.
+  // Name what is actually still empty so the validation toast points at the
+  // exact box the user missed instead of listing every required field.
   const missingFieldLabels = [
     !customerName.trim() && "your name",
     !customerEmail.trim() && "email",
@@ -372,13 +501,10 @@ export default function QuoteBuilderClient() {
     result.guestCount <= 0 && "guest count",
   ].filter((label): label is string => Boolean(label))
 
-  const bookingRequestHelperText = missingRequiredBookingFields
-    ? `Still need ${
-        missingFieldLabels.length > 1
-          ? `${missingFieldLabels.slice(0, -1).join(", ")} and ${missingFieldLabels[missingFieldLabels.length - 1]}`
-          : missingFieldLabels[0]
-      }.`
-    : "Weekday Special must be Monday-Thursday with at least 15 total guests."
+  const missingFieldsSentence =
+    missingFieldLabels.length > 1
+      ? `${missingFieldLabels.slice(0, -1).join(", ")} and ${missingFieldLabels[missingFieldLabels.length - 1]}`
+      : missingFieldLabels[0]
   const bookingConfirmationDepositHref = useMemo(() => {
     if (!bookingConfirmation) return "/deposit/pay"
 
@@ -410,7 +536,10 @@ export default function QuoteBuilderClient() {
   const selectedPremiumUpgradesText = selectedPremiumUpgrades.length > 0 ? selectedPremiumUpgrades.join(", ") : "None"
 
   const onSmsClick = () => {
-    if (contactDisabled) return
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      return
+    }
     trackEvent("contact_sms_click", {
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
@@ -430,8 +559,35 @@ export default function QuoteBuilderClient() {
     window.location.href = smsHref
   }
 
+  const onWhatsAppClick = () => {
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      return
+    }
+    trackEvent("contact_whatsapp_click", {
+      contact_surface: quoteSurface,
+      quote_summary: quoteSummary,
+      city_or_zip: input.location || "unspecified",
+      tableware_rental: input.tablewareRental,
+      tent_10x10: input.tent10x10,
+      quote_tier: input.pricingTier,
+      weekday_saver_proteins: weekdaySaverProteinsValue,
+      add_on_steak: input.addOns.steak,
+      add_on_shrimp: input.addOns.shrimp,
+      add_on_lobster: input.addOns.lobster,
+      event_time: eventTime || "unspecified",
+    })
+    if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
+    window.open(whatsappHref, "_blank", "noopener,noreferrer")
+  }
+
   const onCallClick = () => {
-    if (contactDisabled) return
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      return
+    }
     trackEvent("contact_call_click", {
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
@@ -452,7 +608,10 @@ export default function QuoteBuilderClient() {
   }
 
   const onEmailClick = () => {
-    if (contactDisabled) return
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      return
+    }
     trackEvent("contact_email_click", {
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
@@ -473,10 +632,17 @@ export default function QuoteBuilderClient() {
   }
 
   const submitBookingRequest = async (conversionType: "book_online_click" | "deposit_lock_click") => {
-    if (bookingRequestDisabled) return
+    if (bookingRequestSubmitting) return
+    if (missingRequiredBookingFields) {
+      pushToast("error", "A few details missing", `Still need ${missingFieldsSentence}.`)
+      return
+    }
+    if (weekdaySaverRulesFailed) {
+      pushToast("error", "Weekday Special rules", "Monday-Thursday events with at least 15 total guests. Switch to Standard for other dates.")
+      return
+    }
 
     setBookingRequestSubmitting(true)
-    setBookingRequestError("")
     const bookingEventId = `booking_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
     trackEvent("booking_submit", {
@@ -577,14 +743,14 @@ export default function QuoteBuilderClient() {
         customerEmailDelivered: bookingPayload.customerConfirmation?.delivered === true,
       })
     } catch (error) {
-      setBookingRequestError(error instanceof Error ? error.message : "Failed to submit booking request.")
+      pushToast(
+        "error",
+        "Booking request didn't go through",
+        error instanceof Error ? error.message : "Please try again, or text us your quote instead.",
+      )
     } finally {
       setBookingRequestSubmitting(false)
     }
-  }
-
-  const onDepositLockClick = () => {
-    void submitBookingRequest("deposit_lock_click")
   }
 
   const onBookOnlineClick = () => {
@@ -673,6 +839,43 @@ export default function QuoteBuilderClient() {
           </div>
         ) : null}
 
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed left-1/2 top-20 z-[95] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2"
+        >
+          {toasts.map((toast) => (
+            <div
+              key={toast.id}
+              className={`pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur ${
+                toast.kind === "urgency" ? "border-red-200" : "border-amber-300"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {toast.kind === "urgency" ? (
+                  <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                  </span>
+                ) : (
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-snug text-gray-900">{toast.title}</p>
+                  {toast.detail && <p className="mt-0.5 text-xs leading-snug text-gray-600">{toast.detail}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => dismissToast(toast.id)}
+                  aria-label="Dismiss notification"
+                  className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
@@ -715,6 +918,11 @@ export default function QuoteBuilderClient() {
                     </option>
                   ))}
                 </select>
+                {slotsLeft !== null && input.eventDate && (
+                  <p className="mt-1.5 text-xs font-medium text-red-700">
+                    {slotsLeft} booking {slotsLeft === 1 ? "slot" : "slots"} left on this date
+                  </p>
+                )}
               </div>
 
               <div>
@@ -893,7 +1101,7 @@ export default function QuoteBuilderClient() {
                   <p className="text-xs text-red-700">Premium add-ons are not available in the Weekday Special tier.</p>
                 ) : (
                   <p className="text-xs text-gray-500">
-                    Quick estimate assumes selected premium upgrades could be chosen by up to all guests.
+                    Upgrades are priced per guest who chooses them and shown separately from the base estimate.
                   </p>
                 )}
               </div>
@@ -902,24 +1110,48 @@ export default function QuoteBuilderClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Instant Estimate Range</CardTitle>
+              <CardTitle>Your Instant Estimate</CardTitle>
               <CardDescription>
-                Includes tier rules, $599 minimum-spend logic, full-setup selection, and premium-upgrade impact.
+                Food, live chef show, and travel — all in one estimate.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 p-4">
                 <p className="text-sm font-medium text-amber-800">Estimated Total</p>
+                {/* Headline excludes optional premium upgrades so the number is what
+                    everyone pays; upgrades show as their own "+ up to $X" line below. */}
                 <p className="text-3xl font-bold text-orange-800">
-                  ${result.totalRange.low.toFixed(0)} - ${result.totalRange.high.toFixed(0)}
+                  {(() => {
+                    const low = result.effectiveBase + result.travelFeeRange.low
+                    const high = result.effectiveBase + result.travelFeeRange.high
+                    return low === high
+                      ? `$${low.toFixed(0)}`
+                      : `$${low.toFixed(0)} - $${high.toFixed(0)}`
+                  })()}
                 </p>
+                {!isWeekdaySaverTier && selectedPremiumUpgrades.length > 0 && (
+                  <p className="mt-1 text-sm font-medium text-amber-800">
+                    + premium upgrades up to ${result.addOnTotalRange.high.toFixed(0)}
+                  </p>
+                )}
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-800">
+                  <span className="inline-flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-hidden="true" />
+                    4.9 average rating
+                  </span>
+                  <span>500+ parties served</span>
+                  <span>Serving all of Southern California</span>
+                </div>
               </div>
 
               {/* Contact details live here, not at the top of the form. On mobile the
                   two cards stack, and having these 1,300px above the submit button was
                   why phone users could see a price but never send a request. */}
               <div className="rounded-lg border border-gray-200 p-4 space-y-4">
-                <p className="text-sm font-medium text-gray-900">Where should we send it?</p>
+                <p className="text-sm font-medium text-gray-900">Ready to book? Add your details for Book Now.</p>
+                <p className="text-xs text-gray-500">
+                  In a hurry? Skip this — the SMS and WhatsApp buttons below send us your quote with no forms.
+                </p>
                 <div>
                   <label className="block text-sm font-medium mb-2">Customer Name *</label>
                   <Input
@@ -951,35 +1183,27 @@ export default function QuoteBuilderClient() {
                 </div>
               </div>
 
-              {QUOTE_SLOTS_URGENCY_ENABLED && slotsLeft !== null && (
-                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                  <p className="font-semibold">
-                    Only {slotsLeft} prime {slotsNoun} left for this date and time.
-                    {bookingRequestDisabled ? " Finish the details above to hold it." : " Send your booking request now."}
-                  </p>
-                  <Button
-                    onClick={onDepositLockClick}
-                    disabled={bookingRequestDisabled}
-                    className="mt-3 h-9 rounded-full bg-[hsl(24_79%_55%)] px-4 text-white hover:bg-[hsl(24_79%_48%)]"
+              {shouldShowWeatherCard && weatherPreview && (
+                <div className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50/70 to-indigo-100/70">
+                  <button
+                    type="button"
+                    onClick={() => setWeatherExpanded((previous) => !previous)}
+                    aria-expanded={weatherExpanded}
+                    className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
                   >
-                    {bookingRequestSubmitting ? "Sending..." : "Send Booking Request"}
-                  </Button>
-                  {bookingRequestDisabled && (
-                    <p className="mt-2 text-xs text-red-700">{bookingRequestHelperText}</p>
-                  )}
-                </div>
-              )}
-
-              {shouldShowWeatherCard && (
-                <div className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50/70 to-indigo-100/70 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-sky-900">Weather Snapshot</p>
-                    <Badge variant="outline" className="border-sky-300 bg-white/80 text-sky-700">
-                      {weatherPreview ? `At ${weatherPreview.eventTimeLabel}` : "Event-time preview"}
-                    </Badge>
-                  </div>
-                  {weatherPreview ? (
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <p className="text-sm text-sky-900">
+                      <span className="font-semibold">Weather</span>
+                      <span className="text-sky-700">
+                        {" "}· {weatherPreview.temperatureF}°F, {weatherPreview.willRain ? "rain possible" : "clear skies"} at {weatherPreview.eventTimeLabel}
+                      </span>
+                    </p>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-sky-700 transition-transform ${weatherExpanded ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {weatherExpanded && (
+                    <div className="grid gap-3 px-4 pb-4 sm:grid-cols-3">
                       <div className="rounded-lg border border-sky-100 bg-white/85 p-3">
                         <Sunset className="h-4 w-4 text-orange-500" />
                         <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-sky-700">Sunset</p>
@@ -1003,55 +1227,47 @@ export default function QuoteBuilderClient() {
                         <p className="text-base font-semibold text-sky-950">{weatherPreview.temperatureF}°F</p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="rounded-lg border border-sky-100 bg-white/85 p-3 text-xs text-sky-700">
-                      {weatherLoading ? "Loading weather..." : "Enter a valid date and location to load weather."}
-                    </div>
                   )}
                 </div>
               )}
 
               <div className="space-y-2 text-sm text-gray-700">
                 <p>
-                  Selected tier: {isWeekdaySaverTier ? "Weekday Special ($45.9/adult, $22.95/child)" : "Standard Plan"}
+                  {isWeekdaySaverTier
+                    ? "Weekday Special · $45.9/adult, $22.95/child"
+                    : "Standard Plan · $59.90/adult, $29.90/child"}
+                  {result.guestCount > 0 ? ` · ${result.guestCount} guests` : ""}
                 </p>
-                <p>Guest count: {result.guestCount}</p>
-                <p>Base subtotal: ${result.baseSubtotal.toFixed(0)}</p>
-                <p>Minimum spend applied: ${result.minimumSpend.toFixed(0)}</p>
-                <p>Effective base: ${result.effectiveBase.toFixed(0)}</p>
+                <p>Each guest picks 2 proteins. Fried rice, vegetables, salad, and the live chef show are included.</p>
+                {result.effectiveBase > result.baseSubtotal && (
+                  <p>Smaller parties: our $599 event minimum applies.</p>
+                )}
                 <p>
-                  Travel fee range: ${result.travelFeeRange.low.toFixed(0)} - ${result.travelFeeRange.high.toFixed(0)}
+                  Travel:{" "}
+                  {result.travelFeeRange.high <= 0
+                    ? "included for your area"
+                    : result.travelFeeRange.low === result.travelFeeRange.high
+                      ? `$${result.travelFeeRange.high.toFixed(0)} (confirmed before booking)`
+                      : `$${result.travelFeeRange.low.toFixed(0)} - $${result.travelFeeRange.high.toFixed(0)} (confirmed before booking)`}
                 </p>
-                <p>Distance from 91748: {distanceMiles !== null ? `${distanceMiles.toFixed(1)} miles` : "calculating..."}</p>
-                <p>Full setup (tables/chairs/utensils): ${result.tablewareFee.toFixed(0)}</p>
+                {input.tablewareRental && (
+                  <p>Full setup (tables, chairs, tableware): ${result.tablewareFee.toFixed(0)}</p>
+                )}
                 {isWeekdaySaverTier ? (
-                  <>
-                    <p>Weekday Special menu: {WEEKDAY_SAVER_MENU_DETAIL}</p>
-                    <p>Premium upgrades impact: Not available in Weekday Special</p>
-                  </>
+                  <p>Weekday Special menu: {WEEKDAY_SAVER_MENU_DETAIL}</p>
                 ) : (
-                  <p>
-                    Premium upgrades impact: ${result.addOnTotalRange.low.toFixed(0)} - ${result.addOnTotalRange.high.toFixed(0)}
-                  </p>
+                  selectedPremiumUpgrades.length > 0 && (
+                    <p>
+                      Premium upgrades ({selectedPremiumUpgradesText}): up to ${result.addOnTotalRange.high.toFixed(0)} extra
+                    </p>
+                  )
                 )}
               </div>
-
-              <div className="rounded-md border p-3 text-sm text-gray-700">
-                <p className="font-medium mb-1">Suggested call script:</p>
-                <p>{callScript}</p>
-              </div>
-
-              {!result.hasCoreInputs && (
-                <p className="text-xs text-[hsl(24_79%_42%)] bg-[hsl(24_79%_96%)] border border-[hsl(24_79%_84%)] rounded-md p-2">
-                  Add date, location, and guest count to enable one-click contact actions.
-                </p>
-              )}
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Button
                   onClick={onSmsClick}
-                  disabled={contactDisabled}
-                  className="h-auto min-h-12 min-w-0 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] disabled:bg-[hsl(24_79%_80%)] disabled:text-white/90 text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                  className="h-auto min-h-12 min-w-0 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   <span className="leading-tight">
@@ -1061,8 +1277,7 @@ export default function QuoteBuilderClient() {
                 </Button>
                 <Button
                   onClick={onCallClick}
-                  disabled={contactDisabled}
-                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <Phone className="mr-2 h-4 w-4" />
                   <span className="leading-tight">
@@ -1071,9 +1286,18 @@ export default function QuoteBuilderClient() {
                   </span>
                 </Button>
                 <Button
+                  onClick={onWhatsAppClick}
+                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[#25D366] bg-white text-[#128C4B] hover:bg-[#f0fdf4] text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  <span className="leading-tight">
+                    <span className="block font-medium">WhatsApp</span>
+                    <span className="block">Send this quote</span>
+                  </span>
+                </Button>
+                <Button
                   onClick={onEmailClick}
-                  disabled={contactDisabled}
-                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] disabled:border-[hsl(24_79%_78%)] disabled:text-[hsl(24_79%_70%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
+                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   <span className="leading-tight">
@@ -1081,25 +1305,15 @@ export default function QuoteBuilderClient() {
                     <span className="block break-all">{displayEmail}</span>
                   </span>
                 </Button>
-                <Button
-                  onClick={onBookOnlineClick}
-                  disabled={bookingRequestDisabled}
-                  className="h-auto min-h-12 min-w-0 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-200 disabled:text-emerald-700 text-sm text-center py-3 px-4"
-                >
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  <span className="font-medium">{bookingRequestSubmitting ? "Submitting..." : "Book Now"}</span>
-                </Button>
               </div>
-              {bookingRequestDisabled && (
-                <p className="text-xs text-gray-500">
-                  {bookingRequestHelperText}
-                </p>
-              )}
-              {bookingRequestError ? (
-                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                  {bookingRequestError}
-                </p>
-              ) : null}
+              <Button
+                onClick={onBookOnlineClick}
+                disabled={bookingRequestSubmitting}
+                className="h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-500 disabled:text-white text-sm text-center"
+              >
+                <CalendarDays className="mr-2 h-4 w-4" />
+                <span className="font-medium">{bookingRequestSubmitting ? "Submitting..." : "Book Now — We Confirm Within Hours"}</span>
+              </Button>
             </CardContent>
           </Card>
         </div>

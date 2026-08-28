@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     url: "https://www.realhibachi.com/hibachi-at-home",
     images: [
       {
-        url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg",
+        url: "/images/menu/chicken-and-beef.jpg",
         width: 1200,
         height: 630,
         alt: "Hibachi at home private chef experience in Los Angeles",

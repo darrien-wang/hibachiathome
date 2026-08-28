@@ -50,16 +50,16 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
               // Map protein IDs to their specific image URLs
               const proteinImageMap = {
                 chicken:
-                  "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/Benihana-Chicken-Copycat-1-683x1024-qvNitJQ5mMHcmjzwHcRriIWROECxU6.jpg",
+                  "/images/menu/chicken-and-beef.jpg",
                 shrimp:
-                  "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/Hibachi-Shrimp-3-kVLM2utoEN7thpJbPBicfUta8mrvac.jpg",
-                tofu: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/Teriyaki-Tofu-Steps-10-460x460-Agvw3gs0zb0hnbpJFawG6qDFNoU59a.jpg",
+                  "/images/menu/filet-chicken-shrimp.jpg",
+                tofu: "/images/menu/hibachi-plate.png",
                 scallops:
-                  "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/benihana-hibachi-scallops-n4M84f7dlGvTfIRetEp2wYqy8zd1kk.jpeg",
+                  "/images/menu/hibachi-plate.png",
                 salmon:
-                  "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/grill-blackstone-hibachi-salmon-16-1024x683-I9oX7ZwRDEmyXa8sBQBlDMQWcocdks.webp",
+                  "/images/menu/hibachi-plate.png",
                 steak:
-                  "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/hibachisteak-J0gZFIRapQe3u0oATa5thRAs3lmEAa.jpg",
+                  "/images/menu/chicken-and-beef.jpg",
               }
 
               // Get the specific image URL or fall back to a default
@@ -104,10 +104,10 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     <Image
                       src={
                         protein.id === "lobster"
-                          ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/36996-Grilled-Rock-Lobsters-109-4x3-fb4e7e3c2ea34a5b8de9caf3697ed5b9-7CrqVYQUItKQGGwjfc7i4AJqkIxNOP.jpg"
+                          ? "/images/menu/hibachi-plate.png"
                           : protein.id === "scallops-premium"
-                          ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/benihana-hibachi-scallops-n4M84f7dlGvTfIRetEp2wYqy8zd1kk.jpeg"
-                          : "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/istockphoto-844731188-612x612-ZN07NpCqj0LP0BrtajkCjMbPDip5dT.jpg"
+                          ? "/images/menu/hibachi-plate.png"
+                          : "/images/menu/hibachi-plate.png"
                       } // Premium protein image
                       alt={protein.name}
                       fill
@@ -151,11 +151,11 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     <Image
                       src={
                         side.id === "gyoza"
-                          ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/handmade-gyoza-feat-zw3iQhdGEyIwMmLRuEsLVQYGdaPz1w.jpg"
+                          ? "/images/menu/hibachi-plate.png"
                           : side.id === "edamame"
-                            ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/SideDish_1024_Edamame-recipe-image-768x588-PRUQpdoeHxQ4b7gNYb5c9Cvav5s8a1.webp"
+                            ? "/images/menu/hibachi-plate.png"
                             : side.id === "noodles"
-                              ? "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/menu-side/Oil-Free-Hibachi-Noodles_13-ofABNWwAG0GPRFDWbsTP3bfphCsFf0.jpg"
+                              ? "/images/design-mode/fried-rice.jpg"
                               : getMenuImageById("steak-shrimp") || "/placeholder.svg"
                       }
                       alt={side.name}

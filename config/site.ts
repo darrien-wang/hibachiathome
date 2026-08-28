@@ -7,7 +7,7 @@ export const siteConfig = {
 
   // Logo configurations
   logo: {
-    main: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/logo/realhibachiathome-Gn1I9pZdsKZZZyYtU2kuyfGH4XaAdN.png",
+    main: "https://www.realhibachi.com/images/logo-realhibachi.png",
     alt: "Real Hibachi Logo",
     width: 180,
     height: 60,

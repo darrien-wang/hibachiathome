@@ -1,31 +1,31 @@
 // Menu item images
 export const menuImages = {
   "chicken-steak":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg",
+    "/images/menu/chicken-and-beef.jpg",
   "steak-shrimp":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/beef-and-shrimp-Hibachi-Catering-LA-NRW9nr9Zd1SvIX9ZgF481S1k2rplaH.jpg",
+    "/images/menu/hibachi-plate.png",
   "filet-chicken-shrimp":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg",
+    "/images/menu/filet-chicken-shrimp.jpg",
   "filet-lobster":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetlobster-hibachi-catering-la-6ZxNKSPHgqPZw4uLxGMXjcoQVoEQhB.jpg",
+    "/images/menu/hibachi-plate.png",
   "shrimp-sca":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/RC7dYRhyfNFo-njYBXDvbfaLBzIKpNc943JTjkfX7D8.png",
+    "/images/menu/hibachi-plate.png",
   "hibachi-logo":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/hibachidoge-mfIO7eb5OysEpROnF0PZMbbjMaZzYl.png",
+    "/images/logo-realhibachi.png",
   "chicken-scallop":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/images-hNctUIvTEU7qVt4PnyRu9EYLLZ1WHa.jpg",
+    "/images/menu/hibachi-plate.png",
     "chicken-shrimp":
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/chiken_shrimps-gk9raxJIf9vMkA73P0D1R7AxNnwx4J.jpg"
+    "/images/menu/chicken-and-beef.jpg"
 }
 
 // Package images - we'll use some of the same images for packages
 export const packageImages = {
   basic:
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/Chicken-and-Beef-Hibachi-Catering-LA-itQYZOc95RTr9yWdNJOr1NiXsBBIBu.jpg",
+    "/images/menu/chicken-and-beef.jpg",
   premium:
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetlobster-hibachi-catering-la-6ZxNKSPHgqPZw4uLxGMXjcoQVoEQhB.jpg",
+    "/images/menu/hibachi-plate.png",
   buffet:
-    "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hibachiimage/filetchickenshrimp-Hibachi-Catering-LA-s2QYxFQesPB2wRPyaCJabQ5nGIPH4V.jpg",
+    "/images/menu/filet-chicken-shrimp.jpg",
 }
 
 // Function to get image URL by ID

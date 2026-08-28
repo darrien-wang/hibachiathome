@@ -24,36 +24,28 @@ export const carouselConfig: CarouselConfig = {
 
 export const heroImages: HeroImage[] = [
   {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/ChatGPT%20Image%20May%2019%2C%202025%2C%2012_09_48%20AM-nfrN2RlFbVT5NJuQKq4AHsBN1fHiDp.png",
-    alt: "Hibachi chef cooking with flames",
+    url: "/images/chef-bling-at-the-grill.jpg",
+    alt: "Real Hibachi chef performing at the grill",
     priority: 1, // 最高优先级，确保作为首图
     duration: carouselConfig.firstSlideDuration, // 使用配置中的首张幻灯片显示时间
   },
   {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner5-QXDgD4u9YK9SAwtGBCSDADdrM5YNG1.jpg",
+    url: "/images/hero/banner5.jpg",
     alt: "Hibachi chef cooking with flames",
     priority: 2,
-    timestamp: "2025-05-15",
   },
   {
-    url: "https://live.staticflickr.com/65535/53336755436_3c614274cd_b.jpg",
+    url: "/images/hibachi-dinner-party.jpg",
     alt: "Hibachi chef cooking at home party",
     priority: 3,
   },
-
-  // 新增的4张轮播图
   {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner-xN3z5y6ICfaVbAUl5fGRtovtIMuRem.jpg",
+    url: "/images/hero/banner.jpg",
     alt: "Professional hibachi chef preparing meal",
     priority: 5,
   },
   {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner2-gGtPpZjmEvOwNHxapy4YBFmbbbuhKk.jpg",
-    alt: "Hibachi grill with delicious food",
-    priority: 6,
-  },
-  {
-    url: "https://pr65kebnwwqnqr8l.public.blob.vercel-storage.com/hero/banner4-gzupE1yCoJ0UA36Gm8v3BMNHdVfA5Q.jpg",
+    url: "/images/hero/banner4.jpg",
     alt: "Elegant hibachi dining experience",
     priority: 8,
   },
