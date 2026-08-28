@@ -2,6 +2,13 @@
 import type { Booking, BookingFormData, BookingResponse, AvailableTimesResponse } from "@/types/booking"
 import { pricing } from "@/config/pricing"
 import { calcTravelFee } from "@/config/pricing-rules"
+// These are "use server" actions, so they run on the server and should hold the
+// service role key. They were built with NEXT_PUBLIC_SUPABASE_ANON_KEY, the key
+// that ships to browsers, which meant trusted server code was querying under the
+// anon role - and would have started failing the moment RLS was enabled on
+// bookings, taking /deposit/pay down with it, since that page reads a booking
+// through getBookingDetails.
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 // Travel fee comes from the shared policy in config/pricing-rules.ts, the same
 // module the quote route and the invoice app read, so a booking total cannot
@@ -31,18 +38,7 @@ function isValidAddOnItem(item: any): item is { name: string; quantity: number; 
 // 创建预订
 export async function createBooking(formData: BookingFormData): Promise<BookingResponse> {
   try {
-    const supabase = (() => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Missing Supabase environment variables")
-        return null
-      }
-
-      const { createClient } = require("@supabase/supabase-js")
-      return createClient(supabaseUrl, supabaseAnonKey)
-    })()
+    const supabase = createServerSupabaseClient()
 
     // Add null check for supabase client
     if (!supabase) {
@@ -229,18 +225,7 @@ export async function createBooking(formData: BookingFormData): Promise<BookingR
 // 获取可�����时间
 export async function getAvailableTimes(date: string, zipcode: string): Promise<AvailableTimesResponse> {
   try {
-    const supabase = (() => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Missing Supabase environment variables")
-        return null
-      }
-
-      const { createClient } = require("@supabase/supabase-js")
-      return createClient(supabaseUrl, supabaseAnonKey)
-    })()
+    const supabase = createServerSupabaseClient()
 
     // Add null check for supabase client
     if (!supabase) {
@@ -292,18 +277,7 @@ export async function getAvailableTimes(date: string, zipcode: string): Promise<
 // 获取预订列表
 export async function getBookings(): Promise<{ success: boolean; data?: Booking[]; error?: string }> {
   try {
-    const supabase = (() => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Missing Supabase environment variables")
-        return null
-      }
-
-      const { createClient } = require("@supabase/supabase-js")
-      return createClient(supabaseUrl, supabaseAnonKey)
-    })()
+    const supabase = createServerSupabaseClient()
 
     const { data, error } = await supabase.from("bookings").select("*").order("created_at", { ascending: false })
 
@@ -331,18 +305,7 @@ export async function getBookings(): Promise<{ success: boolean; data?: Booking[
 // 获取单个预订详情
 export async function getBookingDetails(bookingId: string) {
   try {
-    const supabase = (() => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Missing Supabase environment variables")
-        return null
-      }
-
-      const { createClient } = require("@supabase/supabase-js")
-      return createClient(supabaseUrl, supabaseAnonKey)
-    })()
+    const supabase = createServerSupabaseClient()
 
     const { data, error } = await supabase.from("bookings").select("*").eq("id", bookingId).single()
 
