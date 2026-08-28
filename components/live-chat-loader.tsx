@@ -60,6 +60,46 @@ type LivechatMessage = {
 }
 
 const SUPPORT_AGENT_NAME = "Rowling"
+
+// Chat bodies are stored and rendered as plain text, which is what we want -
+// they are never treated as HTML. But an auto-reply whose whole job is to send
+// someone to the quote page is useless if the address is not tappable, so URLs
+// and phone numbers become links at render time. Anything else stays literal.
+const LINKIFY_PATTERN = /(https?:\/\/\S+|\b\d{3}-\d{3}-\d{4}\b)/g
+
+function renderMessageBody(body: string, fromVisitor: boolean) {
+  const linkClass = cn(
+    "font-semibold underline decoration-2 underline-offset-2",
+    fromVisitor ? "text-amber-300 hover:text-amber-200" : "text-[#c2410c] hover:text-[#9a3412]",
+  )
+
+  return body.split(LINKIFY_PATTERN).map((part, index) => {
+    if (!part) return null
+
+    if (/^https?:\/\//.test(part)) {
+      // Keep sentence punctuation outside the href, or "…/quote." links to a 404.
+      const [, href = part, trailing = ""] = part.match(/^(.*[^.,;:!?)])([.,;:!?)]*)$/) ?? []
+      return (
+        <span key={index}>
+          <a href={href} className={linkClass}>
+            {href.replace(/^https?:\/\/(www\.)?/, "")}
+          </a>
+          {trailing}
+        </span>
+      )
+    }
+
+    if (/^\d{3}-\d{3}-\d{4}$/.test(part)) {
+      return (
+        <a key={index} href={`tel:${part.replace(/\D/g, "")}`} className={linkClass}>
+          {part}
+        </a>
+      )
+    }
+
+    return <span key={index}>{part}</span>
+  })
+}
 const SUPPORT_AGENT_AVATAR_SRC = "/live-chat-avatar.png"
 
 type SessionResponse = {
@@ -1025,7 +1065,7 @@ function MarketingLiveChatWidget({ context }: { context: ChatContext }) {
                           <span>{fromVisitor ? "You" : message.senderName || SUPPORT_AGENT_NAME}</span>
                           <span className="normal-case tracking-normal">{formatTime(message.createdAt)}</span>
                         </div>
-                        <p className="whitespace-pre-wrap leading-5">{message.body}</p>
+                        <p className="whitespace-pre-wrap leading-5">{renderMessageBody(message.body, fromVisitor)}</p>
                       </div>
                     </div>
                   )

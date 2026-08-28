@@ -3,8 +3,19 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 export const LIVECHAT_VISITOR_COOKIE_NAME = "rh_livechat_visitor"
 export const LIVECHAT_FIRST_REPLY_TIMEOUT_MS = 5 * 60 * 1000
-export const LIVECHAT_FIRST_REPLY_TIMEOUT_MESSAGE =
-  "We're a bit busy right now. Please call 2137707788 for faster assistance."
+// Sent when nobody has answered a visitor within LIVECHAT_FIRST_REPLY_TIMEOUT_MS.
+// The previous version asked them to phone us, which hands the next step to
+// whoever is too busy to be typing. Lead with the path that needs nobody: the
+// quote builder prices the party and takes the booking request on its own. The
+// phone stays as the fallback for people who would rather talk.
+export const LIVECHAT_FIRST_REPLY_TIMEOUT_MESSAGE = [
+  "Nobody is free to type right now - but you don't have to wait on us.",
+  "",
+  "Get your exact price and send a booking request in about a minute:",
+  "https://www.realhibachi.com/quote",
+  "",
+  "Prefer to talk it through? Call or text 213-770-7788.",
+].join("\n")
 
 const AUTO_BUSY_REPLY_SENDER_ID = "auto_busy_callback"
 const AUTO_BUSY_REPLY_SENDER_NAME = "Real Hibachi Support"
