@@ -237,6 +237,14 @@ export default function LeadsDashboard() {
     })
   }, [])
 
+  const openInvoice = useCallback((l: LeadRow) => {
+    const base = process.env.NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL || "https://invoice.realhibachi.com"
+    const params = new URLSearchParams()
+    if (l.phone) params.set("phone", l.phone.replace(/\D/g, ""))
+    if (l.email) params.set("email", l.email)
+    window.open(`${base}/?${params.toString()}`, "_blank", "noopener")
+  }, [])
+
   const sendReviewInvite = useCallback((l: LeadRow) => {
     const reviewUrl = process.env.NEXT_PUBLIC_GBP_REVIEW_URL || "https://g.page/r/REVIEW_LINK"
     const firstName = (l.full_name || "").split(" ")[0]
@@ -332,15 +340,28 @@ export default function LeadsDashboard() {
         {visible.map((l) => {
           const badge = responseBadge(l.response_seconds)
           const isAd = l.utm_source === "google" || Boolean(l.gclid)
+          const isSelected = selected.has(l.id)
           return (
-            <div key={l.id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "14px 16px" }}>
+            <div
+              key={l.id}
+              onClick={() => (viewerRole === "owner" ? toggleSelect(l.id) : openDetail(l))}
+              style={{
+                background: isSelected ? "#eff6ff" : "#fff",
+                border: "1px solid " + (isSelected ? "#2563eb" : "#e5e7eb"),
+                borderRadius: 12,
+                padding: "14px 16px",
+                cursor: "pointer",
+                transition: "border-color .1s, background .1s",
+              }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   {viewerRole === "owner" && (
                     <input
                       type="checkbox"
-                      checked={selected.has(l.id)}
+                      checked={isSelected}
                       onChange={() => toggleSelect(l.id)}
+                      onClick={(e) => e.stopPropagation()}
                       style={{ width: 16, height: 16, cursor: "pointer" }}
                     />
                   )}
@@ -360,7 +381,7 @@ export default function LeadsDashboard() {
 
               <div style={{ fontSize: 13, color: "#374151", margin: "8px 0", display: "flex", gap: 14, flexWrap: "wrap" }}>
                 {l.phone && (
-                  <span>
+                  <span onClick={(e) => e.stopPropagation()}>
                     📞 <a href={`tel:${l.phone}`}>{l.phone}</a> · <a href={`sms:${l.phone}`}>发短信</a>
                   </span>
                 )}
@@ -375,14 +396,33 @@ export default function LeadsDashboard() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {l.response_seconds === null && (
-                  <button
-                    onClick={() => act(l.id, { action: "mark_contacted" })}
-                    style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                  >
-                    ✓ 已联系
-                  </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
+                {l.status === "won" ? (
+                  <>
+                    <button
+                      onClick={() => openInvoice(l)}
+                      style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0f766e", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      📄 添加/修改 Invoice
+                    </button>
+                    {l.phone && (
+                      <button
+                        onClick={() => sendReviewInvite(l)}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                      >
+                        ⭐ 邀评
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  l.response_seconds === null && (
+                    <button
+                      onClick={() => act(l.id, { action: "mark_contacted" })}
+                      style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      ✓ 已联系
+                    </button>
+                  )
                 )}
                 <button
                   onClick={() => openDetail(l)}
@@ -502,13 +542,23 @@ export default function LeadsDashboard() {
             ))}
           </div>
 
-          {detailLead.status === "won" && detailLead.phone && (
-            <button
-              onClick={() => sendReviewInvite(detailLead)}
-              style={{ marginTop: 12, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-            >
-              ⭐ 发送邀评短信（文案自动复制）
-            </button>
+          {detailLead.status === "won" && (
+            <>
+              <button
+                onClick={() => openInvoice(detailLead)}
+                style={{ marginTop: 12, width: "100%", padding: "10px 16px", borderRadius: 8, border: "none", background: "#0f766e", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                📄 添加/修改 Invoice（跳转发票系统，自动带客户信息）
+              </button>
+              {detailLead.phone && (
+                <button
+                  onClick={() => sendReviewInvite(detailLead)}
+                  style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                >
+                  ⭐ 发送邀评短信（文案自动复制）
+                </button>
+              )}
+            </>
           )}
 
           <div style={sectionLabel}>跟进备注</div>
