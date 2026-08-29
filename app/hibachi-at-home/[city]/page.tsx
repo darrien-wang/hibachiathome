@@ -53,7 +53,7 @@ const included = [
   "Professional hibachi chef & mobile teppanyaki grill",
   "2 regular proteins per guest (chicken, steak, shrimp, salmon, or tofu)",
   "Garlic butter fried rice, fresh vegetables & house salad",
-  "Live cooking show — fire tricks, egg toss, sake service",
+  "Live cooking show — fire tricks, egg toss, chef entertainment",
   "Complete setup and cleanup",
 ]
 

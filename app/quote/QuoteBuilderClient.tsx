@@ -1181,6 +1181,14 @@ export default function QuoteBuilderClient() {
                     />
                   </div>
                 </div>
+                <p className="mt-3 text-xs leading-relaxed text-gray-500">
+                  By providing your phone number and submitting this form, you agree to receive text
+                  messages from Real Hibachi about your quote and booking. Consent is not a condition
+                  of purchase. Message frequency varies; message and data rates may apply. Reply STOP
+                  to opt out or HELP for help. See our{" "}
+                  <a href="/privacy-policy" className="underline">Privacy Policy</a> and{" "}
+                  <a href="/terms" className="underline">Terms of Service</a>.
+                </p>
               </div>
 
               {shouldShowWeatherCard && weatherPreview && (

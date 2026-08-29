@@ -2429,7 +2429,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can we pair the dinner with our own wine?",
         answer:
-          "Please do — you supply the bottles from your tasting haul, we supply the chef, the show, and the traditional sake service for guests who want it.",
+          "Please do — you supply the bottles from your tasting haul, we supply the chef and the full teppanyaki show.",
       },
       {
         question: "What does hibachi at home cost in Temecula?",
