@@ -71,6 +71,28 @@ export default function PrivacyPolicyPage() {
                 affiliates for marketing purposes.
               </p>
 
+              <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">3a. SMS / Text Messaging Privacy</h2>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                When you text our business number or provide your mobile phone number through a booking or quote form,
+                we use your number solely to respond to your inquiry, send quotes, and manage your booking:
+              </p>
+              <ul className="list-disc pl-6 mb-6">
+                <li className="mb-2">
+                  No mobile information will be shared with third parties or affiliates for marketing or promotional
+                  purposes. Text messaging originator opt-in data and consent will not be shared with, or sold to, any
+                  third parties.
+                </li>
+                <li className="mb-2">Message frequency varies by conversation; message and data rates may apply.</li>
+                <li className="mb-2">
+                  Reply <strong>STOP</strong> at any time to opt out of text messages, or <strong>HELP</strong> for
+                  assistance. See our{" "}
+                  <a href="/terms" className="text-orange-600 underline">
+                    Terms of Service
+                  </a>{" "}
+                  for the full SMS program terms.
+                </li>
+              </ul>
+
               <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">4. Cookies and Tracking</h2>
               <p className="text-gray-700 leading-relaxed mb-6">
                 We use cookies and similar technologies to enhance your experience and gather usage analytics. You may
