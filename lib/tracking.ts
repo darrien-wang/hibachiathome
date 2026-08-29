@@ -222,15 +222,19 @@ export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 
   const query = new URLSearchParams(search)
-  const existing = readStoredAttribution()
-  const merged: AttributionFields = { ...existing }
-
+  const incoming: AttributionFields = {}
   for (const key of ATTRIBUTION_KEYS) {
     const value = query.get(key)
-    if (!merged[key] && value) {
-      merged[key] = value
+    if (value) {
+      incoming[key] = value
     }
   }
+
+  // A landing that carries any attribution params is a new touch: replace the
+  // stored set wholesale so sources never mix (e.g. an old QR utm_source kept
+  // alongside a new Google gclid). Landings without params keep the last touch.
+  const merged: AttributionFields =
+    Object.keys(incoming).length > 0 ? incoming : readStoredAttribution()
 
   if (Object.keys(merged).length === 0) return
 
