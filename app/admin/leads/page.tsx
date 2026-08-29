@@ -222,8 +222,12 @@ export default function LeadsDashboard() {
     [loadHistory]
   )
 
+  // "全部" hides disqualified (junk/test) leads; they live under their own tab.
   const visible = useMemo(
-    () => (statusFilter === "all" ? leads : leads.filter((l) => l.status === statusFilter)),
+    () =>
+      statusFilter === "all"
+        ? leads.filter((l) => l.status !== "disqualified")
+        : leads.filter((l) => l.status === statusFilter),
     [leads, statusFilter]
   )
   const detailLead = useMemo(() => leads.find((l) => l.id === detailId) ?? null, [leads, detailId])
@@ -311,7 +315,7 @@ export default function LeadsDashboard() {
       )}
 
       <div style={{ marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {["all", "new", "qualified", "won", "lost"].map((s) => (
+        {["all", "new", "qualified", "won", "lost", "disqualified"].map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}

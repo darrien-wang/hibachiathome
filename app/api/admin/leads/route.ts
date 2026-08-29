@@ -101,15 +101,17 @@ export async function GET(request: NextRequest) {
     return { ...l, first_response_at: firstResponseAt, response_seconds: responseSeconds }
   })
 
-  // Stats over the returned window (newest N leads).
+  // Stats over the returned window (newest N leads). Disqualified leads are
+  // junk/test entries - they stay queryable but never count toward metrics.
   const now = Date.now()
   const dayMs = 24 * 60 * 60 * 1000
-  const last7d = rows.filter((r) => now - new Date(r.created_at).getTime() < 7 * dayMs)
+  const counted = rows.filter((r) => r.status !== "disqualified")
+  const last7d = counted.filter((r) => now - new Date(r.created_at).getTime() < 7 * dayMs)
   const responded7d = last7d.filter((r) => r.response_seconds !== null)
   const within5m = responded7d.filter((r) => (r.response_seconds ?? Infinity) <= 300)
   const stats = {
-    today_leads: rows.filter((r) => now - new Date(r.created_at).getTime() < dayMs).length,
-    open_leads: rows.filter((r) => r.status === "new" && r.response_seconds === null).length,
+    today_leads: counted.filter((r) => now - new Date(r.created_at).getTime() < dayMs).length,
+    open_leads: counted.filter((r) => r.status === "new" && r.response_seconds === null).length,
     avg_response_minutes_7d: responded7d.length
       ? Math.round(responded7d.reduce((s, r) => s + (r.response_seconds ?? 0), 0) / responded7d.length / 60)
       : null,
