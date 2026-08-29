@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Star, X } from "lucide-react"
+import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, MapPin, Star, X } from "lucide-react"
 import { siteConfig } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
@@ -535,9 +535,33 @@ export default function QuoteBuilderClient() {
   }, [input.addOns.lobster, input.addOns.shrimp, input.addOns.steak])
   const selectedPremiumUpgradesText = selectedPremiumUpgrades.length > 0 ? selectedPremiumUpgrades.join(", ") : "None"
 
+  // A toast at the top of the page is invisible to a phone user whose thumb is
+  // on a button at the bottom — session recordings showed people tapping CTAs
+  // repeatedly with no visible response. Walk them to the box they missed.
+  const focusFirstMissingField = () => {
+    const selector = !input.eventDate
+      ? '[data-quote-field="date"]'
+      : !eventTime
+        ? '[data-quote-field="time"]'
+        : !input.location.trim()
+          ? '[data-quote-field="location"]'
+          : result.guestCount <= 0
+            ? '[data-quote-field="adults"]'
+            : !customerName.trim()
+              ? '[data-quote-field="name"]'
+              : !customerEmail.trim()
+                ? '[data-quote-field="email"]'
+                : '[data-quote-field="phone"]'
+    const el = document.querySelector<HTMLElement>(selector)
+    if (!el) return
+    el.scrollIntoView({ behavior: "smooth", block: "center" })
+    window.setTimeout(() => el.focus(), 400)
+  }
+
   const onSmsClick = () => {
     if (contactDisabled) {
       pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      focusFirstMissingField()
       return
     }
     trackEvent("contact_sms_click", {
@@ -562,6 +586,7 @@ export default function QuoteBuilderClient() {
   const onWhatsAppClick = () => {
     if (contactDisabled) {
       pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      focusFirstMissingField()
       return
     }
     trackEvent("contact_whatsapp_click", {
@@ -586,6 +611,7 @@ export default function QuoteBuilderClient() {
   const onCallClick = () => {
     if (contactDisabled) {
       pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      focusFirstMissingField()
       return
     }
     trackEvent("contact_call_click", {
@@ -610,6 +636,7 @@ export default function QuoteBuilderClient() {
   const onEmailClick = () => {
     if (contactDisabled) {
       pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      focusFirstMissingField()
       return
     }
     trackEvent("contact_email_click", {
@@ -635,6 +662,7 @@ export default function QuoteBuilderClient() {
     if (bookingRequestSubmitting) return
     if (missingRequiredBookingFields) {
       pushToast("error", "A few details missing", `Still need ${missingFieldsSentence}.`)
+      focusFirstMissingField()
       return
     }
     if (weekdaySaverRulesFailed) {
@@ -899,6 +927,7 @@ export default function QuoteBuilderClient() {
                 <label className="block text-sm font-medium mb-2">Event Date *</label>
                 <Input
                   type="date"
+                  data-quote-field="date"
                   value={input.eventDate}
                   onChange={(e) => handleFieldChange("eventDate", e.target.value)}
                 />
@@ -908,6 +937,7 @@ export default function QuoteBuilderClient() {
                 <label className="block text-sm font-medium mb-2">Event Time *</label>
                 <select
                   value={eventTime}
+                  data-quote-field="time"
                   onChange={(e) => setEventTime(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
@@ -929,6 +959,7 @@ export default function QuoteBuilderClient() {
                 <label className="block text-sm font-medium mb-2">City or ZIP *</label>
                 <Input
                   type="text"
+                  data-quote-field="location"
                   value={input.location}
                   placeholder="Los Angeles or 90001"
                   onChange={(e) => handleFieldChange("location", e.target.value)}
@@ -941,6 +972,7 @@ export default function QuoteBuilderClient() {
                   <Input
                     type="number"
                     min={1}
+                    data-quote-field="adults"
                     value={input.adults}
                     onChange={(e) => handleFieldChange("adults", Number(e.target.value) || 0)}
                   />
@@ -1117,31 +1149,57 @@ export default function QuoteBuilderClient() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 p-4">
-                <p className="text-sm font-medium text-amber-800">Estimated Total</p>
-                {/* Headline excludes optional premium upgrades so the number is what
-                    everyone pays; upgrades show as their own "+ up to $X" line below. */}
+                {/* Per-guest price leads; the big all-in total made people bolt
+                    before reading what it includes (watched it happen on session
+                    recordings). The total shows as an estimate range with the
+                    exact quote positioned as the thing we text back. */}
+                <p className="text-sm font-medium text-amber-800">
+                  {isWeekdaySaverTier ? "Weekday Special" : "Standard Plan"}
+                </p>
                 <p className="text-3xl font-bold text-orange-800">
+                  {isWeekdaySaverTier ? "$45.90" : "$59.90"}
+                  <span className="text-lg font-semibold">/adult</span>
+                  <span className="ml-2 text-lg font-semibold text-amber-700">
+                    {isWeekdaySaverTier ? "$22.95" : "$29.90"}/child
+                  </span>
+                </p>
+                <p className="mt-2 text-base font-semibold text-amber-900">
                   {(() => {
                     const low = result.effectiveBase + result.travelFeeRange.low
-                    const high = result.effectiveBase + result.travelFeeRange.high
+                    const high =
+                      result.effectiveBase
+                      + result.travelFeeRange.high
+                      + (isWeekdaySaverTier ? 0 : result.addOnTotalRange.high)
+                    const guests = result.guestCount > 0 ? ` for ${result.guestCount} guests` : ""
                     return low === high
-                      ? `$${low.toFixed(0)}`
-                      : `$${low.toFixed(0)} - $${high.toFixed(0)}`
+                      ? `Estimated total${guests}: ~$${low.toFixed(0)}`
+                      : `Estimated total${guests}: $${low.toFixed(0)} - $${high.toFixed(0)}`
                   })()}
                 </p>
-                {!isWeekdaySaverTier && selectedPremiumUpgrades.length > 0 && (
-                  <p className="mt-1 text-sm font-medium text-amber-800">
-                    + premium upgrades up to ${result.addOnTotalRange.high.toFixed(0)}
-                  </p>
-                )}
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-800">
+                <p className="text-xs text-amber-800">
+                  Food, live chef show, and travel included. Exact quote and date availability confirmed by text.
+                </p>
+                <Button
+                  onClick={onSmsClick}
+                  className="mt-3 h-auto min-h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-sm whitespace-normal py-3 px-4"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="leading-tight text-center">
+                    <span className="block font-semibold">Text us this quote</span>
+                    <span className="block text-xs font-normal opacity-90">Exact price + date check — no forms, details pre-filled</span>
+                  </span>
+                </Button>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-800">
                   <span className="inline-flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-hidden="true" />
                     4.9 average rating
                   </span>
                   <span>500+ parties served</span>
-                  <span>Serving all of Southern California</span>
                 </div>
+                <p className="mt-1.5 inline-flex items-start gap-1 text-xs font-medium text-amber-900">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-700" aria-hidden="true" />
+                  Southern California is all we do — a local team, not a franchise. Quality guaranteed.
+                </p>
               </div>
 
               {/* Contact details live here, not at the top of the form. On mobile the
@@ -1156,6 +1214,7 @@ export default function QuoteBuilderClient() {
                   <label className="block text-sm font-medium mb-2">Customer Name *</label>
                   <Input
                     type="text"
+                    data-quote-field="name"
                     value={customerName}
                     placeholder="Your full name"
                     onChange={(e) => setCustomerName(e.target.value)}
@@ -1166,6 +1225,7 @@ export default function QuoteBuilderClient() {
                     <label className="block text-sm font-medium mb-2">Email *</label>
                     <Input
                       type="email"
+                      data-quote-field="email"
                       value={customerEmail}
                       placeholder="you@example.com"
                       onChange={(e) => setCustomerEmail(e.target.value)}
@@ -1175,6 +1235,7 @@ export default function QuoteBuilderClient() {
                     <label className="block text-sm font-medium mb-2">Phone *</label>
                     <Input
                       type="tel"
+                      data-quote-field="phone"
                       value={customerPhone}
                       placeholder="(213) 555-1234"
                       onChange={(e) => setCustomerPhone(e.target.value)}
