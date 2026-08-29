@@ -9,6 +9,7 @@ import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { SocialProofToast } from "@/components/social-proof-toast"
 import { LiveChatLoader } from "@/components/live-chat-loader"
+import { HideOnAdmin } from "@/components/hide-on-admin"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
 
 const DEFAULT_GTM_ID = "GTM-WQZNBK82"
@@ -119,14 +120,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         {/* Keep client-only trackers inside their own Suspense boundary so a
             useSearchParams() bailout never swallows the page content below. */}
         <Suspense fallback={null}>
-          <TrackingBootstrap />
-          <LiveChatLoader />
+          <HideOnAdmin>
+            <TrackingBootstrap />
+            <LiveChatLoader />
+          </HideOnAdmin>
         </Suspense>
-        <Header />
+        <HideOnAdmin>
+          <Header />
+        </HideOnAdmin>
         <main>{children}</main>
-        <Footer />
+        <HideOnAdmin>
+          <Footer />
+        </HideOnAdmin>
         <Suspense fallback={null}>
-          <SocialProofToast />
+          <HideOnAdmin>
+            <SocialProofToast />
+          </HideOnAdmin>
         </Suspense>
         <Analytics />
       </body>
