@@ -119,6 +119,11 @@ const QUOTE_TESTIMONIALS = [
     color: "from-red-500 to-rose-700",
     text: "Just had a wonderful dinner prepared by Blue. He was engaging and entertaining. I would recommend this for any occasion.",
   },
+  {
+    name: "Beatrix Barrera",
+    color: "from-fuchsia-500 to-purple-700",
+    text: "Chef John was our personal chef and he was sooooo much fun. I highly recommend requesting for him because aside from the delicious food, there was so much laughing because of him. 5 stars for the service, 5 stars for the food, 5 stars for Chef John! Definitely will do this again!",
+  },
 ] as const
 const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
 const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof QuoteInput["weekdaySaverProteins"], string> = {
