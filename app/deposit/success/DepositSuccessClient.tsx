@@ -112,6 +112,22 @@ function normalizeCount(value: string | number | null | undefined): number | nul
   return null
 }
 
+// Customers go to the /order party planner; staff tools keep using the
+// invoice root, so the path is appended here rather than in the env value.
+function withOrderPath(baseUrl: string | undefined): string | undefined {
+  const value = normalizeText(baseUrl)
+  if (!value) return undefined
+  try {
+    const url = new URL(value)
+    if (!url.pathname.includes("/order")) {
+      url.pathname = `${url.pathname.replace(/\/$/, "")}/order`
+    }
+    return url.toString()
+  } catch {
+    return value
+  }
+}
+
 function buildInvoiceSelfServiceHref(params: {
   baseUrl: string | undefined
   bookingId: string | null
@@ -218,7 +234,7 @@ export default function DepositSuccessClient({
   const invoiceSelfServiceHref = useMemo(
     () =>
       buildInvoiceSelfServiceHref({
-        baseUrl: process.env.NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL,
+        baseUrl: withOrderPath(process.env.NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL),
         bookingId: displayBookingId,
         email: displayEmail,
         phone: displayPhone,
