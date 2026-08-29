@@ -270,6 +270,23 @@ export default function LeadsDashboard() {
                     ✓ 已联系
                   </button>
                 )}
+                {l.status === "won" && l.phone && (
+                  <button
+                    onClick={() => {
+                      const reviewUrl = process.env.NEXT_PUBLIC_GBP_REVIEW_URL || "https://g.page/r/REVIEW_LINK"
+                      const firstName = (l.full_name || "").split(" ")[0]
+                      const text = `Hi${firstName ? " " + firstName : ""}! Thanks for having Real Hibachi at your party - hope everyone loved the show! If you have 30 seconds, a Google review would mean the world to our small team: ${reviewUrl}`
+                      try {
+                        navigator.clipboard.writeText(text)
+                      } catch {}
+                      window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+                    }}
+                    style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                    title="文案已复制到剪贴板；手机上会直接打开短信"
+                  >
+                    ⭐ 发送邀评短信
+                  </button>
+                )}
                 <select
                   value={l.status}
                   onChange={(e) => act(l.id, { action: "set_status", status: e.target.value })}
