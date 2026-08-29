@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { upsertLeadFromContact } from "@/lib/leads"
 
 export const dynamic = "force-dynamic"
 
@@ -76,6 +77,46 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ leads: rows, stats })
+}
+
+const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "wechat", "walk_in", "referral", "other"] as const
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  }
+  let body: { name?: string; phone?: string; email?: string; channel?: string; message?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 })
+  }
+  const name = (body.name ?? "").trim()
+  const phone = (body.phone ?? "").trim()
+  if (!name && !phone) {
+    return NextResponse.json({ error: "name or phone required" }, { status: 400 })
+  }
+  const channel = MANUAL_CHANNELS.includes((body.channel ?? "") as (typeof MANUAL_CHANNELS)[number])
+    ? (body.channel as string)
+    : "other"
+
+  const supabase = createServerSupabaseClient()
+  try {
+    const result = await upsertLeadFromContact(supabase, {
+      name: name || phone,
+      phone: phone || undefined,
+      email: (body.email ?? "").trim() || undefined,
+      message: (body.message ?? "").trim() || `Manual entry (${channel})`,
+      leadSource: `manual_${channel}`,
+      leadChannel: channel,
+      touchpointType: "manual_entry",
+      touchpointSource: "admin_dashboard",
+      rawPayload: { channel },
+    })
+    return NextResponse.json({ ok: true, leadId: result.leadId, deduped: result.deduped })
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 })
+  }
 }
 
 export async function PATCH(request: NextRequest) {

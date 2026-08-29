@@ -74,6 +74,9 @@ export default function LeadsDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [showAdd, setShowAdd] = useState(false)
+  const [addForm, setAddForm] = useState({ name: "", phone: "", channel: "phone", message: "" })
+  const [adding, setAdding] = useState(false)
   const prevNewestRef = useRef<string>("")
 
   useEffect(() => {
@@ -202,6 +205,71 @@ export default function LeadsDashboard() {
           ))}
         </div>
       )}
+
+      <div style={{ marginBottom: 12 }}>
+        <button
+          onClick={() => setShowAdd(!showAdd)}
+          style={{ padding: "7px 14px", borderRadius: 8, border: "1px dashed #9ca3af", background: "#fff", color: "#374151", fontSize: 13, cursor: "pointer" }}
+        >
+          {showAdd ? "收起" : "＋ 手动添加线索（电话/FB/IG 询盘）"}
+        </button>
+        {showAdd && (
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              placeholder="姓名"
+              value={addForm.name}
+              onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, width: 120 }}
+            />
+            <input
+              placeholder="电话"
+              value={addForm.phone}
+              onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, width: 140 }}
+            />
+            <select
+              value={addForm.channel}
+              onChange={(e) => setAddForm({ ...addForm, channel: e.target.value })}
+              style={{ padding: "7px 8px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
+            >
+              <option value="phone">来电</option>
+              <option value="sms">短信</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+              <option value="wechat">微信</option>
+              <option value="referral">转介绍</option>
+              <option value="other">其他</option>
+            </select>
+            <input
+              placeholder="需求备注（日期/人数/地区）"
+              value={addForm.message}
+              onChange={(e) => setAddForm({ ...addForm, message: e.target.value })}
+              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, flex: 1, minWidth: 180 }}
+            />
+            <button
+              disabled={adding || (!addForm.name.trim() && !addForm.phone.trim())}
+              onClick={async () => {
+                setAdding(true)
+                try {
+                  await fetch("/api/admin/leads", {
+                    method: "POST",
+                    headers: { "content-type": "application/json", "x-admin-key": adminKey },
+                    body: JSON.stringify(addForm),
+                  })
+                  setAddForm({ name: "", phone: "", channel: addForm.channel, message: "" })
+                  setShowAdd(false)
+                  fetchLeads()
+                } finally {
+                  setAdding(false)
+                }
+              }}
+              style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: adding ? 0.6 : 1 }}
+            >
+              {adding ? "添加中…" : "添加"}
+            </button>
+          </div>
+        )}
+      </div>
 
       <div style={{ marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
         {["all", "new", "qualified", "won", "lost"].map((s) => (
