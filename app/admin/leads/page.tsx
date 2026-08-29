@@ -78,6 +78,15 @@ export default function LeadsDashboard() {
 
   useEffect(() => {
     try {
+      // ?key=... in the URL signs in directly (and is then scrubbed from the URL).
+      const params = new URLSearchParams(window.location.search)
+      const fromUrl = params.get("key")?.trim()
+      if (fromUrl) {
+        window.localStorage.setItem("rh_admin_key", fromUrl)
+        window.history.replaceState(null, "", window.location.pathname)
+        setAdminKey(fromUrl)
+        return
+      }
       const saved = window.localStorage.getItem("rh_admin_key")
       if (saved) setAdminKey(saved)
     } catch {}
