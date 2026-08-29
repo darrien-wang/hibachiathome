@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import LazyVideo from "@/components/lazy-video"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -57,8 +58,16 @@ const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
 // need one glance of proof this is a real local operation before the form.
 const QUOTE_PROOF_PHOTOS = [
   {
+    src: "/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg",
+    alt: "Real Hibachi chef with a huge hibachi flame at a Los Angeles backyard party",
+  },
+  {
+    src: "/gallery/real-hibachi-party-orange-county-family-event-04.jpg",
+    alt: "Real Hibachi chef cooking fresh eggs on the griddle at an Orange County family event",
+  },
+  {
     src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
-    alt: "Real Hibachi chefs cooking fresh hibachi at a Los Angeles backyard party",
+    alt: "Real Hibachi chef grilling fresh vegetables at a Los Angeles party",
   },
   {
     src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
@@ -860,7 +869,8 @@ export default function QuoteBuilderClient() {
   }
 
   return (
-    <div className="page-container container mx-auto px-4 py-12">
+    <div className="bg-gradient-to-b from-orange-50/70 via-amber-50/30 to-orange-50/50">
+      <div className="page-container container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         {bookingConfirmation ? (
           <div
@@ -978,24 +988,42 @@ export default function QuoteBuilderClient() {
           ))}
         </div>
 
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Enter a few details to see an estimated range in seconds, then contact us with your quote prefilled.
-          </p>
-          <p className="mt-3 text-sm text-slate-500">
-            Regional profile: <span className="font-medium text-slate-700">{activeRegionDefinition.label}</span>
-          </p>
+        <div className="relative mb-10 overflow-hidden rounded-2xl px-4 py-12 text-center sm:py-16">
+          <Image
+            src="/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg"
+            alt=""
+            aria-hidden
+            fill
+            priority
+            quality={35}
+            sizes="100vw"
+            className="scale-110 object-cover object-[30%_30%] blur-[5px]"
+          />
+          <div className="absolute inset-0 bg-white/70" />
+          <div className="relative">
+            <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
+            <p className="text-lg text-gray-700 max-w-3xl mx-auto">
+              Takes about 30 seconds. No sign-up, no obligation.
+            </p>
+          </div>
         </div>
 
-        <div className="mb-10 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="mb-10 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+          {/* Live show first: video only downloads when the strip is in view. */}
+          <div className="relative h-36 overflow-hidden rounded-xl sm:h-44">
+            <LazyVideo
+              className="absolute inset-0 h-full w-full object-cover"
+              poster="/videos/posters/hibachi-show.jpg"
+              src="/videos/hibachi-show.mp4"
+            />
+          </div>
           {QUOTE_PROOF_PHOTOS.map((photo) => (
-            <div key={photo.src} className="relative h-28 overflow-hidden rounded-xl sm:h-44">
+            <div key={photo.src} className="relative h-36 overflow-hidden rounded-xl sm:h-44">
               <Image
                 src={photo.src}
                 alt={photo.alt}
                 fill
-                sizes="(max-width: 640px) 33vw, 380px"
+                sizes="(max-width: 640px) 50vw, 380px"
                 className="object-cover"
               />
             </div>
@@ -1485,7 +1513,7 @@ export default function QuoteBuilderClient() {
           </div>
           <div className="mt-6 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
             {QUOTE_TESTIMONIALS.map((testimonial) => (
-              <div key={testimonial.name} className="break-inside-avoid rounded-xl border border-gray-200 bg-white p-5">
+              <div key={testimonial.name} className="break-inside-avoid rounded-xl border border-amber-100 bg-white/90 p-5 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r ${testimonial.color} text-base font-bold text-white`}>
                     {testimonial.name.charAt(0)}
@@ -1505,6 +1533,7 @@ export default function QuoteBuilderClient() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
