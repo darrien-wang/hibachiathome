@@ -77,6 +77,14 @@ export default function LeadsDashboard() {
   const [showAdd, setShowAdd] = useState(false)
   const [addForm, setAddForm] = useState({ name: "", phone: "", channel: "phone", message: "" })
   const [adding, setAdding] = useState(false)
+  const [viewerRole, setViewerRole] = useState<string>("agent")
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [historyFor, setHistoryFor] = useState<string | null>(null)
+  const [historyEvents, setHistoryEvents] = useState<Array<{ touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> }>>([])
+  const [editFor, setEditFor] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ full_name: "", phone: "", email: "" })
+  const [noteFor, setNoteFor] = useState<string | null>(null)
+  const [noteDraft, setNoteDraft] = useState("")
   const prevNewestRef = useRef<string>("")
 
   useEffect(() => {
@@ -119,6 +127,7 @@ export default function LeadsDashboard() {
       if (rows.length > 0) prevNewestRef.current = rows[0].id
       setLeads(rows)
       setStats(data.stats ?? null)
+      if (data.viewer?.role) setViewerRole(data.viewer.role)
       setAuthFailed(false)
     } catch {
       // network hiccup; next poll retries
@@ -135,7 +144,7 @@ export default function LeadsDashboard() {
   }, [adminKey, fetchLeads])
 
   const act = useCallback(
-    async (leadId: string, payload: Record<string, string>) => {
+    async (leadId: string, payload: Record<string, unknown>) => {
       await fetch("/api/admin/leads", {
         method: "PATCH",
         headers: { "content-type": "application/json", "x-admin-key": adminKey },
@@ -150,6 +159,46 @@ export default function LeadsDashboard() {
     () => (statusFilter === "all" ? leads : leads.filter((l) => l.status === statusFilter)),
     [leads, statusFilter]
   )
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const openHistory = useCallback(
+    async (leadId: string) => {
+      if (historyFor === leadId) {
+        setHistoryFor(null)
+        return
+      }
+      setHistoryFor(leadId)
+      setHistoryEvents([])
+      const res = await fetch(`/api/admin/leads?detail=${leadId}`, {
+        headers: { "x-admin-key": adminKey },
+        cache: "no-store",
+      })
+      const data = await res.json()
+      setHistoryEvents(data.events ?? [])
+    },
+    [adminKey, historyFor]
+  )
+
+  const EVENT_LABELS: Record<string, string> = {
+    agent_first_response: "✓ 首次联系",
+    agent_status_change: "状态变更",
+    agent_edit: "✏️ 资料修改",
+    agent_note: "📝 备注",
+    manual_entry: "手动录入",
+    contact_form: "表单提交",
+    booking_request: "报价提交",
+    booking_created: "网站下单",
+    sms_inbound: "收到短信",
+    call_inbound: "来电",
+  }
 
   if (!adminKey) {
     return (
@@ -271,6 +320,35 @@ export default function LeadsDashboard() {
         )}
       </div>
 
+      {viewerRole === "owner" && selected.size > 0 && (
+        <div style={{ position: "sticky", top: 0, zIndex: 10, background: "#111827", color: "#fff", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13 }}>已选 {selected.size} 条</span>
+          {[
+            { s: "disqualified", label: "批量标无效" },
+            { s: "lost", label: "批量标流失" },
+          ].map(({ s, label }) => (
+            <button
+              key={s}
+              onClick={async () => {
+                await fetch("/api/admin/leads", {
+                  method: "PATCH",
+                  headers: { "content-type": "application/json", "x-admin-key": adminKey },
+                  body: JSON.stringify({ action: "bulk_status", status: s, leadIds: Array.from(selected) }),
+                })
+                setSelected(new Set())
+                fetchLeads()
+              }}
+              style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #6b7280", background: "transparent", color: "#fff", fontSize: 13, cursor: "pointer" }}
+            >
+              {label}
+            </button>
+          ))}
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", padding: "5px 10px", borderRadius: 8, border: "none", background: "transparent", color: "#9ca3af", fontSize: 13, cursor: "pointer" }}>
+            取消
+          </button>
+        </div>
+      )}
+
       <div style={{ marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
         {["all", "new", "qualified", "won", "lost"].map((s) => (
           <button
@@ -299,6 +377,14 @@ export default function LeadsDashboard() {
             <div key={l.id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  {viewerRole === "owner" && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(l.id)}
+                      onChange={() => toggleSelect(l.id)}
+                      style={{ width: 16, height: 16, cursor: "pointer" }}
+                    />
+                  )}
                   <strong style={{ fontSize: 15 }}>{l.full_name || "（未留名）"}</strong>
                   <span
                     style={{
@@ -375,7 +461,106 @@ export default function LeadsDashboard() {
                     </option>
                   ))}
                 </select>
+                <button
+                  onClick={() => {
+                    setNoteFor(noteFor === l.id ? null : l.id)
+                    setNoteDraft("")
+                  }}
+                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
+                >
+                  📝 备注
+                </button>
+                <button
+                  onClick={() => {
+                    if (editFor === l.id) {
+                      setEditFor(null)
+                    } else {
+                      setEditFor(l.id)
+                      setEditForm({ full_name: l.full_name ?? "", phone: l.phone ?? "", email: l.email ?? "" })
+                    }
+                  }}
+                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
+                >
+                  ✏️ 编辑
+                </button>
+                <button
+                  onClick={() => openHistory(l.id)}
+                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
+                >
+                  🕘 历史
+                </button>
               </div>
+
+              {noteFor === l.id && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <input
+                    autoFocus
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && noteDraft.trim()) {
+                        await act(l.id, { action: "add_note", note: noteDraft.trim() })
+                        setNoteFor(null)
+                      }
+                    }}
+                    placeholder="跟进备注，回车保存（例：已报价$599，周四再跟）"
+                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
+                  />
+                </div>
+              )}
+
+              {editFor === l.id && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  {(["full_name", "phone", "email"] as const).map((f) => (
+                    <input
+                      key={f}
+                      value={editForm[f]}
+                      onChange={(e) => setEditForm({ ...editForm, [f]: e.target.value })}
+                      placeholder={f === "full_name" ? "姓名" : f === "phone" ? "电话" : "邮箱"}
+                      style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, width: f === "email" ? 200 : 130 }}
+                    />
+                  ))}
+                  <button
+                    onClick={async () => {
+                      await act(l.id, { action: "update_fields", fields: editForm })
+                      setEditFor(null)
+                    }}
+                    style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 13, cursor: "pointer" }}
+                  >
+                    保存修改
+                  </button>
+                </div>
+              )}
+
+              {historyFor === l.id && (
+                <div style={{ marginTop: 10, borderTop: "1px solid #f3f4f6", paddingTop: 8 }}>
+                  {historyEvents.length === 0 && <div style={{ fontSize: 12, color: "#9ca3af" }}>加载中…</div>}
+                  {historyEvents.map((ev, i) => {
+                    const p = ev.raw_payload_json ?? {}
+                    const who = typeof p.actor === "string" ? p.actor : "系统"
+                    const extra =
+                      ev.touchpoint_type === "agent_status_change"
+                        ? ` → ${STATUS_LABELS[String(p.status)] ?? p.status}${p.bulk ? "（批量）" : ""}`
+                        : ev.touchpoint_type === "agent_note"
+                          ? `：${p.note}`
+                          : ev.touchpoint_type === "agent_edit"
+                            ? `：${Object.keys((p.after as Record<string, unknown>) ?? {}).join(", ")}`
+                            : ""
+                    return (
+                      <div key={i} style={{ fontSize: 12, color: "#4b5563", padding: "3px 0", display: "flex", gap: 8 }}>
+                        <span style={{ color: "#9ca3af", whiteSpace: "nowrap" }}>
+                          {new Date(ev.occurred_at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <span style={{ color: "#6b7280" }}>[{who}]</span>
+                        <span>
+                          {EVENT_LABELS[ev.touchpoint_type] ?? ev.touchpoint_type}
+                          {extra}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })}

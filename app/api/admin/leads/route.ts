@@ -6,22 +6,66 @@ export const dynamic = "force-dynamic"
 
 const FIRST_RESPONSE_TYPE = "agent_first_response"
 const STATUS_CHANGE_TYPE = "agent_status_change"
+const EDIT_TYPE = "agent_edit"
+const NOTE_TYPE = "agent_note"
 const ALLOWED_STATUSES = ["new", "qualified", "disqualified", "won", "lost"] as const
+const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "wechat", "walk_in", "referral", "other"] as const
+const EDITABLE_FIELDS = ["full_name", "phone", "email", "city_or_zip", "guest_count"] as const
 
-function isAuthorized(request: NextRequest): boolean {
-  const expected = process.env.ADMIN_DASH_KEY
-  if (!expected) return false
+type Actor = { role: "owner" | "agent"; alias: string }
+
+// Owner: ADMIN_DASH_KEY. Agents: AGENT_DASH_KEYS="anna:key1,bob:key2".
+function resolveActor(request: NextRequest): Actor | null {
   const provided =
     request.headers.get("x-admin-key") ?? request.nextUrl.searchParams.get("key") ?? ""
-  return provided === expected
+  if (!provided) return null
+  const owner = process.env.ADMIN_DASH_KEY
+  if (owner && provided === owner) return { role: "owner", alias: "owner" }
+  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
+    const [alias, key] = entry.split(":").map((s) => s?.trim())
+    if (alias && key && provided === key) return { role: "agent", alias }
+  }
+  return null
+}
+
+async function logEvent(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  leadId: string,
+  type: string,
+  actor: Actor,
+  payload: Record<string, unknown> = {}
+) {
+  await supabase.from("lead_touchpoints").insert({
+    lead_id: leadId,
+    touchpoint_type: type,
+    touchpoint_source: "admin_dashboard",
+    raw_payload_json: { ...payload, actor: actor.alias },
+  })
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  const actor = resolveActor(request)
+  if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
   const supabase = createServerSupabaseClient()
+
+  // Detail mode: full event history for one lead (the audit trail view).
+  const detailId = request.nextUrl.searchParams.get("detail")
+  if (detailId) {
+    const { data: events, error } = await supabase
+      .from("lead_touchpoints")
+      .select("touchpoint_type, touchpoint_source, occurred_at, raw_payload_json")
+      .eq("lead_id", detailId)
+      .order("occurred_at", { ascending: false })
+      .limit(50)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ events: events ?? [] })
+  }
+
   const limit = Math.min(Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "100", 10) || 100, 300)
 
   const { data: leads, error } = await supabase
@@ -76,13 +120,12 @@ export async function GET(request: NextRequest) {
     leads_7d: last7d.length,
   }
 
-  return NextResponse.json({ leads: rows, stats })
+  return NextResponse.json({ leads: rows, stats, viewer: actor })
 }
 
-const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "wechat", "walk_in", "referral", "other"] as const
-
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  const actor = resolveActor(request)
+  if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   let body: { name?: string; phone?: string; email?: string; channel?: string; message?: string }
@@ -111,7 +154,7 @@ export async function POST(request: NextRequest) {
       leadChannel: channel,
       touchpointType: "manual_entry",
       touchpointSource: "admin_dashboard",
-      rawPayload: { channel },
+      rawPayload: { channel, actor: actor.alias },
     })
     return NextResponse.json({ ok: true, leadId: result.leadId, deduped: result.deduped })
   } catch (error) {
@@ -120,22 +163,54 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  const actor = resolveActor(request)
+  if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
-  let body: { leadId?: string; action?: string; status?: string }
+  let body: {
+    leadId?: string
+    leadIds?: string[]
+    action?: string
+    status?: string
+    fields?: Record<string, unknown>
+    note?: string
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 })
   }
+
+  const supabase = createServerSupabaseClient()
+
+  // Bulk archive/status — owner only.
+  if (body.action === "bulk_status") {
+    if (actor.role !== "owner") {
+      return NextResponse.json({ error: "owner only" }, { status: 403 })
+    }
+    const status = typeof body.status === "string" ? body.status : ""
+    const ids = Array.isArray(body.leadIds) ? body.leadIds.filter((x) => typeof x === "string") : []
+    if (!ALLOWED_STATUSES.includes(status as (typeof ALLOWED_STATUSES)[number]) || ids.length === 0 || ids.length > 100) {
+      return NextResponse.json({ error: "invalid bulk request" }, { status: 400 })
+    }
+    const { error } = await supabase
+      .from("leads")
+      .update({ status, updated_at: new Date().toISOString() })
+      .in("id", ids)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    for (const id of ids) {
+      await logEvent(supabase, id, STATUS_CHANGE_TYPE, actor, { status, bulk: true })
+    }
+    return NextResponse.json({ ok: true, count: ids.length })
+  }
+
   const leadId = typeof body.leadId === "string" ? body.leadId : ""
   if (!leadId) {
     return NextResponse.json({ error: "leadId required" }, { status: 400 })
   }
-
-  const supabase = createServerSupabaseClient()
 
   if (body.action === "mark_contacted") {
     // Idempotent: only the first agent_first_response event counts.
@@ -146,18 +221,14 @@ export async function PATCH(request: NextRequest) {
       .eq("touchpoint_type", FIRST_RESPONSE_TYPE)
       .limit(1)
     if (!existing || existing.length === 0) {
-      const { error } = await supabase.from("lead_touchpoints").insert({
-        lead_id: leadId,
-        touchpoint_type: FIRST_RESPONSE_TYPE,
-        touchpoint_source: "admin_dashboard",
-        raw_payload_json: {},
-      })
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
+      await logEvent(supabase, leadId, FIRST_RESPONSE_TYPE, actor)
     }
     // First human touch moves a fresh lead into the pipeline.
-    await supabase.from("leads").update({ status: "qualified", updated_at: new Date().toISOString() }).eq("id", leadId).eq("status", "new")
+    await supabase
+      .from("leads")
+      .update({ status: "qualified", updated_at: new Date().toISOString() })
+      .eq("id", leadId)
+      .eq("status", "new")
     return NextResponse.json({ ok: true })
   }
 
@@ -173,12 +244,44 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    await supabase.from("lead_touchpoints").insert({
-      lead_id: leadId,
-      touchpoint_type: STATUS_CHANGE_TYPE,
-      touchpoint_source: "admin_dashboard",
-      raw_payload_json: { status },
-    })
+    await logEvent(supabase, leadId, STATUS_CHANGE_TYPE, actor, { status })
+    return NextResponse.json({ ok: true })
+  }
+
+  // Field corrections (typos in name/phone/etc). Full before/after audit trail.
+  if (body.action === "update_fields") {
+    const fields = body.fields ?? {}
+    const updates: Record<string, unknown> = {}
+    for (const key of EDITABLE_FIELDS) {
+      if (key in fields) {
+        updates[key] = key === "guest_count" ? Number(fields[key]) || null : String(fields[key] ?? "").trim() || null
+      }
+    }
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: "no editable fields" }, { status: 400 })
+    }
+    const { data: before } = await supabase
+      .from("leads")
+      .select(EDITABLE_FIELDS.join(", "))
+      .eq("id", leadId)
+      .single()
+    const { error } = await supabase
+      .from("leads")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", leadId)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    await logEvent(supabase, leadId, EDIT_TYPE, actor, { before, after: updates })
+    return NextResponse.json({ ok: true })
+  }
+
+  if (body.action === "add_note") {
+    const note = (body.note ?? "").trim()
+    if (!note) {
+      return NextResponse.json({ error: "note required" }, { status: 400 })
+    }
+    await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: note.slice(0, 2000) })
     return NextResponse.json({ ok: true })
   }
 
