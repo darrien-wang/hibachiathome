@@ -21,63 +21,8 @@ import TestimonialsSection from "@/components/testimonials-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
 import { trackEvent } from "@/lib/tracking"
+import LazyVideo from "@/components/lazy-video"
 
-// 视频加载超时组件
-function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
-  const [showVideo, setShowVideo] = useState(true)
-  const [loaded, setLoaded] = useState(false)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => {
-      if (!loaded) setShowVideo(false)
-    }, 15000)
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [loaded])
-
-  const handleLoadedData = () => {
-    console.log("Video loaded successfully")
-    setLoaded(true)
-    setShowVideo(true)
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }
-
-  const handleError = (error: any) => {
-    console.error("Video loading error:", error)
-    setShowVideo(false)
-  }
-
-  if (!showVideo) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl min-h-[200px]">
-        <div className="text-center">
-          <span className="text-gray-400 block mb-2">Video is taking longer to load...</span>
-          <span className="text-gray-300 text-sm block mb-4">
-            This may be due to slow internet connection or large video file.
-          </span>
-          <button
-            onClick={() => {
-              setShowVideo(true)
-              setLoaded(false)
-            }}
-            className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <video {...props} onLoadedData={handleLoadedData} onError={handleError} poster={poster}>
-      <source src={src} type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-  )
-}
 
 // Type definitions for card items
 type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost"
@@ -442,13 +387,10 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/images/design-mode/fried-rice.jpg"
+                    poster="/videos/posters/fried-rice.jpg"
                     src="/videos/fried-rice.mp4"
                   />
                 </div>
@@ -475,13 +417,10 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-los-angeles-chef-show-video-01-poster.jpg"
+                    poster="/videos/posters/hibachi-show.jpg"
                     src="/videos/hibachi-show.mp4"
                   />
                 </div>
@@ -508,13 +447,10 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-orange-county-backyard-video-02-poster.jpg"
+                    poster="/videos/posters/party-highlight.jpg"
                     src="/videos/party-highlight.mp4"
                   />
                 </div>
@@ -554,13 +490,10 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[177.78%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-los-angeles-live-cooking-video-03-poster.jpg"
+                    poster="/videos/posters/real-fire.jpg"
                     src="/videos/real-fire.mp4"
                   />
                 </div>
@@ -604,20 +537,12 @@ export default function Home() {
             <AnimateOnScroll>
               <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[177.78%] h-0">
-                  <video
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-southern-california-event-video-04-poster.jpg"
-                  >
-                    <source
-                      src="/gallery/real-hibachi-party-southern-california-event-video-04.mp4"
-                      type="video/mp4"
+                    poster="/videos/posters/atmosphere.jpg"
+                    src="/videos/atmosphere.mp4"
                     />
-                    Your browser does not support the video tag.
-                  </video>
                 </div>
               </div>
             </AnimateOnScroll>
@@ -631,10 +556,11 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Sake Service & Entertainment
+                Chef Show & Entertainment
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Experience Japanese tradition as our chefs serve sake alongside hibachi entertainment.
+                Experience Japanese tradition as our chefs bring fire tricks, knife skills, and nonstop
+                entertainment to your table.
               </p>
             </AnimateOnScroll>
 
@@ -643,7 +569,7 @@ export default function Home() {
                 <div className="relative">
                   <img
                     src="/images/customer-enjoying-hibachi.png"
-                    alt="Chef serving sake to delighted customers during hibachi experience"
+                    alt="Chef entertaining delighted customers during hibachi experience"
                     className="w-full h-auto rounded-xl shadow-2xl"
                     loading="lazy"
                   />

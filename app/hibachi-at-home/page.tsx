@@ -13,6 +13,7 @@ import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import SocialProofCounter from "@/components/social-proof-counter"
 import { trackEvent } from "@/lib/tracking"
+import LazyVideo from "@/components/lazy-video"
 import Link from "next/link"
 import { cityPages } from "@/config/city-pages"
 import { JsonLd, hibachiAtHomeServiceJsonLd } from "@/components/structured-data"
@@ -133,62 +134,6 @@ const testimonials = [
   },
 ]
 
-// 视频加载超时组件
-function TimeoutVideo({ src, poster, ...props }: { src: string; poster?: string; [key: string]: any }) {
-  const [showVideo, setShowVideo] = useState(true)
-  const [loaded, setLoaded] = useState(false)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => {
-      if (!loaded) setShowVideo(false)
-    }, 15000)
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [loaded])
-
-  const handleLoadedData = () => {
-    console.log("Video loaded successfully")
-    setLoaded(true)
-    setShowVideo(true)
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }
-
-  const handleError = (error) => {
-    console.error("Video loading error:", error)
-    setShowVideo(false)
-  }
-
-  if (!showVideo) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl min-h-[200px]">
-        <div className="text-center">
-          <span className="text-gray-400 block mb-2">Video is taking longer to load...</span>
-          <span className="text-gray-300 text-sm block mb-4">
-            This may be due to slow internet connection or large video file.
-          </span>
-          <button
-            onClick={() => {
-              setShowVideo(true)
-              setLoaded(false)
-            }}
-            className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <video {...props} onLoadedData={handleLoadedData} onError={handleError} poster={poster}>
-      <source src={src} type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-  )
-}
 
 // Type definitions for card items
 type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost"
@@ -592,13 +537,10 @@ export default function HibachiAtHomePage() {
             <AnimateOnScroll>
               <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-orange-county-backyard-video-02-poster.jpg"
+                    poster="/videos/posters/party-highlight.jpg"
                     src="/gallery/real-hibachi-party-orange-county-backyard-video-02.mp4"
                   />
                 </div>
@@ -639,13 +581,10 @@ export default function HibachiAtHomePage() {
             <AnimateOnScroll>
               <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[177.78%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-los-angeles-live-cooking-video-03-poster.jpg"
+                    poster="/videos/posters/real-fire.jpg"
                     src="/videos/real-fire.mp4"
                   />
                 </div>
@@ -680,20 +619,12 @@ export default function HibachiAtHomePage() {
             <AnimateOnScroll>
               <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[177.78%] h-0">
-                  <video
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/gallery/real-hibachi-party-southern-california-event-video-04-poster.jpg"
-                  >
-                    <source
-                      src="/gallery/real-hibachi-party-southern-california-event-video-04.mp4"
-                      type="video/mp4"
+                    poster="/videos/posters/atmosphere.jpg"
+                    src="/videos/atmosphere.mp4"
                     />
-                    Your browser does not support the video tag.
-                  </video>
                 </div>
               </div>
             </AnimateOnScroll>
@@ -885,13 +816,10 @@ export default function HibachiAtHomePage() {
             <AnimateOnScroll>
               <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <div className="relative pb-[56.25%] h-0">
-                  <TimeoutVideo
+                  <LazyVideo
                     className="absolute top-0 left-0 w-full h-full object-cover"
                     controls
-                    autoPlay
-                    muted
-                    loop
-                    poster="/images/design-mode/fried-rice.jpg"
+                    poster="/videos/posters/fried-rice.jpg"
                     src="/videos/fried-rice.mp4"
                   />
                 </div>
