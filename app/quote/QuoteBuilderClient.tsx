@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -51,6 +52,74 @@ const DEFAULT_INPUT: QuoteInput = {
 }
 
 const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
+
+// Real party photos from /gallery — ad visitors land straight on this page and
+// need one glance of proof this is a real local operation before the form.
+const QUOTE_PROOF_PHOTOS = [
+  {
+    src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
+    alt: "Real Hibachi chefs cooking fresh hibachi at a Los Angeles backyard party",
+  },
+  {
+    src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
+    alt: "Happy guests with their Real Hibachi chef at a Southern California pool party",
+  },
+  {
+    src: "/gallery/real-hibachi-party-los-angeles-birthday-event-13.jpg",
+    alt: "Evening Real Hibachi birthday party under string lights in Los Angeles",
+  },
+] as const
+
+// Verbatim 5-star Google reviews from the Real Hibachi listing (owner-supplied
+// screenshots, 2026-08). Kelsey's quote is truncated before an alcohol mention
+// to stay clear of the A2P/CTIA content rules the rest of the site follows.
+const QUOTE_TESTIMONIALS = [
+  {
+    name: "Spencer Sprowls",
+    color: "from-violet-500 to-purple-600",
+    text: "Bling is an amazing chef!! He makes the party 100x better and will make amazing food for you.",
+  },
+  {
+    name: "Kelsey Molnar",
+    color: "from-orange-400 to-red-500",
+    text: "Real Hibachi is such a fun experience! I decided to hire for my sisters 30th bday and it was an absolute success! We had Chef Bling and he was a riot and so sweet! I told him it was a surprise and he made it SO FUN! HIGHLY RECOMMEND, HIGHLY AFFORDABLE, so delicious…",
+  },
+  {
+    name: "David Armstrong",
+    color: "from-stone-500 to-stone-700",
+    text: "Chef Bling curated a brilliant display of culinary mastery and phenomenal vibes to create an forgettable evening for the bros and I. 2 thumbs up.",
+  },
+  {
+    name: "Warren Zhang",
+    color: "from-sky-500 to-blue-600",
+    text: "Bling was a great chef and also very personable! He made our night and it was my birthday! Best night ever!",
+  },
+  {
+    name: "Laura Gallop",
+    color: "from-rose-400 to-pink-600",
+    text: "Chef Bling and Chef Noodle was great! Very entertaining and food was delicious.",
+  },
+  {
+    name: "Lisa Craven",
+    color: "from-emerald-500 to-green-700",
+    text: "Chef blue was absolutely amazing!!! Super friendly and personable. So fun and interactive. Knew how to switch it up between adults and kids. Food was delicious and he was great! Highly recommend !",
+  },
+  {
+    name: "Max Schwenk",
+    color: "from-amber-500 to-yellow-600",
+    text: "Unbelievable experience! Bling was the best chef ever!",
+  },
+  {
+    name: "Judy Gothelf",
+    color: "from-cyan-500 to-teal-600",
+    text: "What a great experience having Blue as our chef! Aside from the fact that he made delicious food, he was so much fun and so engaging! We loved having him here to celebrate our friend's BIG birthday!",
+  },
+  {
+    name: "Karen Wertheimer",
+    color: "from-red-500 to-rose-700",
+    text: "Just had a wonderful dinner prepared by Blue. He was engaging and entertaining. I would recommend this for any occasion.",
+  },
+] as const
 const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
 const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof QuoteInput["weekdaySaverProteins"], string> = {
   chicken: "Chicken",
@@ -914,6 +983,20 @@ export default function QuoteBuilderClient() {
           </p>
         </div>
 
+        <div className="mb-10 grid grid-cols-3 gap-2 sm:gap-3">
+          {QUOTE_PROOF_PHOTOS.map((photo) => (
+            <div key={photo.src} className="relative h-28 overflow-hidden rounded-xl sm:h-44">
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="(max-width: 640px) 33vw, 380px"
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
           <Card>
             <CardHeader>
@@ -1385,6 +1468,37 @@ export default function QuoteBuilderClient() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-center text-2xl font-bold">What Our Guests Say</h2>
+          <div className="mt-1.5 flex items-center justify-center gap-1 text-sm text-gray-600">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+            ))}
+            <span className="ml-1">5-star Google reviews from SoCal parties</span>
+          </div>
+          <div className="mt-6 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
+            {QUOTE_TESTIMONIALS.map((testimonial) => (
+              <div key={testimonial.name} className="break-inside-avoid rounded-xl border border-gray-200 bg-white p-5">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r ${testimonial.color} text-base font-bold text-white`}>
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">{testimonial.name}</p>
+                    <p className="text-xs text-gray-500">Google review</p>
+                  </div>
+                </div>
+                <div className="mt-2 flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                  ))}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-gray-700">{testimonial.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
