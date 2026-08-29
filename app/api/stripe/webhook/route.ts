@@ -145,6 +145,45 @@ function normalizeSmsPhone(value: string | undefined): string | undefined {
   return undefined
 }
 
+// Preferred link form: a stable order key minted by the invoice app, so
+// the SMS carries /order?key=ok_... instead of raw contact params. Falls
+// back to the parameter link if the key API is unreachable.
+async function buildOrderKeyLink(params: {
+  baseUrl?: string
+  bookingId?: string
+  email?: string
+  phone?: string
+}): Promise<string | undefined> {
+  const baseUrl = asNonEmptyString(params.baseUrl)
+  if (baseUrl && (params.bookingId || params.email || params.phone)) {
+    try {
+      const origin = new URL(baseUrl).origin
+      const res = await fetch(`${origin}/api/order-key`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          externalOrderId: asNonEmptyString(params.bookingId),
+          email: asNonEmptyString(params.email),
+          phone: asNonEmptyString(params.phone),
+        }),
+        signal: AbortSignal.timeout(6000),
+      })
+      const data = (await res.json()) as { ok?: boolean; id?: string }
+      if (res.ok && data?.ok && data.id) {
+        const url = new URL(baseUrl)
+        url.searchParams.set("key", data.id)
+        url.searchParams.set("surface", "deposit_webhook_notification")
+        return url.toString()
+      }
+    } catch (error) {
+      console.warn("[stripe/webhook] order-key mint failed; falling back to param link:", {
+        error: error instanceof Error ? error.message : "unknown",
+      })
+    }
+  }
+  return buildInvoiceSelfServiceLink(params)
+}
+
 function buildInvoiceSelfServiceLink(params: {
   baseUrl?: string
   bookingId?: string
@@ -731,7 +770,7 @@ async function sendCustomerDepositNotifications(params: {
     asNonEmptyString(params.bookingSnapshot?.phone) ??
     asNonEmptyString(params.session.customer_details?.phone) ??
     asNonEmptyString(params.session.metadata?.customer_phone)
-  const selfServiceLink = buildInvoiceSelfServiceLink({
+  const selfServiceLink = await buildOrderKeyLink({
     baseUrl:
       asNonEmptyString(process.env.INVOICE_SELF_SERVICE_BASE_URL) ??
       asNonEmptyString(process.env.NEXT_PUBLIC_INVOICE_SELF_SERVICE_BASE_URL),
