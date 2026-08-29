@@ -58,16 +58,8 @@ const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
 // need one glance of proof this is a real local operation before the form.
 const QUOTE_PROOF_PHOTOS = [
   {
-    src: "/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg",
-    alt: "Real Hibachi chef with a huge hibachi flame at a Los Angeles backyard party",
-  },
-  {
     src: "/gallery/real-hibachi-party-orange-county-family-event-04.jpg",
     alt: "Real Hibachi chef cooking fresh eggs on the griddle at an Orange County family event",
-  },
-  {
-    src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
-    alt: "Real Hibachi chef grilling fresh vegetables at a Los Angeles party",
   },
   {
     src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
@@ -997,9 +989,9 @@ export default function QuoteBuilderClient() {
             priority
             quality={35}
             sizes="100vw"
-            className="scale-110 object-cover object-[30%_30%] blur-[5px]"
+            className="scale-110 object-cover object-[30%_30%] blur-[3px]"
           />
-          <div className="absolute inset-0 bg-white/70" />
+          <div className="absolute inset-0 bg-white/60" />
           <div className="relative">
             <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
@@ -1008,9 +1000,10 @@ export default function QuoteBuilderClient() {
           </div>
         </div>
 
-        <div className="mb-10 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+        {/* One-row film strip: swipe sideways, snap per card, no scrollbar. */}
+        <div className="mb-10 flex snap-x snap-mandatory gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Live show first: video only downloads when the strip is in view. */}
-          <div className="relative h-36 overflow-hidden rounded-xl sm:h-44">
+          <div className="relative h-44 w-64 shrink-0 snap-start overflow-hidden rounded-xl sm:h-52 sm:w-80">
             <LazyVideo
               className="absolute inset-0 h-full w-full object-cover"
               poster="/videos/posters/hibachi-show.jpg"
@@ -1018,12 +1011,12 @@ export default function QuoteBuilderClient() {
             />
           </div>
           {QUOTE_PROOF_PHOTOS.map((photo) => (
-            <div key={photo.src} className="relative h-36 overflow-hidden rounded-xl sm:h-44">
+            <div key={photo.src} className="relative h-44 w-64 shrink-0 snap-start overflow-hidden rounded-xl sm:h-52 sm:w-80">
               <Image
                 src={photo.src}
                 alt={photo.alt}
                 fill
-                sizes="(max-width: 640px) 50vw, 380px"
+                sizes="320px"
                 className="object-cover"
               />
             </div>
