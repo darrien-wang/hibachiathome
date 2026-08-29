@@ -32,6 +32,8 @@ type Stats = {
   leads_7d: number
 }
 
+type HistoryEvent = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> }
+
 const STATUS_LABELS: Record<string, string> = {
   new: "待联系",
   qualified: "跟进中",
@@ -46,6 +48,19 @@ const STATUS_COLORS: Record<string, string> = {
   won: "#16a34a",
   lost: "#6b7280",
   disqualified: "#9ca3af",
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  agent_first_response: "✓ 首次联系",
+  agent_status_change: "状态变更",
+  agent_edit: "✏️ 资料修改",
+  agent_note: "📝 备注",
+  manual_entry: "手动录入",
+  contact_form: "表单提交",
+  booking_request: "报价提交",
+  booking_created: "网站下单",
+  sms_inbound: "收到短信",
+  call_inbound: "来电",
 }
 
 function relativeTime(iso: string): string {
@@ -66,6 +81,31 @@ function responseBadge(seconds: number | null): { text: string; color: string } 
   return { text: `${Math.round(min / 60)} 小时`, color: "#dc2626" }
 }
 
+function Modal({ onClose, children, title }: { onClose: () => void; children: React.ReactNode; title: string }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, background: "rgba(17,24,39,0.45)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500, maxHeight: "85vh", overflowY: "auto", padding: "16px 18px", boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <strong style={{ fontSize: 16 }}>{title}</strong>
+          <button onClick={onClose} style={{ border: "none", background: "#f3f4f6", borderRadius: 8, width: 30, height: 30, fontSize: 15, cursor: "pointer" }}>
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const inputStyle: React.CSSProperties = { padding: "9px 11px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14, width: "100%", boxSizing: "border-box" }
+const sectionLabel: React.CSSProperties = { fontSize: 12, color: "#6b7280", margin: "14px 0 6px", fontWeight: 600 }
+
 export default function LeadsDashboard() {
   const [adminKey, setAdminKey] = useState<string>("")
   const [keyInput, setKeyInput] = useState("")
@@ -74,17 +114,16 @@ export default function LeadsDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [viewerRole, setViewerRole] = useState<string>("agent")
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showAdd, setShowAdd] = useState(false)
   const [addForm, setAddForm] = useState({ name: "", phone: "", channel: "phone", message: "" })
   const [adding, setAdding] = useState(false)
-  const [viewerRole, setViewerRole] = useState<string>("agent")
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [historyFor, setHistoryFor] = useState<string | null>(null)
-  const [historyEvents, setHistoryEvents] = useState<Array<{ touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> }>>([])
-  const [editFor, setEditFor] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const [historyEvents, setHistoryEvents] = useState<HistoryEvent[]>([])
   const [editForm, setEditForm] = useState({ full_name: "", phone: "", email: "" })
-  const [noteFor, setNoteFor] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState("")
+  const [saving, setSaving] = useState(false)
   const prevNewestRef = useRef<string>("")
 
   useEffect(() => {
@@ -145,20 +184,49 @@ export default function LeadsDashboard() {
 
   const act = useCallback(
     async (leadId: string, payload: Record<string, unknown>) => {
-      await fetch("/api/admin/leads", {
-        method: "PATCH",
-        headers: { "content-type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ leadId, ...payload }),
-      })
-      fetchLeads()
+      setSaving(true)
+      try {
+        await fetch("/api/admin/leads", {
+          method: "PATCH",
+          headers: { "content-type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ leadId, ...payload }),
+        })
+        await fetchLeads()
+      } finally {
+        setSaving(false)
+      }
     },
     [adminKey, fetchLeads]
+  )
+
+  const loadHistory = useCallback(
+    async (leadId: string) => {
+      setHistoryEvents([])
+      const res = await fetch(`/api/admin/leads?detail=${leadId}`, {
+        headers: { "x-admin-key": adminKey },
+        cache: "no-store",
+      })
+      const data = await res.json()
+      setHistoryEvents(data.events ?? [])
+    },
+    [adminKey]
+  )
+
+  const openDetail = useCallback(
+    (l: LeadRow) => {
+      setDetailId(l.id)
+      setEditForm({ full_name: l.full_name ?? "", phone: l.phone ?? "", email: l.email ?? "" })
+      setNoteDraft("")
+      loadHistory(l.id)
+    },
+    [loadHistory]
   )
 
   const visible = useMemo(
     () => (statusFilter === "all" ? leads : leads.filter((l) => l.status === statusFilter)),
     [leads, statusFilter]
   )
+  const detailLead = useMemo(() => leads.find((l) => l.id === detailId) ?? null, [leads, detailId])
 
   const toggleSelect = useCallback((id: string) => {
     setSelected((prev) => {
@@ -169,36 +237,15 @@ export default function LeadsDashboard() {
     })
   }, [])
 
-  const openHistory = useCallback(
-    async (leadId: string) => {
-      if (historyFor === leadId) {
-        setHistoryFor(null)
-        return
-      }
-      setHistoryFor(leadId)
-      setHistoryEvents([])
-      const res = await fetch(`/api/admin/leads?detail=${leadId}`, {
-        headers: { "x-admin-key": adminKey },
-        cache: "no-store",
-      })
-      const data = await res.json()
-      setHistoryEvents(data.events ?? [])
-    },
-    [adminKey, historyFor]
-  )
-
-  const EVENT_LABELS: Record<string, string> = {
-    agent_first_response: "✓ 首次联系",
-    agent_status_change: "状态变更",
-    agent_edit: "✏️ 资料修改",
-    agent_note: "📝 备注",
-    manual_entry: "手动录入",
-    contact_form: "表单提交",
-    booking_request: "报价提交",
-    booking_created: "网站下单",
-    sms_inbound: "收到短信",
-    call_inbound: "来电",
-  }
+  const sendReviewInvite = useCallback((l: LeadRow) => {
+    const reviewUrl = process.env.NEXT_PUBLIC_GBP_REVIEW_URL || "https://g.page/r/REVIEW_LINK"
+    const firstName = (l.full_name || "").split(" ")[0]
+    const text = `Hi${firstName ? " " + firstName : ""}! Thanks for having Real Hibachi at your party - hope everyone loved the show! If you have 30 seconds, a Google review would mean the world to our small team: ${reviewUrl}`
+    try {
+      navigator.clipboard.writeText(text)
+    } catch {}
+    window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+  }, [])
 
   if (!adminKey) {
     return (
@@ -225,7 +272,7 @@ export default function LeadsDashboard() {
   }
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 16px", fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 16px 90px", fontFamily: "system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <h1 style={{ fontSize: 22 }}>线索工作台</h1>
         <span style={{ fontSize: 12, color: "#6b7280" }}>{loading ? "刷新中…" : "每 30 秒自动刷新"}</span>
@@ -255,101 +302,7 @@ export default function LeadsDashboard() {
         </div>
       )}
 
-      <div style={{ marginBottom: 12 }}>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          style={{ padding: "7px 14px", borderRadius: 8, border: "1px dashed #9ca3af", background: "#fff", color: "#374151", fontSize: 13, cursor: "pointer" }}
-        >
-          {showAdd ? "收起" : "＋ 手动添加线索（电话/FB/IG 询盘）"}
-        </button>
-        {showAdd && (
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input
-              placeholder="姓名"
-              value={addForm.name}
-              onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
-              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, width: 120 }}
-            />
-            <input
-              placeholder="电话"
-              value={addForm.phone}
-              onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
-              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, width: 140 }}
-            />
-            <select
-              value={addForm.channel}
-              onChange={(e) => setAddForm({ ...addForm, channel: e.target.value })}
-              style={{ padding: "7px 8px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
-            >
-              <option value="phone">来电</option>
-              <option value="sms">短信</option>
-              <option value="facebook">Facebook</option>
-              <option value="instagram">Instagram</option>
-              <option value="wechat">微信</option>
-              <option value="referral">转介绍</option>
-              <option value="other">其他</option>
-            </select>
-            <input
-              placeholder="需求备注（日期/人数/地区）"
-              value={addForm.message}
-              onChange={(e) => setAddForm({ ...addForm, message: e.target.value })}
-              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, flex: 1, minWidth: 180 }}
-            />
-            <button
-              disabled={adding || (!addForm.name.trim() && !addForm.phone.trim())}
-              onClick={async () => {
-                setAdding(true)
-                try {
-                  await fetch("/api/admin/leads", {
-                    method: "POST",
-                    headers: { "content-type": "application/json", "x-admin-key": adminKey },
-                    body: JSON.stringify(addForm),
-                  })
-                  setAddForm({ name: "", phone: "", channel: addForm.channel, message: "" })
-                  setShowAdd(false)
-                  fetchLeads()
-                } finally {
-                  setAdding(false)
-                }
-              }}
-              style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: adding ? 0.6 : 1 }}
-            >
-              {adding ? "添加中…" : "添加"}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {viewerRole === "owner" && selected.size > 0 && (
-        <div style={{ position: "sticky", top: 0, zIndex: 10, background: "#111827", color: "#fff", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13 }}>已选 {selected.size} 条</span>
-          {[
-            { s: "disqualified", label: "批量标无效" },
-            { s: "lost", label: "批量标流失" },
-          ].map(({ s, label }) => (
-            <button
-              key={s}
-              onClick={async () => {
-                await fetch("/api/admin/leads", {
-                  method: "PATCH",
-                  headers: { "content-type": "application/json", "x-admin-key": adminKey },
-                  body: JSON.stringify({ action: "bulk_status", status: s, leadIds: Array.from(selected) }),
-                })
-                setSelected(new Set())
-                fetchLeads()
-              }}
-              style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #6b7280", background: "transparent", color: "#fff", fontSize: 13, cursor: "pointer" }}
-            >
-              {label}
-            </button>
-          ))}
-          <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", padding: "5px 10px", borderRadius: 8, border: "none", background: "transparent", color: "#9ca3af", fontSize: 13, cursor: "pointer" }}>
-            取消
-          </button>
-        </div>
-      )}
-
-      <div style={{ marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {["all", "new", "qualified", "won", "lost"].map((s) => (
           <button
             key={s}
@@ -367,6 +320,12 @@ export default function LeadsDashboard() {
             {s === "all" ? "全部" : STATUS_LABELS[s]}
           </button>
         ))}
+        <button
+          onClick={() => setShowAdd(true)}
+          style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 999, border: "1px dashed #9ca3af", background: "#fff", color: "#374151", fontSize: 13, cursor: "pointer" }}
+        >
+          ＋ 手动添加
+        </button>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -386,15 +345,7 @@ export default function LeadsDashboard() {
                     />
                   )}
                   <strong style={{ fontSize: 15 }}>{l.full_name || "（未留名）"}</strong>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      color: "#fff",
-                      background: STATUS_COLORS[l.status] ?? "#6b7280",
-                    }}
-                  >
+                  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, color: "#fff", background: STATUS_COLORS[l.status] ?? "#6b7280" }}>
                     {STATUS_LABELS[l.status] ?? l.status}
                   </span>
                   {isAd && (
@@ -424,143 +375,22 @@ export default function LeadsDashboard() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {l.response_seconds === null && (
                   <button
                     onClick={() => act(l.id, { action: "mark_contacted" })}
-                    style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                    style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
                   >
                     ✓ 已联系
                   </button>
                 )}
-                {l.status === "won" && l.phone && (
-                  <button
-                    onClick={() => {
-                      const reviewUrl = process.env.NEXT_PUBLIC_GBP_REVIEW_URL || "https://g.page/r/REVIEW_LINK"
-                      const firstName = (l.full_name || "").split(" ")[0]
-                      const text = `Hi${firstName ? " " + firstName : ""}! Thanks for having Real Hibachi at your party - hope everyone loved the show! If you have 30 seconds, a Google review would mean the world to our small team: ${reviewUrl}`
-                      try {
-                        navigator.clipboard.writeText(text)
-                      } catch {}
-                      window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
-                    }}
-                    style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                    title="文案已复制到剪贴板；手机上会直接打开短信"
-                  >
-                    ⭐ 发送邀评短信
-                  </button>
-                )}
-                <select
-                  value={l.status}
-                  onChange={(e) => act(l.id, { action: "set_status", status: e.target.value })}
-                  style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
-                >
-                  {Object.entries(STATUS_LABELS).map(([v, label]) => (
-                    <option key={v} value={v}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
                 <button
-                  onClick={() => {
-                    setNoteFor(noteFor === l.id ? null : l.id)
-                    setNoteDraft("")
-                  }}
-                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
+                  onClick={() => openDetail(l)}
+                  style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 14, color: "#374151", cursor: "pointer" }}
                 >
-                  📝 备注
-                </button>
-                <button
-                  onClick={() => {
-                    if (editFor === l.id) {
-                      setEditFor(null)
-                    } else {
-                      setEditFor(l.id)
-                      setEditForm({ full_name: l.full_name ?? "", phone: l.phone ?? "", email: l.email ?? "" })
-                    }
-                  }}
-                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
-                >
-                  ✏️ 编辑
-                </button>
-                <button
-                  onClick={() => openHistory(l.id)}
-                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
-                >
-                  🕘 历史
+                  ⋯ 操作
                 </button>
               </div>
-
-              {noteFor === l.id && (
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <input
-                    autoFocus
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && noteDraft.trim()) {
-                        await act(l.id, { action: "add_note", note: noteDraft.trim() })
-                        setNoteFor(null)
-                      }
-                    }}
-                    placeholder="跟进备注，回车保存（例：已报价$599，周四再跟）"
-                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
-                  />
-                </div>
-              )}
-
-              {editFor === l.id && (
-                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  {(["full_name", "phone", "email"] as const).map((f) => (
-                    <input
-                      key={f}
-                      value={editForm[f]}
-                      onChange={(e) => setEditForm({ ...editForm, [f]: e.target.value })}
-                      placeholder={f === "full_name" ? "姓名" : f === "phone" ? "电话" : "邮箱"}
-                      style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, width: f === "email" ? 200 : 130 }}
-                    />
-                  ))}
-                  <button
-                    onClick={async () => {
-                      await act(l.id, { action: "update_fields", fields: editForm })
-                      setEditFor(null)
-                    }}
-                    style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 13, cursor: "pointer" }}
-                  >
-                    保存修改
-                  </button>
-                </div>
-              )}
-
-              {historyFor === l.id && (
-                <div style={{ marginTop: 10, borderTop: "1px solid #f3f4f6", paddingTop: 8 }}>
-                  {historyEvents.length === 0 && <div style={{ fontSize: 12, color: "#9ca3af" }}>加载中…</div>}
-                  {historyEvents.map((ev, i) => {
-                    const p = ev.raw_payload_json ?? {}
-                    const who = typeof p.actor === "string" ? p.actor : "系统"
-                    const extra =
-                      ev.touchpoint_type === "agent_status_change"
-                        ? ` → ${STATUS_LABELS[String(p.status)] ?? p.status}${p.bulk ? "（批量）" : ""}`
-                        : ev.touchpoint_type === "agent_note"
-                          ? `：${p.note}`
-                          : ev.touchpoint_type === "agent_edit"
-                            ? `：${Object.keys((p.after as Record<string, unknown>) ?? {}).join(", ")}`
-                            : ""
-                    return (
-                      <div key={i} style={{ fontSize: 12, color: "#4b5563", padding: "3px 0", display: "flex", gap: 8 }}>
-                        <span style={{ color: "#9ca3af", whiteSpace: "nowrap" }}>
-                          {new Date(ev.occurred_at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                        <span style={{ color: "#6b7280" }}>[{who}]</span>
-                        <span>
-                          {EVENT_LABELS[ev.touchpoint_type] ?? ev.touchpoint_type}
-                          {extra}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
             </div>
           )
         })}
@@ -568,6 +398,192 @@ export default function LeadsDashboard() {
           <div style={{ textAlign: "center", color: "#9ca3af", padding: 40 }}>没有符合条件的线索</div>
         )}
       </div>
+
+      {/* ── Bulk action floating bar (owner) ── */}
+      {viewerRole === "owner" && selected.size > 0 && (
+        <div style={{ position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 40, background: "#111827", color: "#fff", borderRadius: 999, padding: "10px 18px", display: "flex", gap: 10, alignItems: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.35)", maxWidth: "calc(100% - 24px)", flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>已选 {selected.size} 条</span>
+          {[
+            { s: "disqualified", label: "标无效" },
+            { s: "lost", label: "标流失" },
+          ].map(({ s, label }) => (
+            <button
+              key={s}
+              onClick={async () => {
+                await fetch("/api/admin/leads", {
+                  method: "PATCH",
+                  headers: { "content-type": "application/json", "x-admin-key": adminKey },
+                  body: JSON.stringify({ action: "bulk_status", status: s, leadIds: Array.from(selected) }),
+                })
+                setSelected(new Set())
+                fetchLeads()
+              }}
+              style={{ padding: "6px 14px", borderRadius: 999, border: "1px solid #6b7280", background: "transparent", color: "#fff", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              {label}
+            </button>
+          ))}
+          <button onClick={() => setSelected(new Set())} style={{ padding: "6px 10px", borderRadius: 999, border: "none", background: "transparent", color: "#9ca3af", fontSize: 13, cursor: "pointer" }}>
+            取消
+          </button>
+        </div>
+      )}
+
+      {/* ── Manual add modal ── */}
+      {showAdd && (
+        <Modal title="手动添加线索" onClose={() => setShowAdd(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input placeholder="姓名" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} style={inputStyle} />
+            <input placeholder="电话" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} style={inputStyle} />
+            <select value={addForm.channel} onChange={(e) => setAddForm({ ...addForm, channel: e.target.value })} style={inputStyle}>
+              <option value="phone">来电</option>
+              <option value="sms">短信</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+              <option value="wechat">微信</option>
+              <option value="referral">转介绍</option>
+              <option value="other">其他</option>
+            </select>
+            <input placeholder="需求备注（日期/人数/地区）" value={addForm.message} onChange={(e) => setAddForm({ ...addForm, message: e.target.value })} style={inputStyle} />
+            <button
+              disabled={adding || (!addForm.name.trim() && !addForm.phone.trim())}
+              onClick={async () => {
+                setAdding(true)
+                try {
+                  await fetch("/api/admin/leads", {
+                    method: "POST",
+                    headers: { "content-type": "application/json", "x-admin-key": adminKey },
+                    body: JSON.stringify(addForm),
+                  })
+                  setAddForm({ name: "", phone: "", channel: addForm.channel, message: "" })
+                  setShowAdd(false)
+                  fetchLeads()
+                } finally {
+                  setAdding(false)
+                }
+              }}
+              style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", opacity: adding ? 0.6 : 1 }}
+            >
+              {adding ? "添加中…" : "添加线索"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Lead detail / actions modal ── */}
+      {detailLead && (
+        <Modal title={detailLead.full_name || detailLead.phone || "线索详情"} onClose={() => setDetailId(null)}>
+          <div style={{ fontSize: 13, color: "#6b7280", display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+            <span>{STATUS_LABELS[detailLead.status]}</span>
+            <span>{relativeTime(detailLead.created_at)}</span>
+            {detailLead.utm_term && <span style={{ color: "#1d4ed8" }}>广告 · {detailLead.utm_term}</span>}
+          </div>
+
+          <div style={sectionLabel}>状态</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {Object.entries(STATUS_LABELS).map(([v, label]) => (
+              <button
+                key={v}
+                disabled={saving}
+                onClick={() => act(detailLead.id, { action: "set_status", status: v })}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 999,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  border: "1px solid " + (detailLead.status === v ? STATUS_COLORS[v] : "#d1d5db"),
+                  background: detailLead.status === v ? STATUS_COLORS[v] : "#fff",
+                  color: detailLead.status === v ? "#fff" : "#374151",
+                  fontWeight: detailLead.status === v ? 700 : 400,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {detailLead.status === "won" && detailLead.phone && (
+            <button
+              onClick={() => sendReviewInvite(detailLead)}
+              style={{ marginTop: 12, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            >
+              ⭐ 发送邀评短信（文案自动复制）
+            </button>
+          )}
+
+          <div style={sectionLabel}>跟进备注</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter" && noteDraft.trim()) {
+                  await act(detailLead.id, { action: "add_note", note: noteDraft.trim() })
+                  setNoteDraft("")
+                  loadHistory(detailLead.id)
+                }
+              }}
+              placeholder="例：已报价 $599，周四再跟。回车保存"
+              style={{ ...inputStyle, flex: 1 }}
+            />
+          </div>
+
+          <div style={sectionLabel}>修改资料（留痕）</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <input value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} placeholder="姓名" style={inputStyle} />
+            <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="电话" style={inputStyle} />
+            <input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} placeholder="邮箱" style={inputStyle} />
+            <button
+              disabled={saving}
+              onClick={async () => {
+                await act(detailLead.id, { action: "update_fields", fields: editForm })
+                loadHistory(detailLead.id)
+              }}
+              style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#374151", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              {saving ? "保存中…" : "保存修改"}
+            </button>
+          </div>
+
+          <div style={sectionLabel}>操作历史</div>
+          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>
+            {historyEvents.length === 0 && <div style={{ fontSize: 12, color: "#9ca3af" }}>加载中…</div>}
+            {historyEvents.map((ev, i) => {
+              const p = ev.raw_payload_json ?? {}
+              const who = typeof p.actor === "string" ? p.actor : "系统"
+              const FIELD_CN: Record<string, string> = { full_name: "姓名", phone: "电话", email: "邮箱", city_or_zip: "地区", guest_count: "人数" }
+              const editDiff = () => {
+                const before = (p.before as Record<string, unknown>) ?? {}
+                const after = (p.after as Record<string, unknown>) ?? {}
+                const parts = Object.keys(after)
+                  .filter((k) => String(before[k] ?? "") !== String(after[k] ?? ""))
+                  .map((k) => `${FIELD_CN[k] ?? k}: ${String(before[k] ?? "空") || "空"} → ${String(after[k] ?? "空") || "空"}`)
+                return parts.length ? `：${parts.join("；")}` : "：无实际变更"
+              }
+              const extra =
+                ev.touchpoint_type === "agent_status_change"
+                  ? ` → ${STATUS_LABELS[String(p.status)] ?? p.status}${p.bulk ? "（批量）" : ""}`
+                  : ev.touchpoint_type === "agent_note"
+                    ? `：${p.note}`
+                    : ev.touchpoint_type === "agent_edit"
+                      ? editDiff()
+                      : ""
+              return (
+                <div key={i} style={{ fontSize: 12, color: "#4b5563", padding: "4px 0", display: "flex", gap: 8 }}>
+                  <span style={{ color: "#9ca3af", whiteSpace: "nowrap" }}>
+                    {new Date(ev.occurred_at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span style={{ color: "#6b7280", whiteSpace: "nowrap" }}>[{who}]</span>
+                  <span style={{ wordBreak: "break-word" }}>
+                    {EVENT_LABELS[ev.touchpoint_type] ?? ev.touchpoint_type}
+                    {extra}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
