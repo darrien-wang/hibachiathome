@@ -367,6 +367,27 @@ ul.plain{margin:0 0 14px;padding-left:20px}
 ul.plain li{margin-bottom:6px;max-width:62ch}
 .foot{padding:36px 0 60px;font-size:13px;color:var(--muted);border-top:2px solid var(--ink)}
 .foot p{max-width:70ch}
+
+/* ---------- 工具：二维码 ---------- */
+.tool{
+  background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+  padding:22px;margin:22px 0;display:grid;gap:22px;align-items:center;
+}
+@media (min-width:640px){.tool{grid-template-columns:auto 1fr}}
+.qr{
+  background:#fff;padding:12px;border-radius:6px;border:1px solid var(--rule-strong);
+  width:200px;justify-self:center;
+}
+.qr svg{display:block;width:100%;height:auto}
+.tool h4{margin:0 0 8px;font-size:17px;font-family:"Archivo","Noto Sans SC",sans-serif}
+.tool p{margin:0 0 8px;font-size:14.5px;color:var(--ink-2)}
+.tool p:last-child{margin-bottom:0}
+.qr-url{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);
+  word-break:break-all;background:var(--surface-2);padding:6px 9px;border-radius:3px;
+  display:inline-block;margin-top:4px;
+}
+@media print{.tool{break-inside:avoid}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -1452,6 +1473,25 @@ ul.plain li{margin-bottom:6px;max-width:62ch}
           <span class="note-label">为什么互关这一步最值钱</span>
           <p>发内容涨的是陌生粉，<b>互关涨的是"办过活动的人"</b>——他家里刚办完，他朋友看见了，下一场可能就是他介绍的。</p>
           <p>而且他下次自己再办，第一个想到的是你——<b>那就是指名单，$15–20 一位</b>——<b>而给到哪一档，正好看你账号做得怎么样。</b>这 $10 真正的回报在那里。</p>
+        </div>
+
+        <h3>工具：Google 评价二维码</h3>
+        <p>客人扫这个码，<b>直接跳到写评价的页面</b>——不用搜索、不用找我们的商家资料、不用登录以外的任何步骤。</p>
+
+        <div class="tool">
+          <div class="qr"><svg viewBox="0 0 41 41" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Google 评价二维码" shape-rendering="crispEdges"><rect width="41" height="41" fill="#fff"/><path d="M2 2h7v1h-7zM10 2h1v1h-1zM12 2h1v1h-1zM18 2h3v1h-3zM22 2h2v1h-2zM25 2h1v1h-1zM28 2h1v1h-1zM32 2h7v1h-7zM2 3h1v1h-1zM8 3h1v1h-1zM12 3h2v1h-2zM15 3h5v1h-5zM22 3h1v1h-1zM24 3h1v1h-1zM30 3h1v1h-1zM32 3h1v1h-1zM38 3h1v1h-1zM2 4h1v1h-1zM4 4h3v1h-3zM8 4h1v1h-1zM10 4h5v1h-5zM17 4h1v1h-1zM23 4h2v1h-2zM26 4h1v1h-1zM32 4h1v1h-1zM34 4h3v1h-3zM38 4h1v1h-1zM2 5h1v1h-1zM4 5h3v1h-3zM8 5h1v1h-1zM13 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM23 5h3v1h-3zM30 5h1v1h-1zM32 5h1v1h-1zM34 5h3v1h-3zM38 5h1v1h-1zM2 6h1v1h-1zM4 6h3v1h-3zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h3v1h-3zM18 6h1v1h-1zM20 6h4v1h-4zM25 6h1v1h-1zM27 6h1v1h-1zM32 6h1v1h-1zM34 6h3v1h-3zM38 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM11 7h1v1h-1zM15 7h1v1h-1zM17 7h1v1h-1zM19 7h3v1h-3zM23 7h2v1h-2zM27 7h2v1h-2zM30 7h1v1h-1zM32 7h1v1h-1zM38 7h1v1h-1zM2 8h7v1h-7zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h1v1h-1zM30 8h1v1h-1zM32 8h7v1h-7zM10 9h2v1h-2zM17 9h1v1h-1zM19 9h5v1h-5zM25 9h3v1h-3zM29 9h2v1h-2zM7 10h2v1h-2zM12 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM25 10h2v1h-2zM28 10h1v1h-1zM32 10h1v1h-1zM34 10h1v1h-1zM36 10h1v1h-1zM38 10h1v1h-1zM2 11h1v1h-1zM4 11h2v1h-2zM7 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM15 11h1v1h-1zM17 11h3v1h-3zM23 11h1v1h-1zM27 11h2v1h-2zM30 11h1v1h-1zM33 11h2v1h-2zM36 11h2v1h-2zM3 12h1v1h-1zM7 12h5v1h-5zM14 12h2v1h-2zM20 12h1v1h-1zM22 12h1v1h-1zM26 12h4v1h-4zM32 12h2v1h-2zM35 12h4v1h-4zM2 13h1v1h-1zM4 13h4v1h-4zM9 13h1v1h-1zM11 13h9v1h-9zM25 13h2v1h-2zM28 13h1v1h-1zM32 13h1v1h-1zM34 13h2v1h-2zM4 14h1v1h-1zM6 14h4v1h-4zM11 14h1v1h-1zM13 14h1v1h-1zM16 14h1v1h-1zM22 14h1v1h-1zM26 14h1v1h-1zM29 14h2v1h-2zM32 14h4v1h-4zM38 14h1v1h-1zM2 15h1v1h-1zM6 15h1v1h-1zM11 15h7v1h-7zM19 15h3v1h-3zM23 15h1v1h-1zM26 15h1v1h-1zM29 15h3v1h-3zM33 15h1v1h-1zM36 15h1v1h-1zM5 16h1v1h-1zM7 16h5v1h-5zM14 16h1v1h-1zM16 16h1v1h-1zM18 16h1v1h-1zM20 16h2v1h-2zM23 16h2v1h-2zM29 16h3v1h-3zM33 16h1v1h-1zM35 16h1v1h-1zM37 16h2v1h-2zM7 17h1v1h-1zM11 17h2v1h-2zM14 17h1v1h-1zM19 17h1v1h-1zM24 17h2v1h-2zM31 17h1v1h-1zM33 17h1v1h-1zM35 17h2v1h-2zM38 17h1v1h-1zM2 18h8v1h-8zM11 18h2v1h-2zM14 18h3v1h-3zM18 18h2v1h-2zM21 18h2v1h-2zM26 18h4v1h-4zM31 18h2v1h-2zM34 18h1v1h-1zM36 18h1v1h-1zM38 18h1v1h-1zM2 19h1v1h-1zM5 19h1v1h-1zM7 19h1v1h-1zM9 19h1v1h-1zM11 19h6v1h-6zM18 19h1v1h-1zM22 19h4v1h-4zM30 19h2v1h-2zM3 20h2v1h-2zM8 20h3v1h-3zM12 20h2v1h-2zM17 20h2v1h-2zM21 20h1v1h-1zM24 20h4v1h-4zM29 20h1v1h-1zM31 20h2v1h-2zM34 20h1v1h-1zM36 20h1v1h-1zM38 20h1v1h-1zM2 21h1v1h-1zM4 21h1v1h-1zM9 21h3v1h-3zM17 21h1v1h-1zM19 21h2v1h-2zM22 21h3v1h-3zM26 21h1v1h-1zM28 21h6v1h-6zM35 21h1v1h-1zM37 21h1v1h-1zM3 22h2v1h-2zM6 22h4v1h-4zM13 22h1v1h-1zM17 22h2v1h-2zM23 22h4v1h-4zM28 22h1v1h-1zM31 22h8v1h-8zM2 23h3v1h-3zM6 23h2v1h-2zM9 23h3v1h-3zM13 23h4v1h-4zM19 23h2v1h-2zM25 23h1v1h-1zM28 23h10v1h-10zM2 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM16 24h1v1h-1zM22 24h1v1h-1zM24 24h1v1h-1zM26 24h1v1h-1zM29 24h1v1h-1zM31 24h2v1h-2zM36 24h3v1h-3zM2 25h2v1h-2zM6 25h1v1h-1zM9 25h2v1h-2zM19 25h4v1h-4zM25 25h1v1h-1zM28 25h2v1h-2zM31 25h3v1h-3zM37 25h1v1h-1zM3 26h1v1h-1zM5 26h4v1h-4zM14 26h2v1h-2zM18 26h2v1h-2zM22 26h1v1h-1zM27 26h2v1h-2zM30 26h1v1h-1zM32 26h2v1h-2zM2 27h1v1h-1zM5 27h2v1h-2zM9 27h2v1h-2zM14 27h1v1h-1zM17 27h2v1h-2zM20 27h4v1h-4zM26 27h1v1h-1zM28 27h1v1h-1zM31 27h1v1h-1zM33 27h1v1h-1zM35 27h1v1h-1zM2 28h1v1h-1zM6 28h9v1h-9zM16 28h1v1h-1zM18 28h3v1h-3zM23 28h2v1h-2zM27 28h4v1h-4zM32 28h1v1h-1zM34 28h1v1h-1zM37 28h2v1h-2zM2 29h1v1h-1zM4 29h1v1h-1zM9 29h1v1h-1zM12 29h2v1h-2zM15 29h1v1h-1zM20 29h1v1h-1zM26 29h1v1h-1zM29 29h1v1h-1zM31 29h1v1h-1zM33 29h4v1h-4zM38 29h1v1h-1zM2 30h1v1h-1zM4 30h1v1h-1zM6 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM13 30h1v1h-1zM15 30h1v1h-1zM17 30h2v1h-2zM21 30h3v1h-3zM26 30h2v1h-2zM29 30h6v1h-6zM36 30h1v1h-1zM38 30h1v1h-1zM10 31h6v1h-6zM17 31h1v1h-1zM19 31h2v1h-2zM22 31h1v1h-1zM25 31h3v1h-3zM29 31h2v1h-2zM34 31h2v1h-2zM37 31h1v1h-1zM2 32h7v1h-7zM11 32h2v1h-2zM15 32h5v1h-5zM21 32h1v1h-1zM23 32h3v1h-3zM27 32h2v1h-2zM30 32h1v1h-1zM32 32h1v1h-1zM34 32h3v1h-3zM38 32h1v1h-1zM2 33h1v1h-1zM8 33h1v1h-1zM10 33h1v1h-1zM13 33h1v1h-1zM15 33h3v1h-3zM20 33h1v1h-1zM22 33h1v1h-1zM26 33h1v1h-1zM29 33h2v1h-2zM34 33h2v1h-2zM2 34h1v1h-1zM4 34h3v1h-3zM8 34h1v1h-1zM12 34h1v1h-1zM14 34h4v1h-4zM21 34h3v1h-3zM25 34h3v1h-3zM29 34h6v1h-6zM36 34h2v1h-2zM2 35h1v1h-1zM4 35h3v1h-3zM8 35h1v1h-1zM12 35h4v1h-4zM17 35h1v1h-1zM19 35h1v1h-1zM21 35h2v1h-2zM29 35h1v1h-1zM32 35h1v1h-1zM35 35h2v1h-2zM2 36h1v1h-1zM4 36h3v1h-3zM8 36h1v1h-1zM11 36h4v1h-4zM16 36h5v1h-5zM22 36h1v1h-1zM24 36h3v1h-3zM29 36h1v1h-1zM31 36h1v1h-1zM33 36h1v1h-1zM36 36h1v1h-1zM38 36h1v1h-1zM2 37h1v1h-1zM8 37h1v1h-1zM11 37h1v1h-1zM13 37h2v1h-2zM17 37h2v1h-2zM21 37h1v1h-1zM23 37h1v1h-1zM25 37h1v1h-1zM28 37h1v1h-1zM30 37h1v1h-1zM32 37h2v1h-2zM35 37h1v1h-1zM38 37h1v1h-1zM2 38h7v1h-7zM11 38h1v1h-1zM14 38h2v1h-2zM17 38h1v1h-1zM20 38h3v1h-3zM24 38h1v1h-1zM26 38h2v1h-2zM29 38h3v1h-3zM33 38h1v1h-1zM35 38h1v1h-1zM38 38h1v1h-1z" fill="#000"/></svg></div>
+          <div>
+            <h4>怎么用</h4>
+            <p><b>把手机屏幕举给客人扫</b>，或者用公司发的实体卡片。手册在你手机里，这个码随时调得出来。</p>
+            <p><b>一桌一人一张（或一个个扫过去），别只给主人。</b>一台 10 个客人就是 10 条的可能。</p>
+            <p><b>时机</b>：客人吃完、气氛最好那一刻，接在<a href="#s8">要评价的话术</a>后面。</p>
+            <p class="qr-url">https://g.page/r/Cah0fw9mASuhEAI/review</p>
+          </div>
+        </div>
+
+        <div class="note">
+          <span class="note-label">扫码之后提醒客人两句</span>
+          <p><b>一、写上你的名字</b>——那是这笔奖励唯一的统计依据，也是公司判断谁口碑好的方式。<br><b>二、放一张今晚的照片</b>——带图 $3，纯文字 $2，他手机里本来就有火山的照片。</p>
         </div>
 
         <h3>小费</h3>
