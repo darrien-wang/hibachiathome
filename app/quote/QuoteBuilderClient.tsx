@@ -277,8 +277,13 @@ export default function QuoteBuilderClient() {
     let direction = 1
     let pausedUntil = 0
     let raf = 0
+    // Float accumulator: browsers round scrollLeft on write, so adding a
+    // sub-pixel step to el.scrollLeft directly gets swallowed and the strip
+    // never moves (seen on mobile). Track position ourselves instead.
+    let pos: number | null = null
     const pause = () => {
       pausedUntil = Date.now() + 4000
+      pos = null
     }
     el.addEventListener("pointerdown", pause, { passive: true })
     el.addEventListener("touchstart", pause, { passive: true })
@@ -288,9 +293,17 @@ export default function QuoteBuilderClient() {
       if (Date.now() > pausedUntil) {
         const max = el.scrollWidth - el.clientWidth
         if (max > 1) {
-          el.scrollLeft += direction * 0.4
-          if (el.scrollLeft >= max - 1) direction = -1
-          else if (el.scrollLeft <= 1) direction = 1
+          // Resync after a pause or if the user dragged the strip elsewhere.
+          if (pos === null || Math.abs(el.scrollLeft - pos) > 2) pos = el.scrollLeft
+          pos += direction * 0.5
+          if (pos >= max) {
+            pos = max
+            direction = -1
+          } else if (pos <= 0) {
+            pos = 0
+            direction = 1
+          }
+          el.scrollLeft = pos
         }
       }
       raf = requestAnimationFrame(step)
