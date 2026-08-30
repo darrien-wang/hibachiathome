@@ -259,6 +259,26 @@ export default function LeadsDashboard() {
     window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
   }, [])
 
+  // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
+  const sendPromoScript = useCallback((l: LeadRow) => {
+    const firstName = (l.full_name || "").split(" ")[0]
+    const text = `Hi${firstName ? " " + firstName : ""}! Quick heads up - parties of 20+ guests currently get a FREE appetizer platter (gyoza, edamame & spring rolls, $40 value) on us. If your group can get to 20, the platter is included. Want me to lock in your date?`
+    try {
+      navigator.clipboard.writeText(text)
+    } catch {}
+    if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+  }, [])
+
+  // 关单让步：仅在比价僵持的大单上用，别主动群发。
+  const sendCloserScript = useCallback((l: LeadRow) => {
+    const firstName = (l.full_name || "").split(" ")[0]
+    const text = `Hi${firstName ? " " + firstName : ""}, here is the best I can do for your party: on top of the free appetizer platter, I'll take $100 off tables & chairs for your group. That is our top large-party deal - ready to grab your date before the slot goes?`
+    try {
+      navigator.clipboard.writeText(text)
+    } catch {}
+    if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+  }, [])
+
   if (!adminKey) {
     return (
       <div style={{ maxWidth: 360, margin: "120px auto", fontFamily: "system-ui, sans-serif", padding: 16 }}>
@@ -562,6 +582,18 @@ export default function LeadsDashboard() {
                   ⭐ 发送邀评短信（文案自动复制）
                 </button>
               )}
+              <button
+                onClick={() => sendPromoScript(detailLead)}
+                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #059669", background: "#ecfdf5", color: "#047857", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                🥟 大单促销话术：20+ 人送前菜拼盘（自动复制）
+              </button>
+              <button
+                onClick={() => sendCloserScript(detailLead)}
+                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #7c3aed", background: "#f5f3ff", color: "#6d28d9", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                🪑 关单让步话术：再减 $100 桌椅（比价僵持时才用）
+              </button>
             </>
           )}
 

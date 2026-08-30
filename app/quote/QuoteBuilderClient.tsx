@@ -209,7 +209,7 @@ type BookingConfirmation = {
 
 type QuoteToast = {
   id: number
-  kind: "urgency" | "error"
+  kind: "urgency" | "error" | "promo"
   title: string
   detail?: string
 }
@@ -265,6 +265,7 @@ export default function QuoteBuilderClient() {
   const [bookingConfirmation, setBookingConfirmation] = useState<BookingConfirmation | null>(null)
   const [toasts, setToasts] = useState<QuoteToast[]>([])
   const urgencyToastKeyRef = useRef("")
+  const promoStageRef = useRef<"none" | "teased" | "unlocked">("none")
   const mediaStripRef = useRef<HTMLDivElement | null>(null)
 
   // Auto ping-pong drift for the media strip: ~24px/s, reverses at the ends,
@@ -410,6 +411,31 @@ export default function QuoteBuilderClient() {
 
     return () => window.clearTimeout(timer)
   }, [eventTime, input.eventDate, input.location, pushToast, result.hasCoreInputs, slotsLeft])
+
+  useEffect(() => {
+    // Large-party appetizer promo: tease once when the count gets close (15-19),
+    // congratulate once when it crosses 20. Event-driven toasts only — the
+    // persistent mention lives in the quote card itself.
+    const guests = result.guestCount
+    if (guests >= 20) {
+      if (promoStageRef.current !== "unlocked") {
+        promoStageRef.current = "unlocked"
+        pushToast(
+          "promo",
+          "Free appetizer platter unlocked",
+          "Parties of 20+ get gyoza, edamame & spring rolls included ($40 value).",
+        )
+      }
+    } else if (guests >= 15 && promoStageRef.current === "none") {
+      promoStageRef.current = "teased"
+      const short = 20 - guests
+      pushToast(
+        "promo",
+        `${short} more guest${short === 1 ? "" : "s"} = free appetizer platter`,
+        "Parties of 20+ get gyoza, edamame & spring rolls free ($40 value).",
+      )
+    }
+  }, [result.guestCount, pushToast])
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
@@ -1381,6 +1407,11 @@ export default function QuoteBuilderClient() {
                       : `Estimated total${guests}: $${low.toFixed(0)} - $${high.toFixed(0)}`
                   })()}
                 </p>
+                {result.guestCount >= 20 && (
+                  <p className="mt-1 text-sm font-semibold text-emerald-700">
+                    🥟 Free appetizer platter included — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+)
+                  </p>
+                )}
                 <p className="text-xs text-amber-800">
                   Food, live chef show, and travel included. Exact quote and date availability confirmed by text.
                 </p>
