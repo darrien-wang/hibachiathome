@@ -92,7 +92,8 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
               .map((protein) => {
                 // Real photos where we have them; no photo beats a wrong photo.
                 const premiumImageMap: Record<string, string> = {
-                  filet: "/images/menu/filet-crop.jpg",
+                  filet: "/images/menu/filet.jpg",
+                  lobster: "/images/menu/lobster.jpg",
                   "scallops-premium": "/images/menu/scallops.jpg",
                 }
                 const premiumImage = premiumImageMap[protein.id]
@@ -142,6 +143,9 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
               .map((side) => {
                 const sideImageMap: Record<string, string> = {
                   noodles: "/images/menu/noodles.jpg",
+                  gyoza: "/images/menu/gyoza.jpg",
+                  edamame: "/images/menu/edamame.jpg",
+                  "spring-rolls": "/images/menu/spring-rolls.jpg",
                 }
                 const sideImage = sideImageMap[side.id]
                 return (

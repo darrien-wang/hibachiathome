@@ -159,6 +159,15 @@ export const sides: MenuItem[] = [
     isVegetarian: true,
     image: "/images/menu/noodles.png",
   },
+  {
+    id: "spring-rolls",
+    name: "Spring Rolls",
+    description: "Crispy spring rolls (12pcs)",
+    price: 15,
+    category: "side",
+    allergens: ["gluten"],
+    image: "/images/menu/spring-rolls.jpg",
+  },
 ]
 
 // 饮料

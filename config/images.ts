@@ -9,7 +9,7 @@ export const menuImages = {
   "filet-chicken-shrimp":
     "/images/menu/filet-chicken-shrimp.jpg",
   "filet-lobster":
-    "/images/menu/filet-crop.jpg",
+    "/images/menu/lobster.jpg",
   "shrimp-sca":
     "/images/menu/scallops.jpg",
   "hibachi-logo":
