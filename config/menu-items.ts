@@ -61,7 +61,7 @@ export const regularProteins: MenuItem[] = [
   {
     id: "shrimp",
     name: "Shrimp",
-    description: "Large shrimp, lightly seasoned and grilled to perfection",
+    description: "Colossal shrimp (16/22 count), lightly seasoned and grilled to perfection",
     price: 10,
     category: "regular-protein",
     allergens: ["shellfish"],
@@ -108,7 +108,7 @@ export const premiumProteins: MenuItem[] = [
   {
     id: "scallops-premium",
     name: "Premium Sea Scallops Upgrade",
-    description: "U-10 jumbo sea scallops, perfectly seared with a golden crust and creamy center",
+    description: "Jumbo sea scallops (10/20 count), perfectly seared with a golden crust and creamy center",
     price: 6,
     category: "premium-protein",
     allergens: ["shellfish"],
