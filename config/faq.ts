@@ -13,7 +13,7 @@ Travel fee: May apply depending on your location; exact amount disclosed during 
 
 Payment options:
 - Cash (preferred)
-- Credit card (4% processing fee)
+- Credit card (+14% tax & service fee)
 - Venmo/Zelle (no fee)
 
 If using credit card, payment must be settled at least 72 hours before your event.`,
