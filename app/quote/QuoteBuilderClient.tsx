@@ -251,6 +251,7 @@ export default function QuoteBuilderClient() {
   const [customerName, setCustomerName] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
+  const [smsConsent, setSmsConsent] = useState(false)
   const [eventTime, setEventTime] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
   const [weatherExpanded, setWeatherExpanded] = useState(false)
@@ -910,6 +911,7 @@ export default function QuoteBuilderClient() {
           customerName: customerName.trim(),
           customerEmail: customerEmail.trim(),
           customerPhone: customerPhone.trim(),
+          smsConsent,
           eventDate: input.eventDate,
           eventTime,
           location: input.location.trim(),
@@ -1481,11 +1483,21 @@ export default function QuoteBuilderClient() {
                     />
                   </div>
                 </div>
-                <p className="mt-3 text-xs leading-relaxed text-gray-500">
-                  By providing your phone number and submitting this form, you agree to receive text
-                  messages from Real Hibachi about your quote and booking. Consent is not a condition
-                  of purchase. Message frequency varies; message and data rates may apply. Reply STOP
-                  to opt out or HELP for help. See our{" "}
+                <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <span>
+                    I agree to receive text messages from Real Hibachi about my quote and booking.
+                    Consent is not a condition of purchase.
+                  </span>
+                </label>
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                  Message frequency varies; message and data rates may apply. Reply STOP to opt out
+                  or HELP for help. See our{" "}
                   <a href="/privacy-policy" className="underline">Privacy Policy</a> and{" "}
                   <a href="/terms" className="underline">Terms of Service</a>.
                 </p>
