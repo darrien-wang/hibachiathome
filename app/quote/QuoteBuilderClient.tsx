@@ -297,7 +297,7 @@ export default function QuoteBuilderClient() {
         if (max > 1) {
           // Resync after a pause or if the user dragged the strip elsewhere.
           if (pos === null || Math.abs(el.scrollLeft - pos) > 2) pos = el.scrollLeft
-          pos += direction * 0.5
+          pos += direction * 1
           if (pos >= max) {
             pos = max
             direction = -1
