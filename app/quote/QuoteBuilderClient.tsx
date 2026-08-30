@@ -56,18 +56,57 @@ const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
 
 // Real party photos from /gallery — ad visitors land straight on this page and
 // need one glance of proof this is a real local operation before the form.
-const QUOTE_PROOF_PHOTOS = [
+const QUOTE_PROOF_MEDIA = [
   {
+    type: "video" as const,
+    src: "/videos/hibachi-show.mp4",
+    poster: "/videos/posters/hibachi-show.jpg",
+    alt: "Live hibachi chef show",
+  },
+  {
+    type: "image" as const,
     src: "/gallery/real-hibachi-party-orange-county-family-event-04.jpg",
     alt: "Real Hibachi chef cooking fresh eggs on the griddle at an Orange County family event",
   },
   {
+    type: "video" as const,
+    src: "/videos/fried-rice.mp4",
+    poster: "/videos/posters/fried-rice.jpg",
+    alt: "Fresh hibachi fried rice on the griddle",
+  },
+  {
+    type: "image" as const,
     src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
     alt: "Happy guests with their Real Hibachi chef at a Southern California pool party",
   },
   {
+    type: "video" as const,
+    src: "/videos/real-fire.mp4",
+    poster: "/videos/posters/real-fire.jpg",
+    alt: "Real hibachi fire show",
+  },
+  {
+    type: "video" as const,
+    src: "/videos/birthday-moment.mp4",
+    poster: "/videos/posters/birthday-moment.jpg",
+    alt: "Birthday cake moment at a Real Hibachi party",
+  },
+  {
+    type: "image" as const,
     src: "/gallery/real-hibachi-party-los-angeles-birthday-event-13.jpg",
     alt: "Evening Real Hibachi birthday party under string lights in Los Angeles",
+  },
+  {
+    type: "video" as const,
+    src: "/videos/party-highlight.mp4",
+    poster: "/videos/posters/party-highlight.jpg",
+    alt: "Party highlights from a Real Hibachi event",
+  },
+  {
+    type: "video" as const,
+    src: "/videos/atmosphere.mp4",
+    poster: "/videos/posters/atmosphere.jpg",
+    alt: "The atmosphere at a Real Hibachi dinner party",
   },
 ] as const
 
@@ -226,6 +265,45 @@ export default function QuoteBuilderClient() {
   const [bookingConfirmation, setBookingConfirmation] = useState<BookingConfirmation | null>(null)
   const [toasts, setToasts] = useState<QuoteToast[]>([])
   const urgencyToastKeyRef = useRef("")
+  const mediaStripRef = useRef<HTMLDivElement | null>(null)
+
+  // Auto ping-pong drift for the media strip: ~24px/s, reverses at the ends,
+  // pauses for a few seconds whenever the visitor touches or scrolls it.
+  useEffect(() => {
+    const el = mediaStripRef.current
+    if (!el) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    let direction = 1
+    let pausedUntil = 0
+    let raf = 0
+    const pause = () => {
+      pausedUntil = Date.now() + 4000
+    }
+    el.addEventListener("pointerdown", pause, { passive: true })
+    el.addEventListener("touchstart", pause, { passive: true })
+    el.addEventListener("wheel", pause, { passive: true })
+
+    const step = () => {
+      if (Date.now() > pausedUntil) {
+        const max = el.scrollWidth - el.clientWidth
+        if (max > 1) {
+          el.scrollLeft += direction * 0.4
+          if (el.scrollLeft >= max - 1) direction = -1
+          else if (el.scrollLeft <= 1) direction = 1
+        }
+      }
+      raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      el.removeEventListener("pointerdown", pause)
+      el.removeEventListener("touchstart", pause)
+      el.removeEventListener("wheel", pause)
+    }
+  }, [])
 
   const dismissToast = useCallback((id: number) => {
     setToasts((previous) => previous.filter((toast) => toast.id !== id))
@@ -995,30 +1073,35 @@ export default function QuoteBuilderClient() {
           <div className="relative">
             <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Takes about 30 seconds. No sign-up, no obligation.
+              30 seconds to book the fun — no sign-up, no obligation.
             </p>
           </div>
         </div>
 
-        {/* One-row film strip: swipe sideways, snap per card, no scrollbar. */}
-        <div className="mb-10 flex snap-x snap-mandatory gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {/* Live show first: video only downloads when the strip is in view. */}
-          <div className="relative h-44 w-64 shrink-0 snap-start overflow-hidden rounded-xl sm:h-52 sm:w-80">
-            <LazyVideo
-              className="absolute inset-0 h-full w-full object-cover"
-              poster="/videos/posters/hibachi-show.jpg"
-              src="/videos/hibachi-show.mp4"
-            />
-          </div>
-          {QUOTE_PROOF_PHOTOS.map((photo) => (
-            <div key={photo.src} className="relative h-44 w-64 shrink-0 snap-start overflow-hidden rounded-xl sm:h-52 sm:w-80">
-              <Image
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                sizes="320px"
-                className="object-cover"
-              />
+        {/* One-row film strip: drifts back and forth on its own, pauses the
+            moment the visitor touches it, and stays hand-swipeable. Videos
+            still lazy-load only once their card scrolls into view. */}
+        <div
+          ref={mediaStripRef}
+          className="mb-10 flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {QUOTE_PROOF_MEDIA.map((media) => (
+            <div key={media.src} className="relative h-44 w-64 shrink-0 overflow-hidden rounded-xl sm:h-52 sm:w-80">
+              {media.type === "video" ? (
+                <LazyVideo
+                  className="absolute inset-0 h-full w-full object-cover"
+                  poster={media.poster}
+                  src={media.src}
+                />
+              ) : (
+                <Image
+                  src={media.src}
+                  alt={media.alt}
+                  fill
+                  sizes="320px"
+                  className="object-cover"
+                />
+              )}
             </div>
           ))}
         </div>
