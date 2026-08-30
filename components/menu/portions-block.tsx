@@ -5,7 +5,7 @@ const PORTIONS = [
   { label: "Steak", amount: "4.5 oz" },
   { label: "Salmon", amount: "4 oz" },
   { label: "Colossal Shrimp 16/22", amount: "5 pcs" },
-  { label: "Jumbo Scallops 10/20", amount: "4 pcs" },
+  { label: "Jumbo Scallops 10/20", amount: "4 oz" },
   { label: "Filet Mignon", amount: "4.5 oz" },
   { label: "Lobster Tail", amount: "6 oz" },
   { label: "Fried Rice", amount: "8 oz" },
