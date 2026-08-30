@@ -6,6 +6,8 @@ const PORTIONS = [
   { label: "Salmon", amount: "4 oz" },
   { label: "Shrimp", amount: "5 pcs" },
   { label: "Scallops", amount: "4 pcs" },
+  { label: "Filet Mignon", amount: "4.5 oz" },
+  { label: "Lobster Tail", amount: "6 oz" },
   { label: "Fried Rice", amount: "8 oz" },
   { label: "Vegetables", amount: "4 oz" },
   { label: "Side Salad", amount: "1 serving" },
@@ -20,7 +22,7 @@ export default function PortionsBlock() {
       <p className="text-center text-sm text-gray-600 mb-6">
         Pick any 2 proteins per guest. These are the real per-person amounts our chefs prep — in writing.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-4xl mx-auto">
         {PORTIONS.map((p) => (
           <div key={p.label} className="rounded-lg bg-white border border-amber-100 px-3 py-3 text-center shadow-sm">
             <p className="text-xl font-bold text-amber-700">{p.amount}</p>

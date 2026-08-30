@@ -37,7 +37,7 @@ If using credit card, payment must be settled at least 72 hours before your even
     question: "How much food does each guest get?",
     answer: `Every adult guest gets 2 proteins plus all the sides - here are the exact portions, in writing:
 
-- Chicken: 5 oz | Steak: 4.5 oz | Salmon: 4 oz | Shrimp: 5 pieces | Scallops: 4 pieces
+- Chicken: 5 oz | Steak: 4.5 oz | Salmon: 4 oz | Shrimp: 5 pieces | Scallops: 4 pieces | Filet mignon: 4.5 oz | Lobster tail: 6 oz
 - Fried rice: 8 oz per person
 - Grilled vegetables: 4 oz per person
 - Side salad with ginger dressing: 1 per person
