@@ -1,4 +1,5 @@
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
+import PortionsBlock from "@/components/menu/portions-block"
 import MenuDetails from "@/components/menu/menu-details"
 import SourcingSpec from "@/components/menu/sourcing-spec"
 import PricingBanner from "@/components/menu/pricing-banner"
@@ -57,6 +58,10 @@ export default function MenuPage() {
 
         <AnimateOnScroll>
           <ServiceNotes />
+        </AnimateOnScroll>
+
+        <AnimateOnScroll>
+          <PortionsBlock />
         </AnimateOnScroll>
 
         <AnimateOnScroll>

@@ -34,6 +34,17 @@ If using credit card, payment must be settled at least 72 hours before your even
       "This is our show-up promise, in writing: your chef is confirmed by name 48 hours before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double your deposit and give you first priority to rebook. In other words: we show up, or it costs us.",
   },
   {
+    question: "How much food does each guest get?",
+    answer: `Every adult guest gets 2 proteins plus all the sides - here are the exact portions, in writing:
+
+- Chicken: 5 oz | Steak: 4.5 oz | Salmon: 4 oz | Shrimp: 5 pieces | Scallops: 4 pieces
+- Fried rice: 8 oz per person
+- Grilled vegetables: 4 oz per person
+- Side salad with ginger dressing: 1 per person
+
+Kids 5-12 get half portions. Nobody leaves a Real Hibachi party hungry.`,
+  },
+  {
     question: "Will the grill damage or dirty my patio?",
     answer:
       "No - protecting your home is part of the job. We place a protective tarp under the grill station at every party to shield your patio or ground from grease and heat, and before we leave we pack out our equipment and clean up the cooking area. Your patio looks the way we found it.",
