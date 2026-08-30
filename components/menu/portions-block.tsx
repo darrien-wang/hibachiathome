@@ -31,7 +31,7 @@ export default function PortionsBlock() {
         ))}
       </div>
       <p className="mt-5 text-center text-sm font-medium text-amber-900">
-        Kids 5-12 eat half portions. Nobody leaves a Real Hibachi party hungry.
+        Kids 5-12 eat half portions. Still hungry? <span className="font-bold">Fried rice and vegetable refills are free</span> — nobody leaves a Real Hibachi party hungry.
       </p>
     </section>
   )
