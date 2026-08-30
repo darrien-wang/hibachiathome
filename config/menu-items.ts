@@ -160,6 +160,15 @@ export const sides: MenuItem[] = [
     image: "/images/menu/noodles.png",
   },
   {
+    id: "diy-fried-rice",
+    name: "DIY Fried Rice Add-Ins",
+    description: "Load up the fried rice your way - SPAM, bacon, shrimp, or chicken. $10 per add-in.",
+    price: 10,
+    category: "side",
+    allergens: ["shellfish"],
+    image: "/images/menu/rice.jpg",
+  },
+  {
     id: "spring-rolls",
     name: "Spring Rolls",
     description: "Crispy spring rolls (12pcs)",

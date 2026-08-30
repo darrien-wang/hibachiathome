@@ -146,6 +146,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                   gyoza: "/images/menu/gyoza.jpg",
                   edamame: "/images/menu/edamame.jpg",
                   "spring-rolls": "/images/menu/spring-rolls.jpg",
+                  "diy-fried-rice": "/images/menu/rice.jpg",
                 }
                 const sideImage = sideImageMap[side.id]
                 return (
