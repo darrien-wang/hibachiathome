@@ -259,6 +259,16 @@ export default function LeadsDashboard() {
     window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
   }, [])
 
+  // UGC 邀请：派对结束次日发，鼓励客人晒图 tag——真实用户内容一条顶软广一百条。
+  const sendUgcInvite = useCallback((l: LeadRow) => {
+    const firstName = (l.full_name || "").split(" ")[0]
+    const text = `Hi${firstName ? " " + firstName : ""}! Hope everyone loved the show 🔥 If you caught any fun photos or videos at the party, we'd love to see them - tag us @realhibachi on Instagram or just text them here. Our favorites get featured (with your OK, of course)!`
+    try {
+      navigator.clipboard.writeText(text)
+    } catch {}
+    if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+  }, [])
+
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
     const firstName = (l.full_name || "").split(" ")[0]
@@ -587,6 +597,12 @@ export default function LeadsDashboard() {
                 style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #059669", background: "#ecfdf5", color: "#047857", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
                 🥟 大单促销话术：20+ 人送前菜拼盘（自动复制）
+              </button>
+              <button
+                onClick={() => sendUgcInvite(detailLead)}
+                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #2563eb", background: "#eff6ff", color: "#1d4ed8", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                📸 晒图邀请（UGC）：派对次日发，求 tag @realhibachi
               </button>
               <button
                 onClick={() => sendCloserScript(detailLead)}
