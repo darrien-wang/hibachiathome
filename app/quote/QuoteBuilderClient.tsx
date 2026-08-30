@@ -1441,6 +1441,14 @@ export default function QuoteBuilderClient() {
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-700" aria-hidden="true" />
                   Southern California is all we do — a local team, not a franchise. Quality guaranteed.
                 </p>
+                <div className="mt-2 space-y-1 rounded-md bg-white/50 px-3 py-2 text-xs text-amber-900">
+                  <p className="font-semibold">Our two promises, in writing:</p>
+                  <p>
+                    ✅ Chef confirmed by name 48h before your event — if we ever cancel, double your deposit
+                    back.
+                  </p>
+                  <p>✅ Tarp under the grill, full cleanup before we leave — your patio stays spotless.</p>
+                </div>
               </div>
 
               {/* Contact details live here, not at the top of the form. On mobile the

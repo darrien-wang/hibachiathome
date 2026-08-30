@@ -29,6 +29,16 @@ If using credit card, payment must be settled at least 72 hours before your even
       "Your chef will pull up about 10 minutes before the start time you chose. Setup is very quick, so we'll be ready with the grill and ingredients moments later.",
   },
   {
+    question: "What if the chef doesn't show up?",
+    answer:
+      "This is our show-up promise, in writing: your chef is confirmed by name 48 hours before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double your deposit and give you first priority to rebook. In other words: we show up, or it costs us.",
+  },
+  {
+    question: "Will the grill damage or dirty my patio?",
+    answer:
+      "No - protecting your home is part of the job. We place a protective tarp under the grill station at every party to shield your patio or ground from grease and heat, and before we leave we pack out our equipment and clean up the cooking area. Your patio looks the way we found it.",
+  },
+  {
     question: "Do you cook indoors?",
     answer:
       "All cooking is done outdoors—on patios, balconies, decks or under tents/awnings. (Feel free to arrange seating indoors, but our grill stays outside.) We're fully licensed and insured.",
