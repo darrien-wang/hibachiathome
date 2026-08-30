@@ -1,19 +1,21 @@
-// Menu item images
+// Menu item images — every path points at a real photo of real food.
+// The old hibachi-plate.png (a pool-side table-setting render) must never
+// be used as a dish photo again.
 export const menuImages = {
   "chicken-steak":
     "/images/menu/chicken-and-beef.jpg",
   "steak-shrimp":
-    "/images/menu/hibachi-plate.png",
+    "/images/menu/shrimp.jpg",
   "filet-chicken-shrimp":
     "/images/menu/filet-chicken-shrimp.jpg",
   "filet-lobster":
-    "/images/menu/hibachi-plate.png",
+    "/images/menu/filet-crop.jpg",
   "shrimp-sca":
-    "/images/menu/hibachi-plate.png",
+    "/images/menu/scallops.jpg",
   "hibachi-logo":
     "/images/logo-realhibachi.png",
   "chicken-scallop":
-    "/images/menu/hibachi-plate.png",
+    "/images/menu/scallops.jpg",
     "chicken-shrimp":
     "/images/menu/chicken-and-beef.jpg"
 }
@@ -23,7 +25,7 @@ export const packageImages = {
   basic:
     "/images/menu/chicken-and-beef.jpg",
   premium:
-    "/images/menu/hibachi-plate.png",
+    "/images/menu/combo-regular.jpg",
   buffet:
     "/images/menu/filet-chicken-shrimp.jpg",
 }

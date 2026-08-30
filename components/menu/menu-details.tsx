@@ -47,22 +47,16 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
         <TabsContent value="proteins" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {proteins.map((protein) => {
-              // Map protein IDs to their specific image URLs
-              const proteinImageMap = {
-                chicken:
-                  "/images/menu/chicken-and-beef.jpg",
-                shrimp:
-                  "/images/menu/filet-chicken-shrimp.jpg",
-                tofu: "/images/menu/hibachi-plate.png",
-                scallops:
-                  "/images/menu/hibachi-plate.png",
-                salmon:
-                  "/images/menu/hibachi-plate.png",
-                steak:
-                  "/images/menu/chicken-and-beef.jpg",
+              // Every id maps to a real photo of that exact dish.
+              const proteinImageMap: Record<string, string> = {
+                chicken: "/images/menu/chicken.jpg",
+                steak: "/images/menu/steak.jpg",
+                shrimp: "/images/menu/shrimp.jpg",
+                salmon: "/images/menu/salmon.jpg",
+                tofu: "/images/menu/tofu.jpg",
+                scallops: "/images/menu/scallops.jpg",
               }
 
-              // Get the specific image URL or fall back to a default
               const imageUrl = proteinImageMap[protein.id] || getMenuImageById("chicken-steak")
 
               return (
@@ -95,26 +89,29 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {premiumProteins
               .filter((protein) => protein.id === "filet" || protein.id === "lobster" || protein.id === "scallops-premium")
-              .map((protein) => (
+              .map((protein) => {
+                // Real photos where we have them; no photo beats a wrong photo.
+                const premiumImageMap: Record<string, string> = {
+                  filet: "/images/menu/filet-crop.jpg",
+                  "scallops-premium": "/images/menu/scallops.jpg",
+                }
+                const premiumImage = premiumImageMap[protein.id]
+                return (
                 <div
                   key={protein.id}
                   className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
                 >
+                  {premiumImage && (
                   <div className="relative h-48 overflow-hidden">
                     <Image
-                      src={
-                        protein.id === "lobster"
-                          ? "/images/menu/hibachi-plate.png"
-                          : protein.id === "scallops-premium"
-                          ? "/images/menu/hibachi-plate.png"
-                          : "/images/menu/hibachi-plate.png"
-                      } // Premium protein image
+                      src={premiumImage}
                       alt={protein.name}
                       fill
                       className="object-cover hover:scale-105 transition-transform duration-500"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
+                  )}
                   <div className="p-4">
                     <h3 className="text-lg font-bold mb-1">{protein.name}</h3>
                     <p className="text-gray-600 text-sm mb-3">{protein.description}</p>
@@ -134,7 +131,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
           </div>
         </TabsContent>
 
@@ -142,28 +139,27 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sides
               .filter((side) => side.id !== "soup")
-              .map((side) => (
+              .map((side) => {
+                const sideImageMap: Record<string, string> = {
+                  noodles: "/images/menu/noodles.jpg",
+                }
+                const sideImage = sideImageMap[side.id]
+                return (
                 <div
                   key={side.id}
                   className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
                 >
+                  {sideImage && (
                   <div className="relative h-48 overflow-hidden">
                     <Image
-                      src={
-                        side.id === "gyoza"
-                          ? "/images/menu/hibachi-plate.png"
-                          : side.id === "edamame"
-                            ? "/images/menu/hibachi-plate.png"
-                            : side.id === "noodles"
-                              ? "/images/design-mode/fried-rice.jpg"
-                              : getMenuImageById("steak-shrimp") || "/placeholder.svg"
-                      }
+                      src={sideImage}
                       alt={side.name}
                       fill
                       className="object-cover hover:scale-105 transition-transform duration-500"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
+                  )}
                   <div className="p-4">
                     <h3 className="text-lg font-bold mb-1">{side.name}</h3>
                     <p className="text-gray-600 text-sm mb-3">{side.description}</p>
@@ -183,7 +179,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
           </div>
         </TabsContent>
       </Tabs>
