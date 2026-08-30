@@ -1415,6 +1415,9 @@ export default function QuoteBuilderClient() {
                 <p className="text-xs text-amber-800">
                   Food, live chef show, and travel included. Exact quote and date availability confirmed by text.
                 </p>
+                <p className="text-xs text-amber-700/90">
+                  Gratuity isn&apos;t included — 20-25% for your chef is customary. No other fees.
+                </p>
                 <Button
                   onClick={onSmsClick}
                   className="mt-3 h-auto min-h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-sm whitespace-normal py-3 px-4"
