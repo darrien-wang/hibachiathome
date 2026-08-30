@@ -162,7 +162,7 @@ export const sides: MenuItem[] = [
   {
     id: "diy-fried-rice",
     name: "DIY Fried Rice Add-Ins",
-    description: "Load up the fried rice your way - SPAM, bacon, shrimp, or chicken. $10 per add-in.",
+    description: "Load up the fried rice your way - SPAM, bacon, shrimp, or chicken ($10 per add-in). Extra eggs just $1 each.",
     price: 10,
     category: "side",
     allergens: ["shellfish"],
