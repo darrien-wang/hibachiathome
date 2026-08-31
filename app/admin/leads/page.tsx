@@ -63,6 +63,37 @@ const EVENT_LABELS: Record<string, string> = {
   call_inbound: "来电",
 }
 
+function playBeep(times: number) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    for (let i = 0; i < times; i++) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = 880
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.35)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.35 + 0.25)
+      osc.start(ctx.currentTime + i * 0.35)
+      osc.stop(ctx.currentTime + i * 0.35 + 0.3)
+    }
+  } catch {}
+}
+
+// 45-minute follow-up timer: counts from the first response. Returns null when
+// the step no longer applies (not in follow-up, no response yet, or already
+// sent on this device — localStorage keeps the list badge quiet cross-poll).
+const F45_MS = 45 * 60 * 1000
+function f45State(l: { id: string; status: string; first_response_at: string | null }, now: number) {
+  if (l.status !== "new" && l.status !== "qualified") return null
+  if (!l.first_response_at) return null
+  try {
+    if (localStorage.getItem(`sop_sent_${l.id}_f45`)) return null
+  } catch {}
+  const due = new Date(l.first_response_at).getTime() + F45_MS
+  return { due, remaining: due - now }
+}
+
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
@@ -164,20 +195,7 @@ export default function LeadsDashboard() {
         document.title = "🔔 新询盘! - Real Hibachi 工作台"
         // Loud alert: a silent title change cost 15 minutes on the first real
         // lead. Beep three times and fire a browser notification.
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          for (let i = 0; i < 3; i++) {
-            const osc = ctx.createOscillator()
-            const gain = ctx.createGain()
-            osc.connect(gain)
-            gain.connect(ctx.destination)
-            osc.frequency.value = 880
-            gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.35)
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.35 + 0.25)
-            osc.start(ctx.currentTime + i * 0.35)
-            osc.stop(ctx.currentTime + i * 0.35 + 0.3)
-          }
-        } catch {}
+        playBeep(3)
         try {
           if (Notification.permission === "granted") {
             const l = rows[0]
@@ -212,6 +230,32 @@ export default function LeadsDashboard() {
     const t = setInterval(fetchLeads, 30000)
     return () => clearInterval(t)
   }, [adminKey, fetchLeads])
+
+  // Ticking clock: seconds precision while a detail modal is open (live
+  // countdown), 15s otherwise (list badges). Also fires the one-time
+  // "45-minute follow-up due" beep per lead.
+  const [clock, setClock] = useState(() => Date.now())
+  const f45AlertedRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const t = setInterval(() => setClock(Date.now()), detailId ? 1000 : 15000)
+    return () => clearInterval(t)
+  }, [detailId])
+  useEffect(() => {
+    for (const l of leads) {
+      const st = f45State(l, clock)
+      if (st && st.remaining <= 0 && !f45AlertedRef.current.has(l.id)) {
+        f45AlertedRef.current.add(l.id)
+        playBeep(2)
+        try {
+          if (Notification.permission === "granted") {
+            new Notification("⏰ 45 分钟跟进到点", {
+              body: `${l.full_name || l.phone || "线索"} — 该发选择题+档期稀缺那条了`,
+            })
+          }
+        } catch {}
+      }
+    }
+  }, [clock, leads])
 
   const act = useCallback(
     async (leadId: string, payload: Record<string, unknown>) => {
@@ -359,6 +403,9 @@ export default function LeadsDashboard() {
         } catch {}
         if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
       }
+      try {
+        localStorage.setItem(`sop_sent_${l.id}_${step.id}`, "1")
+      } catch {}
       await act(l.id, { action: "add_note", note: `[SOP:${step.id}] ${step.title} 已发送` })
       loadHistory(l.id)
     },
@@ -505,6 +552,24 @@ export default function LeadsDashboard() {
                     </span>
                   )}
                   <span style={{ fontSize: 12, color: "#6b7280" }}>{relativeTime(l.created_at)}</span>
+                  {(() => {
+                    const st = f45State(l, clock)
+                    if (!st) return null
+                    const overdue = st.remaining <= 0
+                    const mins = Math.max(0, Math.ceil(st.remaining / 60000))
+                    return (
+                      <span
+                        style={{
+                          fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 700,
+                          background: overdue ? "#fee2e2" : "#fef3c7",
+                          color: overdue ? "#dc2626" : "#b45309",
+                          border: "1px solid " + (overdue ? "#fca5a5" : "#fcd34d"),
+                        }}
+                      >
+                        {overdue ? "⏰ 45min跟进到点!" : `⏰ 45min跟进 剩 ${mins} 分钟`}
+                      </span>
+                    )
+                  })()}
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 600, color: badge.color }}>首响: {badge.text}</span>
               </div>
@@ -726,7 +791,22 @@ export default function LeadsDashboard() {
                         <p style={{ margin: 0, fontSize: 13, fontWeight: isNext ? 700 : 500, color: done ? "#9ca3af" : "#111827", textDecoration: done ? "line-through" : "none" }}>
                           {s.emoji} {s.title}
                         </p>
-                        <p style={{ margin: 0, fontSize: 11.5, color: "#6b7280" }}>{s.when}</p>
+                        <p style={{ margin: 0, fontSize: 11.5, color: "#6b7280" }}>
+                          {s.when}
+                          {s.id === "f45" && !done && (() => {
+                            const st = f45State(detailLead, clock)
+                            if (!st) return null
+                            if (st.remaining <= 0)
+                              return <span style={{ color: "#dc2626", fontWeight: 700 }}> · ⏰ 已到点，现在发！</span>
+                            const mm = Math.floor(st.remaining / 60000)
+                            const ss = Math.floor((st.remaining % 60000) / 1000)
+                            return (
+                              <span style={{ color: "#b45309", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                                {" "}· 倒计时 {mm}:{String(ss).padStart(2, "0")}
+                              </span>
+                            )
+                          })()}
+                        </p>
                       </div>
                       <button
                         onClick={() => sendSop(detailLead, s)}
