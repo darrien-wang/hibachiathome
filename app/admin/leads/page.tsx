@@ -415,7 +415,18 @@ export default function LeadsDashboard() {
       build: () => "No rush at all! I'll pencil your date in for now — no deposit needed until you confirm. Just don't want you to lose it while you're deciding 🙌",
     },
     {
-      id: "f_morning", stage: "followup", emoji: "☀️", title: "次日跟进：亮到场承诺", when: "第二天上午",
+      id: "f_planner", stage: "followup", emoji: "🎪", title: "次日拉回：发派对组局工具（三合一）", when: "客户在和朋友对时间/人数时——递工具帮他组局，不催单",
+      build: (l) => {
+        const n = l.guest_count ?? 0
+        const hook =
+          n >= 20
+            ? "And your group already unlocks a FREE appetizer platter (gyoza, edamame & spring rolls, $40 value) — it's on us 🥟"
+            : "And heads up: if your group hits 20, a FREE appetizer platter (gyoza, edamame & spring rolls, $40 value) is on us 🥟"
+        return `Hi! While you're checking with your group — this might help: party.realhibachi.com is our party planner. Pick your date, share the link with your friends, and everyone grabs a seat & picks their own proteins (takes 2 min each) 🎪\nYour date is still penciled in — no deposit needed yet. ${hook}`
+      },
+    },
+    {
+      id: "f_morning", stage: "followup", emoji: "☀️", title: "次日跟进：亮到场承诺", when: "第二天上午（若组局工具那条已发，这条隔天再用）",
       build: (l) => `Morning! Still holding your date for your party${l.guest_count ? ` of ${l.guest_count}` : ""}. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. Want me to lock it in?`,
     },
     {
