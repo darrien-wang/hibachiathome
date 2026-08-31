@@ -162,6 +162,30 @@ export default function LeadsDashboard() {
       const rows: LeadRow[] = data.leads ?? []
       if (rows.length > 0 && prevNewestRef.current && rows[0].id !== prevNewestRef.current) {
         document.title = "🔔 新询盘! - Real Hibachi 工作台"
+        // Loud alert: a silent title change cost 15 minutes on the first real
+        // lead. Beep three times and fire a browser notification.
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          for (let i = 0; i < 3; i++) {
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            osc.frequency.value = 880
+            gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.35)
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.35 + 0.25)
+            osc.start(ctx.currentTime + i * 0.35)
+            osc.stop(ctx.currentTime + i * 0.35 + 0.3)
+          }
+        } catch {}
+        try {
+          if (Notification.permission === "granted") {
+            const l = rows[0]
+            new Notification("🔔 新询盘 — Real Hibachi", {
+              body: `${l.full_name || l.phone || "未知"} · ${l.lead_channel || ""} · ${(l.latest_message || "").slice(0, 90)}`,
+            })
+          }
+        } catch {}
       }
       if (rows.length > 0) prevNewestRef.current = rows[0].id
       setLeads(rows)
@@ -178,6 +202,13 @@ export default function LeadsDashboard() {
   useEffect(() => {
     if (!adminKey) return
     fetchLeads()
+    // Ask once for notification permission so new-lead alerts can reach the
+    // owner even when this tab is in the background.
+    try {
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission()
+      }
+    } catch {}
     const t = setInterval(fetchLeads, 30000)
     return () => clearInterval(t)
   }, [adminKey, fetchLeads])

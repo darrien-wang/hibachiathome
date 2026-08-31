@@ -751,12 +751,34 @@ export default function QuoteBuilderClient() {
     window.setTimeout(() => el.focus(), 400)
   }
 
+  // The moment someone taps SMS/WhatsApp we already know the whole quote, so
+  // ping the workbench immediately instead of waiting for the text to arrive
+  // (which pre-port lands only on the owner's phone). sendBeacon survives the
+  // page being replaced by the sms: navigation.
+  const reportContactIntent = (channel: string) => {
+    try {
+      const payload = JSON.stringify({
+        channel,
+        summary: quoteSummary,
+        guests: result.guestCount,
+        eventDate: input.eventDate || "",
+        location: input.location || "",
+      })
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("/api/quote/contact-intent", new Blob([payload], { type: "application/json" }))
+      } else {
+        fetch("/api/quote/contact-intent", { method: "POST", body: payload, keepalive: true })
+      }
+    } catch {}
+  }
+
   const onSmsClick = () => {
     if (contactDisabled) {
       pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
       focusFirstMissingField()
       return
     }
+    reportContactIntent("sms")
     trackEvent("contact_sms_click", {
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
@@ -782,6 +804,7 @@ export default function QuoteBuilderClient() {
       focusFirstMissingField()
       return
     }
+    reportContactIntent("whatsapp")
     trackEvent("contact_whatsapp_click", {
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
