@@ -300,6 +300,71 @@ export default function LeadsDashboard() {
     if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
   }, [])
 
+  // ---- 线索生命周期 SOP ----
+  // 每个阶段的标准动作，一键发送并自动在时间线记录 [SOP:id]，
+  // checklist 据此打勾。话术原则：每条都"给东西"，不做干催。
+  type SopStep = { id: string; stage: "followup" | "won"; emoji: string; title: string; when: string; build?: (l: LeadRow) => string }
+  const SOP_STEPS: SopStep[] = [
+    {
+      id: "f45", stage: "followup", emoji: "⏰", title: "45分钟跟进：选择题+档期稀缺", when: "首响后 45-60 分钟客户没回",
+      build: () => "Quick heads up — weekend slots go first. Most dinner parties start at 5:30 or 6:30, either work for you? I can hold one while you decide 😊",
+    },
+    {
+      id: "f_night", stage: "followup", emoji: "🌙", title: "当晚软锁定：免订金占位", when: "当晚睡前仍未回",
+      build: () => "No rush at all! I'll pencil your date in for now — no deposit needed until you confirm. Just don't want you to lose it while you're deciding 🙌",
+    },
+    {
+      id: "f_morning", stage: "followup", emoji: "☀️", title: "次日跟进：亮到场承诺", when: "第二天上午",
+      build: (l) => `Morning! Still holding your date for your party${l.guest_count ? ` of ${l.guest_count}` : ""}. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. Want me to lock it in?`,
+    },
+    {
+      id: "f_promo", stage: "followup", emoji: "🥟", title: "第3天促销复活钩", when: "3 天无回应（最后一发，之后停）",
+      build: (l) => {
+        const n = l.guest_count ?? 0
+        return n >= 15 && n < 20
+          ? `One more thing — parties of 20+ get a FREE appetizer platter (gyoza, edamame & spring rolls, $40 value). You're at ${n}, just ${20 - n} more guests and it's on us! Want me to update your quote?`
+          : "Hi again! Your date is still open on our calendar. Anything I can answer about the menu, setup, or pricing? Happy to help you lock it in 😊"
+      },
+    },
+    {
+      id: "w_planner", stage: "won", emoji: "🎪", title: "发派对布置工具", when: "订金确认后立刻发",
+      build: () => "You're booked 🎉 Here's your party planner: party.realhibachi.com — set up your tables and share the link with your guests so everyone picks their own proteins. Takes 2 minutes and makes party day seamless!",
+    },
+    {
+      id: "w_confirm48", stage: "won", emoji: "✅", title: "48小时厨师实名确认（承诺兑现！）", when: "开席前 48 小时，广告承诺过的，必发",
+      build: () => "Hi! Confirming your hibachi party in 48 hours 🎊 Your chef is Bling, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!",
+    },
+    { id: "w_review", stage: "won", emoji: "⭐", title: "派对次日：邀评", when: "办完派对第二天" },
+    { id: "w_ugc", stage: "won", emoji: "📸", title: "派对次日：晒图邀请", when: "邀评后接着发" },
+  ]
+
+  const doneSopIds = useMemo(() => {
+    const done = new Set<string>()
+    for (const ev of historyEvents) {
+      const note = typeof ev.raw_payload_json?.note === "string" ? (ev.raw_payload_json.note as string) : ""
+      const m = note.match(/^\[SOP:([\w-]+)\]/)
+      if (m) done.add(m[1])
+    }
+    return done
+  }, [historyEvents])
+
+  const sendSop = useCallback(
+    async (l: LeadRow, step: SopStep) => {
+      if (step.id === "w_review") sendReviewInvite(l)
+      else if (step.id === "w_ugc") sendUgcInvite(l)
+      else if (step.build) {
+        const text = step.build(l)
+        try {
+          navigator.clipboard.writeText(text)
+        } catch {}
+        if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+      }
+      await act(l.id, { action: "add_note", note: `[SOP:${step.id}] ${step.title} 已发送` })
+      loadHistory(l.id)
+    },
+    [act, loadHistory, sendReviewInvite, sendUgcInvite]
+  )
+
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
     const firstName = (l.full_name || "").split(" ")[0]
@@ -606,6 +671,81 @@ export default function LeadsDashboard() {
               </button>
             ))}
           </div>
+
+          {/* ---- 生命周期 + 标准操作 ---- */}
+          {(() => {
+            const stage: "followup" | "won" | null =
+              detailLead.status === "new" || detailLead.status === "qualified"
+                ? "followup"
+                : detailLead.status === "won"
+                  ? "won"
+                  : null
+            const stages = [
+              { key: "new", label: "🆕 新询盘" },
+              { key: "followup", label: "💬 跟进中" },
+              { key: "won", label: "✅ 已订" },
+              { key: "post", label: "🎉 派对后" },
+            ]
+            const activeIdx = detailLead.status === "new" ? 0 : stage === "followup" ? 1 : stage === "won" ? (doneSopIds.has("w_review") || doneSopIds.has("w_ugc") ? 3 : 2) : -1
+            const steps = stage ? SOP_STEPS.filter((s) => s.stage === stage) : []
+            const responded = detailLead.response_seconds !== null
+            const nextId = !responded && stage === "followup" ? "__respond" : steps.find((s) => !doneSopIds.has(s.id))?.id
+            return (
+              <div style={{ marginTop: 14, border: "1px solid #e5e7eb", borderRadius: 10, padding: "12px 14px", background: "#fafafa" }}>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                  {stages.map((s, i) => (
+                    <span key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <span
+                        style={{
+                          padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: i === activeIdx ? 700 : 400,
+                          background: i === activeIdx ? "#0f766e" : i < activeIdx ? "#d1fae5" : "#f3f4f6",
+                          color: i === activeIdx ? "#fff" : i < activeIdx ? "#047857" : "#9ca3af",
+                        }}
+                      >
+                        {s.label}
+                      </span>
+                      {i < stages.length - 1 && <span style={{ color: "#d1d5db" }}>→</span>}
+                    </span>
+                  ))}
+                  {stage === null && <span style={{ fontSize: 12, color: "#9ca3af" }}>（已归档）</span>}
+                </div>
+                {stage === "followup" && (
+                  <div style={{ fontSize: 13, marginBottom: 6, color: responded ? "#047857" : "#dc2626", fontWeight: 600 }}>
+                    {responded
+                      ? `✓ 已首响（${detailLead.response_seconds! < 3600 ? Math.round(detailLead.response_seconds! / 60) + " 分钟" : Math.round(detailLead.response_seconds! / 3600) + " 小时"}）`
+                      : "▶ 立即回复！目标 5 分钟内首响（回完点上面的“标记已联系”）"}
+                  </div>
+                )}
+                {steps.map((s) => {
+                  const done = doneSopIds.has(s.id)
+                  const isNext = s.id === nextId
+                  return (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderTop: "1px solid #f3f4f6" }}>
+                      <span style={{ fontSize: 13, width: 18 }}>{done ? "✅" : isNext ? "▶" : "○"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: isNext ? 700 : 500, color: done ? "#9ca3af" : "#111827", textDecoration: done ? "line-through" : "none" }}>
+                          {s.emoji} {s.title}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11.5, color: "#6b7280" }}>{s.when}</p>
+                      </div>
+                      <button
+                        onClick={() => sendSop(detailLead, s)}
+                        disabled={done}
+                        style={{
+                          padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: done ? "default" : "pointer",
+                          border: "1px solid " + (done ? "#e5e7eb" : isNext ? "#0f766e" : "#d1d5db"),
+                          background: done ? "#f9fafb" : isNext ? "#0f766e" : "#fff",
+                          color: done ? "#c0c4cc" : isNext ? "#fff" : "#374151",
+                        }}
+                      >
+                        {done ? "已发" : "发送"}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
 
           {detailLead.status === "won" && (
             <>
