@@ -334,6 +334,63 @@ export default function LeadsDashboard() {
     window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
   }, [])
 
+  // 首响话术：从线索字段自动拼（名字/日期/人数/金额/邮编），确认档期+推订金。
+  // 一键复制+拉起短信+自动标记已联系。发前先确认自己档期真的 OK。
+  const buildFirstResponse = (l: LeadRow): string => {
+    const first = (l.full_name || "").split(" ")[0]
+    const hi = first && !/^\d+$/.test(first) ? ` ${first}` : ""
+    const msg = l.latest_message || ""
+    const dateRaw = msg.match(/(?:Event )?Date:\s*(\d{4}-\d{2}-\d{2})/i)?.[1]
+    const timeRaw = msg.match(/(?:Event )?Time:\s*(\d{1,2}):(\d{2})/i)
+    const guests = l.guest_count || Number(msg.match(/(\d+)\s*adults/i)?.[1]) || null
+    const amt = msg.match(/Estimated (?:Range|total):\s*\$?([\d,]+)/i)?.[1]
+    const zip = l.city_or_zip || msg.match(/Location:\s*([\w ]{3,20})/i)?.[1]?.trim()
+
+    let prettyDate = ""
+    if (dateRaw) {
+      const [y, m, d] = dateRaw.split("-").map(Number)
+      const dt = new Date(y, m - 1, d)
+      if (!Number.isNaN(dt.getTime())) {
+        prettyDate = dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+      }
+    }
+    let prettyTime = ""
+    if (timeRaw) {
+      const h = Number(timeRaw[1])
+      const mm = timeRaw[2]
+      const ampm = h >= 12 ? "pm" : "am"
+      const h12 = h % 12 || 12
+      prettyTime = mm === "00" ? `${h12}${ampm}` : `${h12}:${mm}${ampm}`
+    }
+
+    if (prettyDate) {
+      return (
+        `Hi${hi}! This is Bling from Real Hibachi — got your request for ${prettyDate}` +
+        (prettyTime ? ` at ${prettyTime}` : "") +
+        (zip ? ` in ${zip}` : "") +
+        (guests ? `, ${guests} guests` : "") +
+        `. Good news: that date is available! 🎉 ` +
+        (amt ? `Your total is $${amt} as quoted — food, live chef show, setup, and travel all included. ` : "") +
+        `A $19.90 deposit locks your date and chef — want me to send the link?`
+      )
+    }
+    return `Hi${hi}! This is Bling from Real Hibachi — thanks for reaching out! I'd love to help with your hibachi party. What date are you thinking? 😊`
+  }
+
+  const sendFirstResponse = useCallback(
+    async (l: LeadRow) => {
+      const text = buildFirstResponse(l)
+      try {
+        navigator.clipboard.writeText(text)
+      } catch {}
+      if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+      await act(l.id, { action: "mark_contacted" })
+      await act(l.id, { action: "add_note", note: "[SOP:first_response] 首响话术已发送" })
+      loadHistory(l.id)
+    },
+    [act, loadHistory]
+  )
+
   // UGC 邀请：派对结束次日发，鼓励客人晒图 tag——真实用户内容一条顶软广一百条。
   const sendUgcInvite = useCallback((l: LeadRow) => {
     const firstName = (l.full_name || "").split(" ")[0]
@@ -775,10 +832,20 @@ export default function LeadsDashboard() {
                   {stage === null && <span style={{ fontSize: 12, color: "#9ca3af" }}>（已归档）</span>}
                 </div>
                 {stage === "followup" && (
-                  <div style={{ fontSize: 13, marginBottom: 6, color: responded ? "#047857" : "#dc2626", fontWeight: 600 }}>
-                    {responded
-                      ? `✓ 已首响（${detailLead.response_seconds! < 3600 ? Math.round(detailLead.response_seconds! / 60) + " 分钟" : Math.round(detailLead.response_seconds! / 3600) + " 小时"}）`
-                      : "▶ 立即回复！目标 5 分钟内首响（回完点上面的“标记已联系”）"}
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ fontSize: 13, color: responded ? "#047857" : "#dc2626", fontWeight: 600 }}>
+                      {responded
+                        ? `✓ 已首响（${detailLead.response_seconds! < 3600 ? Math.round(detailLead.response_seconds! / 60) + " 分钟" : Math.round(detailLead.response_seconds! / 3600) + " 小时"}）`
+                        : "▶ 立即回复！目标 5 分钟内首响"}
+                    </div>
+                    {!responded && detailLead.phone && (
+                      <button
+                        onClick={() => sendFirstResponse(detailLead)}
+                        style={{ marginTop: 6, width: "100%", padding: "9px 14px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        📨 一键首响：自动带日期/人数/金额 + 推 $19.90 订金（先确认你档期 OK 再点）
+                      </button>
+                    )}
                   </div>
                 )}
                 {steps.map((s) => {
