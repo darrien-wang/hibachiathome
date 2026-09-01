@@ -537,6 +537,40 @@ export default function LeadsDashboard() {
     [act, loadHistory, sendReviewInvite, sendUgcInvite]
   )
 
+  // 💳 信用卡收尾款：输税前金额，服务端自动 +4% 手续费生成 Stripe 链接，
+  // 复制话术并拉起短信。十秒收款。
+  const sendPayLink = useCallback(
+    async (l: LeadRow) => {
+      const raw = window.prompt("尾款金额（税前，不含 4% 手续费）\n系统会自动 +4% 生成信用卡支付链接：", "")
+      if (!raw) return
+      const amount = Number(raw.replace(/[^0-9.]/g, ""))
+      if (!Number.isFinite(amount) || amount < 1) {
+        window.alert("金额无效")
+        return
+      }
+      try {
+        const res = await fetch("/api/admin/pay-link", {
+          method: "POST",
+          headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ amount, customerName: l.full_name || undefined }),
+        })
+        const data = await res.json()
+        if (!data.ok) throw new Error(data.error || "failed")
+        const firstName = (l.full_name || "").split(" ")[0]
+        const text = `Hi${firstName ? " " + firstName : ""}! Here's your secure card payment link for the balance: $${amount.toFixed(2)} + 4% card processing = $${data.total.toFixed(2)}\n${data.url}\n(Cash, Venmo or Zelle skip the card fee — just let me know!)`
+        try {
+          navigator.clipboard.writeText(text)
+        } catch {}
+        await act(l.id, { action: "add_note", note: `💳 已生成尾款链接 $${amount.toFixed(2)}+4%=$${data.total.toFixed(2)}` })
+        loadHistory(l.id)
+        if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+      } catch (e) {
+        window.alert("生成失败: " + e)
+      }
+    },
+    [adminKey, act, loadHistory]
+  )
+
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
     const firstName = (l.full_name || "").split(" ")[0]
@@ -1022,6 +1056,12 @@ export default function LeadsDashboard() {
                 style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #059669", background: "#ecfdf5", color: "#047857", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
                 🥟 大单促销话术：20+ 人送前菜拼盘（自动复制）
+              </button>
+              <button
+                onClick={() => sendPayLink(detailLead)}
+                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #0284c7", background: "#f0f9ff", color: "#0369a1", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              >
+                💳 生成信用卡尾款链接（输金额，自动 +4% 手续费）
               </button>
               <button
                 onClick={() => sendUgcInvite(detailLead)}
