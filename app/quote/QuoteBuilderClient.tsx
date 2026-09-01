@@ -94,8 +94,8 @@ const QUOTE_PROOF_MEDIA = [
   },
   {
     type: "image" as const,
-    src: "/gallery/real-hibachi-party-los-angeles-birthday-event-13.jpg",
-    alt: "Evening Real Hibachi birthday party under string lights in Los Angeles",
+    src: "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
+    alt: "Huge hibachi flame lighting up a night party in Orange County",
   },
   {
     type: "image" as const,
