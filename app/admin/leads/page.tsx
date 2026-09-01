@@ -610,35 +610,43 @@ export default function LeadsDashboard() {
     [adminKey, act, loadHistory]
   )
 
-  // ✉️ 邮件跟进：短信不回时的第二通道。确认预览后由服务端从
-  // support@realhibachi.com 直发（Resend）——绝不走个人邮箱。
-  const sendEmailFollowup = useCallback(
-    async (l: LeadRow) => {
-      if (!l.email) return
-      const firstName = (l.full_name || "").split(" ")[0]
-      const subject = "Your Real Hibachi date is held \u{1F389}"
-      const body = `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total):\nhttps://www.realhibachi.com/deposit\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`
-      const okGo = window.confirm(
-        `将从 support@realhibachi.com 发送给 ${l.email}：\n\n主题: ${subject}\n\n${body.slice(0, 400)}\n\n确认发送？`
-      )
-      if (!okGo) return
-      try {
-        const res = await fetch("/api/admin/send-followup", {
-          method: "POST",
-          headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ to: l.email, subject, text: body }),
-        })
-        const data = await res.json()
-        if (!data.ok) throw new Error(data.error || "failed")
-        await act(l.id, { action: "add_note", note: `✉️ 已从 support@ 发送跟进邮件（${subject}）` })
-        loadHistory(l.id)
-        window.alert("✅ 已发送")
-      } catch (e) {
-        window.alert("发送失败: " + e)
-      }
-    },
-    [adminKey, act, loadHistory]
-  )
+  // ✉️ 邮件跟进：短信不回时的第二通道。工作台内正式预览（可编辑）后由
+  // 服务端从 support@realhibachi.com 直发（Resend）——绝不走个人邮箱。
+  const [emailDraft, setEmailDraft] = useState<{ leadId: string; to: string; subject: string; body: string } | null>(null)
+  const [emailSending, setEmailSending] = useState(false)
+
+  const sendEmailFollowup = useCallback((l: LeadRow) => {
+    if (!l.email) return
+    const firstName = (l.full_name || "").split(" ")[0]
+    setEmailDraft({
+      leadId: l.id,
+      to: l.email,
+      subject: "Your Real Hibachi date is held \u{1F389}",
+      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total):\nhttps://www.realhibachi.com/deposit\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
+    })
+  }, [])
+
+  const dispatchEmailDraft = useCallback(async () => {
+    if (!emailDraft || emailSending) return
+    setEmailSending(true)
+    try {
+      const res = await fetch("/api/admin/send-followup", {
+        method: "POST",
+        headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ to: emailDraft.to, subject: emailDraft.subject, text: emailDraft.body }),
+      })
+      const data = await res.json()
+      if (!data.ok) throw new Error(data.error || "failed")
+      await act(emailDraft.leadId, { action: "add_note", note: `✉️ 已从 support@ 发送跟进邮件（${emailDraft.subject}）` })
+      loadHistory(emailDraft.leadId)
+      setEmailDraft(null)
+      window.alert("✅ 已从 support@realhibachi.com 发送")
+    } catch (e) {
+      window.alert("发送失败: " + e)
+    } finally {
+      setEmailSending(false)
+    }
+  }, [emailDraft, emailSending, adminKey, act, loadHistory])
 
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
@@ -1227,6 +1235,43 @@ export default function LeadsDashboard() {
                 </div>
               )
             })}
+          </div>
+        </Modal>
+      )}
+
+      {emailDraft && (
+        <Modal onClose={() => setEmailDraft(null)} title="✉️ 邮件跟进预览">
+          <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 10px" }}>
+            发件人: <strong>Real Hibachi &lt;support@realhibachi.com&gt;</strong>
+            <br />
+            收件人: <strong>{emailDraft.to}</strong>（客户回信也进 support@）
+          </p>
+          <div style={sectionLabel}>主题</div>
+          <input
+            style={inputStyle}
+            value={emailDraft.subject}
+            onChange={(e) => setEmailDraft((d) => (d ? { ...d, subject: e.target.value } : d))}
+          />
+          <div style={sectionLabel}>正文（可直接修改）</div>
+          <textarea
+            style={{ ...inputStyle, height: 260, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+            value={emailDraft.body}
+            onChange={(e) => setEmailDraft((d) => (d ? { ...d, body: e.target.value } : d))}
+          />
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button
+              onClick={dispatchEmailDraft}
+              disabled={emailSending}
+              style={{ flex: 1, padding: "11px 16px", borderRadius: 8, border: "none", background: emailSending ? "#9ca3af" : "#0f766e", color: "#fff", fontSize: 14, fontWeight: 700, cursor: emailSending ? "default" : "pointer" }}
+            >
+              {emailSending ? "发送中…" : "从 support@ 发送"}
+            </button>
+            <button
+              onClick={() => setEmailDraft(null)}
+              style={{ padding: "11px 16px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontSize: 14, cursor: "pointer" }}
+            >
+              取消
+            </button>
           </div>
         </Modal>
       )}
