@@ -112,6 +112,13 @@ const galleryMedia: GalleryMedia[] = [
     alt: "Private hibachi chef experience for a Southern California party",
   },
   {
+    id: "real-hibachi-party-santa-barbara-oceanfront-sunset-16",
+    type: "image",
+    src: "/gallery/real-hibachi-party-santa-barbara-oceanfront-sunset-16.jpg",
+    title: "Santa Barbara Oceanfront Sunset Hibachi Party",
+    alt: "Oceanfront sunset hibachi party table with lanterns and roses in Santa Barbara",
+  },
+  {
     id: "real-hibachi-party-los-angeles-chef-show-video-01",
     type: "video",
     src: "/gallery/real-hibachi-party-los-angeles-chef-show-video-01.mp4",
@@ -142,6 +149,14 @@ const galleryMedia: GalleryMedia[] = [
     poster: "/gallery/real-hibachi-party-southern-california-event-video-04-poster.jpg",
     title: "Southern California Hibachi Event Video",
     alt: "Video of a Southern California hibachi party with on-site chef service",
+  },
+  {
+    id: "real-hibachi-party-malibu-beach-sunset-video-05",
+    type: "video",
+    src: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05.mp4",
+    poster: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05-poster.jpg",
+    title: "Oceanfront Sunset Hibachi Party Video",
+    alt: "Video of an oceanfront sunset hibachi dinner party with lanterns in Southern California",
   },
 ]
 

@@ -98,6 +98,17 @@ const QUOTE_PROOF_MEDIA = [
     alt: "Evening Real Hibachi birthday party under string lights in Los Angeles",
   },
   {
+    type: "image" as const,
+    src: "/gallery/real-hibachi-party-santa-barbara-oceanfront-sunset-16.jpg",
+    alt: "Oceanfront sunset hibachi party table with lanterns and roses in Santa Barbara",
+  },
+  {
+    type: "video" as const,
+    src: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05.mp4",
+    poster: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05-poster.jpg",
+    alt: "Oceanfront sunset hibachi dinner party with lanterns",
+  },
+  {
     type: "video" as const,
     src: "/videos/party-highlight.mp4",
     poster: "/videos/posters/party-highlight.jpg",
