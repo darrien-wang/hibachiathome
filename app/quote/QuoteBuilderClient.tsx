@@ -1148,9 +1148,12 @@ export default function QuoteBuilderClient() {
           />
           <div className="absolute inset-0 bg-white/60" />
           <div className="relative">
-            <h1 className="text-4xl font-bold mb-4">Get Your Instant Quote</h1>
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              30 seconds to book the fun — no sign-up, no obligation.
+            <h1 className="text-4xl font-bold mb-3">Get Your Instant Quote</h1>
+            <p className="text-2xl font-semibold text-orange-800 max-w-3xl mx-auto">
+              Fire up your story.
+            </p>
+            <p className="mt-2 text-sm text-gray-600 max-w-3xl mx-auto">
+              Instant estimate in 30 seconds — no sign-up, no obligation.
             </p>
           </div>
         </div>
