@@ -233,6 +233,26 @@ export function isPromotionActive(id: PromotionId): boolean {
 }
 
 // ---------------------------------------------------------------
+// Returning customer discount
+// ---------------------------------------------------------------
+// $60 off per 10 full guests (adults + children 5-12; under-5s do not
+// count). Conditional on the customer having booked before, so it lives
+// outside PROMOTIONS — those apply to every quote automatically.
+export const RETURNING_CUSTOMER_DISCOUNT_PER_10_GUESTS = 60
+export const RETURNING_CUSTOMER_DISCOUNT_REMARK = "Returning customer — $60 off per 10 guests"
+
+export function calcReturningCustomerDiscount(fullGuestCount: number): number {
+  if (!Number.isFinite(fullGuestCount) || fullGuestCount <= 0) return 0
+  return RETURNING_CUSTOMER_DISCOUNT_PER_10_GUESTS * Math.floor(fullGuestCount / 10)
+}
+
+// Flat $50 off for people who attended a Real Hibachi party and hold one of
+// our printed business cards (cards only exist offline, so the card itself is
+// the gate). Never stacks with the returning customer discount.
+export const PARTY_GUEST_CARD_DISCOUNT = 50
+export const PARTY_GUEST_CARD_DISCOUNT_REMARK = "Party guest — $50 off with Real Hibachi card"
+
+// ---------------------------------------------------------------
 // Shared helper
 // ---------------------------------------------------------------
 export function roundCurrency(value: number): number {

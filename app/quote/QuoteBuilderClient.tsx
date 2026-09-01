@@ -50,6 +50,7 @@ const DEFAULT_INPUT: QuoteInput = {
     shrimp: false,
     lobster: false,
   },
+  loyaltyStatus: undefined,
 }
 
 const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
@@ -904,6 +905,7 @@ export default function QuoteBuilderClient() {
       event_time: eventTime || "unspecified",
       quote_tier: input.pricingTier,
       weekday_saver_proteins: weekdaySaverProteinsValue,
+      loyalty_status: input.loyaltyStatus ?? "none",
       estimate_low: result.totalRange.low,
       estimate_high: result.totalRange.high,
       value: result.totalRange.low,
@@ -1315,6 +1317,36 @@ export default function QuoteBuilderClient() {
               )}
 
               <div className="space-y-3">
+                <label className="text-sm font-medium">Partied with us before?</label>
+                <div className="space-y-2">
+                  {(
+                    [
+                      { value: "", label: "First time — can't wait to meet you!" },
+                      { value: "returning", label: "I've booked before — $60 off per 10 guests 🎉" },
+                      { value: "party_guest", label: "I was a guest at a Real Hibachi party — $50 off with our card 🎟️" },
+                    ] as const
+                  ).map((opt) => (
+                    <label key={opt.value} className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="loyalty-status"
+                        value={opt.value}
+                        checked={(input.loyaltyStatus ?? "") === opt.value}
+                        onChange={() => handleFieldChange("loyaltyStatus", opt.value === "" ? undefined : opt.value)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-orange-600"
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {Boolean(input.loyaltyStatus) && isWeekdaySaverTier && (
+                  <p className="text-xs text-gray-500">
+                    Discounts apply to the Standard Plan (Weekday Special is already our lowest price).
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Tableware Rental</label>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -1421,11 +1453,12 @@ export default function QuoteBuilderClient() {
                 </p>
                 <p className="mt-2 text-base font-semibold text-amber-900">
                   {(() => {
-                    const low = result.effectiveBase + result.travelFeeRange.low
+                    const low = result.effectiveBase + result.travelFeeRange.low - result.loyaltyDiscount
                     const high =
                       result.effectiveBase
                       + result.travelFeeRange.high
                       + (isWeekdaySaverTier ? 0 : result.addOnTotalRange.high)
+                      - result.loyaltyDiscount
                     const guests = result.guestCount > 0 ? ` for ${result.guestCount} guests` : ""
                     return low === high
                       ? `Estimated total${guests}: ~$${low.toFixed(0)}`
@@ -1604,6 +1637,12 @@ export default function QuoteBuilderClient() {
                 </p>
                 {input.tablewareRental && (
                   <p>Full setup (tables, chairs, tableware): ${result.tablewareFee.toFixed(0)}</p>
+                )}
+                {result.loyaltyDiscount > 0 && (
+                  <p className="font-medium text-emerald-700">
+                    {input.loyaltyStatus === "party_guest" ? "Party guest card" : "Returning customer discount"}: −$
+                    {result.loyaltyDiscount.toFixed(0)} 🎉
+                  </p>
                 )}
                 {isWeekdaySaverTier ? (
                   <p>Weekday Special menu: {WEEKDAY_SAVER_MENU_DETAIL}</p>

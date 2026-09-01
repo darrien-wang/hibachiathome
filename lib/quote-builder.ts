@@ -8,6 +8,8 @@ import {
   CALL_OUT_FEE_PER_CHEF,
   calcChefCount,
   calcAdultEquivalents,
+  calcReturningCustomerDiscount,
+  PARTY_GUEST_CARD_DISCOUNT,
   isPromotionActive,
   isWeekdayEligibleDate,
 } from "@/config/pricing-rules"
@@ -40,6 +42,12 @@ export type QuoteInput = {
   tent10x10: boolean
   budget?: number
   addOns: QuoteAddOns
+  /**
+   * How the customer already knows us (standard tier only, never stacks):
+   * "returning" — booked before, $60 off per 10 full guests;
+   * "party_guest" — attended one of our parties and holds a printed card, flat $50 off.
+   */
+  loyaltyStatus?: "returning" | "party_guest"
 }
 
 export type QuoteRange = {
@@ -61,6 +69,7 @@ export type QuoteResult = {
   travelFeeRange: QuoteRange
   tablewareFee: number
   addOnTotalRange: QuoteRange
+  loyaltyDiscount: number
   totalRange: QuoteRange
   weekdaySaver: {
     isWeekdayEligible: boolean
@@ -216,9 +225,20 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     high: roundCurrency(packageSubtotal + addOnTotalRange.high),
   }
 
+  // Standard tier only: Weekday Special is already discounted pricing, and
+  // stacking would cut margin below the floor. The two identities never stack
+  // with each other either — the input is a single choice. Under-5s don't count.
+  const loyaltyDiscount = isWeekdaySaver
+    ? 0
+    : input.loyaltyStatus === "returning"
+      ? calcReturningCustomerDiscount(adults + kids)
+      : input.loyaltyStatus === "party_guest"
+        ? PARTY_GUEST_CARD_DISCOUNT
+        : 0
+
   const totalBeforeTravelRange: QuoteRange = {
-    low: Math.max(subtotalRange.low, MINIMUM_SPEND),
-    high: Math.max(subtotalRange.high, MINIMUM_SPEND),
+    low: Math.max(Math.max(subtotalRange.low, MINIMUM_SPEND) - loyaltyDiscount, 0),
+    high: Math.max(Math.max(subtotalRange.high, MINIMUM_SPEND) - loyaltyDiscount, 0),
   }
 
   const effectiveBase = Math.max(packageSubtotal, MINIMUM_SPEND)
@@ -249,6 +269,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     travelFeeRange,
     tablewareFee,
     addOnTotalRange,
+    loyaltyDiscount,
     totalRange,
     weekdaySaver: {
       isWeekdayEligible,
@@ -303,6 +324,11 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
       ? `Weekday Special menu: ${formatWeekdaySaverProteinSummary()}`
       : `Upgrades: ${formatAddOnSummary(input.addOns)}`,
     input.pricingTier === "weekday_saver" ? "Premium upgrades: not available in Weekday Special" : null,
+    result.loyaltyDiscount > 0
+      ? input.loyaltyStatus === "party_guest"
+        ? `Party guest card discount: -$${result.loyaltyDiscount}`
+        : `Returning customer discount: -$${result.loyaltyDiscount}`
+      : null,
     `Estimated total: ${formatCurrency(result.totalRange.low)} - ${formatCurrency(result.totalRange.high)}`,
   ]
     .filter((line): line is string => Boolean(line))
