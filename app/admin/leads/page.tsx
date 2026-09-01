@@ -306,35 +306,6 @@ export default function LeadsDashboard() {
     }
   }, [clock, leads])
 
-  const setLeadReminder = useCallback(
-    async (l: LeadRow) => {
-      const hoursRaw = window.prompt(
-        "多少小时后提醒？（例：0.5 = 半小时，3 = 今晚，18 ≈ 明天下午）",
-        "18"
-      )
-      if (!hoursRaw) return
-      const hours = Number(hoursRaw.replace(/[^0-9.]/g, ""))
-      if (!Number.isFinite(hours) || hours <= 0 || hours > 24 * 14) {
-        window.alert("小时数无效")
-        return
-      }
-      const label = window.prompt("提醒内容（到点显示什么）：", "发 planner 拉回消息") || "跟进"
-      const at = Date.now() + hours * 3600000
-      setReminderStore(l.id, { at, label })
-      reminderAlertedRef.current.delete(l.id)
-      setReminderTick((t) => t + 1)
-      await act(l.id, { action: "add_note", note: `⏰ 已设跟进提醒：${fmtReminderTime(at)} — ${label}` })
-      loadHistory(l.id)
-    },
-    [act, loadHistory]
-  )
-
-  const clearLeadReminder = useCallback((l: LeadRow) => {
-    clearReminderStore(l.id)
-    reminderAlertedRef.current.delete(l.id)
-    setReminderTick((t) => t + 1)
-  }, [])
-
   const act = useCallback(
     async (leadId: string, payload: Record<string, unknown>) => {
       setSaving(true)
@@ -400,6 +371,35 @@ export default function LeadsDashboard() {
     if (l.phone) params.set("phone", l.phone.replace(/\D/g, ""))
     if (l.email) params.set("email", l.email)
     window.open(`${base}/?${params.toString()}`, "_blank", "noopener")
+  }, [])
+
+  const setLeadReminder = useCallback(
+    async (l: LeadRow) => {
+      const hoursRaw = window.prompt(
+        "多少小时后提醒？（例：0.5 = 半小时，3 = 今晚，18 ≈ 明天下午）",
+        "18"
+      )
+      if (!hoursRaw) return
+      const hours = Number(hoursRaw.replace(/[^0-9.]/g, ""))
+      if (!Number.isFinite(hours) || hours <= 0 || hours > 24 * 14) {
+        window.alert("小时数无效")
+        return
+      }
+      const label = window.prompt("提醒内容（到点显示什么）：", "发 planner 拉回消息") || "跟进"
+      const at = Date.now() + hours * 3600000
+      setReminderStore(l.id, { at, label })
+      reminderAlertedRef.current.delete(l.id)
+      setReminderTick((t) => t + 1)
+      await act(l.id, { action: "add_note", note: `⏰ 已设跟进提醒：${fmtReminderTime(at)} — ${label}` })
+      loadHistory(l.id)
+    },
+    [act, loadHistory]
+  )
+
+  const clearLeadReminder = useCallback((l: LeadRow) => {
+    clearReminderStore(l.id)
+    reminderAlertedRef.current.delete(l.id)
+    setReminderTick((t) => t + 1)
   }, [])
 
   const sendReviewInvite = useCallback((l: LeadRow) => {
