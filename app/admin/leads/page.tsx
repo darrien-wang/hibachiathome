@@ -520,7 +520,9 @@ export default function LeadsDashboard() {
   // ---- 线索生命周期 SOP ----
   // 每个阶段的标准动作，一键发送并自动在时间线记录 [SOP:id]，
   // checklist 据此打勾。话术原则：每条都"给东西"，不做干催。
-  type SopStep = { id: string; stage: "followup" | "won"; emoji: string; title: string; when: string; build?: (l: LeadRow) => string }
+  // build 的 plannerLink：sendSop 发送前实时 mint 的专属 planner 链接
+  // （带客户身份，自动接回其历史会话）；mint 失败时为 undefined，回退通用域名。
+  type SopStep = { id: string; stage: "followup" | "won"; emoji: string; title: string; when: string; build?: (l: LeadRow, plannerLink?: string) => string }
   const SOP_STEPS: SopStep[] = [
     {
       // 话术原则：具体可用性 > 泛泛稀缺（"周末先到先得"像催单，"周六还开着"像服务）；
@@ -546,13 +548,16 @@ export default function LeadsDashboard() {
     },
     {
       id: "f_planner", stage: "followup", emoji: "🎪", title: "次日拉回：发派对组局工具（三合一）", when: "客户在和朋友对时间/人数时——递工具帮他组局，不催单",
-      build: (l) => {
+      build: (l, plannerLink) => {
         const n = l.guest_count ?? 0
         const hook =
           n >= 20
             ? "And your group already unlocks a FREE appetizer platter (gyoza, edamame & spring rolls, $40 value) — it's on us 🥟"
             : "And heads up: if your group hits 20, a FREE appetizer platter (gyoza, edamame & spring rolls, $40 value) is on us 🥟"
-        return `Hi! While you're checking with your group — this might help: party.realhibachi.com is our party planner. Pick your date, share the link with your friends, and everyone grabs a seat & picks their own proteins (takes 2 min each) 🎪\nYour date is still penciled in — no deposit needed yet. ${hook}`
+        const intro = plannerLink
+          ? `Hi! While you're checking with your group — this might help. I set up a party planner just for you: ${plannerLink} — share it with your friends and everyone grabs a seat & picks their own proteins (takes 2 min each) 🎪`
+          : `Hi! While you're checking with your group — this might help: party.realhibachi.com is our party planner. Pick your date, share the link with your friends, and everyone grabs a seat & picks their own proteins (takes 2 min each) 🎪`
+        return `${intro}\nYour date is still penciled in — no deposit needed yet. ${hook}`
       },
     },
     {
@@ -575,8 +580,11 @@ export default function LeadsDashboard() {
       },
     },
     {
-      id: "w_planner", stage: "won", emoji: "🎪", title: "发派对布置工具", when: "订金确认后立刻发",
-      build: () => "You're booked 🎉 Here's your party planner: party.realhibachi.com — set up your tables and share the link with your guests so everyone picks their own proteins. Takes 2 minutes and makes party day seamless!",
+      id: "w_planner", stage: "won", emoji: "🎪", title: "发派对布置工具（专属链接）", when: "订金确认后立刻发（Stripe/Venmo/Zelle 都算）",
+      build: (_l, plannerLink) =>
+        plannerLink
+          ? `You're booked 🎉 Here's your personal party planner: ${plannerLink} — your party's already linked to it. Set up your tables and share the same link with your guests so everyone picks their own proteins. Takes 2 minutes and makes party day seamless!`
+          : "You're booked 🎉 Here's your party planner: party.realhibachi.com — set up your tables and share the link with your guests so everyone picks their own proteins. Takes 2 minutes and makes party day seamless!",
     },
     {
       id: "w_confirm48", stage: "won", emoji: "✅", title: "48小时厨师实名确认（承诺兑现！）", when: "开席前 48 小时，广告承诺过的，必发",
@@ -601,7 +609,32 @@ export default function LeadsDashboard() {
       if (step.id === "w_review") sendReviewInvite(l)
       else if (step.id === "w_ugc") sendUgcInvite(l)
       else if (step.build) {
-        const text = step.build(l)
+        // planner 两步：发送前实时 mint 专属链接。key 带客户 email+phone，
+        // planner 端锚点注册表会自动接回其历史会话（之前用邮箱或手机号
+        // 试过都能对上，全新客户则从零建）。won 阶段带 booked 标——订金
+        // 无论 Stripe/Venmo/Zelle 都算已确认，客户端不再显示未付警示。
+        let plannerLink: string | undefined
+        if (step.id === "f_planner" || step.id === "w_planner") {
+          if (l.email || l.phone) {
+            try {
+              const res = await fetch("/api/admin/planner-link", {
+                method: "POST",
+                headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email: l.email || undefined,
+                  phone: l.phone || undefined,
+                  booked: step.stage === "won",
+                }),
+              })
+              const d = await res.json()
+              if (d.ok && typeof d.url === "string") plannerLink = d.url
+            } catch {}
+          }
+          if (!plannerLink && !window.confirm("专属链接生成失败，将发送通用链接 party.realhibachi.com（不带客户身份）。继续？")) {
+            return
+          }
+        }
+        const text = step.build(l, plannerLink)
         try {
           navigator.clipboard.writeText(text)
         } catch {}
@@ -614,7 +647,7 @@ export default function LeadsDashboard() {
       await act(l.id, { action: "add_note", note: `[SOP:${step.id}] ${step.title} 已发送` })
       loadHistory(l.id)
     },
-    [act, loadHistory, sendReviewInvite, sendUgcInvite]
+    [act, loadHistory, sendReviewInvite, sendUgcInvite, adminKey]
   )
 
   // 💳 信用卡收尾款：先从发票系统拉客户最新 Balance Due（小费档/订金/卡费
