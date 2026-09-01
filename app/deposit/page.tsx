@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
 type LegacyDepositPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
 function firstValue(value: string | string[] | undefined): string | null {
@@ -14,10 +14,11 @@ function firstValue(value: string | string[] | undefined): string | null {
   return null
 }
 
-export default function LegacyDepositPage({ searchParams = {} }: LegacyDepositPageProps) {
+export default async function LegacyDepositPage({ searchParams }: LegacyDepositPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {}
   const forwardedParams = new URLSearchParams()
 
-  for (const [key, rawValue] of Object.entries(searchParams)) {
+  for (const [key, rawValue] of Object.entries(resolvedSearchParams)) {
     const value = firstValue(rawValue)
     if (!value) {
       continue

@@ -20,8 +20,9 @@ export async function generateStaticParams() {
   return cityPages.map((page) => ({ city: page.slug }))
 }
 
-export async function generateMetadata({ params }: { params: { city: string } }): Promise<Metadata> {
-  const page = getCityPage(params.city)
+export async function generateMetadata({ params }: { params: Promise<{ city: string }> }): Promise<Metadata> {
+  const { city } = await params
+  const page = getCityPage(city)
 
   if (!page) {
     return { title: "Page Not Found" }
@@ -102,8 +103,9 @@ const steps = [
   },
 ]
 
-export default function CityPage({ params }: { params: { city: string } }) {
-  const page = getCityPage(params.city)
+export default async function CityPage({ params }: { params: Promise<{ city: string }> }) {
+  const { city } = await params
+  const page = getCityPage(city)
 
   if (!page) {
     notFound()
