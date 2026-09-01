@@ -1316,35 +1316,10 @@ export default function QuoteBuilderClient() {
                 </div>
               )}
 
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Partied with us before?</label>
-                <div className="space-y-2">
-                  {(
-                    [
-                      { value: "", label: "First time — can't wait to meet you!" },
-                      { value: "returning", label: "I've booked before — $60 off per 10 guests 🎉" },
-                      { value: "party_guest", label: "I was a guest at a Real Hibachi party — $50 off with our card 🎟️" },
-                    ] as const
-                  ).map((opt) => (
-                    <label key={opt.value} className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="loyalty-status"
-                        value={opt.value}
-                        checked={(input.loyaltyStatus ?? "") === opt.value}
-                        onChange={() => handleFieldChange("loyaltyStatus", opt.value === "" ? undefined : opt.value)}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-orange-600"
-                      />
-                      <span>{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {Boolean(input.loyaltyStatus) && isWeekdaySaverTier && (
-                  <p className="text-xs text-gray-500">
-                    Discounts apply to the Standard Plan (Weekday Special is already our lowest price).
-                  </p>
-                )}
-              </div>
+              {/* Loyalty discounts are intentionally NOT shown here: returning
+                  customers mention it themselves and staff apply it on the
+                  invoice. Advertising deals a first-timer can't have only
+                  breeds "why is my price worse". */}
 
               <div className="space-y-3">
                 <label className="text-sm font-medium">Tableware Rental</label>
