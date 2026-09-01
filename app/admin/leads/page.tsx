@@ -1104,39 +1104,41 @@ export default function LeadsDashboard() {
                 </button>
               )}
               <button
-                onClick={() => sendPromoScript(detailLead)}
-                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #059669", background: "#ecfdf5", color: "#047857", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-              >
-                🥟 大单促销话术：20+ 人送前菜拼盘（自动复制）
-              </button>
-              <button
-                onClick={() => sendPayLink(detailLead)}
-                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #0284c7", background: "#f0f9ff", color: "#0369a1", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-              >
-                💳 生成信用卡尾款链接（发票联动）
-              </button>
-              {detailLead.email && (
-                <button
-                  onClick={() => sendEmailFollowup(detailLead)}
-                  style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #64748b", background: "#f8fafc", color: "#334155", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                >
-                  ✉️ 邮件跟进（短信不回时的第二通道，正文自动复制）
-                </button>
-              )}
-              <button
                 onClick={() => sendUgcInvite(detailLead)}
                 style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #2563eb", background: "#eff6ff", color: "#1d4ed8", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
                 📸 晒图邀请（UGC）：派对次日发，求 tag @realhibachi
               </button>
-              <button
-                onClick={() => sendCloserScript(detailLead)}
-                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #7c3aed", background: "#f5f3ff", color: "#6d28d9", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-              >
-                🪑 关单让步话术：再减 $100 桌椅（比价僵持时才用）
-              </button>
             </>
           )}
+
+          {/* 通用弹药：任何阶段可用（此前误锁在 won 块里，跟进中的线索看不到） */}
+          <button
+            onClick={() => sendPromoScript(detailLead)}
+            style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #059669", background: "#ecfdf5", color: "#047857", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+          >
+            🥟 大单促销话术：20+ 人送前菜拼盘（自动复制）
+          </button>
+          <button
+            onClick={() => sendPayLink(detailLead)}
+            style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #0284c7", background: "#f0f9ff", color: "#0369a1", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+          >
+            💳 生成信用卡收款链接（发票联动）
+          </button>
+          {detailLead.email && (
+            <button
+              onClick={() => sendEmailFollowup(detailLead)}
+              style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #64748b", background: "#f8fafc", color: "#334155", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            >
+              ✉️ 邮件跟进（短信不回时的第二通道，正文自动复制）
+            </button>
+          )}
+          <button
+            onClick={() => sendCloserScript(detailLead)}
+            style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #7c3aed", background: "#f5f3ff", color: "#6d28d9", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+          >
+            🪑 关单让步话术：再减 $100 桌椅（比价僵持时才用）
+          </button>
 
           <div style={sectionLabel}>跟进备注</div>
           <div style={{ display: "flex", gap: 8 }}>
