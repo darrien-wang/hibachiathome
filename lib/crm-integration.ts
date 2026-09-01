@@ -60,6 +60,7 @@ export type CrmDepositPaidEventEnvelope = {
     deployment_environment: "pre" | "production"
     stripe_mode: "test" | "live"
     notification_mode: "suppressed" | "live"
+    lead_id?: string
   }
 }
 
@@ -510,6 +511,7 @@ export function buildDepositPaidEventEnvelope(params: {
         deployment_environment: deploymentEnvironment,
         stripe_mode: stripeMode,
         notification_mode: notificationMode,
+        lead_id: asString(params.session.metadata?.lead_id),
       },
     },
   }

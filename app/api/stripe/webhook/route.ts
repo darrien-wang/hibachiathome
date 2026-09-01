@@ -98,6 +98,55 @@ function extractCrmOrderNoFromResponseBody(value: unknown): string | undefined {
   return undefined
 }
 
+function extractCrmOrderIdFromResponseBody(value: unknown): string | undefined {
+  const direct = asRecord(value)
+  if (!direct) return undefined
+  const fromTopLevel = asNonEmptyString(direct.order_id)
+  if (fromTopLevel) return fromTopLevel
+  const data = asRecord(direct.data)
+  return asNonEmptyString(data?.order_id)
+}
+
+// 显式 lead↔order 关联:订金链接把 lead_id 放进 Stripe metadata,付款后
+// CRM 建单返回 order_id,这里把 lead_id 落到 orders.source_metadata 并把
+// 线索标 won——两个工作台从此靠外键互跳,不再靠联系方式模糊拼。
+async function linkLeadToOrder(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  params: { leadId: string; orderId: string; orderNo?: string },
+): Promise<void> {
+  try {
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("source_metadata")
+      .eq("id", params.orderId)
+      .maybeSingle()
+    const mergedMetadata = {
+      ...((existing?.source_metadata as Record<string, unknown>) ?? {}),
+      lead_id: params.leadId,
+      lead_link_method: "deposit_metadata",
+      lead_linked_at: new Date().toISOString(),
+    }
+    await supabase.from("orders").update({ source_metadata: mergedMetadata }).eq("id", params.orderId)
+    await supabase.from("order_events").insert({
+      order_id: params.orderId,
+      actor: "integration",
+      action: "lead_linked",
+      metadata: { lead_id: params.leadId, method: "deposit_metadata", order_no: params.orderNo ?? null },
+    })
+    await supabase
+      .from("leads")
+      .update({ status: "won", updated_at: new Date().toISOString() })
+      .eq("id", params.leadId)
+      .neq("status", "won")
+  } catch (error) {
+    console.warn("[stripe/webhook] lead-order linkage failed (non-fatal):", {
+      leadId: params.leadId,
+      orderId: params.orderId,
+      error: error instanceof Error ? error.message : "unknown",
+    })
+  }
+}
+
 function resolvePreferredBookingNumber(params: {
   crmAssignedOrderNo?: string | null
   updatedBookingId?: string | null
@@ -1022,6 +1071,13 @@ export async function POST(request: NextRequest) {
             crmRequestId = deliveryResult.requestId
             crmForwarded = deliveryResult.delivered
             crmAssignedOrderNo = extractCrmOrderNoFromResponseBody(deliveryResult.record.response_body)
+            if (deliveryResult.delivered) {
+              const leadId = asNonEmptyString(session.metadata?.lead_id)
+              const crmOrderId = extractCrmOrderIdFromResponseBody(deliveryResult.record.response_body)
+              if (leadId && crmOrderId) {
+                await linkLeadToOrder(supabase, { leadId, orderId: crmOrderId, orderNo: crmAssignedOrderNo })
+              }
+            }
             if (!deliveryResult.delivered) {
               console.warn("[stripe/webhook] CRM outbox delivery not completed in webhook path:", {
                 eventId: event.id,

@@ -18,6 +18,7 @@ const DEPOSIT_START_WINDOW_SECONDS = 60
 
 type DepositStartPayload = {
   bookingId?: string
+  leadId?: string
   source?: string
   customerName?: string
   customerEmail?: string
@@ -44,6 +45,7 @@ type DepositStartPayload = {
 
 type NormalizedDepositStartPayload = {
   bookingId?: string
+  leadId?: string
   source?: string
   customerName?: string
   customerEmail?: string
@@ -250,6 +252,9 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
       bookingId: normalizeString(payload.bookingId),
       source,
     }),
+    // 线索工作台发出的订金链接带 lead_id,随 Stripe metadata 到 webhook,
+    // 付款后自动把 lead 关联到 CRM 建出的订单。只收 UUID,防串进脏值。
+    leadId: isLikelyUuid(normalizeString(payload.leadId) ?? "") ? normalizeString(payload.leadId) : undefined,
     source,
     customerName: normalizeString(payload.customerName),
     customerEmail: normalizeString(payload.customerEmail),
@@ -282,6 +287,7 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
 
   return buildNormalizedPayload({
     bookingId: params.get("booking_id") ?? params.get("id") ?? undefined,
+    leadId: params.get("lead_id") ?? undefined,
     source: params.get("source") ?? undefined,
     customerName: params.get("customer_name") ?? undefined,
     customerEmail: params.get("customer_email") ?? params.get("prefilled_email") ?? undefined,
@@ -363,6 +369,7 @@ function buildMetadata(
 ): Record<string, string> {
   const metadata: Record<string, string | undefined> = {
     booking_id: metadataField(payload.bookingId),
+    lead_id: metadataField(payload.leadId),
     deposit_source: metadataField(payload.source),
     customer_name: metadataField(payload.customerName),
     customer_email: metadataField(payload.customerEmail),

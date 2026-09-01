@@ -122,6 +122,7 @@ function DepositPaymentPageInner() {
   }, [rawBookingId, suppressLegacyRhId])
   const customerNameParam = searchParams.get("customer_name")?.trim() || ""
   const customerEmailParam = searchParams.get("customer_email")?.trim() || ""
+  const leadIdParam = searchParams.get("lead_id")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
   const eventTimeParam = searchParams.get("event_time") || ""
   const locationParam = searchParams.get("location") || ""
@@ -274,6 +275,7 @@ function DepositPaymentPageInner() {
         },
         body: JSON.stringify({
           bookingId: booking.id,
+          leadId: leadIdParam || undefined,
           source: source || "deposit_pay",
           customerName: booking.full_name,
           customerEmail: booking.email,

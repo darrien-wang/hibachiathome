@@ -428,7 +428,9 @@ export default function LeadsDashboard() {
     const msg = l.latest_message || ""
     const dateRaw = extractEventDate(msg)
     if (!dateRaw) return null
-    const params = new URLSearchParams({ source: "workbench", event_date: dateRaw })
+    // lead_id 随订金链接进 Stripe metadata;付款后 webhook 自动把线索
+    // 关联到 CRM 建出的订单并标 won,两个工作台靠外键互跳。
+    const params = new URLSearchParams({ source: "workbench", event_date: dateRaw, lead_id: l.id })
     const time = msg.match(/Time:\s*(\d{1,2}:\d{2})/i)?.[1]
     if (time) params.set("event_time", time)
     const zip = l.city_or_zip || msg.match(/(?:Location|ZIP):?\s*(\d{5})/i)?.[1]
@@ -1066,20 +1068,18 @@ export default function LeadsDashboard() {
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
                 {l.status === "won" ? (
                   <>
+                    <a
+                      href={`/admin/orders?lead=${l.id}`}
+                      style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none" }}
+                    >
+                      🗂️ 去订单工作台
+                    </a>
                     <button
                       onClick={() => openInvoice(l)}
                       style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0f766e", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
                     >
                       📄 添加/修改 Invoice
                     </button>
-                    {l.phone && (
-                      <button
-                        onClick={() => sendReviewInvite(l)}
-                        style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                      >
-                        ⭐ 邀评
-                      </button>
-                    )}
                   </>
                 ) : (
                   l.response_seconds === null && (
@@ -1233,7 +1233,9 @@ export default function LeadsDashboard() {
               { key: "post", label: "🎉 派对后" },
             ]
             const activeIdx = detailLead.status === "new" ? 0 : stage === "followup" ? 1 : stage === "won" ? (doneSopIds.has("w_review") || doneSopIds.has("w_ugc") ? 3 : 2) : -1
-            const steps = stage ? SOP_STEPS.filter((s) => s.stage === stage) : []
+            // 成单之后的 SOP(布置工具/48h确认/邀评/晒图)已迁入订单工作台——
+            // 线索台只管成单之前;won 线索在这里只留一个跳转入口。
+            const steps = stage === "followup" ? SOP_STEPS.filter((s) => s.stage === "followup") : []
             const responded = detailLead.response_seconds !== null
             const nextId = !responded && stage === "followup" ? "__respond" : steps.find((s) => !doneSopIds.has(s.id))?.id
             return (
@@ -1320,25 +1322,17 @@ export default function LeadsDashboard() {
 
           {detailLead.status === "won" && (
             <>
+              <a
+                href={`/admin/orders?lead=${detailLead.id}`}
+                style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12, width: "100%", padding: "11px 16px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 700, boxSizing: "border-box" }}
+              >
+                🗂️ 已成单 → 去订单工作台操作（布置工具 / 48h确认 / 邀评 / 晒图已迁入）
+              </a>
               <button
                 onClick={() => openInvoice(detailLead)}
-                style={{ marginTop: 12, width: "100%", padding: "10px 16px", borderRadius: 8, border: "none", background: "#0f766e", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "none", background: "#0f766e", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
                 📄 添加/修改 Invoice（跳转发票系统，自动带客户信息）
-              </button>
-              {detailLead.phone && (
-                <button
-                  onClick={() => sendReviewInvite(detailLead)}
-                  style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                >
-                  ⭐ 发送邀评短信（文案自动复制）
-                </button>
-              )}
-              <button
-                onClick={() => sendUgcInvite(detailLead)}
-                style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #2563eb", background: "#eff6ff", color: "#1d4ed8", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-              >
-                📸 晒图邀请（UGC）：派对次日发，求 tag @realhibachi
               </button>
             </>
           )}

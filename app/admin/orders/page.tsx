@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
 
 // ============================================================
 // 订单工作台 · V1
@@ -92,6 +93,14 @@ function stageOf(o: OrderRow, now: number): Stage {
   if (o.details_status !== "complete") return "待细节"
   if (Number.isFinite(eventMs) && eventMs - now <= 7 * 86400_000) return "本周执行"
   return "已订"
+}
+
+// 订单阶段 → SOP 阶段:当前该发的那组高亮,其余照常可发
+function sopStageOf(stage: Stage): OrderSopStage | null {
+  if (stage === "待细节" || stage === "已订") return "booked"
+  if (stage === "本周执行") return "exec"
+  if (stage === "待尾款" || stage === "已办完") return "post"
+  return null
 }
 
 function eventLabel(iso: string | null, now: number): string {
@@ -189,6 +198,26 @@ export default function OrdersWorkbench() {
     },
     [adminKey],
   )
+
+  // 深链:/admin/orders?lead=<lead_id> 自动打开该线索关联的订单;
+  // ?stage=<阶段名> 预选阶段筛选。只在首次数据到位时消费一次。
+  const deepLinkDone = useRef(false)
+  useEffect(() => {
+    if (deepLinkDone.current || orders.length === 0) return
+    deepLinkDone.current = true
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const stageParam = params.get("stage")
+      if (stageParam && (STAGE_FILTERS as string[]).includes(stageParam)) {
+        setStageFilter(stageParam as Stage)
+      }
+      const leadParam = params.get("lead")?.trim()
+      if (leadParam) {
+        const match = orders.find((o) => (o.source_metadata as Record<string, unknown> | null)?.lead_id === leadParam)
+        if (match) openDetail(match.id)
+      }
+    } catch {}
+  }, [orders, openDetail])
 
   const filtered = useMemo(() => {
     const withStage = orders.map((o) => ({ o, stage: stageOf(o, now) }))
@@ -377,6 +406,8 @@ function OrderDrawer({
   const [travelDest, setTravelDest] = useState("")
   const [chefOrigin, setChefOrigin] = useState("")
   const [travelResult, setTravelResult] = useState<string>("")
+  const [chefName, setChefName] = useState("Bling")
+  const [sopBusy, setSopBusy] = useState<string | null>(null)
 
   useEffect(() => {
     setPlannerUrl("")
@@ -406,6 +437,51 @@ function OrderDrawer({
   }
 
   const o = detail?.order
+
+  // SOP 已发状态:order_events 里的 sop_sent 记录
+  const doneSopIds = useMemo(() => {
+    const done = new Set<string>()
+    for (const e of detail?.events ?? []) {
+      if (e.action === "sop_sent" && typeof e.metadata?.sop_id === "string") done.add(e.metadata.sop_id as string)
+    }
+    return done
+  }, [detail])
+
+  const sendSop = useCallback(
+    async (step: (typeof ORDER_SOP_STEPS)[number]) => {
+      if (!o) return
+      setSopBusy(step.id)
+      try {
+        let plannerLink: string | undefined
+        if (step.id === "w_planner" && (o.customer_email || o.customer_phone)) {
+          const d = await call("/api/admin/planner-link", {
+            email: o.customer_email ?? "",
+            phone: o.customer_phone ?? "",
+            booked: true,
+          })
+          if (d.ok && typeof d.url === "string") plannerLink = d.url
+        }
+        const text = step.build({
+          firstName: (o.customer_name || "").split(" ")[0] || undefined,
+          plannerLink,
+          chefName,
+          reviewUrl: process.env.NEXT_PUBLIC_GBP_REVIEW_URL,
+        })
+        copy(text)
+        if (o.customer_phone) window.location.href = `sms:${o.customer_phone}?&body=${encodeURIComponent(text)}`
+        await call("/api/admin/orders/sop-sent", {
+          orderId: o.id,
+          sopId: step.id,
+          title: step.title,
+          operator: localStorage.getItem("rh_operator_name") ?? "staff",
+        })
+        onChanged()
+      } finally {
+        setSopBusy(null)
+      }
+    },
+    [o, call, chefName, onChanged],
+  )
 
   return (
     <div
@@ -528,6 +604,50 @@ function OrderDrawer({
                 已复制:{payUrl}
               </div>
             )}
+
+            {/* ---------- 成单 SOP(从线索台 won 阶段迁入) ---------- */}
+            <div style={labelStyle}>成单 SOP</div>
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 12px", background: "#fafafa", marginBottom: 10 }}>
+              {(() => {
+                const currentSopStage = sopStageOf(stageOf(o, now))
+                const nextId = ORDER_SOP_STEPS.find((s) => !doneSopIds.has(s.id) && s.stage === currentSopStage)?.id
+                return ORDER_SOP_STEPS.map((s) => {
+                  const done = doneSopIds.has(s.id)
+                  const isNext = s.id === nextId
+                  return (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderTop: "1px solid #f3f4f6" }}>
+                      <span style={{ fontSize: 13, width: 18 }}>{done ? "✅" : isNext ? "▶" : "○"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: isNext ? 700 : 500, color: done ? "#9ca3af" : "#111827", textDecoration: done ? "line-through" : "none" }}>
+                          {s.emoji} {s.title}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11.5, color: "#6b7280" }}>{s.when}</p>
+                        {s.id === "w_confirm48" && !done && (
+                          <input
+                            style={{ ...inputStyle, marginTop: 4, padding: "5px 8px", fontSize: 12.5, width: 160 }}
+                            value={chefName}
+                            onChange={(e) => setChefName(e.target.value)}
+                            placeholder="厨师实名"
+                          />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => sendSop(s)}
+                        disabled={done || sopBusy === s.id}
+                        style={{
+                          padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: done ? "default" : "pointer",
+                          border: "1px solid " + (done ? "#e5e7eb" : isNext ? "#0f766e" : "#d1d5db"),
+                          background: done ? "#f9fafb" : isNext ? "#0f766e" : "#fff",
+                          color: done ? "#c0c4cc" : isNext ? "#fff" : "#374151",
+                        }}
+                      >
+                        {done ? "已发" : sopBusy === s.id ? "…" : "发送"}
+                      </button>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
 
             {/* ---------- 算路费 ---------- */}
             <div style={labelStyle}>算路费(驾车距离)</div>
