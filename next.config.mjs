@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 
-// The bare apex must 301 to the canonical www host, otherwise Google indexes
-// duplicate copies of the whole site.
+// Bare-apex PAGES must 301 to the canonical www host, otherwise Google
+// indexes duplicate copies of the whole site. /api is exempt — see the
+// redirects() rule below.
 //
 // hibachidoge.com and hibachifamily.party used to redirect here as well, after
 // both were indexed as mirrors. Neither domain resolves any more (NXDOMAIN on
@@ -66,10 +67,16 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // /api is exempt from the host redirect: Stripe (and other webhook
+      // providers) POST to the registered URL and do not follow redirects,
+      // so API routes must answer on every host directly. Pages still 308
+      // to the canonical www host. The apex domain must therefore be
+      // attached to the Vercel project WITHOUT a domain-level redirect,
+      // or requests never reach these rules (incident 2026-09-01).
       ...MIRROR_HOSTS.map((host) => ({
-        source: "/:path*",
+        source: "/:path((?!api/).*)",
         has: [{ type: "host", value: host }],
-        destination: "https://www.realhibachi.com/:path*",
+        destination: "https://www.realhibachi.com/:path",
         permanent: true,
       })),
       // East Coast market discontinued (2026-07): SoCal only
