@@ -14,18 +14,18 @@ type GalleryMedia = {
 
 const galleryMedia: GalleryMedia[] = [
   {
-    id: "real-hibachi-party-los-angeles-private-chef-01",
+    id: "real-hibachi-party-orange-county-night-fire-show-18",
     type: "image",
-    src: "/gallery/real-hibachi-party-los-angeles-private-chef-01.jpg",
-    title: "Private Hibachi Chef Party in Los Angeles",
-    alt: "Private hibachi chef cooking at a Los Angeles hibachi party",
+    src: "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
+    title: "Orange County Night Fire Show",
+    alt: "Huge hibachi flame lighting up a night party in Orange County",
   },
   {
-    id: "real-hibachi-party-los-angeles-backyard-event-02",
+    id: "real-hibachi-party-riverside-sunset-flame-20",
     type: "image",
-    src: "/gallery/real-hibachi-party-los-angeles-backyard-event-02.jpg",
-    title: "Backyard Hibachi Party in Los Angeles",
-    alt: "Backyard hibachi party setup for a Los Angeles private event",
+    src: "/gallery/real-hibachi-party-riverside-sunset-flame-20.jpg",
+    title: "Sunset Hibachi Flame Show",
+    alt: "Hibachi chef lighting a big flame at a sunset backyard party in Southern California",
   },
   {
     id: "real-hibachi-party-los-angeles-chef-grill-setup-03",
@@ -42,11 +42,11 @@ const galleryMedia: GalleryMedia[] = [
     alt: "Family hibachi party at home in Orange County",
   },
   {
-    id: "real-hibachi-party-los-angeles-fresh-cooking-05",
+    id: "real-hibachi-party-los-angeles-chef-guest-game-17",
     type: "image",
-    src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
-    title: "Fresh On-Site Hibachi Cooking in Los Angeles",
-    alt: "Fresh hibachi food cooked on-site for a Los Angeles party",
+    src: "/gallery/real-hibachi-party-los-angeles-chef-guest-game-17.jpg",
+    title: "Chef and Guest Games in Los Angeles",
+    alt: "Hibachi chef playing the classic drink-pour game with a laughing guest in Los Angeles",
   },
   {
     id: "real-hibachi-party-southern-california-dinner-06",
@@ -56,18 +56,11 @@ const galleryMedia: GalleryMedia[] = [
     alt: "Hibachi dinner party for a Southern California private event",
   },
   {
-    id: "real-hibachi-party-los-angeles-chef-show-07",
+    id: "real-hibachi-party-san-diego-water-gun-fun-19",
     type: "image",
-    src: "/gallery/real-hibachi-party-los-angeles-chef-show-07.jpg",
-    title: "Los Angeles Hibachi Chef Show",
-    alt: "Hibachi chef show during a Los Angeles at-home party",
-  },
-  {
-    id: "real-hibachi-party-orange-county-backyard-hibachi-08",
-    type: "image",
-    src: "/gallery/real-hibachi-party-orange-county-backyard-hibachi-08.jpg",
-    title: "Orange County Backyard Hibachi Party",
-    alt: "Backyard hibachi party service in Orange County",
+    src: "/gallery/real-hibachi-party-san-diego-water-gun-fun-19.jpg",
+    title: "Water Gun Fun at a Hibachi Party",
+    alt: "Hibachi chef water gun game with laughing guests at a Southern California party",
   },
   {
     id: "real-hibachi-party-los-angeles-group-dinner-09",
@@ -84,13 +77,6 @@ const galleryMedia: GalleryMedia[] = [
     alt: "Private hibachi event with chef service in Southern California",
   },
   {
-    id: "real-hibachi-party-los-angeles-on-site-chef-11",
-    type: "image",
-    src: "/gallery/real-hibachi-party-los-angeles-on-site-chef-11.jpg",
-    title: "On-Site Hibachi Chef in Los Angeles",
-    alt: "On-site hibachi chef cooking for guests in Los Angeles",
-  },
-  {
     id: "real-hibachi-party-orange-county-hibachi-at-home-12",
     type: "image",
     src: "/gallery/real-hibachi-party-orange-county-hibachi-at-home-12.jpg",
@@ -105,13 +91,6 @@ const galleryMedia: GalleryMedia[] = [
     alt: "Birthday hibachi party with private chef service in Los Angeles",
   },
   {
-    id: "real-hibachi-party-southern-california-chef-experience-14",
-    type: "image",
-    src: "/gallery/real-hibachi-party-southern-california-chef-experience-14.jpg",
-    title: "Southern California Hibachi Chef Experience",
-    alt: "Private hibachi chef experience for a Southern California party",
-  },
-  {
     id: "real-hibachi-party-santa-barbara-oceanfront-sunset-16",
     type: "image",
     src: "/gallery/real-hibachi-party-santa-barbara-oceanfront-sunset-16.jpg",
@@ -119,12 +98,12 @@ const galleryMedia: GalleryMedia[] = [
     alt: "Oceanfront sunset hibachi party table with lanterns and roses in Santa Barbara",
   },
   {
-    id: "real-hibachi-party-los-angeles-chef-show-video-01",
+    id: "real-hibachi-party-los-angeles-balloon-fun-video-06",
     type: "video",
-    src: "/gallery/real-hibachi-party-los-angeles-chef-show-video-01.mp4",
-    poster: "/gallery/real-hibachi-party-los-angeles-chef-show-video-01-poster.jpg",
-    title: "Los Angeles Hibachi Chef Show Video",
-    alt: "Video of a hibachi chef show at a Los Angeles private party",
+    src: "/gallery/real-hibachi-party-los-angeles-balloon-fun-video-06.mp4",
+    poster: "/gallery/real-hibachi-party-los-angeles-balloon-fun-video-06-poster.jpg",
+    title: "Balloon Fun Hibachi Party Video",
+    alt: "Video of guests with balloon hats having fun at a Real Hibachi sunset dinner",
   },
   {
     id: "real-hibachi-party-orange-county-backyard-video-02",
@@ -210,8 +189,8 @@ export default function GalleryPage() {
                   className="object-cover"
                   priority={
                     media.type === "image" &&
-                    (media.id === "real-hibachi-party-los-angeles-private-chef-01" ||
-                      media.id === "real-hibachi-party-los-angeles-backyard-event-02")
+                    (media.id === "real-hibachi-party-orange-county-night-fire-show-18" ||
+                      media.id === "real-hibachi-party-riverside-sunset-flame-20")
                   }
                   onError={() => handleMediaError(media.id)}
                 />
