@@ -537,31 +537,70 @@ export default function LeadsDashboard() {
     [act, loadHistory, sendReviewInvite, sendUgcInvite]
   )
 
-  // 💳 信用卡收尾款：输税前金额，服务端自动 +4% 手续费生成 Stripe 链接，
-  // 复制话术并拉起短信。十秒收款。
+  // 💳 信用卡收尾款：先从发票系统拉客户最新 Balance Due（小费档/订金/卡费
+  // 全部实时联动，唯一真源），确认明细后生成 Stripe 链接。查不到发票才回退
+  // 手输（并警示核对）。多收少收都不行——金额永远来自最新发票。
   const sendPayLink = useCallback(
     async (l: LeadRow) => {
-      const raw = window.prompt("尾款金额（税前，不含 4% 手续费）\n系统会自动 +4% 生成信用卡支付链接：", "")
-      if (!raw) return
-      const amount = Number(raw.replace(/[^0-9.]/g, ""))
-      if (!Number.isFinite(amount) || amount < 1) {
-        window.alert("金额无效")
-        return
-      }
-      try {
+      const mint = async (payload: Record<string, unknown>) => {
         const res = await fetch("/api/admin/pay-link", {
           method: "POST",
           headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ amount, customerName: l.full_name || undefined }),
+          body: JSON.stringify(payload),
         })
-        const data = await res.json()
+        return res.json()
+      }
+      try {
+        let amount: number
+        let amountIsFinal = false
+        let smsDetail = ""
+        const q = await mint({ action: "quote", phone: l.phone || undefined, email: l.email || undefined })
+        if (q.ok && q.found && Number.isFinite(Number(q.balanceDue)) && Number(q.balanceDue) > 0) {
+          const grat = q.gratuityRate ? `${Math.round(q.gratuityRate * 100)}% 小费 $${Number(q.selectedGratuity).toFixed(2)}` : "未选小费档"
+          const cardLine =
+            q.paymentMethod === "credit_card"
+              ? `发票已按信用卡计（含 4% 卡费 $${Number(q.creditCardFee).toFixed(2)}），链接金额不再加费`
+              : `发票按现金计 → 刷卡需 +4%（$${(Number(q.balanceDue) * 0.04).toFixed(2)}）`
+          const cardTotal =
+            q.paymentMethod === "credit_card"
+              ? Number(q.balanceDue)
+              : Math.round(Number(q.balanceDue) * 1.04 * 100) / 100
+          const okGo = window.confirm(
+            `📄 已联动最新发票（${q.clientName || "客户"} · ${q.eventDate || "日期未填"} · ${q.guests} 人）\n\n` +
+              `发票总额: $${Number(q.finalTotal).toFixed(2)}\n小费档: ${grat}\n已付订金: -$${Number(q.deposit).toFixed(2)}\n` +
+              `Balance Due: $${Number(q.balanceDue).toFixed(2)}\n${cardLine}\n\n` +
+              `➡️ 信用卡链接金额: $${cardTotal.toFixed(2)}\n\n确认生成？（发票有改动请先在发票系统更新再来）`
+          )
+          if (!okGo) return
+          amount = cardTotal
+          amountIsFinal = true
+          smsDetail =
+            q.paymentMethod === "credit_card"
+              ? `per your invoice (incl. ${q.gratuityRate ? Math.round(q.gratuityRate * 100) + "% gratuity and " : ""}card fee, deposit deducted)`
+              : `= balance $${Number(q.balanceDue).toFixed(2)} + 4% card processing${q.gratuityRate ? `, incl. ${Math.round(q.gratuityRate * 100)}% gratuity` : ""}`
+        } else {
+          const raw = window.prompt(
+            "⚠️ 没有查到该客户的发票（或余额为 0）——请先核对！\n手动输入要收的最终金额（系统会自动 +4% 卡费）：",
+            ""
+          )
+          if (!raw) return
+          const manual = Number(raw.replace(/[^0-9.]/g, ""))
+          if (!Number.isFinite(manual) || manual < 1) {
+            window.alert("金额无效")
+            return
+          }
+          amount = manual
+          amountIsFinal = false
+          smsDetail = `$${manual.toFixed(2)} + 4% card processing`
+        }
+        const data = await mint({ amount, amountIsFinal, customerName: l.full_name || undefined })
         if (!data.ok) throw new Error(data.error || "failed")
         const firstName = (l.full_name || "").split(" ")[0]
-        const text = `Hi${firstName ? " " + firstName : ""}! Here's your secure card payment link for the balance: $${amount.toFixed(2)} + 4% card processing = $${data.total.toFixed(2)}\n${data.url}\n(Cash, Venmo or Zelle skip the card fee — just let me know!)`
+        const text = `Hi${firstName ? " " + firstName : ""}! Here's your secure card payment link for your balance: $${data.total.toFixed(2)} ${smsDetail}\n${data.url}\n(Cash, Venmo or Zelle skip the card fee — just let me know!)`
         try {
           navigator.clipboard.writeText(text)
         } catch {}
-        await act(l.id, { action: "add_note", note: `💳 已生成尾款链接 $${amount.toFixed(2)}+4%=$${data.total.toFixed(2)}` })
+        await act(l.id, { action: "add_note", note: `💳 已生成尾款链接 $${data.total.toFixed(2)}（${amountIsFinal ? "发票联动" : "手动输入"}）` })
         loadHistory(l.id)
         if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
       } catch (e) {
