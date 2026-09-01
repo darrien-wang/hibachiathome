@@ -610,18 +610,35 @@ export default function LeadsDashboard() {
     [adminKey, act, loadHistory]
   )
 
-  // ✉️ 邮件跟进：短信不回时的第二通道。预填挽回邮件（占位+订金链接），
-  // mailto 拉起邮件客户端，正文同时进剪贴板方便贴进 Gmail 网页版。
-  const sendEmailFollowup = useCallback((l: LeadRow) => {
-    if (!l.email) return
-    const firstName = (l.full_name || "").split(" ")[0]
-    const subject = "Your Real Hibachi date is held \u{1F389}"
-    const body = `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total):\nhttps://www.realhibachi.com/deposit\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`
-    try {
-      navigator.clipboard.writeText(body)
-    } catch {}
-    window.location.href = `mailto:${l.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  }, [])
+  // ✉️ 邮件跟进：短信不回时的第二通道。确认预览后由服务端从
+  // support@realhibachi.com 直发（Resend）——绝不走个人邮箱。
+  const sendEmailFollowup = useCallback(
+    async (l: LeadRow) => {
+      if (!l.email) return
+      const firstName = (l.full_name || "").split(" ")[0]
+      const subject = "Your Real Hibachi date is held \u{1F389}"
+      const body = `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total):\nhttps://www.realhibachi.com/deposit\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`
+      const okGo = window.confirm(
+        `将从 support@realhibachi.com 发送给 ${l.email}：\n\n主题: ${subject}\n\n${body.slice(0, 400)}\n\n确认发送？`
+      )
+      if (!okGo) return
+      try {
+        const res = await fetch("/api/admin/send-followup", {
+          method: "POST",
+          headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ to: l.email, subject, text: body }),
+        })
+        const data = await res.json()
+        if (!data.ok) throw new Error(data.error || "failed")
+        await act(l.id, { action: "add_note", note: `✉️ 已从 support@ 发送跟进邮件（${subject}）` })
+        loadHistory(l.id)
+        window.alert("✅ 已发送")
+      } catch (e) {
+        window.alert("发送失败: " + e)
+      }
+    },
+    [adminKey, act, loadHistory]
+  )
 
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
