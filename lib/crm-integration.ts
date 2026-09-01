@@ -167,6 +167,14 @@ function asString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
+const PLACEHOLDER_PHONE_VALUES = new Set(["tbd", "n/a", "na", "unknown"])
+
+function asPhoneString(value: unknown): string | undefined {
+  const text = asString(value)
+  if (!text || PLACEHOLDER_PHONE_VALUES.has(text.toLowerCase())) return undefined
+  return text
+}
+
 function parseExternalBookingIdMarker(value: string | null | undefined): string | undefined {
   const text = asString(value)
   if (!text) return undefined
@@ -461,7 +469,7 @@ export function buildDepositPaidEventEnvelope(params: {
         external_order_id: externalOrderId,
         order_number: preferredRhBookingId,
         customer_name: customerName,
-        customer_phone: asString(params.booking?.phone),
+        customer_phone: asPhoneString(params.booking?.phone),
         customer_email:
           asString(params.booking?.email) ??
           asString(params.session.customer_details?.email) ??
@@ -559,7 +567,7 @@ export function buildPaymentRefundedEventEnvelope(params: {
         external_order_id: externalOrderId,
         order_number: preferredRhBookingId,
         customer_name: customerName,
-        customer_phone: asString(params.booking?.phone),
+        customer_phone: asPhoneString(params.booking?.phone),
         customer_email: asString(params.booking?.email),
         event_timezone: "America/Los_Angeles",
         event_address: asString(params.booking?.address),

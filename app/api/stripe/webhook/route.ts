@@ -38,6 +38,20 @@ type NotificationDeliveryResult = {
 
 type SmsProviderPreference = "auto" | "sendly" | "twilio"
 
+function asContactPhone(value: unknown): string | undefined {
+  const text = asNonEmptyString(value)
+  if (!text) {
+    return undefined
+  }
+
+  const lowered = text.toLowerCase()
+  if (lowered === "tbd" || lowered === "n/a" || lowered === "na" || lowered === "unknown") {
+    return undefined
+  }
+
+  return text
+}
+
 function asNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined
@@ -767,9 +781,9 @@ async function sendCustomerDepositNotifications(params: {
     asNonEmptyString(params.session.customer_email) ??
     asNonEmptyString(params.session.metadata?.customer_email)
   const customerPhone =
-    asNonEmptyString(params.bookingSnapshot?.phone) ??
-    asNonEmptyString(params.session.customer_details?.phone) ??
-    asNonEmptyString(params.session.metadata?.customer_phone)
+    asContactPhone(params.bookingSnapshot?.phone) ??
+    asContactPhone(params.session.customer_details?.phone) ??
+    asContactPhone(params.session.metadata?.customer_phone)
   const selfServiceLink = await buildOrderKeyLink({
     baseUrl:
       asNonEmptyString(process.env.INVOICE_SELF_SERVICE_BASE_URL) ??
