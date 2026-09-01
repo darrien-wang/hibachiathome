@@ -610,6 +610,19 @@ export default function LeadsDashboard() {
     [adminKey, act, loadHistory]
   )
 
+  // ✉️ 邮件跟进：短信不回时的第二通道。预填挽回邮件（占位+订金链接），
+  // mailto 拉起邮件客户端，正文同时进剪贴板方便贴进 Gmail 网页版。
+  const sendEmailFollowup = useCallback((l: LeadRow) => {
+    if (!l.email) return
+    const firstName = (l.full_name || "").split(" ")[0]
+    const subject = "Your Real Hibachi date is held \u{1F389}"
+    const body = `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total):\nhttps://www.realhibachi.com/deposit\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`
+    try {
+      navigator.clipboard.writeText(body)
+    } catch {}
+    window.location.href = `mailto:${l.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }, [])
+
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
     const firstName = (l.full_name || "").split(" ")[0]
@@ -1100,8 +1113,16 @@ export default function LeadsDashboard() {
                 onClick={() => sendPayLink(detailLead)}
                 style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #0284c7", background: "#f0f9ff", color: "#0369a1", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
-                💳 生成信用卡尾款链接（输金额，自动 +4% 手续费）
+                💳 生成信用卡尾款链接（发票联动）
               </button>
+              {detailLead.email && (
+                <button
+                  onClick={() => sendEmailFollowup(detailLead)}
+                  style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #64748b", background: "#f8fafc", color: "#334155", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                >
+                  ✉️ 邮件跟进（短信不回时的第二通道，正文自动复制）
+                </button>
+              )}
               <button
                 onClick={() => sendUgcInvite(detailLead)}
                 style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #2563eb", background: "#eff6ff", color: "#1d4ed8", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
