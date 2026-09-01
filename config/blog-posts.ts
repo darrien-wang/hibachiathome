@@ -2,6 +2,207 @@ import type { BlogPost } from "@/types/blog"
 
 export const blogPosts: BlogPost[] = [
   {
+    id: "12",
+    title: "Hibachi Catering Cost in Los Angeles: $59.90/Person (2026 Guide)",
+    slug: "hibachi-catering-cost-los-angeles",
+    excerpt:
+      "What hibachi at home actually costs in LA in 2026: the real per-person math, what the event minimum means, where travel fees start, and the four fee patterns in this market that quietly inflate other quotes.",
+    content: `
+# Hibachi Catering Cost in Los Angeles: $59.90/Person (2026 Guide)
+
+Most hibachi catering sites in Los Angeles make you hand over your phone number to learn a price. Here is ours, with no form in the way, and the exact math for every party size.
+
+## The short answer
+
+**$59.90 per adult. $29.90 per child (5–12). $5 for kids under five. $599 event minimum.**
+
+That price includes everything the party actually needs: the chef, the mobile teppanyaki grill, two proteins per guest (chicken, steak, shrimp, salmon, or tofu), garlic butter fried rice, fresh vegetables, house salad, the live fire show, setup, and cleanup.
+
+Booking Monday through Thursday with 15 or more guests? The **Weekday Special drops adults to $45.90** and kids to $22.95 — same food, same show.
+
+## What that looks like for real party sizes
+
+| Party | Standard | Weekday (Mon–Thu, 15+) |
+|---|---|---|
+| 10 adults | $599* | $599* |
+| 15 adults | $899 | $689 |
+| 20 adults | $1,198 | $918 |
+| 16 adults + 6 kids | $1,138 | $872 |
+| 30 adults | $1,797 | $1,377 |
+
+*The $599 minimum covers small parties — think of it as a private-restaurant buyout for your backyard.
+
+Want your exact number? The [instant quote tool](/quote) does this math in 30 seconds with your real headcount — no sign-up.
+
+## The fees to ask any hibachi caterer about
+
+We audited this market carefully. The advertised per-person price is rarely the whole story. Four patterns show up again and again in Los Angeles hibachi catering, as published on competitor sites:
+
+**1. Big deposits.** Several services ask $150 or more up front to hold a date. Ours is **$19.90, fully refundable with 72+ hours notice.**
+
+**2. Per-guest setup fees.** Some services add $8–$10 per guest for table and chair setup — that's $200 hidden dollars on a 25-person party. Our setup and cleanup are in the price. (Tables and chairs themselves are your call: bring your own or add our tableware rental at $15/person.)
+
+**3. Travel fees that start early.** Some start charging at 20 miles, or add a flat ~$75. **Our first 50 miles are free**, which covers most of LA and Orange County; beyond that it's $1/mile, calculated from your address and shown in your quote before you pay anything.
+
+**4. "Estimates" that aren't quotes.** Some calculators warn you the number is not an exact price. Ours is: the total your quote shows — food, show, travel — is the total you pay.
+
+## Why hibachi often beats a restaurant for groups
+
+Take those 16 adults and 6 kids to a mid-range LA teppanyaki restaurant and you're looking at roughly $60–$90 per adult after drinks, tax, tip, and the birthday-dessert upsell — call it $1,400–$1,900, split across two tables, with a two-hour limit.
+
+At home: $1,138, one table, no closing time, and the show happens three feet from the birthday person. That's the trade.
+
+## Get your number
+
+Every party is a slightly different equation — guest mix, date, address. [Run yours through the instant quote](/quote), or browse pricing by city: [Los Angeles](/hibachi-at-home/los-angeles), [Pasadena](/hibachi-at-home/pasadena), [Long Beach](/hibachi-at-home/long-beach), [Irvine](/hibachi-at-home/irvine), or [all 33 cities we serve](/locations). Planning a bigger event? See [hibachi catering in Los Angeles](/hibachi-catering/los-angeles).
+`,
+    coverImage: "/gallery/blog/real-hibachi-party-los-angeles-flame-cost-guide.jpg",
+    date: "2026-09-01",
+    author: {
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
+    },
+    category: "Pricing",
+    tags: ["hibachi catering cost", "los angeles", "pricing", "hibachi at home cost", "2026"],
+    readTime: 6,
+  },
+  {
+    id: "11",
+    title: "How to Host a Backyard Hibachi Party (Step by Step)",
+    slug: "how-to-host-backyard-hibachi-party",
+    excerpt:
+      "The complete host's playbook: how much space the grill needs, when to schedule the chef, what to have ready, and the three mistakes that make load-in late. From a team that has cooked 500+ backyard parties.",
+    content: `
+# How to Host a Backyard Hibachi Party (Step by Step)
+
+A backyard hibachi party is the rare event where the host gets to be a guest. But the difference between a smooth show and a scramble is about five decisions, all made before party day. Here's the whole playbook.
+
+## Step 1: Check your space (2 minutes)
+
+The grill needs three things:
+
+- **A flat area about 6×8 feet** — concrete, pavers, deck, or driveway. Soft lawn isn't ideal.
+- **About 10 feet of overhead clearance** — watch for pergolas, patio-cover beams, and low branches.
+- **Open air.** The cooking always happens outdoors (a live teppanyaki grill produces real smoke); your guests can eat inside if they like.
+
+Not sure? Send a photo with your quote request and the team will confirm the spot before the date.
+
+## Step 2: Pick your date and time
+
+- **Golden hour is the move.** Start the chef about an hour before sunset — the fire show runs straight into the string-light hours.
+- **Weekends book first.** Two to three weeks ahead is comfortable for a Saturday; a $19.90 refundable deposit locks it.
+- **Monday–Thursday saves real money** — $45.90/adult instead of $59.90 with 15+ guests.
+
+## Step 3: Count your people, then quote it
+
+Every guest picks two proteins on the spot, so you don't collect orders in advance — just an accurate headcount. Adults, kids 5–12, and littles under 5 are priced separately. [The instant quote tool](/quote) turns your headcount into an exact number in 30 seconds.
+
+## Step 4: Seating — the one thing the chef doesn't bring
+
+You provide tables, chairs, and place settings, or add the tableware rental ($15/person: tables, chairs, tableware, tablecloth) and provide nothing at all.
+
+**Layout tip from 500+ parties:** arrange seating in a U-shape or L-shape facing the grill. Everyone gets a front row, and the chef can run games to every seat.
+
+## Step 5: Clear the runway
+
+The most common cause of a late start isn't traffic — it's load-in. The grill, propane, and coolers travel from the chef's vehicle to your yard, so:
+
+- Save a parking spot as close as possible.
+- Unlock the side gate.
+- **Tell us in advance about stairs or long walks** — we bring different equipment and pad the schedule. Stairs never cancel a party; surprise stairs make one late.
+
+## Step 6: Plan the extras (or don't)
+
+The show *is* the entertainment — you genuinely need nothing else. Hosts who want more usually add string lights, a playlist for before the chef starts, and a dessert moment after. If it's a birthday, [tell us — the chef will build the show around it](/party/birthday-party).
+
+## What about weather?
+
+Southern California is the best hibachi climate in America, but if rain shows up: a 10'×10' pop-up tent over the chef's station saves the party (you provide the tent), and guests eat indoors while the chef cooks outside. Reschedule 72+ hours out and the deposit refunds in full.
+
+## The day-of timeline
+
+- **T-15 min:** chef arrives, walks to the setup spot, starts building the station
+- **T-0:** fire up — the first flame gets a scream every time
+- **~60–75 min:** the show — cooking, games, the onion volcano, dinner served hot off the grill
+- **After:** chef breaks down, cleans the station, and disappears. Your kitchen never finds out a party happened.
+
+Ready? [See the full backyard party page](/party/backyard-party) or [get your instant quote](/quote).
+`,
+    coverImage: "/gallery/blog/real-hibachi-party-riverside-sunset-flame-20.jpg",
+    date: "2026-09-01",
+    author: {
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
+    },
+    category: "Planning",
+    tags: ["backyard hibachi party", "how to", "hosting guide", "hibachi at home", "party planning"],
+    readTime: 7,
+  },
+  {
+    id: "10",
+    title: "Best Hibachi at Home in Southern California (2026): How to Actually Compare",
+    slug: "best-hibachi-at-home-southern-california",
+    excerpt:
+      "Yes, this is our site — so instead of a fake neutral ranking, here's the exact checklist we'd use to compare any at-home hibachi service in SoCal, every number we publish, and the questions that expose a padded quote.",
+    content: `
+# Best Hibachi at Home in Southern California (2026): How to Actually Compare
+
+Let's be honest about what this page is: we're Real Hibachi, so of course we think we're the best hibachi at home service in Southern California. A ranking where the author ranks themselves first isn't news.
+
+What we can give you is better: **the exact checklist we'd use to compare any at-home hibachi service** — including us — with every one of our numbers published so you can hold us to it. Most services in this market publish few or none of theirs. That asymmetry is the review.
+
+## The 7-question checklist
+
+**1. Is the price on the website?**
+Several SoCal hibachi services quote only after you hand over contact details. Ours is published everywhere: **$59.90/adult, $29.90/child 5–12, $599 event minimum** — and an [instant calculator](/quote) that shows your exact total with no sign-up.
+
+**2. How big is the deposit, and does it refund?**
+$150+ deposits are common in this market. Ours is **$19.90, refundable in full with 72+ hours notice.**
+
+**3. Is setup and cleanup included, or per guest?**
+Some services add $8–$10 per guest for setup. Ours is included — the quote is the price.
+
+**4. When do travel fees start?**
+Charging from mile 20, or a flat ~$75, is a common pattern. Our **first 50 miles are free** (that's most of LA and OC), then $1/mile, shown in the quote before you pay.
+
+**5. Is the "estimate" actually the price?**
+Read the fine print under any calculator. If it says the estimate isn't exact, budget for the difference. Our quote total is the amount you pay.
+
+**6. Is the service actually local?**
+A surprising number of "Los Angeles" hibachi sites list out-of-state phone numbers and addresses, and dispatch through national chef marketplaces. We're based in the San Gabriel Valley, our number is a 213, and [the parties in our gallery](/gallery) are SoCal backyards you can recognize.
+
+**7. Can you read real reviews — with names — on their site and on Google?**
+Widgets that scroll anonymous praise aren't verifiable. Ours are [verbatim, named Google reviews](/hibachi-at-home/los-angeles), the same ones you can find on our profile.
+
+## What's genuinely equal in this market
+
+Fairness requires saying it: the core show — the onion volcano, the egg toss, two proteins per guest — is broadly similar across serious operators, and several competitors run capable chefs. The differences that will actually change your night are **price transparency, fee structure, locality, and whether the service designs the show around your occasion.** That last one is our favorite subject: see [how we build birthdays, reveals, and reunions](/party).
+
+## The bottom line
+
+Run any hibachi service through those seven questions — including us. If someone beats us on all seven for your date, book them and have a great party. We publish our numbers because we win that comparison more often than not:
+
+- Published price: **$59.90/adult**, calculator with no gate
+- Deposit: **$19.90, refundable 72h+**
+- Setup/cleanup: **included**
+- Travel: **first 50 miles free**
+- Quote = price: **yes**
+- Local: **SGV-based, 213 number, SoCal-only**
+- Reviews: **named, verbatim, on Google**
+
+[Get your instant quote](/quote) or explore your city: [Los Angeles](/hibachi-at-home/los-angeles), [San Diego](/hibachi-at-home/san-diego), [Irvine](/hibachi-at-home/irvine), [all 33 cities](/locations).
+`,
+    coverImage: "/gallery/blog/real-hibachi-party-orange-county-night-fire-show-18.jpg",
+    date: "2026-09-01",
+    author: {
+      name: "Chef Bling",
+      avatar: "/images/chef-bling.jpg",
+    },
+    category: "Guides",
+    tags: ["best hibachi at home", "southern california", "comparison", "hibachi catering", "2026"],
+    readTime: 6,
+  },
+  {
     id: "9",
     title: "Will Hibachi Work in My Space? A Chef's Honest Answer",
     slug: "will-hibachi-work-in-my-space",

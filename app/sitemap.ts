@@ -3,6 +3,7 @@ import { getBlogPosts } from "@/lib/blog"
 import { cityPages, CITY_PAGES_LAST_UPDATED } from "@/config/city-pages"
 import { occasionPages, OCCASION_PAGES_LAST_UPDATED } from "@/config/occasion-pages"
 import { CATERING_CITIES } from "@/config/catering-cities"
+import { OCCASION_CITY_COMBOS } from "@/config/occasion-city-pages"
 
 const BASE_URL = "https://www.realhibachi.com"
 
@@ -77,6 +78,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: OCCASION_PAGES_LAST_UPDATED,
       changeFrequency: "monthly" as const,
       priority: 0.85,
+    })),
+    ...OCCASION_CITY_COMBOS.map((combo) => ({
+      url: `${BASE_URL}/party/${combo.occasion}/${combo.city}`,
+      lastModified: "2026-09-01T00:00:00.000Z",
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
     })),
   ]
 

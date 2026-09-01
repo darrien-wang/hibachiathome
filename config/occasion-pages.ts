@@ -657,6 +657,147 @@ export const occasionPages: OccasionPage[] = [
   },
 ]
 
+export const EXTRA_OCCASIONS: OccasionPage[] = [
+  {
+    slug: "quinceanera",
+    occasion: "Quinceañera",
+    headline: "Quinceañera Hibachi Party at Home",
+    subline: "Her fifteenth deserves fire.",
+    metaTitle: "Quinceañera Party Ideas | Hibachi Chef & Show at Home",
+    metaDescription:
+      "A quinceañera dinner the whole family talks about: private hibachi chef, live fire show, and dinner for every generation at home. Southern California, from $59.90/adult.",
+    intro: [
+      "The banquet hall quote came back at how much? A quinceañera doesn't need a rented ballroom to feel grand — it needs the whole family in one place, a show worthy of the occasion, and food everyone from the little cousins to the abuelos will actually eat.",
+      "A hibachi chef gives the court and the guests one shared spectacle — fire, games, and a performance that doesn't need a translation for anyone at the table.",
+    ],
+    moments: [
+      {
+        title: "Her entrance, then the flame",
+        description: "Time the chef's first big flame to the birthday girl's entrance — the yard lights up on cue.",
+      },
+      {
+        title: "Every generation at one table",
+        description: "Kids pick their proteins, grandparents get the comfortable seat, and nobody's stuck hosting.",
+      },
+      {
+        title: "The court's toast",
+        description: "The chef hands the night to the family at the perfect moment — flame up, glasses up.",
+      },
+    ],
+    photos: [
+      {
+        src: "/gallery/real-hibachi-party-los-angeles-birthday-event-13.jpg",
+        alt: "Evening celebration under string lights at a Los Angeles party",
+      },
+      {
+        src: "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
+        alt: "Hibachi flame show lighting up a night celebration",
+      },
+      {
+        src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
+        alt: "Family group with their hibachi chef at a Southern California celebration",
+      },
+    ],
+    video: {
+      src: "/videos/birthday-moment.mp4",
+      poster: "/videos/posters/birthday-moment.jpg",
+      alt: "Cake moment at a Real Hibachi celebration",
+    },
+    reviews: [
+      {
+        name: "Lisa Craven",
+        text: "Chef blue was absolutely amazing!!! Super friendly and personable. So fun and interactive. Knew how to switch it up between adults and kids. Food was delicious and he was great! Highly recommend !",
+      },
+      {
+        name: "Judy Gothelf",
+        text: "What a great experience having Blue as our chef! Aside from the fact that he made delicious food, he was so much fun and so engaging! We loved having him here to celebrate our friend's BIG birthday!",
+      },
+    ],
+    faqs: [
+      {
+        question: "Can you handle a big quinceañera guest list?",
+        answer:
+          "Yes — one chef serves up to about 25 guests with the full show, and larger celebrations get additional chefs and grills so every table has a front row. Tell us your headcount in the quote and we'll staff it right.",
+      },
+      SPACE_FAQ,
+      PRICE_FAQ,
+    ],
+  },
+  {
+    slug: "corporate-event",
+    occasion: "Corporate Event",
+    headline: "Corporate Hibachi Catering",
+    subline: "The team event people don't make excuses to skip.",
+    metaTitle: "Corporate Event Catering Ideas | Hibachi Chef & Show On-Site",
+    metaDescription:
+      "Office parties, launch dinners, team celebrations: a private hibachi chef brings dinner and a live show to your office patio or venue. Southern California, from $59.90/person.",
+    intro: [
+      "Another catered tray of sandwiches isn't a team event — it's lunch with an agenda. A hibachi chef cooking live, with fire and games, gives a team something to react to together, which is the entire point of gathering people who usually only share a Slack channel.",
+      "Weekday events are our sweet spot: Monday–Thursday bookings with 15+ people qualify for the $45.90/person Weekday Special, and daytime slots are usually easy to get.",
+    ],
+    moments: [
+      {
+        title: "The icebreaker that isn't forced",
+        description:
+          "Nobody has to do trust falls. The show gives every department the same thing to laugh at, and the games pull in the quiet ones naturally.",
+      },
+      {
+        title: "The launch-night flame",
+        description: "Shipping something? Time the flame finale to the toast. It photographs better than a conference room.",
+      },
+      {
+        title: "Zero logistics for the organizer",
+        description:
+          "Setup, cooking, show, cleanup — all handled. The person who booked it gets to attend it, which is rare in corporate event planning.",
+      },
+    ],
+    photos: [
+      {
+        src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
+        alt: "Hibachi chef cooking on the griddle at a catered event",
+      },
+      {
+        src: "/gallery/real-hibachi-party-los-angeles-group-dinner-09.jpg",
+        alt: "Large group dinner with hibachi chef service",
+      },
+      {
+        src: "/gallery/real-hibachi-party-riverside-sunset-flame-20.jpg",
+        alt: "Sunset hibachi flame show at a Southern California event",
+      },
+    ],
+    video: {
+      src: "/videos/hibachi-show.mp4",
+      poster: "/videos/posters/hibachi-show.jpg",
+      alt: "Live hibachi chef show",
+    },
+    reviews: [
+      {
+        name: "David Armstrong",
+        text: "Chef Bling curated a brilliant display of culinary mastery and phenomenal vibes to create an forgettable evening for the bros and I. 2 thumbs up.",
+      },
+      {
+        name: "Karen Wertheimer",
+        text: "Just had a wonderful dinner prepared by Blue. He was engaging and entertaining. I would recommend this for any occasion.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Can you invoice the company and work with our office building?",
+        answer:
+          "Yes. We handle headcount changes gracefully, and the quote you approve is the price. For the venue we just need an outdoor spot for the grill — an office patio, courtyard, or parking area works; coordinate with your building and we'll confirm the setup from a photo.",
+      },
+      {
+        question: "Do weekday corporate events get a discount?",
+        answer:
+          "Monday–Thursday events with 15+ guests qualify for the Weekday Special: $45.90/person instead of $59.90. Same food, same show — corporate events are exactly what that tier is for.",
+      },
+      PRICE_FAQ,
+    ],
+  },
+]
+
+occasionPages.push(...EXTRA_OCCASIONS)
+
 export function getOccasionPage(slug: string): OccasionPage | undefined {
   return occasionPages.find((page) => page.slug === slug)
 }
