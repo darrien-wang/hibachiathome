@@ -55,6 +55,19 @@ type EventRow = {
   created_at: string
 }
 
+type UpdateRequestRow = {
+  id: string
+  status: string
+  customer_name: string | null
+  customer_message: string | null
+  change_summary: Array<{ field: string; label: string; before: string; after: string }> | null
+  confirmed_at: string | null
+  chef_notified_at: string | null
+  created_at: string
+}
+
+type PendingUpdateRef = { order_id: string | null; external_order_id: string | null; status: string }
+
 type LeadOption = {
   id: string
   full_name: string | null
@@ -130,7 +143,8 @@ export default function OrdersWorkbench() {
   const [loading, setLoading] = useState(false)
   const [stageFilter, setStageFilter] = useState<Stage | "全部">("全部")
   const [detailId, setDetailId] = useState<string | null>(null)
-  const [detail, setDetail] = useState<{ order: OrderRow; payments: PaymentRow[]; events: EventRow[] } | null>(null)
+  const [detail, setDetail] = useState<{ order: OrderRow; payments: PaymentRow[]; events: EventRow[]; updateRequests: UpdateRequestRow[] } | null>(null)
+  const [pendingUpdates, setPendingUpdates] = useState<PendingUpdateRef[]>([])
   const [showDeposit, setShowDeposit] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
@@ -165,6 +179,7 @@ export default function OrdersWorkbench() {
       }
       const data = await res.json()
       setOrders(data.orders ?? [])
+      setPendingUpdates(data.pendingUpdateRequests ?? [])
       setAuthFailed(false)
     } catch {
       // 网络抖动,下轮重试
@@ -193,10 +208,15 @@ export default function OrdersWorkbench() {
           cache: "no-store",
         })
         const data = await res.json()
-        if (data.ok) setDetail({ order: data.order, payments: data.payments, events: data.events })
+        if (data.ok) setDetail({ order: data.order, payments: data.payments, events: data.events, updateRequests: data.updateRequests ?? [] })
       } catch {}
     },
     [adminKey],
+  )
+
+  const hasPendingUpdate = useCallback(
+    (o: OrderRow) => pendingUpdates.some((p) => p.order_id === o.id || (o.source_ref && p.external_order_id === o.source_ref)),
+    [pendingUpdates],
   )
 
   // 深链:/admin/orders?lead=<lead_id> 自动打开该线索关联的订单;
@@ -321,7 +341,14 @@ export default function OrdersWorkbench() {
                   onClick={() => openDetail(o.id)}
                   style={{ borderTop: "1px solid #f3f4f6", cursor: "pointer" }}
                 >
-                  <td style={{ padding: "10px 14px", fontFamily: "ui-monospace, monospace", fontSize: 12.5, whiteSpace: "nowrap" }}>{o.order_no}</td>
+                  <td style={{ padding: "10px 14px", fontFamily: "ui-monospace, monospace", fontSize: 12.5, whiteSpace: "nowrap" }}>
+                    {o.order_no}
+                    {hasPendingUpdate(o) && (
+                      <span title="客户提交了修改待处理" style={{ marginLeft: 6, background: "#fef3c7", color: "#92400e", borderRadius: 999, padding: "1px 8px", fontSize: 11, fontFamily: "system-ui, sans-serif" }}>
+                        📝 有修改
+                      </span>
+                    )}
+                  </td>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ fontWeight: 600 }}>{o.customer_name || "—"}</div>
                     <div style={{ fontSize: 12, color: "#6b7280" }}>{o.customer_phone || o.customer_email || ""}</div>
@@ -585,7 +612,19 @@ function OrderDrawer({
               >
                 💳 尾款报价{busy === "quote" ? "…" : ""}
               </button>
+              <button
+                style={btnGhost}
+                onClick={() => {
+                  const params = new URLSearchParams()
+                  if (o.customer_phone) params.set("phone", o.customer_phone.replace(/\D/g, ""))
+                  if (o.customer_email) params.set("email", o.customer_email)
+                  window.open(`https://invoice.realhibachi.com/?${params.toString()}`, "_blank", "noopener")
+                }}
+              >
+                📄 专业表单
+              </button>
             </div>
+            <div style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 6 }}>同一份订单数据的两个入口:🎪 图形(客户用)/ 📄 专业表单(staff 用),改哪边都落同一处。</div>
             {plannerUrl && (
               <div style={{ fontSize: 12.5, color: "#065f46", background: "#d1fae5", borderRadius: 8, padding: "7px 10px", marginBottom: 6, wordBreak: "break-all" }}>
                 已复制:{plannerUrl}
@@ -773,6 +812,77 @@ function OrderDrawer({
                 })
               })()}
             </div>
+
+            {/* ---------- 客户提交的修改(来自任一入口) ---------- */}
+            {detail!.updateRequests.length > 0 && (
+              <>
+                <div style={labelStyle}>客户提交的修改</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+                  {detail!.updateRequests.map((r) => {
+                    const statusLabel =
+                      r.status === "received" ? { t: "待确认", bg: "#fef3c7", fg: "#92400e" }
+                      : r.status === "confirmed_in_progress" ? { t: "处理中", bg: "#dbeafe", fg: "#1d4ed8" }
+                      : { t: "已完成", bg: "#d1fae5", fg: "#065f46" }
+                    return (
+                      <div key={r.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "9px 12px", fontSize: 13 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <span>
+                            <span style={{ background: statusLabel.bg, color: statusLabel.fg, borderRadius: 999, padding: "1px 9px", fontSize: 11.5, marginRight: 8 }}>{statusLabel.t}</span>
+                            <span style={{ color: "#6b7280", fontSize: 12 }}>{new Date(r.created_at).toLocaleString()}</span>
+                          </span>
+                          {r.status === "received" && (
+                            <button
+                              style={{ ...btnStyle, padding: "4px 12px", fontSize: 12 }}
+                              disabled={busy === `ur_${r.id}`}
+                              onClick={async () => {
+                                setBusy(`ur_${r.id}`)
+                                const d = await call("/api/admin/orders/update-request-action", {
+                                  requestId: r.id, action: "confirm",
+                                  operator: localStorage.getItem("rh_operator_name") ?? "staff",
+                                })
+                                setBusy(null)
+                                if (d.ok) onChanged()
+                                else alert(`确认失败:${d.error?.message ?? d.error ?? "unknown"}`)
+                              }}
+                            >
+                              {busy === `ur_${r.id}` ? "…" : "确认(通知客户处理中)"}
+                            </button>
+                          )}
+                          {r.status === "confirmed_in_progress" && (
+                            <button
+                              style={{ ...btnGhost, padding: "4px 12px", fontSize: 12 }}
+                              disabled={busy === `ur_${r.id}`}
+                              onClick={async () => {
+                                setBusy(`ur_${r.id}`)
+                                const d = await call("/api/admin/orders/update-request-action", {
+                                  requestId: r.id, action: "complete",
+                                  operator: localStorage.getItem("rh_operator_name") ?? "staff",
+                                })
+                                setBusy(null)
+                                if (d.ok) onChanged()
+                                else alert(`完成失败:${d.error?.message ?? d.error ?? "unknown"}`)
+                              }}
+                            >
+                              {busy === `ur_${r.id}` ? "…" : "标记完成(通知客户)"}
+                            </button>
+                          )}
+                        </div>
+                        {Array.isArray(r.change_summary) && r.change_summary.length > 0 && (
+                          <div style={{ marginTop: 6, fontSize: 12.5, color: "#374151" }}>
+                            {r.change_summary.map((c, i) => (
+                              <div key={i}>
+                                <b>{c.label}</b>:{c.before} → <b>{c.after}</b>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {r.customer_message && <div style={{ marginTop: 4, fontSize: 12.5, color: "#6b7280" }}>留言:{r.customer_message}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
 
             {/* ---------- 算路费 ---------- */}
             <div style={labelStyle}>算路费(驾车距离)</div>

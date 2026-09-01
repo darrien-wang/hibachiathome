@@ -81,23 +81,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "order not found" }, { status: 404 })
     }
 
+    // 客户从任一入口(party 图形 / invoice 专业表单)提交的修改单,
+    // 按 order_id 或 external_order_id(= source_ref)都能挂上。
+    const sourceRef = (orderRes.data as { source_ref?: string | null }).source_ref
+    let requestsQuery = supabase
+      .from("invoice_update_requests")
+      .select("id,status,customer_name,customer_message,change_summary,confirmed_at,chef_notified_at,created_at")
+      .order("created_at", { ascending: false })
+      .limit(20)
+    requestsQuery = sourceRef
+      ? requestsQuery.or(`order_id.eq.${orderId},external_order_id.eq.${sourceRef}`)
+      : requestsQuery.eq("order_id", orderId)
+    const requestsRes = await requestsQuery
+
     return NextResponse.json({
       ok: true,
       order: orderRes.data,
       payments: paymentsRes.data ?? [],
       events: eventsRes.data ?? [],
+      updateRequests: requestsRes.data ?? [],
     })
   }
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select(LIST_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(200)
+  const [listRes, pendingRes] = await Promise.all([
+    supabase.from("orders").select(LIST_COLUMNS).order("created_at", { ascending: false }).limit(200),
+    supabase
+      .from("invoice_update_requests")
+      .select("order_id,external_order_id,status")
+      .in("status", ["received", "confirmed_in_progress"])
+      .limit(300),
+  ])
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (listRes.error) {
+    return NextResponse.json({ error: listRes.error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, orders: data ?? [] })
+  return NextResponse.json({ ok: true, orders: listRes.data ?? [], pendingUpdateRequests: pendingRes.data ?? [] })
 }
