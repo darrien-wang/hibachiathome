@@ -80,6 +80,40 @@ function playBeep(times: number) {
   } catch {}
 }
 
+// Custom follow-up reminders (per lead, this device): the anti-nag system.
+// Set "remind me at X to do Y", the workbench beeps at X, and sending any
+// script clears it - so leads get exactly one touch per beat, never spam.
+type Reminder = { at: number; label: string }
+function getReminder(leadId: string): Reminder | null {
+  try {
+    const raw = localStorage.getItem(`remind_${leadId}`)
+    if (!raw) return null
+    const r = JSON.parse(raw) as Reminder
+    return Number.isFinite(r.at) ? r : null
+  } catch {
+    return null
+  }
+}
+function setReminderStore(leadId: string, r: Reminder) {
+  try {
+    localStorage.setItem(`remind_${leadId}`, JSON.stringify(r))
+  } catch {}
+}
+function clearReminderStore(leadId: string) {
+  try {
+    localStorage.removeItem(`remind_${leadId}`)
+  } catch {}
+}
+function fmtReminderTime(at: number): string {
+  const d = new Date(at)
+  const today = new Date()
+  const sameDay = d.toDateString() === today.toDateString()
+  const tomorrow = new Date(today.getTime() + 86400000)
+  const isTomorrow = d.toDateString() === tomorrow.toDateString()
+  const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`
+  return sameDay ? `今天 ${hm}` : isTomorrow ? `明天 ${hm}` : `${d.getMonth() + 1}/${d.getDate()} ${hm}`
+}
+
 // 45-minute follow-up timer: counts from the first response. Returns null when
 // the step no longer applies (not in follow-up, no response yet, or already
 // sent on this device — localStorage keeps the list badge quiet cross-poll).
@@ -241,6 +275,8 @@ export default function LeadsDashboard() {
     const t = setInterval(() => setClock(Date.now()), detailId ? 1000 : 15000)
     return () => clearInterval(t)
   }, [detailId])
+  const reminderAlertedRef = useRef<Set<string>>(new Set())
+  const [reminderTick, setReminderTick] = useState(0)
   useEffect(() => {
     for (const l of leads) {
       const st = f45State(l, clock)
@@ -255,8 +291,49 @@ export default function LeadsDashboard() {
           }
         } catch {}
       }
+      const rem = getReminder(l.id)
+      if (rem && rem.at <= clock && !reminderAlertedRef.current.has(l.id)) {
+        reminderAlertedRef.current.add(l.id)
+        playBeep(2)
+        try {
+          if (Notification.permission === "granted") {
+            new Notification("⏰ 跟进提醒到点", {
+              body: `${l.full_name || l.phone || "线索"} — ${rem.label}`,
+            })
+          }
+        } catch {}
+      }
     }
   }, [clock, leads])
+
+  const setLeadReminder = useCallback(
+    async (l: LeadRow) => {
+      const hoursRaw = window.prompt(
+        "多少小时后提醒？（例：0.5 = 半小时，3 = 今晚，18 ≈ 明天下午）",
+        "18"
+      )
+      if (!hoursRaw) return
+      const hours = Number(hoursRaw.replace(/[^0-9.]/g, ""))
+      if (!Number.isFinite(hours) || hours <= 0 || hours > 24 * 14) {
+        window.alert("小时数无效")
+        return
+      }
+      const label = window.prompt("提醒内容（到点显示什么）：", "发 planner 拉回消息") || "跟进"
+      const at = Date.now() + hours * 3600000
+      setReminderStore(l.id, { at, label })
+      reminderAlertedRef.current.delete(l.id)
+      setReminderTick((t) => t + 1)
+      await act(l.id, { action: "add_note", note: `⏰ 已设跟进提醒：${fmtReminderTime(at)} — ${label}` })
+      loadHistory(l.id)
+    },
+    [act, loadHistory]
+  )
+
+  const clearLeadReminder = useCallback((l: LeadRow) => {
+    clearReminderStore(l.id)
+    reminderAlertedRef.current.delete(l.id)
+    setReminderTick((t) => t + 1)
+  }, [])
 
   const act = useCallback(
     async (leadId: string, payload: Record<string, unknown>) => {
@@ -531,6 +608,7 @@ export default function LeadsDashboard() {
       try {
         localStorage.setItem(`sop_sent_${l.id}_${step.id}`, "1")
       } catch {}
+      clearReminderStore(l.id)
       await act(l.id, { action: "add_note", note: `[SOP:${step.id}] ${step.title} 已发送` })
       loadHistory(l.id)
     },
@@ -641,6 +719,7 @@ export default function LeadsDashboard() {
       })
       const data = await res.json()
       if (!data.ok) throw new Error(data.error || "failed")
+      clearReminderStore(emailDraft.leadId)
       await act(emailDraft.leadId, { action: "add_note", note: `✉️ 已从 support@ 发送跟进邮件（${emailDraft.subject}）` })
       loadHistory(emailDraft.leadId)
       setEmailDraft(null)
@@ -792,6 +871,23 @@ export default function LeadsDashboard() {
                     </span>
                   )}
                   <span style={{ fontSize: 12, color: "#6b7280" }}>{relativeTime(l.created_at)}</span>
+                  {(() => {
+                    const rem = getReminder(l.id)
+                    if (!rem) return null
+                    const overdue = rem.at <= clock
+                    return (
+                      <span
+                        style={{
+                          fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 700,
+                          background: overdue ? "#fee2e2" : "#ede9fe",
+                          color: overdue ? "#dc2626" : "#6d28d9",
+                          border: "1px solid " + (overdue ? "#fca5a5" : "#c4b5fd"),
+                        }}
+                      >
+                        {overdue ? `⏰ 到点: ${rem.label.slice(0, 12)}` : `⏰ ${fmtReminderTime(rem.at)} ${rem.label.slice(0, 10)}`}
+                      </span>
+                    )
+                  })()}
                   {(() => {
                     const st = f45State(l, clock)
                     if (!st) return null
@@ -1140,6 +1236,28 @@ export default function LeadsDashboard() {
               </button>
             </>
           )}
+
+          {(() => {
+            const rem = getReminder(detailLead.id)
+            return (
+              <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  onClick={() => setLeadReminder(detailLead)}
+                  style={{ flex: 1, padding: "10px 16px", borderRadius: 8, border: "1px solid #7c3aed", background: "#faf5ff", color: "#6d28d9", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                >
+                  ⏰ {rem ? `提醒: ${fmtReminderTime(rem.at)} — ${rem.label}（点击改时间）` : "设跟进提醒（防忘 + 防过度骚扰）"}
+                </button>
+                {rem && (
+                  <button
+                    onClick={() => clearLeadReminder(detailLead)}
+                    style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#6b7280", fontSize: 13, cursor: "pointer" }}
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+            )
+          })()}
 
           {/* 通用弹药：任何阶段可用（此前误锁在 won 块里，跟进中的线索看不到） */}
           <button
