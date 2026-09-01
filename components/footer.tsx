@@ -109,6 +109,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/referral" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
+                  Referral Rewards
+                </Link>
+              </li>
+              <li>
                 <Link
                   href="/partner-opportunities"
                   className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"

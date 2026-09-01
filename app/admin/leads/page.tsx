@@ -19,6 +19,8 @@ type LeadRow = {
   utm_campaign: string | null
   utm_term: string | null
   gclid: string | null
+  referral_code: string | null
+  hear_about_us: string | null
   first_response_at: string | null
   response_seconds: number | null
 }
@@ -930,6 +932,16 @@ export default function LeadsDashboard() {
                       广告{l.utm_term ? ` · ${l.utm_term}` : ""}
                     </span>
                   )}
+                  {l.referral_code && (
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "#ecfdf5", color: "#047857", border: "1px solid #6ee7b7", fontWeight: 700 }}>
+                      🤝 码 {l.referral_code} · 记台账
+                    </span>
+                  )}
+                  {!l.referral_code && l.hear_about_us && ["friend_family", "vendor", "host_planner", "past_party"].includes(l.hear_about_us) && (
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "#fef9c3", color: "#854d0e", border: "1px solid #fde047" }}>
+                      🤝 转介绍 · 问是谁介绍的
+                    </span>
+                  )}
                   <span style={{ fontSize: 12, color: "#6b7280" }}>{relativeTime(l.created_at)}</span>
                   {(() => {
                     const rem = getReminder(l.id)
@@ -976,6 +988,7 @@ export default function LeadsDashboard() {
                     📞 <a href={`tel:${l.phone}`}>{l.phone}</a> · <a href={`sms:${l.phone}`}>发短信</a>
                   </span>
                 )}
+                {l.hear_about_us && <span>👂 {l.hear_about_us}</span>}
                 {l.email && <span>✉️ {l.email}</span>}
                 {l.city_or_zip && <span>📍 {l.city_or_zip}</span>}
                 {l.guest_count !== null && <span>👥 {l.guest_count} 人</span>}

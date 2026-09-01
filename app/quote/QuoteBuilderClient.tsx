@@ -257,6 +257,21 @@ function pseudoSlotsLeft(eventDate: string, location: string): number | null {
   return (Math.abs(hash) % 3) + 1
 }
 
+// "Who sent you?" — the backstop that catches referrals whose code was
+// forgotten. Values land in leads.hear_about_us; the vendor/host/guest options
+// are the ones partner commissions get reconciled against.
+const HEAR_ABOUT_US_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "friend_family", label: "Friend or family" },
+  { value: "past_party", label: "I was a guest at a Real Hibachi party" },
+  { value: "google", label: "Google" },
+  { value: "instagram_tiktok", label: "Instagram / TikTok" },
+  { value: "facebook", label: "Facebook" },
+  { value: "yelp", label: "Yelp" },
+  { value: "vendor", label: "Party vendor (rentals, decor, cake…)" },
+  { value: "host_planner", label: "Airbnb host or party planner" },
+  { value: "other", label: "Other" },
+]
+
 export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
   const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
@@ -265,6 +280,8 @@ export default function QuoteBuilderClient() {
   const [customerPhone, setCustomerPhone] = useState("")
   const [smsConsent, setSmsConsent] = useState(false)
   const [eventTime, setEventTime] = useState("")
+  const [referralCode, setReferralCode] = useState("")
+  const [hearAboutUs, setHearAboutUs] = useState("")
   const [tablewareTooltipOpen, setTablewareTooltipOpen] = useState(false)
   const [weatherExpanded, setWeatherExpanded] = useState(false)
   const [slotAvailability, setSlotAvailability] = useState<SlotAvailability | null>(null)
@@ -281,11 +298,17 @@ export default function QuoteBuilderClient() {
   const promoStageRef = useRef<"none" | "teased" | "unlocked">("none")
   const mediaStripRef = useRef<HTMLDivElement | null>(null)
 
-  // Prefill guest counts handed over by city-page calculators. Read from
+  // Prefill guest counts handed over by city-page calculators, plus referral
+  // codes arriving via partner links (?ref=RH-MARIA50). Read from
   // window.location instead of useSearchParams — that hook once bailed the
   // whole page to CSR and emptied the SSR HTML (see lib/use-active-region).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    const ref = (params.get("ref") ?? params.get("code") ?? "").toUpperCase().replace(/\s+/g, "").slice(0, 32)
+    if (ref) {
+      setReferralCode(ref)
+      setHearAboutUs((previous) => previous || "friend_family")
+    }
     const adults = Number.parseInt(params.get("adults") ?? "", 10)
     const kids = Number.parseInt(params.get("kids") ?? "", 10)
     if (!Number.isFinite(adults) && !Number.isFinite(kids)) return
@@ -698,8 +721,12 @@ export default function QuoteBuilderClient() {
   const phoneRaw = "2137707788"
   const displayEmail = "support@realhibachi.com"
   const emailTo = "support@realhibachi.com"
-  const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBody)}`
-  const whatsappHref = `https://wa.me/1${phoneRaw}?text=${encodeUrlComponent(smsBody)}`
+  // The code has to survive the SMS path too, or every "text us this quote"
+  // referral becomes unattributable — append it to the prefilled message.
+  const trimmedReferralCode = referralCode.toUpperCase().replace(/\s+/g, "").slice(0, 32)
+  const smsBodyWithReferral = trimmedReferralCode ? `${smsBody}\nReferral code: ${trimmedReferralCode}` : smsBody
+  const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBodyWithReferral)}`
+  const whatsappHref = `https://wa.me/1${phoneRaw}?text=${encodeUrlComponent(smsBodyWithReferral)}`
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
   const missingRequiredBookingFields =
@@ -708,6 +735,7 @@ export default function QuoteBuilderClient() {
     || !customerEmail.trim()
     || !customerPhone.trim()
     || !eventTime
+    || !hearAboutUs
   const weekdaySaverRulesFailed = isWeekdaySaverTier && !result.weekdaySaver.isEligible
   // Name what is actually still empty so the validation toast points at the
   // exact box the user missed instead of listing every required field.
@@ -719,6 +747,7 @@ export default function QuoteBuilderClient() {
     !eventTime && "event time",
     !input.location.trim() && "city or ZIP",
     result.guestCount <= 0 && "guest count",
+    !hearAboutUs && "how you heard about us",
   ].filter((label): label is string => Boolean(label))
 
   const missingFieldsSentence =
@@ -771,7 +800,9 @@ export default function QuoteBuilderClient() {
               ? '[data-quote-field="name"]'
               : !customerEmail.trim()
                 ? '[data-quote-field="email"]'
-                : '[data-quote-field="phone"]'
+                : !customerPhone.trim()
+                  ? '[data-quote-field="phone"]'
+                  : '[data-quote-field="hear-about-us"]'
     const el = document.querySelector<HTMLElement>(selector)
     if (!el) return
     el.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -790,6 +821,8 @@ export default function QuoteBuilderClient() {
         guests: result.guestCount,
         eventDate: input.eventDate || "",
         location: input.location || "",
+        referralCode: trimmedReferralCode || undefined,
+        hearAboutUs: hearAboutUs || undefined,
       })
       if (navigator.sendBeacon) {
         navigator.sendBeacon("/api/quote/contact-intent", new Blob([payload], { type: "application/json" }))
@@ -937,6 +970,8 @@ export default function QuoteBuilderClient() {
       value: result.totalRange.low,
       currency: "USD",
       event_id: bookingEventId,
+      referral_code: trimmedReferralCode || "none",
+      hear_about_us: hearAboutUs || "unspecified",
     })
 
     const pricingTierLabel = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
@@ -978,6 +1013,8 @@ export default function QuoteBuilderClient() {
           leadSource: quoteSurface,
           eventId: bookingEventId,
           pageReferrer: document.referrer || undefined,
+          referralCode: trimmedReferralCode || undefined,
+          hearAboutUs: hearAboutUs || undefined,
           note: message,
         }),
       })
@@ -1550,6 +1587,42 @@ export default function QuoteBuilderClient() {
                       placeholder="(213) 555-1234"
                       onChange={(e) => setCustomerPhone(e.target.value)}
                     />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">How did you hear about us? *</label>
+                    <select
+                      value={hearAboutUs}
+                      data-quote-field="hear-about-us"
+                      onChange={(e) => setHearAboutUs(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Choose one</option>
+                      {HEAR_ABOUT_US_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Referral or partner code</label>
+                    <Input
+                      type="text"
+                      data-quote-field="referral-code"
+                      value={referralCode}
+                      placeholder="e.g. RH-MARIA50"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    />
+                    {trimmedReferralCode ? (
+                      <p className="mt-1 text-xs font-medium text-emerald-700">
+                        Code {trimmedReferralCode} noted — your discount is applied on the final invoice.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">

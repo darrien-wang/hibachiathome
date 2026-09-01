@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
   const { data: leads, error } = await supabase
     .from("leads")
     .select(
-      "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, touchpoint_count, last_seen_at"
+      "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at"
     )
     .order("created_at", { ascending: false })
     .limit(limit)

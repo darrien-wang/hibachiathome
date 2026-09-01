@@ -48,6 +48,8 @@ export type TrackBookingSubmitServerParams = {
   tablewareRental?: boolean
   tent10x10?: boolean
   premiumUpgradeCount?: number
+  referralCode?: string | null
+  hearAboutUs?: string | null
 }
 
 function asNonEmptyString(value: unknown): string | undefined {
@@ -252,6 +254,8 @@ export async function trackBookingSubmitServer(
       tableware_rental: params.tablewareRental,
       tent_10x10: params.tent10x10,
       premium_upgrade_count: normalizeAmount(params.premiumUpgradeCount),
+      referral_code: asNonEmptyString(params.referralCode),
+      hear_about_us: asNonEmptyString(params.hearAboutUs),
       conversion_surface: "booking_request_api",
       tracking_origin: "server_measurement_protocol",
       engagement_time_msec: 1,

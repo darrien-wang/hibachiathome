@@ -342,6 +342,8 @@ export async function POST(request: Request) {
       : []
     const tablewareRental = asBoolean(body.tablewareRental)
     const tent10x10 = asBoolean(body.tent10x10)
+    const referralCode = asString(body.referralCode)?.toUpperCase().replace(/\s+/g, "").slice(0, 32) || undefined
+    const hearAboutUs = asString(body.hearAboutUs)?.slice(0, 64) || undefined
 
     if (
       !customerName ||
@@ -374,6 +376,8 @@ export async function POST(request: Request) {
       `Tableware Rental: ${tablewareRental ? "Yes" : "No"}`,
       `10'x10' Tent: ${tent10x10 ? "Yes" : "No"}`,
       `Premium Upgrades: ${premiumUpgrades.length > 0 ? premiumUpgrades.join(", ") : "None"}`,
+      `Referral Code: ${referralCode ?? "None"}`,
+      `Heard About Us: ${hearAboutUs ?? "Not answered"}`,
       "",
       `Quote Summary: ${quoteSummary || "N/A"}`,
       "",
@@ -414,6 +418,8 @@ export async function POST(request: Request) {
           touchpointType: "quote_book_online",
           touchpointSource: leadSource,
           sourcePage,
+          referralCode,
+          hearAboutUs,
           attribution,
           rawPayload: body,
         })
@@ -466,6 +472,8 @@ export async function POST(request: Request) {
       <p><strong>Tableware Rental:</strong> ${tablewareRental ? "Yes" : "No"}</p>
       <p><strong>10'x10' Tent:</strong> ${tent10x10 ? "Yes" : "No"}</p>
       <p><strong>Premium Upgrades:</strong> ${escapeHtml(premiumUpgrades.length > 0 ? premiumUpgrades.join(", ") : "None")}</p>
+      ${referralCode ? `<p style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:6px;padding:8px"><strong>🤝 Referral Code:</strong> ${escapeHtml(referralCode)} &mdash; log it in the referral tracking sheet and apply the referral discount on the invoice.</p>` : ""}
+      <p><strong>Heard About Us:</strong> ${escapeHtml(hearAboutUs ?? "Not answered")}</p>
       <p><strong>Quote Summary:</strong> ${escapeHtml(quoteSummary || "N/A")}</p>
       <p><strong>Next Step:</strong> No deposit was collected. Please contact this customer to finalize the booking.</p>
     `
@@ -538,6 +546,8 @@ export async function POST(request: Request) {
       tablewareRental,
       tent10x10,
       premiumUpgradeCount: premiumUpgrades.length,
+      referralCode,
+      hearAboutUs,
     })
 
     if (!isOpsEmailEffectivelyHandled(supportNotification) && !leadResult && !bookingFallback?.persisted) {

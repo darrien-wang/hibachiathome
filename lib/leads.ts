@@ -30,6 +30,8 @@ export type ContactLeadUpsertInput = {
   externalCallId?: string
   manualEntryId?: string
   externalTouchpointId?: string
+  referralCode?: string
+  hearAboutUs?: string
   attribution?: AttributionFields
   rawPayload?: Record<string, unknown>
 }
@@ -52,6 +54,8 @@ type NormalizedLeadInput = {
   externalCallId?: string
   manualEntryId?: string
   externalTouchpointId?: string
+  referralCode?: string
+  hearAboutUs?: string
   attribution: AttributionFields
   rawPayload: Record<string, unknown>
 }
@@ -89,6 +93,15 @@ function normalizedPhoneForDedup(value: string | undefined): string | undefined 
   if (!value) return undefined
   if (value.length <= 10) return value
   return value.slice(-10)
+}
+
+// Codes are compared by exact match when commissions are reconciled, so
+// normalize aggressively: uppercase, no whitespace, bounded length.
+function normalizeReferralCode(value: unknown): string | undefined {
+  const code = asNonEmptyString(value)
+  if (!code) return undefined
+  const normalized = code.toUpperCase().replace(/\s+/g, "").slice(0, 32)
+  return normalized.length > 0 ? normalized : undefined
 }
 
 function inferLeadType(reason: string | undefined, explicitLeadType: string | undefined): LeadType {
@@ -192,6 +205,8 @@ function normalizeInput(input: ContactLeadUpsertInput): NormalizedLeadInput {
     externalCallId: asNonEmptyString(input.externalCallId),
     manualEntryId: asNonEmptyString(input.manualEntryId),
     externalTouchpointId: asNonEmptyString(input.externalTouchpointId),
+    referralCode: normalizeReferralCode(input.referralCode),
+    hearAboutUs: asNonEmptyString(input.hearAboutUs)?.slice(0, 64),
     attribution: normalizeAttribution(input.attribution),
     rawPayload: input.rawPayload ?? {},
   }
@@ -329,6 +344,10 @@ export async function upsertLeadFromContact(
       gbraid: withFallback(current.gbraid, input.attribution.gbraid),
       external_call_id: withFallback(current.external_call_id, input.externalCallId),
       manual_entry_id: withFallback(current.manual_entry_id, input.manualEntryId),
+      // First touch wins: a code already on the lead is the original referrer
+      // and must never be overwritten by a later submission.
+      referral_code: withFallback(current.referral_code, input.referralCode),
+      hear_about_us: withFallback(current.hear_about_us, input.hearAboutUs),
       touchpoint_count: (Number(current.touchpoint_count) || 1) + 1,
       last_seen_at: nowIso,
       updated_at: nowIso,
@@ -377,6 +396,8 @@ export async function upsertLeadFromContact(
     gbraid: input.attribution.gbraid,
     external_call_id: input.externalCallId,
     manual_entry_id: input.manualEntryId,
+    referral_code: input.referralCode,
+    hear_about_us: input.hearAboutUs,
     first_seen_at: nowIso,
     last_seen_at: nowIso,
     touchpoint_count: 1,

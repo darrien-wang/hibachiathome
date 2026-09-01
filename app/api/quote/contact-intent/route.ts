@@ -9,7 +9,15 @@ export const dynamic = "force-dynamic"
 // sound) a head start — pre-port, the actual text lands only on the owner's
 // phone, and this was worth 15 minutes of response time on the first real lead.
 export async function POST(request: NextRequest) {
-  let body: { channel?: string; summary?: string; guests?: number; eventDate?: string; location?: string }
+  let body: {
+    channel?: string
+    summary?: string
+    guests?: number
+    eventDate?: string
+    location?: string
+    referralCode?: string
+    hearAboutUs?: string
+  }
   try {
     body = await request.json()
   } catch {
@@ -21,6 +29,8 @@ export async function POST(request: NextRequest) {
   const guests = Number(body.guests) || 0
   const eventDate = String(body.eventDate ?? "").slice(0, 20)
   const location = String(body.location ?? "").slice(0, 80)
+  const referralCode = String(body.referralCode ?? "").toUpperCase().replace(/\s+/g, "").slice(0, 32) || undefined
+  const hearAboutUs = String(body.hearAboutUs ?? "").slice(0, 64) || undefined
   if (!summary && !guests) {
     return NextResponse.json({ error: "empty intent" }, { status: 400 })
   }
@@ -29,14 +39,22 @@ export async function POST(request: NextRequest) {
   try {
     const result = await upsertLeadFromContact(supabase, {
       name: `⚡ ${channel.toUpperCase()} intent — awaiting message`,
-      message: `Tapped ${channel} with this quote (no contact info yet — check the phone!):\n${summary}`,
+      message: [
+        `Tapped ${channel} with this quote (no contact info yet — check the phone!):`,
+        summary,
+        referralCode ? `Referral code: ${referralCode}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n"),
       leadSource: `quote_${channel}_intent`,
       leadChannel: channel,
       cityOrZip: location || undefined,
       guestCount: guests || undefined,
       touchpointType: "contact_intent",
       touchpointSource: "quote_page",
-      rawPayload: { channel, guests, eventDate, location },
+      referralCode,
+      hearAboutUs,
+      rawPayload: { channel, guests, eventDate, location, referralCode, hearAboutUs },
     })
     return NextResponse.json({ ok: true, leadId: result.leadId })
   } catch (error) {
