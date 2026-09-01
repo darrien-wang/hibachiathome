@@ -217,7 +217,9 @@ function mergeAttributionSources(params: {
 // "quote" is the current source; "quoteA"/"quoteB" are kept so in-flight
 // sessions and already-issued deposit links keep prefilling after the
 // /quoteA + /quoteB -> /quote consolidation.
-const PREFILL_SOURCES = new Set(["quote", "quoteA", "quoteB", "estimation"])
+// "workbench" marks deposit links sent by an agent from /admin/leads, so
+// agent-assisted deposits stay distinguishable from self-serve in analytics.
+const PREFILL_SOURCES = new Set(["quote", "quoteA", "quoteB", "estimation", "workbench"])
 
 function isPrefillSource(source?: string): boolean {
   if (!source) return false

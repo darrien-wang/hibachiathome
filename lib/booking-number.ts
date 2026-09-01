@@ -2,7 +2,7 @@ const RH_BOOKING_NUMBER_PATTERN = /^RH-\d{8}-\d{4}$/
 // "quote" is the current source; "quoteA"/"quoteB" are kept so in-flight
 // sessions and already-issued deposit links keep resolving after the
 // /quoteA + /quoteB -> /quote consolidation.
-const RH_BOOKING_NUMBER_SOURCES = new Set(["quote", "quoteA", "quoteB", "estimation"])
+const RH_BOOKING_NUMBER_SOURCES = new Set(["quote", "quoteA", "quoteB", "estimation", "workbench"])
 
 function normalizeSource(value: unknown): string | null {
   if (typeof value !== "string") {

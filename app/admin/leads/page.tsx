@@ -155,6 +155,7 @@ export default function LeadsDashboard() {
   const [editForm, setEditForm] = useState({ full_name: "", phone: "", email: "" })
   const [noteDraft, setNoteDraft] = useState("")
   const [saving, setSaving] = useState(false)
+  const [expandedMsgIds, setExpandedMsgIds] = useState<Set<string>>(new Set())
   const prevNewestRef = useRef<string>("")
 
   useEffect(() => {
@@ -334,17 +335,51 @@ export default function LeadsDashboard() {
     window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
   }, [])
 
+  // 从留言里提取活动日期。兼容三种写法：
+  // "Date: 2026-09-19" / "Event 2026-09-19"（SMS quote 渠道）/ 兜底取第一个 ISO 日期。
+  const extractEventDate = (msg: string): string | undefined =>
+    msg.match(/(?:Event )?Date:\s*(\d{4}-\d{2}-\d{2})/i)?.[1] ||
+    msg.match(/Event\s+(\d{4}-\d{2}-\d{2})/i)?.[1] ||
+    msg.match(/(\d{4}-\d{2}-\d{2})/)?.[1]
+
+  // 生成带预填参数的订金链接（source=workbench 走 /deposit/pay 预填模式）。
+  // 客人付完后 Stripe webhook 自动：booking 置 confirmed + 发确认邮件/短信，无需人工。
+  // 需要留言里能解析出日期；解析不出返回 null，话术退回"要不要我发链接"的问法。
+  const buildDepositLink = (l: LeadRow): string | null => {
+    const msg = l.latest_message || ""
+    const dateRaw = extractEventDate(msg)
+    if (!dateRaw) return null
+    const params = new URLSearchParams({ source: "workbench", event_date: dateRaw })
+    const time = msg.match(/Time:\s*(\d{1,2}:\d{2})/i)?.[1]
+    if (time) params.set("event_time", time)
+    const zip = l.city_or_zip || msg.match(/(?:Location|ZIP):?\s*(\d{5})/i)?.[1]
+    if (zip) params.set("location", zip)
+    const adults = Number(msg.match(/(\d+)\s*adults/i)?.[1])
+    if (Number.isFinite(adults) && adults > 0) params.set("adults", String(adults))
+    const kids = Number(msg.match(/(\d+)\s*kids/i)?.[1])
+    if (Number.isFinite(kids)) params.set("kids", String(kids))
+    const est = msg.match(/Est(?:imated)?(?:\s+(?:Range|Total))?[:\s]+\$?([\d,]+)(?:\s*-\s*\$?([\d,]+))?/i)
+    if (est?.[1]) {
+      params.set("estimate_low", est[1].replace(/,/g, ""))
+      params.set("estimate_high", (est[2] ?? est[1]).replace(/,/g, ""))
+    }
+    if (l.full_name) params.set("customer_name", l.full_name)
+    if (l.email) params.set("customer_email", l.email)
+    return `https://www.realhibachi.com/deposit/pay?${params.toString()}`
+  }
+
   // 首响话术：从线索字段自动拼（名字/日期/人数/金额/邮编），确认档期+推订金。
   // 一键复制+拉起短信+自动标记已联系。发前先确认自己档期真的 OK。
   const buildFirstResponse = (l: LeadRow): string => {
     const first = (l.full_name || "").split(" ")[0]
     const hi = first && !/^\d+$/.test(first) ? ` ${first}` : ""
     const msg = l.latest_message || ""
-    const dateRaw = msg.match(/(?:Event )?Date:\s*(\d{4}-\d{2}-\d{2})/i)?.[1]
+    const dateRaw = extractEventDate(msg)
     const timeRaw = msg.match(/(?:Event )?Time:\s*(\d{1,2}):(\d{2})/i)
     const guests = l.guest_count || Number(msg.match(/(\d+)\s*adults/i)?.[1]) || null
     const amt = msg.match(/Estimated (?:Range|total):\s*\$?([\d,]+)/i)?.[1]
     const zip = l.city_or_zip || msg.match(/Location:\s*([\w ]{3,20})/i)?.[1]?.trim()
+    const depositLink = buildDepositLink(l)
 
     let prettyDate = ""
     if (dateRaw) {
@@ -371,7 +406,9 @@ export default function LeadsDashboard() {
         (guests ? `, ${guests} guests` : "") +
         `. Good news: that date is available! 🎉 ` +
         (amt ? `Your total is $${amt} as quoted — food, live chef show, setup, and travel all included. ` : "") +
-        `A $19.90 deposit locks your date and chef — want me to send the link?`
+        (depositLink
+          ? `A $19.90 deposit locks your date and chef — lock it in here: ${depositLink}`
+          : `A $19.90 deposit locks your date and chef — want me to send the link?`)
       )
     }
     return `Hi${hi}! This is Bling from Real Hibachi — thanks for reaching out! I'd love to help with your hibachi party. What date are you thinking? 😊`
@@ -407,8 +444,22 @@ export default function LeadsDashboard() {
   type SopStep = { id: string; stage: "followup" | "won"; emoji: string; title: string; when: string; build?: (l: LeadRow) => string }
   const SOP_STEPS: SopStep[] = [
     {
-      id: "f45", stage: "followup", emoji: "⏰", title: "45分钟跟进：选择题+档期稀缺", when: "首响后 45-60 分钟客户没回",
-      build: () => "Quick heads up — weekend slots go first. Most dinner parties start at 5:30 or 6:30, either work for you? I can hold one while you decide 😊",
+      // 话术原则：具体可用性 > 泛泛稀缺（"周末先到先得"像催单，"周六还开着"像服务）；
+      // hold 必须带期限才可信，到期还能名正言顺再跟进一次；
+      // "finalize headcount" 给对方体面的犹豫理由，顺便引导报人数（20+ 触发前菜促销）。
+      id: "f45", stage: "followup", emoji: "⏰", title: "45分钟跟进：确定性+选择题+限时hold", when: "首响后 45-60 分钟客户没回",
+      build: (l) => {
+        const dateRaw = extractEventDate(l.latest_message || "")
+        if (dateRaw) {
+          const [y, m, d] = dateRaw.split("-").map(Number)
+          const dt = new Date(y, m - 1, d)
+          if (!Number.isNaN(dt.getTime())) {
+            const prettyDate = dt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+            return `Good news — ${prettyDate} is open on our end. Dinner parties usually kick off at 7:00 or 7:30. I can pencil you in for either and hold it until tomorrow evening while you finalize headcount — which time works better?`
+          }
+        }
+        return "Happy to get you set up! Which date are you looking at? Most dinner parties start at 7:00 or 7:30. Weekends do fill up first, so once you have a date I can hold a slot for 24 hours while you sort out details — no commitment needed."
+      },
     },
     {
       id: "f_night", stage: "followup", emoji: "🌙", title: "当晚软锁定：免订金占位", when: "当晚睡前仍未回",
@@ -427,7 +478,13 @@ export default function LeadsDashboard() {
     },
     {
       id: "f_morning", stage: "followup", emoji: "☀️", title: "次日跟进：亮到场承诺", when: "第二天上午（若组局工具那条已发，这条隔天再用）",
-      build: (l) => `Morning! Still holding your date for your party${l.guest_count ? ` of ${l.guest_count}` : ""}. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. Want me to lock it in?`,
+      build: (l) => {
+        const link = buildDepositLink(l)
+        return (
+          `Morning! Still holding your date for your party${l.guest_count ? ` of ${l.guest_count}` : ""}. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. ` +
+          (link ? `Lock it in with the $19.90 deposit here: ${link}` : `Want me to lock it in?`)
+        )
+      },
     },
     {
       id: "f_promo", stage: "followup", emoji: "🥟", title: "第3天促销复活钩", when: "3 天无回应（最后一发，之后停）",
@@ -653,11 +710,41 @@ export default function LeadsDashboard() {
                 {l.guest_count !== null && <span>👥 {l.guest_count} 人</span>}
               </div>
 
-              {l.latest_message && (
-                <div style={{ fontSize: 13, color: "#6b7280", background: "#f9fafb", borderRadius: 8, padding: "8px 10px", marginBottom: 10, whiteSpace: "pre-wrap", maxHeight: 72, overflow: "hidden" }}>
-                  {l.latest_message.slice(0, 200)}
-                </div>
-              )}
+              {l.latest_message && (() => {
+                const msgExpanded = expandedMsgIds.has(l.id)
+                const clampable = l.latest_message.length > 120 || l.latest_message.includes("\n")
+                return (
+                  <div
+                    onClick={(e) => {
+                      if (!clampable) return
+                      e.stopPropagation()
+                      setExpandedMsgIds((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(l.id)) next.delete(l.id)
+                        else next.add(l.id)
+                        return next
+                      })
+                    }}
+                    style={{
+                      fontSize: 13, color: "#6b7280", background: "#f9fafb", borderRadius: 8, padding: "8px 10px", marginBottom: 10, whiteSpace: "pre-wrap",
+                      ...(msgExpanded ? {} : { maxHeight: 72, overflow: "hidden" }),
+                      position: "relative",
+                      cursor: clampable ? "pointer" : undefined,
+                    }}
+                    title={clampable ? (msgExpanded ? "点击收起" : "点击展开全文") : undefined}
+                  >
+                    {l.latest_message}
+                    {clampable && !msgExpanded && (
+                      <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, padding: "16px 10px 4px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "#2563eb", background: "linear-gradient(to bottom, rgba(249,250,251,0), #f9fafb 60%)" }}>
+                        展开全文 ▾
+                      </div>
+                    )}
+                    {clampable && msgExpanded && (
+                      <div style={{ marginTop: 6, textAlign: "right", fontSize: 12, fontWeight: 600, color: "#2563eb" }}>收起 ▴</div>
+                    )}
+                  </div>
+                )
+              })()}
 
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
                 {l.status === "won" ? (
@@ -781,6 +868,15 @@ export default function LeadsDashboard() {
             <span>{relativeTime(detailLead.created_at)}</span>
             {detailLead.utm_term && <span style={{ color: "#1d4ed8" }}>广告 · {detailLead.utm_term}</span>}
           </div>
+
+          {detailLead.latest_message && (
+            <>
+              <div style={sectionLabel}>客户留言</div>
+              <div style={{ fontSize: 13, color: "#374151", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px", whiteSpace: "pre-wrap", maxHeight: 240, overflowY: "auto" }}>
+                {detailLead.latest_message}
+              </div>
+            </>
+          )}
 
           <div style={sectionLabel}>状态</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
