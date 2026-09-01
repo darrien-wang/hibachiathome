@@ -731,6 +731,66 @@ export default function LeadsDashboard() {
     }
   }, [emailDraft, emailSending, adminKey, act, loadHistory])
 
+  // 🌐 西语话术包：拉美裔客户"英语搜索、西语沟通"——客户用西语来信时，
+  // 从这里一键取对应场景的西语话术（复制+拉起短信+时间线记录）。
+  const [esPackFor, setEsPackFor] = useState<LeadRow | null>(null)
+  const ES_SCRIPTS: { id: string; title: string; build: (l: LeadRow) => string }[] = [
+    {
+      id: "es_first", title: "首响：确认档期+推订金",
+      build: (l) => {
+        const n = (l.full_name || "").split(" ")[0]
+        return `¡Hola${n && !/^\d+$/.test(n) ? " " + n : ""}! Soy Bling de Real Hibachi 🔥 Recibimos tu solicitud. ¡Buenas noticias: tenemos tu fecha disponible! Comida, show del chef en vivo, y todo incluido. ¿Te la aparto? Un depósito de $19.90 asegura tu fecha y tu chef — te mando el link.`
+      },
+    },
+    {
+      id: "es_followup", title: "跟进：选择题+档期稀缺",
+      build: () => "¡Hola! Los fines de semana se llenan rápido. La mayoría de las cenas empiezan a las 6:30 o 7:30 — ¿cuál te funciona mejor? Te aparto el horario mientras decides 😊",
+    },
+    {
+      id: "es_deposit", title: "发订金链接",
+      build: (l) => {
+        const link = buildDepositLink(l) ?? "https://www.realhibachi.com/deposit"
+        return `¡Perfecto! Aquí está tu link para apartar tu fecha con el depósito de $19.90 (se descuenta de tu total): ${link}`
+      },
+    },
+    {
+      id: "es_platter", title: "拼盘促销：20+人送前菜",
+      build: (l) => {
+        const nGuests = l.guest_count ?? 0
+        return nGuests >= 15 && nGuests < 20
+          ? `¡Oye! Las fiestas de 20+ personas reciben GRATIS una charola de aperitivos (gyoza, edamame y rollitos, valor $40). Estás en ${nGuests} — ¡solo faltan ${20 - nGuests} invitados y va por nuestra cuenta!`
+          : "¡Oye! Las fiestas de 20+ personas reciben GRATIS una charola de aperitivos (gyoza, edamame y rollitos, valor $40). ¿Quieres que actualice tu cotización?"
+      },
+    },
+    {
+      id: "es_confirm48", title: "48小时厨师确认",
+      build: () => "¡Hola! Confirmando tu fiesta hibachi en 48 horas 🎊 Tu chef es Bling, llega unos 10 minutos antes con la parrilla y los ingredientes frescos. Responde para confirmar — ¡nos vemos pronto!",
+    },
+    {
+      id: "es_review", title: "派对后邀评",
+      build: (l) => {
+        const n = (l.full_name || "").split(" ")[0]
+        const reviewUrl = process.env.NEXT_PUBLIC_GBP_REVIEW_URL || "https://g.page/r/REVIEW_LINK"
+        return `¡Hola${n && !/^\d+$/.test(n) ? " " + n : ""}! Gracias por invitarnos a tu fiesta — ¡esperamos que a todos les haya encantado el show! Si tienes 30 segundos, una reseña en Google significaría muchísimo para nuestro pequeño equipo: ${reviewUrl}`
+      },
+    },
+  ]
+
+  const sendEsScript = useCallback(
+    async (l: LeadRow, s: { id: string; title: string; build: (l: LeadRow) => string }) => {
+      const text = s.build(l)
+      try {
+        navigator.clipboard.writeText(text)
+      } catch {}
+      clearReminderStore(l.id)
+      await act(l.id, { action: "add_note", note: `🌐 西语话术已发送：${s.title}` })
+      loadHistory(l.id)
+      setEsPackFor(null)
+      if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
+    },
+    [act, loadHistory]
+  )
+
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
   const sendPromoScript = useCallback((l: LeadRow) => {
     const firstName = (l.full_name || "").split(" ")[0]
@@ -1286,6 +1346,12 @@ export default function LeadsDashboard() {
           >
             🪑 关单让步话术：再减 $100 桌椅（比价僵持时才用）
           </button>
+          <button
+            onClick={() => setEsPackFor(detailLead)}
+            style={{ marginTop: 8, width: "100%", padding: "10px 16px", borderRadius: 8, border: "1px solid #ca8a04", background: "#fefce8", color: "#a16207", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+          >
+            🌐 西语话术包（客户用西语来信时用）
+          </button>
 
           <div style={sectionLabel}>跟进备注</div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -1358,6 +1424,28 @@ export default function LeadsDashboard() {
               )
             })}
           </div>
+        </Modal>
+      )}
+
+      {esPackFor && (
+        <Modal onClose={() => setEsPackFor(null)} title="🌐 西语话术包">
+          <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 10px" }}>
+            选一条发送给 {esPackFor.full_name || esPackFor.phone}（自动复制+拉起短信+记时间线）：
+          </p>
+          {ES_SCRIPTS.map((sc) => (
+            <div key={sc.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <strong style={{ fontSize: 13 }}>{sc.title}</strong>
+                <button
+                  onClick={() => sendEsScript(esPackFor, sc)}
+                  style={{ padding: "5px 14px", borderRadius: 6, border: "none", background: "#0f766e", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+                >
+                  发送
+                </button>
+              </div>
+              <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "#4b5563", lineHeight: 1.5 }}>{sc.build(esPackFor)}</p>
+            </div>
+          ))}
         </Modal>
       )}
 
