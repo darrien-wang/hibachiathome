@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next"
 import { getBlogPosts } from "@/lib/blog"
 import { cityPages, CITY_PAGES_LAST_UPDATED } from "@/config/city-pages"
 import { occasionPages, OCCASION_PAGES_LAST_UPDATED } from "@/config/occasion-pages"
+import { CATERING_CITIES } from "@/config/catering-cities"
 
 const BASE_URL = "https://www.realhibachi.com"
 
@@ -57,17 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }))
 
-  const cateringCities = [
-    "los-angeles",
-    "san-diego",
-    "long-beach",
-    "pasadena",
-    "riverside",
-    "anaheim",
-    "irvine",
-    "huntington-beach",
-  ]
-  const cateringPagesSitemap: MetadataRoute.Sitemap = cateringCities.map((slug) => ({
+  const cateringPagesSitemap: MetadataRoute.Sitemap = CATERING_CITIES.map((slug) => ({
     url: `${BASE_URL}/hibachi-catering/${slug}`,
     lastModified: "2026-09-01T00:00:00.000Z",
     changeFrequency: "monthly" as const,

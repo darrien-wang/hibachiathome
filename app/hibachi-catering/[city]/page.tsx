@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, Star, Check, Users, CalendarDays, Sparkles } from "lucide-react"
 import { getCityPage, getNearbyCityPages } from "@/config/city-pages"
+import { CATERING_CITIES } from "@/config/catering-cities"
 import { GOOGLE_REVIEWS, pickReviews } from "@/config/reviews"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
@@ -17,17 +18,6 @@ const PHONE_RAW = "2137707788"
 // pages take the event/host framing (bigger groups, planned occasions) while
 // the /hibachi-at-home twins keep the family-dinner framing, and the two
 // cross-link so they reinforce instead of cannibalizing.
-export const CATERING_CITIES = [
-  "los-angeles",
-  "san-diego",
-  "long-beach",
-  "pasadena",
-  "riverside",
-  "anaheim",
-  "irvine",
-  "huntington-beach",
-] as const
-
 export async function generateStaticParams() {
   return CATERING_CITIES.map((city) => ({ city }))
 }

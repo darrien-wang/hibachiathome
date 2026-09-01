@@ -9,6 +9,7 @@ import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { getCityClimate } from "@/config/city-climate"
 import { GOOGLE_REVIEWS, pickReviews } from "@/config/reviews"
+import { hasCateringPage } from "@/config/catering-cities"
 import SourcingSpec from "@/components/menu/sourcing-spec"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
@@ -358,6 +359,35 @@ export default function CityPage({ params }: { params: { city: string } }) {
               </Card>
             ))}
           </div>
+          <p className="mt-8 text-center text-sm text-gray-600">
+            See how each celebration plays out:{" "}
+            <Link href="/party/birthday-party" className="font-medium text-primary underline">
+              birthdays
+            </Link>
+            {", "}
+            <Link href="/party/pool-party" className="font-medium text-primary underline">
+              pool parties
+            </Link>
+            {", "}
+            <Link href="/party/family-reunion" className="font-medium text-primary underline">
+              family reunions
+            </Link>
+            {", and "}
+            <Link href="/party" className="font-medium text-primary underline">
+              more party ideas
+            </Link>
+            .
+            {hasCateringPage(page.slug) && (
+              <>
+                {" "}
+                Hosting a bigger event?{" "}
+                <Link href={`/hibachi-catering/${page.slug}`} className="font-medium text-primary underline">
+                  Hibachi catering in {page.city}
+                </Link>
+                .
+              </>
+            )}
+          </p>
         </div>
       </section>
 

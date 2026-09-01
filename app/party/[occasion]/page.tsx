@@ -343,6 +343,32 @@ export default function OccasionPage({ params }: { params: { occasion: string } 
               </Link>
             ))}
           </div>
+          <p className="mx-auto mt-8 max-w-3xl text-sm font-medium text-gray-700">
+            Where we cook it
+          </p>
+          <div className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+            {[
+              { slug: "los-angeles", name: "Los Angeles" },
+              { slug: "san-diego", name: "San Diego" },
+              { slug: "irvine", name: "Irvine" },
+              { slug: "anaheim", name: "Anaheim" },
+              { slug: "long-beach", name: "Long Beach" },
+              { slug: "pasadena", name: "Pasadena" },
+              { slug: "riverside", name: "Riverside" },
+              { slug: "santa-monica", name: "Santa Monica" },
+            ].map((cityLink) => (
+              <Link
+                key={cityLink.slug}
+                href={`/hibachi-at-home/${cityLink.slug}`}
+                className="text-gray-600 underline hover:text-primary"
+              >
+                {cityLink.name}
+              </Link>
+            ))}
+            <Link href="/locations" className="font-medium text-primary underline">
+              All 33 cities
+            </Link>
+          </div>
         </div>
       </section>
     </div>

@@ -111,6 +111,40 @@ export default function LocationsPage() {
           </div>
         </div>
 
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Hibachi Catering by Metro</h2>
+            <p className="text-gray-600">Bigger events, corporate parties, and full-service catering pages.</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            {[
+              { slug: "los-angeles", name: "Los Angeles" },
+              { slug: "san-diego", name: "San Diego" },
+              { slug: "long-beach", name: "Long Beach" },
+              { slug: "pasadena", name: "Pasadena" },
+              { slug: "riverside", name: "Riverside" },
+              { slug: "anaheim", name: "Anaheim" },
+              { slug: "irvine", name: "Irvine" },
+              { slug: "huntington-beach", name: "Huntington Beach" },
+            ].map((metro) => (
+              <Link
+                key={metro.slug}
+                href={`/hibachi-catering/${metro.slug}`}
+                className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 font-medium text-amber-800 transition-colors hover:bg-amber-100"
+              >
+                {metro.name} Catering
+              </Link>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-sm text-gray-600">
+            Planning a specific celebration?{" "}
+            <Link href="/party" className="font-medium text-primary underline">
+              Browse party ideas by occasion
+            </Link>
+            .
+          </p>
+        </div>
+
         <div className="mt-12 text-center">
           <h2 className="text-2xl font-bold mb-4">Don't see your area?</h2>
           <p className="text-gray-600 mb-4">
