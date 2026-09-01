@@ -1189,15 +1189,15 @@ export default function QuoteBuilderClient() {
 
         <section className="relative mb-8 overflow-hidden rounded-2xl">
           <Image
-            src="/images/hero/quote-hero.jpg"
+            src="/images/hero/quote-hero-night.jpg"
             alt=""
             aria-hidden
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[30%_35%]"
+            className="object-cover object-[58%_40%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/60" />
           <div className="relative mx-auto max-w-3xl px-5 py-12 text-center text-white sm:py-16">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-300 sm:text-xs">
               Private Hibachi Catering · LA, OC & SoCal
