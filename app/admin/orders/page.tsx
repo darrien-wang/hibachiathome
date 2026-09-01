@@ -404,7 +404,6 @@ function OrderDrawer({
   const [payUrl, setPayUrl] = useState("")
   const [busy, setBusy] = useState<string | null>(null)
   const [travelDest, setTravelDest] = useState("")
-  const [chefOrigin, setChefOrigin] = useState("")
   const [travelResult, setTravelResult] = useState<string>("")
   const [chefName, setChefName] = useState("Bling")
   const [sopBusy, setSopBusy] = useState<string | null>(null)
@@ -651,50 +650,28 @@ function OrderDrawer({
 
             {/* ---------- 算路费 ---------- */}
             <div style={labelStyle}>算路费(驾车距离)</div>
-            <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 6 }}>目的地默认活动地址;客户侧按共享政策计费,师傅侧填师傅住址、只算里程。</div>
-            <input style={{ ...inputStyle, marginBottom: 6 }} value={travelDest} onChange={(e) => setTravelDest(e.target.value)} placeholder="目的地(活动地址 / zip)" />
+            <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 6 }}>基地出发,一次算两侧:客户按共享政策计费,师傅按同程里程结。目的地默认活动地址。</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={travelDest} onChange={(e) => setTravelDest(e.target.value)} placeholder="目的地(活动地址 / zip)" />
               <button
-                style={btnGhost}
-                disabled={busy === "travel-c" || !travelDest.trim()}
+                style={{ ...btnGhost, whiteSpace: "nowrap" }}
+                disabled={busy === "travel" || !travelDest.trim()}
                 onClick={async () => {
-                  setBusy("travel-c")
+                  setBusy("travel")
                   const data = await call("/api/admin/orders/travel-fee", {
                     orderId: o.id,
                     destination: travelDest,
-                    purpose: "customer",
                     operator: localStorage.getItem("rh_operator_name") ?? "staff",
                   })
                   setBusy(null)
                   setTravelResult(
                     data.ok
-                      ? `客户侧:${data.miles} mi(${data.origin} → ${data.destination}),路费 $${data.customerFee}(免 ${data.freeRadiusMiles} mi,$${data.ratePerMile}/mi,${data.provider})`
+                      ? `${data.miles} mi(${data.origin} → ${data.destination},${data.provider})· 客户路费 $${data.customerFee}(免 ${data.freeRadiusMiles} mi,$${data.ratePerMile}/mi)· 师傅同程 ${data.miles} mi`
                       : `失败:${data.error}`,
                   )
                 }}
               >
-                🚗 客户路费{busy === "travel-c" ? "…" : ""}
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-              <input style={{ ...inputStyle, flex: 1 }} value={chefOrigin} onChange={(e) => setChefOrigin(e.target.value)} placeholder="师傅住址 / zip" />
-              <button
-                style={{ ...btnGhost, whiteSpace: "nowrap" }}
-                disabled={busy === "travel-s" || !chefOrigin.trim() || !travelDest.trim()}
-                onClick={async () => {
-                  setBusy("travel-s")
-                  const data = await call("/api/admin/orders/travel-fee", {
-                    orderId: o.id,
-                    origin: chefOrigin,
-                    destination: travelDest,
-                    purpose: "chef",
-                    operator: localStorage.getItem("rh_operator_name") ?? "staff",
-                  })
-                  setBusy(null)
-                  setTravelResult(data.ok ? `师傅侧:${data.miles} mi(${data.origin} → ${data.destination},${data.provider})` : `失败:${data.error}`)
-                }}
-              >
-                👨‍🍳 师傅路费{busy === "travel-s" ? "…" : ""}
+                🚗 算路费{busy === "travel" ? "…" : ""}
               </button>
             </div>
             {travelResult && (

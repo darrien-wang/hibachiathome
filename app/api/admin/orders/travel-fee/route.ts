@@ -9,14 +9,12 @@ export const dynamic = "force-dynamic"
 const BASE_ORIGIN_ZIP = "91748"
 
 // Staff-only driving-distance calculator for the order workbench. One engine
-// (lib/travel-distance: Google Distance Matrix, OSRM keyless fallback), two
-// origins by purpose:
-//   customer -> base zip -> event address, priced by the shared travel policy
-//               (the number the invoice's travelFee.distanceMiles wants)
-//   chef     -> the chef's own address -> event address, for nearest-chef
-//               dispatch and reimbursing the drive; miles only, no policy fee
-// Results are appended to order_events so the same order never needs the same
-// call twice and the drawer shows who calculated what.
+// (lib/travel-distance: Google Distance Matrix, OSRM keyless fallback), one
+// origin: the base zip. Chefs depart from the base too, so a single
+// base -> event-address calculation serves both sides - the customer's fee
+// comes from the shared travel policy, the chef's reimbursement rides the
+// same driving miles. Results are appended to order_events so the same order
+// never needs the same call twice and the drawer shows who calculated what.
 function isAuthorized(request: NextRequest): boolean {
   const provided = request.headers.get("x-admin-key") ?? ""
   if (!provided) return false
@@ -54,13 +52,10 @@ export async function POST(request: NextRequest) {
   if (!destination) {
     return NextResponse.json({ error: "destination is required" }, { status: 400 })
   }
-  if (purpose === "chef" && !String(body.origin ?? "").trim()) {
-    return NextResponse.json({ error: "chef purpose requires the chef's origin address" }, { status: 400 })
-  }
 
   try {
     const result = await getDrivingMiles(origin, destination)
-    const customerFee = purpose === "customer" ? calcTravelFee(result.drivingMiles) : null
+    const customerFee = calcTravelFee(result.drivingMiles)
 
     const orderId = String(body.orderId ?? "").trim()
     if (orderId) {
