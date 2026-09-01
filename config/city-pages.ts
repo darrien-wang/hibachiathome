@@ -64,7 +64,7 @@ export const cityPages: CityPage[] = [
     slug: "los-angeles",
     city: "Los Angeles",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Los Angeles CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Los Angeles CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef anywhere in Los Angeles — backyards, rooftops, and rentals from the Westside to the Valley. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
     intro: [
@@ -163,7 +163,7 @@ export const cityPages: CityPage[] = [
     slug: "downtown-los-angeles",
     city: "Downtown LA",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Downtown LA | Private Chef & Rooftop Catering",
+    metaTitle: "Hibachi at Home Downtown LA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef for DTLA lofts, rooftops, and offices. Arts District to South Park. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
     intro: [
@@ -253,7 +253,7 @@ export const cityPages: CityPage[] = [
     slug: "hollywood",
     city: "Hollywood",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Hollywood CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Hollywood CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Hollywood and the Hollywood Hills — decks, pools, and rentals. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
     intro: [
@@ -343,7 +343,7 @@ export const cityPages: CityPage[] = [
     slug: "west-hollywood",
     city: "West Hollywood",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home West Hollywood CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home West Hollywood CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in West Hollywood — courtyards, rooftop decks, and Norma Triangle backyards. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -433,7 +433,7 @@ export const cityPages: CityPage[] = [
     slug: "beverly-hills",
     city: "Beverly Hills",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Beverly Hills CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Beverly Hills CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Beverly Hills — poolside terraces, garden dinners, and estate events. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -533,7 +533,7 @@ export const cityPages: CityPage[] = [
     slug: "culver-city",
     city: "Culver City",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Culver City CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Culver City CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Culver City — backyard birthdays, studio team dinners, and Westside gatherings. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -623,7 +623,7 @@ export const cityPages: CityPage[] = [
     slug: "burbank",
     city: "Burbank",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Burbank CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Burbank CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Burbank — Magnolia Park backyards, studio team dinners, and Valley pool parties. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -713,7 +713,7 @@ export const cityPages: CityPage[] = [
     slug: "thousand-oaks",
     city: "Thousand Oaks",
     county: "Ventura County",
-    metaTitle: "Hibachi at Home Thousand Oaks CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Thousand Oaks CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Thousand Oaks and the Conejo Valley \u2014 big backyards, pool decks, and gated communities. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -803,7 +803,7 @@ export const cityPages: CityPage[] = [
     slug: "west-covina",
     city: "West Covina",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home West Covina CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home West Covina CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in West Covina and the eastern San Gabriel Valley \u2014 backyard parties, family banquets, graduations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -893,7 +893,7 @@ export const cityPages: CityPage[] = [
     slug: "whittier",
     city: "Whittier",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Whittier CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Whittier CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Whittier \u2014 Uptown bungalows, hillside patios, and family backyards. $59.90/adult flat rate, setup & cleanup included, no travel fee.",
     intro: [
@@ -983,7 +983,7 @@ export const cityPages: CityPage[] = [
     slug: "arcadia",
     city: "Arcadia",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Arcadia CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Arcadia CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Arcadia — large backyards, family banquets, and Lunar New Year gatherings. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1073,7 +1073,7 @@ export const cityPages: CityPage[] = [
     slug: "san-gabriel",
     city: "San Gabriel",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home San Gabriel CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home San Gabriel CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in San Gabriel and the SGV — family banquets, red egg parties, and backyard celebrations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1163,7 +1163,7 @@ export const cityPages: CityPage[] = [
     slug: "rowland-heights",
     city: "Rowland Heights",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Rowland Heights CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Rowland Heights CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Rowland Heights — hillside backyards, family gatherings, and holiday banquets. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1253,7 +1253,7 @@ export const cityPages: CityPage[] = [
     slug: "diamond-bar",
     city: "Diamond Bar",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Diamond Bar CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Diamond Bar CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Diamond Bar — hillside yards, pool decks, and family celebrations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1343,7 +1343,7 @@ export const cityPages: CityPage[] = [
     slug: "inglewood",
     city: "Inglewood",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Inglewood CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Inglewood CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Inglewood — backyard parties, game-day gatherings near SoFi, and family celebrations. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1443,7 +1443,7 @@ export const cityPages: CityPage[] = [
     slug: "malibu",
     city: "Malibu",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Malibu CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Malibu CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Malibu — oceanfront decks, canyon homes, and vacation rentals. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1533,7 +1533,7 @@ export const cityPages: CityPage[] = [
     slug: "woodland-hills",
     city: "Woodland Hills",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Woodland Hills CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Woodland Hills CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Woodland Hills and the West Valley — pool parties, big backyards, and family gatherings. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1623,7 +1623,7 @@ export const cityPages: CityPage[] = [
     slug: "san-diego",
     city: "San Diego",
     county: "San Diego County",
-    metaTitle: "Hibachi at Home San Diego CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home San Diego CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef for your San Diego home, backyard, or vacation rental. $59.90/adult flat rate — chef, grill, food, live show, setup & cleanup included. Serving La Jolla to Chula Vista.",
     intro: [
@@ -1715,7 +1715,7 @@ export const cityPages: CityPage[] = [
     slug: "irvine",
     city: "Irvine",
     county: "Orange County",
-    metaTitle: "Hibachi at Home Irvine CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Irvine CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Irvine — backyard parties, HOA-friendly patio setups, UCI graduations & corporate events. $59.90/adult flat rate with setup and cleanup included.",
     intro: [
@@ -1805,7 +1805,7 @@ export const cityPages: CityPage[] = [
     slug: "anaheim",
     city: "Anaheim",
     county: "Orange County",
-    metaTitle: "Hibachi at Home Anaheim CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Anaheim CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Anaheim — vacation rentals near Disneyland, Anaheim Hills backyards, family reunions. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -1895,7 +1895,7 @@ export const cityPages: CityPage[] = [
     slug: "long-beach",
     city: "Long Beach",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Long Beach CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Long Beach CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Long Beach — Belmont Shore patios, Naples canal homes, CSULB graduations. $59.90/adult flat rate with full setup and cleanup.",
     intro: [
@@ -1994,7 +1994,7 @@ export const cityPages: CityPage[] = [
     slug: "pasadena",
     city: "Pasadena",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Pasadena CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Pasadena CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Pasadena — craftsman backyards, Rose Bowl gatherings, Caltech & JPL events. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -2084,7 +2084,7 @@ export const cityPages: CityPage[] = [
     slug: "santa-monica",
     city: "Santa Monica",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Santa Monica CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Santa Monica CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Santa Monica — beachside patios, rooftop decks, sunset dinner parties. $59.90/adult flat rate with setup and cleanup included.",
     intro: [
@@ -2174,7 +2174,7 @@ export const cityPages: CityPage[] = [
     slug: "huntington-beach",
     city: "Huntington Beach",
     county: "Orange County",
-    metaTitle: "Hibachi at Home Huntington Beach CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Huntington Beach CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Huntington Beach — Surf City backyards, fire-pit patios, graduation & birthday parties. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -2263,7 +2263,7 @@ export const cityPages: CityPage[] = [
     slug: "riverside",
     city: "Riverside",
     county: "Riverside County",
-    metaTitle: "Hibachi at Home Riverside CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Riverside CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Riverside & the Inland Empire — big backyards, warm evenings, UCR graduations, milestone parties. $59.90/adult flat rate.",
     intro: [
@@ -2353,7 +2353,7 @@ export const cityPages: CityPage[] = [
     slug: "temecula",
     city: "Temecula",
     county: "Riverside County",
-    metaTitle: "Hibachi at Home Temecula CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Temecula CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Temecula wine country — vineyard Airbnbs, bachelorette weekends, estate dinners. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -2443,7 +2443,7 @@ export const cityPages: CityPage[] = [
     slug: "santa-clarita",
     city: "Santa Clarita",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Santa Clarita CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Santa Clarita CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Santa Clarita — Valencia backyards, family parties, graduation celebrations. $59.90/adult flat rate with setup and cleanup included.",
     intro: [
@@ -2532,7 +2532,7 @@ export const cityPages: CityPage[] = [
     slug: "torrance",
     city: "Torrance",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Torrance CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Torrance CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Torrance & the South Bay — authentic teppanyaki for an audience that knows the real thing. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -2622,7 +2622,7 @@ export const cityPages: CityPage[] = [
     slug: "newport-beach",
     city: "Newport Beach",
     county: "Orange County",
-    metaTitle: "Hibachi at Home Newport Beach CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Newport Beach CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Newport Beach — Balboa Island patios, waterfront dinners, upscale events with filet & lobster upgrades. $59.90/adult flat rate.",
     intro: [
@@ -2712,7 +2712,7 @@ export const cityPages: CityPage[] = [
     slug: "glendale",
     city: "Glendale",
     county: "Los Angeles County",
-    metaTitle: "Hibachi at Home Glendale CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Glendale CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Glendale — hillside backyards, big multigenerational family gatherings, birthdays. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
@@ -2801,7 +2801,7 @@ export const cityPages: CityPage[] = [
     slug: "corona",
     city: "Corona",
     county: "Riverside County",
-    metaTitle: "Hibachi at Home Corona CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Corona CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Corona — big Inland Empire backyards, family milestones, warm-evening parties. $59.90/adult flat rate with setup and cleanup.",
     intro: [
@@ -2890,7 +2890,7 @@ export const cityPages: CityPage[] = [
     slug: "oceanside",
     city: "Oceanside",
     county: "San Diego County",
-    metaTitle: "Hibachi at Home Oceanside CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Oceanside CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Oceanside & North County San Diego — military homecomings, beach rentals, backyard parties. $59.90/adult flat rate.",
     intro: [
@@ -2979,7 +2979,7 @@ export const cityPages: CityPage[] = [
     slug: "palm-springs",
     city: "Palm Springs",
     county: "Riverside County",
-    metaTitle: "Hibachi at Home Palm Springs CA | Private Hibachi Chef",
+    metaTitle: "Hibachi at Home Palm Springs CA | Hibachi Catering from $59.90/Person",
     metaDescription:
       "Private hibachi chef in Palm Springs — pool-party weekends, bachelorette trips, mid-century patio dinners at your vacation rental. $59.90/adult flat rate.",
     intro: [

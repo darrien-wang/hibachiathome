@@ -281,6 +281,21 @@ export default function QuoteBuilderClient() {
   const promoStageRef = useRef<"none" | "teased" | "unlocked">("none")
   const mediaStripRef = useRef<HTMLDivElement | null>(null)
 
+  // Prefill guest counts handed over by city-page calculators. Read from
+  // window.location instead of useSearchParams — that hook once bailed the
+  // whole page to CSR and emptied the SSR HTML (see lib/use-active-region).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const adults = Number.parseInt(params.get("adults") ?? "", 10)
+    const kids = Number.parseInt(params.get("kids") ?? "", 10)
+    if (!Number.isFinite(adults) && !Number.isFinite(kids)) return
+    setInput((previous) => ({
+      ...previous,
+      ...(Number.isFinite(adults) && adults > 0 && adults <= 200 ? { adults } : {}),
+      ...(Number.isFinite(kids) && kids >= 0 && kids <= 200 ? { kids } : {}),
+    }))
+  }, [])
+
   // Auto ping-pong drift for the media strip: ~24px/s, reverses at the ends,
   // pauses for a few seconds whenever the visitor touches or scrolls it.
   useEffect(() => {

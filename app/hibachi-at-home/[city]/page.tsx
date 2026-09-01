@@ -8,7 +8,9 @@ import { MapPin, Phone, Star, Users, Clock, ChefHat, Check } from "lucide-react"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { getCityClimate } from "@/config/city-climate"
+import { GOOGLE_REVIEWS, pickReviews } from "@/config/reviews"
 import SourcingSpec from "@/components/menu/sourcing-spec"
+import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
 const BASE_URL = "https://www.realhibachi.com"
@@ -179,9 +181,44 @@ export default function CityPage({ params }: { params: { city: string } }) {
     ],
   }
 
+  // The party package as a Product so the ratings from real, on-page Google
+  // reviews are eligible for review-snippet stars (LocalBusiness self-serving
+  // aggregateRating is ignored by Google; Product is not). The reviews below
+  // are rendered verbatim on this page in "What hosts say".
+  const cityReviews = pickReviews(page.slug)
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${url}#package`,
+    name: `Hibachi at Home Party Package — ${page.city}, CA`,
+    description: `Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad, setup and cleanup — at your home in ${page.city}, CA.`,
+    image: `${BASE_URL}/images/hibachi-flame-og.png`,
+    brand: { "@type": "Brand", name: "Real Hibachi" },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "USD",
+      price: "59.90",
+      priceValidUntil: "2027-12-31",
+      availability: "https://schema.org/InStock",
+      url,
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "5",
+      bestRating: "5",
+      reviewCount: String(GOOGLE_REVIEWS.length),
+    },
+    review: cityReviews.map((review) => ({
+      "@type": "Review",
+      reviewRating: { "@type": "Rating", ratingValue: "5", bestRating: "5" },
+      author: { "@type": "Person", name: review.name },
+      reviewBody: review.text,
+    })),
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd]} />
+      <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
 
       {/* Hero */}
       <section className="bg-gradient-to-r from-amber-50 to-orange-50 pt-10 pb-16">
@@ -270,6 +307,9 @@ export default function CityPage({ params }: { params: { city: string } }) {
                 ))}
               </ul>
             </div>
+          </div>
+          <div className="max-w-4xl mx-auto mt-10">
+            <CityQuoteCalculator citySlug={page.slug} cityName={page.city} />
           </div>
         </div>
       </section>
@@ -609,6 +649,44 @@ export default function CityPage({ params }: { params: { city: string } }) {
                 </div>
                 <h3 className="text-lg font-bold mb-2">{step.title}</h3>
                 <p className="text-gray-600 text-sm">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Real Google reviews — crawlable text, same corpus the Product schema cites */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">
+              What Hosts <span className="text-primary">Say</span>
+            </h2>
+            <div className="mt-2 flex items-center justify-center gap-1 text-sm text-gray-600">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+              ))}
+              <span className="ml-1">5-star Google reviews from Southern California parties</span>
+            </div>
+          </div>
+          <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3">
+            {cityReviews.map((review) => (
+              <div key={review.name} className="rounded-2xl border border-amber-100 bg-white p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-base font-bold text-white">
+                    {review.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{review.name}</p>
+                    <p className="text-xs text-gray-500">Google review</p>
+                  </div>
+                </div>
+                <div className="mt-2 flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                  ))}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-gray-700">{review.text}</p>
               </div>
             ))}
           </div>
