@@ -92,7 +92,9 @@ export async function POST(request: NextRequest) {
   }
 
   const amountCents = Math.round(amount * 100)
-  const eventStart = new Date(`${eventDate}T${eventTime}:00`)
+  // Wall-clock-as-UTC, the convention the rest of the pipeline already uses
+  // (explicit Z so a dev server in another timezone can't shift the time).
+  const eventStart = new Date(`${eventDate}T${eventTime}:00Z`)
   if (Number.isNaN(eventStart.getTime())) {
     return NextResponse.json({ error: "invalid event date/time" }, { status: 400 })
   }

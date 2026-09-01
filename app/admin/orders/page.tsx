@@ -99,7 +99,10 @@ function eventLabel(iso: string | null, now: number): string {
   const ms = Date.parse(iso)
   if (!Number.isFinite(ms)) return "—"
   const d = new Date(ms)
-  const date = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  // event_start is wall-clock time stored as UTC across the whole pipeline
+  // (webhook envelope builder + invoice app both treat it that way), so render
+  // the UTC fields verbatim instead of shifting into the browser's zone.
+  const date = `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`
   const days = Math.round((ms - now) / 86400_000)
   if (days === 0) return `${date} · 今天`
   return days > 0 ? `${date} · ${days} 天后` : `${date} · ${-days} 天前`
