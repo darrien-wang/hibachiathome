@@ -16,8 +16,9 @@ export async function generateStaticParams() {
   return occasionPages.map((page) => ({ occasion: page.slug }))
 }
 
-export async function generateMetadata({ params }: { params: { occasion: string } }): Promise<Metadata> {
-  const page = getOccasionPage(params.occasion)
+export async function generateMetadata({ params }: { params: Promise<{ occasion: string }> }): Promise<Metadata> {
+  const { occasion } = await params
+  const page = getOccasionPage(occasion)
   if (!page) {
     return { title: "Page Not Found" }
   }
@@ -53,8 +54,9 @@ const included = [
   "Complete setup and cleanup",
 ]
 
-export default function OccasionPage({ params }: { params: { occasion: string } }) {
-  const page = getOccasionPage(params.occasion)
+export default async function OccasionPage({ params }: { params: Promise<{ occasion: string }> }) {
+  const { occasion } = await params
+  const page = getOccasionPage(occasion)
   if (!page) {
     notFound()
   }

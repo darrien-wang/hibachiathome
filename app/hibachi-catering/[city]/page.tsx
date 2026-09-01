@@ -22,9 +22,10 @@ export async function generateStaticParams() {
   return CATERING_CITIES.map((city) => ({ city }))
 }
 
-export async function generateMetadata({ params }: { params: { city: string } }): Promise<Metadata> {
-  const page = getCityPage(params.city)
-  if (!page || !CATERING_CITIES.includes(params.city as (typeof CATERING_CITIES)[number])) {
+export async function generateMetadata({ params }: { params: Promise<{ city: string }> }): Promise<Metadata> {
+  const { city } = await params
+  const page = getCityPage(city)
+  if (!page || !CATERING_CITIES.includes(city as (typeof CATERING_CITIES)[number])) {
     return { title: "Page Not Found" }
   }
   const url = `${BASE_URL}/hibachi-catering/${page.slug}`
@@ -82,9 +83,10 @@ const eventTypes = [
   },
 ]
 
-export default function CateringCityPage({ params }: { params: { city: string } }) {
-  const page = getCityPage(params.city)
-  if (!page || !CATERING_CITIES.includes(params.city as (typeof CATERING_CITIES)[number])) {
+export default async function CateringCityPage({ params }: { params: Promise<{ city: string }> }) {
+  const { city } = await params
+  const page = getCityPage(city)
+  if (!page || !CATERING_CITIES.includes(city as (typeof CATERING_CITIES)[number])) {
     notFound()
   }
 

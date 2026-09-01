@@ -22,11 +22,12 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { occasion: string; city: string }
+  params: Promise<{ occasion: string; city: string }>
 }): Promise<Metadata> {
-  const combo = getCombo(params.occasion, params.city)
-  const occasion = getOccasionPage(params.occasion)
-  const city = getCityPage(params.city)
+  const { occasion: occasionSlug, city: citySlug } = await params
+  const combo = getCombo(occasionSlug, citySlug)
+  const occasion = getOccasionPage(occasionSlug)
+  const city = getCityPage(citySlug)
   if (!combo || !occasion || !city) {
     return { title: "Page Not Found" }
   }
@@ -56,10 +57,11 @@ export async function generateMetadata({
   }
 }
 
-export default function OccasionCityPage({ params }: { params: { occasion: string; city: string } }) {
-  const combo = getCombo(params.occasion, params.city)
-  const occasion = getOccasionPage(params.occasion)
-  const city = getCityPage(params.city)
+export default async function OccasionCityPage({ params }: { params: Promise<{ occasion: string; city: string }> }) {
+  const { occasion: occasionSlug, city: citySlug } = await params
+  const combo = getCombo(occasionSlug, citySlug)
+  const occasion = getOccasionPage(occasionSlug)
+  const city = getCityPage(citySlug)
   if (!combo || !occasion || !city) {
     notFound()
   }
