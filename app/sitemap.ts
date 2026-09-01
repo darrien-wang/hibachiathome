@@ -57,6 +57,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }))
 
+  const cateringCities = [
+    "los-angeles",
+    "san-diego",
+    "long-beach",
+    "pasadena",
+    "riverside",
+    "anaheim",
+    "irvine",
+    "huntington-beach",
+  ]
+  const cateringPagesSitemap: MetadataRoute.Sitemap = cateringCities.map((slug) => ({
+    url: `${BASE_URL}/hibachi-catering/${slug}`,
+    lastModified: "2026-09-01T00:00:00.000Z",
+    changeFrequency: "monthly" as const,
+    priority: 0.85,
+  }))
+
   const occasionPagesSitemap: MetadataRoute.Sitemap = [
     {
       url: `${BASE_URL}/party`,
@@ -87,5 +104,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Failed to fetch blog posts for sitemap:", error)
   }
 
-  return [...staticPages, ...cityPagesSitemap, ...occasionPagesSitemap, ...blogPostsSitemap]
+  return [...staticPages, ...cityPagesSitemap, ...cateringPagesSitemap, ...occasionPagesSitemap, ...blogPostsSitemap]
 }
