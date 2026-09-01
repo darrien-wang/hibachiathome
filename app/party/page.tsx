@@ -69,7 +69,7 @@ export default function PartyHubPage() {
     <div className="min-h-screen bg-white">
       <JsonLd data={[breadcrumbJsonLd, itemListJsonLd, serviceProviderJsonLd]} />
 
-      <section className="bg-gradient-to-r from-amber-50 to-orange-50 pt-12 pb-14">
+      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-14">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold">A Reason to Gather Is All You Need</h1>
           <p className="mx-auto mt-4 max-w-2xl text-2xl font-semibold text-orange-800">Fire up your story.</p>

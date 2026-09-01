@@ -115,7 +115,7 @@ export default function OccasionPage({ params }: { params: { occasion: string } 
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd]} />
 
       {/* Hero */}
-      <section className="bg-gradient-to-r from-amber-50 to-orange-50 pt-10 pb-14">
+      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-14">
         <div className="container mx-auto px-4">
           <nav className="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-primary">

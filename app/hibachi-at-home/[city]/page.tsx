@@ -222,7 +222,7 @@ export default function CityPage({ params }: { params: { city: string } }) {
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
 
       {/* Hero */}
-      <section className="bg-gradient-to-r from-amber-50 to-orange-50 pt-10 pb-16">
+      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
         <div className="container mx-auto px-4">
           <nav className="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-primary">
