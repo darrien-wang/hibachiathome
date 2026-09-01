@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next"
 import { getBlogPosts } from "@/lib/blog"
 import { cityPages, CITY_PAGES_LAST_UPDATED } from "@/config/city-pages"
+import { occasionPages, OCCASION_PAGES_LAST_UPDATED } from "@/config/occasion-pages"
 
 const BASE_URL = "https://www.realhibachi.com"
 
@@ -56,6 +57,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }))
 
+  const occasionPagesSitemap: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/party`,
+      lastModified: OCCASION_PAGES_LAST_UPDATED,
+      changeFrequency: "monthly" as const,
+      priority: 0.9,
+    },
+    ...occasionPages.map((occasion) => ({
+      url: `${BASE_URL}/party/${occasion.slug}`,
+      lastModified: OCCASION_PAGES_LAST_UPDATED,
+      changeFrequency: "monthly" as const,
+      priority: 0.85,
+    })),
+  ]
+
   let blogPostsSitemap: MetadataRoute.Sitemap = []
   try {
     const blogPosts = await getBlogPosts()
@@ -71,5 +87,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Failed to fetch blog posts for sitemap:", error)
   }
 
-  return [...staticPages, ...cityPagesSitemap, ...blogPostsSitemap]
+  return [...staticPages, ...cityPagesSitemap, ...occasionPagesSitemap, ...blogPostsSitemap]
 }

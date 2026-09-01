@@ -81,6 +81,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/party" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
+                  Party Ideas
+                </Link>
+              </li>
+              <li>
                 <Link
                   href="/locations/la-orange-county"
                   className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
