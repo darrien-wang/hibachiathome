@@ -1069,7 +1069,7 @@ export default function QuoteBuilderClient() {
 
   return (
     <div className="bg-gradient-to-b from-orange-50/70 via-amber-50/30 to-orange-50/50">
-      <div className="page-container container mx-auto px-4 py-12">
+      <div className="page-container container mx-auto px-4 pb-12 !pt-[calc(var(--header-height,120px)+1rem)] sm:!pt-[calc(var(--header-height,120px)+2rem)]">
       <div className="max-w-6xl mx-auto">
         {bookingConfirmation ? (
           <div
@@ -1187,28 +1187,61 @@ export default function QuoteBuilderClient() {
           ))}
         </div>
 
-        <div className="relative mb-10 overflow-hidden rounded-2xl px-4 py-12 text-center sm:py-16">
+        <section className="relative mb-8 overflow-hidden rounded-2xl">
           <Image
-            src="/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg"
+            src="/images/hero/quote-hero.jpg"
             alt=""
             aria-hidden
             fill
             priority
-            quality={35}
             sizes="100vw"
-            className="scale-110 object-cover object-[30%_30%] blur-[3px]"
+            className="object-cover object-[30%_35%]"
           />
-          <div className="absolute inset-0 bg-white/60" />
-          <div className="relative">
-            <h1 className="text-4xl font-bold mb-3">Get Your Instant Quote</h1>
-            <p className="text-2xl font-semibold text-orange-800 max-w-3xl mx-auto">
-              Fire up your story.
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+          <div className="relative mx-auto max-w-3xl px-5 py-12 text-center text-white sm:py-16">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-300 sm:text-xs">
+              Private Hibachi Catering · LA, OC & SoCal
             </p>
-            <p className="mt-2 text-sm text-gray-600 max-w-3xl mx-auto">
-              Instant estimate in 30 seconds — no sign-up, no obligation.
+            <h1 className="mt-3 text-3xl font-bold leading-tight sm:text-5xl">
+              See Your Exact Hibachi Price in 30 Seconds
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-white/90 sm:text-lg">
+              No phone number. No sign-up. Food, show, and travel — all in the price you see.
             </p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
+              <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
+                Weekdays from <span className="font-bold text-amber-300">$45.9</span>/person
+              </span>
+              <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
+                Kids from <span className="font-bold text-amber-300">$22.95</span>
+              </span>
+              <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
+                Weekends from <span className="font-bold text-amber-300">$59.9</span>
+              </span>
+            </div>
+            <div className="mt-6">
+              <Button
+                asChild
+                className="h-12 rounded-full bg-[hsl(24_79%_55%)] px-8 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+              >
+                <a href="#quote-builder">Get My Exact Price</a>
+              </Button>
+            </div>
+            <div className="mt-4">
+              <a
+                href="#quote-reviews"
+                className="inline-flex flex-wrap items-center justify-center gap-1.5 text-sm text-white/90 underline-offset-4 hover:underline"
+              >
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                <span>
+                  <span className="font-semibold">4.9</span> average rating · 500+ parties served — read our Google
+                  reviews
+                </span>
+              </a>
+            </div>
+            <p className="mt-3 text-xs italic text-white/70">Fire up your story.</p>
           </div>
-        </div>
+        </section>
 
         {/* One-row film strip: drifts back and forth on its own, pauses the
             moment the visitor touches it, and stays hand-swipeable. Videos
@@ -1238,7 +1271,7 @@ export default function QuoteBuilderClient() {
           ))}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
+        <div id="quote-builder" className="grid scroll-mt-24 gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1786,7 +1819,7 @@ export default function QuoteBuilderClient() {
           </Card>
         </div>
 
-        <div className="mt-12">
+        <div id="quote-reviews" className="mt-12 scroll-mt-24">
           <h2 className="text-center text-2xl font-bold">What Our Guests Say</h2>
           <div className="mt-1.5 flex items-center justify-center gap-1 text-sm text-gray-600">
             {[1, 2, 3, 4, 5].map((star) => (
