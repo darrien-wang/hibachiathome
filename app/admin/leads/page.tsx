@@ -618,11 +618,15 @@ export default function LeadsDashboard() {
   const sendEmailFollowup = useCallback((l: LeadRow) => {
     if (!l.email) return
     const firstName = (l.full_name || "").split(" ")[0]
+    // Same prefilled /deposit/pay link the SMS scripts use (parsed from the
+    // lead, full auto-confirm webhook flow) - one link, one pipeline, no
+    // channel drift. Falls back to the generic page if no date is parsable.
+    const depositUrl = buildDepositLink(l) ?? "https://www.realhibachi.com/deposit"
     setEmailDraft({
       leadId: l.id,
       to: l.email,
       subject: "Your Real Hibachi date is held \u{1F389}",
-      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total):\nhttps://www.realhibachi.com/deposit\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
+      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
     })
   }, [])
 
