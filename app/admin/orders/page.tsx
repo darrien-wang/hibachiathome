@@ -407,6 +407,16 @@ function OrderDrawer({
   const [travelResult, setTravelResult] = useState<string>("")
   const [chefName, setChefName] = useState("Bling")
   const [sopBusy, setSopBusy] = useState<string | null>(null)
+  // 人数/报价调整:客人的人数到活动前一天都可能变,这里随时改、随时重算
+  const [adjOpen, setAdjOpen] = useState(false)
+  const [adjAdults, setAdjAdults] = useState("0")
+  const [adjKids, setAdjKids] = useState("0")
+  const [adjTableware, setAdjTableware] = useState(false)
+  const [adjTravel, setAdjTravel] = useState("0")
+  const [adjAdultPrice, setAdjAdultPrice] = useState("59.9")
+  const [adjKidPrice, setAdjKidPrice] = useState("29.9")
+  const [adjNote, setAdjNote] = useState("")
+  const [adjError, setAdjError] = useState("")
 
   useEffect(() => {
     setPlannerUrl("")
@@ -415,7 +425,29 @@ function OrderDrawer({
     setPayUrl("")
     setTravelResult("")
     if (detail?.order.event_address) setTravelDest(detail.order.event_address)
+    setAdjOpen(false)
+    setAdjError("")
+    setAdjNote("")
+    setAdjAdults(String(detail?.order.guest_adult_count ?? 0))
+    setAdjKids(String(detail?.order.guest_child_count ?? 0))
+    // 差旅费预填:抽屉事件流里最近一次算出的客户侧差旅费
+    const travelEvent = (detail?.events ?? []).find(
+      (e) => e.action === "travel_distance_calculated" && typeof e.metadata?.customer_fee === "number",
+    )
+    setAdjTravel(travelEvent ? String(travelEvent.metadata?.customer_fee) : "0")
+    setAdjTableware(false)
   }, [detail])
+
+  const adj = useMemo(() => {
+    const adults = Math.max(0, Math.floor(Number(adjAdults) || 0))
+    const kids = Math.max(0, Math.floor(Number(adjKids) || 0))
+    const meal = adults * (Number(adjAdultPrice) || 0) + kids * (Number(adjKidPrice) || 0)
+    const mealFloored = adults + kids > 0 ? Math.max(meal, 599) : 0
+    const tableware = adjTableware ? (adults + kids) * 15 : 0
+    const travel = Number(adjTravel) || 0
+    const total = Math.round((mealFloored + tableware + travel) * 100) / 100
+    return { adults, kids, meal, mealFloored, minApplied: mealFloored > meal, tableware, travel, total }
+  }, [adjAdults, adjKids, adjAdultPrice, adjKidPrice, adjTableware, adjTravel])
 
   const call = useCallback(
     async (path: string, body: Record<string, unknown>) => {
@@ -601,6 +633,100 @@ function OrderDrawer({
             {payUrl && (
               <div style={{ fontSize: 12.5, color: "#065f46", background: "#d1fae5", borderRadius: 8, padding: "7px 10px", marginBottom: 6, wordBreak: "break-all" }}>
                 已复制:{payUrl}
+              </div>
+            )}
+
+            {/* ---------- 人数/报价调整:人数到活动前一天都可能变 ---------- */}
+            <div style={labelStyle}>人数 / 报价调整</div>
+            {!adjOpen ? (
+              <button style={btnGhost} onClick={() => setAdjOpen(true)}>
+                ✏️ 调整人数或金额
+              </button>
+            ) : (
+              <div style={{ border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 12px", background: "#fffbeb", marginBottom: 6 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
+                  <label style={{ fontSize: 12, color: "#6b7280" }}>
+                    大人
+                    <input style={{ ...inputStyle, marginTop: 3, padding: "6px 9px" }} inputMode="numeric" value={adjAdults} onChange={(e) => setAdjAdults(e.target.value)} />
+                  </label>
+                  <label style={{ fontSize: 12, color: "#6b7280" }}>
+                    小孩 5-12
+                    <input style={{ ...inputStyle, marginTop: 3, padding: "6px 9px" }} inputMode="numeric" value={adjKids} onChange={(e) => setAdjKids(e.target.value)} />
+                  </label>
+                  <label style={{ fontSize: 12, color: "#6b7280" }}>
+                    大人单价 $
+                    <input style={{ ...inputStyle, marginTop: 3, padding: "6px 9px" }} inputMode="decimal" value={adjAdultPrice} onChange={(e) => setAdjAdultPrice(e.target.value)} />
+                  </label>
+                  <label style={{ fontSize: 12, color: "#6b7280" }}>
+                    小孩单价 $
+                    <input style={{ ...inputStyle, marginTop: 3, padding: "6px 9px" }} inputMode="decimal" value={adjKidPrice} onChange={(e) => setAdjKidPrice(e.target.value)} />
+                  </label>
+                  <label style={{ fontSize: 12, color: "#6b7280" }}>
+                    差旅费 $
+                    <input style={{ ...inputStyle, marginTop: 3, padding: "6px 9px" }} inputMode="decimal" value={adjTravel} onChange={(e) => setAdjTravel(e.target.value)} />
+                  </label>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#374151", marginTop: 8 }}>
+                  <input type="checkbox" checked={adjTableware} onChange={(e) => setAdjTableware(e.target.checked)} />
+                  桌椅餐具租赁(×$15/人)
+                </label>
+                <div style={{ fontSize: 13, marginTop: 8, background: "#fff", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 10px" }}>
+                  餐费 ${adj.mealFloored.toFixed(2)}
+                  {adj.minApplied ? "(已按 $599 起步价)" : ""}
+                  {adj.tableware > 0 ? ` + 桌椅 $${adj.tableware.toFixed(2)}` : ""}
+                  {adj.travel > 0 ? ` + 差旅 $${adj.travel.toFixed(2)}` : ""}
+                  {" = "}
+                  <b>总报价 ${adj.total.toFixed(2)}</b>
+                  <span style={{ color: "#6b7280" }}>
+                    {" "}· 已付 {money((o.deposit_paid_total_cents ?? 0) + (o.amount_paid_total_cents ?? 0))} · 尾款约{" "}
+                    {money(Math.max(0, Math.round(adj.total * 100) - (o.deposit_paid_total_cents ?? 0) - (o.amount_paid_total_cents ?? 0)))}
+                  </span>
+                </div>
+                <input
+                  style={{ ...inputStyle, marginTop: 8, padding: "6px 9px", fontSize: 12.5 }}
+                  value={adjNote}
+                  onChange={(e) => setAdjNote(e.target.value)}
+                  placeholder="备注(例:客人预计 17 人,待活动前确认)"
+                />
+                {adjError && <div style={{ fontSize: 12.5, color: "#b91c1c", marginTop: 6 }}>{adjError}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button
+                    style={btnStyle}
+                    disabled={busy === "adjust"}
+                    onClick={async () => {
+                      setBusy("adjust")
+                      setAdjError("")
+                      const data = await call("/api/admin/orders/adjust", {
+                        orderId: o.id,
+                        adults: adj.adults,
+                        kids: adj.kids,
+                        quotedTotalCents: Math.round(adj.total * 100),
+                        breakdown: {
+                          adult_price: Number(adjAdultPrice) || 0,
+                          kid_price: Number(adjKidPrice) || 0,
+                          meal: adj.mealFloored,
+                          minimum_applied: adj.minApplied,
+                          tableware: adj.tableware,
+                          travel: adj.travel,
+                        },
+                        note: adjNote,
+                        operator: localStorage.getItem("rh_operator_name") ?? "staff",
+                      })
+                      setBusy(null)
+                      if (data.ok) {
+                        setAdjOpen(false)
+                        onChanged()
+                      } else {
+                        setAdjError(`保存失败:${data.error ?? "unknown"}`)
+                      }
+                    }}
+                  >
+                    {busy === "adjust" ? "保存中…" : "保存调整"}
+                  </button>
+                  <button style={btnGhost} onClick={() => setAdjOpen(false)}>
+                    取消
+                  </button>
+                </div>
               </div>
             )}
 
