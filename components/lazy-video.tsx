@@ -21,6 +21,7 @@ export default function LazyVideo({
   const ref = useRef<HTMLVideoElement | null>(null)
   const [active, setActive] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [blocked, setBlocked] = useState(false)
 
   useEffect(() => {
     const el = ref.current
@@ -47,7 +48,10 @@ export default function LazyVideo({
     // The <source> just mounted: fetch and start playback.
     el.load()
     el.play().catch(() => {
-      // Autoplay rejection is fine - the user still has controls.
+      // iOS Low Power Mode and data-saver settings reject muted autoplay;
+      // without controls the poster becomes a dead tap target, so surface
+      // the native play button.
+      setBlocked(true)
     })
   }, [active])
 
@@ -76,6 +80,18 @@ export default function LazyVideo({
       muted
       loop
       playsInline
+      controls={blocked}
+      onPlay={() => setBlocked(false)}
+      onClick={() => {
+        const el = ref.current
+        // With native controls visible, taps belong to the control UI.
+        if (!el || el.controls) return
+        if (el.paused) {
+          el.play().catch(() => setBlocked(true))
+        } else {
+          el.pause()
+        }
+      }}
       onError={() => {
         if (active) setFailed(true)
       }}
