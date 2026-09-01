@@ -21,7 +21,6 @@ const LAST_UPDATED: Record<string, string> = {
   "/book": "2026-08-27T00:00:00.000Z", // tent copy
   "/blog": "2026-08-26T00:00:00.000Z", // four new posts
   "/locations/la-orange-county": "2026-08-27T00:00:00.000Z", // child pricing
-  "/referral": "2026-09-01T00:00:00.000Z", // referral rewards launch
 }
 
 // Routes not listed above genuinely have not changed since the SEO rebuild.
@@ -40,7 +39,8 @@ const STATIC_ROUTES = [
   "/gallery",
   "/locations", // Main locations page
   "/privacy-policy",
-  "/referral",
+  // "/referral" deliberately absent: page is live but unlisted (noindex) while
+  // referral anti-abuse rules are finalized — shared 1:1 via SMS only.
   "/rentals",
 ]
 

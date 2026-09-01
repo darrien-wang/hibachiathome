@@ -25,6 +25,9 @@ const codeSmsHref = `sms:${PHONE_RAW}?body=${encodeURIComponent(
 export const metadata: Metadata = {
   title: "Referral Rewards",
   description: `Give friends $${REFERRAL_FRIEND_DISCOUNT} off their first hibachi party and earn $50–$200 cash for every party they book. Paid by Zelle within ${REFERRAL_PAYOUT_HOURS} hours — no limits, no gimmicks.`,
+  // Unlisted while anti-abuse rules are finalized: reachable by direct link
+  // (shared over SMS with code recipients), but not indexed or in the sitemap.
+  robots: { index: false, follow: true },
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: "Referral Rewards | Real Hibachi",
