@@ -625,7 +625,7 @@ function OrderDrawer({
                 <FileText size={14} /> 专业表单
               </button>
             </div>
-            <div style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 6 }}>同一份订单数据的两个入口:图形布置(客户用)/ <FileText size={14} /> 专业表单(staff 用),改哪边都落同一处。</div>
+            <div style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 6 }}>同一份订单数据的两个入口:图形布置(客户用)/ 专业表单(staff 用),改哪边都落同一处。</div>
             {plannerUrl && (
               <div style={{ fontSize: 12.5, color: "#065f46", background: "#d1fae5", borderRadius: 8, padding: "7px 10px", marginBottom: 6, wordBreak: "break-all" }}>
                 已复制:{plannerUrl}
