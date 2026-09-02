@@ -6,7 +6,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, Star, MapPin } from "lucide-react"
+import { MessageSquare, Star, MapPin, ChefHat, UtensilsCrossed, Flame, Clock, Users, Armchair, PartyPopper } from "lucide-react"
 import { siteConfig } from "@/config/site"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
@@ -49,32 +49,32 @@ const faqs = [
 // Service features data
 const serviceFeatures = [
   {
-    icon: "🥢",
+    icon: ChefHat,
     title: "What's Included",
     description: "Private chef, grill, full setup, cleanup. You host, we cook.",
   },
   {
-    icon: "🍱",
+    icon: UtensilsCrossed,
     title: "What You Eat",
     description: "Fried rice, salad, veggies, and 2 proteins per guest. Add lobster or filet upgrades!",
   },
   {
-    icon: "🔥",
+    icon: Flame,
     title: "What to Expect",
     description: "Live hibachi show with fire tricks, food tossing, and crowd interaction.",
   },
   {
-    icon: "⏱️",
+    icon: Clock,
     title: "Duration",
     description: "~1.5 to 2 hours depending on guest count and menu.",
   },
   {
-    icon: "👪",
+    icon: Users,
     title: "Guest Minimum",
     description: "Minimum 10 guests or $599 total. Perfect for birthdays or backyard dinners.",
   },
   {
-    icon: "🪑",
+    icon: Armchair,
     title: "Optional Add-ons",
     description: "We offer table, chair & utensil rentals — or you're welcome to use your own!",
   },
@@ -378,7 +378,7 @@ export default function HibachiAtHomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto text-center">
               {serviceFeatures.map((feature, index) => (
                 <div key={index} className="flex flex-col items-center text-center p-4">
-                  <div className="text-3xl mb-3">{feature.icon}</div>
+                  <feature.icon className="h-8 w-8 text-amber-600 mb-3" aria-hidden="true" />
                   <div className="text-lg font-semibold mb-2">{feature.title}</div>
                   <div className="text-sm text-gray-600">{feature.description}</div>
                 </div>
@@ -593,7 +593,7 @@ export default function HibachiAtHomePage() {
 
             <div className="mt-8 text-center">
               <p className="text-amber-600 font-medium">
-                Our hibachi fire is so real, sometimes we get unexpected guests! 🚒
+                Our hibachi fire is so real, sometimes we get unexpected guests!
               </p>
               <p className="text-gray-600 text-sm mt-2">
                 Don't worry - our chefs are trained professionals who know how to handle the heat safely.
@@ -633,7 +633,7 @@ export default function HibachiAtHomePage() {
               <AnimateOnScroll delay={100} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center">
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🎉</span>
+                    <PartyPopper className="h-6 w-6 text-amber-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
                   <p className="text-gray-600">
@@ -645,7 +645,7 @@ export default function HibachiAtHomePage() {
               <AnimateOnScroll delay={200} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center">
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">👨‍👩‍👧‍👦</span>
+                    <Users className="h-6 w-6 text-amber-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
                   <p className="text-gray-600">
@@ -657,7 +657,7 @@ export default function HibachiAtHomePage() {
               <AnimateOnScroll delay={300} direction="up">
                 <div className="bg-white p-6 rounded-lg shadow-md text-center">
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-amber-600 text-xl">🔥</span>
+                    <Flame className="h-6 w-6 text-amber-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
                   <p className="text-gray-600">

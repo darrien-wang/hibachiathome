@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, MapPin, Star, X } from "lucide-react"
+import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Gift, MapPin, Star, X } from "lucide-react"
 import { siteConfig } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
@@ -19,7 +19,13 @@ import {
   getRegionalPolicySnapshot,
   type RegionCode,
 } from "@/config/regional-policies"
-import { isWeekdayEligibleDate } from "@/config/pricing-rules"
+import {
+  GUEST_TIERS,
+  MINIMUM_SPEND,
+  WEEKDAY_SPECIAL,
+  calcAdultEquivalents,
+  isWeekdayEligibleDate,
+} from "@/config/pricing-rules"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { trackEvent } from "@/lib/tracking"
 import {
@@ -387,6 +393,104 @@ export default function QuoteBuilderClient() {
   const activeRegionDefinition = regionPolicySnapshot.region
   const weekdaySaverPolicy = regionPolicySnapshot.pricingPolicies.weekday_saver.definition
   const weekdaySaverEnabled = regionPolicySnapshot.pricingPolicies.weekday_saver.enabled
+
+  // Weekday Special is offered, never auto-applied: the plan only shows up
+  // once the party qualifies (Mon-Thu date, enough guests, region allows it)
+  // and the customer taps it themselves to take the discount. Default stays
+  // Standard. If a later edit breaks eligibility while it's selected, we
+  // revert to Standard and say why.
+  const weekdayAdultEquivalents = calcAdultEquivalents({
+    adult: Math.max(0, Math.floor(input.adults || 0)),
+    child: Math.max(0, Math.floor(input.kids || 0)),
+    toddler: 0,
+  })
+  const weekdayHeadcountOk = weekdayAdultEquivalents >= WEEKDAY_SPECIAL.minAdultEquivalents
+  const weekdayDateOk = Boolean(input.eventDate) && isWeekdayEligibleDate(input.eventDate)
+  const hasPremiumUpgrades = input.addOns.steak || input.addOns.shrimp || input.addOns.lobster
+  const weekdayEligible = weekdaySaverEnabled && weekdayHeadcountOk && weekdayDateOk
+
+  const standardRatesLabel = `$${GUEST_TIERS.adult.price.toFixed(2)}/adult, $${GUEST_TIERS.child.price.toFixed(2)}/child`
+  const weekdayRatesLabel = `$${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult, $${GUEST_TIERS.child.weekdayPrice.toFixed(2)}/child`
+  const weekdayAdultRateLabel = `$${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult`
+
+  // What Weekday Special would save this exact party — shown when it applies.
+  const weekdaySavings = useMemo(() => {
+    const adults = Math.max(0, Math.floor(input.adults || 0))
+    const kids = Math.max(0, Math.floor(input.kids || 0))
+    const standardBase = Math.max(adults * GUEST_TIERS.adult.price + kids * GUEST_TIERS.child.price, MINIMUM_SPEND)
+    const weekdayBase = Math.max(
+      adults * GUEST_TIERS.adult.weekdayPrice + kids * GUEST_TIERS.child.weekdayPrice,
+      MINIMUM_SPEND,
+    )
+    return Math.round(standardBase - weekdayBase)
+  }, [input.adults, input.kids])
+
+  // One line telling the customer how to unlock Weekday Special — shown only
+  // while the party does NOT qualify (once it does, the selectable plan card
+  // takes over).
+  const weekdayHint = useMemo(() => {
+    if (weekdayEligible || input.pricingTier === "weekday_saver") return null
+    if (!weekdaySaverEnabled) return weekdaySaverPolicy.unavailableMessage
+    if (!weekdayHeadcountOk) {
+      const need = Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - weekdayAdultEquivalents))
+      return `Weekday Special — ${weekdayAdultRateLabel} on Mon–Thu — unlocks at ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half). Add ${need} more to qualify.`
+    }
+    if (!input.eventDate) {
+      return `Your party size qualifies for Weekday Special (${weekdayAdultRateLabel}) — pick a Mon–Thu date to see the option.`
+    }
+    const described = describeEventDate(input.eventDate)
+    return described
+      ? `${described.label} is a ${described.weekday} — Weekday Special (${weekdayAdultRateLabel}) is Mon–Thu only. Your party size already qualifies.`
+      : `Weekday Special (${weekdayAdultRateLabel}) is Mon–Thu only.`
+  }, [
+    input.eventDate,
+    input.pricingTier,
+    weekdayAdultEquivalents,
+    weekdayAdultRateLabel,
+    weekdayEligible,
+    weekdayHeadcountOk,
+    weekdaySaverEnabled,
+    weekdaySaverPolicy.unavailableMessage,
+  ])
+
+  // If an edit breaks eligibility while Weekday Special is selected, revert
+  // to Standard and say why — losing the discount silently reads as a price
+  // hike.
+  useEffect(() => {
+    if (input.pricingTier !== "weekday_saver" || weekdayEligible) return
+    setInput((previous) => ({ ...previous, pricingTier: "standard" }))
+    const described = input.eventDate ? describeEventDate(input.eventDate) : null
+    const reason = !weekdaySaverEnabled
+      ? weekdaySaverPolicy.unavailableMessage
+      : !weekdayDateOk
+        ? described
+          ? `${described.label} is a ${described.weekday} — Weekday Special is Mon–Thu only.`
+          : "Weekday Special needs a Mon–Thu event date."
+        : `Weekday Special needs ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half).`
+    pushToast("error", "Back to Standard Plan pricing", reason)
+  }, [
+    input.eventDate,
+    input.pricingTier,
+    pushToast,
+    weekdayDateOk,
+    weekdayEligible,
+    weekdaySaverEnabled,
+    weekdaySaverPolicy.unavailableMessage,
+  ])
+
+  // Nudge when the option becomes available — it appears mid-form where the
+  // customer may no longer be looking. Once per page load: eligibility can
+  // flap while numbers are being edited, and repeat toasts read as nagging.
+  const weekdayNudgeShownRef = useRef(false)
+  useEffect(() => {
+    if (!weekdayEligible || weekdayNudgeShownRef.current || input.pricingTier === "weekday_saver") return
+    weekdayNudgeShownRef.current = true
+    pushToast(
+      "promo",
+      "You qualify for Weekday Special",
+      `Mon–Thu party with ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests — tap the green plan to get ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}.`,
+    )
+  }, [input.pricingTier, pushToast, weekdayAdultRateLabel, weekdayEligible])
   // Display-only scarcity: real remaining capacity clamped to 1-3 (never zero —
   // customers must always be able to book), with a stable pseudo value as the
   // fallback when the API is unavailable.
@@ -490,7 +594,10 @@ export default function QuoteBuilderClient() {
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
-  const smsBody = useMemo(() => buildSmsBody(input, result, contactTemplates.sms), [input, result, contactTemplates.sms])
+  const smsBody = useMemo(
+    () => buildSmsBody(input, result, contactTemplates.sms),
+    [input, result, contactTemplates.sms],
+  )
   const emailPayload = useMemo(
     () =>
       buildEmailPayload(input, result, {
@@ -501,33 +608,6 @@ export default function QuoteBuilderClient() {
   )
   const isWeekdaySaverTier = input.pricingTier === "weekday_saver"
   const weekdaySaverProteinsValue = isWeekdaySaverTier ? WEEKDAY_SAVER_MENU_DETAIL : "n/a"
-
-  useEffect(() => {
-    if (!weekdaySaverEnabled && input.pricingTier === "weekday_saver") {
-      setInput((previous) => ({
-        ...previous,
-        pricingTier: "standard",
-      }))
-    }
-  }, [input.pricingTier, weekdaySaverEnabled])
-
-  useEffect(() => {
-    if (input.pricingTier !== "weekday_saver") return
-    if (!input.eventDate || isWeekdayEligibleDate(input.eventDate)) return
-
-    setInput((previous) => ({
-      ...previous,
-      pricingTier: "standard",
-    }))
-    const described = describeEventDate(input.eventDate)
-    pushToast(
-      "error",
-      "Switched to Standard Plan",
-      described
-        ? `Weekday Special is Monday-Thursday only — ${described.label} is a ${described.weekday}.`
-        : "Weekday Special is Monday-Thursday only.",
-    )
-  }, [input.eventDate, input.pricingTier, pushToast])
 
   useEffect(() => {
     const destination = input.location.trim()
@@ -669,47 +749,30 @@ export default function QuoteBuilderClient() {
     setInput((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handlePricingTierChange = (pricingTier: QuoteInput["pricingTier"]) => {
-    if (pricingTier === "weekday_saver" && !weekdaySaverEnabled) {
-      return
-    }
-
-    if (pricingTier === "weekday_saver" && input.eventDate && !isWeekdayEligibleDate(input.eventDate)) {
-      const described = describeEventDate(input.eventDate)
-      pushToast(
-        "error",
-        "Weekday Special is Monday-Thursday only",
-        described
-          ? `${described.label} is a ${described.weekday}, so we've kept you on the Standard Plan.`
-          : "Pick a Monday-Thursday date to use this tier.",
-      )
-      return
-    }
-
+  // Tap to take the discount, tap again to go back. Selecting it clears
+  // premium upgrades — they're not part of the Weekday Special menu.
+  const handleWeekdaySaverToggle = () => {
     setInput((prev) => {
-      if (prev.pricingTier === pricingTier) return prev
-      if (pricingTier === "weekday_saver") {
-        return {
-          ...prev,
-          pricingTier,
-          addOns: {
-            steak: false,
-            shrimp: false,
-            lobster: false,
-          },
-        }
+      if (prev.pricingTier === "weekday_saver") {
+        return { ...prev, pricingTier: "standard" }
       }
       return {
         ...prev,
-        pricingTier,
+        pricingTier: "weekday_saver",
+        addOns: { steak: false, shrimp: false, lobster: false },
       }
     })
   }
 
+  // Upgrades stay clickable on every tier: checking one while Weekday Special
+  // is selected moves the quote back to the Standard Plan (with a toast).
   const handleAddOnToggle = (key: keyof QuoteInput["addOns"], checked: boolean) => {
-    if (input.pricingTier === "weekday_saver") return
+    if (checked && input.pricingTier === "weekday_saver") {
+      pushToast("error", "Switched to Standard Plan", "Premium upgrades aren't part of Weekday Special.")
+    }
     setInput((prev) => ({
       ...prev,
+      pricingTier: checked ? "standard" : prev.pricingTier,
       addOns: {
         ...prev.addOns,
         [key]: checked,
@@ -736,7 +799,6 @@ export default function QuoteBuilderClient() {
     || !customerPhone.trim()
     || !eventTime
     || !hearAboutUs
-  const weekdaySaverRulesFailed = isWeekdaySaverTier && !result.weekdaySaver.isEligible
   // Name what is actually still empty so the validation toast points at the
   // exact box the user missed instead of listing every required field.
   const missingFieldLabels = [
@@ -939,10 +1001,6 @@ export default function QuoteBuilderClient() {
     if (missingRequiredBookingFields) {
       pushToast("error", "A few details missing", `Still need ${missingFieldsSentence}.`)
       focusFirstMissingField()
-      return
-    }
-    if (weekdaySaverRulesFailed) {
-      pushToast("error", "Weekday Special rules", "Monday-Thursday events with at least 15 total guests. Switch to Standard for other dates.")
       return
     }
 
@@ -1158,7 +1216,11 @@ export default function QuoteBuilderClient() {
             <div
               key={toast.id}
               className={`pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur ${
-                toast.kind === "urgency" ? "border-red-200" : "border-amber-300"
+                toast.kind === "urgency"
+                  ? "border-red-200"
+                  : toast.kind === "promo"
+                    ? "border-emerald-300"
+                    : "border-amber-300"
               }`}
             >
               <div className="flex items-start gap-2.5">
@@ -1167,6 +1229,8 @@ export default function QuoteBuilderClient() {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
                   </span>
+                ) : toast.kind === "promo" ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
                 ) : (
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
                 )}
@@ -1210,13 +1274,13 @@ export default function QuoteBuilderClient() {
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
               <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Weekdays from <span className="font-bold text-amber-300">$45.9</span>/person
+                Weekdays from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}</span>/person
               </span>
               <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Kids from <span className="font-bold text-amber-300">$22.95</span>
+                Kids from <span className="font-bold text-amber-300">${GUEST_TIERS.child.weekdayPrice.toFixed(2)}</span>
               </span>
               <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Weekends from <span className="font-bold text-amber-300">$59.9</span>
+                Weekends from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.price.toFixed(2)}</span>
               </span>
             </div>
             <div className="mt-6">
@@ -1345,48 +1409,54 @@ export default function QuoteBuilderClient() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Pricing Tier *</label>
-                <div className={`grid gap-3 ${weekdaySaverEnabled ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
+              {/* Default is Standard with no plan UI at all. The Weekday
+                  Special card only renders once the party qualifies, and the
+                  customer taps it themselves — never auto-selected. */}
+              {weekdayEligible || isWeekdaySaverTier ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Pricing Plan</label>
                   <button
                     type="button"
-                    onClick={() => handlePricingTierChange("standard")}
-                    className={`rounded-lg border p-3 text-left transition ${
-                      input.pricingTier === "standard"
-                        ? "border-[hsl(24_79%_55%)] bg-[hsl(24_79%_96%)]"
-                        : "border-gray-200 bg-white hover:border-[hsl(24_79%_70%)]"
+                    onClick={handleWeekdaySaverToggle}
+                    aria-pressed={isWeekdaySaverTier}
+                    className={`w-full rounded-lg border p-3 text-left transition ${
+                      isWeekdaySaverTier
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-emerald-400 bg-white hover:border-emerald-500 hover:bg-emerald-50/50"
                     }`}
                   >
-                    <p className="text-sm font-semibold text-gray-900">Standard Plan</p>
-                    <p className="mt-1 text-xs text-gray-600">$59.90/adult, $29.90/child, add-ons available</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {weekdaySaverPolicy.title}
+                      {isWeekdaySaverTier ? (
+                        <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                          Selected
+                        </span>
+                      ) : (
+                        <span className="ml-2 text-xs font-semibold text-emerald-700">
+                          — you qualify{weekdaySavings > 0 ? `, save $${weekdaySavings}` : ""}
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600">{weekdaySaverPolicy.quoteDescription}</p>
+                    <p className="mt-1 text-xs font-medium text-emerald-700">
+                      {isWeekdaySaverTier
+                        ? "Tap again to switch back to the Standard Plan."
+                        : hasPremiumUpgrades
+                          ? "Tap to apply — premium upgrades will be removed (not part of this menu)."
+                          : "Tap to apply — no code needed."}
+                    </p>
                   </button>
-                  {weekdaySaverEnabled && (
-                    <button
-                      type="button"
-                      onClick={() => handlePricingTierChange("weekday_saver")}
-                      className={`rounded-lg border p-3 text-left transition ${
-                        input.pricingTier === "weekday_saver"
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-gray-200 bg-white hover:border-emerald-300"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-gray-900">{weekdaySaverPolicy.title}</p>
-                      <p className="mt-1 text-xs text-gray-600">{weekdaySaverPolicy.quoteDescription}</p>
-                    </button>
-                  )}
                 </div>
-                {!weekdaySaverEnabled && (
-                  <p className="text-xs text-slate-600">
-                    {weekdaySaverPolicy.unavailableMessage} Current region: <span className="font-medium">{activeRegionDefinition.label}</span>.
-                  </p>
-                )}
-                {isWeekdaySaverTier && (
-                  <p className="text-xs text-emerald-700">
-                    Weekday Special rules: guests pick 2 of 3 proteins (chicken, steak, shrimp). Includes chef show, rice,
-                    vegetables, and salad. No premium add-ons or custom upgrade.
-                  </p>
-                )}
-              </div>
+              ) : (
+                <>
+                  {weekdayHint && <p className="text-xs text-amber-700">{weekdayHint}</p>}
+                  {!weekdaySaverEnabled && (
+                    <p className="text-xs text-slate-600">
+                      Current region: <span className="font-medium">{activeRegionDefinition.label}</span>.
+                    </p>
+                  )}
+                </>
+              )}
 
               {isWeekdaySaverTier && (
                 <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
@@ -1403,15 +1473,6 @@ export default function QuoteBuilderClient() {
                     Guests pick 2 of 3 proteins at the event. Fried rice, vegetables, salad, and the live chef show are
                     included.
                   </p>
-                  {result.weekdaySaver.violations.length > 0 && (
-                    <div className="space-y-1 rounded-md border border-red-200 bg-red-50 p-2">
-                      {result.weekdaySaver.violations.map((message) => (
-                        <p key={message} className="text-xs text-red-700">
-                          {message}
-                        </p>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -1454,14 +1515,13 @@ export default function QuoteBuilderClient() {
                 </div>
               </div>
 
-              <div className={`space-y-3 ${isWeekdaySaverTier ? "opacity-60" : ""}`}>
+              <div className="space-y-3">
                 <p className="text-sm font-medium">Premium Upgrade Options (optional)</p>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="add-on-steak"
                       checked={input.addOns.steak}
-                      disabled={isWeekdaySaverTier}
                       onCheckedChange={(checked) => handleAddOnToggle("steak", Boolean(checked))}
                     />
                     <label htmlFor="add-on-steak" className="text-sm">
@@ -1472,7 +1532,6 @@ export default function QuoteBuilderClient() {
                     <Checkbox
                       id="add-on-shrimp"
                       checked={input.addOns.shrimp}
-                      disabled={isWeekdaySaverTier}
                       onCheckedChange={(checked) => handleAddOnToggle("shrimp", Boolean(checked))}
                     />
                     <label htmlFor="add-on-shrimp" className="text-sm">
@@ -1483,7 +1542,6 @@ export default function QuoteBuilderClient() {
                     <Checkbox
                       id="add-on-lobster"
                       checked={input.addOns.lobster}
-                      disabled={isWeekdaySaverTier}
                       onCheckedChange={(checked) => handleAddOnToggle("lobster", Boolean(checked))}
                     />
                     <label htmlFor="add-on-lobster" className="text-sm">
@@ -1492,7 +1550,10 @@ export default function QuoteBuilderClient() {
                   </div>
                 </div>
                 {isWeekdaySaverTier ? (
-                  <p className="text-xs text-red-700">Premium add-ons are not available in the Weekday Special tier.</p>
+                  <p className="text-xs text-amber-700">
+                    Premium upgrades are Standard Plan only — picking one switches this quote to Standard pricing (
+                    {standardRatesLabel}).
+                  </p>
                 ) : (
                   <p className="text-xs text-gray-500">
                     Upgrades are priced per guest who chooses them and shown separately from the base estimate.
@@ -1516,15 +1577,32 @@ export default function QuoteBuilderClient() {
                     recordings). The total shows as an estimate range with the
                     exact quote positioned as the thing we text back. */}
                 <p className="text-sm font-medium text-amber-800">
-                  {isWeekdaySaverTier ? "Weekday Special" : "Standard Plan"}
+                  {isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"}
                 </p>
                 <p className="text-3xl font-bold text-orange-800">
-                  {isWeekdaySaverTier ? "$45.90" : "$59.90"}
+                  ${(isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)}
                   <span className="text-lg font-semibold">/adult</span>
                   <span className="ml-2 text-lg font-semibold text-amber-700">
-                    {isWeekdaySaverTier ? "$22.95" : "$29.90"}/child
+                    ${(isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)}/child
                   </span>
                 </p>
+                {isWeekdaySaverTier && weekdaySavings > 0 && (
+                  <p className="mt-1 text-sm font-semibold text-emerald-700">
+                    Weekday Special selected — you save ${weekdaySavings} vs the Standard Plan.
+                  </p>
+                )}
+                {!isWeekdaySaverTier && weekdayEligible && weekdaySavings > 0 && (
+                  <p className="mt-1 text-sm font-semibold text-emerald-700">
+                    You qualify for {weekdaySaverPolicy.title} — save ${weekdaySavings}.{" "}
+                    <button
+                      type="button"
+                      onClick={handleWeekdaySaverToggle}
+                      className="underline underline-offset-2 hover:text-emerald-800"
+                    >
+                      Apply it
+                    </button>
+                  </p>
+                )}
                 <p className="mt-2 text-base font-semibold text-amber-900">
                   {(() => {
                     const low = result.effectiveBase + result.travelFeeRange.low - result.loyaltyDiscount
@@ -1540,10 +1618,12 @@ export default function QuoteBuilderClient() {
                   })()}
                 </p>
                 {result.guestCount >= 20 && (
-                  <p className="mt-1 text-sm font-semibold text-emerald-700">
-                    🥟 Free appetizer platter included — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+)
+                  <p className="mt-1 inline-flex items-start gap-1.5 text-sm font-semibold text-emerald-700">
+                    <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    Free appetizer platter included — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+)
                   </p>
                 )}
+                {weekdayHint && <p className="mt-1 text-xs text-amber-800">{weekdayHint}</p>}
                 <p className="text-xs text-amber-800">
                   Food, live chef show, and travel included. Exact quote and date availability confirmed by text.
                 </p>
@@ -1573,12 +1653,18 @@ export default function QuoteBuilderClient() {
                 </p>
                 <div className="mt-2 space-y-1 rounded-md bg-white/50 px-3 py-2 text-xs text-amber-900">
                   <p className="font-semibold">Our three promises, in writing:</p>
-                  <p>
-                    ✅ Chef confirmed by name 48h before your event — if we ever cancel, double your deposit
-                    back.
+                  <p className="flex items-start gap-1.5">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                    <span>Chef confirmed by name 48h before your event — if we ever cancel, double your deposit back.</span>
                   </p>
-                  <p>✅ Tarp under the grill, full cleanup before we leave — your patio stays spotless.</p>
-                  <p>✅ Free fried rice &amp; vegetable refills — nobody leaves hungry.</p>
+                  <p className="flex items-start gap-1.5">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                    <span>Tarp under the grill, full cleanup before we leave — your patio stays spotless.</span>
+                  </p>
+                  <p className="flex items-start gap-1.5">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                    <span>Free fried rice &amp; vegetable refills — nobody leaves hungry.</span>
+                  </p>
                 </div>
               </div>
 
@@ -1729,13 +1815,13 @@ export default function QuoteBuilderClient() {
               <div className="space-y-2 text-sm text-gray-700">
                 <p>
                   {isWeekdaySaverTier
-                    ? "Weekday Special · $45.9/adult, $22.95/child"
-                    : "Standard Plan · $59.90/adult, $29.90/child"}
+                    ? `${weekdaySaverPolicy.title} · ${weekdayRatesLabel}`
+                    : `Standard Plan · ${standardRatesLabel}`}
                   {result.guestCount > 0 ? ` · ${result.guestCount} guests` : ""}
                 </p>
                 <p>Each guest picks 2 proteins. Fried rice, vegetables, salad, and the live chef show are included.</p>
                 {result.effectiveBase > result.baseSubtotal && (
-                  <p>Smaller parties: our $599 event minimum applies.</p>
+                  <p>Smaller parties: our ${MINIMUM_SPEND} event minimum applies.</p>
                 )}
                 <p>
                   Travel:{" "}
@@ -1751,7 +1837,7 @@ export default function QuoteBuilderClient() {
                 {result.loyaltyDiscount > 0 && (
                   <p className="font-medium text-emerald-700">
                     {input.loyaltyStatus === "party_guest" ? "Party guest card" : "Returning customer discount"}: −$
-                    {result.loyaltyDiscount.toFixed(0)} 🎉
+                    {result.loyaltyDiscount.toFixed(0)}
                   </p>
                 )}
                 {isWeekdaySaverTier ? (

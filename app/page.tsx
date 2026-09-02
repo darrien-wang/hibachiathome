@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Check, MessageSquare, Sparkles, X } from "lucide-react"
+import { ArrowRight, Check, Flame, MessageSquare, Sparkles, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { siteConfig } from "@/config/site"
 import {
@@ -502,7 +502,7 @@ export default function Home() {
 
             <div className="mt-8 text-center">
               <p className="text-amber-600 font-medium">
-                Our hibachi fire is so real, sometimes we get unexpected guests! 🚒
+                Our hibachi fire is so real, sometimes we get unexpected guests!
               </p>
               <p className="text-gray-600 text-sm mt-2">
                 Don't worry - our chefs are trained professionals who know how to handle the heat safely.
@@ -574,7 +574,7 @@ export default function Home() {
                     loading="lazy"
                   />
                   <div className="absolute -bottom-4 -right-4 bg-amber-500 text-white p-4 rounded-full shadow-lg">
-                    <span className="text-2xl">🔥</span>
+                    <Flame className="h-7 w-7" aria-hidden="true" />
                   </div>
                 </div>
               </AnimateOnScroll>

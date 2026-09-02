@@ -119,8 +119,10 @@ export function Header() {
         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-[120px] h-[120px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
 
 
-        {/* Mobile Layout */}
-        <div className="md:hidden grid grid-cols-3 items-center gap-1">
+        {/* Mobile / tablet layout: 768-1023px can't fit 8 links + CTA around a
+            centered logo, so tablets get the 3-equal-columns layout too — the
+            logo stays geometrically centered at every width. */}
+        <div className="lg:hidden grid grid-cols-3 items-center gap-1">
           <div className="flex justify-start">
             <div className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 select-text">
               <a href="sms:2137707788" onClick={handleHeaderSMSClick} className="hover:text-[#F1691B]">
@@ -198,10 +200,12 @@ export function Header() {
           </div>
         </div>
 
-        {/* Desktop Layout */}
-        <div className="hidden md:flex items-center justify-between w-full max-w-7xl mx-auto">
+        {/* Desktop Layout: grid with minmax(0,1fr) side columns — unlike
+            flex-1 (whose min-width:auto lets the wider right side push the
+            logo off-center), equal columns are guaranteed at every width. */}
+        <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center w-full max-w-7xl mx-auto">
           {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-between flex-1 pr-14">
+          <nav className="flex items-center justify-between min-w-0 pr-8 xl:pr-14">
             {navItems
               .filter((item) => !item.disabled)
               .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -209,15 +213,15 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
+                  className="px-1.5 xl:px-2 py-1 text-sm xl:text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide whitespace-nowrap"
                 >
                   {item.name}
                 </Link>
               ))}
           </nav>
 
-          {/* Logo in Center - Desktop remains unchanged */}
-          <div className="flex items-center relative h-[50px] w-[112px] md:w-[128px] z-10 mx-6">
+          {/* Logo in Center */}
+          <div className="flex items-center justify-self-center relative h-[50px] w-[128px] z-10 mx-4 xl:mx-6">
             <Link href="/" className="block relative w-full h-full">
               <Image
                 src="/images/design-mode/realhibachiathome.png"
@@ -231,8 +235,8 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-between flex-1 pl-14">
-            <div className="flex items-center justify-between flex-1">
+          <div className="flex items-center justify-between min-w-0 pl-8 xl:pl-14">
+            <div className="flex items-center justify-between flex-1 min-w-0">
               {navItems
                 .filter((item) => !item.disabled)
                 .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
@@ -240,16 +244,16 @@ export function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="px-2 py-1 text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
+                    className="px-1.5 xl:px-2 py-1 text-sm xl:text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide whitespace-nowrap"
                   >
                     {item.name}
                   </Link>
                 ))}
             </div>
-            <div className="ml-6">
+            <div className="ml-4 xl:ml-6">
               <Button
                 asChild
-                className="bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 text-base border-2 border-amber-500"
+                className="bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-4 xl:px-6 text-sm xl:text-base border-2 border-amber-500 whitespace-nowrap"
                 size="default"
               >
                 <Link href="/book">Book Now</Link>
