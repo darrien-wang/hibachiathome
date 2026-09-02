@@ -848,6 +848,16 @@ export default function QuoteBuilderClient() {
 
   // A toast at the top of the page is invisible to a phone user whose thumb is
   // on a button at the bottom — session recordings showed people tapping CTAs
+  // A native date input only opens its calendar on a precise tap; on phones a
+  // near-miss reads as "the form is broken". Any focus or click pops the picker
+  // outright — showPicker throws when already open or outside a user gesture,
+  // and in both cases plain focus is the right leftover behavior.
+  const openNativeDatePicker = (event: React.SyntheticEvent<HTMLInputElement>) => {
+    try {
+      event.currentTarget.showPicker?.()
+    } catch {}
+  }
+
   // repeatedly with no visible response. Walk them to the box they missed.
   const focusFirstMissingField = () => {
     const selector = !input.eventDate
@@ -1345,18 +1355,27 @@ export default function QuoteBuilderClient() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-2">Event Date *</label>
+                <label htmlFor="quote-event-date" className="block text-sm font-medium mb-2">Event Date *</label>
+                {/* Both lost ad sessions in the 9/1 Clarity tapes died right here:
+                    taps on the label or the padding around the native date box did
+                    nothing (dead clicks), so the label is now bound to the input and
+                    any focus/click pops the native picker — a rough thumb anywhere
+                    on the row still opens the calendar. */}
                 <Input
+                  id="quote-event-date"
                   type="date"
                   data-quote-field="date"
                   value={input.eventDate}
                   onChange={(e) => handleFieldChange("eventDate", e.target.value)}
+                  onClick={openNativeDatePicker}
+                  onFocus={openNativeDatePicker}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Event Time *</label>
+                <label htmlFor="quote-event-time" className="block text-sm font-medium mb-2">Event Time *</label>
                 <select
+                  id="quote-event-time"
                   value={eventTime}
                   data-quote-field="time"
                   onChange={(e) => setEventTime(e.target.value)}
@@ -1377,8 +1396,9 @@ export default function QuoteBuilderClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">City or ZIP *</label>
+                <label htmlFor="quote-location" className="block text-sm font-medium mb-2">City or ZIP *</label>
                 <Input
+                  id="quote-location"
                   type="text"
                   data-quote-field="location"
                   value={input.location}
@@ -1389,8 +1409,9 @@ export default function QuoteBuilderClient() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Adults *</label>
+                  <label htmlFor="quote-adults" className="block text-sm font-medium mb-2">Adults *</label>
                   <Input
+                    id="quote-adults"
                     type="number"
                     min={1}
                     data-quote-field="adults"
@@ -1399,8 +1420,9 @@ export default function QuoteBuilderClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Kids</label>
+                  <label htmlFor="quote-kids" className="block text-sm font-medium mb-2">Kids</label>
                   <Input
+                    id="quote-kids"
                     type="number"
                     min={0}
                     value={input.kids}
