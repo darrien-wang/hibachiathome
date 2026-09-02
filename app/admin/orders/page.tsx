@@ -784,7 +784,7 @@ function OrderDrawer({
                       <span style={{ fontSize: 13, width: 18, color: done ? "#16a34a" : isNext ? "#0f766e" : "#9ca3af", fontWeight: 700 }}>{done ? "✓" : isNext ? "▶" : "○"}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: isNext ? 700 : 500, color: done ? "#9ca3af" : "#111827", textDecoration: done ? "line-through" : "none" }}>
-                          {s.emoji} {s.title}
+                          {s.title}
                         </p>
                         <p style={{ margin: 0, fontSize: 11.5, color: "#6b7280" }}>{s.when}</p>
                         {s.id === "w_confirm48" && !done && (
