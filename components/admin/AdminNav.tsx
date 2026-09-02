@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ClipboardList } from "lucide-react"
 
 // Top-level nav for the order workbench: orders is the main surface, the
 // legacy lead dashboard is one tab of it (pre-deposit work only).
@@ -26,7 +27,10 @@ export default function AdminNav() {
         zIndex: 50,
       }}
     >
-      <strong style={{ fontSize: 15 }}>🔥 订单工作台</strong>
+      <strong style={{ fontSize: 15, display: "inline-flex", alignItems: "center", gap: 7 }}>
+        <ClipboardList size={17} strokeWidth={2.2} />
+        订单工作台
+      </strong>
       <nav style={{ display: "flex", gap: 6 }}>
         {TABS.map((t) => {
           const active = pathname?.startsWith(t.href)

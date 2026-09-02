@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
+import { Car, CreditCard, FileText, Pencil, Plus, Tent } from "lucide-react"
 
 // ============================================================
 // 订单工作台 · V1
@@ -132,7 +133,7 @@ function eventLabel(iso: string | null, now: number): string {
 
 const inputStyle: React.CSSProperties = { padding: "9px 11px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14, width: "100%", boxSizing: "border-box" }
 const labelStyle: React.CSSProperties = { fontSize: 12, color: "#6b7280", margin: "12px 0 5px", fontWeight: 600 }
-const btnStyle: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "1px solid #111827", background: "#111827", color: "#fff", fontSize: 13.5, cursor: "pointer" }
+const btnStyle: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "1px solid #111827", background: "#111827", color: "#fff", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }
 const btnGhost: React.CSSProperties = { ...btnStyle, background: "#fff", color: "#111827", border: "1px solid #d1d5db" }
 
 export default function OrdersWorkbench() {
@@ -314,7 +315,7 @@ export default function OrdersWorkbench() {
             {loading ? "刷新中…" : "刷新"}
           </button>
           <button style={btnStyle} onClick={() => setShowDeposit(true)}>
-            ➕ 手动押金确认
+            <Plus size={15} /> 手动押金确认
           </button>
         </div>
       </div>
@@ -345,7 +346,7 @@ export default function OrdersWorkbench() {
                     {o.order_no}
                     {hasPendingUpdate(o) && (
                       <span title="客户提交了修改待处理" style={{ marginLeft: 6, background: "#fef3c7", color: "#92400e", borderRadius: 999, padding: "1px 8px", fontSize: 11, fontFamily: "system-ui, sans-serif" }}>
-                        📝 有修改
+                        有修改
                       </span>
                     )}
                   </td>
@@ -597,7 +598,7 @@ function OrderDrawer({
                   }
                 }}
               >
-                🎪 布置工具链接{busy === "planner" ? "…" : ""}
+                <Tent size={14} /> 布置工具链接{busy === "planner" ? "…" : ""}
               </button>
               <button
                 style={btnGhost}
@@ -610,7 +611,7 @@ function OrderDrawer({
                   if (typeof data.balanceDue === "number") setPayAmount(String(data.balanceDue))
                 }}
               >
-                💳 尾款报价{busy === "quote" ? "…" : ""}
+                <CreditCard size={14} /> 尾款报价{busy === "quote" ? "…" : ""}
               </button>
               <button
                 style={btnGhost}
@@ -621,10 +622,10 @@ function OrderDrawer({
                   window.open(`https://invoice.realhibachi.com/?${params.toString()}`, "_blank", "noopener")
                 }}
               >
-                📄 专业表单
+                <FileText size={14} /> 专业表单
               </button>
             </div>
-            <div style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 6 }}>同一份订单数据的两个入口:🎪 图形(客户用)/ 📄 专业表单(staff 用),改哪边都落同一处。</div>
+            <div style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 6 }}>同一份订单数据的两个入口:图形布置(客户用)/ <FileText size={14} /> 专业表单(staff 用),改哪边都落同一处。</div>
             {plannerUrl && (
               <div style={{ fontSize: 12.5, color: "#065f46", background: "#d1fae5", borderRadius: 8, padding: "7px 10px", marginBottom: 6, wordBreak: "break-all" }}>
                 已复制:{plannerUrl}
@@ -679,7 +680,7 @@ function OrderDrawer({
             <div style={labelStyle}>人数 / 报价调整</div>
             {!adjOpen ? (
               <button style={btnGhost} onClick={() => setAdjOpen(true)}>
-                ✏️ 调整人数或金额
+                <Pencil size={14} /> 调整人数或金额
               </button>
             ) : (
               <div style={{ border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 12px", background: "#fffbeb", marginBottom: 6 }}>
@@ -780,7 +781,7 @@ function OrderDrawer({
                   const isNext = s.id === nextId
                   return (
                     <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderTop: "1px solid #f3f4f6" }}>
-                      <span style={{ fontSize: 13, width: 18 }}>{done ? "✅" : isNext ? "▶" : "○"}</span>
+                      <span style={{ fontSize: 13, width: 18, color: done ? "#16a34a" : isNext ? "#0f766e" : "#9ca3af", fontWeight: 700 }}>{done ? "✓" : isNext ? "▶" : "○"}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: isNext ? 700 : 500, color: done ? "#9ca3af" : "#111827", textDecoration: done ? "line-through" : "none" }}>
                           {s.emoji} {s.title}
@@ -907,7 +908,7 @@ function OrderDrawer({
                   )
                 }}
               >
-                🚗 算路费{busy === "travel" ? "…" : ""}
+                <Car size={14} /> 算路费{busy === "travel" ? "…" : ""}
               </button>
             </div>
             {travelResult && (
@@ -1121,8 +1122,8 @@ function ManualDepositModal({ adminKey, onClose, onCreated }: { adminKey: string
               fontSize: 13,
               borderRadius: 8,
               padding: "9px 12px",
-              background: result.startsWith("✅") ? "#d1fae5" : "#fee2e2",
-              color: result.startsWith("✅") ? "#065f46" : "#b91c1c",
+              background: result.startsWith("✓") ? "#d1fae5" : "#fee2e2",
+              color: result.startsWith("✓") ? "#065f46" : "#b91c1c",
             }}
           >
             {result}
@@ -1165,7 +1166,7 @@ function ManualDepositModal({ adminKey, onClose, onCreated }: { adminKey: string
               })
               const data = await res.json()
               if (data.ok) {
-                setResult(`✅ 已晋升为订单 ${data.orderNo ?? ""}`)
+                setResult(`✓ 已晋升为订单 ${data.orderNo ?? ""}`)
                 setTimeout(onCreated, 1200)
               } else {
                 setResult(`失败:${data.error ?? res.status}`)

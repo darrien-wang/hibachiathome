@@ -1072,7 +1072,7 @@ export default function LeadsDashboard() {
                       href={`/admin/orders?lead=${l.id}`}
                       style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none" }}
                     >
-                      🗂️ 去订单工作台
+                      去订单工作台
                     </a>
                     <button
                       onClick={() => openInvoice(l)}
@@ -1326,7 +1326,7 @@ export default function LeadsDashboard() {
                 href={`/admin/orders?lead=${detailLead.id}`}
                 style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12, width: "100%", padding: "11px 16px", borderRadius: 8, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 700, boxSizing: "border-box" }}
               >
-                🗂️ 已成单 → 去订单工作台操作（布置工具 / 48h确认 / 邀评 / 晒图已迁入）
+                已成单 → 去订单工作台操作（布置工具 / 48h确认 / 邀评 / 晒图已迁入）
               </a>
               <button
                 onClick={() => openInvoice(detailLead)}
