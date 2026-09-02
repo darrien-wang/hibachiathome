@@ -182,7 +182,7 @@ export default function Home() {
               <p className="text-base md:text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
                 {weekdaySaverEnabled
                   ? "Compare weekday saver, standard, and custom options."
-                  : `Regional policy detected: ${activeRegionDefinition.label} uses standard + custom pricing options.`}{" "}
+                  : `Weekday specials aren't available in ${activeRegionDefinition.label} yet — choose a standard or custom plan below.`}{" "}
                 Book instantly when your event fits the published rules, or contact our team for tailored planning.
               </p>
             </AnimateOnScroll>
@@ -374,107 +374,67 @@ export default function Home() {
       {/* Party Planner Story Section */}
       <PartyPlannerSection />
 
-      {/* Signature Fried Rice Section */}
+      {/* Fresh Off the Griddle — fried rice / shrimp / steak in one row */}
       <AnimateOnScroll>
         <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
           <div className="container mx-auto px-4">
             <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Our Signature <span className="text-primary">Garlic Butter Fried Rice</span>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-4">
+                Fresh Off <span className="text-primary">the Griddle</span>
               </h2>
               <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Fresh garlic butter fried rice, cooked live by our chef.
+                Garlic butter fried rice, jumbo shrimp, and steak cooked to your doneness — all live at your table.
               </p>
             </AnimateOnScroll>
 
-            <AnimateOnScroll>
-              <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/fried-rice.jpg"
-                    src="/videos/fried-rice.mp4"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {[
+                {
+                  title: "Signature Garlic Butter Fried Rice",
+                  poster: "/videos/posters/fried-rice.jpg",
+                  src: "/videos/fried-rice.mp4",
+                },
+                {
+                  title: "Sizzling Jumbo Shrimp",
+                  poster: "/videos/posters/hibachi-show.jpg",
+                  src: "/videos/hibachi-show.mp4",
+                },
+                {
+                  title: "Steak, Cooked to Your Doneness",
+                  poster: "/videos/posters/party-highlight.jpg",
+                  src: "/videos/party-highlight.mp4",
+                },
+              ].map((dish, i) => (
+                <AnimateOnScroll key={dish.src} direction="up" delay={i * 100}>
+                  <div className="rounded-xl overflow-hidden shadow-xl bg-white">
+                    <div className="relative pb-[56.25%] h-0">
+                      <LazyVideo
+                        className="absolute top-0 left-0 w-full h-full object-cover"
+                        controls
+                        poster={dish.poster}
+                        src={dish.src}
+                      />
+                    </div>
+                    <p className="px-4 py-3 text-center text-sm font-semibold text-gray-800">{dish.title}</p>
+                  </div>
+                </AnimateOnScroll>
+              ))}
+            </div>
+
+            <AnimateOnScroll direction="up" delay={200}>
+              <div className="text-center mt-10">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                  onClick={handleViewMenu}
+                >
+                  <Link href="/menu">See Full Menu</Link>
+                </Button>
               </div>
             </AnimateOnScroll>
-
           </div>
         </section>
-      </AnimateOnScroll>
-
-      {/* Hibachi Shrimp Cooking Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Sizzling <span className="text-primary">Hibachi Shrimp</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Jumbo shrimp grilled live with hibachi style.
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/hibachi-show.jpg"
-                    src="/videos/hibachi-show.mp4"
-                  />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Hibachi Steak Cooking Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Delicious <span className="text-primary">Hibachi Steak</span> Experience
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Steak grilled live and cooked to your preferred doneness.
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/party-highlight.jpg"
-                    src="/videos/party-highlight.mp4"
-                  />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      <AnimateOnScroll direction="up" delay={200}>
-        <div className="text-center mt-10">
-          <Button
-            asChild
-            variant="outline"
-            className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-            onClick={handleViewMenu}
-          >
-            <Link href="/menu">See Full Menu</Link>
-          </Button>
-        </div>
       </AnimateOnScroll>
 
       {/* Food Preparation Video Section */}
@@ -586,12 +546,12 @@ export default function Home() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-white rounded-lg shadow-md">
-                      <div className="text-2xl font-bold text-amber-600 mb-1">98%</div>
-                      <div className="text-sm text-gray-600">Customer Satisfaction</div>
+                      <div className="text-2xl font-bold text-amber-600 mb-1">1 per 28</div>
+                      <div className="text-sm text-gray-600">A dedicated chef & griddle per 28 guests</div>
                     </div>
                     <div className="text-center p-4 bg-white rounded-lg shadow-md">
-                      <div className="text-2xl font-bold text-amber-600 mb-1">100%</div>
-                      <div className="text-sm text-gray-600">Entertainment Guaranteed</div>
+                      <div className="text-2xl font-bold text-amber-600 mb-1">Included</div>
+                      <div className="text-sm text-gray-600">Full setup & cleanup, every event</div>
                     </div>
                   </div>
                 </div>
@@ -728,15 +688,15 @@ export default function Home() {
               <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-white mb-2">500+</div>
-                  <div className="text-amber-100">Happy Customers</div>
+                  <div className="text-amber-100">Parties Served</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">4.9★</div>
-                  <div className="text-amber-100">Average Rating</div>
+                  <div className="text-3xl font-bold text-white mb-2">6</div>
+                  <div className="text-amber-100">SoCal Counties Covered</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">100%</div>
-                  <div className="text-amber-100">Satisfaction Guarantee</div>
+                  <div className="text-3xl font-bold text-white mb-2">72h</div>
+                  <div className="text-amber-100">Full-Refund Cancellation Window</div>
                 </div>
               </div>
             </AnimateOnScroll>
