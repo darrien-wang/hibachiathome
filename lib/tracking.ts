@@ -31,6 +31,9 @@ type TrackingEventName =
   | "faq_view"
   | "deposit_started"
   | "deposit_completed"
+  | "planner_video_play"
+  | "planner_video_complete"
+  | "planner_cta_click"
 
 type AttributionFields = {
   utm_source?: string

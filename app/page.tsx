@@ -20,6 +20,7 @@ import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
 import InstagramVideosSection from "@/components/instagram-videos-section"
 import PromotionalCard from "@/components/promotional-card"
+import PartyPlannerSection from "@/components/party-planner-section"
 import { trackEvent } from "@/lib/tracking"
 import LazyVideo from "@/components/lazy-video"
 
@@ -370,6 +371,8 @@ export default function Home() {
         </section>
       </AnimateOnScroll>
 
+      {/* Party Planner Story Section */}
+      <PartyPlannerSection />
 
       {/* Signature Fried Rice Section */}
       <AnimateOnScroll>
