@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
   const envelope = {
     event_id: `evt_manual_final_${randomUUID()}`,
-    event_type: "order.deposit_paid", // carrier event; the payment itself is type "final"
+    event_type: "payment.received",
     occurred_at: nowIso,
     source: "official_website",
     order: {
