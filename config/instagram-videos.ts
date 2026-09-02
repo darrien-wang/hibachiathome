@@ -16,7 +16,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-7",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-7.jpg",
     caption: "Chef preparing hibachi meal at home service",
     date: "2024-02-12",
     location: "Manhattan Beach, CA",
@@ -26,7 +26,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-6",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-6.jpg",
     caption: "Hibachi chef preparing dinner service",
     date: "2024-02-08",
     location: "Santa Monica, CA",
@@ -36,7 +36,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-5",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-5.jpg",
     caption: "Chef demonstrating hibachi cooking techniques",
     date: "2024-02-05",
     location: "Pasadena, CA",
@@ -46,7 +46,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-4",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-4.jpg",
     caption: "Private hibachi dining experience",
     date: "2024-02-02",
     location: "West Hollywood, CA",
@@ -56,7 +56,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-3",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-3.jpg",
     caption: "Professional hibachi chef preparing fresh ingredients with traditional techniques",
     date: "2024-01-30",
     location: "Beverly Hills, CA",
@@ -66,7 +66,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-2",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-2.jpg",
     caption: "Professional hibachi chef cooking at private home event",
     date: "2024-01-25",
     location: "Orange County, CA",
@@ -76,7 +76,7 @@ export const instagramVideos: InstagramVideo[] = [
   {
     id: "real-1",
     videoUrl: "",
-    thumbnailUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=500&fit=crop&crop=center",
+    thumbnailUrl: "/images/instagram/real-1.jpg",
     caption: "Hibachi chef demonstrating traditional cooking techniques",
     date: "2024-01-20",
     location: "Los Angeles, CA",
