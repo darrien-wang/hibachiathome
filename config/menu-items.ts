@@ -132,7 +132,7 @@ export const sides: MenuItem[] = [
   {
     id: "gyoza",
     name: "Gyoza",
-    description: "Pan-fried Japanese dumplings (12pcs)",
+    description: "Pan-fried Japanese dumplings (10 pcs)",
     price: 15,
     category: "side",
     allergens: ["gluten", "soy"],
@@ -141,7 +141,7 @@ export const sides: MenuItem[] = [
   {
     id: "edamame",
     name: "Edamame",
-    description: "Steamed soybeans lightly salted",
+    description: "Steamed soybeans lightly salted (feeds 3)",
     price: 10,
     category: "side",
     allergens: ["soy"],
@@ -171,7 +171,7 @@ export const sides: MenuItem[] = [
   {
     id: "spring-rolls",
     name: "Spring Rolls",
-    description: "Crispy spring rolls (12pcs)",
+    description: "Crispy spring rolls (10 pcs)",
     price: 15,
     category: "side",
     allergens: ["gluten"],
