@@ -1284,7 +1284,7 @@ export default function QuoteBuilderClient() {
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
               <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Weekdays from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}</span>/person
+                Weekdays from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}</span>/person · 15+ guests
               </span>
               <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
                 Kids from <span className="font-bold text-amber-300">${GUEST_TIERS.child.weekdayPrice.toFixed(2)}</span>
@@ -1293,6 +1293,12 @@ export default function QuoteBuilderClient() {
                 Weekends from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.price.toFixed(2)}</span>
               </span>
             </div>
+            {/* The 9/1 tapes showed a 10-guest visitor grinding against the locked
+                weekday rate — say who qualifies before anyone starts hoping. */}
+            <p className="mt-2 text-xs text-white/75">
+              Weekday rates apply Mon–Thu for parties of 15+ guests — all other parties from $
+              {GUEST_TIERS.adult.price.toFixed(2)}/person.
+            </p>
             <div className="mt-6">
               <Button
                 asChild
