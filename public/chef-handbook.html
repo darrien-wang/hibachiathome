@@ -262,6 +262,8 @@ a{color:var(--brass);text-decoration-thickness:1px;text-underline-offset:2px}
 }
 .stop h4{margin:0 0 5px;font-size:16px;font-weight:700}
 .stop p{margin:0;font-size:14.5px;color:var(--ink-2);max-width:60ch}
+.redline li.crime{font-weight:700;padding:7px 10px;background:var(--danger);color:#fff;border-radius:3px;list-style:none;margin-left:-19px}
+.redline li.crime b{color:#fff}
 
 /* ---------- must-do moves ---------- */
 .moves{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden;margin:22px 0}
@@ -585,6 +587,7 @@ ul.plain li{margin-bottom:6px;max-width:62ch}
           <div class="redline-h"><span class="redline-n">底线</span><span class="redline-t">一经发现，直接终止，没有第二次</span></div>
           <p>这些不是"做得不好"，是<b>诚信问题</b>。没有提醒、没有警告、没有累计：</p>
           <ul>
+            <li class="crime"><b>给未成年人灌酒</b>——不确定年龄就不给，这一条没有"我以为他成年了"</li>
             <li><b>偷拿客人或公司的东西</b></li>
             <li><b>私吞、挪用客人的钱</b>——包括收了款不上报</li>
             <li><b>隐瞒事故</b>——烧坏东西、有人受伤，不报</li>
@@ -1191,7 +1194,7 @@ ul.plain li{margin-bottom:6px;max-width:62ch}
         <h3>自选 · 你的个人特色</h3>
         <p>这些<b>不是必做</b>，但做了好评率和小费都会明显更高。每个师傅可以有自己的招牌：</p>
         <div class="moves">
-          <div class="move opt"><span class="move-n">+</span><div><h4>用 sake gun 灌酒</h4><p>用 sake gun 往客人嘴里灌清酒，<b>清酒由公司提供</b>。<b>这个动作是用来填空档的</b>——等铁板上的东西慢慢熟的那几分钟，正好拿来灌一圈。<br><b>只对自愿的成年人做</b>，未成年人和已经喝多的一律跳过。<b>你自己一口都不能喝</b>，见下方。</p><p><b>全场都是小孩、或者客人不喝酒怎么办：</b>先换 <b>peepee boy</b>，或者<b>把果汁装进 sake gun</b> 照样玩。<b>两样都不合适，这一台就算了，不算你少做动作。</b>这种事你在现场自己判断就行，公司信你——不用报备，也不会有人回头查。</p></div></div>
+          <div class="move opt"><span class="move-n">+</span><div><h4>用 sake gun 灌酒</h4><p>用 sake gun 往客人嘴里灌清酒，<b>清酒由公司提供</b>。<b>这个动作是用来填空档的</b>——等铁板上的东西慢慢熟的那几分钟，正好拿来灌一圈。<br><b>只对明显成年、且自己开口要的客人做。</b><b class="mono" style="color:var(--danger)">未成年人一滴都不能给——这是底线，一次即终止。</b>已经喝多的也跳过。<b>你自己一口都不能喝</b>，见下方。</p><p><b>全场都是小孩、或者客人不喝酒怎么办：</b>先换 <b>peepee boy</b>，或者<b>把果汁装进 sake gun</b> 照样玩。<b>两样都不合适，这一台就算了，不算你少做动作。</b>这种事你在现场自己判断就行，公司信你——不用报备，也不会有人回头查。</p></div></div>
           <div class="move opt"><span class="move-n">+</span><div><h4>打火棍</h4><p>火焰棍表演。风大就别做。</p></div></div>
           <div class="move opt"><span class="move-n">+</span><div><h4>变玫瑰花</h4><p>用食材或餐巾变一朵，送给寿星或女主人，很容易换来一条五星评价。</p></div></div>
           <div class="move opt"><span class="move-n">+</span><div><h4>讲笑话</h4><p>准备三五个能反复用的段子，英文的。比临场发挥稳。</p></div></div>
@@ -1283,6 +1286,18 @@ ul.plain li{margin-bottom:6px;max-width:62ch}
           <q>Kids — you catch with your hands, not your mouth. Deal?</q>
           <q>Any sake drinkers tonight? Head back, open up — here it comes.</q>
           <p class="gloss"><b>道具是西葫芦，不是虾</b>——轻、不涉及贝类过敏、生熟都能入口。<br><br><b>硬规矩：</b>用嘴接只对<b>清醒的成年人、且他自己要求</b>。小孩一律用手接。灌 sake 只对<b>成年人</b>，未成年人绝对不做，喝多了的一律跳过。这是窒息和酒精风险，没有任何气氛值得赌。</p>
+        </div>
+
+        <div class="redline">
+          <div class="redline-h"><span class="redline-n">底线</span><span class="redline-t">未成年人一滴酒都不能碰</span></div>
+          <p>这是<b>三条红线之外唯一一条会让你个人吃官司的规矩</b>——加州法律禁止向未成年人供酒，责任在<b>倒酒的那个人</b>身上，不是公司。留案底的是你。</p>
+          <p><b>而家庭派对根本没有查 ID 的条件</b>：灯光暗、气氛闹、十七岁和二十一岁站一起你分不出来。所以规则不能是"看清楚再给"，只能是：</p>
+          <ul>
+            <li><b>不确定年龄 → 不给。</b>没有"看着像成年人"这个档，只有确定和不确定</li>
+            <li><b>只给自己开口要、且明显成年的客人。</b>你主动去问某个人要不要，就已经是在冒险</li>
+            <li><b>派对上有青少年 → 整场跳过这个动作。</b>换 peepee boy，或者把果汁装进 sake gun 照样玩</li>
+          </ul>
+          <p class="verdict">这一条没有"我以为他成年了"这个解释。<b>而且 sake 本来就是自选动作——为一个可做可不做的花活，赌上自己的案底，不值。</b></p>
         </div>
 
         <div class="rl-banner">
@@ -1575,6 +1590,7 @@ ul.plain li{margin-bottom:6px;max-width:62ch}
               <tr><td><b>有人受伤，或者差点出事</b></td><td>同上——<b>当天必须报</b>，哪怕最后没事。差点出事也要报</td><td>公司处理</td></tr>
               <tr><td><b>客人要你的私人联系方式</b></td><td>婉拒，只给工作账号。见<a href="#s8">第 08 章</a>话术</td><td>公司规矩</td></tr>
               <tr><td><b>客人喝多了对你越界</b></td><td><b>拉开距离，必要时停火打电话。</b>你没有义务陪着</td><td class="yes">你有中止权，不罚</td></tr>
+              <tr><td><b>看不出某位客人是否成年</b></td><td><b>不给酒，跳过他。</b>不用解释，也不用问年龄——递个饮料过去就行</td><td class="no">给了是你的刑事责任</td></tr>
               <tr><td><b>客人一直劝你喝酒</b></td><td>用"chef's rule"挡回去，见<a href="#s7">第 07 章</a>。<b>一口都不能沾——已经有师傅被查酒驾</b></td><td class="no">酒驾是你自己的刑事责任</td></tr>
               <tr><td><b>客人喝多了要上手玩火</b></td><td>关小火，退一步，用玩笑挡回去。挡不住就停火打电话</td><td>你有中止权</td></tr>
               <tr><td><b>连台可能赶不及</b></td><td><b>一发现苗头就打电话，不要等到已经迟了。</b>绝不自己砍动作补时间</td><td class="yes">公司（排程责任）</td></tr>
