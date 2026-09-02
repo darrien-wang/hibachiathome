@@ -435,6 +435,10 @@ function OrderDrawer({
   const [travelResult, setTravelResult] = useState<string>("")
   const [chefName, setChefName] = useState("Bling")
   const [sopBusy, setSopBusy] = useState<string | null>(null)
+  const [finalAmount, setFinalAmount] = useState("")
+  const [finalChannel, setFinalChannel] = useState("cash")
+  const [finalProof, setFinalProof] = useState("")
+  const [finalMsg, setFinalMsg] = useState("")
   // 人数/报价调整:客人的人数到活动前一天都可能变,这里随时改、随时重算
   const [adjOpen, setAdjOpen] = useState(false)
   const [adjAdults, setAdjAdults] = useState("0")
@@ -921,6 +925,54 @@ function OrderDrawer({
               <button style={{ ...btnGhost, padding: "5px 10px", fontSize: 12.5, marginBottom: 6 }} onClick={onChanged}>
                 刷新时间线
               </button>
+            )}
+
+            {/* ---------- 登记尾款收款(线下) ---------- */}
+            {(o.balance_due_cents ?? 0) > 0 && (
+              <>
+                <div style={labelStyle}>登记尾款收款(线下)</div>
+                <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 6 }}>现场现金 / Venmo / Zelle 收到尾款后在这里入账,金额默认为当前尾款。</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 13 }}>$</span>
+                  <input style={{ ...inputStyle, width: 100, padding: "6px 9px" }} inputMode="decimal" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
+                  <select style={{ ...inputStyle, width: 110, padding: "6px 9px" }} value={finalChannel} onChange={(e) => setFinalChannel(e.target.value)}>
+                    <option value="cash">现金</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="other">其他</option>
+                  </select>
+                  <input style={{ ...inputStyle, flex: 1, minWidth: 150, padding: "6px 9px" }} value={finalProof} onChange={(e) => setFinalProof(e.target.value)} placeholder="凭证链接(可选)" />
+                  <button
+                    style={btnStyle}
+                    disabled={busy === "final" || !Number(finalAmount)}
+                    onClick={async () => {
+                      setBusy("final")
+                      setFinalMsg("")
+                      const data = await call("/api/admin/orders/final-payment-confirm", {
+                        orderId: o.id,
+                        amount: Number(finalAmount),
+                        channel: finalChannel,
+                        proofUrl: finalProof || undefined,
+                        operator: localStorage.getItem("rh_operator_name") ?? "staff",
+                      })
+                      setBusy(null)
+                      if (data.ok) {
+                        setFinalMsg("✓ 尾款已入账,余额已结算")
+                        onChanged()
+                      } else {
+                        setFinalMsg(`入账失败:${data.error ?? "unknown"}`)
+                      }
+                    }}
+                  >
+                    {busy === "final" ? "入账中…" : "确认收款"}
+                  </button>
+                </div>
+                {finalMsg && (
+                  <div style={{ fontSize: 12.5, borderRadius: 8, padding: "7px 10px", marginBottom: 6, background: finalMsg.startsWith("✓") ? "#d1fae5" : "#fee2e2", color: finalMsg.startsWith("✓") ? "#065f46" : "#b91c1c" }}>
+                    {finalMsg}
+                  </div>
+                )}
+              </>
             )}
 
             {/* ---------- 收款记录 ---------- */}

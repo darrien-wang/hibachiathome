@@ -1010,6 +1010,24 @@ export async function POST(request: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session
+
+      // Balance pay-links are NOT deposits: without this guard the deposit
+      // pipeline would fire (wrong ops email, wrong GA4 conversion, wrong
+      // customer notification) while the money still never reached the
+      // order's balance. Offline balance entry lives in the workbench
+      // (final-payment-confirm); full Stripe balance ingestion is a TODO.
+      if (session.metadata?.flow === "balance_payment") {
+        console.warn("[stripe/webhook] balance_payment session received; skipping deposit pipeline.", {
+          eventId: event.id,
+          sessionId: session.id,
+          amountTotal: session.amount_total,
+        })
+        return NextResponse.json(
+          { received: true, eventType: event.type, skipped: "balance_payment_flow" },
+          { status: 200 },
+        )
+      }
+
       const result = await handleCheckoutSessionCompleted(supabase, session)
       if (!result.ok) {
         return NextResponse.json({ received: false, error: result.error }, { status: 500 })
