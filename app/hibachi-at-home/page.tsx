@@ -81,56 +81,23 @@ const serviceFeatures = [
 ]
 
 // Customer reviews
+// Verbatim 5-star Google reviews from the Real Hibachi listing (owner-supplied,
+// 2026-08) — same pool as /quote and the homepage; do not invent locations/dates.
 const reviews = [
   {
-    name: "Linda",
-    location: "Anaheim, CA",
+    name: "Warren Zhang",
     rating: 5,
-    text: "The best experience we've had at home. Fun, delicious, and easy to host.",
+    text: "Bling was a great chef and also very personable! He made our night and it was my birthday! Best night ever!",
   },
   {
-    name: "Michael",
-    location: "Los Angeles, CA",
+    name: "Laura Gallop",
     rating: 5,
-    text: "Our kids loved the fire show and the food was restaurant quality. Highly recommend!",
+    text: "Chef Bling and Chef Noodle was great! Very entertaining and food was delicious.",
   },
   {
-    name: "Sarah",
-    location: "Newport Beach, CA",
+    name: "Karen Wertheimer",
     rating: 5,
-    text: "Perfect for our anniversary. The chef was entertaining and professional.",
-  },
-]
-
-// Testimonial data with ratings
-const testimonials = [
-  {
-    name: "Sarah M.",
-    text: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious. Perfect for my daughter's birthday party!",
-    location: "Pasadena, CA",
-    rating: 5,
-    date: "2 months ago",
-  },
-  {
-    name: "Michael T.",
-    text: "We booked Real Hibachi for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
-    location: "Irvine, CA",
-    rating: 5,
-    date: "3 weeks ago",
-  },
-  {
-    name: "Jennifer L.",
-    text: "Our family gathering was transformed into an unforgettable event. The chef was professional, friendly, and put on an amazing show!",
-    location: "Long Beach, CA",
-    rating: 5,
-    date: "1 month ago",
-  },
-  {
-    name: "David W.",
-    text: "The perfect solution for our office party. Everyone was impressed with both the performance and the delicious food. Will definitely book again!",
-    location: "San Diego, CA",
-    rating: 5,
-    date: "2 weeks ago",
+    text: "Just had a wonderful dinner prepared by Blue. He was engaging and entertaining. I would recommend this for any occasion.",
   },
 ]
 
@@ -715,9 +682,8 @@ export default function HibachiAtHomePage() {
                         ))}
                       </div>
                       <p className="text-gray-600 mb-4 italic">"{review.text}"</p>
-                      <p className="font-semibold">
-                        — {review.name}, {review.location}
-                      </p>
+                      <p className="font-semibold">— {review.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">Google review</p>
                     </CardContent>
                   </Card>
                 </AnimateOnScroll>
@@ -776,15 +742,15 @@ export default function HibachiAtHomePage() {
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="text-3xl font-bold text-white mb-2">500+</div>
-              <div className="text-amber-100">Happy Customers</div>
+              <div className="text-amber-100">Parties Served</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">4.9</div>
-              <div className="text-amber-100">Average Rating</div>
+              <div className="text-3xl font-bold text-white mb-2">1 per 28</div>
+              <div className="text-amber-100">A Dedicated Chef & Griddle per 28 Guests</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">100%</div>
-              <div className="text-amber-100">Satisfaction Guarantee</div>
+              <div className="text-3xl font-bold text-white mb-2">72h</div>
+              <div className="text-amber-100">Full-Refund Cancellation Window</div>
             </div>
           </div>
 
@@ -800,7 +766,7 @@ export default function HibachiAtHomePage() {
       </section>
 
       {/* Testimonials Section */}
-      <TestimonialsSection testimonials={testimonials} />
+      <TestimonialsSection />
 
       {/* Signature Fried Rice Video Section */}
       <AnimateOnScroll>

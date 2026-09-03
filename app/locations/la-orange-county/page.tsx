@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Phone, Star, Clock, Users, ChefHat } from "lucide-react"
+import { MapPin, Phone, Star, Clock, Users, ChefHat, Check } from "lucide-react"
 import Link from "next/link"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
@@ -64,24 +64,23 @@ const serviceAreas = [
   "Culver City",
 ]
 
+// Verbatim 5-star Google reviews from the Real Hibachi listing (owner-supplied,
+// 2026-08) — same pool as /quote and the homepage; do not invent locations/dates.
 const testimonials = [
   {
-    name: "Maria Rodriguez",
-    location: "Beverly Hills, CA",
+    name: "Spencer Sprowls",
     rating: 5,
-    text: "Best hibachi at home experience in Los Angeles! The chef was incredibly skilled and entertaining. Our family gathering was transformed into an unforgettable event.",
+    text: "Bling is an amazing chef!! He makes the party 100x better and will make amazing food for you.",
   },
   {
-    name: "David Chen",
-    location: "Irvine, CA",
+    name: "David Armstrong",
     rating: 5,
-    text: "Hired Real Hibachi for my daughter's birthday party in Orange County. The kids were mesmerized by the chef's skills and the adults loved the authentic Japanese flavors.",
+    text: "Chef Bling curated a brilliant display of culinary mastery and phenomenal vibes to create an forgettable evening for the bros and I. 2 thumbs up.",
   },
   {
-    name: "Jennifer Kim",
-    location: "Santa Monica, CA",
+    name: "Max Schwenk",
     rating: 5,
-    text: "Professional hibachi catering service from start to finish. The private chef brought restaurant-quality teppanyaki to our corporate event in Santa Monica.",
+    text: "Unbelievable experience! Bling was the best chef ever!",
   },
 ]
 
@@ -155,8 +154,8 @@ export default function LAOrangeCountyPage() {
               </div>
               <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center">
-                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                  4.9/5 Rating
+                  <Check className="h-4 w-4 text-primary mr-1" />
+                  Full deposit refund up to 72h
                 </span>
                 <span className="flex items-center">
                   <Users className="h-4 w-4 text-primary mr-1" />
@@ -272,7 +271,7 @@ export default function LAOrangeCountyPage() {
                     <p className="text-gray-600 mb-4 italic">"{testimonial.text}"</p>
                     <div>
                       <p className="font-bold text-gray-900">{testimonial.name}</p>
-                      <p className="text-sm text-gray-500">{testimonial.location}</p>
+                      <p className="text-sm text-gray-500">Google review</p>
                     </div>
                   </CardContent>
                 </Card>
