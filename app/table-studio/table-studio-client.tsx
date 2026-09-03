@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Check, Copy, Link2 } from "lucide-react"
+import { Check, Copy, Link2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { trackEvent } from "@/lib/tracking"
-import { CLOTHS, PLATES, CHARGERS, COMING_SOON_SET } from "@/config/table-studio"
+import { CLOTHS, PLATES, SALAD_PLATES, CHARGERS, INCLUDED_FIXED, COMING_SOON_SET, STANDARD_SETUP } from "@/config/table-studio"
 
 // URL state lives in plain location.search (read once on mount, written via
 // replaceState) — deliberately NOT useSearchParams, which once bailed this
@@ -17,10 +17,11 @@ function readParam(key: string): string | null {
 }
 
 export default function TableStudioClient() {
-  const [clothId, setClothId] = useState(CLOTHS[0].id)
-  const [chairCovers, setChairCovers] = useState(false)
-  const [plateId, setPlateId] = useState(PLATES[0].id)
-  const [chargerId, setChargerId] = useState(CHARGERS[0].id)
+  const [clothId, setClothId] = useState(STANDARD_SETUP.cloth)
+  const [chairCovers, setChairCovers] = useState(STANDARD_SETUP.chairCovers)
+  const [plateId, setPlateId] = useState(STANDARD_SETUP.plate)
+  const [saladId, setSaladId] = useState(STANDARD_SETUP.salad)
+  const [chargerId, setChargerId] = useState(STANDARD_SETUP.charger)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -29,22 +30,38 @@ export default function TableStudioClient() {
     if (readParam("chairs") === "1") setChairCovers(true)
     const p = readParam("plate")
     if (p && PLATES.some((o) => o.id === p)) setPlateId(p)
+    const s = readParam("salad")
+    if (s && SALAD_PLATES.some((o) => o.id === s)) setSaladId(s)
     const ch = readParam("charger")
     if (ch && CHARGERS.some((o) => o.id === ch)) setChargerId(ch)
   }, [])
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const q = new URLSearchParams({ cloth: clothId, plate: plateId, charger: chargerId })
+    const q = new URLSearchParams({ cloth: clothId, plate: plateId, salad: saladId, charger: chargerId })
     if (chairCovers) q.set("chairs", "1")
     window.history.replaceState(null, "", `${window.location.pathname}?${q.toString()}`)
-  }, [clothId, chairCovers, plateId, chargerId])
+  }, [clothId, chairCovers, plateId, saladId, chargerId])
 
   const cloth = CLOTHS.find((o) => o.id === clothId) ?? CLOTHS[0]
   const plate = PLATES.find((o) => o.id === plateId) ?? PLATES[0]
+  const salad = SALAD_PLATES.find((o) => o.id === saladId) ?? SALAD_PLATES[0]
   const charger = CHARGERS.find((o) => o.id === chargerId) ?? CHARGERS[0]
   const pricePerGuest = chairCovers ? cloth.priceWithChairCovers : cloth.pricePerGuest
   const onDarkCloth = cloth.id === "black"
+  const isStandard =
+    clothId === STANDARD_SETUP.cloth &&
+    chairCovers === STANDARD_SETUP.chairCovers &&
+    plateId === STANDARD_SETUP.plate &&
+    saladId === STANDARD_SETUP.salad &&
+    chargerId === STANDARD_SETUP.charger
+  const resetToStandard = () => {
+    setClothId(STANDARD_SETUP.cloth)
+    setChairCovers(STANDARD_SETUP.chairCovers)
+    setPlateId(STANDARD_SETUP.plate)
+    setSaladId(STANDARD_SETUP.salad)
+    setChargerId(STANDARD_SETUP.charger)
+  }
 
   const copyLink = () => {
     void navigator.clipboard.writeText(window.location.href).then(() => {
@@ -137,29 +154,34 @@ export default function TableStudioClient() {
                   <rect x="35" y="30" width="270" height="200" rx="14" fill="none" stroke="#b89f6f" strokeWidth="2" />
                   {/* charger */}
                   <circle cx="170" cy="130" r="86" fill={charger.hex} stroke={onDarkCloth ? "#ffffff33" : "#00000022"} strokeWidth="2" />
-                  {/* plate */}
+                  {/* dinner plate */}
                   <circle cx="170" cy="130" r="66" fill={plate.hex} stroke="#00000022" strokeWidth="1.5" />
-                  <circle cx="170" cy="130" r="50" fill="none" stroke={plate.id === "black" ? "#ffffff2e" : "#00000014"} strokeWidth="2" />
+                  {/* salad plate */}
+                  <circle cx="170" cy="130" r="42" fill={salad.hex} stroke={salad.id === "white" ? "#00000018" : "#ffffff26"} strokeWidth="1.5" />
+                  <circle cx="170" cy="130" r="30" fill="none" stroke={salad.id === "white" ? "#00000010" : "#ffffff1c"} strokeWidth="2" />
                   {/* chopsticks */}
                   <rect x="286" y="52" width="6" height="152" rx="3" fill="#8b5a2b" transform="rotate(4 289 128)" />
                   <rect x="298" y="52" width="6" height="152" rx="3" fill="#a06a35" transform="rotate(7 301 128)" />
-                  {/* fork */}
-                  <rect x="52" y="76" width="7" height="110" rx="3.5" fill="#b9bec6" />
-                  <rect x="47" y="62" width="4" height="26" rx="2" fill="#b9bec6" />
-                  <rect x="54" y="62" width="4" height="26" rx="2" fill="#b9bec6" />
-                  <rect x="61" y="62" width="4" height="26" rx="2" fill="#b9bec6" />
+                  {/* red napkin under the silver fork */}
+                  <rect x="42" y="58" width="30" height="140" rx="6" fill="#a3272c" />
+                  <rect x="46" y="58" width="2.5" height="140" fill="#7d1c20" opacity="0.6" />
+                  {/* silver fork */}
+                  <rect x="52" y="76" width="7" height="110" rx="3.5" fill="#c3c8d0" />
+                  <rect x="47" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
+                  <rect x="54" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
+                  <rect x="61" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
                   {/* cup */}
                   <circle cx="262" cy="42" r="20" fill="#e8eef2" opacity="0.92" stroke="#9fb3bf" strokeWidth="2" />
                 </svg>
                 <p className={`mt-3 text-center text-xs font-semibold ${onDarkCloth ? "text-white/80" : "text-gray-600"}`}>
-                  {plate.label} plate · {charger.label} charger · {cloth.label.toLowerCase()}
+                  {plate.label} dinner · {salad.label.toLowerCase()} salad · {charger.label.toLowerCase()} charger · red napkin
                 </p>
               </div>
 
               {/* swatches */}
               <div className="space-y-7">
                 <div>
-                  <p className="font-semibold text-gray-900 mb-3">Plates</p>
+                  <p className="font-semibold text-gray-900 mb-3">Dinner plates</p>
                   <div className="flex gap-4">
                     {PLATES.map((option) => (
                       <button
@@ -172,6 +194,28 @@ export default function TableStudioClient() {
                         <span
                           className={`block h-14 w-14 rounded-full border-4 transition-all ${
                             option.id === plateId ? "border-[hsl(24_79%_55%)] scale-110" : "border-gray-200"
+                          }`}
+                          style={{ background: option.hex }}
+                        />
+                        <span className="mt-1.5 block text-xs font-medium text-gray-600">{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 mb-3">Salad plates</p>
+                  <div className="flex gap-4">
+                    {SALAD_PLATES.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSaladId(option.id)}
+                        aria-pressed={option.id === saladId}
+                        className="text-center"
+                      >
+                        <span
+                          className={`block h-14 w-14 rounded-full border-4 transition-all ${
+                            option.id === saladId ? "border-[hsl(24_79%_55%)] scale-110" : "border-gray-200"
                           }`}
                           style={{ background: option.hex }}
                         />
@@ -202,8 +246,12 @@ export default function TableStudioClient() {
                     ))}
                   </div>
                 </div>
+                <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-200">
+                  <p className="text-sm font-semibold text-gray-700">Included with every setup</p>
+                  <p className="mt-1 text-xs text-gray-500">{INCLUDED_FIXED.join(" · ")}</p>
+                </div>
                 <div className="rounded-xl border border-dashed border-gray-300 bg-white/60 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-700">Full-set styling — coming soon</p>
+                  <p className="text-sm font-semibold text-gray-700">More styling — coming soon</p>
                   <p className="mt-1 text-xs text-gray-500">{COMING_SOON_SET.join(" · ")}</p>
                 </div>
               </div>
@@ -243,9 +291,24 @@ export default function TableStudioClient() {
         {/* summary */}
         <AnimateOnScroll>
           <section className="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200">
-            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Your setup</p>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Your setup</p>
+              {isStandard ? (
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                  Real Hibachi Standard
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resetToStandard}
+                  className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 hover:bg-gray-200"
+                >
+                  <RotateCcw className="h-3 w-3" /> Reset to standard
+                </button>
+              )}
+            </div>
             <p className="text-lg font-bold text-gray-900">
-              {cloth.label}{chairCovers ? " + chair covers" : ""} · {plate.label} plates · {charger.label} chargers
+              {cloth.label}{chairCovers ? " + chair covers" : ""} · {plate.label} dinner · {salad.label} salad · {charger.label} chargers · silver tableware · red napkins
             </p>
             <p className="mt-1 text-2xl font-black text-[hsl(24_79%_45%)]">
               ${pricePerGuest}<span className="text-sm font-semibold text-gray-500"> per guest, all set up for you</span>
