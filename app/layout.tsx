@@ -10,6 +10,7 @@ import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { SocialProofToast } from "@/components/social-proof-toast"
 import { LiveChatLoader } from "@/components/live-chat-loader"
 import { HideOnAdmin } from "@/components/hide-on-admin"
+import LanguageSuggestBanner from "@/components/language-suggest-banner"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
 
 const DEFAULT_GTM_ID = "GTM-WQZNBK82"
@@ -126,6 +127,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           </HideOnAdmin>
         </Suspense>
         <HideOnAdmin>
+          <LanguageSuggestBanner />
           <Header />
         </HideOnAdmin>
         <main>{children}</main>

@@ -9,6 +9,13 @@ export const metadata: Metadata = {
     "Get answers to common questions about hibachi at home service in Los Angeles & Orange County. Pricing, setup, booking process, and more. Professional teppanyaki chefs.",
   keywords:
     "hibachi at home FAQ Los Angeles, hibachi catering questions LA, teppanyaki at home Orange County, hibachi chef booking questions, Japanese chef service FAQ",
+  alternates: {
+    canonical: "https://www.realhibachi.com/faq",
+    languages: {
+      en: "https://www.realhibachi.com/faq",
+      es: "https://www.realhibachi.com/es/preguntas-frecuentes",
+    },
+  },
   openGraph: {
     title: "Hibachi at Home FAQ | Real Hibachi",
     description:

@@ -14,7 +14,9 @@ const BASE_URL = "https://www.realhibachi.com"
 // week had not moved since July. So: a date per route, edited when that route's
 // content actually changes.
 const LAST_UPDATED: Record<string, string> = {
-  "": "2026-08-27T00:00:00.000Z", // pricing tiers, nav
+  "": "2026-09-02T00:00:00.000Z", // hero repositioning, honest trust markers
+  "/es": "2026-09-03T00:00:00.000Z", // Spanish homepage launch
+  "/es/preguntas-frecuentes": "2026-09-03T00:00:00.000Z", // Spanish FAQ launch
   "/hibachi-at-home": "2026-08-27T00:00:00.000Z", // weather policy copy
   "/menu": "2026-08-27T00:00:00.000Z", // sourcing spec section
   "/faq": "2026-08-27T00:00:00.000Z", // allergen and tent answers
@@ -28,6 +30,8 @@ const DEFAULT_LAST_UPDATED = "2026-07-02T00:00:00.000Z"
 
 const STATIC_ROUTES = [
   "", // Homepage
+  "/es", // Spanish homepage
+  "/es/preguntas-frecuentes", // Spanish FAQ (/es/cotizar is noindex like /quote)
   "/hibachi-at-home", // Core at-home hibachi service page
   "/locations/la-orange-county", // Los Angeles page - highest priority
   "/menu",
