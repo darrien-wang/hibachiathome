@@ -3,34 +3,29 @@ import { useState, useEffect, useRef } from "react"
 import { Star } from "lucide-react"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 
+// Verbatim 5-star Google reviews from the Real Hibachi listing (owner-supplied,
+// 2026-08) — same source as the /quote review wall. Real names, real chefs; do
+// not attach invented dates or locations to these.
 const testimonials = [
   {
-    name: "Sarah M.",
-    text: "The hibachi experience was amazing! Our chef was entertaining and the food was delicious. Perfect for my daughter's birthday party!",
-    location: "Pasadena, CA",
+    name: "Kelsey Molnar",
+    text: "Real Hibachi is such a fun experience! I decided to hire for my sisters 30th bday and it was an absolute success! We had Chef Bling and he was a riot and so sweet! I told him it was a surprise and he made it SO FUN! HIGHLY RECOMMEND, HIGHLY AFFORDABLE, so delicious…",
     rating: 5,
-    date: "2 months ago",
   },
   {
-    name: "Michael T.",
-    text: "We booked Real Hibachi for our anniversary and it exceeded all expectations. The convenience of having restaurant-quality hibachi at home is unbeatable.",
-    location: "Irvine, CA",
+    name: "Lisa Craven",
+    text: "Chef blue was absolutely amazing!!! Super friendly and personable. So fun and interactive. Knew how to switch it up between adults and kids. Food was delicious and he was great! Highly recommend !",
     rating: 5,
-    date: "3 weeks ago",
   },
   {
-    name: "Jennifer L.",
-    text: "Our family gathering was transformed into an unforgettable event. The chef was professional, friendly, and put on an amazing show!",
-    location: "Long Beach, CA",
+    name: "Judy Gothelf",
+    text: "What a great experience having Blue as our chef! Aside from the fact that he made delicious food, he was so much fun and so engaging! We loved having him here to celebrate our friend's BIG birthday!",
     rating: 5,
-    date: "1 month ago",
   },
   {
-    name: "David W.",
-    text: "The perfect solution for our office party. Everyone was impressed with both the performance and the delicious food. Will definitely book again!",
-    location: "San Diego, CA",
+    name: "Beatrix Barrera",
+    text: "Chef John was our personal chef and he was sooooo much fun. I highly recommend requesting for him because aside from the delicious food, there was so much laughing because of him. 5 stars for the service, 5 stars for the food, 5 stars for Chef John! Definitely will do this again!",
     rating: 5,
-    date: "2 weeks ago",
   },
 ]
 
@@ -105,25 +100,11 @@ export default function TestimonialsSection() {
     >
       <div className="container mx-auto px-4">
         <AnimateOnScroll direction="down">
-          <div className="flex flex-col items-center mb-8 hidden">
-            <div className="flex items-center mb-2">
-              <img
-                src="/images/design-mode/google-reviews-png-10.png"
-                alt="Google Reviews"
-                className="h-8 mr-2"
-                onError={(e) => {
-                  e.currentTarget.src="/images/design-mode/googlelogo_color_92x30dp.png"
-                  e.currentTarget.className = "h-6 mr-2"
-                }}
-              />
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="h-5 w-5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <span className="ml-2 font-medium">5.0</span>
-            </div>
-            <p className="text-sm text-gray-600">Based on 48 reviews</p>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-serif font-bold text-gray-900">
+              Real Reviews, Real Parties
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">Verbatim 5-star Google reviews from SoCal events</p>
           </div>
         </AnimateOnScroll>
         <div className="relative overflow-visible">
@@ -150,16 +131,12 @@ export default function TestimonialsSection() {
                     <div>
                       <h4 className="font-medium">{testimonial.name}</h4>
                       <div className="flex items-center">
-                        <span className="text-xs text-gray-500 mr-2">{testimonial.date}</span>
                         <img
                           src="https://www.google.com/favicon.ico"
-                          alt="Google"
+                          alt="Google review"
                           className="h-4"
-                          onError={(e) => {
-                            e.currentTarget.src = "https://www.google.com/favicon.ico"
-                            e.currentTarget.className = "h-3"
-                          }}
                         />
+                        <span className="ml-1.5 text-xs text-gray-500">Google review</span>
                       </div>
                     </div>
                   </div>
