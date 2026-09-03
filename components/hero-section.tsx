@@ -79,14 +79,14 @@ export default function HeroSection() {
         >
           <p className="text-base md:text-lg font-semibold tracking-wide text-amber-200 drop-shadow">Private Hibachi Catering</p>
           <h1 className="mt-2 text-5xl md:text-7xl font-extrabold leading-[0.95] tracking-tight text-white drop-shadow-[0_4px_18px_rgba(0,0,0,0.55)]">
-            The Easiest
+            The Effortless
             <br />
             Hibachi At Home
             <br />
             Experience
           </h1>
-          <p className="mt-4 text-2xl md:text-4xl font-bold text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]">
-            Book Your Backyard Hibachi Catering Today
+          <p className="mt-4 text-xl md:text-3xl font-bold text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]">
+            Plan the party in 3 minutes — spend the evening with the people you love.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-4">
