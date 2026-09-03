@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { MessageSquare, Star, Check, Users, CalendarDays, Sparkles } from "lucide-react"
 import { getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { CATERING_CITIES } from "@/config/catering-cities"
-import { GOOGLE_REVIEWS, pickReviews } from "@/config/reviews"
+import { pickReviews } from "@/config/reviews"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
@@ -188,12 +188,6 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
       priceValidUntil: "2027-12-31",
       availability: "https://schema.org/InStock",
       url,
-    },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "5",
-      bestRating: "5",
-      reviewCount: String(GOOGLE_REVIEWS.length),
     },
     review: reviews.map((review) => ({
       "@type": "Review",

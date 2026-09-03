@@ -3,7 +3,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Star, MapPin, Flame } from "lucide-react"
+import { MessageSquare, Star, MapPin, Flame, Check } from "lucide-react"
 import { getOccasionPage } from "@/config/occasion-pages"
 import { getCityPage } from "@/config/city-pages"
 import { OCCASION_CITY_COMBOS, getCombo } from "@/config/occasion-city-pages"
@@ -181,8 +181,8 @@ export default async function OccasionCityPage({ params }: { params: Promise<{ o
               ))}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
                 <span className="inline-flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                  4.9 average rating
+                  <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  Full deposit refund up to 72h
                 </span>
                 <span>500+ parties served</span>
                 <span className="inline-flex items-center gap-1">

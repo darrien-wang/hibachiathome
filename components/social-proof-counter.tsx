@@ -15,9 +15,9 @@ export default function SocialProofCounter() {
     <section className="py-8 bg-white">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <CounterItem value="500+" label="Happy Customers" />
-          <CounterItem value="4.9★" label="Average Rating" />
-          <CounterItem value="100%" label="Satisfaction Rate" />
+          <CounterItem value="500+" label="Parties Served" />
+          <CounterItem value="6" label="SoCal Counties Covered" />
+          <CounterItem value="24/7" label="Online Self-Service Booking" />
         </div>
       </div>
     </section>

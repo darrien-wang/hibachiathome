@@ -8,7 +8,7 @@ import { MapPin, Phone, Star, Users, Clock, ChefHat, Check } from "lucide-react"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { getCityClimate } from "@/config/city-climate"
-import { GOOGLE_REVIEWS, pickReviews } from "@/config/reviews"
+import { pickReviews } from "@/config/reviews"
 import { hasCateringPage } from "@/config/catering-cities"
 import SourcingSpec from "@/components/menu/sourcing-spec"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
@@ -184,10 +184,11 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
     ],
   }
 
-  // The party package as a Product so the ratings from real, on-page Google
-  // reviews are eligible for review-snippet stars (LocalBusiness self-serving
-  // aggregateRating is ignored by Google; Product is not). The reviews below
-  // are rendered verbatim on this page in "What hosts say".
+  // The party package as a Product carrying only real, verbatim on-page Google
+  // reviews. No aggregateRating: the live GBP profile can't verify one, and an
+  // unverifiable self-serving rating in structured data is a Google penalty
+  // risk. The reviews below are rendered verbatim on this page in "What hosts
+  // say".
   const cityReviews = pickReviews(page.slug)
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -204,12 +205,6 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
       priceValidUntil: "2027-12-31",
       availability: "https://schema.org/InStock",
       url,
-    },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "5",
-      bestRating: "5",
-      reviewCount: String(GOOGLE_REVIEWS.length),
     },
     review: cityReviews.map((review) => ({
       "@type": "Review",
@@ -259,8 +254,8 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
             </div>
             <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
               <span className="flex items-center">
-                <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                4.9/5 Rating
+                <Check className="h-4 w-4 text-primary mr-1" />
+                Full deposit refund up to 72h
               </span>
               <span className="flex items-center">
                 <Users className="h-4 w-4 text-primary mr-1" />

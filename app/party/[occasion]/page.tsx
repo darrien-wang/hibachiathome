@@ -167,8 +167,8 @@ export default async function OccasionPage({ params }: { params: Promise<{ occas
               ))}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
                 <span className="inline-flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                  4.9 average rating
+                  <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  Full deposit refund up to 72h
                 </span>
                 <span>500+ parties served</span>
                 <span className="inline-flex items-center gap-1">

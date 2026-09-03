@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Star, MapPin } from "lucide-react"
+import { PartyPopper, MapPin } from "lucide-react"
 import { occasionPages } from "@/config/occasion-pages"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 
@@ -79,8 +79,8 @@ export default function PartyHubPage() {
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-600">
             <span className="inline-flex items-center gap-1">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-              4.9 average rating · 500+ parties
+              <PartyPopper className="h-4 w-4 text-orange-700" aria-hidden="true" />
+              500+ parties served · full deposit refund up to 72h
             </span>
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-4 w-4 text-orange-700" aria-hidden="true" />

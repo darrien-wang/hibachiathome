@@ -1314,8 +1314,7 @@ export default function QuoteBuilderClient() {
               >
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
                 <span>
-                  <span className="font-semibold">4.9</span> average rating · 500+ parties served — read our Google
-                  reviews
+                  <span className="font-semibold">500+</span> parties served — read reviews from real hosts
                 </span>
               </a>
             </div>
@@ -1670,8 +1669,8 @@ export default function QuoteBuilderClient() {
                 </Button>
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-800">
                   <span className="inline-flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-hidden="true" />
-                    4.9 average rating
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+                    Full deposit refund up to 72h
                   </span>
                   <span>500+ parties served</span>
                 </div>
