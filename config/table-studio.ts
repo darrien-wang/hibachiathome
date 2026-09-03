@@ -55,17 +55,11 @@ export const SALAD_PLATES: SwatchOption[] = [
   { id: "white", label: "White", hex: "#f6f3ea", available: true },
 ]
 
-export const CHARGERS: SwatchOption[] = [
-  { id: "red", label: "Red", hex: "#8e1f24", available: true },
-  { id: "black", label: "Black", hex: "#141414", available: true },
-]
-
 /** Every setup ships with these — no color choice needed (yet). */
 export const INCLUDED_FIXED = ["Silver tableware", "Red napkins"]
 
-/** Full-set styling pieces we plan to offer — reserved display slots for now. */
-export const COMING_SOON_SET = ["Placemats", "Cups"]
-
 /** Owner-defined signature default: black table & chairs (no covers), black
- * dinner plate, red salad plate, silver tableware, red napkin. */
-export const STANDARD_SETUP = { cloth: "black", chairCovers: false, plate: "black", salad: "red", charger: "red" }
+ * dinner plate, red salad plate, silver tableware, red napkin.
+ * Chargers, runners, place cards, placemats, cups: guests bring their own —
+ * we deliberately cover only the big pieces (owner call, 2026-09-02). */
+export const STANDARD_SETUP = { cloth: "black", chairCovers: false, plate: "black", salad: "red" }

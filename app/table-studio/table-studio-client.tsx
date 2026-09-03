@@ -6,7 +6,7 @@ import { Check, Copy, Link2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { trackEvent } from "@/lib/tracking"
-import { CLOTHS, PLATES, SALAD_PLATES, CHARGERS, INCLUDED_FIXED, COMING_SOON_SET, STANDARD_SETUP } from "@/config/table-studio"
+import { CLOTHS, PLATES, SALAD_PLATES, INCLUDED_FIXED, STANDARD_SETUP } from "@/config/table-studio"
 
 // URL state lives in plain location.search (read once on mount, written via
 // replaceState) — deliberately NOT useSearchParams, which once bailed this
@@ -21,7 +21,6 @@ export default function TableStudioClient() {
   const [chairCovers, setChairCovers] = useState(STANDARD_SETUP.chairCovers)
   const [plateId, setPlateId] = useState(STANDARD_SETUP.plate)
   const [saladId, setSaladId] = useState(STANDARD_SETUP.salad)
-  const [chargerId, setChargerId] = useState(STANDARD_SETUP.charger)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -32,35 +31,30 @@ export default function TableStudioClient() {
     if (p && PLATES.some((o) => o.id === p)) setPlateId(p)
     const s = readParam("salad")
     if (s && SALAD_PLATES.some((o) => o.id === s)) setSaladId(s)
-    const ch = readParam("charger")
-    if (ch && CHARGERS.some((o) => o.id === ch)) setChargerId(ch)
   }, [])
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const q = new URLSearchParams({ cloth: clothId, plate: plateId, salad: saladId, charger: chargerId })
+    const q = new URLSearchParams({ cloth: clothId, plate: plateId, salad: saladId })
     if (chairCovers) q.set("chairs", "1")
     window.history.replaceState(null, "", `${window.location.pathname}?${q.toString()}`)
-  }, [clothId, chairCovers, plateId, saladId, chargerId])
+  }, [clothId, chairCovers, plateId, saladId])
 
   const cloth = CLOTHS.find((o) => o.id === clothId) ?? CLOTHS[0]
   const plate = PLATES.find((o) => o.id === plateId) ?? PLATES[0]
   const salad = SALAD_PLATES.find((o) => o.id === saladId) ?? SALAD_PLATES[0]
-  const charger = CHARGERS.find((o) => o.id === chargerId) ?? CHARGERS[0]
   const pricePerGuest = chairCovers ? cloth.priceWithChairCovers : cloth.pricePerGuest
   const onDarkCloth = cloth.id === "black"
   const isStandard =
     clothId === STANDARD_SETUP.cloth &&
     chairCovers === STANDARD_SETUP.chairCovers &&
     plateId === STANDARD_SETUP.plate &&
-    saladId === STANDARD_SETUP.salad &&
-    chargerId === STANDARD_SETUP.charger
+    saladId === STANDARD_SETUP.salad
   const resetToStandard = () => {
     setClothId(STANDARD_SETUP.cloth)
     setChairCovers(STANDARD_SETUP.chairCovers)
     setPlateId(STANDARD_SETUP.plate)
     setSaladId(STANDARD_SETUP.salad)
-    setChargerId(STANDARD_SETUP.charger)
   }
 
   const copyLink = () => {
@@ -143,38 +137,32 @@ export default function TableStudioClient() {
         <AnimateOnScroll>
           <section className="mb-14">
             <h2 className="text-xl font-bold text-gray-900 mb-1">2 · Your place setting</h2>
-            <p className="text-sm text-gray-600 mb-5">Every seat gets the same setting — pick the plate and charger.</p>
+            <p className="text-sm text-gray-600 mb-5">Every seat gets the same setting — pick your plate colors.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start max-w-4xl">
               {/* live preview */}
               <div className="rounded-2xl p-6 shadow-lg transition-colors" style={{ background: cloth.hex }}>
-                <svg viewBox="0 0 340 260" className="w-full" role="img" aria-label={`Place setting preview: ${plate.label} plate on a ${charger.label.toLowerCase()} charger over ${cloth.label.toLowerCase()} linens`}>
-                  {/* placemat */}
-                  <rect x="35" y="30" width="270" height="200" rx="14" fill="#d9c39a" opacity="0.95" />
-                  <rect x="35" y="30" width="270" height="200" rx="14" fill="none" stroke="#b89f6f" strokeWidth="2" />
-                  {/* charger */}
-                  <circle cx="170" cy="130" r="86" fill={charger.hex} stroke={onDarkCloth ? "#ffffff33" : "#00000022"} strokeWidth="2" />
-                  {/* dinner plate */}
-                  <circle cx="170" cy="130" r="66" fill={plate.hex} stroke="#00000022" strokeWidth="1.5" />
+                <svg viewBox="0 0 340 260" className="w-full" role="img" aria-label={`Place setting preview: ${plate.label} dinner plate with a ${salad.label.toLowerCase()} salad plate on ${cloth.label.toLowerCase()} linens`}>
+                  {/* dinner plate straight on the linens */}
+                  <circle cx="170" cy="130" r="84" fill={plate.hex} stroke={onDarkCloth ? "#ffffff3d" : "#00000024"} strokeWidth="2.5" />
+                  <circle cx="170" cy="130" r="66" fill="none" stroke={plate.id === "black" ? "#ffffff22" : "#00000012"} strokeWidth="2" />
                   {/* salad plate */}
-                  <circle cx="170" cy="130" r="42" fill={salad.hex} stroke={salad.id === "white" ? "#00000018" : "#ffffff26"} strokeWidth="1.5" />
-                  <circle cx="170" cy="130" r="30" fill="none" stroke={salad.id === "white" ? "#00000010" : "#ffffff1c"} strokeWidth="2" />
+                  <circle cx="170" cy="130" r="46" fill={salad.hex} stroke={salad.id === "white" ? "#00000018" : "#ffffff26"} strokeWidth="1.5" />
+                  <circle cx="170" cy="130" r="33" fill="none" stroke={salad.id === "white" ? "#00000010" : "#ffffff1c"} strokeWidth="2" />
                   {/* chopsticks */}
                   <rect x="286" y="52" width="6" height="152" rx="3" fill="#8b5a2b" transform="rotate(4 289 128)" />
                   <rect x="298" y="52" width="6" height="152" rx="3" fill="#a06a35" transform="rotate(7 301 128)" />
                   {/* red napkin under the silver fork */}
-                  <rect x="42" y="58" width="30" height="140" rx="6" fill="#a3272c" />
-                  <rect x="46" y="58" width="2.5" height="140" fill="#7d1c20" opacity="0.6" />
+                  <rect x="38" y="56" width="32" height="146" rx="6" fill="#a3272c" stroke={onDarkCloth ? "#ffffff26" : "#00000014"} strokeWidth="1.5" />
+                  <rect x="43" y="56" width="2.5" height="146" fill="#7d1c20" opacity="0.6" />
                   {/* silver fork */}
-                  <rect x="52" y="76" width="7" height="110" rx="3.5" fill="#c3c8d0" />
-                  <rect x="47" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
-                  <rect x="54" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
-                  <rect x="61" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
-                  {/* cup */}
-                  <circle cx="262" cy="42" r="20" fill="#e8eef2" opacity="0.92" stroke="#9fb3bf" strokeWidth="2" />
+                  <rect x="50" y="76" width="7" height="110" rx="3.5" fill="#c3c8d0" />
+                  <rect x="45" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
+                  <rect x="52" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
+                  <rect x="59" y="62" width="4" height="26" rx="2" fill="#c3c8d0" />
                 </svg>
                 <p className={`mt-3 text-center text-xs font-semibold ${onDarkCloth ? "text-white/80" : "text-gray-600"}`}>
-                  {plate.label} dinner · {salad.label.toLowerCase()} salad · {charger.label.toLowerCase()} charger · red napkin
+                  {plate.label} dinner · {salad.label.toLowerCase()} salad · red napkin · silver tableware
                 </p>
               </div>
 
@@ -224,66 +212,18 @@ export default function TableStudioClient() {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900 mb-3">Charger plates</p>
-                  <div className="flex gap-4">
-                    {CHARGERS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setChargerId(option.id)}
-                        aria-pressed={option.id === chargerId}
-                        className="text-center"
-                      >
-                        <span
-                          className={`block h-14 w-14 rounded-full border-4 transition-all ${
-                            option.id === chargerId ? "border-[hsl(24_79%_55%)] scale-110" : "border-gray-200"
-                          }`}
-                          style={{ background: option.hex }}
-                        />
-                        <span className="mt-1.5 block text-xs font-medium text-gray-600">{option.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-200">
                   <p className="text-sm font-semibold text-gray-700">Included with every setup</p>
                   <p className="mt-1 text-xs text-gray-500">{INCLUDED_FIXED.join(" · ")}</p>
                 </div>
                 <div className="rounded-xl border border-dashed border-gray-300 bg-white/60 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-700">More styling — coming soon</p>
-                  <p className="mt-1 text-xs text-gray-500">{COMING_SOON_SET.join(" · ")}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-        </AnimateOnScroll>
-
-        {/* place cards */}
-        <AnimateOnScroll>
-          <section className="mb-14">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">3 · Printed place cards</h2>
-            <p className="text-sm text-gray-600 mb-5">
-              We can print a card for every guest — their name, their menu picks, colors to match your table.
-            </p>
-            <div className="flex flex-wrap gap-5">
-              {[
-                { name: "Mia", menu: "Chicken · Shrimp", note: "Birthday girl 🎂" },
-                { name: "Carlos", menu: "Steak (med-rare) · Chicken", note: "Extra noodles" },
-                { name: "Ana", menu: "Salmon · Chicken", note: "No shellfish" },
-              ].map((card) => (
-                <div
-                  key={card.name}
-                  className="w-52 rounded-lg bg-white p-4 shadow-md"
-                  style={{ borderTop: `6px solid ${charger.hex}` }}
-                >
-                  <p className="font-serif text-xl font-bold text-gray-900">{card.name}</p>
-                  <p className="mt-1 text-sm text-gray-700">{card.menu}</p>
-                  <p className="mt-0.5 text-xs font-medium" style={{ color: charger.hex === "#141414" ? "#8a6d3b" : charger.hex }}>
-                    {card.note}
+                  <p className="text-sm font-semibold text-gray-700">Make it yours</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Chargers, runners, place cards, or themed decor — bring your own touches and we&apos;ll set
+                    the table around them.
                   </p>
                 </div>
-              ))}
+              </div>
             </div>
           </section>
         </AnimateOnScroll>
@@ -308,7 +248,7 @@ export default function TableStudioClient() {
               )}
             </div>
             <p className="text-lg font-bold text-gray-900">
-              {cloth.label}{chairCovers ? " + chair covers" : ""} · {plate.label} dinner · {salad.label} salad · {charger.label} chargers · silver tableware · red napkins
+              {cloth.label}{chairCovers ? " + chair covers" : ""} · {plate.label} dinner · {salad.label} salad · silver tableware · red napkins
             </p>
             <p className="mt-1 text-2xl font-black text-[hsl(24_79%_45%)]">
               ${pricePerGuest}<span className="text-sm font-semibold text-gray-500"> per guest, all set up for you</span>
@@ -331,7 +271,8 @@ export default function TableStudioClient() {
             </div>
             <p className="mt-4 text-xs text-gray-500">
               Preview page — styling options are confirmed with our team when you book. Table &amp; chair setup is
-              optional; bring your own and skip the fee entirely.
+              optional; bring your own and skip the fee entirely. Chargers, runners, and place cards aren&apos;t
+              included — add your own for a personal touch.
             </p>
           </section>
         </AnimateOnScroll>
