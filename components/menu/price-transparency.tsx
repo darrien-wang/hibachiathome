@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PackageSmsButton } from "@/components/menu/package-sms-button"
 import { pricing } from "@/config/pricing"
 
 // Honest math: tables/chairs are OPTIONAL and travel is free within 50
@@ -45,6 +46,7 @@ export default function PriceTransparency() {
                 <p>Optional: tables, chairs &amp; utensils +${example.setupIfNeeded} (skip it if you have your own)</p>
                 <p>Optional: premium upgrades, appetizers, DIY fried rice add-ins</p>
               </div>
+              <PackageSmsButton guests={example.guests} total={example.baseTotal} />
             </CardContent>
           </Card>
         ))}
