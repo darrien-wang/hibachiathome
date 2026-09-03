@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
-  let body: { name?: string; phone?: string; email?: string; channel?: string; message?: string }
+  let body: { name?: string; phone?: string; email?: string; channel?: string; message?: string; adRef?: string }
   try {
     body = await request.json()
   } catch {
@@ -158,6 +158,15 @@ export async function POST(request: NextRequest) {
       touchpointSource: "admin_dashboard",
       rawPayload: { channel, actor: actor.alias },
     })
+    // An [AD-xxxxxx] code from the customer's text ties this manual lead back
+    // to the paid click that produced it (GA4 keeps code -> full gclid).
+    const adRef = (body.adRef ?? "").trim().toUpperCase().slice(0, 16)
+    if (adRef && supabase) {
+      await supabase
+        .from("leads")
+        .update({ utm_source: "google", utm_medium: "cpc", utm_campaign: `sms_ref:${adRef}` })
+        .eq("id", result.leadId)
+    }
     return NextResponse.json({ ok: true, leadId: result.leadId, deduped: result.deduped })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

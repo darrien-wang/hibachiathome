@@ -184,7 +184,7 @@ export default function LeadsDashboard() {
   const [viewerRole, setViewerRole] = useState<string>("agent")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showAdd, setShowAdd] = useState(false)
-  const [addForm, setAddForm] = useState({ name: "", phone: "", channel: "phone", message: "" })
+  const [addForm, setAddForm] = useState({ name: "", phone: "", channel: "phone", message: "", adRef: "" })
   const [adding, setAdding] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [historyEvents, setHistoryEvents] = useState<HistoryEvent[]>([])
@@ -1152,6 +1152,7 @@ export default function LeadsDashboard() {
               <option value="other">其他</option>
             </select>
             <input placeholder="需求备注（日期/人数/地区）" value={addForm.message} onChange={(e) => setAddForm({ ...addForm, message: e.target.value })} style={inputStyle} />
+            <input placeholder="广告码（客户短信里的 [AD-XXXXXX]，没有留空）" value={addForm.adRef} onChange={(e) => setAddForm({ ...addForm, adRef: e.target.value })} style={inputStyle} />
             <button
               disabled={adding || (!addForm.name.trim() && !addForm.phone.trim())}
               onClick={async () => {
@@ -1162,7 +1163,7 @@ export default function LeadsDashboard() {
                     headers: { "content-type": "application/json", "x-admin-key": adminKey },
                     body: JSON.stringify(addForm),
                   })
-                  setAddForm({ name: "", phone: "", channel: addForm.channel, message: "" })
+                  setAddForm({ name: "", phone: "", channel: addForm.channel, message: "", adRef: "" })
                   setShowAdd(false)
                   fetchLeads()
                 } finally {

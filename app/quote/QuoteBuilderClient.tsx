@@ -27,7 +27,7 @@ import {
   isWeekdayEligibleDate,
 } from "@/config/pricing-rules"
 import { useActiveRegion } from "@/lib/use-active-region"
-import { trackEvent } from "@/lib/tracking"
+import { getAdRefCode, getStoredGclid, trackEvent } from "@/lib/tracking"
 import {
   buildEmailPayload,
   buildSmsBody,
@@ -780,6 +780,11 @@ export default function QuoteBuilderClient() {
     }))
   }
 
+  const [adRefCode, setAdRefCode] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    setAdRefCode(getAdRefCode())
+  }, [])
+
   const displayPhone = "213-770-7788"
   const phoneRaw = "2137707788"
   const displayEmail = "support@realhibachi.com"
@@ -788,8 +793,12 @@ export default function QuoteBuilderClient() {
   // referral becomes unattributable — append it to the prefilled message.
   const trimmedReferralCode = referralCode.toUpperCase().replace(/\s+/g, "").slice(0, 32)
   const smsBodyWithReferral = trimmedReferralCode ? `${smsBody}\nReferral code: ${trimmedReferralCode}` : smsBody
-  const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBodyWithReferral)}`
-  const whatsappHref = `https://wa.me/1${phoneRaw}?text=${encodeUrlComponent(smsBodyWithReferral)}`
+  // Paid visitors carry an [AD-xxxxxx] tag in the prefilled text so a manual
+  // SMS lead can be attributed back to the ad click (set post-hydration to
+  // keep SSR markup stable).
+  const smsBodyWithAdRef = adRefCode ? `${smsBodyWithReferral}\n[${adRefCode}]` : smsBodyWithReferral
+  const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBodyWithAdRef)}`
+  const whatsappHref = `https://wa.me/1${phoneRaw}?text=${encodeUrlComponent(smsBodyWithAdRef)}`
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
   const missingRequiredBookingFields =
@@ -912,6 +921,8 @@ export default function QuoteBuilderClient() {
     }
     reportContactIntent("sms")
     trackEvent("contact_sms_click", {
+      ref_code: adRefCode ?? "none",
+      gclid: getStoredGclid() ?? "none",
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
       city_or_zip: input.location || "unspecified",
@@ -938,6 +949,8 @@ export default function QuoteBuilderClient() {
     }
     reportContactIntent("whatsapp")
     trackEvent("contact_whatsapp_click", {
+      ref_code: adRefCode ?? "none",
+      gclid: getStoredGclid() ?? "none",
       contact_surface: quoteSurface,
       quote_summary: quoteSummary,
       city_or_zip: input.location || "unspecified",

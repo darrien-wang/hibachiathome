@@ -221,6 +221,22 @@ function rememberTrackedDepositTransaction(transactionId: string): void {
   writeTrackedDepositTransactionIds(merged)
 }
 
+// Ad-referral short code for SMS attribution: a paid visitor's prefilled
+// text carries [AD-xxxxxx] (last 6 of their gclid), so when the customer's
+// message arrives and staff enter the lead by hand, the code ties it back to
+// the ad click. GA4 keeps the code->full-gclid mapping via the click events.
+export function getAdRefCode(): string | undefined {
+  const attribution = safeParseAttribution(parseCookie(COOKIE_NAME))
+  if (attribution.gclid) return `AD-${attribution.gclid.slice(-6).toUpperCase()}`
+  const source = (attribution.utm_source ?? "").toLowerCase()
+  if (source === "google" || source === "googleads") return "AD-GGL"
+  return undefined
+}
+
+export function getStoredGclid(): string | undefined {
+  return safeParseAttribution(parseCookie(COOKIE_NAME)).gclid
+}
+
 export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 
