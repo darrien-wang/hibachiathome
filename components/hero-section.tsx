@@ -79,7 +79,7 @@ export default function HeroSection() {
         >
           <p className="text-base md:text-lg font-semibold tracking-wide text-amber-200 drop-shadow">Private Hibachi Catering</p>
           <h1 className="mt-2 text-5xl md:text-7xl font-extrabold leading-[0.95] tracking-tight text-white drop-shadow-[0_4px_18px_rgba(0,0,0,0.55)]">
-            Top Rated
+            The Easiest
             <br />
             Hibachi At Home
             <br />
