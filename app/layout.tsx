@@ -7,7 +7,6 @@ import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
-import { SocialProofToast } from "@/components/social-proof-toast"
 import { LiveChatLoader } from "@/components/live-chat-loader"
 import { HideOnAdmin } from "@/components/hide-on-admin"
 import LanguageSuggestBanner from "@/components/language-suggest-banner"
@@ -134,11 +133,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <HideOnAdmin>
           <Footer />
         </HideOnAdmin>
-        <Suspense fallback={null}>
-          <HideOnAdmin>
-            <SocialProofToast />
-          </HideOnAdmin>
-        </Suspense>
         <Analytics />
       </body>
     </html>
