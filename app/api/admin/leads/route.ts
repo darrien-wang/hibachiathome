@@ -8,6 +8,7 @@ const FIRST_RESPONSE_TYPE = "agent_first_response"
 const STATUS_CHANGE_TYPE = "agent_status_change"
 const EDIT_TYPE = "agent_edit"
 const NOTE_TYPE = "agent_note"
+const MERGE_TYPE = "agent_merge"
 const ALLOWED_STATUSES = ["new", "qualified", "disqualified", "won", "lost"] as const
 const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "wechat", "walk_in", "referral", "other"] as const
 const EDITABLE_FIELDS = ["full_name", "phone", "email", "city_or_zip", "guest_count"] as const
@@ -68,13 +69,25 @@ export async function GET(request: NextRequest) {
 
   const limit = Math.min(Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "100", 10) || 100, 300)
 
-  const { data: leads, error } = await supabase
+  const LIST_COLUMNS =
+    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at"
+
+  // merged_into arrives with add-lead-merge-fields.sql. Until that migration is
+  // applied the column does not exist, and filtering on it would 500 the whole
+  // workbench — so fall back to the unfiltered query instead of going down.
+  let { data: leads, error } = await supabase
     .from("leads")
-    .select(
-      "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at"
-    )
+    .select(LIST_COLUMNS)
+    .is("merged_into", null)
     .order("created_at", { ascending: false })
     .limit(limit)
+  if (error?.code === "42703") {
+    ;({ data: leads, error } = await supabase
+      .from("leads")
+      .select(LIST_COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(limit))
+  }
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -216,6 +229,138 @@ export async function PATCH(request: NextRequest) {
       await logEvent(supabase, id, STATUS_CHANGE_TYPE, actor, { status, bulk: true })
     }
     return NextResponse.json({ ok: true, count: ids.length })
+  }
+
+  // Merge duplicates that automatic dedupe cannot catch: an inbound call and an
+  // email inquiry from the same person share no field to match on.
+  if (body.action === "merge") {
+    if (actor.role !== "owner") {
+      return NextResponse.json({ error: "owner only" }, { status: 403 })
+    }
+    const ids = Array.isArray(body.leadIds) ? body.leadIds.filter((x) => typeof x === "string") : []
+    if (ids.length < 2 || ids.length > 10) {
+      return NextResponse.json({ error: "select between 2 and 10 leads to merge" }, { status: 400 })
+    }
+
+    const { data: rows, error: fetchError } = await supabase
+      .from("leads")
+      .select("*")
+      .in("id", ids)
+      .is("merged_into", null)
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 })
+    }
+    if (!rows || rows.length < 2) {
+      return NextResponse.json({ error: "leads not found or already merged" }, { status: 400 })
+    }
+
+    // Oldest row wins: first-touch attribution and the response-time clock both
+    // hang off it, so keeping a newer row would silently distort the metrics.
+    const ordered = [...rows].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+    const survivor = ordered[0]
+    const losers = ordered.slice(1)
+
+    // Fill only the survivor's blanks — never overwrite a value it already has.
+    const FILLABLE = [
+      "full_name", "phone", "normalized_phone", "email", "city_or_zip", "guest_count",
+      "inquiry_reason", "source_page", "hear_about_us", "referral_code", "external_call_id",
+      "manual_entry_id", "utm_source", "utm_medium", "utm_campaign", "utm_term",
+      "utm_content", "gclid", "wbraid", "gbraid",
+    ] as const
+    const patch: Record<string, unknown> = {}
+    for (const field of FILLABLE) {
+      if (survivor[field] === null || survivor[field] === undefined || survivor[field] === "") {
+        const donor = losers.find((l) => l[field] !== null && l[field] !== undefined && l[field] !== "")
+        if (donor) patch[field] = donor[field]
+      }
+    }
+    patch.touchpoint_count = ordered.reduce((sum, r) => sum + (Number(r.touchpoint_count) || 1), 0)
+    const latest = [...ordered].sort(
+      (a, b) => new Date(b.last_seen_at ?? b.created_at).getTime() - new Date(a.last_seen_at ?? a.created_at).getTime()
+    )[0]
+    patch.latest_message = latest.latest_message ?? survivor.latest_message
+    patch.last_seen_at = latest.last_seen_at ?? survivor.last_seen_at
+    patch.updated_at = new Date().toISOString()
+
+    const loserIds = losers.map((l) => String(l.id))
+
+    // Touchpoints move first: if the run dies after this the timeline is still
+    // whole on the survivor, and the losers are simply not yet hidden.
+    const { error: moveError } = await supabase
+      .from("lead_touchpoints")
+      .update({ lead_id: survivor.id })
+      .in("lead_id", loserIds)
+    if (moveError) {
+      return NextResponse.json({ error: `touchpoint move failed: ${moveError.message}` }, { status: 500 })
+    }
+
+    const { error: updateError } = await supabase.from("leads").update(patch).eq("id", survivor.id)
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    const { error: markError } = await supabase
+      .from("leads")
+      .update({ merged_into: survivor.id, merged_at: new Date().toISOString() })
+      .in("id", loserIds)
+    if (markError) {
+      return NextResponse.json({ error: markError.message }, { status: 500 })
+    }
+
+    await logEvent(supabase, String(survivor.id), MERGE_TYPE, actor, {
+      merged_ids: loserIds,
+      merged_labels: losers.map((l) => l.full_name || l.phone || l.email || String(l.id)),
+      filled_fields: Object.keys(patch).filter((k) => !["touchpoint_count", "updated_at", "last_seen_at", "latest_message"].includes(k)),
+    })
+
+    return NextResponse.json({ ok: true, survivorId: String(survivor.id), mergedCount: loserIds.length })
+  }
+
+  // Notes taken while the phone is ringing or connected: the drawer knows the
+  // caller's number, not which lead row it belongs to, so resolve by phone the
+  // same way dedupe does (last 10 digits) and fall back to creating the lead.
+  if (body.action === "call_note") {
+    const note = typeof body.note === "string" ? body.note.trim() : ""
+    const phone = typeof body.phone === "string" ? body.phone.trim() : ""
+    if (!note || !phone) {
+      return NextResponse.json({ error: "note and phone required" }, { status: 400 })
+    }
+    const digits = phone.replace(/\D/g, "")
+    const dedupeKey = digits.length > 10 ? digits.slice(-10) : digits
+    if (!dedupeKey) {
+      return NextResponse.json({ error: "unusable phone" }, { status: 400 })
+    }
+
+    const { data: match } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("normalized_phone", dedupeKey)
+      .order("last_seen_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    let targetId = match?.id ? String(match.id) : ""
+    if (!targetId) {
+      const created = await upsertLeadFromContact(supabase, {
+        name: phone,
+        phone,
+        message: "Call note (lead created from the softphone)",
+        leadSource: "phone_inbound",
+        leadChannel: "phone",
+        touchpointType: "call_inbound",
+        touchpointSource: "softphone",
+      })
+      targetId = created.leadId
+    }
+
+    await logEvent(supabase, targetId, NOTE_TYPE, actor, {
+      note: note.slice(0, 4000),
+      during_call: true,
+      call_sid: typeof body.callSid === "string" ? body.callSid : undefined,
+    })
+    return NextResponse.json({ ok: true, leadId: targetId })
   }
 
   const leadId = typeof body.leadId === "string" ? body.leadId : ""

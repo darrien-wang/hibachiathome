@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSoftphone } from "@/components/admin/SoftphoneProvider"
 
 type LeadRow = {
   id: string
@@ -57,6 +58,7 @@ const EVENT_LABELS: Record<string, string> = {
   agent_status_change: "状态变更",
   agent_edit: "✏️ 资料修改",
   agent_note: "📝 备注",
+  agent_merge: "🔗 合并线索",
   manual_entry: "手动录入",
   contact_form: "表单提交",
   booking_request: "报价提交",
@@ -174,6 +176,7 @@ const inputStyle: React.CSSProperties = { padding: "9px 11px", borderRadius: 8, 
 const sectionLabel: React.CSSProperties = { fontSize: 12, color: "#6b7280", margin: "14px 0 6px", fontWeight: 600 }
 
 export default function LeadsDashboard() {
+  const softphone = useSoftphone()
   const [adminKey, setAdminKey] = useState<string>("")
   const [keyInput, setKeyInput] = useState("")
   const [authFailed, setAuthFailed] = useState(false)
@@ -1030,7 +1033,50 @@ export default function LeadsDashboard() {
               <div style={{ fontSize: 13, color: "#374151", margin: "8px 0", display: "flex", gap: 14, flexWrap: "wrap" }}>
                 {l.phone && (
                   <span onClick={(e) => e.stopPropagation()}>
-                    📞 <a href={`tel:${l.phone}`}>{l.phone}</a> · <a href={`sms:${l.phone}`}>发短信</a>
+                    📞{" "}
+                    {/* Prefills the softphone drawer. A tel: link here opens the
+                        Windows "choose an app" dialog and dials nothing. */}
+                    <button
+                      type="button"
+                      onClick={() => softphone.prefill(l.phone as string)}
+                      title="填入右侧电话面板"
+                      style={{
+                        background: "none", border: "none", padding: 0, font: "inherit",
+                        color: "#111827", textDecoration: "underline dotted", cursor: "pointer",
+                      }}
+                    >
+                      {l.phone}
+                    </button>{" "}
+                    ·{" "}
+                    <button
+                      type="button"
+                      onClick={() => void softphone.dial(l.phone as string)}
+                      disabled={softphone.live.kind !== "none"}
+                      title="用网页软电话拨打"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        font: "inherit",
+                        color: softphone.live.kind !== "none" ? "#9ca3af" : "#2563eb",
+                        textDecoration: "underline",
+                        cursor: softphone.live.kind !== "none" ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      网页拨号
+                    </button>{" "}
+                    ·{" "}
+                    <button
+                      type="button"
+                      onClick={() => softphone.prefill(l.phone as string, "sms")}
+                      title="在右侧写短信草稿"
+                      style={{
+                        background: "none", border: "none", padding: 0, font: "inherit",
+                        color: "#2563eb", textDecoration: "underline", cursor: "pointer",
+                      }}
+                    >
+                      发短信
+                    </button>
                   </span>
                 )}
                 {l.hear_about_us && <span>👂 {l.hear_about_us}</span>}
@@ -1140,6 +1186,39 @@ export default function LeadsDashboard() {
               {label}
             </button>
           ))}
+          {selected.size >= 2 && (
+            <button
+              onClick={async () => {
+                // Merging rewrites history, so name the survivor before doing it.
+                const picked = leads.filter((l) => selected.has(l.id))
+                const oldest = [...picked].sort(
+                  (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                )[0]
+                const keepLabel = oldest?.full_name || oldest?.phone || oldest?.email || "最早的一条"
+                if (!window.confirm(`把选中的 ${selected.size} 条合并成一条？
+
+保留：${keepLabel}（最早的一条，首响和归因都挂在它上面）
+其余记录会被隐藏，电话/邮箱等空字段补到保留的那条上，触点时间线全部合并过去。
+
+合错了可以恢复。`)) return
+                const res = await fetch("/api/admin/leads", {
+                  method: "PATCH",
+                  headers: { "content-type": "application/json", "x-admin-key": adminKey },
+                  body: JSON.stringify({ action: "merge", leadIds: Array.from(selected) }),
+                })
+                if (!res.ok) {
+                  const body = await res.json().catch(() => ({}))
+                  alert(`合并失败：${body.error ?? res.status}`)
+                  return
+                }
+                setSelected(new Set())
+                fetchLeads()
+              }}
+              style={{ padding: "6px 14px", borderRadius: 999, border: "1px solid #34d399", background: "transparent", color: "#6ee7b7", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              合并为同一人
+            </button>
+          )}
           <button onClick={() => setSelected(new Set())} style={{ padding: "6px 10px", borderRadius: 999, border: "none", background: "transparent", color: "#9ca3af", fontSize: 13, cursor: "pointer" }}>
             取消
           </button>
