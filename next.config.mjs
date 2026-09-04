@@ -46,14 +46,35 @@ const nextConfig = {
       { key: "X-Frame-Options", value: "SAMEORIGIN" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "geolocation=(), microphone=(), camera=()" },
       { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
     ]
+
+    // Permissions-Policy is split out because /admin needs the microphone and
+    // the rest of the site must not have it. A page whose Permissions-Policy
+    // denies the mic can never ask for it: getUserMedia rejects with
+    // NotAllowedError and the browser shows no permission prompt at all, so no
+    // amount of clicking "allow" in site settings can rescue it. The softphone
+    // on /admin/phone (Twilio Voice JS SDK) is the one place that needs it.
+    const permissionsPolicy = (microphone) => ({
+      key: "Permissions-Policy",
+      value: `geolocation=(), microphone=(${microphone}), camera=()`,
+    })
 
     return [
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      // The two rules below are mutually exclusive on purpose: if both matched
+      // a route the response would carry two Permissions-Policy headers and the
+      // stricter one would win, silently killing the mic again.
+      {
+        source: "/((?!admin).*)",
+        headers: [permissionsPolicy("")],
+      },
+      {
+        source: "/admin/:path*",
+        headers: [permissionsPolicy("self")],
       },
       {
         source: "/chef-handbook",

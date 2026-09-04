@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import AdminNav from "@/components/admin/AdminNav"
+import { SoftphoneProvider } from "@/components/admin/SoftphoneProvider"
 
 // Dynamic rendering so usePathname resolves during SSR and the site chrome
 // (header/footer/chat) is stripped server-side — no flash of public-site UI.
@@ -12,7 +13,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           The HideOnAdmin client wrapper then removes these nodes on hydration. */}
       <style>{`header, footer, #social-proof-toast { display: none !important; }`}</style>
       <AdminNav />
-      {children}
+      <SoftphoneProvider>{children}</SoftphoneProvider>
     </>
   )
 }
