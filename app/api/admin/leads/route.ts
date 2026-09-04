@@ -296,22 +296,40 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: `touchpoint move failed: ${moveError.message}` }, { status: 500 })
     }
 
-    const { error: updateError } = await supabase.from("leads").update(patch).eq("id", survivor.id)
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
+    // external_call_id and manual_entry_id carry unique indexes, and a merged
+    // row is hidden rather than deleted, so it keeps holding its value. Handing
+    // the same value to the survivor while the loser still has it violates the
+    // constraint. They are identity keys — after a merge the survivor is who
+    // that CallSid belongs to — so they move rather than copy: clear them off
+    // the losers first, in the same write that hides them.
+    const surrenderedKeys = losers.map((l) => ({
+      id: String(l.id),
+      external_call_id: l.external_call_id ?? null,
+      manual_entry_id: l.manual_entry_id ?? null,
+    }))
 
     const { error: markError } = await supabase
       .from("leads")
-      .update({ merged_into: survivor.id, merged_at: new Date().toISOString() })
+      .update({
+        merged_into: survivor.id,
+        merged_at: new Date().toISOString(),
+        external_call_id: null,
+        manual_entry_id: null,
+      })
       .in("id", loserIds)
     if (markError) {
       return NextResponse.json({ error: markError.message }, { status: 500 })
     }
 
+    const { error: updateError } = await supabase.from("leads").update(patch).eq("id", survivor.id)
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
     await logEvent(supabase, String(survivor.id), MERGE_TYPE, actor, {
       merged_ids: loserIds,
       merged_labels: losers.map((l) => l.full_name || l.phone || l.email || String(l.id)),
+      surrendered_keys: surrenderedKeys,
       filled_fields: Object.keys(patch).filter((k) => !["touchpoint_count", "updated_at", "last_seen_at", "latest_message"].includes(k)),
     })
 
