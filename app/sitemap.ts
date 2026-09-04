@@ -41,6 +41,9 @@ const STATIC_ROUTES = [
   "/partner-opportunities",
   "/faq",
   "/gallery",
+  // "/jobs" deliberately absent, same as /referral: the recruiting page is live
+  // but unlisted (noindex) so customers browsing the site never land on hiring
+  // terms. It reaches applicants through the link we post, not through search.
   "/locations", // Main locations page
   "/privacy-policy",
   // "/referral" deliberately absent: page is live but unlisted (noindex) while
