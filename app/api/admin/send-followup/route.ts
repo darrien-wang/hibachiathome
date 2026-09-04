@@ -61,14 +61,16 @@ export async function POST(request: NextRequest) {
   }
   try {
     const resend = new Resend(apiKey)
-    const from = process.env.EMAIL_FROM
-      ? `Real Hibachi <${process.env.EMAIL_FROM}>`
-      : "Real Hibachi <support@realhibachi.com>"
+    // Customer mail must come from, and reply into, the mailbox staff actually
+    // watch. EMAIL_FROM is the ops notification identity (notify@) and is
+    // deliberately not used here: a customer hitting Reply on it lands in an
+    // unmonitored inbox, which loses the lead silently.
+    const inbox = process.env.EMAIL_TO || "support@realhibachi.com"
     const result = await resend.emails.send({
-      from,
+      from: `Real Hibachi <${inbox}>`,
       to,
       ...(cc.length > 0 ? { cc } : {}),
-      replyTo: process.env.EMAIL_FROM || "support@realhibachi.com",
+      replyTo: inbox,
       subject,
       text,
     })
