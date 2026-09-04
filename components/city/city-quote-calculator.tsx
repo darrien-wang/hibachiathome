@@ -4,24 +4,42 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  GUEST_TIERS,
+  MINIMUM_SPEND,
+  WEEKDAY_SPECIAL,
+  calcAdultEquivalents,
+  roundCurrency,
+} from "@/config/pricing-rules"
 
 // Lightweight on-page estimator for city pages. Competitor research showed the
 // winners either gate pricing behind forms or link away to a calculator; an
-// answer directly on the ranking page beats both. Mirrors config/pricing:
-// $59.90/adult, $29.90/child 5-12, $599 event minimum, weekday tier Mon-Thu.
-const ADULT = 59.9
-const KID = 29.9
-const WEEKDAY_ADULT = 45.9
-const WEEKDAY_KID = 22.95
-const MINIMUM = 599
+// answer directly on the ranking page beats both. All rates come from
+// config/pricing-rules.ts — never hard-code a money value here.
+
+const fmt = (value: number) => {
+  const rounded = roundCurrency(value)
+  return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(2)
+}
 
 export default function CityQuoteCalculator({ citySlug, cityName }: { citySlug: string; cityName: string }) {
   const [adults, setAdults] = useState(10)
   const [kids, setKids] = useState(0)
 
   const clamp = (n: number) => (Number.isFinite(n) && n >= 0 ? Math.min(n, 200) : 0)
-  const standard = Math.max(adults * ADULT + kids * KID, MINIMUM)
-  const weekday = Math.max(adults * WEEKDAY_ADULT + kids * WEEKDAY_KID, MINIMUM)
+
+  const standardSubtotal = roundCurrency(adults * GUEST_TIERS.adult.price + kids * GUEST_TIERS.child.price)
+  const standard = Math.max(standardSubtotal, MINIMUM_SPEND)
+  const atMinimum = standardSubtotal < MINIMUM_SPEND
+
+  const adultEquivalents = calcAdultEquivalents({ adult: adults, child: kids, toddler: 0 })
+  const weekdayEligible = adultEquivalents >= WEEKDAY_SPECIAL.minAdultEquivalents
+  const weekday = Math.max(
+    roundCurrency(adults * GUEST_TIERS.adult.weekdayPrice + kids * GUEST_TIERS.child.weekdayPrice),
+    MINIMUM_SPEND,
+  )
+  const moreForWeekday = Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - adultEquivalents))
+
   const quoteHref = `/quote?source=city_${citySlug.replace(/-/g, "_")}&adults=${adults}&kids=${kids}`
 
   return (
@@ -52,19 +70,33 @@ export default function CityQuoteCalculator({ citySlug, cityName }: { citySlug: 
           />
         </label>
       </div>
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-1">
-        <p className="text-2xl font-bold text-orange-800" aria-live="polite">
-          ${standard.toFixed(0)}
+      <div className="mt-4" aria-live="polite">
+        <p className="text-2xl font-bold text-orange-800">
+          ${fmt(standard)}
           <span className="ml-1 text-sm font-medium text-gray-600">Standard, any day</span>
         </p>
-        <p className="text-lg font-semibold text-emerald-700" aria-live="polite">
-          ${weekday.toFixed(0)}
-          <span className="ml-1 text-sm font-medium text-gray-600">Weekday Special (Mon–Thu)</span>
-        </p>
+        {atMinimum && (
+          <p className="mt-1 text-sm text-gray-600">
+            That&apos;s our ${MINIMUM_SPEND} event minimum — parties this size all come in at ${MINIMUM_SPEND}, so a
+            few extra guests won&apos;t raise the price.
+          </p>
+        )}
+        {weekdayEligible ? (
+          <p className="mt-2 text-lg font-semibold text-emerald-700">
+            ${fmt(weekday)}
+            <span className="ml-1 text-sm font-medium text-gray-600">Weekday Special (Mon–Thu)</span>
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-gray-600">
+            Weekday Special — ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult on Mon–Thu — unlocks at{" "}
+            {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half). Add {moreForWeekday} more to
+            qualify.
+          </p>
+        )}
       </div>
-      <p className="mt-1 text-xs text-gray-500">
-        Food, chef, live show, setup & cleanup included. $599 event minimum. Travel confirmed in your quote — first 50
-        miles free.
+      <p className="mt-2 text-xs text-gray-500">
+        Food, chef, live show, setup & cleanup included. ${MINIMUM_SPEND} event minimum. Travel confirmed in your
+        quote — first 50 miles free.
       </p>
       <Button
         asChild
