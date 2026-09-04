@@ -86,6 +86,7 @@ export type QuoteResult = {
 
 export type QuoteTemplateContext = {
   event_date: string
+  event_date_pretty: string
   event_time: string
   location: string
   adults: string
@@ -335,9 +336,20 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     .join(" | ")
 }
 
+// The SMS a customer sends in their own name should read the way they would
+// write it, so the prefilled body gets "Sat, Sep 13" rather than 2026-09-13.
+function formatEventDatePretty(isoDate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim())
+  if (!m) return isoDate || "TBD"
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  if (Number.isNaN(d.getTime())) return isoDate
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+}
+
 export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResult, eventTime?: string): QuoteTemplateContext {
   return {
     event_date: input.eventDate || "TBD",
+    event_date_pretty: formatEventDatePretty(input.eventDate || ""),
     event_time: eventTime || "TBD",
     location: input.location || "TBD",
     adults: String(input.adults || 0),

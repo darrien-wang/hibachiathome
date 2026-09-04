@@ -3,16 +3,13 @@ export type QuoteContactTemplateKeys = "sms" | "emailSubject" | "emailBody" | "c
 export type QuoteContactTemplateMap = Record<QuoteContactTemplateKeys, string>
 
 export const defaultQuoteContactTemplates: QuoteContactTemplateMap = {
-  sms: [
-    "Hi Real Hibachi, I completed a quote and want to book.",
-    "Date: {{event_date}}",
-    "Location: {{location}}",
-    "Guests: {{guest_count}} (Adults {{adults}}, Kids {{kids}})",
-    "Menu: {{tier_menu}}",
-    "Full setup (tables/chairs/utensils): {{tableware_rental}}",
-    "Upgrades: {{upgrades}}",
-    "Estimated total: {{estimate_low}} - {{estimate_high}}",
-  ].join(" "),
+  // The customer sends this from their own phone, under their own name, so it
+  // has to read like something a person would type. The old body was a 291-char
+  // field dump on one line - people opened Messages, saw a wall of form labels,
+  // and closed it without sending. Menu, upgrades and setup are already on the
+  // quote we hold; the first text only has to open the conversation, and the
+  // closing question is what makes sending feel necessary.
+  sms: "Hi Real Hibachi! I'd like to book {{event_date_pretty}} in {{location}} for {{guest_count}} guests (~{{estimate_low}}). Do you have a chef available?",
   emailSubject: "Quote Request - {{event_date}} - {{location}}",
   emailBody: [
     "Hi Real Hibachi team,",
