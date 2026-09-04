@@ -5,6 +5,7 @@ import { MapPin, Phone, Star, Clock, Users, ChefHat, Check } from "lucide-react"
 import Link from "next/link"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
+import { phone } from "@/config/site"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Los Angeles & Orange County | Private Chef Catering",
@@ -237,7 +238,7 @@ export default function LAOrangeCountyPage() {
                 area.
               </p>
               <Button asChild variant="outline" size="lg">
-                <Link href="sms:2137707788?body=Hi! I'm interested in hibachi at home service in Los Angeles. Could you please let me know if you serve my area? Here are my details:%0A%0ALocation: [Please specify your city/area]%0ADate needed: [Please specify]%0ANumber of guests: [Please specify]%0A%0AThank you!">
+                <Link href="sms:+16263628824?body=Hi! I'm interested in hibachi at home service in Los Angeles. Could you please let me know if you serve my area? Here are my details:%0A%0ALocation: [Please specify your city/area]%0ADate needed: [Please specify]%0ANumber of guests: [Please specify]%0A%0AThank you!">
                   Check My Area Availability
                 </Link>
               </Button>
@@ -303,9 +304,9 @@ export default function LAOrangeCountyPage() {
                   variant="outline"
                   className="border-white text-white hover:bg-white hover:text-primary bg-transparent text-lg px-8 py-4"
                 >
-                  <Link href="tel:+12137707788">
+                  <Link href={phone.voice.tel}>
                     <Phone className="h-5 w-5 mr-2" />
-                    Call (213) 770-7788
+                    Call {phone.voice.display}
                   </Link>
                 </Button>
               </div>

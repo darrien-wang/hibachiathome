@@ -4,10 +4,11 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { MessageCircle } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
+import { phone } from "@/config/site"
 
 export function FloatingContactButtons() {
   const pathname = usePathname()
-  const phoneNumber = "2137707788"
+  const phoneNumber = phone.sms.e164
 
   if (pathname.startsWith("/deposit")) {
     return null

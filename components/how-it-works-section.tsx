@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { MessageSquare, Calendar, CreditCard, ChefHat } from "lucide-react"
+import { phone, smsHref } from "@/config/site"
 
 export default function HowItWorksSection() {
   const [animatedSteps, setAnimatedSteps] = useState([false, false, false, false])
@@ -32,11 +33,11 @@ export default function HowItWorksSection() {
 
   // SMS template for availability check
   const availabilitySmsTemplate = `Hi, I'm interested in booking a hibachi party on [DATE]. Is this date available? I'm looking at [YOUR PACKAGE].`
-  const availabilitySmsLink = `sms:+12137707788?body=${encodeURIComponent(availabilitySmsTemplate)}`
+  const availabilitySmsLink = smsHref(availabilitySmsTemplate)
 
   // SMS template for booking details
   const bookingSmsTemplate = `Hi, I'd like to book a hibachi party on [DATE] at [TIME], at [LOCATION/ZIP CODE] for approximately [NUMBER] people. Can you help me arrange this?`
-  const bookingSmsLink = `sms:+12137707788?body=${encodeURIComponent(bookingSmsTemplate)}`
+  const bookingSmsLink = smsHref(bookingSmsTemplate)
 
   return (
     <section id="how-it-works" className="py-20 relative overflow-hidden">

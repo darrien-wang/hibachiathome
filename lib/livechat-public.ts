@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { phone } from "@/config/site"
 
 export const LIVECHAT_VISITOR_COOKIE_NAME = "rh_livechat_visitor"
 // How long a visitor waits for a human before the widget answers for us.
@@ -26,7 +27,7 @@ export const LIVECHAT_FIRST_REPLY_TIMEOUT_MESSAGE = [
   "Get your exact price and send a booking request in about a minute:",
   "https://www.realhibachi.com/quote",
   "",
-  "Prefer to talk it through? Call or text 213-770-7788.",
+  `Prefer to talk it through? Call ${phone.voice.dashed} or text ${phone.sms.dashed}.`,
 ].join("\n")
 
 const AUTO_BUSY_REPLY_SENDER_ID = "auto_busy_callback"

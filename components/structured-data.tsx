@@ -1,4 +1,5 @@
 // Server-renderable JSON-LD structured data for SEO / GEO (AI search engines).
+import { phone } from "@/config/site"
 // Keep all business facts here consistent with config/site.ts and live pages —
 // AI engines cross-check these values against page text and third-party listings.
 
@@ -15,7 +16,7 @@ export const localBusinessJsonLd = {
   description:
     "Real Hibachi brings a private hibachi chef, mobile teppanyaki grill, fresh ingredients, live cooking show, setup, and cleanup to homes and events across Southern California. Flat rate $59.90 per adult with a $599 event minimum.",
   url: BASE_URL,
-  telephone: "+1-213-770-7788",
+  telephone: phone.voice.e164,
   email: "support@realhibachi.com",
   priceRange: "$$",
   servesCuisine: ["Japanese", "Hibachi", "Teppanyaki"],

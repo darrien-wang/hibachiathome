@@ -10,10 +10,11 @@ import { OCCASION_CITY_COMBOS, getCombo } from "@/config/occasion-city-pages"
 import LazyVideo from "@/components/lazy-video"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
+import { phone } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
-const PHONE_DISPLAY = "213-770-7788"
-const PHONE_RAW = "2137707788"
+const PHONE_DISPLAY = phone.sms.display
+const PHONE_RAW = phone.sms.e164
 
 export async function generateStaticParams() {
   return OCCASION_CITY_COMBOS.map((combo) => ({ occasion: combo.occasion, city: combo.city }))

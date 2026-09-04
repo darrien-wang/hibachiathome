@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Phone, Mail, MapPin } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig } from "@/config/site"
 
 const SUPPORT_REASON_PATTERN = /support|feedback|refund|cancel|cancellation|reschedule|post[- ]?event|complaint|issue|help/i
 
@@ -132,9 +132,9 @@ export default function ContactPageClient() {
             <div>
               <h2 className="text-4xl font-serif font-bold text-[hsl(24_79%_42%)] mb-6">Book or Ask About Your Event</h2>
               <div className="space-y-5 text-2xl text-gray-800">
-                <a href="tel:2137707788" className="flex items-center gap-3 hover:text-[hsl(24_79%_42%)]">
+                <a href={phone.voice.tel} className="flex items-center gap-3 hover:text-[hsl(24_79%_42%)]">
                   <Phone className="h-6 w-6 text-[hsl(24_79%_42%)]" />
-                  <span>West Coast - 213-770-7788</span>
+                  <span>West Coast - {phone.voice.dashed}</span>
                 </a>
                 <a
                   href={`mailto:${siteConfig.contact.email}`}

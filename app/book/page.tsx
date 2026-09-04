@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Calculator, Phone, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
 
 export default function BookingPage() {
@@ -60,7 +60,7 @@ export default function BookingPage() {
               description: "First-priority support channel",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "SMS",
-              href: `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`,
+              href: smsHref("I'm interested in booking a REAL HIBACHI experience"),
               external: false,
               variant: "outline",
             },
@@ -68,8 +68,8 @@ export default function BookingPage() {
               title: "Phone",
               description: "Second-priority direct call",
               icon: <Phone className="mr-2 h-4 w-4 flex-shrink-0" />,
-              buttonText: siteConfig.contact.phone || "12137707788",
-              href: `tel:${siteConfig.contact.phone || "12137707788"}`,
+              buttonText: phone.voice.dashed,
+              href: phone.voice.tel,
               external: false,
               variant: "outline",
             },
@@ -87,7 +87,7 @@ export default function BookingPage() {
               description: "Last-priority backup channel",
               icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
               buttonText: "WhatsApp",
-              href: `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`,
+              href: whatsappHref("Hello, I would like to book a hibachi experience"),
               external: true,
               variant: "outline",
             },

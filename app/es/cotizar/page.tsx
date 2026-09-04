@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, MessageSquare, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { phone } from "@/config/site"
 
 // Spanish quote landing. The interactive quote builder itself is English-only
 // for now, so this page states the published pricing plainly and routes
@@ -16,10 +17,10 @@ export const metadata: Metadata = {
 }
 
 const WHATSAPP_URL =
-  "https://wa.me/12137707788?text=" +
+  "https://wa.me/1" + phone.sms.raw + "?text=" +
   encodeURIComponent("¡Hola! Quiero cotizar una fiesta hibachi a domicilio 🎉 Somos ___ adultos y ___ niños, fecha: ___")
 const SMS_URL =
-  "sms:2137707788?body=" +
+  "sms:" + phone.sms.e164 + "?body=" +
   encodeURIComponent("Hola, quiero cotizar una fiesta hibachi (español). Somos ___ adultos y ___ niños, fecha: ___")
 
 const PRICE_ROWS = [
@@ -79,8 +80,8 @@ export default function CotizarPage() {
           </Button>
         </div>
         <div className="text-center text-sm text-gray-600 mb-10">
-          <a href="tel:2137707788" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-gray-900">
-            <Phone className="h-4 w-4" /> O llámanos: (213) 770-7788
+          <a href={phone.voice.tel} className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-gray-900">
+            <Phone className="h-4 w-4" /> O llámanos: {phone.voice.display}
           </a>
         </div>
 

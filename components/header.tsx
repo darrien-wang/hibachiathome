@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig, smsHref } from "@/config/site"
 import { Menu } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
 
@@ -126,11 +126,11 @@ export function Header() {
         <div className="lg:hidden grid grid-cols-3 items-center gap-1">
           <div className="flex justify-start">
             <div className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 select-text">
-              <a href="sms:2137707788" onClick={handleHeaderSMSClick} className="hover:text-[#F1691B]">
+              <a href={smsHref()} onClick={handleHeaderSMSClick} className="hover:text-[#F1691B]">
                 SMS
               </a>
               <span>/</span>
-              <a href="tel:2137707788" onClick={handleHeaderPhoneClick} className="hover:text-[#F1691B]">
+              <a href={phone.voice.tel} onClick={handleHeaderPhoneClick} className="hover:text-[#F1691B]">
                 Call
               </a>
             </div>

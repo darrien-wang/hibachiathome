@@ -7,10 +7,11 @@ import { MessageSquare, Star, MapPin, Check, Flame } from "lucide-react"
 import { occasionPages, getOccasionPage, getOtherOccasions } from "@/config/occasion-pages"
 import LazyVideo from "@/components/lazy-video"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
+import { phone } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
-const PHONE_DISPLAY = "213-770-7788"
-const PHONE_RAW = "2137707788"
+const PHONE_DISPLAY = phone.sms.display
+const PHONE_RAW = phone.sms.e164
 
 export async function generateStaticParams() {
   return occasionPages.map((page) => ({ occasion: page.slug }))

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { siteConfig } from "@/config/site"
+import { phone, smsHref } from "@/config/site"
 import { reportClientError } from "@/lib/report-client-error"
 
 // Page-level crash screen. Next.js's built-in fallback is a bare line of black
@@ -20,7 +20,7 @@ export default function Error({
     reportClientError(error, "error_boundary")
   }, [error])
 
-  const smsHref = `sms:+1${siteConfig.contact.phone.replace(/\D/g, "")}`
+  const smsLink = smsHref()
 
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center gap-5 px-6 py-16 text-center">
@@ -38,10 +38,10 @@ export default function Error({
           Try again
         </button>
         <a
-          href={smsHref}
+          href={smsLink}
           className="rounded-lg border border-gray-300 px-5 py-2.5 font-medium text-gray-800 transition-colors hover:bg-gray-50"
         >
-          Text {siteConfig.contact.phone}
+          Text {phone.sms.dashed}
         </a>
       </div>
       <Link href="/" className="text-sm text-gray-500 underline underline-offset-2 hover:text-gray-700">

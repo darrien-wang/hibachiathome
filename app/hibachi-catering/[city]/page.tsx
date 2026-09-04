@@ -8,10 +8,11 @@ import { CATERING_CITIES } from "@/config/catering-cities"
 import { pickReviews } from "@/config/reviews"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
+import { phone } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
-const PHONE_DISPLAY = "213-770-7788"
-const PHONE_RAW = "2137707788"
+const PHONE_DISPLAY = phone.sms.display
+const PHONE_RAW = phone.sms.e164
 
 // The "hibachi catering {city}" SERP is a separate keyword family from
 // "hibachi at home {city}" — competitors rank both with twin pages. These

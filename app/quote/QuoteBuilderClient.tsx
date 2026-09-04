@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Gift, MapPin, Star, X } from "lucide-react"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig, whatsappHref } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
 import {
@@ -785,8 +785,12 @@ export default function QuoteBuilderClient() {
     setAdRefCode(getAdRefCode())
   }, [])
 
-  const displayPhone = "213-770-7788"
-  const phoneRaw = "2137707788"
+  // Two lines: texts go to the handset a person answers, calls go through
+  // Twilio. Showing one number for both is what puts a customer's text
+  // somewhere nobody can reply from.
+  const smsPhoneDisplay = phone.sms.display
+  const voicePhoneDisplay = phone.voice.display
+  const phoneRaw = phone.sms.e164
   const displayEmail = "support@realhibachi.com"
   const emailTo = "support@realhibachi.com"
   // The code has to survive the SMS path too, or every "text us this quote"
@@ -798,7 +802,7 @@ export default function QuoteBuilderClient() {
   // keep SSR markup stable).
   const smsBodyWithAdRef = adRefCode ? `${smsBodyWithReferral}\n[${adRefCode}]` : smsBodyWithReferral
   const smsHref = `sms:${phoneRaw}?body=${encodeUrlComponent(smsBodyWithAdRef)}`
-  const whatsappHref = `https://wa.me/1${phoneRaw}?text=${encodeUrlComponent(smsBodyWithAdRef)}`
+  const whatsappLink = whatsappHref(smsBodyWithAdRef)
   const emailHref = `mailto:${emailTo}?subject=${encodeUrlComponent(emailPayload.subject)}&body=${encodeUrlComponent(emailPayload.body)}`
   const contactDisabled = !result.hasCoreInputs
   const missingRequiredBookingFields =
@@ -966,7 +970,7 @@ export default function QuoteBuilderClient() {
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
       return
     }
-    window.open(whatsappHref, "_blank", "noopener,noreferrer")
+    window.open(whatsappLink, "_blank", "noopener,noreferrer")
   }
 
   const onCallClick = () => {
@@ -991,7 +995,7 @@ export default function QuoteBuilderClient() {
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
       return
     }
-    window.location.href = `tel:${phoneRaw}`
+    window.location.href = phone.voice.tel
   }
 
   const onEmailClick = () => {
@@ -1225,7 +1229,7 @@ export default function QuoteBuilderClient() {
               </div>
 
               <p className="mt-4 text-center text-xs leading-5 text-slate-600">
-                Questions? Call or text {displayPhone}, or email {displayEmail}.
+                Questions? Call {voicePhoneDisplay}, text {smsPhoneDisplay}, or email {displayEmail}.
               </p>
             </div>
           </div>
@@ -1899,7 +1903,7 @@ export default function QuoteBuilderClient() {
                   <MessageSquare className="mr-2 h-4 w-4" />
                   <span className="leading-tight">
                     <span className="block font-medium">SMS</span>
-                    <span className="block">{displayPhone}</span>
+                    <span className="block">{smsPhoneDisplay}</span>
                   </span>
                 </Button>
                 <Button
@@ -1909,7 +1913,7 @@ export default function QuoteBuilderClient() {
                   <Phone className="mr-2 h-4 w-4" />
                   <span className="leading-tight">
                     <span className="block font-medium">Call</span>
-                    <span className="block">{displayPhone}</span>
+                    <span className="block">{voicePhoneDisplay}</span>
                   </span>
                 </Button>
                 <Button

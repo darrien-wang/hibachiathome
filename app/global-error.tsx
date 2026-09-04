@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { reportClientError } from "@/lib/report-client-error"
+import { phone, smsHref } from "@/config/site"
 
 // Last resort: this replaces the root layout, so Header, Footer and
 // globals.css are all gone by the time it renders. Everything here is inline
@@ -68,7 +69,7 @@ export default function GlobalError({
               Try again
             </button>
             <a
-              href="sms:+12137707788"
+              href={smsHref()}
               style={{
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
@@ -79,7 +80,7 @@ export default function GlobalError({
                 textDecoration: "none",
               }}
             >
-              Text 213-770-7788
+              Text {phone.sms.dashed}
             </a>
           </div>
           <a href="/" style={{ fontSize: "0.875rem", color: "#6b7280" }}>

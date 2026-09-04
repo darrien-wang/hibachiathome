@@ -13,6 +13,7 @@ import { hasCateringPage } from "@/config/catering-cities"
 import SourcingSpec from "@/components/menu/sourcing-spec"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
+import { phone } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
 
@@ -246,9 +247,9 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
                 <Link href={quoteHref}>Get Instant Quote</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
-                <Link href="tel:+12137707788">
+                <Link href={phone.voice.tel}>
                   <Phone className="h-5 w-5 mr-2" />
-                  Call (213) 770-7788
+                  Call {phone.voice.display}
                 </Link>
               </Button>
             </div>
@@ -765,9 +766,9 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
                 variant="outline"
                 className="border-white text-white hover:bg-white hover:text-primary bg-transparent text-lg px-8 py-4"
               >
-                <Link href="tel:+12137707788">
+                <Link href={phone.voice.tel}>
                   <Phone className="h-5 w-5 mr-2" />
-                  Call (213) 770-7788
+                  Call {phone.voice.display}
                 </Link>
               </Button>
             </div>

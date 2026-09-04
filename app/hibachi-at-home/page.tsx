@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Star, MapPin, ChefHat, UtensilsCrossed, Flame, Clock, Users, Armchair, PartyPopper } from "lucide-react"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import HeroSection from "@/components/hero-section"
 import TestimonialsSection from "@/components/testimonials-section"
@@ -157,19 +157,19 @@ export default function HibachiAtHomePage() {
   }
 
   const handleWhatsApp = () => {
-    const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    const url = whatsappHref("Hello, I would like to book a hibachi experience")
     trackEvent("contact_whatsapp_click")
     window.location.href = url
   }
 
   const handleSMS = () => {
-    const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    const url = smsHref("I'm interested in booking a REAL HIBACHI experience")
     trackEvent("contact_sms_click")
     window.location.href = url
   }
 
   const handlePhone = () => {
-    const url = `tel:${siteConfig.contact.phone || "12137707788"}`
+    const url = phone.voice.tel
     trackEvent("contact_call_click")
     window.location.href = url
   }
@@ -207,7 +207,7 @@ export default function HibachiAtHomePage() {
       title: "Phone",
       description: "Speak with us",
       icon: null,
-      buttonText: siteConfig.contact.phone || "12137707788",
+      buttonText: phone.voice.dashed,
       onClick: handlePhone,
       variant: "outline",
       className: "bg-white/20 border-white/30",

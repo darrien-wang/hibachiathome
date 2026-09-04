@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { getMenuImageById } from "@/config/images"
+import { phone } from "@/config/site"
 
 interface MenuDetailsProps {
   proteins: any[]
@@ -121,7 +122,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                       <Button asChild size="sm" variant="outline">
                         {isMobile ? (
                           <a
-                            href={`sms:2137707788?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
+                            href={`sms:${phone.sms.e164}?body=Hi! I'd like to order ${protein.name} for my hibachi catering. Please contact me for details.`}
                           >
                             Order via SMS
                           </a>
@@ -173,7 +174,7 @@ export default function MenuDetails({ proteins, premiumProteins, sides }: MenuDe
                       <Button asChild size="sm" variant="outline">
                         {isMobile ? (
                           <a
-                            href={`sms:2137707788?body=Hi! I'd like to order ${side.name} for my hibachi catering. Please contact me for details.`}
+                            href={`sms:${phone.sms.e164}?body=Hi! I'd like to order ${side.name} for my hibachi catering. Please contact me for details.`}
                           >
                             Order via SMS
                           </a>

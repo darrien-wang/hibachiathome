@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { phone } from "@/config/site"
 
 export const metadata: Metadata = {
   title: "Terms of Service | Real Hibachi",
@@ -61,7 +62,7 @@ export default function TermsPage() {
                 </li>
                 <li className="mb-2">
                   <strong>Help:</strong> Reply <strong>HELP</strong> for help, or contact us at
-                  support@realhibachi.com or (213) 770-7788.
+                  support@realhibachi.com or {phone.voice.display}.
                 </li>
                 <li className="mb-2">
                   <strong>Carriers:</strong> Mobile carriers are not liable for delayed or undelivered messages.
@@ -99,7 +100,7 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">7. Contact Us</h2>
               <p className="text-gray-700 leading-relaxed mb-2">Real Hibachi</p>
               <p className="text-gray-700 leading-relaxed mb-2">Email: support@realhibachi.com</p>
-              <p className="text-gray-700 leading-relaxed mb-6">Phone: (213) 770-7788</p>
+              <p className="text-gray-700 leading-relaxed mb-6">Phone: {phone.voice.display}</p>
             </div>
           </div>
         </div>

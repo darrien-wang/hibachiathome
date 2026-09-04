@@ -2,6 +2,7 @@
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { faqItems } from "@/config/faq"
+import { phone } from "@/config/site"
 
 // Format text with paragraphs and bullet points
 const formatText = (text: string) => {
@@ -98,8 +99,8 @@ export default function FAQClientPage() {
       <div className="mx-auto max-w-[980px] text-center">
         <p className="text-gray-500 dark:text-gray-400">
           Still have questions? Call or text us at{" "}
-          <a href="tel:2137707788" className="text-amber-600 hover:text-amber-700 font-medium">
-            (213) 770-7788
+          <a href={phone.voice.tel} className="text-amber-600 hover:text-amber-700 font-medium">
+            {phone.voice.display}
           </a>{" "}
         </p>
       </div>

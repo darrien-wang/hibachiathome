@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSoftphone } from "@/components/admin/SoftphoneProvider"
+import { phone } from "@/config/site"
 
 type LeadRow = {
   id: string
@@ -745,7 +746,7 @@ export default function LeadsDashboard() {
       to: l.email,
       cc: "",
       subject: "Your Real Hibachi date is held \u{1F389}",
-      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
+      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text ${phone.sms.dashed} - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
     })
   }, [])
 

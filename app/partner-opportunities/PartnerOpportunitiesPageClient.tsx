@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Phone, Mail, MapPin, Users, Utensils, Calendar, Truck, Music, Camera, Flower } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
+import { phone } from "@/config/site"
 
 export default function PartnerOpportunitiesPageClient() {
   const [formData, setFormData] = useState({
@@ -244,7 +245,7 @@ export default function PartnerOpportunitiesPageClient() {
             <div className="mt-8 grid gap-4">
               <div className="flex items-center gap-3 text-gray-700">
                 <Phone className="h-5 w-5 text-orange-500" />
-                <span>(213) 770-7788</span>
+                <span>{phone.voice.display}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <Mail className="h-5 w-5 text-orange-500" />

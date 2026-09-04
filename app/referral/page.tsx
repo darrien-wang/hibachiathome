@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { MessageSquare, Star, MapPin, HandCoins, Share2, PartyPopper, Check } from "lucide-react"
 import { JsonLd } from "@/components/structured-data"
 import { pickReviews } from "@/config/reviews"
+import { phone } from "@/config/site"
 import {
   REFERRAL_TIERS,
   REFERRAL_FRIEND_DISCOUNT,
@@ -14,8 +15,8 @@ import {
 } from "@/config/referral-program"
 
 const BASE_URL = "https://www.realhibachi.com"
-const PHONE_DISPLAY = "213-770-7788"
-const PHONE_RAW = "2137707788"
+const PHONE_DISPLAY = phone.sms.display
+const PHONE_RAW = phone.sms.e164
 const PAGE_URL = `${BASE_URL}/referral`
 
 const codeSmsHref = `sms:${PHONE_RAW}?body=${encodeURIComponent(

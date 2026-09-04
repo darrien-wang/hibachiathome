@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { MessageSquare } from "lucide-react"
 import { trackEvent } from "@/lib/tracking"
+import { phone } from "@/config/site"
 
 // The 9/2 Clarity tapes showed a paid visitor clicking the $1198 example
 // price expecting it to do something, then leaving without a trace. Every
@@ -21,7 +22,7 @@ export function PackageSmsButton({ guests, total }: { guests: number; total: num
     const body = encodeURIComponent(
       `Hi Real Hibachi! I'm looking at hibachi for about ${guests} guests (around $${total}). Is my date available?`,
     )
-    window.location.href = `sms:2137707788?body=${body}`
+    window.location.href = `sms:${phone.sms.e164}?body=${body}`
   }
 
   return (

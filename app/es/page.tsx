@@ -10,14 +10,15 @@ import PartyPlannerSectionEs from "@/components/es/party-planner-section-es"
 import LazyVideo from "@/components/lazy-video"
 import { trackEvent } from "@/lib/tracking"
 import { faqItemsEs } from "@/config/faq-es"
+import { phone, smsHref } from "@/config/site"
 
 // Spanish homepage — additive surface: mirrors the key EN sections with
 // native Mexican-Spanish copy. Conversion CTAs route Spanish speakers to
 // channels the team answers in Spanish (WhatsApp/SMS) plus the EN quote tool.
 const WHATSAPP_URL =
-  "https://wa.me/12137707788?text=" +
+  "https://wa.me/1" + phone.sms.raw + "?text=" +
   encodeURIComponent("¡Hola! Quiero cotizar una fiesta hibachi a domicilio 🎉")
-const SMS_URL = "sms:2137707788?body=" + encodeURIComponent("Hola, quiero cotizar una fiesta hibachi (español)")
+const SMS_URL = smsHref("Hola, quiero cotizar una fiesta hibachi (español)")
 
 const TRUST_MARKERS = ["Reserva y modifica en línea 24/7", "Más de 500 fiestas servidas", "Depósito reembolsable hasta 72h antes"]
 

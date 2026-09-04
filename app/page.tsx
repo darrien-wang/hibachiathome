@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Check, Flame, MessageSquare, Sparkles, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
 import {
   DEFAULT_REGION_CODE,
   getRegionalPolicySnapshot,
@@ -83,19 +83,19 @@ export default function Home() {
   }
 
   const handleWhatsApp = () => {
-    const url = `https://wa.me/${siteConfig.contact.phone || "12137707788"}?text=Hello%2C%20I%20would%20like%20to%20book%20a%20hibachi%20experience`
+    const url = whatsappHref("Hello, I would like to book a hibachi experience")
     trackEvent("contact_whatsapp_click")
     window.location.href = url
   }
 
   const handleSMS = () => {
-    const url = `sms:2137707788?body=I'm%20interested%20in%20booking%20a%20REAL%20HIBACHI%20experience`
+    const url = smsHref("I'm interested in booking a REAL HIBACHI experience")
     trackEvent("contact_sms_click")
     window.location.href = url
   }
 
   const handlePhone = () => {
-    const url = `tel:${siteConfig.contact.phone || "12137707788"}`
+    const url = phone.voice.tel
     trackEvent("contact_call_click")
     window.location.href = url
   }
@@ -123,7 +123,7 @@ export default function Home() {
       title: "Phone",
       description: "Speak with us",
       icon: null,
-      buttonText: siteConfig.contact.phone || "12137707788",
+      buttonText: phone.voice.dashed,
       onClick: handlePhone,
       variant: "outline",
       className: "bg-white/20 border-white/30",
@@ -355,10 +355,10 @@ export default function Home() {
 
                     <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
                     <a
-                      href="tel:2137707788"
+                      href={phone.voice.tel}
                       className="inline-flex items-center justify-center rounded-full border-2 border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] px-8 min-w-[230px] h-12 font-semibold hover:bg-[hsl(24_79%_96%)] transition-colors"
                     >
-                      213-770-7788
+                      {phone.voice.dashed}
                     </a>
                   </div>
                 </div>

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Instagram, Twitter, Phone, Mail, MessageSquare } from "lucide-react"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
 import { serviceAreas } from "@/config/service-areas"
 
 const popularCityLinks = [
@@ -157,16 +157,16 @@ export default function Footer() {
             <div className="space-y-3 mb-4">
               {siteConfig.contact.phone && (
                 <a
-                  href={`tel:${siteConfig.contact.phone}`}
+                  href={phone.voice.tel}
                   className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
                 >
                   <Phone className="h-5 w-5 mr-2 text-[#F1691B]" />
-                  {siteConfig.contact.phone}
+                  {phone.voice.dashed}
                 </a>
               )}
               {siteConfig.contact.phone && (
                 <a
-                  href={`https://wa.me/${formatPhoneForWhatsApp(siteConfig.contact.phone)}`}
+                  href={whatsappHref()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
@@ -186,11 +186,11 @@ export default function Footer() {
               )}
               {siteConfig.contact.phone && (
                 <a
-                  href={`sms:${siteConfig.contact.phone}`}
+                  href={smsHref()}
                   className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
                 >
                   <MessageSquare className="h-5 w-5 mr-2 text-[#F1691B]" />
-                  SMS
+                  SMS {phone.sms.dashed}
                 </a>
               )}
               {siteConfig.contact.email && (
