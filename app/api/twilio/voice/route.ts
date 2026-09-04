@@ -2,6 +2,7 @@ import crypto from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
+import { agentIdentities, escapeXml } from "@/lib/twilio-identity"
 
 export const dynamic = "force-dynamic"
 
@@ -60,15 +61,23 @@ export async function POST(request: NextRequest) {
   }
 
   const forwardTo = process.env.TWILIO_FORWARD_TO
-  if (!forwardTo) {
+  const clients = agentIdentities()
+
+  if (!forwardTo && clients.length === 0) {
     return twiml(
       "<Say>Thank you for calling Real Hibachi. Please text us at this number and we will get right back to you.</Say>"
     )
   }
 
-  // Forward with the caller's own number as caller ID; 25s ring then voicemail prompt.
+  // Ring every browser softphone and the backup phone at the same time; whoever
+  // picks up first gets the call, so nothing is missed when nobody is at a desk.
+  // Caller keeps the caller's own number as caller ID; 25s ring then voicemail prompt.
+  const legs =
+    clients.map((id) => `<Client>${escapeXml(id)}</Client>`).join("") +
+    (forwardTo ? `<Number>${escapeXml(forwardTo)}</Number>` : "")
+
   return twiml(
-    `<Dial timeout="25">${forwardTo}</Dial>` +
+    `<Dial timeout="25" answerOnBridge="true">${legs}</Dial>` +
       "<Say>Sorry we missed you. Please text us at this number with your event date and city, and we will reply within minutes.</Say>"
   )
 }
