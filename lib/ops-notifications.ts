@@ -34,6 +34,18 @@ function shouldLogOnlyInPreview(): boolean {
   return shouldSuppressExternalNotifications()
 }
 
+// The mailbox a customer sees and replies into. EMAIL_FROM is the ops
+// notification identity (notify@ in production) and nobody reads it, so mail
+// addressed to a customer must never carry it: "reply to this email" then
+// points at an empty room and the lead goes quiet with no trace.
+export function customerMailbox(): string {
+  return asNonEmptyString(process.env.EMAIL_TO) ?? DEFAULT_SUPPORT_EMAIL
+}
+
+export function customerMailFrom(): string {
+  return `Real Hibachi <${customerMailbox()}>`
+}
+
 export function isOpsEmailEffectivelyHandled(result: OpsEmailDeliveryResult): boolean {
   return (
     result.delivered ||

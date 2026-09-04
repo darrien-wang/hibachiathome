@@ -5,6 +5,7 @@ import type { PaymentRequest, PaymentResponse, DepositRecord } from "@/types/pay
 import { Resend } from "resend"
 import PaymentConfirmationEmail from "@/components/emails/payment-confirmation"
 import RefundConfirmationEmail from "@/components/emails/refund-confirmation"
+import { customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
 
 function getResendClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) {
@@ -132,7 +133,8 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
       const resend = getResendClient()
       if (resend) {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || "support@realhibachi.com",
+          from: customerMailFrom(),
+          replyTo: customerMailbox(),
           to: booking.email,
           subject: "Hibachi Catering - Deposit Payment Confirmation",
           react: PaymentConfirmationEmail({
@@ -300,7 +302,8 @@ export async function confirmDeposit(depositId: string) {
       const resend = getResendClient()
       if (booking && booking.email && resend) {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || "support@realhibachi.com",
+          from: customerMailFrom(),
+          replyTo: customerMailbox(),
           to: booking.email,
           subject: "Hibachi Catering - Deposit Payment Confirmed",
           react: PaymentConfirmationEmail({
@@ -413,7 +416,8 @@ export async function refundDeposit(depositId: string) {
       const resend = getResendClient()
       if (booking && booking.email && resend) {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || "support@realhibachi.com",
+          from: customerMailFrom(),
+          replyTo: customerMailbox(),
           to: booking.email,
           subject: "Hibachi Catering - Deposit Refund Confirmation",
           react: RefundConfirmationEmail({

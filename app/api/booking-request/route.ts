@@ -6,7 +6,7 @@ import { escapeHtml } from "@/lib/escape-html"
 
 import { trackBookingSubmitServer } from "@/lib/ga4-measurement-protocol"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
-import { sendSupportNotificationEmail, isOpsEmailEffectivelyHandled } from "@/lib/ops-notifications"
+import { sendSupportNotificationEmail, isOpsEmailEffectivelyHandled, customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
 function asString(value: unknown): string | undefined {
@@ -217,7 +217,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
   estimateHigh: number
   pricingTierLabel: string
 }) {
-  const from = process.env.EMAIL_FROM?.trim() || "support@realhibachi.com"
+  const from = customerMailFrom()
   const resendApiKey = process.env.RESEND_API_KEY?.trim()
 
   if (!resendApiKey) {
@@ -287,7 +287,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
       subject,
       text,
       html,
-      reply_to: "support@realhibachi.com",
+      replyTo: customerMailbox(),
     })
 
     if (error) {

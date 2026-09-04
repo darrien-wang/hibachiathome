@@ -8,7 +8,7 @@ import { buildDepositPaidEventEnvelope, buildPaymentRefundedEventEnvelope, type 
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
-import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
+import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail, type OpsEmailDeliveryResult, customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
 import { isPreBranchDeployment, shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
 export const runtime = "nodejs"
@@ -341,7 +341,8 @@ async function sendDepositConfirmationEmail(params: {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: asNonEmptyString(process.env.EMAIL_FROM) ?? "support@realhibachi.com",
+      from: customerMailFrom(),
+      replyTo: customerMailbox(),
       to: [recipientEmail],
       subject,
       text,
