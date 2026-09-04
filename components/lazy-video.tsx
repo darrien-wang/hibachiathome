@@ -45,7 +45,7 @@ export default function LazyVideo({
   useEffect(() => {
     const el = ref.current
     if (!el || !active) return
-    // The <source> just mounted: fetch and start playback.
+    // The src just landed on the element: fetch and start playback.
     el.load()
     el.play().catch(() => {
       // iOS Low Power Mode and data-saver settings reject muted autoplay;
@@ -71,9 +71,19 @@ export default function LazyVideo({
     )
   }
 
+  // The video URL is an attribute, never a <source> child. As a child it had
+  // to be inserted before the fallback text node the first time a card drifted
+  // into view - and browser translation (Chrome/Safari auto-translate, which
+  // fires on its own for Spanish- and Chinese-preferring visitors) re-parents
+  // every text node into a <font> wrapper first. React's insertBefore then
+  // threw NotFoundError and took the whole page down with "Application error:
+  // a client-side exception has occurred" - the quote page died this way for
+  // translated ad traffic. A childless <video> has nothing to translate and
+  // nothing to insert before.
   return (
     <video
       ref={ref}
+      src={active ? src : undefined}
       className={className}
       poster={poster}
       preload="none"
@@ -96,9 +106,6 @@ export default function LazyVideo({
         if (active) setFailed(true)
       }}
       {...props}
-    >
-      {active && <source src={src} type="video/mp4" />}
-      Your browser does not support the video tag.
-    </video>
+    />
   )
 }
