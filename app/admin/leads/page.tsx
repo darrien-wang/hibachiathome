@@ -727,7 +727,7 @@ export default function LeadsDashboard() {
 
   // ✉️ 邮件跟进：短信不回时的第二通道。工作台内正式预览（可编辑）后由
   // 服务端从 support@realhibachi.com 直发（Resend）——绝不走个人邮箱。
-  const [emailDraft, setEmailDraft] = useState<{ leadId: string; to: string; subject: string; body: string } | null>(null)
+  const [emailDraft, setEmailDraft] = useState<{ leadId: string; to: string; cc: string; subject: string; body: string } | null>(null)
   const [emailSending, setEmailSending] = useState(false)
 
   const sendEmailFollowup = useCallback((l: LeadRow) => {
@@ -740,6 +740,7 @@ export default function LeadsDashboard() {
     setEmailDraft({
       leadId: l.id,
       to: l.email,
+      cc: "",
       subject: "Your Real Hibachi date is held \u{1F389}",
       body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text 213-770-7788 - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
     })
@@ -752,15 +753,24 @@ export default function LeadsDashboard() {
       const res = await fetch("/api/admin/send-followup", {
         method: "POST",
         headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ to: emailDraft.to, subject: emailDraft.subject, text: emailDraft.body }),
+        body: JSON.stringify({
+          to: emailDraft.to,
+          cc: emailDraft.cc,
+          subject: emailDraft.subject,
+          text: emailDraft.body,
+        }),
       })
       const data = await res.json()
       if (!data.ok) throw new Error(data.error || "failed")
+      const ccSent: string[] = Array.isArray(data.cc) ? data.cc : []
       clearReminderStore(emailDraft.leadId)
-      await act(emailDraft.leadId, { action: "add_note", note: `✉️ 已从 support@ 发送跟进邮件（${emailDraft.subject}）` })
+      await act(emailDraft.leadId, {
+        action: "add_note",
+        note: `✉️ 已从 support@ 发送跟进邮件（${emailDraft.subject}）${ccSent.length > 0 ? ` · 抄送 ${ccSent.join(", ")}` : ""}`,
+      })
       loadHistory(emailDraft.leadId)
       setEmailDraft(null)
-      window.alert("✅ 已从 support@realhibachi.com 发送")
+      window.alert(`✅ 已从 support@realhibachi.com 发送${ccSent.length > 0 ? `（抄送 ${ccSent.length} 人）` : ""}`)
     } catch (e) {
       window.alert("发送失败: " + e)
     } finally {
@@ -1497,6 +1507,13 @@ export default function LeadsDashboard() {
             <br />
             收件人: <strong>{emailDraft.to}</strong>（客户回信也进 support@）
           </p>
+          <div style={sectionLabel}>抄送（选填，逗号分隔，最多 5 个）</div>
+          <input
+            style={inputStyle}
+            placeholder="客户邮件里抄送过的家人/同事，例如 spouse@gmail.com, boss@company.com"
+            value={emailDraft.cc}
+            onChange={(e) => setEmailDraft((d) => (d ? { ...d, cc: e.target.value } : d))}
+          />
           <div style={sectionLabel}>主题</div>
           <input
             style={inputStyle}

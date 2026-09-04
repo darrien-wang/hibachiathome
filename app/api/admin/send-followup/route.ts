@@ -17,11 +17,14 @@ function isAuthorized(request: NextRequest): boolean {
   return false
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MAX_CC = 5
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
-  let body: { to?: string; subject?: string; text?: string }
+  let body: { to?: string; cc?: string | string[]; subject?: string; text?: string }
   try {
     body = await request.json()
   } catch {
@@ -30,8 +33,27 @@ export async function POST(request: NextRequest) {
   const to = String(body.to ?? "").trim()
   const subject = String(body.subject ?? "").trim().slice(0, 200)
   const text = String(body.text ?? "").trim().slice(0, 5000)
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || !subject || !text) {
+  if (!EMAIL_RE.test(to) || !subject || !text) {
     return NextResponse.json({ error: "to, subject and text required" }, { status: 400 })
+  }
+
+  // An inquiry often arrives with the customer's co-deciders on copy (spouse,
+  // parents, the colleague holding the budget). Dropping them turns a group
+  // conversation into a private one and the reply reads as if it went missing.
+  const ccRaw = Array.isArray(body.cc) ? body.cc : String(body.cc ?? "").split(/[,;]/)
+  const cc: string[] = []
+  for (const entry of ccRaw) {
+    const address = String(entry ?? "").trim()
+    if (!address) continue
+    if (!EMAIL_RE.test(address)) {
+      return NextResponse.json({ error: `invalid cc address: ${address}` }, { status: 400 })
+    }
+    const lower = address.toLowerCase()
+    if (lower === to.toLowerCase() || cc.some((existing) => existing.toLowerCase() === lower)) continue
+    cc.push(address)
+  }
+  if (cc.length > MAX_CC) {
+    return NextResponse.json({ error: `at most ${MAX_CC} cc addresses` }, { status: 400 })
   }
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -45,12 +67,13 @@ export async function POST(request: NextRequest) {
     const result = await resend.emails.send({
       from,
       to,
+      ...(cc.length > 0 ? { cc } : {}),
       replyTo: process.env.EMAIL_FROM || "support@realhibachi.com",
       subject,
       text,
     })
     if (result.error) throw new Error(result.error.message)
-    return NextResponse.json({ ok: true, id: result.data?.id ?? null })
+    return NextResponse.json({ ok: true, id: result.data?.id ?? null, cc })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
