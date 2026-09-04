@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { agentIdentities, escapeXml } from "@/lib/twilio-identity"
+import { RECORDING_NOTICE, recordingAttributes } from "@/lib/twilio-recording"
 
 export const dynamic = "force-dynamic"
 
@@ -76,8 +77,17 @@ export async function POST(request: NextRequest) {
     clients.map((id) => `<Client>${escapeXml(id)}</Client>`).join("") +
     (forwardTo ? `<Number>${escapeXml(forwardTo)}</Number>` : "")
 
+  // California is a two-party consent state (Penal Code 632): every party must
+  // be told before the call is recorded. The notice plays to the caller BEFORE
+  // the bridge, and recording starts only once someone answers, so the notice
+  // always precedes the recorded audio. Do not make recording conditional
+  // without making this notice conditional in exactly the same way.
+  const recording = recordingAttributes()
+  const notice = recording ? `<Say>${escapeXml(RECORDING_NOTICE)}</Say>` : ""
+
   return twiml(
-    `<Dial timeout="25" answerOnBridge="true">${legs}</Dial>` +
+    notice +
+      `<Dial timeout="25" answerOnBridge="true"${recording}>${legs}</Dial>` +
       "<Say>Sorry we missed you. Please text us at this number with your event date and city, and we will reply within minutes.</Say>"
   )
 }
