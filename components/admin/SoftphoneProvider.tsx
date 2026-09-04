@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react"
 import type { Call, Device } from "@twilio/voice-sdk"
+import { startLiveCaptions, type CaptionHandle, type CaptionLine } from "@/lib/live-captions"
+import { SoftphoneMobileDrawer, useIsMobile } from "./SoftphoneMobileDrawer"
 
 export type SoftphoneStatus = "idle" | "connecting" | "ready" | "error"
 
@@ -32,11 +34,18 @@ type SoftphoneContextValue = {
   inputLevel: number
   drawerOpen: boolean
   setDrawerOpen: (open: boolean) => void
+  stickyOffline: boolean
   dialDraft: string
   setDialDraft: (value: string) => void
   smsDraft: { to: string; body: string }
   setSmsDraft: (draft: { to: string; body: string }) => void
   prefill: (number: string, mode?: "call" | "sms") => void
+  captions: CaptionLine[]
+  captionsOn: boolean
+  captionStatus: string
+  toggleCaptions: () => Promise<void>
+  lastCall: { peer: string; direction: "in" | "out"; seconds: number } | null
+  dismissLastCall: () => void
   setInputDevice: (deviceId: string) => Promise<void>
   goOnline: () => Promise<void>
   goOffline: () => void
@@ -54,6 +63,10 @@ export function useSoftphone(): SoftphoneContextValue {
   if (!ctx) throw new Error("useSoftphone must be used inside <SoftphoneProvider>")
   return ctx
 }
+
+// Remembers a deliberate "go offline", so auto-online never overrides someone
+// who switched the phone off on purpose.
+const OFFLINE_KEY = "rh_phone_offline"
 
 export function prettyNumber(raw: string): string {
   const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(raw)
@@ -111,10 +124,24 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const [selectedInputId, setSelectedInputId] = useState("")
   const [inputLevel, setInputLevel] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [stickyOffline, setStickyOffline] = useState(false)
   const [dialDraft, setDialDraft] = useState("")
   const [smsDraft, setSmsDraft] = useState({ to: "", body: "" })
+  const [captions, setCaptions] = useState<CaptionLine[]>([])
+  const [captionsOn, setCaptionsOn] = useState(false)
+  const [captionStatus, setCaptionStatus] = useState("")
+
+  const [lastCall, setLastCall] = useState<
+    { peer: string; direction: "in" | "out"; seconds: number } | null
+  >(null)
 
   const deviceRef = useRef<Device | null>(null)
+  const captionHandles = useRef<CaptionHandle[]>([])
+  // clearCall runs from SDK callbacks that closed over an older render, so the
+  // details of the call that just ended have to be read from refs.
+  const liveRef = useRef<SoftphoneLive>({ kind: "none" })
+  const secondsRef = useRef(0)
+  const captionsRef = useRef<CaptionLine[]>([])
 
   // Same sign-in scheme as the leads workbench: ?key=... once, then localStorage.
   useEffect(() => {
@@ -126,6 +153,16 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
     setAdminKey(window.localStorage.getItem("rh_admin_key") ?? "")
   }, [])
+
+  useEffect(() => {
+    liveRef.current = live
+  }, [live])
+  useEffect(() => {
+    secondsRef.current = seconds
+  }, [seconds])
+  useEffect(() => {
+    captionsRef.current = captions
+  }, [captions])
 
   const fetchToken = useCallback(async (key: string) => {
     const res = await fetch("/api/twilio/token", { headers: { "x-admin-key": key } })
@@ -145,9 +182,33 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(t)
   }, [live.kind])
 
+  const stopCaptions = useCallback(() => {
+    captionHandles.current.forEach((h) => h.stop())
+    captionHandles.current = []
+    setCaptionsOn(false)
+    setCaptionStatus("")
+  }, [])
+
   const clearCall = useCallback(() => {
+    // The moment a call ends is when the notes matter most: the address and
+    // headcount were said seconds ago and are not written down yet. Keep the
+    // note box, the transcript and who it was about on screen until they are
+    // dismissed, instead of clearing the panel out from under whoever is
+    // still typing. Only the billed connection stops immediately.
+    const ended = liveRef.current
+    if (ended.kind === "active") {
+      setLastCall({ peer: ended.peer, direction: ended.direction, seconds: secondsRef.current })
+    }
     setLive({ kind: "none" })
     setMuted(false)
+    // Captions bill by the minute, so the connection must never outlive the
+    // call — but the lines already transcribed stay on screen.
+    stopCaptions()
+  }, [stopCaptions])
+
+  const dismissLastCall = useCallback(() => {
+    setLastCall(null)
+    setCaptions([])
   }, [])
 
   const wireCall = useCallback(
@@ -174,6 +235,12 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     setStatus("connecting")
     setMessage("")
     try {
+      try {
+        window.localStorage.removeItem(OFFLINE_KEY)
+        setStickyOffline(false)
+      } catch {
+        // Same as above: not being able to remember is not a reason to fail.
+      }
       // Ask for the mic up front so the browser prompt is not a surprise mid-call,
       // then release it immediately: leaving these tracks live keeps the device
       // open, and on drivers that capture exclusively the SDK's own stream then
@@ -199,6 +266,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       device.on("incoming", (call: Call) => {
         const from = call.parameters.From ?? ""
         wireCall(call, from, "in")
+        setLastCall(null)
+        setCaptions([])
         setLive({ kind: "incoming", call, from })
         // A ringing customer is the one thing that must never sit behind a
         // closed panel, whatever page you happen to be working on.
@@ -242,6 +311,38 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
   }, [adminKey, fetchToken, wireCall])
 
+  // The phone should be on by default: a customer service line that needs a
+  // click every morning is a line that is silently down whenever someone
+  // forgets. It only auto-connects when the mic was already granted — asking
+  // for it on page load would pop a prompt nobody asked for, and browsers
+  // reject the request anyway when it comes out of nowhere. An explicit
+  // "下线" is remembered and always wins.
+  useEffect(() => {
+    if (!adminKey || deviceRef.current || status !== "idle") return
+
+    let cancelled = false
+    void (async () => {
+      try {
+        if (window.localStorage.getItem(OFFLINE_KEY) === "1") {
+          setStickyOffline(true)
+          return
+        }
+        const permission = await navigator.permissions.query({
+          name: "microphone" as PermissionName,
+        })
+        if (permission.state !== "granted" || cancelled) return
+        await goOnline()
+      } catch {
+        // No Permissions API (Safari) — leave it to the button rather than
+        // gambling on a prompt the user did not ask for.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [adminKey, status, goOnline])
+
   const setInputDevice = useCallback(async (deviceId: string) => {
     const audio = deviceRef.current?.audio
     if (!audio) return
@@ -255,6 +356,12 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const goOffline = useCallback(() => {
+    try {
+      window.localStorage.setItem(OFFLINE_KEY, "1")
+      setStickyOffline(true)
+    } catch {
+      // Private mode: the phone still goes offline, it just will not be remembered.
+    }
     deviceRef.current?.destroy()
     deviceRef.current = null
     setStatus("idle")
@@ -283,6 +390,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       setMessage("")
       try {
         const call = await device.connect({ params: { To: to } })
+        setLastCall(null)
+        setCaptions([])
         wireCall(call, to, "out")
         setLive({ kind: "active", call, peer: to, direction: "out" })
       } catch (error) {
@@ -304,6 +413,55 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
     setDrawerOpen(true)
   }, [])
+
+  const toggleCaptions = useCallback(async () => {
+    if (captionsOn) {
+      stopCaptions()
+      return
+    }
+    if (live.kind !== "active") return
+
+    const adminKey = window.localStorage.getItem("rh_admin_key") ?? ""
+    const remote = live.call.getRemoteStream()?.getAudioTracks()[0]
+    const local = live.call.getLocalStream()?.getAudioTracks()[0]
+    if (!remote) {
+      setMessage("拿不到对方的音频轨，无法开字幕")
+      return
+    }
+
+    const push = (line: CaptionLine) =>
+      setCaptions((prev) => {
+        const next = prev.filter((l) => l.id !== line.id)
+        next.push(line)
+        // A long call would otherwise grow without bound in memory.
+        return next.slice(-60)
+      })
+
+    try {
+      setCaptionsOn(true)
+      const handles: CaptionHandle[] = []
+      handles.push(
+        await startLiveCaptions({
+          track: remote, speaker: "them", adminKey, onLine: push,
+          onError: setMessage, onStatus: setCaptionStatus,
+        })
+      )
+      // Your own side is transcribed too: without it the transcript reads as
+      // half a conversation and the customer's answers lose their question.
+      if (local) {
+        handles.push(
+          await startLiveCaptions({
+            track: local, speaker: "you", adminKey, onLine: push,
+            onError: setMessage, onStatus: setCaptionStatus,
+          })
+        )
+      }
+      captionHandles.current = handles
+    } catch (error) {
+      stopCaptions()
+      setMessage(`字幕启动失败：${error instanceof Error ? error.message : String(error)}`)
+    }
+  }, [captionsOn, live, stopCaptions])
 
   const toggleMute = useCallback(() => {
     if (live.kind !== "active") return
@@ -334,13 +492,15 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     () => ({
       status, identity, canDialOut, message, live, muted, seconds,
       inputDevices, selectedInputId, inputLevel, setInputDevice,
-      drawerOpen, setDrawerOpen,
+      drawerOpen, setDrawerOpen, stickyOffline,
       dialDraft, setDialDraft, smsDraft, setSmsDraft, prefill,
+      captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
       goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     }),
     [status, identity, canDialOut, message, live, muted, seconds,
      inputDevices, selectedInputId, inputLevel, setInputDevice,
-     drawerOpen, dialDraft, smsDraft, prefill,
+     drawerOpen, stickyOffline, dialDraft, smsDraft, prefill,
+     captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
      goOnline, goOffline, dial, toggleMute, hangUp, accept, reject]
   )
 
@@ -348,6 +508,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     <SoftphoneContext.Provider value={value}>
       {children}
       <SoftphoneDrawer />
+      <SoftphoneMobileDrawer />
     </SoftphoneContext.Provider>
   )
 }
@@ -358,8 +519,9 @@ function SoftphoneDrawer() {
   const {
     status, identity, canDialOut, message, live, muted, seconds,
     inputDevices, selectedInputId, inputLevel, setInputDevice,
-    drawerOpen, setDrawerOpen, goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
+    drawerOpen, setDrawerOpen, stickyOffline, goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     dialDraft, setDialDraft, smsDraft, setSmsDraft,
+    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
   } = useSoftphone()
 
   const [note, setNote] = useState("")
@@ -368,7 +530,45 @@ function SoftphoneDrawer() {
   const mmss = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
   const ringing = live.kind === "incoming"
   const busy = live.kind !== "none"
-  const peerNumber = live.kind === "incoming" ? live.from : live.kind === "active" ? live.peer : ""
+  const peerNumber =
+    live.kind === "incoming" ? live.from : live.kind === "active" ? live.peer : (lastCall?.peer ?? "")
+  // "There is a call in front of me" — true while connected and after it ends,
+  // because the note and the transcript are still on screen and unsaved.
+  const hasContext = live.kind !== "none" || Boolean(lastCall)
+
+  const [transcriptState, setTranscriptState] = useState<"idle" | "saving" | "saved">("idle")
+
+  const saveTranscript = async () => {
+    if (!peerNumber || captions.length === 0) return
+    // Only finalised lines: partials are mid-word and would read as stutter.
+    const body = captions
+      .filter((l) => l.final)
+      .map((l) => {
+        const who = l.speaker === "them" ? "客户" : "我"
+        return l.translation ? `${who}: ${l.text}\n     (${l.translation})` : `${who}: ${l.text}`
+      })
+      .join("\n")
+    if (!body.trim()) return
+    setTranscriptState("saving")
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          "x-admin-key": window.localStorage.getItem("rh_admin_key") ?? "",
+        },
+        body: JSON.stringify({
+          action: "call_note",
+          phone: peerNumber,
+          note: `【通话记录】\n${body}`,
+        }),
+      })
+      if (!res.ok) throw new Error(String(res.status))
+      setTranscriptState("saved")
+    } catch {
+      setTranscriptState("idle")
+    }
+  }
 
   const saveNote = async () => {
     const text = note.trim()
@@ -392,6 +592,12 @@ function SoftphoneDrawer() {
     }
   }
   const dotColor = status === "ready" ? "#16a34a" : status === "connecting" ? "#d97706" : "#9ca3af"
+
+  // Phones get SoftphoneMobileDrawer instead. This has to sit after every hook
+  // above: an early return placed higher would change hook order between the
+  // desktop and mobile renders.
+  const isMobile = useIsMobile()
+  if (isMobile) return null
 
   return (
     <>
@@ -480,13 +686,20 @@ function SoftphoneDrawer() {
               <button onClick={goOffline} style={btn("#6b7280", false, true)}>下线</button>
             </div>
           ) : (
-            <button
-              onClick={() => void goOnline()}
-              disabled={status === "connecting"}
-              style={{ ...btn("#dc2626", status === "connecting"), width: "100%", padding: "11px" }}
-            >
-              上线接听
-            </button>
+            <div>
+              <button
+                onClick={() => void goOnline()}
+                disabled={status === "connecting"}
+                style={{ ...btn("#dc2626", status === "connecting"), width: "100%", padding: "11px" }}
+              >
+                上线接听
+              </button>
+              {stickyOffline ? (
+                <p style={{ fontSize: 11.5, color: "#92400e", margin: "8px 0 0", lineHeight: 1.5 }}>
+                  你手动下线过，所以不会自动上线。点一次「上线接听」就恢复默认。
+                </p>
+              ) : null}
+            </div>
           )}
 
           {message ? (
@@ -533,7 +746,45 @@ function SoftphoneDrawer() {
             </div>
           ) : null}
 
-          {busy && peerNumber ? (
+          {live.kind === "none" && lastCall ? (
+            <div
+              style={{
+                border: "1px solid #e5e7eb", borderRadius: 10, padding: 12,
+                background: "#f9fafb",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    通话已结束 · {String(Math.floor(lastCall.seconds / 60)).padStart(2, "0")}:
+                    {String(lastCall.seconds % 60).padStart(2, "0")}
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>
+                    {prettyNumber(lastCall.peer)}
+                  </div>
+                </div>
+                <button onClick={dismissLastCall} style={btn("#9ca3af", false, true)}>关闭</button>
+              </div>
+              {captions.length > 0 ? (
+                <button
+                  onClick={() => void saveTranscript()}
+                  disabled={transcriptState === "saving"}
+                  style={{ ...btn("#111827", transcriptState === "saving", true), marginTop: 10 }}
+                >
+                  {transcriptState === "saving"
+                    ? "保存中…"
+                    : transcriptState === "saved"
+                      ? "✓ 已存入线索"
+                      : "把通话记录存进线索"}
+                </button>
+              ) : null}
+              <p style={{ fontSize: 11.5, color: "#6b7280", margin: "8px 0 0", lineHeight: 1.5 }}>
+                速记和通话记录都还在，存完再关。
+              </p>
+            </div>
+          ) : null}
+
+          {hasContext && peerNumber ? (
             <div>
               <label style={{ fontSize: 12.5, fontWeight: 600, display: "block", marginBottom: 6 }}>
                 通话速记
@@ -569,6 +820,65 @@ function SoftphoneDrawer() {
                       : "Ctrl+Enter 保存"}
                 </span>
               </div>
+            </div>
+          ) : null}
+
+          {live.kind === "active" || captions.length > 0 ? (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, flex: 1 }}>
+                  {live.kind === "active" ? "实时字幕" : "通话记录"}
+                </label>
+                {live.kind === "active" ? (
+                  <button
+                    onClick={() => void toggleCaptions()}
+                    style={btn(captionsOn ? "#d97706" : "#2563eb", false, true)}
+                  >
+                    {captionsOn ? "停止" : "开字幕"}
+                  </button>
+                ) : null}
+              </div>
+              {captionsOn || captions.length > 0 ? (
+                <div
+                  style={{
+                    maxHeight: 220, overflowY: "auto", border: "1px solid #e5e7eb",
+                    borderRadius: 8, padding: 10, background: "#fafafa",
+                    display: "flex", flexDirection: "column", gap: 8,
+                  }}
+                >
+                  {captions.length === 0 ? (
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                      {captionStatus || "等待说话…"}
+                    </span>
+                  ) : null}
+                  {captions.map((line) => (
+                    <div key={line.id}>
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          color: line.speaker === "them" ? "#111827" : "#6b7280",
+                          opacity: line.final ? 1 : 0.6,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <strong style={{ fontSize: 11 }}>
+                          {line.speaker === "them" ? "客户" : "你"}
+                        </strong>{" "}
+                        {line.text}
+                      </div>
+                      {line.translation ? (
+                        <div style={{ fontSize: 12.5, color: "#2563eb", lineHeight: 1.5, marginTop: 2 }}>
+                          {line.translation}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 11.5, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>
+                  按分钟计费，只在听不清时开。开启后客户和你的话都会转写，蓝色是中文翻译。
+                </p>
+              )}
             </div>
           ) : null}
 
