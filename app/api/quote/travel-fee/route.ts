@@ -27,12 +27,15 @@ const ORIGIN_ZIP = process.env.TRAVEL_ORIGIN_ADDRESS ?? "91744"
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const destination = (searchParams.get("destination") ?? "").trim()
+  // Optional origin override lets the staff invoice tool measure from an
+  // edited home base while sharing this route's providers and policy.
+  const origin = (searchParams.get("origin") ?? "").trim() || ORIGIN_ZIP
 
   if (!destination) {
     return NextResponse.json(
       {
         error: "Missing destination",
-        origin_zip: ORIGIN_ZIP,
+        origin_zip: origin,
         distance_miles: null,
         travel_fee_range: { low: 0, high: 0 },
         free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
@@ -44,11 +47,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await getDrivingMiles(ORIGIN_ZIP, destination)
+    const result = await getDrivingMiles(origin, destination)
     const fee = calcTravelFee(result.drivingMiles)
 
     return NextResponse.json({
-      origin_zip: ORIGIN_ZIP,
+      origin_zip: origin,
       destination: result.destination.label,
       distance_miles: result.drivingMiles,
       chargeable_miles: Math.round(Math.max(0, result.drivingMiles - TRAVEL_FREE_RADIUS_MILES) * 10) / 10,
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
     const code = error instanceof TravelDistanceError ? error.code : "provider_unavailable"
     return NextResponse.json(
       {
-        origin_zip: ORIGIN_ZIP,
+        origin_zip: origin,
         destination,
         distance_miles: null,
         travel_fee_range: { low: 0, high: 0 },
