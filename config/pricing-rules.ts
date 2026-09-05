@@ -141,7 +141,31 @@ export const WEEKDAY_SPECIAL = {
   allowsPremiumUpgrades: false,
 } as const
 
+// Major holiday periods book at the standard rate — the Weekday Special is a
+// demand-smoothing discount and these are the highest-demand days of the year
+// (owner decision, 2026-09-05). Extend this list each season.
+export const WEEKDAY_SPECIAL_BLACKOUTS: ReadonlyArray<{ start: string; end: string; label: string }> = [
+  { start: "2026-09-07", end: "2026-09-07", label: "Labor Day" },
+  { start: "2026-11-23", end: "2026-11-29", label: "Thanksgiving week" },
+  { start: "2026-12-20", end: "2027-01-03", label: "the Christmas & New Year season" },
+  { start: "2027-05-30", end: "2027-05-31", label: "Memorial Day" },
+  { start: "2027-07-03", end: "2027-07-05", label: "July 4th" },
+  { start: "2027-09-05", end: "2027-09-06", label: "Labor Day" },
+  { start: "2027-11-22", end: "2027-11-28", label: "Thanksgiving week" },
+  { start: "2027-12-19", end: "2028-01-02", label: "the Christmas & New Year season" },
+]
+
+/** The holiday label when the date falls in a blackout period, else null. */
+export function weekdayBlackoutLabel(eventDate: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate ?? "")) return null
+  for (const period of WEEKDAY_SPECIAL_BLACKOUTS) {
+    if (eventDate >= period.start && eventDate <= period.end) return period.label
+  }
+  return null
+}
+
 export function isWeekdayEligibleDate(eventDate: string): boolean {
+  if (weekdayBlackoutLabel(eventDate)) return false
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(eventDate ?? "")
   if (!match) return false
   const year = Number(match[1])

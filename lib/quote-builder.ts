@@ -12,6 +12,7 @@ import {
   PARTY_GUEST_CARD_DISCOUNT,
   isPromotionActive,
   isWeekdayEligibleDate,
+  weekdayBlackoutLabel,
 } from "@/config/pricing-rules"
 
 export type QuoteAddOns = {
@@ -186,7 +187,14 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
 
   const weekdayViolations: string[] = []
   if (isWeekdaySaver) {
-    if (!isWeekdayEligible) weekdayViolations.push("Weekday Special is available only for Monday-Thursday events.")
+    if (!isWeekdayEligible) {
+      const holiday = weekdayBlackoutLabel(input.eventDate)
+      weekdayViolations.push(
+        holiday
+          ? `Dates around ${holiday} book at the standard rate — the Weekday Special doesn't apply.`
+          : "Weekday Special is available only for Monday-Thursday events.",
+      )
+    }
     if (!isGuestCountEligible)
       weekdayViolations.push(
         `Weekday Special requires ${WEEKDAY_SAVER_MIN_GUESTS}+ guests (a child counts as half an adult; under-5s do not count).`,
