@@ -688,6 +688,9 @@ async function createCheckoutSession(
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: isLikelyEmail(payload.customerEmail) ? payload.customerEmail : undefined,
+    // SMS is our primary channel; collecting the phone at checkout lets the
+    // webhook backfill quote-flow bookings that started with no contact info.
+    phone_number_collection: { enabled: true },
     success_url: buildSuccessUrl(origin, payload),
     cancel_url: buildCancelUrl(origin, payload),
     line_items: [

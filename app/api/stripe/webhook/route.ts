@@ -61,6 +61,28 @@ function asNonEmptyString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
+// Quote-flow deposits create the booking BEFORE Stripe ever asks the payer
+// for contact info, using these placeholders. They must never beat the real
+// identity Stripe collects at checkout (customer_details) in any fallback
+// chain, and they get overwritten on the booking once payment lands.
+const PLACEHOLDER_EMAILS = new Set(["unknown@example.com", "n/a"])
+const PLACEHOLDER_NAMES = new Set(["guest", "n/a"])
+
+function asRealEmail(value: unknown): string | undefined {
+  const s = asNonEmptyString(value)
+  return s && !PLACEHOLDER_EMAILS.has(s.toLowerCase()) ? s : undefined
+}
+
+function asRealName(value: unknown): string | undefined {
+  const s = asNonEmptyString(value)
+  return s && !PLACEHOLDER_NAMES.has(s.toLowerCase()) ? s : undefined
+}
+
+function asRealPhone(value: unknown): string | undefined {
+  const s = asNonEmptyString(value)
+  return s && s.toUpperCase() !== "TBD" ? s : undefined
+}
+
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined
@@ -731,6 +753,33 @@ async function handleCheckoutSessionCompleted(
     })
   }
 
+  // Backfill placeholder identity from the checkout session BEFORE the CRM
+  // snapshot is taken, so the order, receipts, and planner lookups all carry
+  // the payer's real contact info (2026-09-05: a quote-flow deposit shipped
+  // an order as "Guest"/unknown@example.com and every notification fell flat).
+  if (updatedBookingId) {
+    const realEmail = asRealEmail(session.customer_details?.email) ?? asRealEmail(session.customer_email)
+    const realName = asRealName(session.customer_details?.name)
+    const realPhone = asRealPhone(session.customer_details?.phone)
+    if (realEmail || realName || realPhone) {
+      const { data: current } = await supabase
+        .from("bookings")
+        .select("full_name,email,phone")
+        .eq("id", updatedBookingId)
+        .maybeSingle()
+      const backfill: Record<string, unknown> = {}
+      if (realEmail && !asRealEmail(current?.email)) backfill.email = realEmail
+      if (realName && !asRealName(current?.full_name)) backfill.full_name = realName
+      if (realPhone && !asRealPhone(current?.phone)) backfill.phone = realPhone
+      if (Object.keys(backfill).length > 0) {
+        const { error: backfillError } = await supabase.from("bookings").update(backfill).eq("id", updatedBookingId)
+        if (backfillError) {
+          console.error("[stripe/webhook] Failed to backfill booking identity from checkout session:", backfillError)
+        }
+      }
+    }
+  }
+
   const bookingSnapshot = await loadBookingCrmSnapshot(supabase, updatedBookingId)
 
   return {
@@ -826,12 +875,12 @@ async function sendCustomerDepositNotifications(params: {
     specialRequests: params.bookingSnapshot?.special_requests ?? null,
   })
   const customerEmail =
-    asNonEmptyString(params.bookingSnapshot?.email) ??
-    asNonEmptyString(params.session.customer_details?.email) ??
-    asNonEmptyString(params.session.customer_email) ??
-    asNonEmptyString(params.session.metadata?.customer_email)
+    asRealEmail(params.bookingSnapshot?.email) ??
+    asRealEmail(params.session.customer_details?.email) ??
+    asRealEmail(params.session.customer_email) ??
+    asRealEmail(params.session.metadata?.customer_email)
   const customerPhone =
-    asContactPhone(params.bookingSnapshot?.phone) ??
+    asContactPhone(asRealPhone(params.bookingSnapshot?.phone)) ??
     asContactPhone(params.session.customer_details?.phone) ??
     asContactPhone(params.session.metadata?.customer_phone)
   const selfServiceLink = await buildOrderKeyLink({
@@ -884,18 +933,18 @@ async function sendOpsDepositPaidNotification(params: {
 }): Promise<OpsEmailDeliveryResult> {
   const bookingId = params.customerNotification.bookingId
   const customerName =
-    asNonEmptyString(params.bookingSnapshot?.full_name) ??
-    asNonEmptyString(params.session.customer_details?.name) ??
-    asNonEmptyString(params.session.metadata?.customer_name) ??
+    asRealName(params.bookingSnapshot?.full_name) ??
+    asRealName(params.session.customer_details?.name) ??
+    asRealName(params.session.metadata?.customer_name) ??
     "N/A"
   const customerEmail =
-    asNonEmptyString(params.bookingSnapshot?.email) ??
-    asNonEmptyString(params.session.customer_details?.email) ??
-    asNonEmptyString(params.session.customer_email) ??
-    asNonEmptyString(params.session.metadata?.customer_email) ??
+    asRealEmail(params.bookingSnapshot?.email) ??
+    asRealEmail(params.session.customer_details?.email) ??
+    asRealEmail(params.session.customer_email) ??
+    asRealEmail(params.session.metadata?.customer_email) ??
     "N/A"
   const customerPhone =
-    asNonEmptyString(params.bookingSnapshot?.phone) ??
+    asRealPhone(params.bookingSnapshot?.phone) ??
     asNonEmptyString(params.session.customer_details?.phone) ??
     asNonEmptyString(params.session.metadata?.customer_phone) ??
     "N/A"
