@@ -332,3 +332,64 @@ export function trackDepositCompletedOnce(
   rememberTrackedDepositTransaction(transactionId)
   return { tracked: true }
 }
+
+// --- Google Ads conversion tag ---------------------------------------------
+// The account tag (gtag.js, AW id) is loaded in app/layout.tsx. Labels below
+// belong to conversion actions that already exist in the Google Ads account.
+const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "AW-17018331447"
+const GOOGLE_ADS_DEPOSIT_LABEL =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_DEPOSIT_LABEL || "oLHXCOi2q-kcELfC_LI_"
+
+// gtag.js reads the `arguments` object it finds on dataLayer, so this must be
+// a regular function pushing `arguments` — never an array literal.
+function gtag(..._args: unknown[]): void {
+  if (typeof window === "undefined") return
+  if (!Array.isArray(window.dataLayer)) {
+    window.dataLayer = []
+  }
+  // eslint-disable-next-line prefer-rest-params
+  ;(window.dataLayer as unknown as unknown[]).push(arguments)
+}
+
+function toE164(phone: string | null | undefined): string | undefined {
+  if (!phone) return undefined
+  const digits = phone.replace(/\D/g, "")
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`
+  return phone.trim().startsWith("+") && digits.length > 10 ? `+${digits}` : undefined
+}
+
+/**
+ * Fire the Google Ads "Deposit Paid" conversion, with Enhanced Conversions
+ * user_data when email/phone are known. Google Ads dedupes on transaction_id,
+ * so calling this again for the same transaction is harmless.
+ */
+export function fireGoogleAdsDepositConversion(params: {
+  transactionId: string
+  value?: number
+  currency?: string
+  email?: string | null
+  phone?: string | null
+}): void {
+  if (typeof window === "undefined") return
+
+  const userData: Record<string, string> = {}
+  const email = params.email?.trim().toLowerCase()
+  if (email && email.includes("@") && email !== "unknown@example.com") {
+    userData.email = email
+  }
+  const phone = toE164(params.phone)
+  if (phone) {
+    userData.phone_number = phone
+  }
+  if (Object.keys(userData).length > 0) {
+    gtag("set", "user_data", userData)
+  }
+
+  gtag("event", "conversion", {
+    send_to: `${GOOGLE_ADS_ID}/${GOOGLE_ADS_DEPOSIT_LABEL}`,
+    value: typeof params.value === "number" && Number.isFinite(params.value) ? params.value : 1,
+    currency: params.currency || "USD",
+    transaction_id: params.transactionId,
+  })
+}

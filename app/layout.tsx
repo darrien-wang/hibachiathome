@@ -13,6 +13,8 @@ import LanguageSuggestBanner from "@/components/language-suggest-banner"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
 
 const DEFAULT_GTM_ID = "GTM-WQZNBK82"
+// Google Ads conversion tag (account tag; conversion labels live in lib/tracking.ts).
+const DEFAULT_GOOGLE_ADS_ID = "AW-17018331447"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.realhibachi.com"),
@@ -79,6 +81,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID || DEFAULT_GTM_ID
+  const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || DEFAULT_GOOGLE_ADS_ID
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -94,6 +97,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${gtmId}');`}
           </Script>
+        ) : null}
+        {googleAdsId ? (
+          <>
+            <Script
+              id="aw-gtag-lib"
+              src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="aw-gtag-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+window.gtag=window.gtag||gtag;
+gtag('js',new Date());
+gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
+            </Script>
+          </>
         ) : null}
         <link
           rel="icon"

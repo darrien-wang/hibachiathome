@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
-import { trackDepositCompletedOnce } from "@/lib/tracking"
+import { fireGoogleAdsDepositConversion, trackDepositCompletedOnce } from "@/lib/tracking"
 
 type DepositVerifyStatus = "pending" | "paid" | "refunded" | "not_found" | "invalid_request"
 
@@ -316,7 +316,7 @@ export default function DepositSuccessClient({
       return
     }
 
-    trackDepositCompletedOnce({
+    const tracked = trackDepositCompletedOnce({
       transaction_id: result.transaction_id,
       value: typeof result.value === "number" ? result.value : undefined,
       currency: typeof result.currency === "string" ? result.currency : "USD",
@@ -326,7 +326,17 @@ export default function DepositSuccessClient({
       deposit_status: result.status,
       conversion_surface: "deposit_success",
     })
-  }, [displayBookingId, sessionId, state])
+
+    if (tracked.tracked) {
+      fireGoogleAdsDepositConversion({
+        transactionId: result.transaction_id,
+        value: typeof result.value === "number" ? result.value : undefined,
+        currency: typeof result.currency === "string" ? result.currency : "USD",
+        email: displayEmail,
+        phone: displayPhone,
+      })
+    }
+  }, [displayBookingId, displayEmail, displayPhone, sessionId, state])
 
   const content = (() => {
     if (state.stage === "idle" || state.stage === "loading") {
