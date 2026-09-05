@@ -443,6 +443,9 @@ function DepositPaymentPageInner() {
                 <div>
                   <p className="text-sm text-gray-500">Deposit Amount</p>
                   <p className="font-bold text-lg text-primary">${depositAmount.toFixed(2)}</p>
+                  <p className="text-xs text-gray-500">
+                    Applied toward your final balance — not an extra fee. Fully refundable with 72+ hours notice.
+                  </p>
                 </div>
               </div>
 

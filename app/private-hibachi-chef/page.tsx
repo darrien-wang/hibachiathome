@@ -98,6 +98,11 @@ const faqs = [
     answer:
       "A flat outdoor spot about 6x8 ft with 10 ft of overhead clearance, plus tables and place settings for your guests (or rent them from us). The chef brings everything else, arrives about 10 minutes early, and handles setup and cleanup.",
   },
+  {
+    question: "Can I cancel or reschedule my chef?",
+    answer:
+      "Yes. Cancel or reschedule at least 72 hours before your event and the $19.90 deposit is refunded in full. Changes inside 72 hours may make the deposit non-refundable. And the promise runs both ways — if Real Hibachi ever cancels on you, you get double your deposit back.",
+  },
 ]
 
 export default function PrivateHibachiChefPage() {

@@ -1427,6 +1427,10 @@ export default function QuoteBuilderClient() {
                   placeholder="Los Angeles or 90001"
                   onChange={(e) => handleFieldChange("location", e.target.value)}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  City or ZIP is all we need for your price — your exact street address only after your date is
+                  confirmed.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -147,7 +147,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
         "@type": "UnitPriceSpecification",
         price: "59.90",
         priceCurrency: "USD",
-        unitText: "per adult ($29.90 per child 5–12, $599 event minimum)",
+        unitText: "per adult ($29.90 per child 5–12, $5 per kid under 5, $599 event minimum)",
       },
       availability: "https://schema.org/InStock",
       url,
@@ -285,6 +285,10 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
               <p className="text-gray-600 mb-1">$29.90 per child 5–12 · $5 for kids under 5 · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
                 Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu events with 15+ guests.
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Licensed &amp; insured. Gratuity (20–25% for your chef) is the only thing not in the quote — no other
+                fees.
               </p>
               <ul className="space-y-2.5">
                 {included.map((item) => (
