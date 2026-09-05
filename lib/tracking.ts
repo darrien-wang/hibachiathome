@@ -386,10 +386,12 @@ export function fireGoogleAdsDepositConversion(params: {
     gtag("set", "user_data", userData)
   }
 
+  // Must match the id the GTM awct tag reports (dataLayer transaction_id,
+  // trimmed) exactly — Google Ads dedupes same-action conversions by it.
   gtag("event", "conversion", {
     send_to: `${GOOGLE_ADS_ID}/${GOOGLE_ADS_DEPOSIT_LABEL}`,
     value: typeof params.value === "number" && Number.isFinite(params.value) ? params.value : 1,
     currency: params.currency || "USD",
-    transaction_id: params.transactionId,
+    transaction_id: params.transactionId.trim(),
   })
 }
