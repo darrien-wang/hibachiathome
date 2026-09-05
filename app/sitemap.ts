@@ -17,6 +17,9 @@ const LAST_UPDATED: Record<string, string> = {
   "": "2026-09-02T00:00:00.000Z", // hero repositioning, honest trust markers
   "/es": "2026-09-03T00:00:00.000Z", // Spanish homepage launch
   "/es/preguntas-frecuentes": "2026-09-03T00:00:00.000Z", // Spanish FAQ launch
+  "/mobile-hibachi": "2026-09-05T00:00:00.000Z", // themed LP launch
+  "/private-hibachi-chef": "2026-09-05T00:00:00.000Z", // themed LP launch
+  "/hibachi-catering": "2026-09-05T00:00:00.000Z", // catering hub launch (was 404)
   "/hibachi-at-home": "2026-08-27T00:00:00.000Z", // weather policy copy
   "/menu": "2026-08-27T00:00:00.000Z", // sourcing spec section
   "/faq": "2026-08-27T00:00:00.000Z", // allergen and tent answers
@@ -33,6 +36,9 @@ const STATIC_ROUTES = [
   "/es", // Spanish homepage
   "/es/preguntas-frecuentes", // Spanish FAQ (/es/cotizar is noindex like /quote)
   "/hibachi-at-home", // Core at-home hibachi service page
+  "/mobile-hibachi", // Mobile-hibachi keyword family LP
+  "/private-hibachi-chef", // Private-chef keyword family LP
+  "/hibachi-catering", // Catering hub (city pages hang under it)
   "/locations/la-orange-county", // Los Angeles page - highest priority
   "/menu",
   "/blog", // Blog index — was missing from the sitemap entirely

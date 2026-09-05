@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import QuoteBuilderClient from "@/app/quote/QuoteBuilderClient"
 
 export const metadata: Metadata = {
-  title: "Get an Instant Hibachi Quote | Real Hibachi",
+  // Bare title: the root layout template appends "| Real Hibachi".
+  title: "Get an Instant Hibachi Quote",
   description:
     "One-page quote builder for instant hibachi pricing, travel fee range, upgrades, and quick contact actions.",
   robots: {

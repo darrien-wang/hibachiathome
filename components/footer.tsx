@@ -224,6 +224,24 @@ export default function Footer() {
                   View all service areas
                 </Link>
               </p>
+              <p className="text-[14px] text-[#A1A1A1]">
+                Services:{" "}
+                <Link href="/hibachi-at-home" className="hover:text-[#F1691B] hover:underline">
+                  Hibachi at Home
+                </Link>
+                {" · "}
+                <Link href="/hibachi-catering" className="hover:text-[#F1691B] hover:underline">
+                  Hibachi Catering
+                </Link>
+                {" · "}
+                <Link href="/mobile-hibachi" className="hover:text-[#F1691B] hover:underline">
+                  Mobile Hibachi
+                </Link>
+                {" · "}
+                <Link href="/private-hibachi-chef" className="hover:text-[#F1691B] hover:underline">
+                  Private Hibachi Chef
+                </Link>
+              </p>
             </div>
           </div>
         </div>
@@ -236,7 +254,7 @@ export default function Footer() {
             </Link>
             <a
               href="https://www.realhibachi.com/sitemap.html" // Assuming this is the correct public URL
-              title="Hibachi at home in NY - HTML Sitemap"
+              title="Hibachi at Home Southern California - HTML Sitemap"
               target="_blank"
               rel="noopener noreferrer"
               className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]"
@@ -245,7 +263,7 @@ export default function Footer() {
             </a>
             <a
               href="https://www.realhibachi.com/sitemap.xml" // Assuming this is the correct public URL
-              title="Hibachi at home in NY - XML Sitemap"
+              title="Hibachi at Home Southern California - XML Sitemap"
               target="_blank"
               rel="noopener noreferrer"
               className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]"

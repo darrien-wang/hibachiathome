@@ -1693,7 +1693,8 @@ export default function QuoteBuilderClient() {
                 </div>
                 <p className="mt-1.5 inline-flex items-start gap-1 text-xs font-medium text-amber-900">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-700" aria-hidden="true" />
-                  Southern California is all we do — a local team, not a franchise. Quality guaranteed.
+                  Hibachi at home is all we do — a local Southern California team, not a franchise. Your private
+                  hibachi chef brings the mobile teppanyaki grill, the food, and the show to your door.
                 </p>
                 <div className="mt-2 space-y-1 rounded-md bg-white/50 px-3 py-2 text-xs text-amber-900">
                   <p className="font-semibold">Our three promises, in writing:</p>
