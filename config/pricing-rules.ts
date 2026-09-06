@@ -42,8 +42,10 @@ export const GUEST_TIERS = {
     id: "toddler" as const,
     label: "Kid under 5",
     ageLabel: "under 5",
-    price: 5,
-    weekdayPrice: 5,
+    // 2026-09-06 policy change: under-5s eat free (was a flat $5 small-plate
+    // charge). Keep the tier so headcount/planner logic still tracks them.
+    price: 0,
+    weekdayPrice: 0,
     /** Under-5s do not count toward the Weekday Special 15-guest minimum. */
     adultEquivalent: 0,
     /** Small plate off the grill — no protein allowance, no upgrades. */

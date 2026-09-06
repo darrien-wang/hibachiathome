@@ -6,6 +6,7 @@ import { CATERING_CITIES } from "@/config/catering-cities"
 import { getCityPage } from "@/config/city-pages"
 import { occasionPages } from "@/config/occasion-pages"
 import { pickReviews } from "@/config/reviews"
+import AppreciationBanner from "@/components/appreciation-banner"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
 
@@ -54,7 +55,7 @@ const faqs = [
   {
     question: "How much does hibachi catering cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, $5 for kids under 5, with a $599 event minimum. Monday–Thursday events with 15+ guests get the Weekday Special at $45.90 per adult. Pricing is published and your exact total — including any travel fee — appears in the instant quote before you pay anything.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday events with 15+ guests get the Weekday Special at $45.90 per adult. Pricing is published and your exact total — including any travel fee — appears in the instant quote before you pay anything.",
   },
   {
     question: "Do you cater corporate events and offices?",
@@ -109,7 +110,7 @@ export default function HibachiCateringHubPage() {
         "@type": "UnitPriceSpecification",
         price: "59.90",
         priceCurrency: "USD",
-        unitText: "per adult ($29.90 per child 5–12, $5 per kid under 5, $599 event minimum)",
+        unitText: "per adult ($29.90 per child 5–12, kids under 5 free, $599 event minimum)",
       },
       availability: "https://schema.org/InStock",
       url: URL,
@@ -206,7 +207,7 @@ export default function HibachiCateringHubPage() {
                 <span className="text-5xl font-black text-gray-900">$59.90</span>
                 <span className="text-lg text-gray-500">/adult</span>
               </div>
-              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · $5 for kids under 5 · $599 event minimum</p>
+              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
                 Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu events with 15+ guests.
               </p>
@@ -227,6 +228,9 @@ export default function HibachiCateringHubPage() {
                 ))}
               </ul>
             </div>
+          </div>
+          <div className="max-w-4xl mx-auto mt-8">
+            <AppreciationBanner source="hibachi_catering_hub" />
           </div>
         </div>
       </section>

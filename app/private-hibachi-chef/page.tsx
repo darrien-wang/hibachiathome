@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { MapPin, Phone, Users, Clock, ChefHat, Check } from "lucide-react"
 import { cityPages } from "@/config/city-pages"
 import { pickReviews } from "@/config/reviews"
+import AppreciationBanner from "@/components/appreciation-banner"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
 
@@ -76,7 +77,7 @@ const faqs = [
   {
     question: "How much does a private hibachi chef cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, $5 for kids under 5, with a $599 event minimum — chef, grill, food, show, setup, and cleanup all included. Monday–Thursday parties with 15+ guests get the Weekday Special at $45.90 per adult. Gratuity (20–25%) is the only thing not in the quote.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, show, setup, and cleanup all included. Monday–Thursday parties with 15+ guests get the Weekday Special at $45.90 per adult. Gratuity (20–25%) is the only thing not in the quote.",
   },
   {
     question: "Who are your chefs?",
@@ -133,7 +134,7 @@ export default function PrivateHibachiChefPage() {
         "@type": "UnitPriceSpecification",
         price: "59.90",
         priceCurrency: "USD",
-        unitText: "per adult ($29.90 per child 5–12, $5 per kid under 5, $599 event minimum)",
+        unitText: "per adult ($29.90 per child 5–12, kids under 5 free, $599 event minimum)",
       },
       availability: "https://schema.org/InStock",
       url: URL,
@@ -257,7 +258,7 @@ export default function PrivateHibachiChefPage() {
                 <span className="text-5xl font-black text-gray-900">$59.90</span>
                 <span className="text-lg text-gray-500">/adult</span>
               </div>
-              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · $5 for kids under 5 · $599 event minimum</p>
+              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
                 Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu parties with 15+ guests.
               </p>
@@ -278,6 +279,9 @@ export default function PrivateHibachiChefPage() {
                 ))}
               </ul>
             </div>
+          </div>
+          <div className="max-w-4xl mx-auto mt-8">
+            <AppreciationBanner source="private_hibachi_chef" />
           </div>
         </div>
       </section>

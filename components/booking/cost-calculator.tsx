@@ -179,7 +179,7 @@ export default function CostCalculator({
                       <PlusCircle className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">Kids under 5 are a flat $5</p>
+                  <p className="text-xs text-gray-500">Kids under 5 eat free</p>
                 </div>
               </div>
             </div>

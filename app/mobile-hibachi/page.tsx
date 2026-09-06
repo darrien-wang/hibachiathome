@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { MapPin, Phone, Users, Clock, ChefHat, Check, Flame } from "lucide-react"
 import { cityPages } from "@/config/city-pages"
 import { pickReviews } from "@/config/reviews"
+import AppreciationBanner from "@/components/appreciation-banner"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
 
@@ -69,7 +70,7 @@ const faqs = [
   {
     question: "How much does mobile hibachi cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, $5 for kids under 5, with a $599 event minimum. Monday–Thursday parties with 15+ guests get our Weekday Special at $45.90 per adult. Pricing is published — no phone number required to see your total.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday parties with 15+ guests get our Weekday Special at $45.90 per adult. Pricing is published — no phone number required to see your total.",
   },
   {
     question: "Do you need power or water at the site?",
@@ -111,7 +112,7 @@ export default function MobileHibachiPage() {
         "@type": "UnitPriceSpecification",
         price: "59.90",
         priceCurrency: "USD",
-        unitText: "per adult ($29.90 per child 5–12, $5 per kid under 5, $599 event minimum)",
+        unitText: "per adult ($29.90 per child 5–12, kids under 5 free, $599 event minimum)",
       },
       availability: "https://schema.org/InStock",
       url: URL,
@@ -236,7 +237,7 @@ export default function MobileHibachiPage() {
                 <span className="text-5xl font-black text-gray-900">$59.90</span>
                 <span className="text-lg text-gray-500">/adult</span>
               </div>
-              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · $5 for kids under 5 · $599 event minimum</p>
+              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
                 Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu parties with 15+ guests.
               </p>
@@ -257,6 +258,9 @@ export default function MobileHibachiPage() {
                 ))}
               </ul>
             </div>
+          </div>
+          <div className="max-w-4xl mx-auto mt-8">
+            <AppreciationBanner source="mobile_hibachi" />
           </div>
         </div>
       </section>

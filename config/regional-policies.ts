@@ -44,7 +44,7 @@ const PRICING_POLICY_DEFINITIONS: Record<PricingPolicyKey, PricingPolicyDefiniti
       "Includes the Standard food and chef show package. Difference: guests pick 2 of 3 proteins (chicken, steak, shrimp).",
     unavailableMessage: "Weekday Special is currently available in Southern California only.",
     homeFeatureList: [
-      "$45.9/adult; $22.95/child 5–12; $5 under 5",
+      "$45.9/adult; $22.95/child 5–12; under 5 free",
       "Fried rice, fresh vegetables, and house salad included",
       "Live chef performance and on-site grill cooking",
       "Monday-Thursday events only, major holidays excluded; 15+ guests (a child counts as half, under-5s do not count)",

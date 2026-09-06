@@ -7,6 +7,8 @@ export const faqItems = [
     question: "How much does your hibachi experience cost?",
     answer: `Base rate: $${pricing.packages.basic.perPerson} per guest (minimum $${pricing.packages.basic.minimum} total)
 
+Kids: $${pricing.children.basic} for ages 5-12, and kids under 5 eat free
+
 Gratuity: We recommend 20% of the final bill
 
 Travel fee: May apply depending on your location; exact amount disclosed during booking
@@ -17,6 +19,11 @@ Payment options:
 - Venmo/Zelle (no fee)
 
 If using credit card, payment must be settled at least 72 hours before your event.`,
+  },
+  {
+    question: "Do you offer military, nurse, teacher, or first-responder discounts?",
+    answer:
+      "Yes — our Appreciation Program honors a different service community every season: veterans & active military, nurses & healthcare workers, teachers & school staff, and firefighters, EMTs & first responders each take a turn, with $50 off your party while their window is active. Check the current honoree on the quote page, mention it when you book, and show your work badge or service ID to your chef. $599+ parties, one per booking; stacks with the Weekday Special but not with other dollar-off offers.",
   },
   {
     question: "Can you provide tables and chairs?",

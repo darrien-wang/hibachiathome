@@ -26,7 +26,7 @@ const SMS_URL =
 const PRICE_ROWS = [
   ["Adultos (13+)", "$59.90 por persona"],
   ["Niños (5–12)", "$29.90 · mitad de precio"],
-  ["Pequeños (3–4)", "$5"],
+  ["Pequeños (3–4)", "Gratis"],
   ["Bebés (0–2)", "Gratis"],
   ["Consumo mínimo", "$599 por evento"],
   ["Especial entre semana (dom–jue)", "$45.9 por adulto"],

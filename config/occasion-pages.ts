@@ -41,7 +41,7 @@ const SPACE_FAQ = {
 const PRICE_FAQ = {
   question: "How much does it cost?",
   answer:
-    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan, with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. A $19.90 refundable deposit locks your date. Get an exact number in 30 seconds with the instant quote — no sign-up.",
+    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. A $19.90 refundable deposit locks your date. Get an exact number in 30 seconds with the instant quote — no sign-up.",
 }
 
 export const occasionPages: OccasionPage[] = [
@@ -247,7 +247,7 @@ export const occasionPages: OccasionPage[] = [
       {
         question: "Do you handle kids and picky eaters?",
         answer:
-          "All the time. Kids 5–12 are $29.90, little ones under 5 are $5, and every guest picks their own two proteins — chicken, steak, shrimp, salmon, or tofu — so nobody negotiates with anyone else's plate.",
+          "All the time. Kids 5–12 are $29.90, little ones under 5 eat free, and every guest picks their own two proteins — chicken, steak, shrimp, salmon, or tofu — so nobody negotiates with anyone else's plate.",
       },
       {
         question: "How many people can you serve?",
@@ -791,6 +791,79 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
         answer:
           "Monday–Thursday events with 15+ guests qualify for the Weekday Special: $45.90/person instead of $59.90. Same food, same show — corporate events are exactly what that tier is for.",
       },
+      PRICE_FAQ,
+    ],
+  },
+  {
+    slug: "wedding",
+    occasion: "Wedding",
+    headline: "Hibachi Wedding Catering",
+    subline: "The rehearsal dinner they'll talk about at the reception.",
+    metaTitle: "Hibachi Wedding Catering | Rehearsal Dinners & Intimate Weddings",
+    metaDescription:
+      "Hibachi catering for rehearsal dinners, welcome parties, and intimate backyard weddings across Southern California. Private chef, live fire show, from $59.90/person — the wedding meal nobody forgets.",
+    intro: [
+      "The wedding weekend has one meal where you're allowed to have actual fun: the rehearsal dinner. Two families meeting for the first time need something to react to together — and a chef sending a flame over the grill beats forced toasts every time.",
+      "We cater the wedding-weekend moments where hibachi shines: rehearsal dinners, welcome parties for out-of-town guests, backyard micro-weddings, and day-after brunches. One chef and grill per 28 guests, so a 60-person dinner runs as smoothly as a table for 12.",
+    ],
+    moments: [
+      {
+        title: "Two families, one show",
+        description:
+          "The egg toss doesn't care which side of the aisle you're sitting on. By the second trick, the in-laws are cheering for each other.",
+      },
+      {
+        title: "The golden-hour flame",
+        description:
+          "Time the big flame to sunset and the photographer gets the shot that outperforms half the wedding album.",
+      },
+      {
+        title: "A couple that actually eats",
+        description:
+          "Every married couple says the same thing: we never got to eat. At a hibachi table, dinner IS the event — the couple sits front row and eats first.",
+      },
+    ],
+    photos: [
+      {
+        src: "/gallery/real-hibachi-party-santa-barbara-oceanfront-sunset-16.jpg",
+        alt: "Oceanfront sunset hibachi dinner in Southern California",
+      },
+      {
+        src: "/gallery/real-hibachi-party-southern-california-private-event-10.jpg",
+        alt: "Private event hibachi dinner with guests around the grill",
+      },
+      {
+        src: "/gallery/real-hibachi-party-riverside-sunset-flame-20.jpg",
+        alt: "Sunset hibachi flame show at a Southern California celebration",
+      },
+    ],
+    video: {
+      src: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05.mp4",
+      poster: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05-poster.jpg",
+      alt: "Beach sunset hibachi party in Malibu",
+    },
+    reviews: [
+      {
+        name: "Judy Gothelf",
+        text: "What a great experience having Blue as our chef! Aside from the fact that he made delicious food, he was so much fun and so engaging! We loved having him here to celebrate our friend's BIG birthday!",
+      },
+      {
+        name: "Karen Wertheimer",
+        text: "Just had a wonderful dinner prepared by Blue. He was engaging and entertaining. I would recommend this for any occasion.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Can you cater our actual wedding reception?",
+        answer:
+          "For intimate weddings — backyard ceremonies, micro-weddings, elopement dinners up to about 100 guests — absolutely: we run one chef and grill per 28 guests under a single booking. For a formal plated reception for 150+, we'll be honest: that's banquet territory, and where we shine instead is the rehearsal dinner, welcome party, or after-party of that same weekend.",
+      },
+      {
+        question: "How does a hibachi rehearsal dinner work?",
+        answer:
+          "Pick the house — a family backyard, your rental, the Airbnb where the wedding party is staying. The chef arrives about 10 minutes early, cooks course by course with the full show, and cleans up while your families keep talking. Most rehearsal dinners run 25–50 guests across two grills, and a $19.90 deposit locks the date.",
+      },
+      SPACE_FAQ,
       PRICE_FAQ,
     ],
   },

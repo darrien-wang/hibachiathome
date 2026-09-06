@@ -106,6 +106,46 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
       "December evenings here mean patio heaters and jackets, not cancellations: the chef cooks outdoors, guests eat wherever it's cozy.",
     ],
   },
+  {
+    occasion: "wedding",
+    city: "temecula",
+    localIntro: [
+      "Temecula is wine-country wedding capital, and every couple hits the same wall: the venue owns Saturday, but Friday night's rehearsal dinner is yours. Skip the winery restaurant buyout — the chef comes to the vineyard-view Airbnb where your wedding party is already staying.",
+      "Golden hour over the hills, a flame show against the vines, and both families finally in one conversation before the big day.",
+    ],
+  },
+  {
+    occasion: "wedding",
+    city: "los-angeles",
+    localIntro: [
+      "An LA wedding weekend scatters people across the city — the welcome party is how you gather them before the aisle. A hibachi chef in a Los Feliz backyard or at the Airbnb in Venice gives out-of-town guests their first real LA night without a single reservation.",
+      "Rehearsal dinners here run 25–50 people across two grills; the couple sits front row and, for once that weekend, actually eats.",
+    ],
+  },
+  {
+    occasion: "wedding",
+    city: "san-diego",
+    localIntro: [
+      "San Diego weddings pull everyone to the coast, and the smartest couples put the rehearsal dinner on a Mission Bay patio or a Carlsbad backyard instead of another restaurant back room. The marine layer burns off, the grill lights up, and the wedding weekend starts a day early.",
+      "For micro-weddings up to about 100, we run one chef and grill per 28 guests — ceremony to dinner without changing venues.",
+    ],
+  },
+  {
+    occasion: "corporate-event",
+    city: "los-angeles",
+    localIntro: [
+      "LA corporate events compete with everything this city offers after 6 PM — which is why the winning move is bringing the event to the office itself. A hibachi chef on the rooftop or patio turns a quarterly milestone into the one gathering people mention in standup the next morning.",
+      "From Culver City studios to DTLA towers with terrace levels, if there's an outdoor spot with ten feet of clearance, the show is on. Weekday 15+ events hit the $45.90/person Weekday Special.",
+    ],
+  },
+  {
+    occasion: "corporate-event",
+    city: "san-diego",
+    localIntro: [
+      "San Diego's biotech campuses and Sorrento Valley office parks were built with patios nobody uses — until the grill shows up. A hibachi team event gives the lab crew and the sales floor the same thing to cheer for.",
+      "Weekday daytime slots are easy to book, and Monday–Thursday events with 15+ people get the $45.90/person Weekday Special — happy finance team included.",
+    ],
+  },
 ]
 
 export function getCombo(occasion: string, city: string): OccasionCityCombo | undefined {

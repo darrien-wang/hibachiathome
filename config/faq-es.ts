@@ -8,6 +8,8 @@ export const faqItemsEs = [
     question: "¿Cuánto cuesta la experiencia hibachi?",
     answer: `Tarifa base: $${pricing.packages.basic.perPerson} por invitado (mínimo $${pricing.packages.basic.minimum} en total)
 
+Niños: $${pricing.children.basic} de 5 a 12 años, y los menores de 5 comen gratis
+
 Propina: recomendamos el 20% de la cuenta final
 
 Cargo por traslado: puede aplicar según tu ubicación; el monto exacto se informa al reservar
@@ -18,6 +20,11 @@ Formas de pago:
 - Venmo/Zelle (sin comisión)
 
 Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu evento.`,
+  },
+  {
+    question: "¿Tienen descuentos para militares, enfermeras, maestros o socorristas?",
+    answer:
+      "Sí — nuestro Programa de Agradecimiento honra a una comunidad de servicio diferente cada temporada: veteranos y militares activos, enfermeras y personal de salud, maestros y personal escolar, y bomberos, paramédicos y socorristas, cada uno con $50 de descuento en su fiesta mientras su periodo está activo. Consulta al homenajeado actual en la página de cotización, menciónalo al reservar y muestra tu credencial de trabajo o identificación de servicio a tu chef. Fiestas de $599 o más, uno por reservación; se combina con el Especial de Entre Semana pero no con otras ofertas de descuento en dólares.",
   },
   {
     question: "¿Pueden traer mesas y sillas?",

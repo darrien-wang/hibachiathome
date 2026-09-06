@@ -131,7 +131,7 @@ export default function Home() {
   ]
 
   const standardPlanFeatures = [
-    "$29.90 per child (5–12), $5 under 5",
+    "$29.90 per child (5–12), under 5 eat free",
     "$599 minimum per event",
     "2 regular proteins per guest included",
     "Fried rice, fresh vegetables, and house salad included",

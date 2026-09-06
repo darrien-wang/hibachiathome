@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import LazyVideo from "@/components/lazy-video"
+import AppreciationBanner from "@/components/appreciation-banner"
+import AvailabilityCalendar from "@/components/quote/availability-calendar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -280,6 +282,7 @@ const HEAR_ABOUT_US_OPTIONS: Array<{ value: string; label: string }> = [
 
 export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
+  const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false)
   const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
   const [customerName, setCustomerName] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
@@ -1392,6 +1395,25 @@ export default function QuoteBuilderClient() {
                   onClick={openNativeDatePicker}
                   onFocus={openNativeDatePicker}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowAvailabilityCalendar((v) => !v)}
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900"
+                >
+                  <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                  {showAvailabilityCalendar ? "Hide availability calendar" : "See availability calendar"}
+                </button>
+                {showAvailabilityCalendar && (
+                  <div className="mt-2">
+                    <AvailabilityCalendar
+                      value={input.eventDate}
+                      onSelect={(date) => {
+                        handleFieldChange("eventDate", date)
+                        setShowAvailabilityCalendar(false)
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1714,6 +1736,9 @@ export default function QuoteBuilderClient() {
                     <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
                     <span>Free fried rice &amp; vegetable refills — nobody leaves hungry.</span>
                   </p>
+                </div>
+                <div className="mt-2">
+                  <AppreciationBanner source="quote" showCta={false} />
                 </div>
               </div>
 

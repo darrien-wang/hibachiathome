@@ -23,7 +23,7 @@ const SMS_URL = smsHref("Hola, quiero cotizar una fiesta hibachi (español)")
 const TRUST_MARKERS = ["Reserva y modifica en línea 24/7", "Más de 500 fiestas servidas", "Depósito reembolsable hasta 72h antes"]
 
 const standardFeatures = [
-  "$29.90 por niño (5–12), $5 menores de 5",
+  "$29.90 por niño (5–12), menores de 5 gratis",
   "Consumo mínimo de $599 por evento",
   "2 proteínas regulares por invitado incluidas",
   "Arroz frito, verduras frescas y ensalada incluidos",
