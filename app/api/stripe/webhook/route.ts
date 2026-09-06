@@ -4,12 +4,17 @@ import { Resend } from "resend"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { resolveStripeWebhookSecret } from "@/lib/stripe-env"
-import { buildDepositPaidEventEnvelope, buildPaymentRefundedEventEnvelope, type CrmBookingSnapshot } from "@/lib/crm-integration"
+import {
+  buildBalancePaidEventEnvelope,
+  buildDepositPaidEventEnvelope,
+  buildPaymentRefundedEventEnvelope,
+  type CrmBookingSnapshot,
+} from "@/lib/crm-integration"
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail, type OpsEmailDeliveryResult, customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
-import { isPreBranchDeployment, shouldSuppressExternalNotifications } from "@/lib/runtime-env"
+import { getRuntimeEnvironmentTag, isPreBranchDeployment, shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
 export const runtime = "nodejs"
 
@@ -1010,6 +1015,179 @@ async function sendOpsDepositPaidNotification(params: {
   })
 }
 
+// A texted balance pay-link came back paid. Unlike a deposit this creates no
+// order — it settles the one the link was minted against, so the whole job is
+// to find that order and push a payment.received/final event onto it. When the
+// link carries no order (a contact with no single open balance), the money is
+// real but unattributable: that raises an ops email so somebody books it by
+// hand, which is strictly better than the silent drop this replaces.
+async function handleBalancePaymentCompleted(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session,
+): Promise<{ status: string; detail?: string }> {
+  const amountCents = typeof session.amount_total === "number" ? session.amount_total : 0
+  const paymentIntentId = asNonEmptyString(
+    typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
+  )
+  const externalPaymentId = paymentIntentId ?? session.id
+  const orderId = asNonEmptyString(session.metadata?.order_id)
+  const customerName = asNonEmptyString(session.metadata?.customer_name)
+
+  const alertUnattributed = async (reason: string) => {
+    console.error("[stripe/webhook] Balance payment could not be attributed to an order.", {
+      eventId: event.id,
+      sessionId: session.id,
+      paymentIntentId,
+      amountCents,
+      reason,
+      orderMatch: session.metadata?.order_match,
+    })
+    await sendSupportNotificationEmail({
+      subject: `⚠️ Unattributed balance payment $${(amountCents / 100).toFixed(2)}`,
+      text: [
+        "A balance pay-link was paid but could not be booked against an order automatically.",
+        "Record it by hand in the orders workbench (登记尾款收款), then reconcile in Stripe.",
+        `Amount: $${(amountCents / 100).toFixed(2)}`,
+        `Customer: ${customerName ?? session.customer_details?.name ?? "unknown"}`,
+        `Email: ${session.customer_details?.email ?? "unknown"}`,
+        `Note: ${session.metadata?.note ?? "—"}`,
+        `Stripe Session: ${session.id}`,
+        `Payment Intent: ${paymentIntentId ?? "N/A"}`,
+        `Reason: ${reason}`,
+      ].join("\n"),
+    })
+    return { status: "unattributed", detail: reason }
+  }
+
+  if (!amountCents) return alertUnattributed("missing_amount")
+  if (!orderId) return alertUnattributed(session.metadata?.order_match ?? "no_order_on_link")
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, order_no, source_ref, customer_name, customer_email, customer_phone, event_start, event_address")
+    .eq("id", orderId)
+    .maybeSingle()
+  if (orderError) return alertUnattributed(`order_lookup_failed:${orderError.message}`)
+  if (!order) return alertUnattributed(`order_not_found:${orderId}`)
+  if (!order.source_ref) return alertUnattributed(`order_has_no_source_ref:${order.order_no ?? orderId}`)
+
+  // Staff have been entering these Stripe payments by hand ever since the
+  // webhook dropped them, and that habit will outlive this fix. Any settled
+  // balance row on this order for the same amount is almost certainly this
+  // very payment, so flag it instead of booking the money twice — two
+  // identical balance payments on one order is the rarer story, and the
+  // timeline entry puts it in front of whoever reconciles.
+  const { data: priorFinal } = await supabase
+    .from("payments")
+    .select("id, external_payment_id, provider, amount_cents")
+    .eq("order_id", order.id)
+    .eq("type", "final")
+    .eq("status", "paid")
+    .eq("amount_cents", amountCents)
+    .neq("external_payment_id", externalPaymentId)
+    .limit(1)
+
+  if (priorFinal && priorFinal.length > 0) {
+    console.warn("[stripe/webhook] Balance already settled for this amount; skipping possible duplicate.", {
+      eventId: event.id,
+      orderNo: order.order_no,
+      amountCents,
+      existingPaymentId: priorFinal[0].external_payment_id,
+    })
+    await supabase.from("order_events").insert({
+      order_id: order.id,
+      actor: "system:stripe_webhook",
+      action: "final_payment_duplicate_skipped",
+      metadata: {
+        amount_cents: amountCents,
+        stripe_payment_intent: paymentIntentId ?? null,
+        checkout_session_id: session.id,
+        matched_existing_payment_id: priorFinal[0].external_payment_id,
+        matched_existing_provider: priorFinal[0].provider,
+      },
+    })
+    await sendSupportNotificationEmail({
+      subject: `⚠️ Possible duplicate balance payment on ${order.order_no ?? order.id}`,
+      text: [
+        "A Stripe balance payment matched an amount already settled on this order, so it was NOT booked again.",
+        "Check Stripe: if the customer really paid twice, one of them needs refunding.",
+        `Order: ${order.order_no ?? order.id}`,
+        `Amount: $${(amountCents / 100).toFixed(2)}`,
+        `Existing payment: ${priorFinal[0].external_payment_id} (${priorFinal[0].provider})`,
+        `New Stripe payment: ${externalPaymentId}`,
+      ].join("\n"),
+    })
+    return { status: "duplicate_of_existing_payment" }
+  }
+
+  const built = buildBalancePaidEventEnvelope({
+    eventId: `evt_stripe_balance_${event.id}`,
+    order: { ...order, source_ref: String(order.source_ref) },
+    amountCents,
+    externalPaymentId,
+    provider: "stripe",
+    paidAt: new Date(typeof session.created === "number" ? session.created * 1000 : Date.now()).toISOString(),
+    transactionRef: externalPaymentId,
+    metadata: {
+      payment_kind: "final_balance",
+      entry_surface: "stripe_webhook",
+      stripe_event_id: event.id,
+      checkout_session_id: session.id,
+      livemode: session.livemode,
+      deployment_environment: getRuntimeEnvironmentTag(),
+      stripe_mode: session.livemode ? "live" : "test",
+      notification_mode: shouldSuppressExternalNotifications() ? "suppressed" : "live",
+    },
+  })
+  if (!built.ok) return alertUnattributed(built.detail)
+
+  // Same durable path the deposit takes: enqueue first, then try to deliver.
+  // If the CRM is down the outbox replays it, so the webhook never has to ask
+  // Stripe to retry and the payment can't be lost between the two systems.
+  const enqueued = await enqueueCrmOutboxEvent(supabase, {
+    eventId: built.envelope.event_id,
+    eventType: built.envelope.event_type,
+    payload: built.envelope,
+  })
+  if (!enqueued.ok) {
+    if (enqueued.conflict) return { status: "already_enqueued" }
+    console.error("[stripe/webhook] Failed to enqueue balance payment:", {
+      eventId: event.id,
+      orderNo: order.order_no,
+      error: enqueued.error,
+    })
+    await alertUnattributed(`outbox_enqueue_failed:${enqueued.error}`)
+    return { status: "enqueue_failed", detail: enqueued.error }
+  }
+
+  const delivered = await deliverCrmOutboxRecord(supabase, enqueued.record)
+
+  await supabase.from("order_events").insert({
+    order_id: order.id,
+    actor: "system:stripe_webhook",
+    action: "final_payment_confirmed",
+    metadata: {
+      channel: "stripe_link",
+      amount_cents: amountCents,
+      external_payment_id: externalPaymentId,
+      checkout_session_id: session.id,
+      crm_delivered: delivered.ok ? delivered.delivered : false,
+    },
+  })
+
+  if (!delivered.ok || !delivered.delivered) {
+    console.warn("[stripe/webhook] Balance payment queued but not yet delivered to CRM.", {
+      eventId: event.id,
+      orderNo: order.order_no,
+      error: delivered.ok ? undefined : delivered.error,
+    })
+    return { status: "queued_for_replay" }
+  }
+
+  return { status: "recorded" }
+}
+
 export async function POST(request: NextRequest) {
   const stripeSignature = request.headers.get("stripe-signature")
   if (!stripeSignature) {
@@ -1061,19 +1239,16 @@ export async function POST(request: NextRequest) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session
 
-      // Balance pay-links are NOT deposits: without this guard the deposit
-      // pipeline would fire (wrong ops email, wrong GA4 conversion, wrong
-      // customer notification) while the money still never reached the
-      // order's balance. Offline balance entry lives in the workbench
-      // (final-payment-confirm); full Stripe balance ingestion is a TODO.
+      // Balance pay-links are NOT deposits — running them through the deposit
+      // pipeline would fire the wrong ops email, the wrong GA4 conversion and
+      // the wrong customer notification. They get their own path, which books
+      // the money onto the order the link was minted against.
       if (session.metadata?.flow === "balance_payment") {
-        console.warn("[stripe/webhook] balance_payment session received; skipping deposit pipeline.", {
-          eventId: event.id,
-          sessionId: session.id,
-          amountTotal: session.amount_total,
-        })
+        const balanceResult = await handleBalancePaymentCompleted(supabase, event, session)
+        // Always 200: the outbox owns retries, so a Stripe redelivery would
+        // only re-run work that is already queued.
         return NextResponse.json(
-          { received: true, eventType: event.type, skipped: "balance_payment_flow" },
+          { received: true, eventType: event.type, flow: "balance_payment", ...balanceResult },
           { status: 200 },
         )
       }

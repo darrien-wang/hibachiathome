@@ -108,7 +108,56 @@ export type CrmPaymentRefundedEventEnvelope = {
   }
 }
 
-export type CrmEventEnvelope = CrmDepositPaidEventEnvelope | CrmPaymentRefundedEventEnvelope
+// A balance payment settles what is left after the deposit, so unlike a
+// deposit it never creates an order — it rides onto an EXISTING one, addressed
+// by that order's source_ref. Two surfaces emit it: the workbench's offline
+// entry (cash / Venmo / Zelle at the party, provider "other") and the Stripe
+// webhook when a texted pay-link is paid (provider "stripe").
+export type CrmBalancePaidEventEnvelope = {
+  event_id: string
+  event_type: "payment.received"
+  occurred_at: string
+  source: string
+  order: {
+    external_order_id: string
+    order_number?: string
+    customer_name: string
+    customer_phone?: string
+    customer_email?: string
+    event_start: string
+    event_timezone: "America/Los_Angeles"
+    event_address?: string
+  }
+  payment: {
+    external_payment_id: string
+    type: "final"
+    status: "paid"
+    amount_cents: number
+    currency: "USD"
+    provider: "stripe" | "other"
+    paid_at: string
+    transaction_ref?: string
+  }
+  metadata: {
+    payment_kind: "final_balance"
+    entry_surface: "orders_workbench" | "stripe_webhook"
+    manual_entry?: boolean
+    channel?: string
+    operator?: string
+    proof_url?: string
+    stripe_event_id?: string
+    checkout_session_id?: string
+    livemode?: boolean
+    deployment_environment?: "pre" | "production"
+    stripe_mode?: "test" | "live"
+    notification_mode?: "suppressed" | "live"
+  }
+}
+
+export type CrmEventEnvelope =
+  | CrmDepositPaidEventEnvelope
+  | CrmPaymentRefundedEventEnvelope
+  | CrmBalancePaidEventEnvelope
 
 type BuildCrmEnvelopeResult<TEnvelope extends CrmEventEnvelope = CrmEventEnvelope> =
   | {
@@ -608,6 +657,77 @@ export function buildPaymentRefundedEventEnvelope(params: {
         stripe_mode: stripeMode,
         notification_mode: notificationMode,
       },
+    },
+  }
+}
+
+// The order row a balance payment attaches to. source_ref is the only field
+// the CRM addresses on — an order without one cannot be settled through the
+// event channel at all, so callers must reject that case before building.
+export type CrmOrderSnapshot = {
+  order_no?: string | null
+  source_ref: string
+  customer_name?: string | null
+  customer_phone?: string | null
+  customer_email?: string | null
+  event_start?: string | null
+  event_address?: string | null
+}
+
+export function buildBalancePaidEventEnvelope(params: {
+  eventId: string
+  order: CrmOrderSnapshot
+  amountCents: number
+  externalPaymentId: string
+  provider: "stripe" | "other"
+  paidAt?: string
+  transactionRef?: string
+  metadata: CrmBalancePaidEventEnvelope["metadata"]
+  source?: string
+}): BuildCrmEnvelopeResult<CrmBalancePaidEventEnvelope> {
+  const externalOrderId = asString(params.order.source_ref)
+  const externalPaymentId = asString(params.externalPaymentId)
+  const amountCents =
+    Number.isFinite(params.amountCents) && params.amountCents > 0 ? Math.round(params.amountCents) : undefined
+
+  if (!externalOrderId || !externalPaymentId || !amountCents) {
+    return {
+      ok: false,
+      reason: "missing_required_fields",
+      detail: "external_order_id, external_payment_id, or amount_cents is missing.",
+    }
+  }
+
+  const paidAt = asString(params.paidAt) ?? new Date().toISOString()
+
+  return {
+    ok: true,
+    envelope: {
+      event_id: params.eventId,
+      event_type: "payment.received",
+      occurred_at: paidAt,
+      source: resolveSource(params.source),
+      order: {
+        external_order_id: externalOrderId,
+        order_number: asString(params.order.order_no),
+        customer_name: asString(params.order.customer_name) ?? "Customer",
+        customer_phone: asPhoneString(params.order.customer_phone),
+        customer_email: asString(params.order.customer_email),
+        event_start: asString(params.order.event_start) ?? paidAt,
+        event_timezone: "America/Los_Angeles",
+        event_address: asString(params.order.event_address),
+      },
+      payment: {
+        external_payment_id: externalPaymentId,
+        type: "final",
+        status: "paid",
+        amount_cents: amountCents,
+        currency: "USD",
+        provider: params.provider,
+        paid_at: paidAt,
+        transaction_ref: asString(params.transactionRef),
+      },
+      metadata: params.metadata,
     },
   }
 }

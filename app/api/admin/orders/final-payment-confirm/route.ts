@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { sendCrmEventEnvelope, type CrmEventEnvelope } from "@/lib/crm-integration"
+import { buildBalancePaidEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-integration"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -84,41 +84,28 @@ export async function POST(request: NextRequest) {
   // Deterministic id: a double submit upserts the same payment row.
   const externalPaymentId = `manual_final_${channel}_${order.order_no}_${amountCents}`.slice(0, 80)
 
-  const envelope = {
-    event_id: `evt_manual_final_${randomUUID()}`,
-    event_type: "payment.received",
-    occurred_at: nowIso,
-    source: "official_website",
-    order: {
-      external_order_id: order.source_ref,
-      customer_name: order.customer_name ?? "Customer",
-      customer_phone: order.customer_phone ?? undefined,
-      customer_email: order.customer_email ?? undefined,
-      event_start: order.event_start ?? nowIso,
-      event_timezone: "America/Los_Angeles",
-      event_address: order.event_address ?? undefined,
-    },
-    payment: {
-      external_payment_id: externalPaymentId,
-      type: "final",
-      status: "paid",
-      amount_cents: amountCents,
-      currency: "USD",
-      provider: "other",
-      paid_at: nowIso,
-      transaction_ref: `manual:${channel}`,
-    },
+  const built = buildBalancePaidEventEnvelope({
+    eventId: `evt_manual_final_${randomUUID()}`,
+    order: { ...order, source_ref: String(order.source_ref) },
+    amountCents,
+    externalPaymentId,
+    provider: "other",
+    paidAt: nowIso,
+    transactionRef: `manual:${channel}`,
     metadata: {
-      manual_entry: true,
-      entry_surface: "orders_workbench",
       payment_kind: "final_balance",
+      entry_surface: "orders_workbench",
+      manual_entry: true,
       channel,
       operator,
       proof_url: proofUrl,
     },
+  })
+  if (!built.ok) {
+    return NextResponse.json({ error: built.detail }, { status: 422 })
   }
 
-  const delivery = await sendCrmEventEnvelope({ envelope: envelope as unknown as CrmEventEnvelope })
+  const delivery = await sendCrmEventEnvelope({ envelope: built.envelope })
   if (!delivery.attempted || !delivery.delivered) {
     const detail = delivery.attempted ? delivery.error ?? `http_${delivery.status}` : delivery.detail ?? delivery.reason
     return NextResponse.json({ ok: false, error: `CRM ingest failed: ${detail}` }, { status: 502 })

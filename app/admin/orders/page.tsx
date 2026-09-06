@@ -619,39 +619,61 @@ function OrderDrawer({
                   <>
                     实时尾款 <b>${quote.balanceDue?.toFixed?.(2) ?? quote.balanceDue}</b>(总额 ${quote.finalTotal?.toFixed?.(2) ?? "—"} − 已付订金 $
                     {quote.deposit?.toFixed?.(2) ?? "—"})
-                    <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
-                      <span style={{ fontSize: 12.5 }}>收款 $</span>
-                      <input style={{ ...inputStyle, width: 110, padding: "6px 9px" }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
-                      <button
-                        style={{ ...btnStyle, padding: "6px 12px" }}
-                        disabled={busy === "mint"}
-                        onClick={async () => {
-                          const amount = Number(payAmount)
-                          if (!Number.isFinite(amount) || amount <= 0) return
-                          setBusy("mint")
-                          const data = await call("/api/admin/pay-link", {
-                            amount,
-                            customerName: o.customer_name ?? "",
-                            note: `Order ${o.order_no}`,
-                          })
-                          setBusy(null)
-                          if (data.ok && data.url) {
-                            setPayUrl(data.url)
-                            copy(data.url)
-                          } else {
-                            setPayUrl(`失败:${data.error ?? "unknown"}`)
-                          }
-                        }}
-                      >
-                        生成收款链接(+4% 卡费)
-                      </button>
-                    </div>
+                    {(() => {
+                      // 发票按信用卡计价时 balanceDue 已经含了 4% 卡费,再让 pay-link
+                      // 加一次就是重复收费。线索台早就分了这两种情况,工作台以前没分。
+                      const feeIncluded = quote.paymentMethod === "credit_card"
+                      const typed = Number(payAmount)
+                      const charge = Number.isFinite(typed) && typed > 0 ? (feeIncluded ? typed : Math.round(typed * 1.04 * 100) / 100) : null
+                      return (
+                        <>
+                          <div style={{ fontSize: 12, color: "#1d4ed8", marginTop: 4 }}>
+                            {feeIncluded ? "发票已按信用卡计(含 4% 卡费),链接不再加费" : "发票按现金计 → 刷卡链接自动 +4%"}
+                          </div>
+                          <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+                            <span style={{ fontSize: 12.5 }}>收款 $</span>
+                            <input style={{ ...inputStyle, width: 110, padding: "6px 9px" }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+                            <button
+                              style={{ ...btnStyle, padding: "6px 12px" }}
+                              disabled={busy === "mint"}
+                              onClick={async () => {
+                                const amount = Number(payAmount)
+                                if (!Number.isFinite(amount) || amount <= 0) return
+                                setBusy("mint")
+                                const data = await call("/api/admin/pay-link", {
+                                  amount,
+                                  amountIsFinal: feeIncluded,
+                                  // orderId is what lets the webhook book the money
+                                  // onto this order the moment the customer pays.
+                                  orderId: o.id,
+                                  customerName: o.customer_name ?? "",
+                                  note: `Order ${o.order_no}`,
+                                })
+                                setBusy(null)
+                                if (data.ok && data.url) {
+                                  setPayUrl(
+                                    data.linkedOrderNo
+                                      ? `$${data.total?.toFixed?.(2) ?? data.total} · 付款后自动入账到 ${data.linkedOrderNo}\n${data.url}`
+                                      : `$${data.total?.toFixed?.(2) ?? data.total} · ⚠️ 未绑定订单(${data.unmatchedReason})付款后需手动入账\n${data.url}`,
+                                  )
+                                  copy(data.url)
+                                } else {
+                                  setPayUrl(`失败:${data.error ?? "unknown"}`)
+                                }
+                              }}
+                            >
+                              生成收款链接{charge !== null ? `(实收 $${charge.toFixed(2)})` : ""}
+                            </button>
+                          </div>
+                        </>
+                      )
+                    })()}
                   </>
                 )}
               </div>
             )}
             {payUrl && (
-              <div style={{ fontSize: 12.5, color: "#065f46", background: "#d1fae5", borderRadius: 8, padding: "7px 10px", marginBottom: 6, wordBreak: "break-all" }}>
+              <div style={{ fontSize: 12.5, color: "#065f46", background: "#d1fae5", borderRadius: 8, padding: "7px 10px", marginBottom: 6, wordBreak: "break-all", whiteSpace: "pre-wrap" }}>
                 已复制:{payUrl}
               </div>
             )}

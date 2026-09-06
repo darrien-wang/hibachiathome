@@ -712,8 +712,23 @@ export default function LeadsDashboard() {
           amountIsFinal = false
           smsDetail = `$${manual.toFixed(2)} + 4% card processing`
         }
-        const data = await mint({ amount, amountIsFinal, customerName: l.full_name || undefined })
+        // Phone/email ride along so pay-link can bind the link to this lead's
+        // order when they have exactly one open balance — that binding is what
+        // lets the webhook book the payment the moment the customer pays.
+        const data = await mint({
+          amount,
+          amountIsFinal,
+          customerName: l.full_name || undefined,
+          phone: l.phone || undefined,
+          email: l.email || undefined,
+        })
         if (!data.ok) throw new Error(data.error || "failed")
+        if (!data.linkedOrderNo) {
+          window.alert(
+            `⚠️ 链接已生成,但没能绑定到订单(${data.unmatchedReason ?? "unknown"})。\n` +
+              "客户付完后不会自动入账,需要到订单工作台手动登记。",
+          )
+        }
         const firstName = (l.full_name || "").split(" ")[0]
         const text = `Hi${firstName ? " " + firstName : ""}! Here's your secure card payment link for your balance: $${data.total.toFixed(2)} ${smsDetail}\n${data.url}\n(Cash, Venmo or Zelle skip the card fee — just let me know!)`
         try {
