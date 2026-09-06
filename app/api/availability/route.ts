@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const { count: existingOrdersCount, error: countError } = await supabase
-        .from("reservations")
+        .from("bookings")
         .select("id", { count: "exact", head: true })
         .eq("event_date", date)
         .eq("status", "confirmed")
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     let nearestOrder = null
     try {
       const { data: nearestOrderData, error: nearestOrderError } = await supabase
-        .from("reservations")
+        .from("bookings")
         .select("id, event_time, address")
         .eq("event_date", date)
         .eq("status", "confirmed")
