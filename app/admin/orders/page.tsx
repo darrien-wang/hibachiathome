@@ -835,7 +835,7 @@ function OrderDrawer({
             {(o.balance_due_cents ?? 0) > 0 && (
               <>
                 <div style={labelStyle}>登记尾款收款(线下)</div>
-                <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 6 }}>现场现金 / Venmo / Zelle 收到尾款后在这里入账,金额默认为当前尾款。</div>
+                <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 6 }}>现场现金 / Venmo / Zelle 收到尾款后在这里入账,金额默认为当前尾款。刷卡链接付的会自动入账,只有漏掉的才需要选「信用卡/Stripe」并填付款号。</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={{ fontSize: 13 }}>$</span>
                   <input style={{ ...inputStyle, width: 100, padding: "6px 9px" }} inputMode="decimal" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
@@ -843,12 +843,18 @@ function OrderDrawer({
                     <option value="cash">现金</option>
                     <option value="venmo">Venmo</option>
                     <option value="zelle">Zelle</option>
+                    <option value="stripe">信用卡/Stripe</option>
                     <option value="other">其他</option>
                   </select>
-                  <input style={{ ...inputStyle, flex: 1, minWidth: 150, padding: "6px 9px" }} value={finalProof} onChange={(e) => setFinalProof(e.target.value)} placeholder="凭证链接(可选)" />
+                  <input
+                    style={{ ...inputStyle, flex: 1, minWidth: 150, padding: "6px 9px" }}
+                    value={finalProof}
+                    onChange={(e) => setFinalProof(e.target.value)}
+                    placeholder={finalChannel === "stripe" ? "Stripe 付款号 pi_… (必填)" : "凭证链接(可选)"}
+                  />
                   <button
                     style={btnStyle}
-                    disabled={busy === "final" || !Number(finalAmount)}
+                    disabled={busy === "final" || !Number(finalAmount) || (finalChannel === "stripe" && !/^(pi|ch|py|cs)_/.test(finalProof.trim()))}
                     onClick={async () => {
                       setBusy("final")
                       setFinalMsg("")
@@ -856,7 +862,11 @@ function OrderDrawer({
                         orderId: o.id,
                         amount: Number(finalAmount),
                         channel: finalChannel,
-                        proofUrl: finalProof || undefined,
+                        // Same box, two meanings: a card entry needs the
+                        // payment id, everything else takes a proof link.
+                        ...(finalChannel === "stripe"
+                          ? { paymentRef: finalProof.trim() }
+                          : { proofUrl: finalProof || undefined }),
                         operator: localStorage.getItem("rh_operator_name") ?? "staff",
                       })
                       setBusy(null)

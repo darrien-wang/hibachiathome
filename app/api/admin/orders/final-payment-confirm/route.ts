@@ -6,11 +6,18 @@ import { buildBalancePaidEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-i
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-// Staff-only: record a balance payment collected offline (cash / Venmo /
-// Zelle at the party). Same shape as the manual deposit confirm, but the
-// payment rides as type "final" onto the EXISTING order (matched by its
-// source_ref), so the payments projection and balance snapshot settle and
-// the order advances to 已办完. Audit-first: operator + proof link recorded.
+// Staff-only: record a balance payment the pipeline did not book itself —
+// cash / Venmo / Zelle taken at the party, or a card payment that needs
+// entering by hand. The payment rides as type "final" onto the EXISTING order
+// (matched by its source_ref), so the payments projection and balance snapshot
+// settle and the order advances to 已办完. Audit-first: operator + proof
+// recorded.
+//
+// The "stripe" channel exists because a card payment entered as "other" loses
+// the one thing that makes it reconcilable — the payment intent id. Entered
+// under this channel the row carries provider "stripe" and the real pi_ as
+// both its identity and its transaction ref, so it lines up with the Stripe
+// dashboard and with anything the webhook books for the same payment.
 function isAuthorized(request: NextRequest): boolean {
   const provided = request.headers.get("x-admin-key") ?? ""
   if (!provided) return false
@@ -23,7 +30,10 @@ function isAuthorized(request: NextRequest): boolean {
   return false
 }
 
-const CHANNELS = ["cash", "venmo", "zelle", "other"] as const
+const CHANNELS = ["cash", "venmo", "zelle", "stripe", "other"] as const
+
+// pi_ (payment intent), ch_/py_ (charge), cs_ (checkout session).
+const STRIPE_REF_PATTERN = /^(pi|ch|py|cs)_[A-Za-z0-9_]{8,}$/
 
 function asTrimmed(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined
@@ -42,6 +52,7 @@ export async function POST(request: NextRequest) {
     channel?: string
     proofUrl?: string
     operator?: string
+    paymentRef?: string
   }
   try {
     body = await request.json()
@@ -54,6 +65,7 @@ export async function POST(request: NextRequest) {
   const amount = Number(body.amount)
   const operator = asTrimmed(body.operator) ?? "staff"
   const proofUrl = asTrimmed(body.proofUrl)
+  const paymentRef = asTrimmed(body.paymentRef)
 
   if (!orderId) return NextResponse.json({ error: "orderId is required" }, { status: 400 })
   if (!CHANNELS.includes(channel)) {
@@ -61,6 +73,12 @@ export async function POST(request: NextRequest) {
   }
   if (!Number.isFinite(amount) || amount <= 0 || amount > 20000) {
     return NextResponse.json({ error: "amount must be between 0 and 20000" }, { status: 400 })
+  }
+  if (channel === "stripe" && (!paymentRef || !STRIPE_REF_PATTERN.test(paymentRef))) {
+    return NextResponse.json(
+      { error: "stripe channel requires paymentRef like pi_… (the Stripe payment intent id)" },
+      { status: 400 },
+    )
   }
 
   const supabase = createServerSupabaseClient()
@@ -81,17 +99,22 @@ export async function POST(request: NextRequest) {
 
   const amountCents = Math.round(amount * 100)
   const nowIso = new Date().toISOString()
-  // Deterministic id: a double submit upserts the same payment row.
-  const externalPaymentId = `manual_final_${channel}_${order.order_no}_${amountCents}`.slice(0, 80)
+  // Deterministic id: a double submit upserts the same payment row. A Stripe
+  // entry is identified by the payment itself, so entering it here and having
+  // the webhook book it later resolve to one row rather than two.
+  const isStripe = channel === "stripe"
+  const externalPaymentId = isStripe
+    ? paymentRef!
+    : `manual_final_${channel}_${order.order_no}_${amountCents}`.slice(0, 80)
 
   const built = buildBalancePaidEventEnvelope({
     eventId: `evt_manual_final_${randomUUID()}`,
     order: { ...order, source_ref: String(order.source_ref) },
     amountCents,
     externalPaymentId,
-    provider: "other",
+    provider: isStripe ? "stripe" : "other",
     paidAt: nowIso,
-    transactionRef: `manual:${channel}`,
+    transactionRef: isStripe ? paymentRef : `manual:${channel}`,
     metadata: {
       payment_kind: "final_balance",
       entry_surface: "orders_workbench",
@@ -120,6 +143,7 @@ export async function POST(request: NextRequest) {
       amount_cents: amountCents,
       proof_url: proofUrl ?? null,
       external_payment_id: externalPaymentId,
+      stripe_payment_ref: paymentRef ?? null,
     },
   })
 
