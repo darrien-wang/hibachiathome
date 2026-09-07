@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { COPY, PHONE, SCRIPT_LINES, SMS_HREF, type JobsLocale } from "./copy"
+import { COPY, PHONE, SCRIPT_LINES, SMS_HREF, WECHAT, type JobsLocale } from "./copy"
 
 const LOCALES: JobsLocale[] = ["zh", "en", "es"]
 
@@ -43,12 +43,26 @@ export default function JobsPageClient() {
   const [experience, setExperience] = useState("")
   const [earliestStart, setEarliestStart] = useState("")
   const [acceptsTerms, setAcceptsTerms] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     setLocale(detectLocale())
   }, [])
 
   const t = useMemo(() => COPY[locale], [locale])
+
+  // WeChat has no dependable "add me" link, so the ID has to be copied by hand.
+  // If the clipboard API is unavailable or blocked, the ID is still on screen
+  // as selectable text — the button is a convenience, not the only way through.
+  async function copyWechat() {
+    try {
+      await navigator.clipboard.writeText(WECHAT)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
 
   function toggleDay(day: string) {
     setDays((current) => (current.includes(day) ? current.filter((d) => d !== day) : [...current, day]))
@@ -117,9 +131,25 @@ export default function JobsPageClient() {
             ))}
           </ol>
 
+          <div className="mt-5 rounded-lg border border-orange-200 bg-white p-4">
+            <p className="text-sm font-medium text-neutral-800">{t.doneWechat}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <code className="select-all rounded bg-neutral-100 px-3 py-2 font-mono text-base font-semibold text-neutral-900">
+                {WECHAT}
+              </code>
+              <button
+                type="button"
+                onClick={copyWechat}
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:border-orange-500 hover:text-orange-600"
+              >
+                {copied ? t.copiedLabel : t.copyLabel}
+              </button>
+            </div>
+          </div>
+
           <a
             href={SMS_HREF}
-            className="mt-5 inline-flex items-center justify-center rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-700"
+            className="mt-3 inline-flex items-center justify-center rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-700"
           >
             {PHONE}
           </a>
@@ -323,6 +353,10 @@ export default function JobsPageClient() {
           <a href={SMS_HREF} className="font-semibold text-orange-600 underline underline-offset-2">
             {PHONE}
           </a>
+          <span className="mt-1 block">
+            {t.f.orWechat}{" "}
+            <code className="select-all font-mono font-semibold text-orange-600">{WECHAT}</code>
+          </span>
         </p>
       </form>
     </main>

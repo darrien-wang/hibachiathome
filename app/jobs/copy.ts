@@ -17,6 +17,11 @@ export const PHONE = "562-713-4832"
 export const PHONE_HREF = "tel:+15627134832"
 export const SMS_HREF = "sms:+15627134832"
 
+// Applicants come from Chinese forums and WeChat groups, where adding someone
+// on WeChat is the reflex and SMS is not. WeChat has no reliable add-by-link on
+// desktop, so the ID is shown as copyable text rather than a link.
+export const WECHAT = "buchadian-110"
+
 type Copy = {
   langLabel: string
   metaTitle: string
@@ -55,12 +60,16 @@ type Copy = {
     submitting: string
     required: string
     orText: string
+    orWechat: string
   }
   doneTitle: string
   doneLede: string
   doneStepTitle: string
   doneStep: string
   doneHint: string
+  doneWechat: string
+  copyLabel: string
+  copiedLabel: string
   errorGeneric: string
 }
 
@@ -112,13 +121,17 @@ export const COPY: Record<JobsLocale, Copy> = {
       submit: "提交申请",
       submitting: "提交中……",
       required: "名字、手机号、所在城市要填一下。",
-      orText: "不想填表？直接发短信到",
+      orText: "不想填表？发短信到",
+      orWechat: "或加微信",
     },
     doneTitle: "收到了",
     doneLede: "我们会尽快短信联系你。",
     doneStepTitle: "还有最后一步，一分钟",
-    doneStep: "用手机录一段语音，把下面这三句念一遍，发短信到 562-713-4832。念得磕巴没关系——我们只想听你敢不敢开口。这三句就是你上场真会说的原话。",
+    doneStep: "用手机录一段语音，把下面这三句念一遍，微信或短信发给我们。念得磕巴没关系——我们只想听你敢不敢开口。这三句就是你上场真会说的原话。",
     doneHint: "录完发过来，我们看到了就约你跟场。",
+    doneWechat: "微信发语音最方便，加我：",
+    copyLabel: "复制",
+    copiedLabel: "已复制",
     errorGeneric: "提交没成功。直接发短信到 562-713-4832 也一样。",
   },
 
@@ -170,12 +183,16 @@ export const COPY: Record<JobsLocale, Copy> = {
       submitting: "Sending…",
       required: "We need your name, phone, and city.",
       orText: "Rather not fill a form? Text",
+      orWechat: "or add on WeChat",
     },
     doneTitle: "Got it",
     doneLede: "We'll text you shortly.",
     doneStepTitle: "One last step, about a minute",
-    doneStep: "Record a voice memo on your phone reading the three lines below, and text it to 562-713-4832. Stumbling is fine — we only want to hear that you'll speak up. These are the actual lines you'd say on the job.",
+    doneStep: "Record a voice memo on your phone reading the three lines below and send it to us on WeChat or by text. Stumbling is fine — we only want to hear that you'll speak up. These are the actual lines you'd say on the job.",
     doneHint: "Send it over and we'll book your first ride-along.",
+    doneWechat: "WeChat is easiest for voice — add:",
+    copyLabel: "Copy",
+    copiedLabel: "Copied",
     errorGeneric: "That didn't go through. Texting 562-713-4832 works just as well.",
   },
 
@@ -227,12 +244,16 @@ export const COPY: Record<JobsLocale, Copy> = {
       submitting: "Enviando…",
       required: "Necesitamos tu nombre, teléfono y ciudad.",
       orText: "¿Prefieres no llenar el formulario? Manda un mensaje al",
+      orWechat: "o agrégame en WeChat",
     },
     doneTitle: "Recibido",
     doneLede: "Te escribimos pronto.",
     doneStepTitle: "Un último paso, como un minuto",
-    doneStep: "Graba una nota de voz en tu celular leyendo las tres frases de abajo y mándala por mensaje al 562-713-4832. Está bien si te trabas — solo queremos oír que te animas a hablar. Son las frases reales que dirías en el trabajo.",
+    doneStep: "Graba una nota de voz en tu celular leyendo las tres frases de abajo y mándanosla por WeChat o por mensaje. Está bien si te trabas — solo queremos oír que te animas a hablar. Son las frases reales que dirías en el trabajo.",
     doneHint: "Mándala y agendamos tu primer evento de acompañamiento.",
+    doneWechat: "Por WeChat es lo más fácil para audio — agrega:",
+    copyLabel: "Copiar",
+    copiedLabel: "Copiado",
     errorGeneric: "No se pudo enviar. Mandar un mensaje al 562-713-4832 funciona igual.",
   },
 }
