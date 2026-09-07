@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { MessageSquare } from "lucide-react"
+import { Mail, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useLocCity } from "@/components/city/geo-city-name"
+import { siteConfig } from "@/config/site"
+import { trackEvent } from "@/lib/tracking"
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
@@ -83,6 +85,36 @@ export default function CityQuoteCalculator({
   if (dateKnown) params.set("date", date)
   if (weekdayApplies) params.set("plan", "weekday")
   const quoteHref = `/quote?${params.toString()}`
+
+  // Email is the channel both ad-attributed bookings in 2026-08-31~09-07 came
+  // through, yet paid landings had no email affordance (决策日志 D-0907-04).
+  // Third CTA, tracked like /quote's — a hedge, not a change to SMS-first.
+  const priceLine = weekdayApplies ? `$${fmt(weekdayTotal)} (Weekday Special)` : `$${fmt(standard)} (Standard)`
+  const emailSubject = `Hibachi quote — ${adults} adults${kids ? `, ${kids} kids` : ""}${dateLabel ? `, ${dateLabel}` : ""} in ${shownCity}`
+  const emailBody = [
+    "Hi Real Hibachi,",
+    "",
+    "I priced a party on your site and would like to confirm details:",
+    `- Guests: ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
+    `- Date: ${dateLabel ?? "TBD"}`,
+    `- Location: ${shownCity}`,
+    `- Estimate shown: ${priceLine}`,
+    "",
+    "My address / questions:",
+    "",
+  ].join("\n")
+  const emailHref = `mailto:${siteConfig.contact.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+  const onEmailClick = () => {
+    trackEvent("contact_email_click", {
+      contact_surface: "city_calculator",
+      city_or_zip: shownCity,
+      adults,
+      kids,
+      quote_plan: weekdayApplies ? "weekday" : "standard",
+      quote_total: weekdayApplies ? weekdayTotal : standard,
+      event_date: dateKnown ? date : "unspecified",
+    })
+  }
 
   const weekdayHint = (() => {
     if (blackout) return `${dateLabel} falls in ${blackout} — standard rate applies.`
@@ -194,6 +226,16 @@ export default function CityQuoteCalculator({
             </a>
           </Button>
         ) : null}
+        <Button
+          asChild
+          variant="outline"
+          className="h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-5 text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)]"
+        >
+          <a href={emailHref} onClick={onEmailClick}>
+            <Mail className="mr-2 h-4 w-4" />
+            Email me this quote
+          </a>
+        </Button>
       </div>
     </div>
   )
