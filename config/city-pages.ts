@@ -3065,6 +3065,372 @@ export const cityPages: CityPage[] = [
     ],
     nearby: ["temecula", "riverside", "corona"],
   },
+  // ------------------------------------------------------------------
+  // Destination / vacation-rental pages (added 2026-09-07). These target
+  // people who are renting a house here for a weekend, not residents —
+  // the ad campaign that lands on them uses "presence or interest"
+  // targeting. Copy says "we come to", never "we've cooked here", unless a
+  // real party in that town is on record.
+  // ------------------------------------------------------------------
+  {
+    slug: "joshua-tree",
+    city: "Joshua Tree",
+    county: "San Bernardino County",
+    metaTitle: "Hibachi at Home Joshua Tree CA | Private Chef at Your Rental from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef at your Joshua Tree, Yucca Valley, or Twentynine Palms rental — chef, grill, and a live fire show under the desert sky. $59.90/adult, travel fee shown upfront.",
+    intro: [
+      "Joshua Tree is the most rented stretch of desert in Southern California: cabins, homesteads, and compounds full of groups who came for the sky and have no plans to cook. A private hibachi chef turns one of those nights into the dinner everyone talks about — the grill on the gravel pad, the fire show against a sky with no light pollution, and nobody in the kitchen.",
+      "We come to Joshua Tree, Yucca Valley, Twentynine Palms, Pioneertown, Landers, and Morongo Valley. Same published price as everywhere else — $59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, $599 event minimum — and the travel fee for the drive out is calculated from your address and shown in your quote before you pay anything.",
+    ],
+    neighborhoods: [
+      "Joshua Tree Village",
+      "Yucca Valley",
+      "Twentynine Palms",
+      "Pioneertown",
+      "Landers",
+      "Flamingo Heights",
+      "Morongo Valley",
+      "Wonder Valley",
+    ],
+    occasions: [
+      {
+        title: "Bachelorette & Girls' Weekends",
+        description:
+          "A rental with a hot tub, a chef show at sunset, and the whole group in one place — dinner, entertainment, and the photos handled in one booking.",
+      },
+      {
+        title: "Birthday Cabin Weekends",
+        description:
+          "The milestone birthday where twelve friends rent a compound for two nights. The hibachi night is the one everyone plans the trip around.",
+      },
+      {
+        title: "Stargazing Dinner Parties",
+        description:
+          "Fire show at dusk, then the grill goes quiet and the sky takes over. Nowhere else we serve has a backdrop like this.",
+      },
+      {
+        title: "Small Wedding Weekends",
+        description:
+          "Elopements and micro-weddings at desert venues and rentals — a welcome dinner or rehearsal night with a show instead of trays.",
+      },
+    ],
+    venues: [
+      {
+        title: "Desert Cabins & Homesteads",
+        description:
+          "Fenced yards, gravel pads, and a lot of sky. The grill sets up on any level 6x8 ft spot; dirt and gravel are fine.",
+      },
+      {
+        title: "Rental Compounds with Pools",
+        description:
+          "The larger properties off Highway 62 that sleep twelve to twenty — decks, pools, and firepits that already expect a crowd.",
+      },
+      {
+        title: "Pioneertown-Area Ranches",
+        description:
+          "Ranch houses and event properties near Pioneertown where the party is outside by design.",
+      },
+    ],
+    logistics: [
+      "Joshua Tree is a real drive from our base — well past the free 50 miles — so a travel fee applies and is shown upfront in your quote. Spring afternoons can be windy out here; an evening start after the wind drops is the better slot, and it is also when the fire show looks best. Winter nights get cold fast once the sun is down, so if your rental has a patio heater or a firepit, plan on it. Summer runs hot through the afternoon and comfortable after sunset.",
+      "Most addresses out here are dirt roads and cabins without numbers you can see from the street. Send the exact map pin, the gate or lockbox details, and where the chef can park, and we will find you. The chef brings the grill, the food, the tables for the show, and takes every bit of it away again — your rental looks the way you found it.",
+    ],
+    faqs: [
+      {
+        question: "Do you come to Joshua Tree?",
+        answer:
+          "Yes — we come to Joshua Tree, Yucca Valley, Twentynine Palms, Pioneertown, Landers, and Morongo Valley. It is past our free 50-mile radius, so a travel fee applies at $1 per additional mile, calculated from your address and shown in your instant quote.",
+      },
+      {
+        question: "Can you cook at our Joshua Tree rental?",
+        answer:
+          "Yes. We need a level outdoor spot about 6x8 ft with roughly 10 ft of clearance — a gravel pad, patio, or yard all work. We bring the grill, the food, and everything for the show, and we clean up before we leave.",
+      },
+      {
+        question: "What does hibachi at a Joshua Tree rental cost?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+      },
+      {
+        question: "Is winter too cold for an outdoor hibachi dinner?",
+        answer:
+          "Desert winter days are mild; nights drop quickly. Book a late-afternoon start so the cooking happens in daylight and the fire show lands right at dusk, and put your rental's heaters or firepit to work for the rest of the evening.",
+      },
+    ],
+    nearby: ["palm-springs", "la-quinta", "riverside"],
+    lastUpdated: "2026-09-07T00:00:00.000Z",
+  },
+  {
+    slug: "big-bear-lake",
+    city: "Big Bear Lake",
+    county: "San Bernardino County",
+    metaTitle: "Hibachi at Home Big Bear Lake CA | Private Chef at Your Cabin from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef at your Big Bear or Lake Arrowhead cabin — chef, teppanyaki grill, and a live fire show on the deck. $59.90/adult, travel fee shown upfront.",
+    intro: [
+      "Big Bear is where Southern California goes when a group wants one house, a lot of bedrooms, and a deck. Ski weekends, summer lake trips, family reunions in a rented A-frame — and every one of them has the same problem on the second night: twelve people and one small cabin kitchen. A private hibachi chef fixes that. We cook on the deck, the fire show happens against the pines, and the cabin kitchen stays closed.",
+      "We come to Big Bear Lake, Big Bear City, Moonridge, Fawnskin, Sugarloaf, and across the mountain to Lake Arrowhead, Running Springs, and Crestline. $59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, $599 event minimum, with the mountain travel fee calculated from your address and shown in your quote before you pay.",
+    ],
+    neighborhoods: [
+      "Big Bear Lake Village",
+      "Moonridge",
+      "Big Bear City",
+      "Fawnskin",
+      "Sugarloaf",
+      "Boulder Bay",
+      "Lake Arrowhead",
+      "Running Springs",
+      "Crestline",
+    ],
+    occasions: [
+      {
+        title: "Cabin Group Weekends",
+        description:
+          "The friend-group rental with eight bedrooms and a hot tub. Hibachi night is the one meal nobody has to plan, shop for, or clean up after.",
+      },
+      {
+        title: "Ski-Weekend Dinners",
+        description:
+          "Off the slopes at four, chef on the deck at six. Hot food, a fire show in the cold air, and no drive back down to the village for a table.",
+      },
+      {
+        title: "Summer Lake Birthdays",
+        description:
+          "Boat day, then the grill lights up on the lakefront deck as the sun drops behind the ridge.",
+      },
+      {
+        title: "Family Reunions",
+        description:
+          "Three generations in one big rental, and a dinner that keeps the kids at the table — the egg toss and the onion volcano do most of that work.",
+      },
+    ],
+    venues: [
+      {
+        title: "Moonridge & Slope-Side Cabins",
+        description:
+          "The big rentals near the resorts with wraparound decks. The grill sets up on the deck or the driveway pad; the show plays to the whole group at once.",
+      },
+      {
+        title: "Lakefront Homes",
+        description:
+          "Boulder Bay and the north shore — docks, lawns, and decks that face the water, with the sunset behind the show.",
+      },
+      {
+        title: "Lake Arrowhead A-Frames",
+        description:
+          "Steep lots and tiered decks. We need one level 6x8 ft spot with clearance above it, and most Arrowhead decks have exactly that.",
+      },
+    ],
+    logistics: [
+      "The mountain is a real drive from our base and past the free 50-mile radius, so a travel fee applies and is shown upfront in your quote. Big Bear sits at about 6,750 feet: the grill runs the same, the cook takes a little longer, and evenings are cold year-round once the sun is behind the ridge — an earlier start than you would book down the hill is the right call, and a heater on the deck helps. In winter, please make sure the deck or driveway spot where the chef will set up has been cleared of snow.",
+      "Cabin driveways are steep and parking is tight in the village neighborhoods, so tell us where the chef can park close to the setup spot. Everything for the party arrives with the chef — grill, food, tables for the show, cleanup — and everything leaves with the chef. Your rental's kitchen never opens.",
+    ],
+    faqs: [
+      {
+        question: "Do you come up to Big Bear and Lake Arrowhead?",
+        answer:
+          "Yes — we come to Big Bear Lake, Big Bear City, Moonridge, Fawnskin, Sugarloaf, Lake Arrowhead, Running Springs, and Crestline. The mountain is past our free 50 miles, so a travel fee applies at $1 per additional mile, calculated from your address and shown in your instant quote.",
+      },
+      {
+        question: "Can you cook on a cabin deck?",
+        answer:
+          "Yes, on decks, driveways, and patios — we need a level spot about 6x8 ft with roughly 10 ft of clearance above the grill. In winter the spot needs to be cleared of snow before the chef arrives.",
+      },
+      {
+        question: "What does a Big Bear hibachi party cost?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+      },
+      {
+        question: "Do you cook in the snow?",
+        answer:
+          "We cook year-round on the mountain. Book an earlier start in winter so the cooking happens in daylight, keep guests near the deck heaters, and let the fire show do the rest.",
+      },
+    ],
+    nearby: ["riverside", "corona", "joshua-tree"],
+    lastUpdated: "2026-09-07T00:00:00.000Z",
+  },
+  {
+    slug: "la-quinta",
+    city: "La Quinta",
+    county: "Riverside County",
+    metaTitle: "Hibachi at Home La Quinta CA | Private Chef at Your Villa from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in La Quinta, Indian Wells, Palm Desert, and Indio — Coachella houses, PGA West villas, and golf-trip rentals. $59.90/adult, travel fee shown upfront.",
+    intro: [
+      "La Quinta is the east end of the Coachella Valley: PGA West villas, country-club rentals, and the houses that fill up every April for Coachella and Stagecoach. Groups come for golf, festivals, and spring break, and by the second night nobody wants to drive to Old Town for a table. A private hibachi chef on the patio is the answer — dinner and the entertainment in one booking, with the Santa Rosa Mountains behind the show.",
+      "We come to La Quinta, Indian Wells, Palm Desert, Rancho Mirage, Indio, Coachella, and Bermuda Dunes. $59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, $599 event minimum, and the desert travel fee is calculated from your address and shown in your quote before you pay anything.",
+    ],
+    neighborhoods: [
+      "PGA West",
+      "La Quinta Cove",
+      "Old Town La Quinta",
+      "Indian Wells",
+      "Palm Desert",
+      "Rancho Mirage",
+      "Indio",
+      "Coachella",
+      "Bermuda Dunes",
+    ],
+    occasions: [
+      {
+        title: "Coachella & Stagecoach Houses",
+        description:
+          "Festival weekends in April, when every restaurant in the valley is slammed. One real dinner at the house between festival days — book these dates early.",
+      },
+      {
+        title: "Golf Trip Dinners",
+        description:
+          "Eight to sixteen people in a PGA West rental after 36 holes. The chef cooks on the patio; nobody has to change out of golf clothes.",
+      },
+      {
+        title: "Birthday Villa Weekends",
+        description:
+          "Milestone birthdays at country-club rentals — the pool by day, a fire show at sunset, the mountains turning pink.",
+      },
+      {
+        title: "Spring-Break Family Rentals",
+        description:
+          "Multi-family trips in March and April. Kids at the grill for the egg toss, adults at the table, one bill.",
+      },
+    ],
+    venues: [
+      {
+        title: "PGA West & Country-Club Villas",
+        description:
+          "Gated communities with patios facing the fairway. The chef's name goes on the gate list and the show sets up on the patio pad.",
+      },
+      {
+        title: "Cove & Old Town Rentals",
+        description:
+          "The walkable La Quinta Cove houses and rentals near Old Town — backyards with mountain views and room for a crowd.",
+      },
+      {
+        title: "Festival Compounds in Indio & Coachella",
+        description:
+          "The big April houses that sleep the whole group. Late-afternoon start, dinner before the shuttle.",
+      },
+    ],
+    logistics: [
+      "This end of the valley runs even hotter than Palm Springs. From May through September we cook after sunset — the patio is genuinely pleasant once the sun is down, and the fire show is better in the dark anyway. From October through April a lunch or late-afternoon booking on the patio is one of the best things about the desert. La Quinta is well past our free 50-mile radius, so a travel fee applies and is shown upfront in your quote.",
+      "Almost every rental here is behind a gate: put the chef's name on the guest list or send the gate code ahead of the party. We need a level spot about 6x8 ft with roughly 10 ft of clearance — a patio pad or pool deck well clear of the water is ideal. The chef brings everything and takes everything away; your rental's kitchen stays clean.",
+    ],
+    faqs: [
+      {
+        question: "Do you come to La Quinta and Indian Wells?",
+        answer:
+          "Yes — we come to La Quinta, Indian Wells, Palm Desert, Rancho Mirage, Indio, Coachella, and Bermuda Dunes. It is past our free 50 miles, so a travel fee applies at $1 per additional mile, calculated from your address and shown in your instant quote.",
+      },
+      {
+        question: "Can you cook at our Coachella rental?",
+        answer:
+          "Yes. Festival weekends are the busiest dates in the valley, so book early. We need a level outdoor spot about 6x8 ft with clearance above it, and we work around your shuttle times.",
+      },
+      {
+        question: "What does hibachi at a La Quinta rental cost?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+      },
+      {
+        question: "How do gated communities work?",
+        answer:
+          "Add the chef's name to the guest list or send us the gate code before the party. The chef arrives about ten minutes early, sets up on the patio, and is gone after cleanup.",
+      },
+    ],
+    nearby: ["palm-springs", "joshua-tree", "temecula"],
+    lastUpdated: "2026-09-07T00:00:00.000Z",
+  },
+  {
+    slug: "la-jolla",
+    city: "La Jolla",
+    county: "San Diego County",
+    metaTitle: "Hibachi at Home La Jolla CA | Private Chef at Your Beach House from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in La Jolla, Del Mar, Pacific Beach, and Encinitas — beach-house weeks, bachelorette weekends, and deck dinners with an ocean view. $59.90/adult, published pricing.",
+    intro: [
+      "La Jolla is the beach-house end of San Diego: Shores rentals a block from the sand, Bird Rock decks over the water, and hillside homes where the whole family stays for a week. A private hibachi chef is the night nobody has to book a table for twelve in the Village — the grill on the deck, the fire show as the marine layer rolls in, and the kitchen untouched.",
+      "We come to La Jolla, La Jolla Shores, Bird Rock, Pacific Beach, Mission Beach, Del Mar, and Encinitas. $59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, $599 event minimum, with any travel fee calculated from your address and shown in your quote before you pay.",
+    ],
+    neighborhoods: [
+      "La Jolla Shores",
+      "Bird Rock",
+      "La Jolla Village",
+      "Windansea",
+      "Muirlands",
+      "Pacific Beach",
+      "Mission Beach",
+      "Del Mar",
+      "Encinitas",
+    ],
+    occasions: [
+      {
+        title: "Beach-House Family Weeks",
+        description:
+          "The week-long rental with grandparents, cousins, and one very small kitchen. Hibachi night is the meal the group photo comes from.",
+      },
+      {
+        title: "Bachelorette Beach Weekends",
+        description:
+          "Beach by day, chef on the deck at sunset, nobody drives to the Gaslamp. Dinner and the entertainment in one booking.",
+      },
+      {
+        title: "Milestone Birthdays on the Deck",
+        description:
+          "The 40th or 60th at a rental with an ocean view — the fire show against the sunset is the whole pitch.",
+      },
+      {
+        title: "UCSD Graduation Dinners",
+        description:
+          "June weekends when every restaurant near campus is booked solid and the family flew in anyway. We cook at the rental.",
+      },
+    ],
+    venues: [
+      {
+        title: "Shores & Bird Rock Beach Rentals",
+        description:
+          "Patios and small yards a block from the sand. The grill sets up on the patio; the ocean breeze is the only thing we plan around.",
+      },
+      {
+        title: "Hillside Homes with Ocean Decks",
+        description:
+          "Muirlands and Mount Soledad houses with view decks. We need one level 6x8 ft spot with clearance above it — most decks have it.",
+      },
+      {
+        title: "Pacific & Mission Beach Vacation Rentals",
+        description:
+          "The rental strip along the boardwalk — rooftop decks and courtyards built for a crowd.",
+      },
+    ],
+    logistics: [
+      "The coast is the mildest weather we serve, with two things to plan around. The marine layer — May Gray and June Gloom — makes late-spring evenings cool and damp; a late-afternoon start gets the cooking done in the warm part of the day. And the onshore breeze picks up most afternoons, so a patio with a little shelter is better than an open rooftop for the show. La Jolla is past our free 50-mile radius from our base, so a travel fee applies and is shown upfront in your quote.",
+      "Parking in the Shores and along the boardwalk is tight in summer; tell us where the chef can unload close to the setup spot. The chef brings the grill, the food, and everything for the show, and takes all of it away — your rental's kitchen stays closed and the deck looks the way you found it.",
+    ],
+    faqs: [
+      {
+        question: "Do you come to La Jolla and Del Mar?",
+        answer:
+          "Yes — we come to La Jolla, La Jolla Shores, Bird Rock, Pacific Beach, Mission Beach, Del Mar, and Encinitas. The coast is past our free 50 miles, so a travel fee applies at $1 per additional mile, calculated from your address and shown in your instant quote.",
+      },
+      {
+        question: "Can you cook at our beach rental?",
+        answer:
+          "Yes, on patios, decks, and courtyards — we need a level spot about 6x8 ft with roughly 10 ft of clearance above the grill. A spot with a little shelter from the afternoon breeze is ideal.",
+      },
+      {
+        question: "What does hibachi at a La Jolla rental cost?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus any travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+      },
+      {
+        question: "What about June Gloom?",
+        answer:
+          "Book a late-afternoon start in May and June so the cooking happens while it is still warm, and the fire show lands as the light goes. The rest of the year, sunset on the coast is the best slot we have.",
+      },
+    ],
+    nearby: ["san-diego", "oceanside", "newport-beach"],
+    lastUpdated: "2026-09-07T00:00:00.000Z",
+  },
 ]
 
 export function getCityPage(slug: string): CityPage | undefined {
