@@ -2,7 +2,9 @@
 
 type TrackingEventName =
   | "page_view"
+  | "quote_view"
   | "quote_started"
+  | "quote_plan_select"
   | "quote_completed"
   | "ab_test_exposure"
   | "ab_test_conversion"
@@ -266,6 +268,37 @@ export function captureAttributionOnLanding(search: string): void {
   }
 }
 
+// Funnel events that Clarity should also see, so session recordings can be
+// filtered by "reached the price" / "started the form" / "tapped SMS" instead
+// of guessing from clicks. Clarity's global is loaded by GTM; absent = no-op.
+const CLARITY_MIRRORED_EVENTS: ReadonlySet<string> = new Set([
+  "quote_view",
+  "quote_started",
+  "quote_plan_select",
+  "quote_completed",
+  "contact_sms_click",
+  "contact_call_click",
+  "contact_whatsapp_click",
+  "contact_email_click",
+  "booking_submit",
+  "contact_booking_inquiry_submit",
+  "deposit_started",
+  "deposit_completed",
+  "lead_start",
+])
+
+function mirrorToClarity(name: string, params: TrackEventParams): void {
+  const clarity = (window as unknown as { clarity?: (cmd: string, ...args: unknown[]) => void }).clarity
+  if (typeof clarity !== "function" || !CLARITY_MIRRORED_EVENTS.has(name)) return
+  try {
+    if (typeof params.quote_tier === "string") clarity("set", "quote_tier", params.quote_tier)
+    if (typeof params.quote_surface === "string") clarity("set", "quote_surface", params.quote_surface)
+    clarity("event", name)
+  } catch {
+    // Clarity failures must never break the page or the GTM push.
+  }
+}
+
 export function trackEvent(name: TrackingEventName, params: TrackEventParams = {}): void {
   if (typeof window === "undefined") return
 
@@ -303,6 +336,7 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
   }
 
   window.dataLayer.push(normalizedPayload)
+  mirrorToClarity(name, params)
 }
 
 export function trackDepositCompletedOnce(

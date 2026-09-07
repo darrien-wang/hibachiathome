@@ -5,6 +5,7 @@ import Link from "next/link"
 import { MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useLocCity } from "@/components/city/geo-city-name"
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
@@ -48,6 +49,7 @@ export default function CityQuoteCalculator({
   /** sms: link for the secondary CTA. Omit to hide it. */
   smsHref?: string
 }) {
+  const shownCity = useLocCity(cityName)
   const [adults, setAdults] = useState(15)
   const [kids, setKids] = useState(0)
   const [date, setDate] = useState("")
@@ -96,7 +98,7 @@ export default function CityQuoteCalculator({
       id="price"
       className="scroll-mt-24 rounded-2xl border border-amber-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:p-6"
     >
-      <p className="text-base font-bold text-gray-900 sm:text-lg">Your {cityName} party, priced right here</p>
+      <p className="text-base font-bold text-gray-900 sm:text-lg">Your {shownCity} party, priced right here</p>
       <p className="mt-0.5 text-xs text-gray-600 sm:text-sm">No form, no phone number — just move the numbers.</p>
 
       <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">

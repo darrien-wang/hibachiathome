@@ -654,6 +654,12 @@ export default function QuoteBuilderClient() {
     }
   }, [eventTime, input.eventDate, input.location])
 
+  // One quote_view per page load — the denominator for every /quote funnel rate.
+  useEffect(() => {
+    trackEvent("quote_view", { quote_surface: quoteSurface, quote_tier: input.pricingTier })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     const hasAnyInput = Boolean(input.eventDate || input.location || input.adults > 0 || input.kids > 0)
     if (!quoteStartedTracked && quoteStartIntentCaptured && hasAnyInput) {
@@ -668,6 +674,17 @@ export default function QuoteBuilderClient() {
       setQuoteStartedTracked(true)
     }
   }, [input, quoteStartIntentCaptured, quoteStartedTracked, quoteSurface])
+
+  const lastTrackedTierRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (lastTrackedTierRef.current === null) {
+      lastTrackedTierRef.current = input.pricingTier
+      return
+    }
+    if (lastTrackedTierRef.current === input.pricingTier) return
+    lastTrackedTierRef.current = input.pricingTier
+    trackEvent("quote_plan_select", { quote_surface: quoteSurface, quote_tier: input.pricingTier })
+  }, [input.pricingTier, quoteSurface])
 
   useEffect(() => {
     if (!quoteCompletedTracked && result.hasCoreInputs) {
@@ -1635,7 +1652,7 @@ export default function QuoteBuilderClient() {
                 {result.guestCount >= 20 && (
                   <p className="mt-1 inline-flex items-start gap-1.5 text-sm font-semibold text-emerald-700">
                     <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                    Free appetizer platter included — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+)
+                    Free appetizer platter included — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+, through Oct 31)
                   </p>
                 )}
                 {weekdayHint && <p className="mt-1 text-xs text-amber-800">{weekdayHint}</p>}

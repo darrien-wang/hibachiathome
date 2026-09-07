@@ -12,6 +12,7 @@ import { pickReviews } from "@/config/reviews"
 import { hasCateringPage } from "@/config/catering-cities"
 import SourcingSpec from "@/components/menu/sourcing-spec"
 import CityLandingHero from "@/components/city/city-landing-hero"
+import GeoCityName from "@/components/city/geo-city-name"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone, smsHref } from "@/config/site"
 
@@ -237,10 +238,10 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
         }
         title={
           <>
-            Hibachi at Home in <span className="text-primary">{page.city}</span>
+            Hibachi at Home in <span className="text-primary"><GeoCityName fallback={page.city} /></span>
           </>
         }
-        subhead={`A private hibachi chef, the grill, and the fire show — in your ${page.city} backyard. Setup & cleanup included.`}
+        subhead="A private hibachi chef, the grill, and the fire show — in your own backyard. Setup & cleanup included."
         citySlug={page.slug}
         cityName={page.city}
         smsHref={smsHref(`Hi! I'd like a quote for a hibachi party in ${page.city}.`)}

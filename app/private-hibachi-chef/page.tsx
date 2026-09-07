@@ -6,6 +6,7 @@ import { MapPin, ChefHat, Check } from "lucide-react"
 import { cityPages } from "@/config/city-pages"
 import AppreciationBanner from "@/components/appreciation-banner"
 import CityLandingHero from "@/components/city/city-landing-hero"
+import GeoCityName from "@/components/city/geo-city-name"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone, smsHref } from "@/config/site"
 
@@ -205,7 +206,7 @@ export default function PrivateHibachiChefPage() {
         }
         title={
           <>
-            Your <span className="text-primary">Private Hibachi Chef</span> in LA & SoCal
+            Your <span className="text-primary">Private Hibachi Chef</span> in <GeoCityName fallback="LA & SoCal" />
           </>
         }
         subhead="Live teppanyaki cooking, real fire, and a performance at your own table — our own SoCal team, confirmed by name 48 hours ahead."
