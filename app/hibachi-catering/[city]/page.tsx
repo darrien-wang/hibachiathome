@@ -6,7 +6,7 @@ import { MessageSquare, Star, Check, Users, CalendarDays, Sparkles } from "lucid
 import { getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { CATERING_CITIES } from "@/config/catering-cities"
 import { pickReviews } from "@/config/reviews"
-import CityQuoteCalculator from "@/components/city/city-quote-calculator"
+import CityLandingHero from "@/components/city/city-landing-hero"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
 
@@ -198,46 +198,31 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     })),
   }
 
+  const cityReviews = pickReviews(`catering-${page.slug}`)
+
   return (
     <div className="min-h-screen bg-white">
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
 
-      {/* Hero */}
-      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-14">
-        <div className="container mx-auto px-4">
-          <nav className="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
+      {/* Hero — first screen: price, estimator, proof. See components/city/city-landing-hero.tsx */}
+      <CityLandingHero
+        breadcrumb={
+          <>
             <Link href="/" className="hover:text-primary">
               Home
             </Link>
             {" / "}
             <span className="text-gray-700">Hibachi Catering {page.city}</span>
-          </nav>
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Hibachi Catering in {page.city}</h1>
-            <p className="text-2xl font-semibold text-orange-800 mb-3">
-              The caterer that brings dinner <em>and</em> the show.
-            </p>
-            <p className="text-sm text-gray-600 mb-8">
-              Fire up your story. · $59.90/adult, published · $599 event minimum · Setup & cleanup included
-            </p>
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild className="h-12 rounded-full bg-[hsl(24_79%_55%)] px-8 text-white hover:bg-[hsl(24_79%_48%)]">
-                <Link href={quoteHref}>Get an Instant Quote</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-8 text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)]"
-              >
-                <a href={smsHref}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Text {PHONE_DISPLAY}
-                </a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+        title={<>Hibachi Catering in {page.city}</>}
+        subhead="The caterer that brings dinner and the show — a private chef, the teppanyaki grill, and live fire at your venue or backyard."
+        citySlug={page.slug}
+        cityName={page.city}
+        source={`catering_${page.slug.replace(/-/g, "_")}`}
+        smsHref={smsHref}
+        reviews={cityReviews}
+      />
 
       {/* Event types */}
       <section className="py-14">
@@ -299,7 +284,6 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
                 ))}
               </ul>
             </div>
-            <CityQuoteCalculator citySlug={page.slug} cityName={page.city} />
           </div>
         </div>
       </section>

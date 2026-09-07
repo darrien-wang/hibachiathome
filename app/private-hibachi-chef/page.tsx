@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { MapPin, Phone, Users, Clock, ChefHat, Check } from "lucide-react"
-import { cityPages } from "@/config/city-pages"
 import { pickReviews } from "@/config/reviews"
+import { Button } from "@/components/ui/button"
+import { MapPin, ChefHat, Check } from "lucide-react"
+import { cityPages } from "@/config/city-pages"
 import AppreciationBanner from "@/components/appreciation-banner"
+import CityLandingHero from "@/components/city/city-landing-hero"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
-import { phone } from "@/config/site"
+import { phone, smsHref } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
 const URL = `${BASE_URL}/private-hibachi-chef`
@@ -191,20 +192,34 @@ export default function PrivateHibachiChefPage() {
     <div className="min-h-screen bg-white">
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
 
-      {/* Hero */}
-      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
-        <div className="container mx-auto px-4">
-          <nav className="text-sm text-gray-500 mb-6 pt-6" aria-label="Breadcrumb">
+      {/* Hero — first screen: price, estimator, proof. See components/city/city-landing-hero.tsx */}
+      <CityLandingHero
+        breadcrumb={
+          <>
             <Link href="/" className="hover:text-primary">
               Home
             </Link>
             {" / "}
             <span className="text-gray-700">Private Hibachi Chef</span>
-          </nav>
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-gray-900 mb-6">
-              Your <span className="text-primary">Private Hibachi Chef</span> in LA & SoCal
-            </h1>
+          </>
+        }
+        title={
+          <>
+            Your <span className="text-primary">Private Hibachi Chef</span> in LA & SoCal
+          </>
+        }
+        subhead="Live teppanyaki cooking, real fire, and a performance at your own table — our own SoCal team, confirmed by name 48 hours ahead."
+        citySlug="private-hibachi-chef"
+        cityName="Southern California"
+        source="private_hibachi_chef"
+        smsHref={smsHref("Hi! I'd like a quote for a private hibachi chef.")}
+        reviews={pickReviews("private-hibachi-chef")}
+      />
+
+      {/* Intro copy — used to open the page; now sits under the price. */}
+      <section className="py-10 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
             <p className="text-lg md:text-xl text-gray-600 mb-4 leading-relaxed">
               Hire a private hibachi chef and dinner becomes the event: live teppanyaki cooking, real fire, and a
               performance at your own table — in your backyard, on your patio, or at your venue.
@@ -213,35 +228,6 @@ export default function PrivateHibachiChefPage() {
               Our chefs are our own Southern California team, confirmed by name 48 hours before every party — never
               strangers dispatched from an app.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 mb-8">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
-                <Link href={QUOTE_HREF}>Get Instant Quote</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
-                <Link href={phone.voice.tel}>
-                  <Phone className="h-5 w-5 mr-2" />
-                  Call {phone.voice.display}
-                </Link>
-              </Button>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center">
-                <Check className="h-4 w-4 text-primary mr-1" />
-                Chef confirmed by name 48h ahead
-              </span>
-              <span className="flex items-center">
-                <Users className="h-4 w-4 text-primary mr-1" />
-                500+ Events
-              </span>
-              <span className="flex items-center">
-                <ChefHat className="h-4 w-4 text-primary mr-1" />
-                Licensed & Insured
-              </span>
-              <span className="flex items-center">
-                <Clock className="h-4 w-4 text-primary mr-1" />
-                Setup & Cleanup Included
-              </span>
-            </div>
           </div>
         </div>
       </section>

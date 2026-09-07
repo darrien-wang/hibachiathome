@@ -1,20 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
+import { MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
   WEEKDAY_SPECIAL,
-  calcAdultEquivalents,
+  checkWeekdayEligibility,
   roundCurrency,
+  weekdayBlackoutLabel,
 } from "@/config/pricing-rules"
 
-// Lightweight on-page estimator for city pages. Competitor research showed the
-// winners either gate pricing behind forms or link away to a calculator; an
-// answer directly on the ranking page beats both. All rates come from
+// First-screen estimator for the ad landing pages (city / catering / mobile /
+// private chef). Clarity on 2026-09-06: paid visitors landing on these pages
+// scrolled <25% and left without seeing a price — so the price, the date, and
+// the two plans all live here, above the fold. All rates come from
 // config/pricing-rules.ts — never hard-code a money value here.
 
 const fmt = (value: number) => {
@@ -22,9 +25,32 @@ const fmt = (value: number) => {
   return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(2)
 }
 
-export default function CityQuoteCalculator({ citySlug, cityName }: { citySlug: string; cityName: string }) {
-  const [adults, setAdults] = useState(10)
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const
+
+function describeDate(iso: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return null
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  if (Number.isNaN(d.getTime())) return null
+  return `${WEEKDAY_NAMES[d.getDay()]} ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+}
+
+export default function CityQuoteCalculator({
+  citySlug,
+  cityName,
+  source,
+  smsHref,
+}: {
+  citySlug: string
+  cityName: string
+  /** Overrides the default `city_<slug>` attribution source on the /quote link. */
+  source?: string
+  /** sms: link for the secondary CTA. Omit to hide it. */
+  smsHref?: string
+}) {
+  const [adults, setAdults] = useState(15)
   const [kids, setKids] = useState(0)
+  const [date, setDate] = useState("")
 
   const clamp = (n: number) => (Number.isFinite(n) && n >= 0 ? Math.min(n, 200) : 0)
 
@@ -32,78 +58,141 @@ export default function CityQuoteCalculator({ citySlug, cityName }: { citySlug: 
   const standard = Math.max(standardSubtotal, MINIMUM_SPEND)
   const atMinimum = standardSubtotal < MINIMUM_SPEND
 
-  const adultEquivalents = calcAdultEquivalents({ adult: adults, child: kids, toddler: 0 })
-  const weekdayEligible = adultEquivalents >= WEEKDAY_SPECIAL.minAdultEquivalents
-  const weekday = Math.max(
+  const weekdayTotal = Math.max(
     roundCurrency(adults * GUEST_TIERS.adult.weekdayPrice + kids * GUEST_TIERS.child.weekdayPrice),
     MINIMUM_SPEND,
   )
-  const moreForWeekday = Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - adultEquivalents))
 
-  const quoteHref = `/quote?source=city_${citySlug.replace(/-/g, "_")}&adults=${adults}&kids=${kids}`
+  const eligibility = useMemo(
+    () => checkWeekdayEligibility(date, { adult: adults, child: kids, toddler: 0 }),
+    [date, adults, kids],
+  )
+  const headcountOk = eligibility.isHeadcountEligible
+  const dateKnown = /^\d{4}-\d{2}-\d{2}$/.test(date)
+  const blackout = dateKnown ? weekdayBlackoutLabel(date) : null
+  // No date yet: show the weekday price as reachable ("pick a Mon–Thu date").
+  // Date set: it either applies or it doesn't.
+  const weekdayApplies = dateKnown ? eligibility.isEligible : headcountOk
+  const moreForWeekday = Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - eligibility.adultEquivalents))
+  const dateLabel = dateKnown ? describeDate(date) : null
+
+  const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
+  const params = new URLSearchParams({ source: attribution, adults: String(adults), kids: String(kids) })
+  if (dateKnown) params.set("date", date)
+  if (weekdayApplies) params.set("plan", "weekday")
+  const quoteHref = `/quote?${params.toString()}`
+
+  const weekdayHint = (() => {
+    if (blackout) return `${dateLabel} falls in ${blackout} — standard rate applies.`
+    if (dateKnown && !eligibility.isDateEligible) return `${dateLabel} is a weekend — Weekday Special is Mon–Thu only.`
+    if (!headcountOk)
+      return `Weekday Special unlocks at ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half). Add ${moreForWeekday} more.`
+    if (!dateKnown) return "Pick a Mon–Thu date and this is your price."
+    return `${dateLabel} qualifies — you save $${fmt(standard - weekdayTotal)}.`
+  })()
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 sm:p-6">
-      <p className="text-lg font-bold text-gray-900">Your {cityName} party, priced right here</p>
-      <p className="mt-1 text-sm text-gray-600">No form, no phone number — just move the numbers.</p>
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:max-w-xs">
+    <div
+      id="price"
+      className="scroll-mt-24 rounded-2xl border border-amber-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:p-6"
+    >
+      <p className="text-base font-bold text-gray-900 sm:text-lg">Your {cityName} party, priced right here</p>
+      <p className="mt-0.5 text-xs text-gray-600 sm:text-sm">No form, no phone number — just move the numbers.</p>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700">Adults</span>
+          <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Adults</span>
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             max={200}
             value={adults}
             onChange={(e) => setAdults(clamp(Number(e.target.value)))}
             aria-label="Number of adults"
+            className="h-11 text-base"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700">Kids 5–12</span>
+          <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Kids 5–12</span>
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             max={200}
             value={kids}
             onChange={(e) => setKids(clamp(Number(e.target.value)))}
             aria-label="Number of kids age 5 to 12"
+            className="h-11 text-base"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Date</span>
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-label="Event date"
+            className="h-11 text-base"
           />
         </label>
       </div>
-      <div className="mt-4" aria-live="polite">
-        <p className="text-2xl font-bold text-orange-800">
-          ${fmt(standard)}
-          <span className="ml-1 text-sm font-medium text-gray-600">Standard, any day</span>
-        </p>
-        {atMinimum && (
-          <p className="mt-1 text-sm text-gray-600">
-            That&apos;s our ${MINIMUM_SPEND} event minimum — parties this size all come in at ${MINIMUM_SPEND}, so a
-            few extra guests won&apos;t raise the price.
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3" aria-live="polite">
+        <div
+          className={`rounded-xl border p-3 ${
+            weekdayApplies ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200" : "border-gray-200 bg-gray-50"
+          }`}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Weekday Special</p>
+          <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">${fmt(weekdayTotal)}</p>
+          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">
+            ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid · Mon–Thu ·{" "}
+            {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
           </p>
-        )}
-        {weekdayEligible ? (
-          <p className="mt-2 text-lg font-semibold text-emerald-700">
-            ${fmt(weekday)}
-            <span className="ml-1 text-sm font-medium text-gray-600">Weekday Special (Mon–Thu)</span>
+        </div>
+        <div
+          className={`rounded-xl border p-3 ${
+            weekdayApplies ? "border-gray-200 bg-gray-50" : "border-orange-300 bg-orange-50 ring-2 ring-orange-200"
+          }`}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-800">Standard · any day</p>
+          <p className="mt-0.5 text-xl font-bold text-orange-800 sm:text-2xl">${fmt(standard)}</p>
+          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">
+            ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid · ${MINIMUM_SPEND} minimum
           </p>
-        ) : (
-          <p className="mt-2 text-sm text-gray-600">
-            Weekday Special — ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult on Mon–Thu — unlocks at{" "}
-            {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half). Add {moreForWeekday} more to
-            qualify.
-          </p>
-        )}
+        </div>
       </div>
-      <p className="mt-2 text-xs text-gray-500">
-        Food, chef, live show, setup & cleanup included. ${MINIMUM_SPEND} event minimum. Travel confirmed in your
-        quote — first 50 miles free.
+
+      <p className="mt-2 text-xs text-gray-600">
+        {weekdayHint}
+        {atMinimum && !weekdayApplies ? ` Parties this size come in at the $${MINIMUM_SPEND} minimum.` : ""}
       </p>
-      <Button
-        asChild
-        className="mt-4 h-11 rounded-full bg-[hsl(24_79%_55%)] px-8 text-white hover:bg-[hsl(24_79%_48%)]"
-      >
-        <Link href={quoteHref}>Lock this in — exact quote in 30 seconds</Link>
-      </Button>
+      <p className="mt-1 text-[11px] text-gray-500 sm:text-xs">
+        Under 5 eat free. Chef, grill, food, live show, setup &amp; cleanup included. First 50 miles free — any travel
+        fee shows in your quote before you pay.
+      </p>
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <Button
+          asChild
+          className="h-12 flex-1 rounded-full bg-[hsl(24_79%_55%)] px-6 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+        >
+          <Link href={quoteHref}>Get my exact quote — 30 seconds</Link>
+        </Button>
+        {smsHref ? (
+          <Button
+            asChild
+            variant="outline"
+            className="h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-5 text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)]"
+          >
+            <a href={smsHref}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Text us instead
+            </a>
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }

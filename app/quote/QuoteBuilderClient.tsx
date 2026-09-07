@@ -30,6 +30,7 @@ import {
 } from "@/config/pricing-rules"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { getAdRefCode, getStoredGclid, trackEvent } from "@/lib/tracking"
+import { PROOF_MEDIA } from "@/config/proof-media"
 import {
   buildEmailPayload,
   buildSmsBody,
@@ -63,72 +64,7 @@ const DEFAULT_INPUT: QuoteInput = {
 
 const EVENT_TIME_OPTIONS = ["13:00", "16:00", "19:00", "21:00"] as const
 
-// Real party photos from /gallery — ad visitors land straight on this page and
-// need one glance of proof this is a real local operation before the form.
-const QUOTE_PROOF_MEDIA = [
-  {
-    type: "video" as const,
-    src: "/videos/hibachi-show.mp4",
-    poster: "/videos/posters/hibachi-show.jpg",
-    alt: "Live hibachi chef show",
-  },
-  {
-    type: "image" as const,
-    src: "/gallery/real-hibachi-party-orange-county-family-event-04.jpg",
-    alt: "Real Hibachi chef cooking fresh eggs on the griddle at an Orange County family event",
-  },
-  {
-    type: "video" as const,
-    src: "/videos/fried-rice.mp4",
-    poster: "/videos/posters/fried-rice.jpg",
-    alt: "Fresh hibachi fried rice on the griddle",
-  },
-  {
-    type: "image" as const,
-    src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
-    alt: "Happy guests with their Real Hibachi chef at a Southern California pool party",
-  },
-  {
-    type: "video" as const,
-    src: "/videos/real-fire.mp4",
-    poster: "/videos/posters/real-fire.jpg",
-    alt: "Real hibachi fire show",
-  },
-  {
-    type: "video" as const,
-    src: "/videos/birthday-moment.mp4",
-    poster: "/videos/posters/birthday-moment.jpg",
-    alt: "Birthday cake moment at a Real Hibachi party",
-  },
-  {
-    type: "image" as const,
-    src: "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
-    alt: "Huge hibachi flame lighting up a night party in Orange County",
-  },
-  {
-    type: "image" as const,
-    src: "/gallery/real-hibachi-party-santa-barbara-oceanfront-sunset-16.jpg",
-    alt: "Oceanfront sunset hibachi party table with lanterns and roses in Santa Barbara",
-  },
-  {
-    type: "video" as const,
-    src: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05.mp4",
-    poster: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05-poster.jpg",
-    alt: "Oceanfront sunset hibachi dinner party with lanterns",
-  },
-  {
-    type: "video" as const,
-    src: "/videos/party-highlight.mp4",
-    poster: "/videos/posters/party-highlight.jpg",
-    alt: "Party highlights from a Real Hibachi event",
-  },
-  {
-    type: "video" as const,
-    src: "/videos/atmosphere.mp4",
-    poster: "/videos/posters/atmosphere.jpg",
-    alt: "The atmosphere at a Real Hibachi dinner party",
-  },
-] as const
+const QUOTE_PROOF_MEDIA = PROOF_MEDIA
 
 // Verbatim 5-star Google reviews from the Real Hibachi listing (owner-supplied
 // screenshots, 2026-08). Kelsey's quote is truncated before an alcohol mention
@@ -320,11 +256,20 @@ export default function QuoteBuilderClient() {
     }
     const adults = Number.parseInt(params.get("adults") ?? "", 10)
     const kids = Number.parseInt(params.get("kids") ?? "", 10)
-    if (!Number.isFinite(adults) && !Number.isFinite(kids)) return
+    // Landing-page estimators also hand over the date and, when the party
+    // already qualifies, plan=weekday — so the visitor sees the same price on
+    // /quote that they just saw on the page (the eligibility effect below
+    // still reverts to Standard if the numbers no longer qualify).
+    const date = params.get("date") ?? ""
+    const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
+    const wantsWeekday = params.get("plan") === "weekday"
+    if (!Number.isFinite(adults) && !Number.isFinite(kids) && !dateOk && !wantsWeekday) return
     setInput((previous) => ({
       ...previous,
       ...(Number.isFinite(adults) && adults > 0 && adults <= 200 ? { adults } : {}),
       ...(Number.isFinite(kids) && kids >= 0 && kids <= 200 ? { kids } : {}),
+      ...(dateOk ? { eventDate: date } : {}),
+      ...(wantsWeekday ? { pricingTier: "weekday_saver" as const } : {}),
     }))
   }, [])
 

@@ -4,16 +4,16 @@ import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Phone, Star, Users, Clock, ChefHat, Check } from "lucide-react"
+import { MapPin, Phone, Check } from "lucide-react"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
 import { getCityClimate } from "@/config/city-climate"
 import { pickReviews } from "@/config/reviews"
 import { hasCateringPage } from "@/config/catering-cities"
 import SourcingSpec from "@/components/menu/sourcing-spec"
-import CityQuoteCalculator from "@/components/city/city-quote-calculator"
+import CityLandingHero from "@/components/city/city-landing-hero"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
-import { phone } from "@/config/site"
+import { phone, smsHref } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
 
@@ -84,6 +84,7 @@ const noSurprises = [
   },
   {
     title: "The price is on this page",
+    href: "#price",
     description:
       "$59.90 per adult, published, no form required. Several services in this market quote only after you hand over your contact details.",
   },
@@ -219,10 +220,10 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
     <div className="min-h-screen bg-white">
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
 
-      {/* Hero */}
-      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
-        <div className="container mx-auto px-4">
-          <nav className="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
+      {/* Hero — first screen: price, estimator, proof. See components/city/city-landing-hero.tsx */}
+      <CityLandingHero
+        breadcrumb={
+          <>
             <Link href="/" className="hover:text-primary">
               Home
             </Link>
@@ -232,45 +233,29 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
             </Link>
             {" / "}
             <span className="text-gray-700">{page.city}</span>
-          </nav>
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-gray-900 mb-6">
-              Hibachi at Home in <span className="text-primary">{page.city}</span>
-            </h1>
+          </>
+        }
+        title={
+          <>
+            Hibachi at Home in <span className="text-primary">{page.city}</span>
+          </>
+        }
+        subhead={`A private hibachi chef, the grill, and the fire show — in your ${page.city} backyard. Setup & cleanup included.`}
+        citySlug={page.slug}
+        cityName={page.city}
+        smsHref={smsHref(`Hi! I'd like a quote for a hibachi party in ${page.city}.`)}
+        reviews={cityReviews}
+      />
+
+      {/* City intro — the copy that used to open the page now sits under the price. */}
+      <section className="py-10 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
             {page.intro.map((paragraph) => (
               <p key={paragraph.slice(0, 32)} className="text-lg md:text-xl text-gray-600 mb-4 leading-relaxed">
                 {paragraph}
               </p>
             ))}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 mb-8">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
-                <Link href={quoteHref}>Get Instant Quote</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
-                <Link href={phone.voice.tel}>
-                  <Phone className="h-5 w-5 mr-2" />
-                  Call {phone.voice.display}
-                </Link>
-              </Button>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center">
-                <Check className="h-4 w-4 text-primary mr-1" />
-                Full deposit refund up to 72h
-              </span>
-              <span className="flex items-center">
-                <Users className="h-4 w-4 text-primary mr-1" />
-                500+ Events
-              </span>
-              <span className="flex items-center">
-                <ChefHat className="h-4 w-4 text-primary mr-1" />
-                Licensed & Insured
-              </span>
-              <span className="flex items-center">
-                <Clock className="h-4 w-4 text-primary mr-1" />
-                Setup & Cleanup Included
-              </span>
-            </div>
           </div>
         </div>
       </section>
@@ -307,9 +292,6 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
               </ul>
             </div>
           </div>
-          <div className="max-w-4xl mx-auto mt-10">
-            <CityQuoteCalculator citySlug={page.slug} cityName={page.city} />
-          </div>
         </div>
       </section>
 
@@ -330,7 +312,15 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
               <div key={item.title} className="flex items-start gap-3 rounded-xl border border-[#e7dbc6] bg-white p-6">
                 <Check className="mt-1 h-5 w-5 shrink-0 text-primary" />
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1">{item.title}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1">
+                    {"href" in item && item.href ? (
+                      <a href={item.href} className="underline decoration-primary/40 underline-offset-4 hover:text-primary">
+                        {item.title}
+                      </a>
+                    ) : (
+                      item.title
+                    )}
+                  </h3>
                   <p className="text-gray-600 text-sm leading-relaxed">{item.description}</p>
                 </div>
               </div>
@@ -677,44 +667,6 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
                 </div>
                 <h3 className="text-lg font-bold mb-2">{step.title}</h3>
                 <p className="text-gray-600 text-sm">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Real Google reviews — crawlable text, same corpus the Product schema cites */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">
-              What Hosts <span className="text-primary">Say</span>
-            </h2>
-            <div className="mt-2 flex items-center justify-center gap-1 text-sm text-gray-600">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-              ))}
-              <span className="ml-1">5-star Google reviews from Southern California parties</span>
-            </div>
-          </div>
-          <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3">
-            {cityReviews.map((review) => (
-              <div key={review.name} className="rounded-2xl border border-amber-100 bg-white p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-base font-bold text-white">
-                    {review.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{review.name}</p>
-                    <p className="text-xs text-gray-500">Google review</p>
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                  ))}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-gray-700">{review.text}</p>
               </div>
             ))}
           </div>

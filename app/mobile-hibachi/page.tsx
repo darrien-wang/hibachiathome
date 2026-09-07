@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { MapPin, Phone, Users, Clock, ChefHat, Check, Flame } from "lucide-react"
-import { cityPages } from "@/config/city-pages"
 import { pickReviews } from "@/config/reviews"
+import { Button } from "@/components/ui/button"
+import { MapPin, Check, Flame } from "lucide-react"
+import { cityPages } from "@/config/city-pages"
 import AppreciationBanner from "@/components/appreciation-banner"
+import CityLandingHero from "@/components/city/city-landing-hero"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
-import { phone } from "@/config/site"
+import { phone, smsHref } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
 const URL = `${BASE_URL}/mobile-hibachi`
@@ -169,20 +170,34 @@ export default function MobileHibachiPage() {
     <div className="min-h-screen bg-white">
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
 
-      {/* Hero */}
-      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
-        <div className="container mx-auto px-4">
-          <nav className="text-sm text-gray-500 mb-6 pt-6" aria-label="Breadcrumb">
+      {/* Hero — first screen: price, estimator, proof. See components/city/city-landing-hero.tsx */}
+      <CityLandingHero
+        breadcrumb={
+          <>
             <Link href="/" className="hover:text-primary">
               Home
             </Link>
             {" / "}
             <span className="text-gray-700">Mobile Hibachi</span>
-          </nav>
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-gray-900 mb-6">
-              Mobile Hibachi in <span className="text-primary">Los Angeles & SoCal</span>
-            </h1>
+          </>
+        }
+        title={
+          <>
+            Mobile Hibachi in <span className="text-primary">Los Angeles & SoCal</span>
+          </>
+        }
+        subhead="The restaurant comes to you: a private chef, the teppanyaki grill, and the full fire show in your backyard, driveway, or venue."
+        citySlug="mobile-hibachi"
+        cityName="Southern California"
+        source="mobile_hibachi"
+        smsHref={smsHref("Hi! I'd like a quote for a mobile hibachi party.")}
+        reviews={pickReviews("mobile-hibachi")}
+      />
+
+      {/* Intro copy — used to open the page; now sits under the price. */}
+      <section className="py-10 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
             <p className="text-lg md:text-xl text-gray-600 mb-4 leading-relaxed">
               A mobile hibachi party means the restaurant comes to you: a private chef pulls up with the teppanyaki
               grill, fresh ingredients, and the full fire show, and cooks course by course in your backyard, on your
@@ -192,35 +207,6 @@ export default function MobileHibachiPage() {
               No reservations, no parking downtown, no splitting the check across four tables. Mobile hibachi catering
               from Real Hibachi serves Los Angeles, Orange County, San Diego, and everywhere in between.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 mb-8">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
-                <Link href={QUOTE_HREF}>Get Instant Quote</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
-                <Link href={phone.voice.tel}>
-                  <Phone className="h-5 w-5 mr-2" />
-                  Call {phone.voice.display}
-                </Link>
-              </Button>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center">
-                <Check className="h-4 w-4 text-primary mr-1" />
-                Full deposit refund up to 72h
-              </span>
-              <span className="flex items-center">
-                <Users className="h-4 w-4 text-primary mr-1" />
-                500+ Events
-              </span>
-              <span className="flex items-center">
-                <ChefHat className="h-4 w-4 text-primary mr-1" />
-                Licensed & Insured
-              </span>
-              <span className="flex items-center">
-                <Clock className="h-4 w-4 text-primary mr-1" />
-                Setup & Cleanup Included
-              </span>
-            </div>
           </div>
         </div>
       </section>
