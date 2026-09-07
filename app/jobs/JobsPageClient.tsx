@@ -9,19 +9,21 @@ import { COPY, PHONE, SCRIPT_LINES, SMS_HREF, type JobsLocale } from "./copy"
 
 const LOCALES: JobsLocale[] = ["zh", "en", "es"]
 
-// Someone arriving from a Chinese forum post should not land on English, and
-// someone from a Spanish-language group should not land on Chinese. ?lang wins
-// (we can pin it per channel in the link we post); otherwise follow the browser.
+// Chinese for everyone. Recruiting currently runs only through Chinese-language
+// channels, so browser-language detection was sending people who arrived from a
+// Chinese forum post to an English page whenever their laptop was set to
+// English — which in Southern California is most of them.
+//
+// The English and Spanish copy stays in copy.ts and is still reachable with an
+// explicit ?lang=en / ?lang=es, so a link can be pinned to another language
+// without a code change when those channels open back up.
 function detectLocale(): JobsLocale {
   if (typeof window === "undefined") return "zh"
 
   const fromQuery = new URLSearchParams(window.location.search).get("lang")?.toLowerCase()
   if (fromQuery && LOCALES.includes(fromQuery as JobsLocale)) return fromQuery as JobsLocale
 
-  const nav = (window.navigator.language || "").toLowerCase()
-  if (nav.startsWith("zh")) return "zh"
-  if (nav.startsWith("es")) return "es"
-  return "en"
+  return "zh"
 }
 
 type Status = "idle" | "sending" | "done"
@@ -96,31 +98,9 @@ export default function JobsPageClient() {
     }
   }
 
-  const langSwitch = (
-    <div className="flex gap-1" role="group" aria-label="Language">
-      {LOCALES.map((code) => (
-        <button
-          key={code}
-          type="button"
-          onClick={() => setLocale(code)}
-          aria-pressed={locale === code}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-            locale === code
-              ? "bg-orange-600 text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-          }`}
-        >
-          {COPY[code].langLabel}
-        </button>
-      ))}
-    </div>
-  )
-
   if (status === "done") {
     return (
-      <main className="mx-auto max-w-2xl px-5 py-16">
-        <div className="mb-8 flex justify-end">{langSwitch}</div>
-
+      <main className="mx-auto max-w-2xl px-5 pb-16 pt-32">
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900">{t.doneTitle}</h1>
         <p className="mt-2 text-neutral-600">{t.doneLede}</p>
 
@@ -150,11 +130,8 @@ export default function JobsPageClient() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-12">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">{t.eyebrow}</p>
-        {langSwitch}
-      </div>
+    <main className="mx-auto max-w-2xl px-5 pb-16 pt-32">
+      <p className="mb-6 text-xs font-semibold tracking-widest text-orange-600">{t.eyebrow}</p>
 
       <h1 className="text-3xl font-bold leading-tight tracking-tight text-neutral-900 sm:text-4xl">{t.h1}</h1>
       <p className="mt-4 leading-relaxed text-neutral-600">{t.lede}</p>

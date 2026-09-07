@@ -6,10 +6,11 @@ import JobsPageClient from "./JobsPageClient"
 // it, but it stays out of search and out of site navigation. Customers looking
 // for dinner should not land on a hiring page, and pay ladders and training
 // terms are not something we want indexed next to the menu.
+// The title carries no " | Real Hibachi" suffix of its own — the root layout's
+// template already appends one, and spelling it out here printed it twice.
 export const metadata: Metadata = {
-  title: "Weekend Hibachi Chef & Apprentice Jobs | Real Hibachi",
-  description:
-    "Weekend hibachi chef and apprentice openings across Southern California. Shared directly with applicants.",
+  title: "招聘周末上门铁板烧师傅／学徒",
+  description: "南加州周末上门铁板烧师傅与学徒招聘。仅通过链接分享给应聘者。",
   robots: { index: false, follow: false },
 }
 
