@@ -22,6 +22,14 @@ import { Input } from "@/components/ui/input"
  * Focus also selects the contents, because every one of these fields ships
  * with a sensible default that most people need to replace.
  */
+/** Select the whole value once the browser has finished placing the caret. */
+function selectAll(el: HTMLInputElement) {
+  requestAnimationFrame(() => {
+    // Guard: the customer may have moved on before the frame ran.
+    if (document.activeElement === el) el.select()
+  })
+}
+
 export default function GuestCountInput({
   value,
   onValueChange,
@@ -69,8 +77,14 @@ export default function GuestCountInput({
       className={className}
       onFocus={(e) => {
         focused.current = true
-        e.currentTarget.select()
+        // Mobile browsers place the caret at the tap position *after* the
+        // focus handler runs, so selecting synchronously here gets undone and
+        // the customer ends up typing beside the old number instead of over
+        // it. Defer past that, and repeat on click because a tap fires focus
+        // and click in that order.
+        selectAll(e.currentTarget)
       }}
+      onClick={(e) => selectAll(e.currentTarget)}
       onChange={(e) => commit(e.target.value)}
       onBlur={() => {
         focused.current = false
