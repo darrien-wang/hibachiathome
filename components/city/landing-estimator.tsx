@@ -75,7 +75,8 @@ export default function LandingEstimator({
 
   return (
     <>
-      <div id="price" className="scroll-mt-24 flex flex-col gap-3.5 rounded-[28px] border border-ink/10 bg-white p-[18px] shadow-organic-lg lg:p-[22px]">
+      {/* text-ink is explicit: on desktop this card sits inside the hero, which is text-white. */}
+      <div id="price" className="scroll-mt-24 flex flex-col gap-3.5 rounded-[28px] border border-ink/10 bg-white p-[18px] text-ink shadow-organic-lg lg:p-[22px]">
         <div className="flex items-baseline justify-between">
           <span className="text-[13px] font-bold uppercase tracking-[0.06em] text-clay-600">Your {shownCity} party</span>
           <span className="text-xs text-clay-600">30-sec estimate</span>
