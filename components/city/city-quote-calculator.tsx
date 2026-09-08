@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Mail, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import GuestCountInput from "@/components/ui/guest-count-input"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
@@ -64,8 +65,6 @@ export default function CityQuoteCalculator({
   const [touched, setTouched] = useState(false)
   const [ctaVisible, setCtaVisible] = useState(true)
   const ctaRef = useRef<HTMLDivElement | null>(null)
-
-  const clamp = (n: number) => (Number.isFinite(n) && n >= 0 ? Math.min(n, 200) : 0)
 
   const standardSubtotal = roundCurrency(adults * GUEST_TIERS.adult.price + kids * GUEST_TIERS.child.price)
   const standard = Math.max(standardSubtotal, MINIMUM_SPEND)
@@ -184,26 +183,22 @@ export default function CityQuoteCalculator({
       <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3" onFocusCapture={() => setTouched(true)}>
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Adults</span>
-          <Input
-            type="number"
-            inputMode="numeric"
+          <GuestCountInput
             min={0}
             max={200}
             value={adults}
-            onChange={(e) => setAdults(clamp(Number(e.target.value)))}
+            onValueChange={setAdults}
             aria-label="Number of adults"
             className="h-11 text-base"
           />
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Kids 5–12</span>
-          <Input
-            type="number"
-            inputMode="numeric"
+          <GuestCountInput
             min={0}
             max={200}
             value={kids}
-            onChange={(e) => setKids(clamp(Number(e.target.value)))}
+            onValueChange={setKids}
             aria-label="Number of kids age 5 to 12"
             className="h-11 text-base"
           />

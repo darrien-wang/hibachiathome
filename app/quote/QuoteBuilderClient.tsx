@@ -9,6 +9,7 @@ import AvailabilityCalendar from "@/components/quote/availability-calendar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import GuestCountInput from "@/components/ui/guest-count-input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -1349,24 +1350,20 @@ export default function QuoteBuilderClient() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Adults</span>
-                <Input
-                  type="number"
-                  inputMode="numeric"
+                <GuestCountInput
                   min={1}
                   value={input.adults}
-                  onChange={(e) => handleFieldChange("adults", Number(e.target.value) || 0)}
+                  onValueChange={(next) => handleFieldChange("adults", next)}
                   aria-label="Number of adults"
                   className="h-11 text-base"
                 />
               </label>
               <label className="block">
                 <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Kids 5–12</span>
-                <Input
-                  type="number"
-                  inputMode="numeric"
+                <GuestCountInput
                   min={0}
                   value={input.kids}
-                  onChange={(e) => handleFieldChange("kids", Number(e.target.value) || 0)}
+                  onValueChange={(next) => handleFieldChange("kids", next)}
                   aria-label="Number of kids age 5 to 12"
                   className="h-11 text-base"
                 />
@@ -1556,23 +1553,21 @@ export default function QuoteBuilderClient() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="quote-adults" className="block text-sm font-medium mb-2">Adults *</label>
-                  <Input
+                  <GuestCountInput
                     id="quote-adults"
-                    type="number"
                     min={1}
                     data-quote-field="adults"
                     value={input.adults}
-                    onChange={(e) => handleFieldChange("adults", Number(e.target.value) || 0)}
+                    onValueChange={(next) => handleFieldChange("adults", next)}
                   />
                 </div>
                 <div>
                   <label htmlFor="quote-kids" className="block text-sm font-medium mb-2">Kids</label>
-                  <Input
+                  <GuestCountInput
                     id="quote-kids"
-                    type="number"
                     min={0}
                     value={input.kids}
-                    onChange={(e) => handleFieldChange("kids", Number(e.target.value) || 0)}
+                    onValueChange={(next) => handleFieldChange("kids", next)}
                   />
                 </div>
               </div>
