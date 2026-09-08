@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { Mail, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,12 @@ import {
 // scrolled <25% and left without seeing a price — so the price, the date, and
 // the two plans all live here, above the fold. All rates come from
 // config/pricing-rules.ts — never hard-code a money value here.
+//
+// 2026-09-07 evening tapes: visitors typed into the inputs and tapped the price
+// cards and hint text, but 0 of 31 reached /quote — on a real phone the
+// keyboard / date picker covers the CTA. So: the price cards are now links
+// into /quote (plan preselected), and on mobile a sticky bar keeps the CTA on
+// screen while the visitor is editing.
 
 const fmt = (value: number) => {
   const rounded = roundCurrency(value)
@@ -55,6 +61,9 @@ export default function CityQuoteCalculator({
   const [adults, setAdults] = useState(15)
   const [kids, setKids] = useState(0)
   const [date, setDate] = useState("")
+  const [touched, setTouched] = useState(false)
+  const [ctaVisible, setCtaVisible] = useState(true)
+  const ctaRef = useRef<HTMLDivElement | null>(null)
 
   const clamp = (n: number) => (Number.isFinite(n) && n >= 0 ? Math.min(n, 200) : 0)
 
@@ -81,10 +90,15 @@ export default function CityQuoteCalculator({
   const dateLabel = dateKnown ? describeDate(date) : null
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
-  const params = new URLSearchParams({ source: attribution, adults: String(adults), kids: String(kids) })
-  if (dateKnown) params.set("date", date)
-  if (weekdayApplies) params.set("plan", "weekday")
-  const quoteHref = `/quote?${params.toString()}`
+  const buildHref = (plan: "weekday" | "standard" | "auto") => {
+    const params = new URLSearchParams({ source: attribution, adults: String(adults), kids: String(kids) })
+    if (dateKnown) params.set("date", date)
+    const wantWeekday = plan === "weekday" || (plan === "auto" && weekdayApplies)
+    if (wantWeekday) params.set("plan", "weekday")
+    return `/quote?${params.toString()}`
+  }
+  const quoteHref = buildHref("auto")
+  const chosenTotal = weekdayApplies ? weekdayTotal : standard
 
   // Email is the channel both ad-attributed bookings in 2026-08-31~09-07 came
   // through, yet paid landings had no email affordance (决策日志 D-0907-04).
@@ -125,6 +139,21 @@ export default function CityQuoteCalculator({
     return `${dateLabel} qualifies — you save $${fmt(standard - weekdayTotal)}.`
   })()
 
+  // Sticky mobile bar: shown once the visitor has touched an input and the
+  // real CTA is off-screen (keyboard up, or scrolled past it).
+  useEffect(() => {
+    const el = ctaRef.current
+    if (!el || typeof IntersectionObserver === "undefined") return
+    const io = new IntersectionObserver((entries) => setCtaVisible(entries[0]?.isIntersecting ?? true), {
+      threshold: 0.6,
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  const showSticky = touched && !ctaVisible
+
+  const cardBase = "block rounded-xl border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+
   return (
     <div
       id="price"
@@ -133,7 +162,7 @@ export default function CityQuoteCalculator({
       <p className="text-base font-bold text-gray-900 sm:text-lg">Your {shownCity} party, priced right here</p>
       <p className="mt-0.5 text-xs text-gray-600 sm:text-sm">No form, no phone number — just move the numbers.</p>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3" onFocusCapture={() => setTouched(true)}>
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Adults</span>
           <Input
@@ -172,11 +201,16 @@ export default function CityQuoteCalculator({
         </label>
       </div>
 
+      {/* Both plans are links — tapping a price is the most natural "yes" on a phone. */}
       <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3" aria-live="polite">
-        <div
-          className={`rounded-xl border p-3 ${
-            weekdayApplies ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200" : "border-gray-200 bg-gray-50"
+        <Link
+          href={buildHref("weekday")}
+          className={`${cardBase} ${
+            weekdayApplies
+              ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200"
+              : "border-gray-200 bg-gray-50 hover:border-emerald-300"
           }`}
+          aria-label={`Weekday Special, $${fmt(weekdayTotal)} total — get exact quote`}
         >
           <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Weekday Special</p>
           <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">${fmt(weekdayTotal)}</p>
@@ -184,18 +218,24 @@ export default function CityQuoteCalculator({
             ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid · Mon–Thu ·{" "}
             {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
           </p>
-        </div>
-        <div
-          className={`rounded-xl border p-3 ${
-            weekdayApplies ? "border-gray-200 bg-gray-50" : "border-orange-300 bg-orange-50 ring-2 ring-orange-200"
+          <p className="mt-1 text-[11px] font-semibold text-emerald-800 underline underline-offset-2">Choose &amp; get exact quote →</p>
+        </Link>
+        <Link
+          href={buildHref("standard")}
+          className={`${cardBase} ${
+            weekdayApplies
+              ? "border-gray-200 bg-gray-50 hover:border-orange-300"
+              : "border-orange-300 bg-orange-50 ring-2 ring-orange-200"
           }`}
+          aria-label={`Standard any day, $${fmt(standard)} total — get exact quote`}
         >
           <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-800">Standard · any day</p>
           <p className="mt-0.5 text-xl font-bold text-orange-800 sm:text-2xl">${fmt(standard)}</p>
           <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">
             ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid · ${MINIMUM_SPEND} minimum
           </p>
-        </div>
+          <p className="mt-1 text-[11px] font-semibold text-orange-800 underline underline-offset-2">Choose &amp; get exact quote →</p>
+        </Link>
       </div>
 
       <p className="mt-2 text-xs text-gray-600">
@@ -207,7 +247,7 @@ export default function CityQuoteCalculator({
         fee shows in your quote before you pay.
       </p>
 
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+      <div ref={ctaRef} className="mt-3 flex flex-col gap-2 sm:flex-row">
         <Button
           asChild
           className="h-12 flex-1 rounded-full bg-[hsl(24_79%_55%)] px-6 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
@@ -237,6 +277,19 @@ export default function CityQuoteCalculator({
           </a>
         </Button>
       </div>
+
+      {showSticky ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-amber-200 bg-white/95 p-3 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+          <Button
+            asChild
+            className="h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+          >
+            <Link href={quoteHref}>
+              Get my exact quote · ${fmt(chosenTotal)}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
