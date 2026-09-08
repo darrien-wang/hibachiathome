@@ -15,7 +15,9 @@ import { trackEvent } from "@/lib/tracking"
 // dishes, two real reviews, three questions. Everything else moved to /menu,
 // /faq and the city pages — the old homepage was ~700 lines of copy.
 
-const HERO_IMG = "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg"
+// 2560px sharpened/denoised master of gallery/…night-fire-show-18.jpg (the 48MP
+// original is a soft phone upscale; served large it read as blur — 2026-09-08).
+const HERO_IMG = "/images/hero/fire-show-hero.jpg"
 
 const fmt = (v: number) => v.toFixed(2)
 
@@ -105,6 +107,7 @@ export default function Home() {
           alt="Live hibachi fire show at a backyard party in Orange County"
           fill
           priority
+          quality={90}
           sizes="100vw"
           className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06]"
         />

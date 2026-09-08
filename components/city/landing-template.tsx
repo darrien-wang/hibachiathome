@@ -45,7 +45,9 @@ export type LandingTemplateProps = {
   footnote?: ReactNode
 }
 
-const HERO_IMG = "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg"
+// 2560px sharpened/denoised master of gallery/…night-fire-show-18.jpg (the 48MP
+// original is a soft phone upscale; served large it read as blur — 2026-09-08).
+const HERO_IMG = "/images/hero/fire-show-hero.jpg"
 
 const DISHES = [
   { src: "/images/menu/steak.jpg", label: "Steak 4.5 oz" },
@@ -134,7 +136,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
     <div className="bg-cream pb-28 text-ink lg:pb-16">
       {/* ── Hero ── */}
       <section className="relative isolate overflow-hidden bg-cocoa text-white">
-        <Image src={HERO_IMG} alt={`Live hibachi fire show at a backyard party — hibachi at home in ${city}`} fill priority sizes="100vw" className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06] lg:object-[center_45%]" />
+        <Image src={HERO_IMG} alt={`Live hibachi fire show at a backyard party — hibachi at home in ${city}`} fill priority quality={90} sizes="100vw" className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06] lg:object-[center_45%]" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,26,16,.6)_0%,rgba(42,26,16,.2)_30%,rgba(42,26,16,.5)_60%,#2a1a10_100%)] lg:bg-[linear-gradient(90deg,rgba(42,26,16,.9)_0%,rgba(42,26,16,.65)_50%,rgba(42,26,16,.25)_100%),linear-gradient(180deg,rgba(42,26,16,.3),transparent_30%,#2a1a10_100%)]" />
         <div className="relative mx-auto max-w-7xl px-5 pb-9 pt-[calc(var(--header-height,60px)+130px)] lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-14 lg:px-8 lg:pb-[70px] lg:pt-[calc(var(--header-height,72px)+48px)]">
           <div className="flex flex-col gap-3 lg:gap-5">
