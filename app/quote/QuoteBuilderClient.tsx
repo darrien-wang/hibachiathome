@@ -243,6 +243,40 @@ export default function QuoteBuilderClient() {
   const promoStageRef = useRef<"none" | "teased" | "unlocked">("none")
   const mediaStripRef = useRef<HTMLDivElement | null>(null)
 
+  // Package B (2026-09-07): the hero carries the three core inputs and both
+  // plans, so a paid visitor prices the party on the first screen. Once they
+  // touch an input, a sticky "Text us this quote" bar keeps the SMS-first CTA
+  // on screen (measured against the visual viewport so the keyboard counts
+  // as covering it).
+  const [heroTouched, setHeroTouched] = useState(false)
+  const [smsCtaVisible, setSmsCtaVisible] = useState(true)
+  const smsButtonRef = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    if (!heroTouched) return
+    const check = () => {
+      const el = smsButtonRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const vv = window.visualViewport
+      const top = vv ? vv.offsetTop : 0
+      const bottom = top + (vv ? vv.height : window.innerHeight)
+      setSmsCtaVisible(r.top >= top && r.bottom <= bottom)
+    }
+    check()
+    window.addEventListener("scroll", check, { passive: true })
+    window.addEventListener("resize", check)
+    window.visualViewport?.addEventListener("resize", check)
+    window.visualViewport?.addEventListener("scroll", check)
+    const t = window.setInterval(check, 1000)
+    return () => {
+      window.removeEventListener("scroll", check)
+      window.removeEventListener("resize", check)
+      window.visualViewport?.removeEventListener("resize", check)
+      window.visualViewport?.removeEventListener("scroll", check)
+      window.clearInterval(t)
+    }
+  }, [heroTouched])
+
   // Prefill guest counts handed over by city-page calculators, plus referral
   // codes arriving via partner links (?ref=RH-MARIA50). Read from
   // window.location instead of useSearchParams — that hook once bailed the
@@ -727,6 +761,38 @@ export default function QuoteBuilderClient() {
         addOns: { steak: false, shrimp: false, lobster: false },
       }
     })
+  }
+
+  // First-screen estimate for the hero: same rates as the builder, before the
+  // visitor has typed a city (the builder needs city/ZIP for the exact range).
+  const heroAdults = Math.max(0, Math.floor(input.adults || 0))
+  const heroKids = Math.max(0, Math.floor(input.kids || 0))
+  const heroEstimate = (weekday: boolean) => {
+    const adultRate = weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price
+    const kidRate = weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price
+    const subtotal = Math.round((heroAdults * adultRate + heroKids * kidRate) * 100) / 100
+    return Math.max(subtotal, MINIMUM_SPEND)
+  }
+  const fmtMoney = (v: number) => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2))
+  const scrollToBuilder = (focusId: string) => {
+    document.getElementById("quote-builder")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    window.setTimeout(() => document.getElementById(focusId)?.focus(), 450)
+  }
+  const onHeroPlanClick = (plan: "weekday" | "standard") => {
+    setHeroTouched(true)
+    if (plan === "weekday") {
+      if (weekdayEligible && input.pricingTier !== "weekday_saver") handleWeekdaySaverToggle()
+      if (!weekdayEligible) {
+        pushToast(
+          "error",
+          "Weekday Special needs a Mon–Thu date and 15+ guests",
+          `Kids 5–12 count as half. Otherwise the Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
+        )
+      }
+    } else if (input.pricingTier === "weekday_saver") {
+      handleWeekdaySaverToggle()
+    }
+    scrollToBuilder(input.eventDate ? "quote-location" : "quote-event-date")
   }
 
   // Upgrades stay clickable on every tier: checking one while Weekday Special
@@ -1243,7 +1309,7 @@ export default function QuoteBuilderClient() {
           ))}
         </div>
 
-        <section className="relative mb-8 overflow-hidden rounded-2xl">
+        <section className="relative mb-6 overflow-hidden rounded-2xl">
           <Image
             src="/images/hero/quote-hero-night.jpg"
             alt=""
@@ -1253,43 +1319,129 @@ export default function QuoteBuilderClient() {
             sizes="100vw"
             className="object-cover object-[58%_40%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/60" />
-          <div className="relative mx-auto max-w-3xl px-5 py-12 text-center text-white sm:py-16">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/65" />
+          <div className="relative mx-auto max-w-3xl px-4 py-8 text-center text-white sm:px-5 sm:py-12">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-300 sm:text-xs">
               Private Hibachi Catering · LA, OC & SoCal
             </p>
-            <h1 className="mt-3 text-3xl font-bold leading-tight sm:text-5xl">
-              See Your Exact Hibachi Price in 30 Seconds
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-white/90 sm:text-lg">
+            <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-4xl">See Your Exact Hibachi Price in 30 Seconds</h1>
+            <p className="mt-1.5 text-xs leading-5 text-white/90 sm:text-base">
               No phone number. No sign-up. Food, show, and travel — all in the price you see.
             </p>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
-              <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Weekdays from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}</span>/person · 15+ guests
-              </span>
-              <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Kids from <span className="font-bold text-amber-300">${GUEST_TIERS.child.weekdayPrice.toFixed(2)}</span>
-              </span>
-              <span className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm">
-                Weekends from <span className="font-bold text-amber-300">${GUEST_TIERS.adult.price.toFixed(2)}</span>
-              </span>
+
+            {/* The three numbers that set the price, on the first screen. Same
+                state as the builder below, so nothing is typed twice. */}
+            <div
+              className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-white/95 p-2.5 text-left text-gray-900 shadow-lg backdrop-blur sm:gap-3 sm:p-3"
+              onFocusCapture={() => setHeroTouched(true)}
+            >
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Event date</span>
+                <Input
+                  type="date"
+                  value={input.eventDate}
+                  onChange={(e) => handleFieldChange("eventDate", e.target.value)}
+                  onClick={openNativeDatePicker}
+                  onFocus={openNativeDatePicker}
+                  aria-label="Event date"
+                  className="h-11 text-base"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Adults</span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={input.adults}
+                  onChange={(e) => handleFieldChange("adults", Number(e.target.value) || 0)}
+                  aria-label="Number of adults"
+                  className="h-11 text-base"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Kids 5–12</span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={input.kids}
+                  onChange={(e) => handleFieldChange("kids", Number(e.target.value) || 0)}
+                  aria-label="Number of kids age 5 to 12"
+                  className="h-11 text-base"
+                />
+              </label>
             </div>
-            {/* The 9/1 tapes showed a 10-guest visitor grinding against the locked
-                weekday rate — say who qualifies before anyone starts hoping. */}
-            <p className="mt-2 text-xs text-white/75">
-              Weekday rates apply Mon–Thu for parties of 15+ guests — all other parties from $
-              {GUEST_TIERS.adult.price.toFixed(2)}/person.
+
+            {/* Both plans, priced live, tappable. Replaces the three text pills
+                that the 9/7 tapes showed people tapping three times in a row. */}
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => onHeroPlanClick("weekday")}
+                aria-pressed={isWeekdaySaverTier}
+                className={`rounded-xl border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                  isWeekdaySaverTier
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-300"
+                    : "border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
+                }`}
+              >
+                <span className="block text-[11px] font-semibold uppercase tracking-wide">Weekday Special</span>
+                <span className="mt-0.5 block text-xl font-bold sm:text-2xl">${fmtMoney(heroEstimate(true))}</span>
+                <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">
+                  ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult · ${GUEST_TIERS.child.weekdayPrice.toFixed(2)}/kid · Mon–Thu ·{" "}
+                  {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
+                </span>
+                <span className="mt-1 block text-[11px] font-semibold underline underline-offset-2">
+                  {weekdayEligible ? (isWeekdaySaverTier ? "Selected ✓" : "Tap to select") : "Needs Mon–Thu & 15+"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onHeroPlanClick("standard")}
+                aria-pressed={!isWeekdaySaverTier}
+                className={`rounded-xl border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                  !isWeekdaySaverTier
+                    ? "border-orange-300 bg-orange-50 text-orange-900 ring-2 ring-orange-300"
+                    : "border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
+                }`}
+              >
+                <span className="block text-[11px] font-semibold uppercase tracking-wide">Standard · any day</span>
+                <span className="mt-0.5 block text-xl font-bold sm:text-2xl">${fmtMoney(heroEstimate(false))}</span>
+                <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">
+                  ${GUEST_TIERS.adult.price.toFixed(2)}/adult · ${GUEST_TIERS.child.price.toFixed(2)}/kid · ${MINIMUM_SPEND} minimum
+                </span>
+                <span className="mt-1 block text-[11px] font-semibold underline underline-offset-2">
+                  {!isWeekdaySaverTier ? "Selected ✓" : "Tap to select"}
+                </span>
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] text-white/80 sm:text-xs">
+              Under 5 eat free · chef, grill, food, live show, setup &amp; cleanup included · travel fee shown before you pay
             </p>
-            <div className="mt-6">
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button
-                asChild
+                type="button"
+                onClick={() => {
+                  setHeroTouched(true)
+                  scrollToBuilder(input.eventDate && heroAdults > 0 ? "quote-location" : "quote-event-date")
+                }}
                 className="h-12 rounded-full bg-[hsl(24_79%_55%)] px-8 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
               >
-                <a href="#quote-builder">Get My Exact Price</a>
+                See my exact price →
+              </Button>
+              <Button
+                type="button"
+                onClick={onSmsClick}
+                variant="outline"
+                className="h-12 rounded-full border-2 border-white/70 bg-white/10 px-6 text-base font-semibold text-white backdrop-blur-sm hover:bg-white/20"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Text us instead
               </Button>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <a
                 href="#quote-reviews"
                 className="inline-flex flex-wrap items-center justify-center gap-1.5 text-sm text-white/90 underline-offset-4 hover:underline"
@@ -1300,37 +1452,21 @@ export default function QuoteBuilderClient() {
                 </span>
               </a>
             </div>
-            <p className="mt-3 text-xs italic text-white/70">Fire up your story.</p>
           </div>
         </section>
 
-        {/* One-row film strip: drifts back and forth on its own, pauses the
-            moment the visitor touches it, and stays hand-swipeable. Videos
-            still lazy-load only once their card scrolls into view. */}
-        <div
-          ref={mediaStripRef}
-          className="mb-10 flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {QUOTE_PROOF_MEDIA.map((media) => (
-            <div key={media.src} className="relative h-44 w-64 shrink-0 overflow-hidden rounded-xl sm:h-52 sm:w-80">
-              {media.type === "video" ? (
-                <LazyVideo
-                  className="absolute inset-0 h-full w-full object-cover"
-                  poster={media.poster}
-                  src={media.src}
-                />
-              ) : (
-                <Image
-                  src={media.src}
-                  alt={media.alt}
-                  fill
-                  sizes="320px"
-                  className="object-cover"
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        {heroTouched && !smsCtaVisible && !bookingConfirmation ? (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-amber-200 bg-white/95 p-3 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+            <Button
+              type="button"
+              onClick={onSmsClick}
+              className="h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Text us this quote · ${fmtMoney(heroEstimate(isWeekdaySaverTier))}
+            </Button>
+          </div>
+        ) : null}
 
         <div id="quote-builder" className="grid scroll-mt-24 gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
           <Card>
@@ -1663,6 +1799,7 @@ export default function QuoteBuilderClient() {
                   Gratuity isn&apos;t included — 20-25% for your chef is customary. No other fees.
                 </p>
                 <Button
+                  ref={smsButtonRef}
                   onClick={onSmsClick}
                   className="mt-3 h-auto min-h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-sm whitespace-normal py-3 px-4"
                 >
@@ -1939,6 +2076,34 @@ export default function QuoteBuilderClient() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* One-row film strip: drifts back and forth on its own, pauses the
+            moment the visitor touches it, and stays hand-swipeable. Videos
+            still lazy-load only once their card scrolls into view. */}
+        <div
+          ref={mediaStripRef}
+          className="mb-10 mt-12 flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {QUOTE_PROOF_MEDIA.map((media) => (
+            <div key={media.src} className="relative h-44 w-64 shrink-0 overflow-hidden rounded-xl sm:h-52 sm:w-80">
+              {media.type === "video" ? (
+                <LazyVideo
+                  className="absolute inset-0 h-full w-full object-cover"
+                  poster={media.poster}
+                  src={media.src}
+                />
+              ) : (
+                <Image
+                  src={media.src}
+                  alt={media.alt}
+                  fill
+                  sizes="320px"
+                  className="object-cover"
+                />
+              )}
+            </div>
+          ))}
         </div>
 
         <div id="quote-reviews" className="mt-12 scroll-mt-24">
