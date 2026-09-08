@@ -248,16 +248,23 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
         reviews={cityReviews}
       />
 
-      {/* City intro — the copy that used to open the page now sits under the price. */}
-      <section className="py-10 bg-white">
+      {/* City intro — the copy that used to open the page, now folded under the
+          price. Still rendered in the HTML (crawlable); a tap opens it. */}
+      <section className="bg-white py-6">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            {page.intro.map((paragraph) => (
-              <p key={paragraph.slice(0, 32)} className="text-lg md:text-xl text-gray-600 mb-4 leading-relaxed">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          <details className="group mx-auto max-w-3xl rounded-2xl border border-amber-100 bg-[#fffdf8] open:bg-white">
+            <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-base font-semibold text-gray-900 [&::-webkit-details-marker]:hidden">
+              Why {page.city} hosts book us
+              <span className="text-xl leading-none text-gray-400 transition group-open:rotate-45">+</span>
+            </summary>
+            <div className="px-4 pb-4">
+              {page.intro.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)} className="mb-3 text-base leading-relaxed text-gray-600 md:text-lg">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </details>
         </div>
       </section>
 

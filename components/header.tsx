@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
@@ -25,7 +26,14 @@ const navItems = [
   { name: "Español", href: "/es", disabled: false },
 ]
 
+// Ad landing pages + /quote: the 120px mobile header pushed the price below
+// the fold (2026-09-07 Clarity). These routes get a ~52px header on phones;
+// every other page and every desktop width is unchanged.
+const COMPACT_ROUTES = /^\/(hibachi-at-home|hibachi-catering|mobile-hibachi|private-hibachi-chef|quote)(\/|$)/
+
 export function Header() {
+  const pathname = usePathname()
+  const compact = COMPACT_ROUTES.test(pathname ?? "")
   const [isScrolled, setIsScrolled] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
@@ -90,6 +98,13 @@ export function Header() {
     }
   }, [])
 
+  // The header's own height changes with the route (compact vs full).
+  useEffect(() => {
+    if (headerRef.current) {
+      document.documentElement.style.setProperty("--header-height", `${headerRef.current.offsetHeight}px`)
+    }
+  }, [compact])
+
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true })
 
@@ -116,7 +131,7 @@ export function Header() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 lg:py-8 relative">
+      <div className={`max-w-7xl mx-auto px-2 sm:px-4 ${compact ? "py-1.5" : "py-3"} lg:py-8 relative`}>
         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-[120px] h-[120px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
 
 
@@ -137,14 +152,16 @@ export function Header() {
           </div>
 
           {/* Centered Logo - Now positioned lower on mobile */}
-          <div className="flex items-center justify-center relative h-[50px] z-10 overflow-visible mx-auto max-w-[120px]">
+          <div className={`flex items-center justify-center relative ${compact ? "h-[40px]" : "h-[50px]"} z-10 overflow-visible mx-auto max-w-[120px]`}>
             <Link href="/" className="block relative">
               <Image
                 src="/images/design-mode/realhibachiathome.png"
                 alt={siteConfig.logo.alt}
                 width={siteConfig.logo.width * 0.8}
                 height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[96px] sm:w-[112px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all translate-y-[38px]"
+                className={`h-auto hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all ${
+                  compact ? "w-[76px] sm:w-[96px] translate-y-[12px]" : "w-[96px] sm:w-[112px] translate-y-[38px]"
+                }`}
                 priority
               />
             </Link>

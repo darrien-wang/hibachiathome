@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import GuestCountInput from "@/components/ui/guest-count-input"
+import GuestStepper from "@/components/ui/guest-stepper"
+import InfoTip from "@/components/ui/info-tip"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -564,7 +566,7 @@ export default function QuoteBuilderClient() {
           "Parties of 20+ get gyoza, edamame & spring rolls included ($40 value).",
         )
       }
-    } else if (guests >= 15 && promoStageRef.current === "none") {
+    } else if (guests >= 15 && promoStageRef.current === "none" && quoteStartIntentCaptured) {
       promoStageRef.current = "teased"
       const short = 20 - guests
       pushToast(
@@ -573,7 +575,7 @@ export default function QuoteBuilderClient() {
         "Parties of 20+ get gyoza, edamame & spring rolls free ($40 value).",
       )
     }
-  }, [result.guestCount, pushToast])
+  }, [result.guestCount, pushToast, quoteStartIntentCaptured])
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
@@ -1322,51 +1324,60 @@ export default function QuoteBuilderClient() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/65" />
           <div className="relative mx-auto max-w-3xl px-4 py-8 text-center text-white sm:px-5 sm:py-12">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-300 sm:text-xs">
-              Private Hibachi Catering · LA, OC & SoCal
-            </p>
-            <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-4xl">See Your Exact Hibachi Price in 30 Seconds</h1>
-            <p className="mt-1.5 text-xs leading-5 text-white/90 sm:text-base">
-              No phone number. No sign-up. Food, show, and travel — all in the price you see.
-            </p>
+            <h1 className="text-2xl font-bold leading-tight sm:text-4xl">Your Exact Hibachi Price</h1>
+            <p className="mt-1 hidden text-sm text-white/90 sm:block sm:text-base">No phone number. No sign-up. Food, show and travel in one price.</p>
 
             {/* The three numbers that set the price, on the first screen. Same
                 state as the builder below, so nothing is typed twice. */}
             <div
-              className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-white/95 p-2.5 text-left text-gray-900 shadow-lg backdrop-blur sm:gap-3 sm:p-3"
+              className="mt-4 flex flex-col gap-2.5 rounded-xl bg-white/95 p-3 text-left text-gray-900 shadow-lg backdrop-blur"
               onFocusCapture={() => setHeroTouched(true)}
+              onPointerDownCapture={() => setHeroTouched(true)}
             >
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Event date</span>
-                <Input
-                  type="date"
-                  value={input.eventDate}
-                  onChange={(e) => handleFieldChange("eventDate", e.target.value)}
-                  onClick={openNativeDatePicker}
-                  onFocus={openNativeDatePicker}
-                  aria-label="Event date"
-                  className="h-11 text-base"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Adults</span>
-                <GuestCountInput
-                  min={1}
-                  value={input.adults}
-                  onValueChange={(next) => handleFieldChange("adults", next)}
-                  aria-label="Number of adults"
-                  className="h-11 text-base"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium text-gray-700 sm:text-xs">Kids 5–12</span>
-                <GuestCountInput
-                  min={0}
-                  value={input.kids}
-                  onValueChange={(next) => handleFieldChange("kids", next)}
-                  aria-label="Number of kids age 5 to 12"
-                  className="h-11 text-base"
-                />
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Adults</span>
+                  <GuestStepper
+                    value={input.adults}
+                    onValueChange={(next) => handleFieldChange("adults", next)}
+                    min={1}
+                    label="Number of adults"
+                    data-quote-field="adults"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Kids 5–12</span>
+                  <GuestStepper
+                    value={input.kids}
+                    onValueChange={(next) => handleFieldChange("kids", next)}
+                    min={0}
+                    label="Number of kids age 5 to 12"
+                    data-quote-field="kids"
+                  />
+                </div>
+              </div>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Event date</span>
+                <span className="relative flex h-11 items-center rounded-xl border border-gray-200 bg-white">
+                  <CalendarDays className="pointer-events-none absolute left-3 h-4 w-4 text-gray-500" aria-hidden="true" />
+                  <Input
+                    type="date"
+                    value={input.eventDate}
+                    onChange={(e) => handleFieldChange("eventDate", e.target.value)}
+                    onClick={openNativeDatePicker}
+                    onFocus={openNativeDatePicker}
+                    aria-label="Event date"
+                    data-quote-field="date"
+                    className="h-11 border-0 bg-transparent pl-9 pr-2 text-base shadow-none focus-visible:ring-0"
+                  />
+                  <span className="pointer-events-none absolute right-3 max-w-[46%] truncate text-[11px] font-semibold text-emerald-700">
+                    {slotsLeft !== null && input.eventDate
+                      ? `${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} left`
+                      : weekdayEligible
+                        ? "Mon–Thu · Weekday Special"
+                        : "Mon–Thu saves"}
+                  </span>
+                </span>
               </label>
             </div>
 
@@ -1386,11 +1397,7 @@ export default function QuoteBuilderClient() {
                 <span className="block text-[11px] font-semibold uppercase tracking-wide">Weekday Special</span>
                 <span className="mt-0.5 block text-xl font-bold sm:text-2xl">${fmtMoney(heroEstimate(true))}</span>
                 <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">
-                  ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult · ${GUEST_TIERS.child.weekdayPrice.toFixed(2)}/kid · Mon–Thu ·{" "}
-                  {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
-                </span>
-                <span className="mt-1 block text-[11px] font-semibold underline underline-offset-2">
-                  {weekdayEligible ? (isWeekdaySaverTier ? "Selected ✓" : "Tap to select") : "Needs Mon–Thu & 15+"}
+                  Mon–Thu · {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
                 </span>
               </button>
               <button
@@ -1405,17 +1412,28 @@ export default function QuoteBuilderClient() {
               >
                 <span className="block text-[11px] font-semibold uppercase tracking-wide">Standard · any day</span>
                 <span className="mt-0.5 block text-xl font-bold sm:text-2xl">${fmtMoney(heroEstimate(false))}</span>
-                <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">
-                  ${GUEST_TIERS.adult.price.toFixed(2)}/adult · ${GUEST_TIERS.child.price.toFixed(2)}/kid · ${MINIMUM_SPEND} minimum
-                </span>
-                <span className="mt-1 block text-[11px] font-semibold underline underline-offset-2">
-                  {!isWeekdaySaverTier ? "Selected ✓" : "Tap to select"}
-                </span>
+                <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">Any day</span>
               </button>
             </div>
-            <p className="mt-2 text-[11px] text-white/80 sm:text-xs">
-              Under 5 eat free · chef, grill, food, live show, setup &amp; cleanup included · travel fee shown before you pay
-            </p>
+            <div className="mt-2 flex items-center justify-center gap-1 text-xs text-white/85">
+              What&apos;s in the price
+              <InfoTip label="What's included in the price?" title="What's included" iconClassName="text-white/85 hover:text-white">
+                <ul className="list-disc space-y-1 pl-4">
+                  <li>Chef, grill, food &amp; live show</li>
+                  <li>Setup &amp; cleanup</li>
+                  <li>Kids under 5 eat free</li>
+                  <li>First 50 miles of travel free — any travel fee shows before you pay</li>
+                  <li>
+                    Weekday Special: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult · ${GUEST_TIERS.child.weekdayPrice.toFixed(2)}/kid,
+                    Mon–Thu, {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids count as half)
+                  </li>
+                  <li>
+                    Standard: ${GUEST_TIERS.adult.price.toFixed(2)}/adult · ${GUEST_TIERS.child.price.toFixed(2)}/kid, any day, ${MINIMUM_SPEND}{" "}
+                    minimum
+                  </li>
+                </ul>
+              </InfoTip>
+            </div>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button
@@ -1424,9 +1442,9 @@ export default function QuoteBuilderClient() {
                   setHeroTouched(true)
                   scrollToBuilder(input.eventDate && heroAdults > 0 ? "quote-location" : "quote-event-date")
                 }}
-                className="h-12 rounded-full bg-[hsl(24_79%_55%)] px-8 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+                className="h-[52px] rounded-full bg-[hsl(24_79%_55%)] px-8 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
               >
-                See my exact price →
+                Continue
               </Button>
               <Button
                 type="button"
@@ -1435,19 +1453,8 @@ export default function QuoteBuilderClient() {
                 className="h-12 rounded-full border-2 border-white/70 bg-white/10 px-6 text-base font-semibold text-white backdrop-blur-sm hover:bg-white/20"
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Text us instead
+                Text us this quote
               </Button>
-            </div>
-            <div className="mt-3">
-              <a
-                href="#quote-reviews"
-                className="inline-flex flex-wrap items-center justify-center gap-1.5 text-sm text-white/90 underline-offset-4 hover:underline"
-              >
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                <span>
-                  <span className="font-semibold">500+</span> parties served — read reviews from real hosts
-                </span>
-              </a>
             </div>
           </div>
         </section>
@@ -1512,21 +1519,37 @@ export default function QuoteBuilderClient() {
               </div>
 
               <div>
-                <label htmlFor="quote-event-time" className="block text-sm font-medium mb-2">Event Time *</label>
-                <select
+                <span id="quote-event-time-label" className="block text-sm font-medium mb-2">Event Time *</span>
+                <div
                   id="quote-event-time"
-                  value={eventTime}
+                  role="radiogroup"
+                  aria-labelledby="quote-event-time-label"
                   data-quote-field="time"
-                  onChange={(e) => setEventTime(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="grid grid-cols-4 gap-1.5"
                 >
-                  <option value="">Select event time</option>
-                  {EVENT_TIME_OPTIONS.map((timeValue) => (
-                    <option key={timeValue} value={timeValue}>
-                      {timeValue}
-                    </option>
-                  ))}
-                </select>
+                  {EVENT_TIME_OPTIONS.map((timeValue) => {
+                    const selected = eventTime === timeValue
+                    const [h, m] = timeValue.split(":")
+                    const hour = Number(h)
+                    const label = `${hour > 12 ? hour - 12 : hour}:${m} ${hour >= 12 ? "pm" : "am"}`
+                    return (
+                      <button
+                        key={timeValue}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setEventTime(timeValue)}
+                        className={`h-11 rounded-xl border text-sm font-semibold transition ${
+                          selected
+                            ? "border-2 border-[hsl(24_79%_55%)] bg-orange-50 text-orange-900"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-orange-300"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
                 {slotsLeft !== null && input.eventDate && (
                   <p className="mt-1.5 text-xs font-medium text-red-700">
                     {slotsLeft} booking {slotsLeft === 1 ? "slot" : "slots"} left on this date

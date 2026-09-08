@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { Mail, MessageSquare } from "lucide-react"
+import { CalendarDays, Check, ChevronRight, Mail, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import GuestCountInput from "@/components/ui/guest-count-input"
+import GuestStepper from "@/components/ui/guest-stepper"
+import InfoTip from "@/components/ui/info-tip"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
@@ -129,13 +130,13 @@ export default function CityQuoteCalculator({
     })
   }
 
-  const weekdayHint = (() => {
-    if (blackout) return `${dateLabel} falls in ${blackout} — standard rate applies.`
-    if (dateKnown && !eligibility.isDateEligible) return `${dateLabel} is a weekend — Weekday Special is Mon–Thu only.`
-    if (!headcountOk)
-      return `Weekday Special unlocks at ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half). Add ${moreForWeekday} more.`
-    if (!dateKnown) return "Pick a Mon–Thu date and this is your price."
-    return `${dateLabel} qualifies — you save $${fmt(standard - weekdayTotal)}.`
+  // One short status phrase on the date row instead of a paragraph of rules.
+  const dateStatus = (() => {
+    if (!dateKnown) return "Mon–Thu saves"
+    if (weekdayApplies) return `Saves $${fmt(standard - weekdayTotal)}`
+    if (blackout) return "Holiday · standard"
+    if (!eligibility.isDateEligible) return "Weekend · standard"
+    return `${moreForWeekday} more for Mon–Thu rate`
   })()
 
   // Sticky mobile bar: shown once the visitor has touched an input and the
@@ -177,41 +178,55 @@ export default function CityQuoteCalculator({
       id="price"
       className="scroll-mt-24 rounded-2xl border border-amber-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:p-6"
     >
-      <p className="text-base font-bold text-gray-900 sm:text-lg">Your {shownCity} party, priced right here</p>
-      <p className="mt-0.5 text-xs text-gray-600 sm:text-sm">No form, no phone number — just move the numbers.</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-base font-bold text-gray-900 sm:text-lg">Your {shownCity} party</p>
+        <InfoTip label="What's included in the price?" title="What's included">
+          <ul className="list-disc space-y-1 pl-4">
+            <li>Chef, grill, food &amp; live show</li>
+            <li>Setup &amp; cleanup</li>
+            <li>Kids under 5 eat free</li>
+            <li>First 50 miles of travel free — any travel fee shows before you pay</li>
+            <li>
+              Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu,{" "}
+              {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids count as half)
+            </li>
+            <li>
+              Standard: ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid, any day, ${MINIMUM_SPEND} minimum
+            </li>
+          </ul>
+        </InfoTip>
+      </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3" onFocusCapture={() => setTouched(true)}>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Adults</span>
-          <GuestCountInput
-            min={0}
-            max={200}
-            value={adults}
-            onValueChange={setAdults}
-            aria-label="Number of adults"
-            className="h-11 text-base"
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Kids 5–12</span>
-          <GuestCountInput
-            min={0}
-            max={200}
-            value={kids}
-            onValueChange={setKids}
-            aria-label="Number of kids age 5 to 12"
-            className="h-11 text-base"
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Date</span>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label="Event date"
-            className="h-11 text-base"
-          />
+      {/* Guests as steppers (no keyboard), then one big date row. The 09-07 tapes
+          showed the phone keyboard covering the CTA as soon as a number box was
+          tapped; the stepper changes the count with a thumb instead. */}
+      <div className="mt-3 flex flex-col gap-2.5" onFocusCapture={() => setTouched(true)} onPointerDownCapture={() => setTouched(true)}>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Adults</span>
+            <GuestStepper value={adults} onValueChange={setAdults} min={0} max={200} label="Number of adults" data-quote-field="adults" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Kids 5–12</span>
+            <GuestStepper value={kids} onValueChange={setKids} min={0} max={200} label="Number of kids age 5 to 12" data-quote-field="kids" />
+          </div>
+        </div>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Event date</span>
+          <span className="relative flex h-11 items-center rounded-xl border border-gray-200 bg-white">
+            <CalendarDays className="pointer-events-none absolute left-3 h-4 w-4 text-gray-500" aria-hidden="true" />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              aria-label="Event date"
+              data-quote-field="date"
+              className="h-11 border-0 bg-transparent pl-9 pr-2 text-base shadow-none focus-visible:ring-0"
+            />
+            <span className={`pointer-events-none absolute right-3 max-w-[46%] truncate text-[11px] font-semibold ${weekdayApplies ? "text-emerald-700" : "text-gray-500"}`}>
+              {dateStatus}
+            </span>
+          </span>
         </label>
       </div>
 
@@ -226,13 +241,12 @@ export default function CityQuoteCalculator({
           }`}
           aria-label={`Weekday Special, $${fmt(weekdayTotal)} total — get exact quote`}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Weekday Special</p>
-          <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">${fmt(weekdayTotal)}</p>
-          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">
-            ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid · Mon–Thu ·{" "}
-            {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
+          <p className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-emerald-800">
+            Weekday Special
+            {weekdayApplies ? <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />}
           </p>
-          <p className="mt-1 text-[11px] font-semibold text-emerald-800 underline underline-offset-2">Choose &amp; get exact quote →</p>
+          <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">${fmt(weekdayTotal)}</p>
+          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Mon–Thu · {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests</p>
         </Link>
         <Link
           href={buildHref("standard")}
@@ -243,64 +257,59 @@ export default function CityQuoteCalculator({
           }`}
           aria-label={`Standard any day, $${fmt(standard)} total — get exact quote`}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-800">Standard · any day</p>
-          <p className="mt-0.5 text-xl font-bold text-orange-800 sm:text-2xl">${fmt(standard)}</p>
-          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">
-            ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid · ${MINIMUM_SPEND} minimum
+          <p className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-orange-800">
+            Standard · any day
+            {weekdayApplies ? <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" /> : <Check className="h-4 w-4 text-orange-600" aria-hidden="true" />}
           </p>
-          <p className="mt-1 text-[11px] font-semibold text-orange-800 underline underline-offset-2">Choose &amp; get exact quote →</p>
+          <p className="mt-0.5 text-xl font-bold text-orange-800 sm:text-2xl">${fmt(standard)}</p>
+          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Any day{atMinimum ? ` · $${MINIMUM_SPEND} minimum` : ""}</p>
         </Link>
       </div>
 
-      <p className="mt-2 text-xs text-gray-600">
-        {weekdayHint}
-        {atMinimum && !weekdayApplies ? ` Parties this size come in at the $${MINIMUM_SPEND} minimum.` : ""}
-      </p>
-      <p className="mt-1 text-[11px] text-gray-500 sm:text-xs">
-        Under 5 eat free. Chef, grill, food, live show, setup &amp; cleanup included. First 50 miles free — any travel
-        fee shows in your quote before you pay.
-      </p>
-
-      <div ref={ctaRef} className="mt-3 flex flex-col gap-2 sm:flex-row">
+      <div ref={ctaRef} className="mt-3 flex flex-col gap-2">
         <Button
           asChild
-          className="h-12 flex-1 rounded-full bg-[hsl(24_79%_55%)] px-6 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+          className="h-[52px] w-full rounded-full bg-[hsl(24_79%_55%)] px-6 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
         >
-          <Link href={quoteHref}>Get my exact quote — 30 seconds</Link>
+          <Link href={quoteHref}>Get my exact quote</Link>
         </Button>
-        {smsHref ? (
+        <div className={`grid gap-2 ${smsHref ? "grid-cols-2" : "grid-cols-1"}`}>
+          {smsHref ? (
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-3 text-sm font-semibold text-[hsl(24_79%_45%)] hover:bg-[hsl(24_79%_96%)]"
+            >
+              <a href={smsHref}>
+                <MessageSquare className="mr-1.5 h-4 w-4" />
+                Text us
+              </a>
+            </Button>
+          ) : null}
           <Button
             asChild
             variant="outline"
-            className="h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-5 text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)]"
+            className="h-11 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-3 text-sm font-semibold text-[hsl(24_79%_45%)] hover:bg-[hsl(24_79%_96%)]"
           >
-            <a href={smsHref}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Text us instead
+            <a href={emailHref} onClick={onEmailClick}>
+              <Mail className="mr-1.5 h-4 w-4" />
+              Email us
             </a>
           </Button>
-        ) : null}
-        <Button
-          asChild
-          variant="outline"
-          className="h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-5 text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)]"
-        >
-          <a href={emailHref} onClick={onEmailClick}>
-            <Mail className="mr-2 h-4 w-4" />
-            Email me this quote
-          </a>
-        </Button>
+        </div>
       </div>
 
       {showSticky ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-amber-200 bg-white/95 p-3 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-amber-200 bg-white/95 px-3 py-2.5 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+          <div className="flex shrink-0 flex-col leading-tight">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Your party</span>
+            <span className={`text-lg font-bold ${weekdayApplies ? "text-emerald-800" : "text-orange-800"}`}>${fmt(chosenTotal)}</span>
+          </div>
           <Button
             asChild
-            className="h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
+            className="h-[46px] flex-1 rounded-full bg-[hsl(24_79%_55%)] text-[15px] font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
           >
-            <Link href={quoteHref}>
-              Get my exact quote · ${fmt(chosenTotal)}
-            </Link>
+            <Link href={quoteHref}>Get my exact quote</Link>
           </Button>
         </div>
       ) : null}
