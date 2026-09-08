@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import LazyVideo from "@/components/lazy-video"
+import ProofStrip from "@/components/proof-strip"
 import AppreciationBanner from "@/components/appreciation-banner"
 import AvailabilityCalendar from "@/components/quote/availability-calendar"
 import { Button } from "@/components/ui/button"
@@ -1950,20 +1950,8 @@ export default function QuoteBuilderClient() {
         </div>
 
         {/* Proof, after the work: real party clips and two verbatim Google reviews. */}
-        <div
-          ref={mediaStripRef}
-          className="mt-10 flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] lg:mt-16 lg:gap-3 [&::-webkit-scrollbar]:hidden"
-          aria-label="Photos and clips from real Real Hibachi parties"
-        >
-          {QUOTE_PROOF_MEDIA.slice(0, 6).map((media) => (
-            <div key={media.src} className="relative h-[130px] w-[180px] shrink-0 overflow-hidden rounded-2xl lg:h-48 lg:w-72">
-              {media.type === "video" ? (
-                <LazyVideo className="absolute inset-0 h-full w-full object-cover" poster={media.poster} src={media.src} />
-              ) : (
-                <Image src={media.src} alt={media.alt} fill sizes="(max-width: 1024px) 180px, 288px" className="object-cover" />
-              )}
-            </div>
-          ))}
+        <div ref={mediaStripRef} className="mt-10 lg:mt-16">
+          <ProofStrip media={QUOTE_PROOF_MEDIA.slice(0, 6)} size="sm" />
         </div>
         <div id="quote-reviews" className="mt-4 flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-5">
           {QUOTE_TESTIMONIALS.slice(0, 3).map((testimonial, i) => (

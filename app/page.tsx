@@ -2,8 +2,8 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Play } from "lucide-react"
-import LazyVideo from "@/components/lazy-video"
+import { ArrowRight } from "lucide-react"
+import ProofStrip from "@/components/proof-strip"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import { GOOGLE_REVIEWS } from "@/config/reviews"
 import { GUEST_TIERS, MINIMUM_SPEND, WEEKDAY_SPECIAL } from "@/config/pricing-rules"
@@ -159,24 +159,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Real parties ── the pictures do the talking. */}
-      <section className="pt-6 lg:pt-10" aria-label="Photos and clips from real Real Hibachi parties">
-        <div className="flex gap-2 overflow-x-auto px-5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] lg:mx-auto lg:max-w-7xl lg:gap-3 lg:px-8 [&::-webkit-scrollbar]:hidden">
-          {media.map((item) => (
-            <div key={item.src} className="relative h-[130px] w-[180px] shrink-0 overflow-hidden rounded-2xl bg-cocoa/10 lg:h-48 lg:w-72">
-              {item.type === "video" ? (
-                <>
-                  <LazyVideo className="absolute inset-0 h-full w-full object-cover" poster={item.poster} src={item.src} />
-                  <span className="pointer-events-none absolute bottom-2 left-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white">
-                    <Play className="h-3 w-3 fill-white" aria-hidden="true" />
-                  </span>
-                </>
-              ) : (
-                <Image src={item.src} alt={item.alt} fill sizes="(max-width: 1024px) 180px, 288px" className="object-cover" />
-              )}
-            </div>
-          ))}
-        </div>
+      {/* ── Real parties ── the pictures do the talking. Swipe / drag / arrows, tap to play. */}
+      <section className="px-5 pt-6 lg:mx-auto lg:max-w-7xl lg:px-8 lg:pt-10">
+        <ProofStrip media={media} size="sm" />
       </section>
 
       {/* ── Pricing ── */}
