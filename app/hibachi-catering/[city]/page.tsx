@@ -6,6 +6,7 @@ import { CATERING_CITIES } from "@/config/catering-cities"
 import { getCityClimate } from "@/config/city-climate"
 import { getCityTravel } from "@/config/city-travel"
 import { pickReviews } from "@/config/reviews"
+import { coastalHero } from "@/config/coastal-cities"
 import LandingTemplate from "@/components/city/landing-template"
 import GeoCityName from "@/components/city/geo-city-name"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
@@ -205,6 +206,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     <>
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
       <LandingTemplate
+        {...coastalHero(page.slug, page.city)}
         city={page.city}
         citySlug={page.slug}
         source={source}

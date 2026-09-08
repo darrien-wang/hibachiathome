@@ -5,6 +5,7 @@ import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { getCityClimate } from "@/config/city-climate"
 import { getCityTravel } from "@/config/city-travel"
 import { pickReviews } from "@/config/reviews"
+import { coastalHero } from "@/config/coastal-cities"
 import { hasCateringPage } from "@/config/catering-cities"
 import { sourcing, sourcingAllergenNote } from "@/config/sourcing"
 import LandingTemplate, { type LandingDetail } from "@/components/city/landing-template"
@@ -325,6 +326,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
       <LandingTemplate
         city={page.city}
         citySlug={page.slug}
+        {...coastalHero(page.slug, page.city)}
         smsHref={smsHref(`Hi! I'd like a quote for a hibachi party in ${page.city}.`)}
         kicker={`Private hibachi chef · ${page.city} & all of SoCal`}
         title={
