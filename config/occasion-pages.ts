@@ -417,12 +417,12 @@ export const occasionPages: OccasionPage[] = [
     ],
     photos: [
       {
-        src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
-        alt: "Group of friends with their hibachi chef at a Southern California party",
+        src: "/gallery/real-hibachi-party-southern-california-bachelorette-night-21.jpg",
+        alt: "Bachelorette party guests in costumes and balloon hats on the couch in front of a Future Mrs photo board",
       },
       {
-        src: "/gallery/real-hibachi-party-santa-barbara-oceanfront-sunset-16.jpg",
-        alt: "Oceanfront sunset party table with lanterns and roses",
+        src: "/gallery/real-hibachi-party-southern-california-dinner-06.jpg",
+        alt: "Group of friends with their hibachi chef at a Southern California party",
       },
       {
         src: "/gallery/real-hibachi-party-san-diego-water-gun-fun-19.jpg",
