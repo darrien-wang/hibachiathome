@@ -15,9 +15,8 @@ Propina: recomendamos el 20% de la cuenta final
 Cargo por traslado: puede aplicar según tu ubicación; el monto exacto se informa al reservar
 
 Formas de pago:
-- Efectivo (preferido)
-- Tarjeta de crédito (4% de comisión)
-- Venmo/Zelle (sin comisión)
+- Efectivo (preferido, sin comisión)
+- Tarjeta de crédito, Venmo o Zelle (4% de comisión)
 
 Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu evento.`,
   },

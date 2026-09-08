@@ -14,9 +14,8 @@ Gratuity: We recommend 20% of the final bill
 Travel fee: May apply depending on your location; exact amount disclosed during booking
 
 Payment options:
-- Cash (preferred)
-- Credit card (4% processing fee)
-- Venmo/Zelle (no fee)
+- Cash (preferred, no fee)
+- Credit card, Venmo or Zelle (4% processing fee)
 
 If using credit card, payment must be settled at least 72 hours before your event.`,
   },
