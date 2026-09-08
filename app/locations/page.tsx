@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { cityPages, getCityPage } from "@/config/city-pages"
-import { getCityClimate } from "@/config/city-climate"
+import { getCityTravel } from "@/config/city-travel"
 import { CATERING_CITIES } from "@/config/catering-cities"
 import { JsonLd } from "@/components/structured-data"
 import LocationsClient, { type LocationRegion } from "./LocationsClient"
@@ -39,9 +39,8 @@ export default function LocationsPage() {
   const byId = new Map<string, LocationRegion>()
   for (const page of cityPages) {
     const meta = REGION_OF[page.county] ?? { id: "other", name: page.county, short: page.county.replace(" County", "") }
-    const climate = getCityClimate(page.slug)
-    // The four destination pages (added 2026-09-07) have no climate row yet; all four are well past 50 miles.
-    const far = climate ? climate.travelFee > 0 : true
+    const travel = getCityTravel(page.slug)
+    const far = travel ? travel.fee > 0 : true
     const region = byId.get(meta.id) ?? { ...meta, note: "", cities: [] }
     region.cities.push({ name: page.city, slug: page.slug, far })
     byId.set(meta.id, region)
@@ -68,7 +67,7 @@ export default function LocationsPage() {
         name: "How far do you travel?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "The first 50 miles from our base are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote before any deposit.",
+          text: "The first 50 miles of travel are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote before any deposit.",
         },
       },
       {

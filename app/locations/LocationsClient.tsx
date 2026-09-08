@@ -20,7 +20,7 @@ const QUOTE_HREF = "/quote?source=locations"
 const QUESTIONS = [
   {
     q: "How far do you travel?",
-    a: "The first 50 miles from our base are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote before any deposit.",
+    a: "The first 50 miles of travel are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote before any deposit.",
   },
   {
     q: "Do you serve San Diego and the desert?",

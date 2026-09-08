@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { getCityClimate } from "@/config/city-climate"
+import { getCityTravel } from "@/config/city-travel"
 import { pickReviews } from "@/config/reviews"
 import { hasCateringPage } from "@/config/catering-cities"
 import { sourcing, sourcingAllergenNote } from "@/config/sourcing"
@@ -72,6 +73,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
 
   const nearby = getNearbyCityPages(page)
   const climate = getCityClimate(page.slug)
+  const travel = getCityTravel(page.slug)
   const url = `${BASE_URL}/hibachi-at-home/${page.slug}`
 
   // City-specific questions first, then the ones every city gets asked.
@@ -200,10 +202,9 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
                   Rain is worth planning around in {climate.wettestMonth}, when about {climate.wettestPct}% of days see measurable rain — a 10×10 pop-up tent over the chef station saves the party, and guests can eat indoors. Evenings run longest in {climate.latestSunsetMonth} (sunset around {climate.latestSunset}); start 90 minutes before sunset for the golden-hour show.
                 </p>
                 <p>
-                  {page.city} is {climate.miles} miles from our base by road.{" "}
-                  {climate.travelFee === 0
-                    ? "That is inside our free 50-mile radius, so your quote carries no travel fee at all."
-                    : `Our first 50 miles are free, so the travel fee on a ${page.city} booking is about $${climate.travelFee} — one dollar for each mile past the free 50.`}
+                  {travel && travel.fee > 0
+                    ? `Travel: about $${travel.fee} on a ${page.city} booking — the first 50 miles are free, then $1 per mile, and the exact amount is shown in your quote before you pay.`
+                    : `Travel: none for ${page.city} — it sits inside our free 50-mile radius, so your quote carries no travel fee at all.`}
                 </p>
                 <div className="overflow-x-auto rounded-2xl border border-ink/10 bg-surface">
                   <table className="w-full text-xs">
@@ -230,7 +231,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs">Averages from the Open-Meteo historical archive, 2019–2024. Driving distance via road routing from our base.</p>
+                <p className="text-xs">Averages from the Open-Meteo historical archive, 2019–2024.</p>
               </>
             ),
           },
@@ -332,8 +333,8 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
           </>
         }
         subhead="Private chef, teppanyaki grill and the full fire show in your backyard."
-        distanceMiles={climate?.miles ?? null}
-        travelFee={climate?.travelFee ?? null}
+        distanceMiles={travel?.miles ?? null}
+        travelFee={travel?.fee ?? null}
         reviews={cityReviews}
         included={included}
         hoods={page.neighborhoods}

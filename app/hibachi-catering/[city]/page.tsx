@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { CATERING_CITIES } from "@/config/catering-cities"
 import { getCityClimate } from "@/config/city-climate"
+import { getCityTravel } from "@/config/city-travel"
 import { pickReviews } from "@/config/reviews"
 import LandingTemplate from "@/components/city/landing-template"
 import GeoCityName from "@/components/city/geo-city-name"
@@ -96,6 +97,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
   const nearby = getNearbyCityPages(page)
   const reviews = pickReviews(`${page.slug}-catering`)
   const climate = getCityClimate(page.slug)
+  const travel = getCityTravel(page.slug)
 
   const faqs = [
     {
@@ -214,8 +216,8 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
           </>
         }
         subhead="The caterer that brings dinner and the show — a private chef, the teppanyaki grill and live fire at your venue or backyard."
-        distanceMiles={climate?.miles ?? null}
-        travelFee={climate?.travelFee ?? null}
+        distanceMiles={travel?.miles ?? null}
+        travelFee={travel?.fee ?? null}
         reviews={reviews}
         included={included}
         hoods={page.neighborhoods}

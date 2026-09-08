@@ -25,7 +25,7 @@ export type LandingTemplateProps = {
   kicker: string
   title: ReactNode
   subhead: string
-  /** Driving miles from the base; drives the "50 mi" card and the travel line. */
+  /** Driving miles (used only to decide included vs fee); the page never prints them. */
   distanceMiles?: number | null
   travelFee?: number | null
   reviews: GoogleReview[]
@@ -118,12 +118,13 @@ export default function LandingTemplate(props: LandingTemplateProps) {
 
   const noTravelFee = travelFee != null ? travelFee <= 0 : distanceMiles != null ? distanceMiles <= TRAVEL_FREE_RADIUS_MILES : null
   const travelLine = noTravelFee === false ? "travel fee shown upfront" : `no travel fee for ${city}`
+  // Never says where the base is — only whether this city carries a fee.
   const distanceLine =
-    distanceMiles != null
-      ? noTravelFee
-        ? `${city} is ${distanceMiles} mi from our base`
-        : `${city} is ${distanceMiles} mi out — about $${travelFee} travel`
-      : "Most SoCal addresses carry no travel fee"
+    noTravelFee === true
+      ? `No travel fee for ${city}`
+      : noTravelFee === false && travelFee != null
+        ? `${city}: about $${travelFee} travel, shown in your quote`
+        : "Most SoCal addresses carry no travel fee"
 
   const diffs = [
     { big: `$${DEPOSIT_AMOUNT.toFixed(2)}`, label: "deposit, not $150", body: "Full refund with 72h notice" },

@@ -62,7 +62,7 @@ const faqs = [
   {
     question: "How far will your mobile hibachi travel?",
     answer:
-      "We serve all of Southern California — Los Angeles, Orange County, San Diego, the Inland Empire, and out to Palm Springs and Temecula. The first 50 miles from our base are free, then $1 per additional mile, calculated from your address and shown in your quote before you pay anything.",
+      "We serve all of Southern California — Los Angeles, Orange County, San Diego, the Inland Empire, and out to Palm Springs and Temecula. The first 50 miles of travel are free, then $1 per additional mile, calculated from your address and shown in your quote before you pay anything.",
   },
   {
     question: "How much does mobile hibachi cost?",
