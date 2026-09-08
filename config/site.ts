@@ -29,19 +29,21 @@ export const siteConfig = {
   },
 }
 
-// Two lines, on purpose.
+// One business line for calls and texts, plus WhatsApp on its own handset.
 //
-// Voice runs through Twilio: calls are logged as leads, recorded, and ring the
-// browser softphone and the backup handset at once. SMS does not — outbound
-// A2P messaging from a 10-digit long code is blocked by the carriers until the
-// 10DLC campaign is approved, so a texting number that the system replies from
-// would simply fail. Texts therefore go to a separate business handset that a
-// person answers by hand.
+// Voice and SMS both run through Twilio on 213-770-7788: calls are logged as
+// leads and recorded, and texts reach the workbench where any agent can reply
+// from the same number the customer dialed. This was split across two numbers
+// until 2026-09-07, when the A2P 10DLC campaign was finally approved — before
+// that, outbound texts from the long code were blocked by the carriers, so
+// texting had to go to a handset a person answered by hand.
 //
-// Never hard-code either number again: every page, button and JSON-LD block
+// WhatsApp stays on 626-362-8824: consumer WhatsApp Business is registered to
+// that physical handset and cannot follow the number to Twilio.
+//
+// Never hard-code any of them again: every page, button and JSON-LD block
 // reads from here, so changing a line is one edit instead of a hunt through
-// two dozen files. Publish `voice` for calling and `sms` for texting — mixing
-// them is what sends a customer's text into a mailbox nobody can reply from.
+// two dozen files.
 export const phone = {
   voice: {
     e164: "+12137707788",
@@ -51,6 +53,12 @@ export const phone = {
     tel: "tel:+12137707788",
   },
   sms: {
+    e164: "+12137707788",
+    raw: "2137707788",
+    display: "(213) 770-7788",
+    dashed: "213-770-7788",
+  },
+  whatsapp: {
     e164: "+16263628824",
     raw: "6263628824",
     display: "(626) 362-8824",
@@ -71,6 +79,6 @@ export function smsHref(body?: string): string {
  * a dashed number produces a link that silently goes nowhere. Build it here.
  */
 export function whatsappHref(text?: string): string {
-  const base = `https://wa.me/1${phone.sms.raw}`
+  const base = `https://wa.me/1${phone.whatsapp.raw}`
   return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }

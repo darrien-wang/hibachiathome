@@ -526,9 +526,13 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
 }): Promise<NotificationDeliveryResult> {
   const accountSid = asNonEmptyString(process.env.TWILIO_ACCOUNT_SID)
   const authToken = asNonEmptyString(process.env.TWILIO_AUTH_TOKEN)
+  // Prefer the Messaging Service: the approved A2P 10DLC campaign is attached
+  // to it, and sending through it is what keeps carriers from rejecting the
+  // message with error 30034. TWILIO_FROM_NUMBER stays as a fallback.
+  const messagingServiceSid = asNonEmptyString(process.env.TWILIO_MESSAGING_SERVICE_SID)
   const fromNumber = asNonEmptyString(process.env.TWILIO_FROM_NUMBER)
 
-  if (!accountSid || !authToken || !fromNumber) {
+  if (!accountSid || !authToken || (!messagingServiceSid && !fromNumber)) {
     return {
       attempted: false,
       delivered: false,
@@ -540,9 +544,13 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
   const body = new URLSearchParams({
     To: params.recipientPhone,
-    From: fromNumber,
-    Body: `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
+    Body: `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.`,
   })
+  if (messagingServiceSid) {
+    body.set("MessagingServiceSid", messagingServiceSid)
+  } else if (fromNumber) {
+    body.set("From", fromNumber)
+  }
 
   try {
     const response = await fetch(endpoint, {

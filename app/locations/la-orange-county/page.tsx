@@ -5,7 +5,7 @@ import { MapPin, Phone, Star, Clock, Users, ChefHat, Check } from "lucide-react"
 import Link from "next/link"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
-import { phone } from "@/config/site"
+import { phone, smsHref } from "@/config/site"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Los Angeles & Orange County | Private Chef Catering",
@@ -238,7 +238,19 @@ export default function LAOrangeCountyPage() {
                 area.
               </p>
               <Button asChild variant="outline" size="lg">
-                <Link href="sms:+16263628824?body=Hi! I'm interested in hibachi at home service in Los Angeles. Could you please let me know if you serve my area? Here are my details:%0A%0ALocation: [Please specify your city/area]%0ADate needed: [Please specify]%0ANumber of guests: [Please specify]%0A%0AThank you!">
+                <Link
+                  href={smsHref(
+                    [
+                      "Hi! I'm interested in hibachi at home service in Los Angeles. Could you please let me know if you serve my area? Here are my details:",
+                      "",
+                      "Location: [Please specify your city/area]",
+                      "Date needed: [Please specify]",
+                      "Number of guests: [Please specify]",
+                      "",
+                      "Thank you!",
+                    ].join("\n"),
+                  )}
+                >
                   Check My Area Availability
                 </Link>
               </Button>
