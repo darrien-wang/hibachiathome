@@ -5,7 +5,7 @@ import { MapPin, Phone, Users, Clock, ChefHat, Check, PartyPopper } from "lucide
 import { CATERING_CITIES } from "@/config/catering-cities"
 import { getCityPage } from "@/config/city-pages"
 import { occasionPages } from "@/config/occasion-pages"
-import { pickReviews } from "@/config/reviews"
+import { pickReviews, reviewSourceLabel } from "@/config/reviews"
 import AppreciationBanner from "@/components/appreciation-banner"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
@@ -272,7 +272,7 @@ export default function HibachiCateringHubPage() {
               <div key={review.name} className="rounded-xl border border-[#e7dbc6] bg-[#fffdf8] p-6">
                 <p className="text-gray-700 italic mb-4">&ldquo;{review.text}&rdquo;</p>
                 <p className="font-semibold text-gray-900">— {review.name}</p>
-                <p className="text-xs text-gray-500 mt-1">Google review</p>
+                <p className="text-xs text-gray-500 mt-1">{reviewSourceLabel(review)}</p>
               </div>
             ))}
           </div>

@@ -1,11 +1,22 @@
-// Verbatim 5-star Google reviews (owner-supplied screenshots, 2026-08).
-// Shared by the quote page, city pages, and occasion pages. Never invent one;
-// quotes may be truncated (…) but not rewritten. Two are cut before alcohol
-// mentions to keep the site A2P/CTIA-clean.
+// Verbatim 5-star reviews. Google entries are owner-supplied screenshots
+// (2026-08); the Zola entry is verbatim from Zola's vendor notification
+// (2026-09-03). Shared by the quote page, city pages, and occasion pages.
+// Never invent one; quotes may be truncated (…) but not rewritten. Two are cut
+// before alcohol mentions to keep the site A2P/CTIA-clean.
+//
+// `source` drives the on-page label — a review must never be shown as a
+// "Google review" if it came from another platform. Omitted = google.
+
+export type ReviewSource = "google" | "zola"
 
 export type GoogleReview = {
   name: string
   text: string
+  source?: ReviewSource
+}
+
+export function reviewSourceLabel(review: Pick<GoogleReview, "source">): string {
+  return review.source === "zola" ? "Zola review" : "Google review"
 }
 
 export const GOOGLE_REVIEWS: GoogleReview[] = [
@@ -48,6 +59,12 @@ export const GOOGLE_REVIEWS: GoogleReview[] = [
   {
     name: "Beatrix Barrera",
     text: "Chef John was our personal chef and he was sooooo much fun. I highly recommend requesting for him because aside from the delicious food, there was so much laughing because of him. 5 stars for the service, 5 stars for the food, 5 stars for Chef John! Definitely will do this again!",
+  },
+  {
+    // Zola vendor review notification, 2026-09-03.
+    name: "Michael Gao",
+    text: "We had an amazing experience with Real Hibachi, especially Chef Bling! The food was fresh, flavorful, and cooked perfectly. Chef Bling was friendly, professional, and incredibly entertaining—he made the entire experience fun and memorable for everyone. I highly recommend Real Hibachi, and definitely request Chef Bling!",
+    source: "zola",
   },
 ]
 

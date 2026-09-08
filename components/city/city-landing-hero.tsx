@@ -4,7 +4,7 @@ import { Check, ChefHat, Play, ShieldCheck, Star } from "lucide-react"
 import LazyVideo from "@/components/lazy-video"
 import CityQuoteCalculator from "@/components/city/city-quote-calculator"
 import { PROOF_MEDIA } from "@/config/proof-media"
-import type { GoogleReview } from "@/config/reviews"
+import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 
 // The first screen every paid visitor sees on a city / service landing page.
 // Order is deliberate and matches what the ad promised: the price they clicked
@@ -92,7 +92,7 @@ export default function CityLandingHero({
             {[1, 2, 3, 4, 5].map((star) => (
               <Star key={star} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
             ))}
-            <span className="ml-1">Google reviews</span>
+            <span className="ml-1">Google &amp; Zola reviews</span>
           </div>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {reviews.map((review, i) => (
@@ -103,7 +103,7 @@ export default function CityLandingHero({
                     {review.name.charAt(0)}
                   </span>
                   <span className="text-xs text-gray-600">
-                    <span className="font-medium text-gray-900">{review.name}</span> · Google review
+                    <span className="font-medium text-gray-900">{review.name}</span> · {reviewSourceLabel(review)}
                   </span>
                 </footer>
               </blockquote>

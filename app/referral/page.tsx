@@ -4,7 +4,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, Star, MapPin, HandCoins, Share2, PartyPopper, Check } from "lucide-react"
 import { JsonLd } from "@/components/structured-data"
-import { pickReviews } from "@/config/reviews"
+import { pickReviews, reviewSourceLabel } from "@/config/reviews"
 import { phone } from "@/config/site"
 import {
   REFERRAL_TIERS,
@@ -302,7 +302,7 @@ export default function ReferralPage() {
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
               ))}
-              <span className="ml-1">5-star Google reviews</span>
+              <span className="ml-1">5-star Google &amp; Zola reviews</span>
             </div>
             <div className="mt-8 grid gap-5 md:grid-cols-3">
               {reviews.map((review) => (
@@ -313,7 +313,7 @@ export default function ReferralPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{review.name}</p>
-                      <p className="text-xs text-gray-500">Google review</p>
+                      <p className="text-xs text-gray-500">{reviewSourceLabel(review)}</p>
                     </div>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-gray-700">{review.text}</p>

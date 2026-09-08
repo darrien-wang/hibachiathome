@@ -4,7 +4,7 @@ import Link from "next/link"
 import LandingEstimator from "@/components/city/landing-estimator"
 import { phone } from "@/config/site"
 import { DEPOSIT_AMOUNT, TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
-import type { GoogleReview } from "@/config/reviews"
+import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 
 // One template for every paid landing page — /hibachi-at-home/{city},
 // /hibachi-catering/{city}, /mobile-hibachi, /private-hibachi-chef — from the
@@ -216,11 +216,11 @@ export default function LandingTemplate(props: LandingTemplateProps) {
 
           {/* ── Reviews ── */}
           <section className="flex flex-col gap-3 lg:order-2 lg:gap-4">
-            <SectionTitle aside="Google reviews">{city} hosts say</SectionTitle>
+            <SectionTitle aside="Google & Zola reviews">{city} hosts say</SectionTitle>
             {reviews.slice(0, 3).map((review, i) => (
               <blockquote key={review.name} className={`flex flex-col gap-2 rounded-[28px] border border-ink/10 bg-surface p-4 shadow-organic lg:p-5 ${i === 2 ? "hidden lg:flex" : ""}`}>
                 <p className="text-sm leading-relaxed lg:text-[15px]">&ldquo;{review.text}&rdquo;</p>
-                <span className="text-xs text-clay-600 lg:text-[13px]">{review.name} · Google review</span>
+                <span className="text-xs text-clay-600 lg:text-[13px]">{review.name} · {reviewSourceLabel(review)}</span>
               </blockquote>
             ))}
           </section>
