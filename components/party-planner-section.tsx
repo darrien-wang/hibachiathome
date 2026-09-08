@@ -1,10 +1,9 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { ArrowRight, Check, Play } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { AnimateOnScroll } from "@/components/animate-on-scroll"
+import { ArrowRight, Play } from "lucide-react"
+
 import LazyVideo from "@/components/lazy-video"
 import { trackEvent } from "@/lib/tracking"
 
@@ -21,16 +20,19 @@ function clarityEvent(name: string) {
   }
 }
 
-const featureBullets = [
-  "Set who's coming — kids are half price, babies free",
-  "Everyone picks their own proteins with a shared link",
-  "Arrange tables & seats like a game, share an invite poster",
-  "A $19.90 deposit locks your date & chef",
-]
-
+/**
+ * The planner demo, in the Organic design system.
+ *
+ * Two stages on purpose: a silent 30s teaser loops in a phone frame (the price
+ * bar is cropped out of that cut), and tapping swaps it for the narrated
+ * two-minute story. Nobody commits to two minutes of audio from a scroll, but
+ * plenty of people will watch a loop and then ask for the sound.
+ *
+ * Sits after the pricing cards: someone who has just read the price is the
+ * person most likely to care that the planning part is genuinely fun.
+ */
 export default function PartyPlannerSection() {
   const [playing, setPlaying] = useState(false)
-  const fullRef = useRef<HTMLVideoElement | null>(null)
 
   const handlePlay = () => {
     trackEvent("planner_video_play")
@@ -44,89 +46,64 @@ export default function PartyPlannerSection() {
   }
 
   return (
-    <AnimateOnScroll>
-      <section id="party-planner" className="py-16 bg-white scroll-mt-36 md:scroll-mt-44">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center max-w-6xl mx-auto">
-            <AnimateOnScroll direction="left">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-[hsl(24_79%_55%)] mb-3">
-                  Party Planner
-                </p>
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-                  Throw a Party in Minutes
-                </h2>
-                <p className="text-lg text-gray-600 mb-6">
-                  Watch Maria plan her daughter&apos;s birthday for 22 guests — seats, menus, and the date
-                  locked, all before her coffee got cold.
-                </p>
-                <div className="space-y-3 mb-8">
-                  {featureBullets.map((item) => (
-                    <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-gray-700">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(24_79%_42%)]" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  asChild
-                  className="h-12 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] px-8 text-base font-semibold shadow-md"
-                  onClick={handleCta}
-                >
-                  <Link href={PLANNER_URL} target="_blank" rel="noopener">
-                    Plan Your Party
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <p className="mt-4 text-sm text-gray-500">
-                  Plans change? Our team is one text away — the planner just keeps everything organized.
-                </p>
-              </div>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll direction="right">
-              <div className="mx-auto w-full max-w-[300px] md:max-w-[320px]">
-                {/* phone frame */}
-                <div className="relative rounded-[2.2rem] border-[10px] border-gray-900 bg-gray-900 shadow-2xl overflow-hidden">
-                  {playing ? (
-                    <video
-                      ref={fullRef}
-                      className="block w-full aspect-[780/1688]"
-                      src="/videos/party-planner-story.mp4"
-                      controls
-                      autoPlay
-                      playsInline
-                      onEnded={() => {
-                        trackEvent("planner_video_complete")
-                        clarityEvent("planner_video_complete")
-                      }}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      aria-label="Watch the party planner demo with sound"
-                      className="relative block w-full cursor-pointer text-left"
-                      onClick={handlePlay}
-                    >
-                      <LazyVideo
-                        className="block w-full aspect-[480/896] object-cover pointer-events-none"
-                        src="/videos/party-planner-teaser.mp4"
-                        poster="/videos/posters/party-planner.jpg"
-                      />
-                      <span className="absolute inset-x-0 bottom-4 flex justify-center">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm">
-                          <Play className="h-4 w-4 fill-current" />
-                          Watch with sound · 2 min
-                        </span>
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </AnimateOnScroll>
+    <section id="party-planner" className="scroll-mt-20 pt-9 lg:pt-24">
+      <div className="mx-auto max-w-7xl px-5 lg:grid lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
+        {/* Phone frame first on mobile — the video is the point of the section. */}
+        <div className="mx-auto w-full max-w-[260px] lg:order-1 lg:max-w-[300px]">
+          <div className="relative overflow-hidden rounded-[2.2rem] border-[10px] border-cocoa bg-cocoa shadow-organic-lg">
+            {playing ? (
+              <video
+                className="block w-full aspect-[780/1688]"
+                src="/videos/party-planner-story.mp4"
+                controls
+                autoPlay
+                playsInline
+                onEnded={() => {
+                  trackEvent("planner_video_complete")
+                  clarityEvent("planner_video_complete")
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                aria-label="Watch the party planner demo with sound"
+                className="relative block w-full cursor-pointer text-left"
+                onClick={handlePlay}
+              >
+                <LazyVideo
+                  className="pointer-events-none block w-full aspect-[480/896] object-cover"
+                  src="/videos/party-planner-teaser.mp4"
+                  poster="/videos/posters/party-planner.jpg"
+                />
+                <span className="absolute inset-x-0 bottom-4 flex justify-center">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-cocoa/80 px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm">
+                    <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                    Watch with sound · 2 min
+                  </span>
+                </span>
+              </button>
+            )}
           </div>
         </div>
-      </section>
-    </AnimateOnScroll>
+
+        <div className="mt-5 lg:mt-0">
+          <h2 className="font-serif text-2xl font-extrabold lg:text-[40px]">Plan it like a game</h2>
+          <p className="mt-2 text-base text-clay-700 lg:mt-3 lg:text-lg">
+            Watch Maria seat 22 guests, let everyone pick their own proteins, and lock the date — all before her
+            coffee got cold.
+          </p>
+          <Link
+            href={PLANNER_URL}
+            target="_blank"
+            rel="noopener"
+            onClick={handleCta}
+            className="mt-4 inline-flex h-[52px] items-center gap-2 rounded-full bg-flame px-7 text-base font-semibold text-white transition hover:bg-flame-600 lg:mt-6 lg:h-14 lg:px-8 lg:text-[17px]"
+          >
+            Open the planner
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </section>
   )
 }

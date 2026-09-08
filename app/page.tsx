@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import ProofStrip from "@/components/proof-strip"
+import PartyPlannerSection from "@/components/party-planner-section"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import { GOOGLE_REVIEWS } from "@/config/reviews"
 import { GUEST_TIERS, MINIMUM_SPEND, WEEKDAY_SPECIAL } from "@/config/pricing-rules"
@@ -227,6 +228,10 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* ── Party planner ── right after the pricing CTAs: whoever just read
+          the price is the one most likely to care that planning is fun. */}
+      <PartyPlannerSection />
 
       {/* ── Fresh off the griddle ── */}
       <section className="pt-9 lg:pt-24">
