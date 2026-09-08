@@ -1,9 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { MapPin } from "lucide-react"
 import type { Metadata } from "next"
-import { cityPages } from "@/config/city-pages"
+import { cityPages, getCityPage } from "@/config/city-pages"
+import { getCityClimate } from "@/config/city-climate"
+import { CATERING_CITIES } from "@/config/catering-cities"
+import { JsonLd } from "@/components/structured-data"
+import LocationsClient, { type LocationRegion } from "./LocationsClient"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Service Areas | Southern California",
@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     "Professional hibachi at home service across Southern California: Los Angeles, Orange County, San Diego, Riverside, San Bernardino & Ventura counties. Authentic Japanese teppanyaki chefs for private events and parties.",
   keywords:
     "hibachi service locations, Los Angeles hibachi, Orange County hibachi, San Diego hibachi, Inland Empire hibachi, private teppanyaki chef areas",
+  alternates: { canonical: "https://www.realhibachi.com/locations" },
   openGraph: {
     title: "Hibachi at Home Service Areas | Southern California",
     description:
@@ -21,140 +22,78 @@ export const metadata: Metadata = {
   },
 }
 
-const locations = [
-  {
-    id: "southern-california",
-    name: "Southern California",
-    state: "CA",
-    description:
-      "Serving Los Angeles, Orange County, San Diego, Riverside, San Bernardino, and Ventura counties",
-    areas: [
-      "Los Angeles",
-      "Orange County",
-      "San Diego",
-      "Riverside",
-      "San Bernardino",
-      "Ventura",
-      "Beverly Hills",
-      "Santa Monica",
-      "Pasadena",
-      "Irvine",
-      "Newport Beach",
-      "Anaheim",
-      "Long Beach",
-      "Burbank",
-      "Glendale",
-      "West Hollywood",
-    ],
-    featured: true,
-    learnMoreHref: "/locations/la-orange-county",
-  },
-]
+// County → region on the page. Riverside + San Bernardino read as one
+// "Inland Empire & Desert" group (Riverside/Corona are inside the free 50
+// miles; the desert and mountain routes carry a travel fee).
+const REGION_OF: Record<string, { id: string; name: string; short: string }> = {
+  "Los Angeles County": { id: "la", name: "Los Angeles County", short: "Los Angeles" },
+  "Orange County": { id: "oc", name: "Orange County", short: "Orange County" },
+  "San Diego County": { id: "sd", name: "San Diego County", short: "San Diego" },
+  "Riverside County": { id: "ie", name: "Inland Empire & Desert", short: "Inland Empire" },
+  "San Bernardino County": { id: "ie", name: "Inland Empire & Desert", short: "Inland Empire" },
+  "Ventura County": { id: "vc", name: "Ventura County", short: "Ventura" },
+}
+const ORDER = ["la", "oc", "sd", "ie", "vc"]
 
 export default function LocationsPage() {
+  const byId = new Map<string, LocationRegion>()
+  for (const page of cityPages) {
+    const meta = REGION_OF[page.county] ?? { id: "other", name: page.county, short: page.county.replace(" County", "") }
+    const climate = getCityClimate(page.slug)
+    // The four destination pages (added 2026-09-07) have no climate row yet; all four are well past 50 miles.
+    const far = climate ? climate.travelFee > 0 : true
+    const region = byId.get(meta.id) ?? { ...meta, note: "", cities: [] }
+    region.cities.push({ name: page.city, slug: page.slug, far })
+    byId.set(meta.id, region)
+  }
+  const regions = [...byId.values()]
+    .sort((a, b) => (ORDER.indexOf(a.id) === -1 ? 99 : ORDER.indexOf(a.id)) - (ORDER.indexOf(b.id) === -1 ? 99 : ORDER.indexOf(b.id)))
+    .map((r) => {
+      const farCount = r.cities.filter((c) => c.far).length
+      const note =
+        farCount === 0 ? "travel included" : farCount === r.cities.length ? "travel fee shown in quote" : "most travel included · outlying routes carry a travel fee"
+      return { ...r, note }
+    })
+
+  const catering = CATERING_CITIES.map((slug) => getCityPage(slug))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map((p) => ({ name: p.city, slug: p.slug }))
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "How far do you travel?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "The first 50 miles from our base are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote before any deposit.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Do you serve San Diego and the desert?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes — San Diego, La Jolla, Oceanside, Palm Springs, La Quinta, Joshua Tree and Big Bear Lake are all regular routes. These usually carry a travel fee, listed in the quote.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What if my city isn't listed?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "We're expanding our service areas regularly. Enter your address in the quote tool or contact us to check if we can accommodate your location.",
+        },
+      },
+    ],
+  }
+
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Hibachi at Home Service Locations</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            We serve all of Southern California. Our professional chefs bring authentic Japanese teppanyaki
-            experiences directly to your location.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 mb-12 max-w-2xl mx-auto">
-          {locations.map((location) => (
-            <Card key={location.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2 text-primary" />
-                  {location.name}, {location.state}
-                </CardTitle>
-                <CardDescription>{location.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <h3 className="font-medium mb-2">Areas Served:</h3>
-                <ul className="grid grid-cols-2 gap-x-4 gap-y-1 mb-6">
-                  {location.areas.map((area) => (
-                    <li key={area} className="text-gray-600 text-sm">
-                      • {area}
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href={location.learnMoreHref}>Learn More About {location.name} Service</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">Find Your City</h2>
-            <p className="text-gray-600">
-              Local pricing, popular occasions, and neighborhood coverage for every city we serve.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            {cityPages.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/hibachi-at-home/${city.slug}`}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white px-5 py-2.5 text-primary font-medium hover:bg-primary hover:text-white transition-colors"
-              >
-                <MapPin className="h-4 w-4" />
-                {city.city}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">Hibachi Catering by Metro</h2>
-            <p className="text-gray-600">Bigger events, corporate parties, and full-service catering pages.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            {[
-              { slug: "los-angeles", name: "Los Angeles" },
-              { slug: "san-diego", name: "San Diego" },
-              { slug: "long-beach", name: "Long Beach" },
-              { slug: "pasadena", name: "Pasadena" },
-              { slug: "riverside", name: "Riverside" },
-              { slug: "anaheim", name: "Anaheim" },
-              { slug: "irvine", name: "Irvine" },
-              { slug: "huntington-beach", name: "Huntington Beach" },
-            ].map((metro) => (
-              <Link
-                key={metro.slug}
-                href={`/hibachi-catering/${metro.slug}`}
-                className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 font-medium text-amber-800 transition-colors hover:bg-amber-100"
-              >
-                {metro.name} Catering
-              </Link>
-            ))}
-          </div>
-          <p className="mt-6 text-center text-sm text-gray-600">
-            Planning a specific celebration?{" "}
-            <Link href="/party" className="font-medium text-primary underline">
-              Browse party ideas by occasion
-            </Link>
-            .
-          </p>
-        </div>
-
-        <div className="mt-12 text-center">
-          <h2 className="text-2xl font-bold mb-4">Don't see your area?</h2>
-          <p className="text-gray-600 mb-4">
-            We're expanding our service areas regularly. Contact us to check if we can accommodate your location.
-          </p>
-          <Button asChild>
-            <Link href="/contact">Contact Us</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
+    <>
+      <JsonLd data={faqJsonLd} />
+      <LocationsClient regions={regions} catering={catering} />
+    </>
   )
 }
