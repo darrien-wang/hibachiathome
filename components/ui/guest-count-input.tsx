@@ -5,6 +5,20 @@ import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 
 /**
+ * Select the whole value once the browser has finished placing the caret.
+ *
+ * setTimeout rather than requestAnimationFrame: rAF is paused while the page
+ * is hidden, so a field focused just before the tab went to the background
+ * would not get selected until the customer came back.
+ */
+function selectAll(el: HTMLInputElement) {
+  setTimeout(() => {
+    // The customer may have moved on before this ran.
+    if (document.activeElement === el) el.select()
+  }, 0)
+}
+
+/**
  * Guest-count field for the quote calculators.
  *
  * `<input type="number">` bound straight to a number is the wrong tool here,
@@ -22,14 +36,6 @@ import { Input } from "@/components/ui/input"
  * Focus also selects the contents, because every one of these fields ships
  * with a sensible default that most people need to replace.
  */
-/** Select the whole value once the browser has finished placing the caret. */
-function selectAll(el: HTMLInputElement) {
-  requestAnimationFrame(() => {
-    // Guard: the customer may have moved on before the frame ran.
-    if (document.activeElement === el) el.select()
-  })
-}
-
 export default function GuestCountInput({
   value,
   onValueChange,
