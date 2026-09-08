@@ -140,16 +140,35 @@ export default function CityQuoteCalculator({
   })()
 
   // Sticky mobile bar: shown once the visitor has touched an input and the
-  // real CTA is off-screen (keyboard up, or scrolled past it).
+  // real CTA is off-screen. Measured against the *visual* viewport, not the
+  // layout viewport: when the iOS keyboard or date picker opens, the layout
+  // viewport does not shrink, so IntersectionObserver would keep reporting
+  // the CTA as visible while it is actually hidden under the keyboard.
   useEffect(() => {
-    const el = ctaRef.current
-    if (!el || typeof IntersectionObserver === "undefined") return
-    const io = new IntersectionObserver((entries) => setCtaVisible(entries[0]?.isIntersecting ?? true), {
-      threshold: 0.6,
-    })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+    if (!touched) return
+    const check = () => {
+      const el = ctaRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const vv = window.visualViewport
+      const top = vv ? vv.offsetTop : 0
+      const bottom = top + (vv ? vv.height : window.innerHeight)
+      setCtaVisible(r.top >= top && r.bottom <= bottom)
+    }
+    check()
+    window.addEventListener("scroll", check, { passive: true })
+    window.addEventListener("resize", check)
+    window.visualViewport?.addEventListener("resize", check)
+    window.visualViewport?.addEventListener("scroll", check)
+    const t = window.setInterval(check, 1000)
+    return () => {
+      window.removeEventListener("scroll", check)
+      window.removeEventListener("resize", check)
+      window.visualViewport?.removeEventListener("resize", check)
+      window.visualViewport?.removeEventListener("scroll", check)
+      window.clearInterval(t)
+    }
+  }, [touched])
   const showSticky = touched && !ctaVisible
 
   const cardBase = "block rounded-xl border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
