@@ -38,8 +38,9 @@ export const siteConfig = {
 // that, outbound texts from the long code were blocked by the carriers, so
 // texting had to go to a handset a person answered by hand.
 //
-// WhatsApp stays on 626-362-8824: consumer WhatsApp Business is registered to
-// that physical handset and cannot follow the number to Twilio.
+// WhatsApp runs on the same 213 line. It keeps its own entry because it is a
+// separate registration that could move independently of SMS — if it ever
+// does, this is the one line to change.
 //
 // Never hard-code any of them again: every page, button and JSON-LD block
 // reads from here, so changing a line is one edit instead of a hunt through
@@ -59,10 +60,10 @@ export const phone = {
     dashed: "213-770-7788",
   },
   whatsapp: {
-    e164: "+16263628824",
-    raw: "6263628824",
-    display: "(626) 362-8824",
-    dashed: "626-362-8824",
+    e164: "+12137707788",
+    raw: "2137707788",
+    display: "(213) 770-7788",
+    dashed: "213-770-7788",
   },
 } as const
 
