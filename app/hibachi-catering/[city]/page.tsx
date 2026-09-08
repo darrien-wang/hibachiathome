@@ -1,18 +1,16 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { MessageSquare, Star, Check, Users, CalendarDays, Sparkles } from "lucide-react"
 import { getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { CATERING_CITIES } from "@/config/catering-cities"
+import { getCityClimate } from "@/config/city-climate"
 import { pickReviews } from "@/config/reviews"
-import CityLandingHero from "@/components/city/city-landing-hero"
+import LandingTemplate from "@/components/city/landing-template"
 import GeoCityName from "@/components/city/geo-city-name"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
 
 const BASE_URL = "https://www.realhibachi.com"
-const PHONE_DISPLAY = phone.sms.display
 const PHONE_RAW = phone.sms.e164
 
 // The "hibachi catering {city}" SERP is a separate keyword family from
@@ -58,27 +56,24 @@ export async function generateMetadata({ params }: { params: Promise<{ city: str
 
 const included = [
   "Professional hibachi chef & mobile teppanyaki grill",
-  "2 proteins per guest (chicken, steak, shrimp, salmon, or tofu)",
-  "Garlic butter fried rice, fresh vegetables & house salad",
-  "Live fire show, games, and chef entertainment",
+  "2 proteins per guest: chicken, steak, shrimp, salmon or tofu",
+  "Garlic butter fried rice, vegetables & salad — refills free",
+  "Live fire show, games and chef entertainment",
   "Complete setup and cleanup — your venue stays spotless",
 ]
 
 const eventTypes = [
   {
-    icon: Users,
     title: "Big group? That's the point.",
     description:
       "One chef serves up to ~25 guests with the full show; larger events get a second chef and grill so every table has a front row. Tell us the headcount and we bring the right crew.",
   },
   {
-    icon: CalendarDays,
     title: "Corporate & team events",
     description:
       "Office parties, launch dinners, wrap parties — a hibachi show is the team event people actually talk about after. Weekday dates often qualify for the $45.90/adult Weekday Special.",
   },
   {
-    icon: Sparkles,
     title: "Milestones & celebrations",
     description:
       "Birthdays, graduations, showers, reunions — the chef builds the show around your moment. See our party ideas for how each occasion plays out.",
@@ -94,12 +89,13 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
 
   const url = `${BASE_URL}/hibachi-catering/${page.slug}`
   const atHomeUrl = `/hibachi-at-home/${page.slug}`
-  const quoteHref = `/quote?source=catering_${page.slug.replace(/-/g, "_")}`
+  const source = `catering_${page.slug.replace(/-/g, "_")}`
   const smsHref = `sms:${PHONE_RAW}?body=${encodeURIComponent(
     `Hi Real Hibachi! I'm planning an event in ${page.city} and would love a catering quote.`,
   )}`
   const nearby = getNearbyCityPages(page)
   const reviews = pickReviews(`${page.slug}-catering`)
+  const climate = getCityClimate(page.slug)
 
   const faqs = [
     {
@@ -199,201 +195,80 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     })),
   }
 
-  const cityReviews = pickReviews(`catering-${page.slug}`)
+  const otherCatering = CATERING_CITIES.filter((slug) => slug !== page.slug)
+    .map((slug) => getCityPage(slug))
+    .filter((other): other is NonNullable<typeof other> => Boolean(other))
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd, productJsonLd]} />
-
-      {/* Hero — first screen: price, estimator, proof. See components/city/city-landing-hero.tsx */}
-      <CityLandingHero
-        breadcrumb={
+      <LandingTemplate
+        city={page.city}
+        citySlug={page.slug}
+        source={source}
+        smsHref={smsHref}
+        kicker={`Hibachi catering · ${page.city} & all of SoCal`}
+        title={
           <>
-            <Link href="/" className="hover:text-primary">
-              Home
-            </Link>
-            {" / "}
-            <span className="text-gray-700">Hibachi Catering {page.city}</span>
+            Hibachi Catering in <GeoCityName fallback={page.city} />
           </>
         }
-        title={<>Hibachi Catering in <GeoCityName fallback={page.city} /></>}
-        subhead="The caterer that brings dinner and the show — a private chef, the teppanyaki grill, and live fire at your venue or backyard."
-        citySlug={page.slug}
-        cityName={page.city}
-        source={`catering_${page.slug.replace(/-/g, "_")}`}
-        smsHref={smsHref}
-        reviews={cityReviews}
-      />
-
-      {/* Event types */}
-      <section className="py-14">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="text-center text-3xl font-bold">
-              Catering that <span className="text-primary">performs</span>
-            </h2>
-            <p className="mx-auto mt-2 max-w-2xl text-center text-gray-600">
-              Trays of lukewarm food are catering. A chef cooking live with fire, games, and a crowd around the grill is
-              an event.
-            </p>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              {eventTypes.map((type) => (
-                <div key={type.title} className="rounded-2xl border border-amber-100 bg-white p-6 shadow-sm">
-                  <type.icon className="h-6 w-6 text-orange-600" aria-hidden="true" />
-                  <h3 className="mt-3 text-lg font-semibold text-gray-900">{type.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-700">{type.description}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-6 text-center text-sm text-gray-600">
-              Planning a specific occasion?{" "}
-              <Link href="/party" className="font-medium text-primary underline">
-                See our party ideas
-              </Link>{" "}
-              — birthdays, pool parties, corporate nights, and more.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing + calculator */}
-      <section className="bg-[#fffdf8] border-y border-[#e7dbc6] py-14">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto grid max-w-5xl items-start gap-8 md:grid-cols-2">
-            <div>
-              <h2 className="text-3xl font-serif font-bold text-gray-900 mb-4">
-                Published <span className="text-primary">Pricing</span>
-              </h2>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-5xl font-black text-gray-900">$59.90</span>
-                <span className="text-lg text-gray-500">/adult</span>
-              </div>
-              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
-              <p className="text-gray-600 mb-4">
-                Weekday Special: <strong>$45.90/adult</strong> for Mon–Thu events with 15+ guests.
-              </p>
-              <p className="text-sm text-gray-500 mb-4">
-                Licensed &amp; insured. Gratuity (20–25% for your chef) is the only thing not in the quote — no other
-                fees.
-              </p>
-              <ul className="space-y-2.5">
-                {included.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-700">
-                    <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                    <span className="text-sm">{item}</span>
-                  </li>
+        subhead="The caterer that brings dinner and the show — a private chef, the teppanyaki grill and live fire at your venue or backyard."
+        distanceMiles={climate?.miles ?? null}
+        travelFee={climate?.travelFee ?? null}
+        reviews={reviews}
+        included={included}
+        hoods={page.neighborhoods}
+        hoodsHeading={`Where we cater in ${page.city}`}
+        bestEvening={climate?.bestEvening}
+        details={[
+          {
+            title: "Who books hibachi catering",
+            body: (
+              <>
+                <p>Trays of lukewarm food are catering. A chef cooking live with fire, games, and a crowd around the grill is an event.</p>
+                {eventTypes.map((type) => (
+                  <p key={type.title}>
+                    <strong className="text-ink">{type.title}</strong> {type.description}
+                  </p>
                 ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section className="py-14 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-serif font-bold text-gray-900">
-              What Hosts <span className="text-primary">Say</span>
-            </h2>
-            <div className="mt-2 flex items-center justify-center gap-1 text-sm text-gray-600">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-              ))}
-              <span className="ml-1">5-star Google reviews from Southern California events</span>
-            </div>
-          </div>
-          <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3">
-            {reviews.map((review) => (
-              <div key={review.name} className="rounded-2xl border border-amber-100 bg-white p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-base font-bold text-white">
-                    {review.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{review.name}</p>
-                    <p className="text-xs text-gray-500">Google review</p>
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                  ))}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-gray-700">{review.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="py-14">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="text-center text-3xl font-serif font-bold">
-              {page.city} Catering <span className="text-primary">FAQ</span>
-            </h2>
-            <div className="mt-8 space-y-5">
-              {faqs.map((faq) => (
-                <div key={faq.question} className="rounded-2xl border border-gray-200 p-6">
-                  <h3 className="font-semibold text-gray-900">{faq.question}</h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-700">{faq.answer}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Cross-links + CTA */}
-      <section className="bg-gradient-to-r from-amber-50 to-orange-50 py-14">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold">Fire up your {page.city} event.</h2>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild className="h-12 rounded-full bg-[hsl(24_79%_55%)] px-8 text-white hover:bg-[hsl(24_79%_48%)]">
-              <Link href={quoteHref}>Get an Instant Quote</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-12 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-8 text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)]"
-            >
-              <a href={smsHref}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Text {PHONE_DISPLAY}
-              </a>
-            </Button>
-          </div>
-          <p className="mx-auto mt-8 max-w-2xl text-sm text-gray-600">
+                <p>
+                  Planning a specific occasion? <Link href="/party" className="underline">See our party ideas</Link> — birthdays, pool parties, corporate nights, and more.
+                </p>
+              </>
+            ),
+          },
+          {
+            title: "Parking, stairs & setup",
+            body: (
+              <>
+                {page.logistics.map((paragraph) => (
+                  <p key={paragraph.slice(0, 32)}>{paragraph}</p>
+                ))}
+              </>
+            ),
+          },
+        ]}
+        detailsHeading={`${page.city} event details`}
+        faqs={faqs}
+        faqHeading={`${page.city} catering FAQ`}
+        ctaHeading={`Fire up your ${page.city} event.`}
+        ctaBody="Headcount, date, venue — done. A $19.90 deposit locks your chef, and we staff the show to the room."
+        nearby={[
+          ...otherCatering.slice(0, 4).map((other) => ({ label: `${other.city} catering`, href: `/hibachi-catering/${other.slug}` })),
+          ...nearby.slice(0, 2).map((other) => ({ label: `${other.city} at home`, href: `/hibachi-at-home/${other.slug}` })),
+        ]}
+        nearbyLabel="Hibachi catering nearby"
+        footnote={
+          <>
             Hosting a smaller dinner at home?{" "}
-            <Link href={atHomeUrl} className="font-medium text-primary underline">
+            <Link href={atHomeUrl} className="underline hover:text-flame-700">
               Hibachi at Home in {page.city}
             </Link>{" "}
             has the family-dinner details.
-          </p>
-          <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
-            {CATERING_CITIES.filter((slug) => slug !== page.slug).map((slug) => {
-              const other = getCityPage(slug)
-              if (!other) return null
-              return (
-                <Link key={slug} href={`/hibachi-catering/${slug}`} className="text-gray-600 underline hover:text-primary">
-                  {other.city} catering
-                </Link>
-              )
-            })}
-            {nearby.slice(0, 3).map((other) => (
-              <Link
-                key={other.slug}
-                href={`/hibachi-at-home/${other.slug}`}
-                className="text-gray-600 underline hover:text-primary"
-              >
-                {other.city} at home
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
+          </>
+        }
+      />
+    </>
   )
 }
