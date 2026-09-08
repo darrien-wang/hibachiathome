@@ -1,17 +1,6 @@
-import { AnimateOnScroll } from "@/components/animate-on-scroll"
-import PortionsBlock from "@/components/menu/portions-block"
-import MenuDetails from "@/components/menu/menu-details"
-import SourcingSpec from "@/components/menu/sourcing-spec"
-import PricingBanner from "@/components/menu/pricing-banner"
-import PriceTransparency from "@/components/menu/price-transparency"
-import ServiceNotes from "@/components/menu/service-notes"
-import { regularProteins, premiumProteins, sides } from "@/config/menu-items"
-import { pricing } from "@/config/pricing"
-import CityQuoteCalculator from "@/components/city/city-quote-calculator"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { smsHref } from "@/config/site"
 import type { Metadata } from "next"
+import MenuTabs from "@/components/menu/menu-tabs"
+import MenuEstimatorBar from "@/components/menu/menu-estimator-bar"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Menu & Pricing Los Angeles",
@@ -34,74 +23,28 @@ export const metadata: Metadata = {
   },
 }
 
+// 2026-09-08 redesign: title, one line, three tabs, and an estimator that
+// stays on screen (sticky bar on phones, sticky card on desktop).
 export default function MenuPage() {
   return (
-    <div className="menu-page-safe container mx-auto px-4 py-12">
-      <div className="max-w-6xl mx-auto">
-        <AnimateOnScroll direction="down">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold mb-4">Our Menu</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Explore our hibachi menu options, featuring premium proteins, fresh vegetables, and authentic Japanese
-              flavors.
-            </p>
+    <div className="bg-cream text-ink">
+      <div className="mx-auto max-w-7xl px-5 pb-32 pt-[calc(var(--header-height,60px)+16px)] lg:grid lg:grid-cols-[1fr_360px] lg:gap-14 lg:px-8 lg:pb-20 lg:pt-[calc(var(--header-height,72px)+36px)]">
+        <div>
+          <h1 className="font-serif text-[34px] font-extrabold leading-[1.05] lg:text-[52px]">Our Menu</h1>
+          <p className="mt-2 max-w-[600px] text-sm leading-relaxed text-clay-700 lg:text-[17px]">
+            Every guest picks 2 proteins. Fried rice, vegetables and salad included — refills free.
+          </p>
+          <div className="mt-3 lg:mt-6">
+            <MenuTabs />
           </div>
-        </AnimateOnScroll>
-
-        {/* Paid "Menu & Pricing" sitelink lands here: 26 paid sessions / 0 form
-            fills in the 8 days to 2026-09-07. Give them the same zero-input
-            estimator the ad landing pages use (决策日志 D-0907-05). */}
-        <AnimateOnScroll>
-          <div className="mb-10">
-            <CityQuoteCalculator
-              citySlug="los-angeles"
-              cityName="Los Angeles"
-              source="menu_estimator"
-              smsHref={smsHref("Hi! I was looking at your menu — can I get an exact quote for my party?")}
-            />
+        </div>
+        <aside className="hidden lg:block">
+          <div className="sticky top-[calc(var(--header-height,72px)+24px)]">
+            <MenuEstimatorBar variant="card" />
           </div>
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <PricingBanner
-            adultPrice={pricing.packages.basic.perPerson}
-            childPrice={pricing.children.basic}
-            minimumTotal={pricing.packages.basic.minimum}
-          />
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <PriceTransparency />
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <ServiceNotes />
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <PortionsBlock />
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <MenuDetails proteins={regularProteins} premiumProteins={premiumProteins} sides={sides} />
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <div className="mt-16">
-            <SourcingSpec adultPrice={pricing.packages.basic.perPerson} />
-          </div>
-        </AnimateOnScroll>
-
-        <AnimateOnScroll>
-          <div className="mt-12 text-center">
-            <Button asChild size="lg" className="rounded-full bg-[hsl(24_79%_55%)] px-8 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]">
-              <Link href="/quote?source=menu_bottom">See your exact price — 30 seconds</Link>
-            </Button>
-            <p className="mt-2 text-sm text-gray-500">No phone number needed. Any travel fee shows before you pay.</p>
-          </div>
-        </AnimateOnScroll>
-
+        </aside>
       </div>
+      <MenuEstimatorBar variant="sticky" />
     </div>
   )
 }

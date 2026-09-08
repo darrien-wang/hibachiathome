@@ -1,283 +1,151 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
-import { phone, siteConfig, smsHref } from "@/config/site"
-import { Menu } from "lucide-react"
+import BrandMark from "@/components/site/brand-mark"
+import { phone, smsHref } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
 
-const navItems = [
-  { name: "Home", href: "/", disabled: false },
-  { name: "Menu", href: "/menu", disabled: false },
-  { name: "Pricing", href: "/#pricing", disabled: false },
-  { name: "Blog", href: "/blog", disabled: false },
-  // Hidden while referral anti-abuse rules are finalized — flip to false to relaunch.
-  { name: "Rewards", href: "/referral", disabled: true },
-  { name: "Locations", href: "/locations", disabled: false },
-  { name: "Gallery", href: "/gallery", disabled: false },
-  { name: "FAQ", href: "/faq", disabled: false },
-  { name: "Equipment Rentals", href: "/rentals", disabled: true },
-  { name: "Contact", href: "/contact", disabled: false },
-  { name: "Español", href: "/es", disabled: false },
-]
+// 2026-09-08 redesign: one 60px bar (72px on desktop) instead of the 120px
+// centered-logo header. Over the homepage hero it is transparent with white
+// text; everywhere else (and once scrolled) it is cream with ink text.
+const NAV = [
+  { name: "Menu", href: "/menu" },
+  { name: "Pricing", href: "/#pricing" },
+  { name: "Gallery", href: "/gallery" },
+  { name: "FAQ", href: "/faq" },
+  { name: "Locations", href: "/locations" },
+] as const
 
-// Ad landing pages + /quote: the 120px mobile header pushed the price below
-// the fold (2026-09-07 Clarity). These routes get a ~52px header on phones;
-// every other page and every desktop width is unchanged.
-const COMPACT_ROUTES = /^\/(hibachi-at-home|hibachi-catering|mobile-hibachi|private-hibachi-chef|quote)(\/|$)/
+const SHEET_EXTRA = [
+  { name: "Blog", href: "/blog" },
+  { name: "Contact", href: "/contact" },
+  { name: "Español", href: "/es" },
+] as const
 
 export function Header() {
   const pathname = usePathname()
-  const compact = COMPACT_ROUTES.test(pathname ?? "")
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isVisible, setIsVisible] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
-  const [ticking, setTicking] = useState(false)
-
-  // Throttled scroll handler
-  const handleScroll = useCallback(() => {
-    if (!ticking) {
-      setTicking(true)
-
-      window.requestAnimationFrame(() => {
-        const currentScrollY = window.scrollY
-
-        // Only update if we've scrolled at least 5px to reduce jitter
-        if (Math.abs(currentScrollY - lastScrollY) > 5) {
-          // Determine if we're scrolling up or down
-          if (currentScrollY > lastScrollY && currentScrollY > 100) {
-            // Scrolling down and past threshold
-            setIsVisible(false)
-          } else if (currentScrollY < lastScrollY) {
-            // Scrolling up
-            setIsVisible(true)
-          }
-
-          // Update last scroll position
-          setLastScrollY(currentScrollY)
-        }
-
-        // Update background change
-        setIsScrolled(currentScrollY > 10)
-
-        setTicking(false)
-      })
-    }
-  }, [lastScrollY, ticking])
-
-  // 添加一个 ref 来引用 header 元素
+  const isHome = pathname === "/"
+  const [scrolled, setScrolled] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
 
-  // 添加一个 effect 来设置CSS变量而不是body padding
   useEffect(() => {
-    // 函数来更新header高度CSS变量
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        const headerHeight = headerRef.current.offsetHeight
-        document.documentElement.style.setProperty("--header-height", `${headerHeight}px`)
-        // 移除body padding，让hero可以无缝连接
-        document.body.style.paddingTop = "0"
-      }
-    }
-
-    // 初始设置
-    updateHeaderHeight()
-
-    // 在窗口大小改变时重新计算
-    window.addEventListener("resize", updateHeaderHeight)
-
-    // 清理函数
-    return () => {
-      window.removeEventListener("resize", updateHeaderHeight)
-      document.documentElement.style.removeProperty("--header-height")
-    }
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  // The header's own height changes with the route (compact vs full).
+  // Pages below the header pad by --header-height (globals.css .hero-section etc.).
   useEffect(() => {
-    if (headerRef.current) {
-      document.documentElement.style.setProperty("--header-height", `${headerRef.current.offsetHeight}px`)
+    const update = () => {
+      if (headerRef.current) {
+        document.documentElement.style.setProperty("--header-height", `${headerRef.current.offsetHeight}px`)
+      }
     }
-  }, [compact])
-
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true })
-
-    // Initial check
-    handleScroll()
-
+    update()
+    window.addEventListener("resize", update)
     return () => {
-      window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("resize", update)
+      document.documentElement.style.removeProperty("--header-height")
     }
-  }, [handleScroll])
+  }, [pathname])
 
-  const handleHeaderPhoneClick = () => {
-    trackEvent("phone_click", { contact_surface: "mobile_header" })
-  }
+  const transparent = isHome && !scrolled
+  const tone = transparent ? "white" : "ink"
+  const link = transparent ? "text-white/90 hover:text-white" : "text-ink/80 hover:text-flame-700"
+  const pill = transparent
+    ? "border-white/45 text-white hover:bg-white/10"
+    : "border-ink/20 text-ink hover:bg-ink/5"
 
-  const handleHeaderSMSClick = () => {
-    trackEvent("sms_click", { contact_surface: "mobile_header" })
-  }
+  const onSms = () => trackEvent("sms_click", { contact_surface: "header" })
+  const onQuote = () => trackEvent("lead_start", { contact_surface: "header" })
 
   return (
     <header
       ref={headerRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out bg-gradient-to-b from-[#F5E3CB] to-white backdrop-blur-sm overflow-visible ${
-        isVisible ? "translate-y-0" : "-translate-y-full"
+      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-200 ${
+        transparent ? "bg-transparent" : "border-b border-ink/10 bg-cream/95 backdrop-blur"
       }`}
     >
-      <div className={`max-w-7xl mx-auto px-2 sm:px-4 ${compact ? "py-1.5" : "py-3"} lg:py-8 relative`}>
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-[120px] h-[120px] bg-[#F9A77C]/10 rounded-full blur-xl -z-10"></div>
+      <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between gap-3 px-4 lg:h-[72px] lg:px-8">
+        <BrandMark tone={tone} />
 
-
-        {/* Mobile / tablet layout: 768-1023px can't fit 8 links + CTA around a
-            centered logo, so tablets get the 3-equal-columns layout too — the
-            logo stays geometrically centered at every width. */}
-        <div className="lg:hidden grid grid-cols-3 items-center gap-1">
-          <div className="flex justify-start">
-            <div className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 select-text">
-              <a href={smsHref()} onClick={handleHeaderSMSClick} className="hover:text-[#F1691B]">
-                SMS
-              </a>
-              <span>/</span>
-              <a href={phone.voice.tel} onClick={handleHeaderPhoneClick} className="hover:text-[#F1691B]">
-                Call
-              </a>
-            </div>
-          </div>
-
-          {/* Centered Logo - Now positioned lower on mobile */}
-          <div className={`flex items-center justify-center relative ${compact ? "h-[40px]" : "h-[50px]"} z-10 overflow-visible mx-auto max-w-[120px]`}>
-            <Link href="/" className="block relative">
-              <Image
-                src="/images/design-mode/realhibachiathome.png"
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width * 0.8}
-                height={siteConfig.logo.height * 0.8}
-                className={`h-auto hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all ${
-                  compact ? "w-[76px] sm:w-[96px] translate-y-[12px]" : "w-[96px] sm:w-[112px] translate-y-[38px]"
-                }`}
-                priority
-              />
+        <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">
+          {NAV.map((item) => (
+            <Link key={item.name} href={item.href} className={`text-[15px] font-medium transition-colors ${link}`}>
+              {item.name}
             </Link>
-          </div>
+          ))}
+        </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="flex justify-end">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-[#F9A77C] hover:bg-[#F9A77C]/10 rounded-full p-2 border-2 border-[#F9A77C]/30 hover:border-[#F9A77C]/50 transition-all"
-                >
-                  <Menu className="h-7 w-7" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[280px] max-w-[90vw] bg-stone-100/95">
-                <VisuallyHidden>
-                  <SheetTitle>Navigation Menu</SheetTitle>
-                </VisuallyHidden>
-                <div className="flex justify-center mb-6 mt-4">
-                  <Image
-                    src="/images/design-mode/realhibachiathome.png"
-                    alt={siteConfig.logo.alt}
-                    width={112}
-                    height={35}
-                    className="h-auto hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
-                  />
-                </div>
-                <nav className="flex flex-col mt-6">
-                  {navItems
-                    .filter((item) => !item.disabled)
-                    .map((item) => (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className="py-3 text-lg font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide"
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  <Button
-                    asChild
-                    className="mt-6 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-6 border-2 border-amber-500"
-                    size="default"
-                  >
-                    <Link href="/book">Book Now</Link>
-                  </Button>
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={smsHref()}
+            onClick={onSms}
+            className={`inline-flex h-10 items-center rounded-full border px-4 text-[13px] font-semibold transition ${pill} ${
+              transparent ? "backdrop-blur-sm" : ""
+            }`}
+          >
+            <span className="lg:hidden">Text us</span>
+            <span className="hidden lg:inline">Text {phone.sms.dashed}</span>
+          </a>
+          <Link
+            href="/quote?source=header"
+            onClick={onQuote}
+            className="hidden h-10 items-center rounded-full bg-flame px-5 text-[14px] font-semibold text-white transition hover:bg-flame-600 lg:inline-flex"
+          >
+            Get instant quote
+          </Link>
 
-        {/* Desktop Layout: grid with minmax(0,1fr) side columns — unlike
-            flex-1 (whose min-width:auto lets the wider right side push the
-            logo off-center), equal columns are guaranteed at every width. */}
-        <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center w-full max-w-7xl mx-auto">
-          {/* Desktop Navigation - Left Side */}
-          <nav className="flex items-center justify-between min-w-0 pr-8 xl:pr-14">
-            {navItems
-              .filter((item) => !item.disabled)
-              .slice(0, Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
-              .map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="px-1.5 xl:px-2 py-1 text-sm xl:text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide whitespace-nowrap"
-                >
-                  {item.name}
-                </Link>
-              ))}
-          </nav>
-
-          {/* Logo in Center */}
-          <div className="flex items-center justify-self-center relative h-[50px] w-[128px] z-10 mx-4 xl:mx-6">
-            <Link href="/" className="block relative w-full h-full">
-              <Image
-                src="/images/design-mode/realhibachiathome.png"
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width * 0.8}
-                height={siteConfig.logo.height * 0.8}
-                className="h-auto w-[112px] md:w-[128px] hover:-translate-y-1 hover:scale-105 transition-all duration-300 rounded-full bg-stone-100/95 backdrop-blur-sm shadow-[0_0_15px_rgba(249,167,124,0.3)] after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.3)] hover:after:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4)] after:transition-all"
-                priority
-              />
-            </Link>
-          </div>
-
-          {/* Desktop Navigation - Right Side with Book Now Button */}
-          <div className="flex items-center justify-between min-w-0 pl-8 xl:pl-14">
-            <div className="flex items-center justify-between flex-1 min-w-0">
-              {navItems
-                .filter((item) => !item.disabled)
-                .slice(Math.ceil(navItems.filter((item) => !item.disabled).length / 2))
-                .map((item) => (
+          <Sheet>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open menu"
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition lg:hidden ${pill}`}
+              >
+                <Menu className="h-[18px] w-[18px]" strokeWidth={2.75} />
+              </button>
+            </SheetTrigger>
+            <SheetContent className="w-[300px] max-w-[90vw] bg-cream">
+              <VisuallyHidden>
+                <SheetTitle>Navigation Menu</SheetTitle>
+              </VisuallyHidden>
+              <div className="mt-2">
+                <BrandMark />
+              </div>
+              <nav className="mt-8 flex flex-col" aria-label="Mobile">
+                {[...NAV, ...SHEET_EXTRA].map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="px-1.5 xl:px-2 py-1 text-sm xl:text-base font-sans font-medium text-gray-700 hover:text-[#F9A77C] transition-colors tracking-wide whitespace-nowrap"
+                    className="border-b border-ink/10 py-3.5 text-lg font-medium text-ink transition-colors hover:text-flame-700"
                   >
                     {item.name}
                   </Link>
                 ))}
-            </div>
-            <div className="ml-4 xl:ml-6">
-              <Button
-                asChild
-                className="bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-sm transition-all hover:shadow-md px-4 xl:px-6 text-sm xl:text-base border-2 border-amber-500 whitespace-nowrap"
-                size="default"
-              >
-                <Link href="/book">Book Now</Link>
-              </Button>
-            </div>
-          </div>
+                <Link
+                  href="/quote?source=menu_sheet"
+                  onClick={onQuote}
+                  className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-flame px-6 text-base font-semibold text-white hover:bg-flame-600"
+                >
+                  Get instant quote
+                </Link>
+                <a
+                  href={phone.voice.tel}
+                  onClick={() => trackEvent("phone_click", { contact_surface: "mobile_header" })}
+                  className="mt-3 inline-flex h-12 items-center justify-center rounded-full border border-ink/20 px-6 text-base font-semibold text-ink"
+                >
+                  Call {phone.voice.dashed}
+                </a>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

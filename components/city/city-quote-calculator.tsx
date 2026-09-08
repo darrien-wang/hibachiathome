@@ -176,7 +176,7 @@ export default function CityQuoteCalculator({
   return (
     <div
       id="price"
-      className="scroll-mt-24 rounded-2xl border border-amber-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:p-6"
+      className="scroll-mt-24 rounded-[28px] border border-ink/10 bg-surface p-4 shadow-organic sm:p-6"
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-base font-bold text-gray-900 sm:text-lg">Your {shownCity} party</p>
@@ -300,7 +300,7 @@ export default function CityQuoteCalculator({
       </div>
 
       {showSticky ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-amber-200 bg-white/95 px-3 py-2.5 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-ink/10 bg-cream/95 px-3 py-2.5 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
           <div className="flex shrink-0 flex-col leading-tight">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Your party</span>
             <span className={`text-lg font-bold ${weekdayApplies ? "text-emerald-800" : "text-orange-800"}`}>${fmt(chosenTotal)}</span>

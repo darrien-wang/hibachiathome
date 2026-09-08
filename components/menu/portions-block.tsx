@@ -1,6 +1,6 @@
 // Owner-confirmed per-guest portions, published as a promise. Same numbers
 // drive the chef prep list in the invoice system - keep the two in sync.
-const PORTIONS = [
+export const PORTIONS = [
   { label: "Chicken", amount: "5 oz" },
   { label: "Steak", amount: "4.5 oz" },
   { label: "Salmon", amount: "4 oz" },

@@ -28,6 +28,7 @@ import {
   GUEST_TIERS,
   MINIMUM_SPEND,
   WEEKDAY_SPECIAL,
+  DEPOSIT_AMOUNT,
   calcAdultEquivalents,
   isWeekdayEligibleDate,
 } from "@/config/pricing-rules"
@@ -252,7 +253,10 @@ export default function QuoteBuilderClient() {
   // on screen (measured against the visual viewport so the keyboard counts
   // as covering it).
   const [heroTouched, setHeroTouched] = useState(false)
+  // 2026-09-08 redesign: /quote is a 3-step wizard (who's coming → your price → lock your date).
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const weekdayNudgeRef = useRef(false)
+  const suppressRevertToastRef = useRef(false)
   const [smsCtaVisible, setSmsCtaVisible] = useState(true)
   const smsButtonRef = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
@@ -305,7 +309,11 @@ export default function QuoteBuilderClient() {
     // The landing estimator shows the Weekday price before a date is picked;
     // without a date the tier below reverts to Standard and the number jumps.
     // Say why, once, instead of letting the price silently change.
-    if (wantsWeekday && !dateOk) weekdayNudgeRef.current = true
+    if (wantsWeekday && !dateOk) {
+      weekdayNudgeRef.current = true
+      // The eligibility effect reverts the tier right after; one toast is enough.
+      suppressRevertToastRef.current = true
+    }
     setInput((previous) => ({
       ...previous,
       ...(Number.isFinite(adults) && adults > 0 && adults <= 200 ? { adults } : {}),
@@ -456,6 +464,10 @@ export default function QuoteBuilderClient() {
   useEffect(() => {
     if (input.pricingTier !== "weekday_saver" || weekdayEligible) return
     setInput((previous) => ({ ...previous, pricingTier: "standard" }))
+    if (suppressRevertToastRef.current) {
+      suppressRevertToastRef.current = false
+      return
+    }
     const described = input.eventDate ? describeEventDate(input.eventDate) : null
     const reason = !weekdaySaverEnabled
       ? weekdaySaverPolicy.unavailableMessage
@@ -1201,10 +1213,103 @@ export default function QuoteBuilderClient() {
     void submitBookingRequest("book_online_click")
   }
 
+  // ── Wizard plumbing ──
+  const goToStep = (next: 1 | 2 | 3) => {
+    setStep(next)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+  // The missing-field walker only finds inputs on the current step; send the
+  // visitor back to step 1 first when date / time / city are still empty.
+  const coreMissing = !input.eventDate || !eventTime || !input.location.trim()
+  const backToCoreFields = () => {
+    if (step !== 1) goToStep(1)
+    window.setTimeout(focusFirstMissingField, step === 1 ? 0 : 450)
+  }
+  const onPrimary = () => {
+    if (step === 1) {
+      setHeroTouched(true)
+      if (!input.eventDate || !input.location.trim()) {
+        pushToast("error", "Almost there", "Add your event date and city or ZIP to see the price.")
+        window.setTimeout(focusFirstMissingField, 0)
+        return
+      }
+      goToStep(2)
+      return
+    }
+    if (step === 2) {
+      goToStep(3)
+      return
+    }
+    if (coreMissing) {
+      pushToast("error", "One more thing", "Add your event date, start time and city first.")
+      backToCoreFields()
+      return
+    }
+    onBookOnlineClick()
+  }
+  const smsFromWizard = () => {
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      backToCoreFields()
+      return
+    }
+    onSmsClick()
+  }
+  const whatsappFromWizard = () => {
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      backToCoreFields()
+      return
+    }
+    onWhatsAppClick()
+  }
+  const emailFromWizard = () => {
+    if (contactDisabled) {
+      pushToast("error", "Almost there", "Add your event date, city or ZIP, and guest count first.")
+      backToCoreFields()
+      return
+    }
+    onEmailClick()
+  }
+  const primaryLabel =
+    step === 1 ? "See my price" : step === 2 ? "Continue to book" : bookingRequestSubmitting ? "Submitting…" : "Book now"
+  const primaryHint =
+    step === 1
+      ? "No phone number needed"
+      : step === 2
+        ? "Nothing charged yet"
+        : `We confirm within hours · full refund up to 72h before`
+  const planName = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
+  const totalLabel =
+    result.totalRange.low === result.totalRange.high
+      ? `$${fmtMoney(result.totalRange.low)}`
+      : `$${fmtMoney(result.totalRange.low)}–$${fmtMoney(result.totalRange.high)}`
+  const priceCard = (
+    <div className="flex flex-col gap-1.5 rounded-[28px] bg-flame p-[22px] text-cream lg:p-7">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-flame-100">
+        {planName} · {result.guestCount} guests
+      </span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-serif text-[52px] font-extrabold leading-none lg:text-[56px]">{totalLabel}</span>
+        <span className="text-sm opacity-85">all-in</span>
+      </div>
+      <p className="text-[13px] leading-relaxed opacity-90">
+        Food, chef, live show, setup &amp; cleanup, travel within 50 mi. Gratuity not included.
+      </p>
+      {isWeekdaySaverTier ? (
+        <p className="text-[12px] opacity-90">{WEEKDAY_SAVER_MENU_DETAIL}</p>
+      ) : weekdayEligible && weekdaySavings > 0 ? (
+        <button type="button" onClick={() => { setHeroTouched(true); handleWeekdaySaverToggle() }} className="mt-1 self-start rounded-full bg-cream/20 px-3 py-1 text-[12px] font-semibold underline underline-offset-2">
+          Apply Weekday Special — save ${weekdaySavings}
+        </button>
+      ) : null}
+    </div>
+  )
+
   return (
-    <div className="bg-gradient-to-b from-orange-50/70 via-amber-50/30 to-orange-50/50">
-      <div className="page-container container mx-auto px-4 pb-12 !pt-[calc(var(--header-height,120px)+1rem)] sm:!pt-[calc(var(--header-height,120px)+2rem)]">
-      <div className="max-w-6xl mx-auto">
+    <div className="bg-cream text-ink">
+      <div className="mx-auto max-w-7xl px-5 pb-36 pt-[calc(var(--header-height,60px)+12px)] lg:px-8 lg:pb-20 lg:pt-[calc(var(--header-height,72px)+36px)]">
+      <div className="mx-auto max-w-5xl">
         {bookingConfirmation ? (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
@@ -1286,7 +1391,7 @@ export default function QuoteBuilderClient() {
 
         <div
           aria-live="polite"
-          className="pointer-events-none fixed left-1/2 top-20 z-[95] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2"
+          className="pointer-events-none fixed left-1/2 top-[calc(var(--header-height,60px)+8px)] z-[95] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2"
         >
           {toasts.map((toast) => (
             <div
@@ -1327,201 +1432,136 @@ export default function QuoteBuilderClient() {
           ))}
         </div>
 
-        <section className="relative mb-6 overflow-hidden rounded-2xl">
-          <Image
-            src="/images/hero/quote-hero-night.jpg"
-            alt=""
-            aria-hidden
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-[58%_40%]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/65" />
-          <div className="relative mx-auto max-w-3xl px-4 py-8 text-center text-white sm:px-5 sm:py-12">
-            <h1 className="text-2xl font-bold leading-tight sm:text-4xl">Your Exact Hibachi Price</h1>
-            <p className="mt-1 hidden text-sm text-white/90 sm:block sm:text-base">No phone number. No sign-up. Food, show and travel in one price.</p>
-
-            {/* The three numbers that set the price, on the first screen. Same
-                state as the builder below, so nothing is typed twice. */}
-            <div
-              className="mt-4 flex flex-col gap-2.5 rounded-xl bg-white/95 p-3 text-left text-gray-900 shadow-lg backdrop-blur"
-              onFocusCapture={() => setHeroTouched(true)}
-              onPointerDownCapture={() => setHeroTouched(true)}
-            >
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Adults</span>
-                  <GuestStepper
-                    value={input.adults}
-                    onValueChange={(next) => handleFieldChange("adults", next)}
-                    min={1}
-                    label="Number of adults"
-                    data-quote-field="adults"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Kids 5–12</span>
-                  <GuestStepper
-                    value={input.kids}
-                    onValueChange={(next) => handleFieldChange("kids", next)}
-                    min={0}
-                    label="Number of kids age 5 to 12"
-                    data-quote-field="kids"
-                  />
-                </div>
-              </div>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold text-gray-700 sm:text-xs">Event date</span>
-                <span className="relative flex h-11 items-center rounded-xl border border-gray-200 bg-white">
-                  <CalendarDays className="pointer-events-none absolute left-3 h-4 w-4 text-gray-500" aria-hidden="true" />
-                  <Input
-                    type="date"
-                    value={input.eventDate}
-                    onChange={(e) => handleFieldChange("eventDate", e.target.value)}
-                    onClick={openNativeDatePicker}
-                    onFocus={openNativeDatePicker}
-                    aria-label="Event date"
-                    data-quote-field="date"
-                    className="h-11 border-0 bg-transparent pl-9 pr-2 text-base shadow-none focus-visible:ring-0"
-                  />
-                  <span className="pointer-events-none absolute right-3 max-w-[46%] truncate text-[11px] font-semibold text-emerald-700">
-                    {slotsLeft !== null && input.eventDate
-                      ? `${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} left`
-                      : weekdayEligible
-                        ? "Mon–Thu · Weekday Special"
-                        : "Mon–Thu saves"}
-                  </span>
-                </span>
-              </label>
-            </div>
-
-            {/* Both plans, priced live, tappable. Replaces the three text pills
-                that the 9/7 tapes showed people tapping three times in a row. */}
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:gap-3">
-              <button
-                type="button"
-                onClick={() => onHeroPlanClick("weekday")}
-                aria-pressed={isWeekdaySaverTier}
-                className={`rounded-xl border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
-                  isWeekdaySaverTier
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-300"
-                    : "border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
-                }`}
-              >
-                <span className="block text-[11px] font-semibold uppercase tracking-wide">Weekday Special</span>
-                <span className="mt-0.5 block text-xl font-bold sm:text-2xl">${fmtMoney(heroEstimate(true))}</span>
-                <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">
-                  Mon–Thu · {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onHeroPlanClick("standard")}
-                aria-pressed={!isWeekdaySaverTier}
-                className={`rounded-xl border p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
-                  !isWeekdaySaverTier
-                    ? "border-orange-300 bg-orange-50 text-orange-900 ring-2 ring-orange-300"
-                    : "border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
-                }`}
-              >
-                <span className="block text-[11px] font-semibold uppercase tracking-wide">Standard · any day</span>
-                <span className="mt-0.5 block text-xl font-bold sm:text-2xl">${fmtMoney(heroEstimate(false))}</span>
-                <span className="block text-[11px] leading-4 opacity-90 sm:text-xs">Any day</span>
-              </button>
-            </div>
-            <div className="mt-2 flex items-center justify-center gap-1 text-xs text-white/85">
-              What&apos;s in the price
-              <InfoTip label="What's included in the price?" title="What's included" iconClassName="text-white/85 hover:text-white">
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>Chef, grill, food &amp; live show</li>
-                  <li>Setup &amp; cleanup</li>
-                  <li>Kids under 5 eat free</li>
-                  <li>First 50 miles of travel free — any travel fee shows before you pay</li>
-                  <li>
-                    Weekday Special: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult · ${GUEST_TIERS.child.weekdayPrice.toFixed(2)}/kid,
-                    Mon–Thu, {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids count as half)
-                  </li>
-                  <li>
-                    Standard: ${GUEST_TIERS.adult.price.toFixed(2)}/adult · ${GUEST_TIERS.child.price.toFixed(2)}/kid, any day, ${MINIMUM_SPEND}{" "}
-                    minimum
-                  </li>
-                </ul>
-              </InfoTip>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button
-                type="button"
-                onClick={() => {
-                  setHeroTouched(true)
-                  scrollToBuilder(input.eventDate && heroAdults > 0 ? "quote-location" : "quote-event-date")
-                }}
-                className="h-[52px] rounded-full bg-[hsl(24_79%_55%)] px-8 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
-              >
-                Continue
-              </Button>
-              <Button
-                type="button"
-                onClick={onSmsClick}
-                variant="outline"
-                className="h-12 rounded-full border-2 border-white/70 bg-white/10 px-6 text-base font-semibold text-white backdrop-blur-sm hover:bg-white/20"
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Text us this quote
-              </Button>
-            </div>
+        {/* ── 3-step wizard (2026-09-08 redesign): who's coming → your price → lock your date ── */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label={step === 1 ? "Back to previous page" : "Previous step"}
+            onClick={() => (step === 1 ? window.history.back() : goToStep((step - 1) as 1 | 2))}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink/15 bg-surface text-ink"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+          <div className="flex flex-1 gap-1.5" aria-hidden="true">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? "bg-flame" : "bg-ink/10"}`} />
+            ))}
           </div>
-        </section>
+          <span className="text-xs font-semibold text-clay-600">Step {step} of 3</span>
+        </div>
 
-        {heroTouched && !smsCtaVisible && !bookingConfirmation ? (
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-amber-200 bg-white/95 p-3 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
-            <Button
-              type="button"
-              onClick={onSmsClick}
-              className="h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
-            >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Text us this quote · ${fmtMoney(heroEstimate(isWeekdaySaverTier))}
-            </Button>
-          </div>
-        ) : null}
+        <div className="mt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-14">
+          <div className="flex flex-col gap-5 lg:gap-7">
+            {step === 1 ? (
+              <>
+                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Who&apos;s coming?</h1>
+                <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+                  {(
+                    [
+                      { key: "adults", label: "Adults", sub: `$${(isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)} each`, min: 1 },
+                      { key: "kids", label: "Kids 5–12", sub: `$${(isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)} each · under 5 free`, min: 0 },
+                    ] as const
+                  ).map((row) => {
+                    const value = row.key === "adults" ? input.adults : input.kids
+                    return (
+                      <div key={row.key} className="flex items-center gap-2.5 rounded-[28px] border border-ink/10 bg-surface px-[18px] py-3.5 shadow-organic">
+                        <div className="flex-1">
+                          <p className="text-[15px] font-semibold">{row.label}</p>
+                          <p className="text-xs text-clay-600">{row.sub}</p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={`Fewer ${row.label.toLowerCase()}`}
+                          disabled={value <= row.min}
+                          onClick={() => handleFieldChange(row.key, Math.max(row.min, (value || 0) - 1))}
+                          className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/15 text-xl text-ink disabled:opacity-35"
+                        >
+                          −
+                        </button>
+                        <span
+                          id={row.key === "adults" ? "quote-adults" : "quote-kids"}
+                          data-quote-field={row.key}
+                          tabIndex={-1}
+                          className="w-9 text-center font-serif text-2xl font-extrabold tabular-nums"
+                        >
+                          {value}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`More ${row.label.toLowerCase()}`}
+                          onClick={() => handleFieldChange(row.key, Math.min(200, (value || 0) + 1))}
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-flame text-xl text-white"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
 
-        <div id="quote-builder" className="grid scroll-mt-24 gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Event Inputs
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div>
-                <label htmlFor="quote-event-date" className="block text-sm font-medium mb-2">Event Date *</label>
-                {/* Both lost ad sessions in the 9/1 Clarity tapes died right here:
-                    taps on the label or the padding around the native date box did
-                    nothing (dead clicks), so the label is now bound to the input and
-                    any focus/click pops the native picker — a rough thumb anywhere
-                    on the row still opens the calendar. */}
-                <Input
-                  id="quote-event-date"
-                  type="date"
-                  data-quote-field="date"
-                  value={input.eventDate}
-                  onChange={(e) => handleFieldChange("eventDate", e.target.value)}
-                  onClick={openNativeDatePicker}
-                  onFocus={openNativeDatePicker}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAvailabilityCalendar((v) => !v)}
-                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900"
-                >
-                  <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                  {showAvailabilityCalendar ? "Hide availability calendar" : "See availability calendar"}
-                </button>
-                {showAvailabilityCalendar && (
-                  <div className="mt-2">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="quote-event-date" className="text-[13px] font-semibold">
+                    Event date
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="quote-event-date"
+                      type="date"
+                      data-quote-field="date"
+                      value={input.eventDate}
+                      onChange={(e) => handleFieldChange("eventDate", e.target.value)}
+                      onClick={openNativeDatePicker}
+                      onFocus={openNativeDatePicker}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
+                    />
+                    <span className="pointer-events-none absolute right-4 top-1/2 max-w-[45%] -translate-y-1/2 truncate text-[11px] font-semibold text-gold-700">
+                      {slotsLeft !== null && input.eventDate ? `${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} left` : ""}
+                    </span>
+                  </div>
+                  {weekdayDateOk || isWeekdaySaverTier ? (
+                    <div className="flex items-center gap-2.5 rounded-2xl bg-gold-100 px-3.5 py-3 text-[13px] leading-snug text-gold-800">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-300 text-xs font-bold">
+                        {weekdayEligible ? "✓" : `${Math.min(WEEKDAY_SPECIAL.minAdultEquivalents, Math.round(weekdayAdultEquivalents))}/${WEEKDAY_SPECIAL.minAdultEquivalents}`}
+                      </span>
+                      <span className="flex-1">
+                        {isWeekdaySaverTier
+                          ? `Weekday Special unlocked — ${weekdayRatesLabel}.`
+                          : weekdayEligible
+                            ? `You qualify for Weekday Special — save $${weekdaySavings}.`
+                            : `${Math.round(weekdayAdultEquivalents)} of ${WEEKDAY_SPECIAL.minAdultEquivalents} guests — add ${Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - weekdayAdultEquivalents))} more to unlock $${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult (kids count as half).`}
+                      </span>
+                      {weekdayEligible ? (
+                        <button
+                          type="button"
+                          aria-pressed={isWeekdaySaverTier}
+                          onClick={() => {
+                            setHeroTouched(true)
+                            handleWeekdaySaverToggle()
+                          }}
+                          className={`h-9 shrink-0 rounded-full px-3.5 text-xs font-bold ${
+                            isWeekdaySaverTier ? "bg-gold-800 text-gold-100" : "bg-gold-700 text-white"
+                          }`}
+                        >
+                          {isWeekdaySaverTier ? "Selected" : "Apply"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-clay-600">
+                      Save on Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult for parties of {WEEKDAY_SPECIAL.minAdultEquivalents}+.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowAvailabilityCalendar((v) => !v)}
+                    className="inline-flex items-center gap-1 self-start text-xs font-semibold text-flame-700"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                    {showAvailabilityCalendar ? "Hide availability calendar" : "See availability calendar"}
+                  </button>
+                  {showAvailabilityCalendar ? (
                     <AvailabilityCalendar
                       value={input.eventDate}
                       onSelect={(date) => {
@@ -1529,400 +1569,276 @@ export default function QuoteBuilderClient() {
                         setShowAvailabilityCalendar(false)
                       }}
                     />
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <span id="quote-event-time-label" className="text-[13px] font-semibold">
+                    Start time
+                  </span>
+                  <div
+                    id="quote-event-time"
+                    role="radiogroup"
+                    aria-labelledby="quote-event-time-label"
+                    data-quote-field="time"
+                    tabIndex={-1}
+                    className="grid grid-cols-4 gap-1.5"
+                  >
+                    {EVENT_TIME_OPTIONS.map((timeValue) => {
+                      const selected = eventTime === timeValue
+                      const [h, m] = timeValue.split(":")
+                      const hour = Number(h)
+                      const label = `${hour > 12 ? hour - 12 : hour}:${m} ${hour >= 12 ? "pm" : "am"}`
+                      return (
+                        <button
+                          key={timeValue}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setEventTime(timeValue)}
+                          className={`h-12 rounded-full text-sm font-semibold transition ${
+                            selected ? "bg-flame text-cream" : "border border-ink/15 bg-surface text-ink"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </div>
-
-              <div>
-                <span id="quote-event-time-label" className="block text-sm font-medium mb-2">Event Time *</span>
-                <div
-                  id="quote-event-time"
-                  role="radiogroup"
-                  aria-labelledby="quote-event-time-label"
-                  data-quote-field="time"
-                  tabIndex={-1}
-                  className="grid grid-cols-4 gap-1.5"
-                >
-                  {EVENT_TIME_OPTIONS.map((timeValue) => {
-                    const selected = eventTime === timeValue
-                    const [h, m] = timeValue.split(":")
-                    const hour = Number(h)
-                    const label = `${hour > 12 ? hour - 12 : hour}:${m} ${hour >= 12 ? "pm" : "am"}`
-                    return (
-                      <button
-                        key={timeValue}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        onClick={() => setEventTime(timeValue)}
-                        className={`h-11 rounded-xl border text-sm font-semibold transition ${
-                          selected
-                            ? "border-2 border-[hsl(24_79%_55%)] bg-orange-50 text-orange-900"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-orange-300"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    )
-                  })}
                 </div>
-                {slotsLeft !== null && input.eventDate && (
-                  <p className="mt-1.5 text-xs font-medium text-red-700">
-                    {slotsLeft} booking {slotsLeft === 1 ? "slot" : "slots"} left on this date
-                  </p>
-                )}
-              </div>
 
-              <div>
-                <label htmlFor="quote-location" className="block text-sm font-medium mb-2">City or ZIP *</label>
-                <Input
-                  id="quote-location"
-                  type="text"
-                  data-quote-field="location"
-                  value={input.location}
-                  placeholder="Los Angeles or 90001"
-                  onChange={(e) => handleFieldChange("location", e.target.value)}
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  City or ZIP is all we need for your price — your exact street address only after your date is
-                  confirmed.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="quote-adults" className="block text-sm font-medium mb-2">Adults *</label>
-                  <GuestCountInput
-                    id="quote-adults"
-                    min={1}
-                    data-quote-field="adults"
-                    value={input.adults}
-                    onValueChange={(next) => handleFieldChange("adults", next)}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="quote-location" className="text-[13px] font-semibold">
+                    City or ZIP
+                  </label>
+                  <Input
+                    id="quote-location"
+                    type="text"
+                    data-quote-field="location"
+                    value={input.location}
+                    placeholder="e.g. Irvine or 92618"
+                    onChange={(e) => handleFieldChange("location", e.target.value)}
+                    className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
                   />
+                  <span className="text-xs text-clay-600">Street address only after your date is confirmed.</span>
                 </div>
-                <div>
-                  <label htmlFor="quote-kids" className="block text-sm font-medium mb-2">Kids</label>
-                  <GuestCountInput
-                    id="quote-kids"
-                    min={0}
-                    value={input.kids}
-                    onValueChange={(next) => handleFieldChange("kids", next)}
-                  />
-                </div>
-              </div>
+              </>
+            ) : null}
 
-              {/* Default is Standard with no plan UI at all. The Weekday
-                  Special card only renders once the party qualifies, and the
-                  customer taps it themselves — never auto-selected. */}
-              {weekdayEligible || isWeekdaySaverTier ? (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pricing Plan</label>
+            {step === 2 ? (
+              <>
+                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your price</h1>
+                <div className="lg:hidden">{priceCard}</div>
+
+                <div className="flex flex-col text-sm">
+                  <div className="flex justify-between border-b border-ink/15 py-2.5">
+                    <span>
+                      {heroAdults} adults × ${(isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)}
+                    </span>
+                    <span className="font-semibold">${fmtMoney(heroAdults * (isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price))}</span>
+                  </div>
+                  {heroKids > 0 ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5">
+                      <span>
+                        {heroKids} kids × ${(isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)}
+                      </span>
+                      <span className="font-semibold">${fmtMoney(heroKids * (isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price))}</span>
+                    </div>
+                  ) : null}
+                  {result.effectiveBase > result.baseSubtotal ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5 text-flame-700">
+                      <span>${MINIMUM_SPEND} event minimum applied</span>
+                      <span className="font-semibold">+${fmtMoney(result.effectiveBase - result.baseSubtotal)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between border-b border-ink/15 py-2.5">
+                    <span>Travel · {input.location.trim() || "Southern California"}</span>
+                    {result.travelFeeRange.high <= 0 ? (
+                      <span className="rounded-full bg-gold-100 px-2.5 py-0.5 text-[11px] font-semibold text-gold-800">Included</span>
+                    ) : (
+                      <span className="font-semibold">
+                        {result.travelFeeRange.low === result.travelFeeRange.high
+                          ? `$${result.travelFeeRange.high.toFixed(0)}`
+                          : `$${result.travelFeeRange.low.toFixed(0)}–$${result.travelFeeRange.high.toFixed(0)}`}
+                      </span>
+                    )}
+                  </div>
+                  {input.tablewareRental ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5">
+                      <span>Tables, chairs &amp; utensils</span>
+                      <span className="font-semibold">+${result.tablewareFee.toFixed(0)}</span>
+                    </div>
+                  ) : null}
+                  {!isWeekdaySaverTier && selectedPremiumUpgrades.length > 0 ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5">
+                      <span>Premium upgrades ({selectedPremiumUpgradesText})</span>
+                      <span className="font-semibold">up to +${result.addOnTotalRange.high.toFixed(0)}</span>
+                    </div>
+                  ) : null}
+                  {result.loyaltyDiscount > 0 ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5 text-gold-800">
+                      <span>{input.loyaltyStatus === "party_guest" ? "Party guest card" : "Returning customer"}</span>
+                      <span className="font-semibold">−${result.loyaltyDiscount.toFixed(0)}</span>
+                    </div>
+                  ) : null}
+                  {result.guestCount >= 20 ? (
+                    <div className="flex items-start gap-1.5 py-2.5 text-[13px] font-semibold text-gold-800">
+                      <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      Free appetizer platter — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+, through Oct 31)
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  <p className="text-[13px] font-semibold">Optional add-ons</p>
                   <button
                     type="button"
-                    onClick={handleWeekdaySaverToggle}
-                    aria-pressed={isWeekdaySaverTier}
-                    className={`w-full rounded-lg border p-3 text-left transition ${
-                      isWeekdaySaverTier
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-emerald-400 bg-white hover:border-emerald-500 hover:bg-emerald-50/50"
-                    }`}
+                    aria-pressed={input.tablewareRental}
+                    onClick={() => handleFieldChange("tablewareRental", !input.tablewareRental)}
+                    className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left ${input.tablewareRental ? "bg-flame-100" : "bg-surface"}`}
                   >
-                    <p className="text-sm font-semibold text-gray-900">
-                      {weekdaySaverPolicy.title}
-                      {isWeekdaySaverTier ? (
-                        <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                          Selected
-                        </span>
-                      ) : (
-                        <span className="ml-2 text-xs font-semibold text-emerald-700">
-                          — you qualify{weekdaySavings > 0 ? `, save $${weekdaySavings}` : ""}
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-600">{weekdaySaverPolicy.quoteDescription}</p>
-                    <p className="mt-1 text-xs font-medium text-emerald-700">
-                      {isWeekdaySaverTier
-                        ? "Tap again to switch back to the Standard Plan."
-                        : hasPremiumUpgrades
-                          ? "Tap to apply — premium upgrades will be removed (not part of this menu)."
-                          : "Tap to apply — no code needed."}
-                    </p>
+                    <span className={`h-[22px] w-[22px] shrink-0 rounded-full border-2 border-flame ${input.tablewareRental ? "bg-flame" : ""}`} />
+                    <span className="flex-1">
+                      <span className="block text-sm font-semibold">Tables, chairs &amp; utensils</span>
+                      <span className="block text-xs text-clay-600">+$15 per guest · skip if you have your own</span>
+                    </span>
+                    <span className="text-sm font-semibold">{input.tablewareRental ? `+$${result.tablewareFee.toFixed(0)}` : "+$15/guest"}</span>
                   </button>
-                </div>
-              ) : (
-                <>
-                  {weekdayHint && <p className="text-xs text-amber-700">{weekdayHint}</p>}
-                  {!weekdaySaverEnabled && (
-                    <p className="text-xs text-slate-600">
-                      Current region: <span className="font-medium">{activeRegionDefinition.label}</span>.
-                    </p>
-                  )}
-                </>
-              )}
-
-              {isWeekdaySaverTier && (
-                <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
-                  <p className="text-sm font-medium text-emerald-900">Weekday Special protein menu</p>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {WEEKDAY_SAVER_MENU_PROTEINS.map((protein) => (
-                      <div key={protein} className="flex items-center gap-2 rounded-md border border-emerald-100 bg-white/70 px-3 py-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-                        <span className="text-sm text-gray-800">{protein}</span>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        { key: "steak", label: "Filet mignon", price: "+$8" },
+                        { key: "shrimp", label: "Scallops", price: "+$6" },
+                        { key: "lobster", label: "Lobster tail", price: "+$12" },
+                      ] as const
+                    ).map((up) => {
+                      const on = input.addOns[up.key]
+                      return (
+                        <button
+                          key={up.key}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => handleAddOnToggle(up.key, !on)}
+                          className={`flex h-14 flex-col items-center justify-center rounded-2xl text-xs font-semibold leading-tight ${
+                            on ? "bg-flame-100 ring-2 ring-flame" : "bg-surface"
+                          }`}
+                        >
+                          {up.label}
+                          <span className="text-[11px] font-bold text-flame-800">{up.price}</span>
+                        </button>
+                      )
+                    })}
                   </div>
-                  <p className="text-xs text-emerald-800">
-                    Guests pick 2 of 3 proteins at the event. Fried rice, vegetables, salad, and the live chef show are
-                    included.
+                  <p className="text-xs leading-snug text-clay-600">
+                    {isWeekdaySaverTier
+                      ? "Premium upgrades are Standard Plan only — picking one switches this quote to Standard pricing."
+                      : "Per guest who chooses it, on top of the 2 regular proteins."}
                   </p>
                 </div>
-              )}
 
-              {/* Loyalty discounts are intentionally NOT shown here: returning
-                  customers mention it themselves and staff apply it on the
-                  invoice. Advertising deals a first-timer can't have only
-                  breeds "why is my price worse". */}
-
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Tableware Rental</label>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="tableware-rental"
-                    checked={input.tablewareRental}
-                    onCheckedChange={(checked) => handleFieldChange("tablewareRental", Boolean(checked))}
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <label htmlFor="tableware-rental" className="text-sm text-gray-700">
-                      Include tableware rental
-                    </label>
-                    <TooltipProvider>
-                      <Tooltip open={tablewareTooltipOpen} onOpenChange={setTablewareTooltipOpen}>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label="Tableware rental details"
-                            aria-expanded={tablewareTooltipOpen}
-                            onClick={() => setTablewareTooltipOpen((prev) => !prev)}
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 ring-offset-background transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          >
-                            <CircleHelp className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Includes: table, chairs, tableware, table cloth · $15 per person</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Premium Upgrade Options (optional)</p>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="add-on-steak"
-                      checked={input.addOns.steak}
-                      onCheckedChange={(checked) => handleAddOnToggle("steak", Boolean(checked))}
-                    />
-                    <label htmlFor="add-on-steak" className="text-sm">
-                      Filet Mignon (+$8)
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="add-on-shrimp"
-                      checked={input.addOns.shrimp}
-                      onCheckedChange={(checked) => handleAddOnToggle("shrimp", Boolean(checked))}
-                    />
-                    <label htmlFor="add-on-shrimp" className="text-sm">
-                      Scallops (+$6)
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="add-on-lobster"
-                      checked={input.addOns.lobster}
-                      onCheckedChange={(checked) => handleAddOnToggle("lobster", Boolean(checked))}
-                    />
-                    <label htmlFor="add-on-lobster" className="text-sm">
-                      Lobster Tail (+$12)
-                    </label>
-                  </div>
-                </div>
-                {isWeekdaySaverTier ? (
-                  <p className="text-xs text-amber-700">
-                    Premium upgrades are Standard Plan only — picking one switches this quote to Standard pricing (
-                    {standardRatesLabel}).
-                  </p>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Upgrades are priced per guest who chooses them and shown separately from the base estimate.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Instant Estimate</CardTitle>
-              <CardDescription>
-                Food, live chef show, and travel — all in one estimate.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 p-4">
-                {/* Per-guest price leads; the big all-in total made people bolt
-                    before reading what it includes (watched it happen on session
-                    recordings). The total shows as an estimate range with the
-                    exact quote positioned as the thing we text back. */}
-                <p className="text-sm font-medium text-amber-800">
-                  {isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"}
-                </p>
-                <p className="text-3xl font-bold text-orange-800">
-                  ${(isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)}
-                  <span className="text-lg font-semibold">/adult</span>
-                  <span className="ml-2 text-lg font-semibold text-amber-700">
-                    ${(isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)}/child
-                  </span>
-                </p>
-                {isWeekdaySaverTier && weekdaySavings > 0 && (
-                  <p className="mt-1 text-sm font-semibold text-emerald-700">
-                    Weekday Special selected — you save ${weekdaySavings} vs the Standard Plan.
-                  </p>
-                )}
-                {!isWeekdaySaverTier && weekdayEligible && weekdaySavings > 0 && (
-                  <p className="mt-1 text-sm font-semibold text-emerald-700">
-                    You qualify for {weekdaySaverPolicy.title} — save ${weekdaySavings}.{" "}
+                {shouldShowWeatherCard && weatherPreview ? (
+                  <div className="rounded-2xl bg-surface">
                     <button
                       type="button"
-                      onClick={handleWeekdaySaverToggle}
-                      className="underline underline-offset-2 hover:text-emerald-800"
+                      onClick={() => setWeatherExpanded((previous) => !previous)}
+                      aria-expanded={weatherExpanded}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm"
                     >
-                      Apply it
+                      <span>
+                        <span className="font-semibold">Weather</span> · {weatherPreview.temperatureF}°F,{" "}
+                        {weatherPreview.willRain ? "rain possible" : "clear skies"} at {weatherPreview.eventTimeLabel}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${weatherExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
                     </button>
-                  </p>
-                )}
-                <p className="mt-2 text-base font-semibold text-amber-900">
-                  {(() => {
-                    const low = result.effectiveBase + result.travelFeeRange.low - result.loyaltyDiscount
-                    const high =
-                      result.effectiveBase
-                      + result.travelFeeRange.high
-                      + (isWeekdaySaverTier ? 0 : result.addOnTotalRange.high)
-                      - result.loyaltyDiscount
-                    const guests = result.guestCount > 0 ? ` for ${result.guestCount} guests` : ""
-                    return low === high
-                      ? `Estimated total${guests}: ~$${low.toFixed(0)}`
-                      : `Estimated total${guests}: $${low.toFixed(0)} - $${high.toFixed(0)}`
-                  })()}
-                </p>
-                {result.guestCount >= 20 && (
-                  <p className="mt-1 inline-flex items-start gap-1.5 text-sm font-semibold text-emerald-700">
-                    <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                    Free appetizer platter included — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+, through Oct 31)
-                  </p>
-                )}
-                {weekdayHint && <p className="mt-1 text-xs text-amber-800">{weekdayHint}</p>}
-                <p className="text-xs text-amber-800">
-                  Food, live chef show, and travel included. Exact quote and date availability confirmed by text.
-                </p>
-                <p className="text-xs text-amber-700/90">
-                  Gratuity isn&apos;t included — 20-25% for your chef is customary. No other fees.
-                </p>
-                <Button
-                  ref={smsButtonRef}
-                  onClick={onSmsClick}
-                  className="mt-3 h-auto min-h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-sm whitespace-normal py-3 px-4"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="leading-tight text-center">
-                    <span className="block font-semibold">Text us this quote</span>
-                    <span className="block text-xs font-normal opacity-90">Exact price + date check — no forms, details pre-filled</span>
-                  </span>
-                </Button>
-                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-800">
-                  <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-                    Full deposit refund up to 72h
-                  </span>
-                  <span>500+ parties served</span>
-                </div>
-                <p className="mt-1.5 inline-flex items-start gap-1 text-xs font-medium text-amber-900">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-700" aria-hidden="true" />
-                  Hibachi at home is all we do — a local Southern California team, not a franchise. Your private
-                  hibachi chef brings the mobile teppanyaki grill, the food, and the show to your door.
-                </p>
-                <div className="mt-2 space-y-1 rounded-md bg-white/50 px-3 py-2 text-xs text-amber-900">
-                  <p className="font-semibold">Our three promises, in writing:</p>
-                  <p className="flex items-start gap-1.5">
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-                    <span>Chef confirmed by name 48h before your event — if we ever cancel, double your deposit back.</span>
-                  </p>
-                  <p className="flex items-start gap-1.5">
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-                    <span>Tarp under the grill, full cleanup before we leave — your patio stays spotless.</span>
-                  </p>
-                  <p className="flex items-start gap-1.5">
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-                    <span>Free fried rice &amp; vegetable refills — nobody leaves hungry.</span>
-                  </p>
-                </div>
-                <div className="mt-2">
-                  <AppreciationBanner source="quote" showCta={false} />
-                </div>
-              </div>
-
-              {/* Contact details live here, not at the top of the form. On mobile the
-                  two cards stack, and having these 1,300px above the submit button was
-                  why phone users could see a price but never send a request. */}
-              <div className="rounded-lg border border-gray-200 p-4 space-y-4">
-                <p className="text-sm font-medium text-gray-900">Ready to book? Add your details for Book Now.</p>
-                <p className="text-xs text-gray-500">
-                  In a hurry? Skip this — the SMS and WhatsApp buttons below send us your quote with no forms.
-                </p>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Customer Name *</label>
-                  <Input
-                    type="text"
-                    data-quote-field="name"
-                    value={customerName}
-                    placeholder="Your full name"
-                    onChange={(e) => setCustomerName(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email *</label>
-                    <Input
-                      type="email"
-                      data-quote-field="email"
-                      value={customerEmail}
-                      placeholder="you@example.com"
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                    />
+                    {weatherExpanded ? (
+                      <div className="grid grid-cols-3 gap-2 px-4 pb-4 text-xs">
+                        <div>
+                          <Sunset className="h-4 w-4 text-flame" />
+                          <p className="mt-1 text-clay-600">Sunset</p>
+                          <p className="font-semibold">{weatherPreview.sunsetTime}</p>
+                        </div>
+                        <div>
+                          {weatherPreview.willRain ? <CloudRain className="h-4 w-4 text-sky-600" /> : <CloudSun className="h-4 w-4 text-gold" />}
+                          <p className="mt-1 text-clay-600">Rain</p>
+                          <p className="font-semibold">{weatherPreview.rainChance}% chance</p>
+                        </div>
+                        <div>
+                          <ThermometerSun className="h-4 w-4 text-flame-700" />
+                          <p className="mt-1 text-clay-600">Temp</p>
+                          <p className="font-semibold">{weatherPreview.temperatureF}°F</p>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone *</label>
+                ) : null}
+
+                <AppreciationBanner source="quote" showCta={false} />
+
+                <button
+                  type="button"
+                  onClick={smsFromWizard}
+                  className="inline-flex items-center gap-2 self-start text-sm font-semibold text-flame-700"
+                >
+                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                  Text us this quote instead
+                </button>
+              </>
+            ) : null}
+
+            {step === 3 ? (
+              <>
+                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Lock your date</h1>
+                <div className="flex items-center gap-2.5 rounded-2xl bg-surface px-4 py-3.5 text-[13px] leading-snug">
+                  <span className="font-serif text-[22px] font-extrabold">{totalLabel}</span>
+                  <span className="text-clay-700">
+                    {planName} · {result.guestCount} guests · a ${DEPOSIT_AMOUNT.toFixed(2)} deposit holds your chef
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold">Name</span>
+                    <Input
+                      type="text"
+                      data-quote-field="name"
+                      value={customerName}
+                      placeholder="Maria Lopez"
+                      autoComplete="name"
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold">Mobile</span>
                     <Input
                       type="tel"
                       data-quote-field="phone"
                       value={customerPhone}
-                      placeholder="(213) 555-1234"
+                      placeholder="(213) 555-0100"
+                      autoComplete="tel"
                       onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
                     />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">How did you hear about us? *</label>
+                  </label>
+                  <label className="flex flex-col gap-1.5 lg:col-span-2">
+                    <span className="text-[13px] font-semibold">Email</span>
+                    <Input
+                      type="email"
+                      data-quote-field="email"
+                      value={customerEmail}
+                      placeholder="you@email.com"
+                      autoComplete="email"
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold">How did you hear about us?</span>
                     <select
                       value={hearAboutUs}
                       data-quote-field="hear-about-us"
                       onChange={(e) => setHearAboutUs(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="h-12 w-full rounded-full border border-ink/15 bg-surface px-4 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-flame"
                     >
                       <option value="">Choose one</option>
                       {HEAR_ABOUT_US_OPTIONS.map((option) => (
@@ -1931,9 +1847,9 @@ export default function QuoteBuilderClient() {
                         </option>
                       ))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Referral or partner code</label>
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold">Referral or partner code (optional)</span>
                     <Input
                       type="text"
                       data-quote-field="referral-code"
@@ -1943,235 +1859,148 @@ export default function QuoteBuilderClient() {
                       autoCorrect="off"
                       spellCheck={false}
                       onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
                     />
                     {trimmedReferralCode ? (
-                      <p className="mt-1 text-xs font-medium text-emerald-700">
-                        Code {trimmedReferralCode} noted — your discount is applied on the final invoice.
-                      </p>
+                      <span className="text-xs font-medium text-gold-800">Code {trimmedReferralCode} noted — applied on the final invoice.</span>
                     ) : null}
-                  </div>
+                  </label>
                 </div>
-                <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
+                <label className="flex items-start gap-2.5 text-xs leading-relaxed text-clay-700">
                   <input
                     type="checkbox"
                     checked={smsConsent}
                     onChange={(e) => setSmsConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-flame"
                   />
                   <span>
-                    I agree to receive text messages from Real Hibachi about my quote and booking.
-                    Consent is not a condition of purchase.
+                    I agree to receive texts from Real Hibachi about my quote and booking. Consent is not a condition of purchase; message
+                    and data rates may apply. Reply STOP to opt out, HELP for help.{" "}
+                    <a href="/privacy-policy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a>.
                   </span>
                 </label>
-                <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                  Message frequency varies; message and data rates may apply. Reply STOP to opt out
-                  or HELP for help. See our{" "}
-                  <a href="/privacy-policy" className="underline">Privacy Policy</a> and{" "}
-                  <a href="/terms" className="underline">Terms of Service</a>.
-                </p>
-              </div>
 
-              {shouldShowWeatherCard && weatherPreview && (
-                <div className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50/70 to-indigo-100/70">
-                  <button
-                    type="button"
-                    onClick={() => setWeatherExpanded((previous) => !previous)}
-                    aria-expanded={weatherExpanded}
-                    className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
-                  >
-                    <p className="text-sm text-sky-900">
-                      <span className="font-semibold">Weather</span>
-                      <span className="text-sky-700">
-                        {" "}· {weatherPreview.temperatureF}°F, {weatherPreview.willRain ? "rain possible" : "clear skies"} at {weatherPreview.eventTimeLabel}
-                      </span>
-                    </p>
-                    <ChevronDown
-                      className={`h-4 w-4 shrink-0 text-sky-700 transition-transform ${weatherExpanded ? "rotate-180" : ""}`}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  {weatherExpanded && (
-                    <div className="grid gap-3 px-4 pb-4 sm:grid-cols-3">
-                      <div className="rounded-lg border border-sky-100 bg-white/85 p-3">
-                        <Sunset className="h-4 w-4 text-orange-500" />
-                        <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-sky-700">Sunset</p>
-                        <p className="text-base font-semibold text-sky-950">{weatherPreview.sunsetTime}</p>
-                      </div>
-                      <div className="rounded-lg border border-sky-100 bg-white/85 p-3">
-                        {weatherPreview.willRain ? (
-                          <CloudRain className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <CloudSun className="h-4 w-4 text-amber-500" />
-                        )}
-                        <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-sky-700">Rain</p>
-                        <p className="text-base font-semibold text-sky-950">
-                          {weatherPreview.willRain ? "Possible" : "Low chance"}
-                        </p>
-                        <p className="text-xs text-sky-700">{weatherPreview.rainChance}% chance at event time</p>
-                      </div>
-                      <div className="rounded-lg border border-sky-100 bg-white/85 p-3">
-                        <ThermometerSun className="h-4 w-4 text-rose-500" />
-                        <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-sky-700">Temp (at time)</p>
-                        <p className="text-base font-semibold text-sky-950">{weatherPreview.temperatureF}°F</p>
-                      </div>
+                <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
+                  {[
+                    "Chef confirmed by name 48h before — if we cancel, double your deposit back",
+                    "Full deposit refund up to 72h before",
+                    "Tarp under the grill, full cleanup before we leave",
+                  ].map((line) => (
+                    <div key={line} className="flex gap-2.5">
+                      <span className="font-bold text-gold-700">✓</span>
+                      {line}
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
 
-              <div className="space-y-2 text-sm text-gray-700">
-                <p>
-                  {isWeekdaySaverTier
-                    ? `${weekdaySaverPolicy.title} · ${weekdayRatesLabel}`
-                    : `Standard Plan · ${standardRatesLabel}`}
-                  {result.guestCount > 0 ? ` · ${result.guestCount} guests` : ""}
-                </p>
-                <p>Each guest picks 2 proteins. Fried rice, vegetables, salad, and the live chef show are included.</p>
-                {result.effectiveBase > result.baseSubtotal && (
-                  <p>Smaller parties: our ${MINIMUM_SPEND} event minimum applies.</p>
-                )}
-                <p>
-                  Travel:{" "}
-                  {result.travelFeeRange.high <= 0
-                    ? "included for your area"
-                    : result.travelFeeRange.low === result.travelFeeRange.high
-                      ? `$${result.travelFeeRange.high.toFixed(0)} (confirmed before booking)`
-                      : `$${result.travelFeeRange.low.toFixed(0)} - $${result.travelFeeRange.high.toFixed(0)} (confirmed before booking)`}
-                </p>
-                {input.tablewareRental && (
-                  <p>Full setup (tables, chairs, tableware): ${result.tablewareFee.toFixed(0)}</p>
-                )}
-                {result.loyaltyDiscount > 0 && (
-                  <p className="font-medium text-emerald-700">
-                    {input.loyaltyStatus === "party_guest" ? "Party guest card" : "Returning customer discount"}: −$
-                    {result.loyaltyDiscount.toFixed(0)}
-                  </p>
-                )}
-                {isWeekdaySaverTier ? (
-                  <p>Weekday Special menu: {WEEKDAY_SAVER_MENU_DETAIL}</p>
-                ) : (
-                  selectedPremiumUpgrades.length > 0 && (
-                    <p>
-                      Premium upgrades ({selectedPremiumUpgradesText}): up to ${result.addOnTotalRange.high.toFixed(0)} extra
-                    </p>
-                  )
-                )}
-              </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs text-clay-600">Prefer to skip the form? Send us this quote instead:</span>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Button type="button" variant="outline" onClick={smsFromWizard} className="h-11 rounded-full border-ink/15 bg-surface text-[13px] font-semibold text-ink">
+                      <MessageSquare className="mr-1.5 h-4 w-4" /> Text
+                    </Button>
+                    <Button type="button" variant="outline" onClick={whatsappFromWizard} className="h-11 rounded-full border-ink/15 bg-surface text-[13px] font-semibold text-ink">
+                      <MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp
+                    </Button>
+                    <Button type="button" variant="outline" onClick={onCallClick} className="h-11 rounded-full border-ink/15 bg-surface text-[13px] font-semibold text-ink">
+                      <Phone className="mr-1.5 h-4 w-4" /> Call
+                    </Button>
+                    <Button type="button" variant="outline" onClick={emailFromWizard} className="h-11 rounded-full border-ink/15 bg-surface text-[13px] font-semibold text-ink">
+                      <Mail className="mr-1.5 h-4 w-4" /> Email
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : null}
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Button
-                  onClick={onSmsClick}
-                  className="h-auto min-h-12 min-w-0 rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  <span className="leading-tight">
-                    <span className="block font-medium">SMS</span>
-                    <span className="block">{smsPhoneDisplay}</span>
-                  </span>
-                </Button>
-                <Button
-                  onClick={onCallClick}
-                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
-                >
-                  <Phone className="mr-2 h-4 w-4" />
-                  <span className="leading-tight">
-                    <span className="block font-medium">Call</span>
-                    <span className="block">{voicePhoneDisplay}</span>
-                  </span>
-                </Button>
-                <Button
-                  onClick={onWhatsAppClick}
-                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[#25D366] bg-white text-[#128C4B] hover:bg-[#f0fdf4] text-sm whitespace-normal text-center leading-tight py-3 px-4"
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  <span className="leading-tight">
-                    <span className="block font-medium">WhatsApp</span>
-                    <span className="block">Send this quote</span>
-                  </span>
-                </Button>
-                <Button
-                  onClick={onEmailClick}
-                  className="h-auto min-h-12 min-w-0 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white text-[hsl(24_79%_55%)] hover:bg-[hsl(24_79%_96%)] text-sm whitespace-normal text-center leading-tight py-3 px-4"
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  <span className="leading-tight">
-                    <span className="block font-medium">Email</span>
-                    <span className="block break-all">{displayEmail}</span>
-                  </span>
-                </Button>
-              </div>
+            {/* Desktop: the step button sits inline; phones get the sticky bar below. */}
+            <div className="hidden lg:flex lg:items-center lg:gap-4">
               <Button
-                onClick={onBookOnlineClick}
-                disabled={bookingRequestSubmitting}
-                className="h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-500 disabled:text-white text-sm text-center"
+                type="button"
+                onClick={onPrimary}
+                disabled={step === 3 && bookingRequestSubmitting}
+                className="h-14 rounded-full bg-flame px-8 text-base font-semibold text-white hover:bg-flame-600"
               >
-                <CalendarDays className="mr-2 h-4 w-4" />
-                <span className="font-medium">{bookingRequestSubmitting ? "Submitting..." : "Book Now — We Confirm Within Hours"}</span>
+                {primaryLabel}
               </Button>
-            </CardContent>
-          </Card>
+              <span className="text-[13px] text-clay-600">{primaryHint}</span>
+            </div>
+          </div>
+
+          <aside className="hidden lg:block">
+            <div className="sticky top-[calc(var(--header-height,72px)+24px)] flex flex-col gap-4">
+              {priceCard}
+              <div className="flex flex-col gap-3 rounded-[28px] border border-ink/10 bg-surface p-6 text-sm leading-relaxed text-clay-700 shadow-organic">
+                {[
+                  "Chef confirmed by name 48h before — if we cancel, double your deposit back",
+                  "Full deposit refund up to 72h before",
+                  "Tarp under the grill, full cleanup before we leave",
+                ].map((line) => (
+                  <div key={line} className="flex gap-2.5">
+                    <span className="font-bold text-gold-700">✓</span>
+                    {line}
+                  </div>
+                ))}
+              </div>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[28px]">
+                <Image src="/images/hero/quote-hero-night.jpg" alt="Night hibachi fire show at a backyard party" fill sizes="400px" className="object-cover saturate-[1.15]" />
+              </div>
+            </div>
+          </aside>
         </div>
 
-        {/* One-row film strip: drifts back and forth on its own, pauses the
-            moment the visitor touches it, and stays hand-swipeable. Videos
-            still lazy-load only once their card scrolls into view. */}
+        {/* Proof, after the work: real party clips and two verbatim Google reviews. */}
         <div
           ref={mediaStripRef}
-          className="mb-10 mt-12 flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="mt-10 flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] lg:mt-16 lg:gap-3 [&::-webkit-scrollbar]:hidden"
+          aria-label="Photos and clips from real Real Hibachi parties"
         >
-          {QUOTE_PROOF_MEDIA.map((media) => (
-            <div key={media.src} className="relative h-44 w-64 shrink-0 overflow-hidden rounded-xl sm:h-52 sm:w-80">
+          {QUOTE_PROOF_MEDIA.slice(0, 6).map((media) => (
+            <div key={media.src} className="relative h-[130px] w-[180px] shrink-0 overflow-hidden rounded-2xl lg:h-48 lg:w-72">
               {media.type === "video" ? (
-                <LazyVideo
-                  className="absolute inset-0 h-full w-full object-cover"
-                  poster={media.poster}
-                  src={media.src}
-                />
+                <LazyVideo className="absolute inset-0 h-full w-full object-cover" poster={media.poster} src={media.src} />
               ) : (
-                <Image
-                  src={media.src}
-                  alt={media.alt}
-                  fill
-                  sizes="320px"
-                  className="object-cover"
-                />
+                <Image src={media.src} alt={media.alt} fill sizes="(max-width: 1024px) 180px, 288px" className="object-cover" />
               )}
             </div>
           ))}
         </div>
-
-        <div id="quote-reviews" className="mt-12 scroll-mt-24">
-          <h2 className="text-center text-2xl font-bold">What Our Guests Say</h2>
-          <div className="mt-1.5 flex items-center justify-center gap-1 text-sm text-gray-600">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-            ))}
-            <span className="ml-1">5-star Google reviews from SoCal parties</span>
-          </div>
-          <div className="mt-6 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
-            {QUOTE_TESTIMONIALS.map((testimonial) => (
-              <div key={testimonial.name} className="break-inside-avoid rounded-xl border border-amber-100 bg-white/90 p-5 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r ${testimonial.color} text-base font-bold text-white`}>
-                    {testimonial.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-gray-900">{testimonial.name}</p>
-                    <p className="text-xs text-gray-500">Google review</p>
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                  ))}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-gray-700">{testimonial.text}</p>
+        <div id="quote-reviews" className="mt-4 flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-5">
+          {QUOTE_TESTIMONIALS.slice(0, 3).map((testimonial, i) => (
+            <blockquote
+              key={testimonial.name}
+              className={`flex flex-col gap-2 rounded-[28px] border border-ink/10 bg-surface p-[18px] shadow-organic ${i === 2 ? "hidden lg:flex" : ""}`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`flex h-9 w-9 items-center justify-center rounded-full font-serif text-[15px] font-extrabold ${i % 2 ? "bg-flame-300" : "bg-gold-300"}`}>
+                  {testimonial.name.charAt(0)}
+                </span>
+                <span className="text-sm font-semibold">{testimonial.name}</span>
+                <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-white px-2.5 py-0.5 text-[11px] text-ink/80">
+                  <Star className="h-3 w-3 fill-gold text-gold" aria-hidden="true" /> Google
+                </span>
               </div>
-            ))}
-          </div>
+              <p className="text-sm leading-6 text-ink/90 line-clamp-4 lg:line-clamp-none">{testimonial.text}</p>
+            </blockquote>
+          ))}
         </div>
       </div>
       </div>
+
+      {/* Phones: the one button that moves the visitor forward, always in reach. */}
+      {!bookingConfirmation ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-1.5 bg-[linear-gradient(to_top,#f7efe2_70%,transparent)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-4 lg:hidden">
+          <Button
+            type="button"
+            onClick={onPrimary}
+            disabled={step === 3 && bookingRequestSubmitting}
+            className="h-[52px] w-full rounded-full bg-flame text-base font-semibold text-white shadow-organic-lg hover:bg-flame-600"
+          >
+            {primaryLabel}
+          </Button>
+          <span className="text-center text-xs text-clay-600">{primaryHint}</span>
+        </div>
+      ) : null}
     </div>
   )
 }

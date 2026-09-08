@@ -1,712 +1,366 @@
 "use client"
 
-import type React from "react"
-
+import Image from "next/image"
 import Link from "next/link"
-import { useState, useRef, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Check, Flame, MessageSquare, Sparkles, X } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
-import {
-  DEFAULT_REGION_CODE,
-  getRegionalPolicySnapshot,
-} from "@/config/regional-policies"
-import { useActiveRegion } from "@/lib/use-active-region"
-
-import { Button } from "@/components/ui/button"
-import { AnimateOnScroll } from "@/components/animate-on-scroll"
-import HeroSection from "@/components/hero-section"
-import TestimonialsSection from "@/components/testimonials-section"
-import InstagramVideosSection from "@/components/instagram-videos-section"
-import PromotionalCard from "@/components/promotional-card"
-import PartyPlannerSection from "@/components/party-planner-section"
-import { trackEvent } from "@/lib/tracking"
+import { ArrowRight, Play } from "lucide-react"
 import LazyVideo from "@/components/lazy-video"
+import { PROOF_MEDIA } from "@/config/proof-media"
+import { GOOGLE_REVIEWS } from "@/config/reviews"
+import { GUEST_TIERS, MINIMUM_SPEND, WEEKDAY_SPECIAL } from "@/config/pricing-rules"
+import { phone } from "@/config/site"
+import { trackEvent } from "@/lib/tracking"
 
+// 2026-09-08 redesign (Claude Design "Realhibachi 手机端优化调研"): one photo,
+// one headline, one price, one CTA. Pricing as swipeable cards, three round
+// dishes, two real reviews, three questions. Everything else moved to /menu,
+// /faq and the city pages — the old homepage was ~700 lines of copy.
 
-// Type definitions for card items
-type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost"
+const HERO_IMG = "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg"
 
-interface CardItem {
+const fmt = (v: number) => v.toFixed(2)
+
+const FAQ = [
+  {
+    q: "How much space do you need?",
+    a: "An 8×8 ft outdoor spot for the grill, with room for guests to gather around. We cook outside only.",
+  },
+  {
+    q: "What if it rains?",
+    a: "We cook rain or shine under a dry area — a 10×10 pop-up over the chef's station works. Need to cancel for weather? 72 hours' notice gets a full deposit refund.",
+  },
+  {
+    q: "Cancellation policy",
+    a: "Full deposit refund with 72 hours' notice. Your chef is confirmed by name 48 hours ahead — if we ever cancel, we refund double your deposit.",
+  },
+] as const
+
+function PlanCard({
+  kicker,
+  title,
+  price,
+  unit,
+  lines,
+  cta,
+  href,
+  dark,
+  onClick,
+}: {
+  kicker: string
   title: string
-  description: string
-  icon: React.ReactNode
-  buttonText: string
+  price: string
+  unit?: string
+  lines: string[]
+  cta: string
+  href: string
+  dark?: boolean
   onClick?: () => void
-  href?: string
-  external?: boolean
-  variant: CardVariant
-  className: string
-  is24_7?: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex w-[250px] shrink-0 snap-start flex-col gap-1.5 rounded-[28px] border p-5 transition md:w-auto md:p-7 ${
+        dark
+          ? "border-transparent bg-cocoa text-white shadow-organic-lg md:-translate-y-2"
+          : "border-ink/10 bg-surface text-ink shadow-organic hover:border-flame-300"
+      }`}
+    >
+      <span className={`text-[10px] font-semibold uppercase tracking-[0.1em] ${dark ? "text-flame-300" : "text-gold-700"}`}>
+        {kicker}
+      </span>
+      <span className="font-serif text-xl font-extrabold md:text-2xl">{title}</span>
+      <span className="flex items-baseline gap-1">
+        <span className={`font-serif text-[38px] font-extrabold leading-none md:text-5xl ${dark ? "text-flame-300" : ""}`}>{price}</span>
+        {unit ? <span className={`text-[13px] ${dark ? "opacity-85" : "text-clay-700"}`}>{unit}</span> : null}
+      </span>
+      <span className={`text-[13px] leading-6 md:text-sm ${dark ? "opacity-90" : "text-clay-700"}`}>
+        {lines.map((line) => (
+          <span key={line} className="block">
+            {line}
+          </span>
+        ))}
+      </span>
+      <span
+        className={`mt-2 inline-flex h-11 items-center justify-center rounded-full text-sm font-semibold ${
+          dark ? "bg-flame text-white" : "border border-ink/15 text-ink"
+        }`}
+      >
+        {cta}
+      </span>
+    </Link>
+  )
 }
 
 export default function Home() {
-  const router = useRouter()
-  const packageSelectionMetadata: Record<string, { name: string; price_tier: string }> = {
-    show: { name: "Hibachi Show Package", price_tier: "59.9_per_person" },
-    buffet: { name: "Buffet Style Package", price_tier: "59.9_per_person" },
-    party: { name: "Party Experience Package", price_tier: "custom_party" },
-  }
-
-  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
-  const activeRegion = useActiveRegion(DEFAULT_REGION_CODE)
-
-  const handleOnlineBooking = () => {
-    trackEvent("lead_start")
-    router.push("/quote?source=booking")
-  }
-
-  const handleBookNow = (packageType: string) => {
-    const packageSelection = packageSelectionMetadata[packageType]
-
-    if (packageSelection) {
-      trackEvent("package_selected", {
-        package_name: packageSelection.name,
-        price_tier: packageSelection.price_tier,
-        package_type: packageType,
-      })
-    }
-
-    trackEvent("lead_start")
-    router.push(`/book?package=${packageType}`)
-  }
-
-  const handleViewMenu = () => {
-    trackEvent("menu_view")
-    router.push("/menu")
-  }
-
-  const handleViewFAQ = () => {
-    trackEvent("faq_view")
-    router.push("/faq")
-  }
-
-  const handleWhatsApp = () => {
-    const url = whatsappHref("Hello, I would like to book a hibachi experience")
-    trackEvent("contact_whatsapp_click")
-    window.location.href = url
-  }
-
-  const handleSMS = () => {
-    const url = smsHref("I'm interested in booking a REAL HIBACHI experience")
-    trackEvent("contact_sms_click")
-    window.location.href = url
-  }
-
-  const handlePhone = () => {
-    const url = phone.voice.tel
-    trackEvent("contact_call_click")
-    window.location.href = url
-  }
-
-  const cardItems: CardItem[] = [
-    {
-      title: "WhatsApp",
-      description: "Fastest response time",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "WhatsApp",
-      onClick: handleWhatsApp,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-    {
-      title: "SMS",
-      description: "Text us directly",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "SMS",
-      onClick: handleSMS,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-    {
-      title: "Phone",
-      description: "Speak with us",
-      icon: null,
-      buttonText: phone.voice.dashed,
-      onClick: handlePhone,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-  ]
-
-  const standardPlanFeatures = [
-    "$29.90 per child (5–12), under 5 eat free",
-    "$599 minimum per event",
-    "2 regular proteins per guest included",
-    "Fried rice, fresh vegetables, and house salad included",
-    "Live chef performance and on-site grill cooking",
-    "Optional full setup: +$15 per guest",
-    "Premium protein upgrades available",
-  ]
-
-  const regionPolicySnapshot = getRegionalPolicySnapshot(activeRegion)
-  const activeRegionDefinition = regionPolicySnapshot.region
-  const activeRegionQuoteHref = regionPolicySnapshot.quoteHref
-  const weekdaySaverPolicy = regionPolicySnapshot.pricingPolicies.weekday_saver.definition
-  const weekdaySaverEnabled = regionPolicySnapshot.pricingPolicies.weekday_saver.enabled
-
-  const customPlanFeatures = [
-    "Everything in the Standard plan",
-    "Multi-chef planning for larger parties",
-    "Custom timeline and event flow support",
-    "Add-on, rental, and setup coordination",
-    "Direct planning support from our team",
-  ]
-
-  const serviceRegionCards = [
-    {
-      id: "west-coast",
-      regionTag: "SERVING ALL OF SOUTHERN CALIFORNIA",
-      heading: "SOUTHERN CALIFORNIA",
-      mapSrc: "/socal-map.png",
-      mapAlt: "Map of Southern California hibachi at home service area",
-      coverage:
-        "LA County, Orange County, Riverside + San Bernardino Counties, San Diego County, Ventura County",
-      quoteHref: "/quote?region=west-coast",
-    },
-  ] as const
+  const onQuote = (surface: string) => () => trackEvent("lead_start", { contact_surface: surface })
+  const reviews = GOOGLE_REVIEWS.filter((r) => ["Kelsey Molnar", "Lisa Craven", "Beatrix Barrera"].includes(r.name))
+  const media = PROOF_MEDIA.slice(0, 6)
 
   return (
-    <div>
-      <HeroSection />
-      {/* Package Options Section */}
-      <AnimateOnScroll>
-        <section id="pricing" className="py-16 bg-[#f7f4ec] scroll-mt-36 md:scroll-mt-44">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-3 text-[hsl(24_79%_55%)]">Pricing</h2>
-              <p className="text-4xl md:text-5xl font-serif font-bold text-center text-gray-900 max-w-4xl mx-auto leading-tight mb-5">
-                Pick The Plan That Fits Your Party
-              </p>
-              <p className="text-base md:text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                {weekdaySaverEnabled
-                  ? "Compare weekday saver, standard, and custom options."
-                  : `Weekday specials aren't available in ${activeRegionDefinition.label} yet — choose a standard or custom plan below.`}{" "}
-                Book instantly when your event fits the published rules, or contact our team for tailored planning.
-              </p>
-            </AnimateOnScroll>
-
-            <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
-              {weekdaySaverEnabled ? (
-                <AnimateOnScroll direction="up" delay={60}>
-                  <div className="rounded-3xl bg-emerald-50 border border-emerald-200 p-8 md:p-10 text-stone-700 shadow-[0_12px_28px_rgba(5,150,105,0.15)]">
-                    <p className="text-lg font-semibold text-emerald-900">{weekdaySaverPolicy.title}</p>
-                    <div className="mt-5 flex items-baseline gap-2">
-                      <p className="text-5xl font-black text-emerald-950">$45.9</p>
-                      <p className="text-lg font-medium text-emerald-800">/adult</p>
-                    </div>
-                    <p className="mt-3 text-base text-emerald-900">{weekdaySaverPolicy.description}</p>
-                    <Button
-                      asChild
-                      className="mt-7 h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700 text-base font-semibold shadow-md"
-                    >
-                      <Link href={activeRegionQuoteHref}>
-                        Check Weekday Special
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <div className="mt-7 space-y-3 border-t border-emerald-200 pt-7">
-                      {weekdaySaverPolicy.homeFeatureList.map((item) => {
-                        const isRestriction = item.startsWith("No ")
-
-                        return (
-                          <div
-                            key={item}
-                            className={`flex items-start gap-3 text-[15px] leading-relaxed ${
-                              isRestriction ? "text-red-700" : "text-emerald-900"
-                            }`}
-                          >
-                            {isRestriction ? (
-                              <X className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
-                            ) : (
-                              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                            )}
-                            <span>{item}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </AnimateOnScroll>
-              ) : (
-                <AnimateOnScroll direction="up" delay={60}>
-                  <div className="rounded-3xl bg-slate-50 border border-slate-200 p-8 md:p-10 text-stone-700 shadow-[0_10px_26px_rgba(71,85,105,0.12)]">
-                    <p className="text-lg font-semibold text-slate-900">{weekdaySaverPolicy.title} (CA only)</p>
-                    <p className="mt-5 text-sm uppercase tracking-wide text-slate-500">Current region</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{activeRegionDefinition.label}</p>
-                    <p className="mt-4 text-base text-slate-700">{weekdaySaverPolicy.unavailableMessage}</p>
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="mt-7 h-12 w-full rounded-full border-slate-300 text-slate-900 hover:bg-slate-100 text-base font-semibold"
-                    >
-                      <Link href={activeRegionQuoteHref}>
-                        Continue with Standard Plan
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <p className="mt-7 border-t border-slate-200 pt-7 text-sm text-slate-600">
-                      Need a custom weekday promotion for your area? Contact our team and we&apos;ll confirm available offers.
-                    </p>
-                  </div>
-                </AnimateOnScroll>
-              )}
-
-              <AnimateOnScroll direction="up">
-                <div className="relative rounded-3xl bg-[#fffdf8] border border-[#e7dbc6] p-8 md:p-10 text-stone-700 shadow-[0_12px_30px_rgba(120,80,20,0.12)]">
-                  <div className="absolute -top-4 left-8 inline-flex items-center gap-1 rounded-full bg-[hsl(24_79%_55%)] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-md">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Most Popular
-                  </div>
-                  <p className="mt-4 text-lg font-semibold text-gray-800">Standard Plan</p>
-                  <div className="mt-5 flex items-baseline gap-2">
-                    <p className="text-5xl font-black text-gray-900">$59.90</p>
-                    <p className="text-lg font-medium text-gray-500">/adult</p>
-                  </div>
-                  <p className="mt-3 text-base text-gray-600">Best for most birthdays, family parties, and backyard events.</p>
-                  <Button asChild className="mt-7 h-12 w-full rounded-full bg-[hsl(24_79%_55%)] text-white hover:bg-[hsl(24_79%_48%)] text-base font-semibold shadow-md">
-                    <Link href={activeRegionQuoteHref}>
-                      Get Instant Quote
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <div className="mt-7 space-y-3 border-t border-[#eadfcf] pt-7">
-                    {standardPlanFeatures.map((item) => (
-                      <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-gray-700">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(24_79%_42%)]" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll direction="up" delay={180}>
-                <div className="rounded-3xl bg-[#fcfcfc] border border-[#dfe2e8] p-8 md:p-10 text-stone-700 shadow-[0_10px_24px_rgba(31,41,55,0.08)]">
-                  <p className="text-lg font-semibold text-gray-800">Custom Plan</p>
-                  <h3 className="mt-5 text-5xl font-black tracking-tight text-gray-900">Talk with us</h3>
-                  <p className="mt-3 text-base text-gray-600">
-                    For larger guest counts, special menu requests, or custom event logistics.
-                  </p>
-                  <Button asChild className="mt-7 h-12 w-full rounded-full bg-[#1f2a44] text-white hover:bg-[#111a2f] text-base font-semibold shadow-md">
-                    <Link href="/contact?reason=Custom%20Pricing%20Request">
-                      Request Custom Plan
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <div className="mt-7 space-y-3 border-t border-[#e5e7eb] pt-7">
-                    {customPlanFeatures.map((item) => (
-                      <div key={item} className="flex items-start gap-3 text-[15px] leading-relaxed text-gray-700">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#1f2a44]" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </AnimateOnScroll>
-            </div>
-
-            {/* Promotional Card - Added after package cards  */}
-            {/* <PromotionalCard />*/}
-          </div>
-        </section>
-      </AnimateOnScroll>
-     
-      {/* Service Area Map */}
-      <AnimateOnScroll>
-        <section className="py-12 bg-gradient-to-b from-[#f8f4ea] to-[#f3ecdf]">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-6">
-              <h3 className="text-4xl md:text-5xl font-serif font-bold text-gray-900">Book Your Hibachi Party</h3>
-              <p className="mt-2 text-2xl md:text-3xl font-serif font-bold text-[hsl(24_79%_42%)]">
-                Select Your Region To Start
-              </p>
-            </div>
-
-            <div className="max-w-xl mx-auto grid grid-cols-1 gap-6">
-              {serviceRegionCards.map((region) => (
-                <div
-                  key={region.id}
-                  className="bg-[#fffdf8] rounded-3xl overflow-hidden border border-[#e7dbc6] shadow-[0_10px_30px_rgba(120,80,20,0.08)]"
-                >
-                  <img
-                    src={region.mapSrc}
-                    alt={region.mapAlt}
-                    className="w-full h-[340px] md:h-[380px] object-contain bg-[#f7f2e7]"
-                    loading="lazy"
-                  />
-
-                  <div className="px-6 md:px-8 py-7 text-center">
-                    <p className="text-xs md:text-sm tracking-[0.22em] uppercase text-stone-500 font-semibold mb-2">
-                      {region.regionTag}
-                    </p>
-                    <h3 className="text-3xl font-montserrat font-bold tracking-tight text-[hsl(24_79%_55%)] mb-2">
-                      {region.heading}
-                    </h3>
-                    <p className="text-stone-600 mb-5 text-sm md:text-base">{region.coverage}</p>
-
-                    <Button
-                      asChild
-                      className="rounded-full bg-[hsl(24_79%_55%)] text-white px-8 min-w-[230px] h-12 hover:bg-[hsl(24_79%_48%)]"
-                    >
-                      <Link href={region.quoteHref}>GET INSTANT QUOTE</Link>
-                    </Button>
-
-                    <p className="mt-6 mb-3 text-sm font-medium tracking-wide text-stone-700">OR CALL TO BOOK</p>
-                    <a
-                      href={phone.voice.tel}
-                      className="inline-flex items-center justify-center rounded-full border-2 border-[hsl(24_79%_55%)] text-[hsl(24_79%_55%)] px-8 min-w-[230px] h-12 font-semibold hover:bg-[hsl(24_79%_96%)] transition-colors"
-                    >
-                      {phone.voice.dashed}
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-sm text-stone-600 mt-5">
-              Serving Los Angeles, Orange County, San Diego, Riverside, San Bernardino, and Ventura counties.
+    <div className="bg-cream text-ink">
+      {/* ── Hero ── full-bleed fire show, cocoa gradient, one price. */}
+      <section className="relative isolate overflow-hidden bg-cocoa text-white">
+        <Image
+          src={HERO_IMG}
+          alt="Live hibachi fire show at a backyard party in Orange County"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,26,16,.55)_0%,rgba(42,26,16,.15)_35%,rgba(42,26,16,.35)_60%,#2a1a10_100%)] lg:bg-[linear-gradient(90deg,rgba(42,26,16,.88)_0%,rgba(42,26,16,.6)_45%,rgba(42,26,16,.15)_100%),linear-gradient(180deg,rgba(42,26,16,.4),transparent_30%,#2a1a10_100%)]" />
+        <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-[calc(var(--header-height,60px)+170px)] lg:grid lg:grid-cols-[1.05fr_1fr] lg:items-end lg:gap-14 lg:px-8 lg:pb-24 lg:pt-[calc(var(--header-height,72px)+110px)]">
+          <div className="flex flex-col gap-3.5 lg:gap-5">
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-flame-300 lg:text-[13px] lg:tracking-[0.14em]">
+              Live fire show · at your table · all of SoCal
+            </span>
+            <h1 className="font-serif text-[42px] font-extrabold leading-[0.96] [text-shadow:0_2px_24px_rgba(0,0,0,.35)] lg:max-w-[12ch] lg:text-[72px] lg:leading-[0.95]">
+              The Effortless Hibachi At Home Experience
+            </h1>
+            <p className="text-[15px] leading-relaxed text-white/80 lg:max-w-[520px] lg:text-lg">
+              Plan the party in 3 minutes — spend the evening with the people you love.
             </p>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Party Planner Story Section */}
-      <PartyPlannerSection />
-
-      {/* Fresh Off the Griddle — fried rice / shrimp / steak in one row */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-4">
-                Fresh Off <span className="text-primary">the Griddle</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Garlic butter fried rice, jumbo shrimp, and steak cooked to your doneness — all live at your table.
-              </p>
-            </AnimateOnScroll>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {[
-                {
-                  title: "Signature Garlic Butter Fried Rice",
-                  poster: "/videos/posters/fried-rice.jpg",
-                  src: "/videos/fried-rice.mp4",
-                },
-                {
-                  title: "Sizzling Jumbo Shrimp",
-                  poster: "/videos/posters/hibachi-show.jpg",
-                  src: "/videos/hibachi-show.mp4",
-                },
-                {
-                  title: "Steak, Cooked to Your Doneness",
-                  poster: "/videos/posters/party-highlight.jpg",
-                  src: "/videos/party-highlight.mp4",
-                },
-              ].map((dish, i) => (
-                <AnimateOnScroll key={dish.src} direction="up" delay={i * 100}>
-                  <div className="rounded-xl overflow-hidden shadow-xl bg-white">
-                    <div className="relative pb-[56.25%] h-0">
-                      <LazyVideo
-                        className="absolute top-0 left-0 w-full h-full object-cover"
-                        controls
-                        poster={dish.poster}
-                        src={dish.src}
-                      />
-                    </div>
-                    <p className="px-4 py-3 text-center text-sm font-semibold text-gray-800">{dish.title}</p>
-                  </div>
-                </AnimateOnScroll>
+            <div className="flex items-baseline gap-2 pt-1 lg:hidden">
+              <span className="font-serif text-[34px] font-extrabold leading-none text-flame-300">${fmt(GUEST_TIERS.adult.price)}</span>
+              <span className="text-[13px] text-white/75">per adult · chef, food, show, setup &amp; cleanup</span>
+            </div>
+            <div className="hidden items-center gap-3 lg:flex">
+              <Link
+                href="/quote?source=home_hero"
+                onClick={onQuote("home_hero")}
+                className="inline-flex h-14 items-center rounded-full bg-flame px-8 text-[17px] font-semibold text-white transition hover:bg-flame-600"
+              >
+                Get instant quote · 30 sec
+              </Link>
+              <Link href="/menu" className="inline-flex h-14 items-center px-2 text-base font-semibold text-white hover:text-flame-300">
+                See the menu →
+              </Link>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
+              {["500+ parties", "72h full refund", "Licensed & insured"].map((chip) => (
+                <span key={chip} className="rounded-full border border-white/35 px-3 py-1.5">
+                  {chip}
+                </span>
               ))}
             </div>
-
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="text-center mt-10">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-                  onClick={handleViewMenu}
-                >
-                  <Link href="/menu">See Full Menu</Link>
-                </Button>
-              </div>
-            </AnimateOnScroll>
           </div>
-        </section>
-      </AnimateOnScroll>
+          <div className="hidden flex-col items-end gap-4 text-right lg:flex">
+            <span className="text-[12px] uppercase tracking-[0.12em] text-white/70">Most parties pay</span>
+            <span className="font-serif text-[76px] font-extrabold leading-none text-flame-300">
+              ${fmt(GUEST_TIERS.adult.price)}
+              <span className="font-sans text-xl font-normal text-white/75"> /adult</span>
+            </span>
+            <span className="text-sm text-white/80">Chef, food, live show, setup &amp; cleanup — all included</span>
+            <span className="h-0.5 w-[120px] bg-flame" />
+            <span className="max-w-[340px] text-sm text-white/80">
+              Kids 5–12 ${fmt(GUEST_TIERS.child.price)}, under 5 free. ${MINIMUM_SPEND} minimum per event, no travel fee within 50 miles.
+            </span>
+          </div>
+        </div>
+      </section>
 
-      {/* Food Preparation Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                When Our Fire Gets Too Real
+      {/* ── Real parties ── the pictures do the talking. */}
+      <section className="pt-6 lg:pt-10" aria-label="Photos and clips from real Real Hibachi parties">
+        <div className="flex gap-2 overflow-x-auto px-5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] lg:mx-auto lg:max-w-7xl lg:gap-3 lg:px-8 [&::-webkit-scrollbar]:hidden">
+          {media.map((item) => (
+            <div key={item.src} className="relative h-[130px] w-[180px] shrink-0 overflow-hidden rounded-2xl bg-cocoa/10 lg:h-48 lg:w-72">
+              {item.type === "video" ? (
+                <>
+                  <LazyVideo className="absolute inset-0 h-full w-full object-cover" poster={item.poster} src={item.src} />
+                  <span className="pointer-events-none absolute bottom-2 left-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white">
+                    <Play className="h-3 w-3 fill-white" aria-hidden="true" />
+                  </span>
+                </>
+              ) : (
+                <Image src={item.src} alt={item.alt} fill sizes="(max-width: 1024px) 180px, 288px" className="object-cover" />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="scroll-mt-20 pt-9 lg:pt-24">
+        <div className="mx-auto max-w-7xl lg:px-8">
+          <div className="flex items-end justify-between px-5 lg:px-0">
+            <div>
+              <h2 className="font-serif text-2xl font-extrabold lg:text-[40px]">
+                <span className="lg:hidden">Pricing</span>
+                <span className="hidden lg:inline">Pick the plan that fits your party</span>
               </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[177.78%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/real-fire.jpg"
-                    src="/videos/real-fire.mp4"
-                  />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium">
-                Our hibachi fire is so real, sometimes we get unexpected guests!
-              </p>
-              <p className="text-gray-600 text-sm mt-2">
-                Don't worry - our chefs are trained professionals who know how to handle the heat safely.
+              <p className="mt-1 hidden text-base text-clay-700 lg:block">
+                Same food and chef show in every plan. Kids 5–12 half price, under 5 free.
               </p>
             </div>
+            <span className="text-xs text-clay-600 lg:hidden">swipe →</span>
+            <span className="hidden text-[13px] text-clay-600 lg:block">Optional setup +$15/guest · gratuity 20–25% customary</span>
           </div>
-        </section>
-      </AnimateOnScroll>
- {/* Instagram Videos Section */}
-      <InstagramVideosSection
-        displayMode="grid"
-        maxVisible={6}
-        showViewAll={true}
-        title="Real Events, Real Moments"
-        subtitle="See our recent hibachi experiences from satisfied customers across Los Angeles"
-      />
+          <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:grid md:grid-cols-3 md:items-stretch md:overflow-visible md:px-0 md:pt-3 lg:mt-7 lg:gap-5 [&::-webkit-scrollbar]:hidden">
+            <PlanCard
+              dark
+              kicker="Most popular"
+              title="Standard"
+              price={`$${fmt(GUEST_TIERS.adult.price)}`}
+              unit="/adult"
+              lines={[
+                `$${fmt(GUEST_TIERS.child.price)}/child · under 5 free`,
+                "2 proteins, rice, veg, salad, show",
+                `$${MINIMUM_SPEND} minimum`,
+              ]}
+              cta="Get instant quote"
+              href="/quote?source=home_pricing_standard"
+              onClick={onQuote("home_pricing_standard")}
+            />
+            <PlanCard
+              kicker={`Save · Mon–Thu · ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests`}
+              title="Weekday Special"
+              price={`$${fmt(GUEST_TIERS.adult.weekdayPrice)}`}
+              unit="/adult"
+              lines={[
+                `$${fmt(GUEST_TIERS.child.weekdayPrice)}/child · under 5 free`,
+                "Pick 2 of chicken, steak, shrimp",
+                "No premium upgrades",
+              ]}
+              cta="Check weekday dates"
+              href="/quote?source=home_pricing_weekday&plan=weekday"
+              onClick={onQuote("home_pricing_weekday")}
+            />
+            <PlanCard
+              kicker="30+ guests or special requests"
+              title="Custom"
+              price="Talk with us"
+              lines={["Multi-chef planning, timeline and rental coordination"]}
+              cta="Request custom plan"
+              href="/contact?reason=Custom%20Pricing%20Request"
+            />
+          </div>
+          <p className="mt-2 px-5 text-xs text-clay-600 lg:hidden">
+            Optional full setup (tables, chairs, utensils) +$15/guest. Gratuity 20–25% customary.
+          </p>
+        </div>
+      </section>
 
-
-      {/* Customer Atmosphere Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Experience the <span className="text-primary">Atmosphere</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                See how our hibachi experience transforms your home into an exciting dining venue
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[177.78%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/atmosphere.jpg"
-                    src="/videos/atmosphere.mp4"
-                    />
+      {/* ── Fresh off the griddle ── */}
+      <section className="pt-9 lg:pt-24">
+        <div className="mx-auto max-w-7xl px-5 lg:grid lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
+          <div className="grid grid-cols-3 gap-2 lg:order-1 lg:gap-3.5">
+            {[
+              { src: "/images/menu/steak.jpg", label: "Steak", full: "Steak · 4.5 oz" },
+              { src: "/images/menu/shrimp.jpg", label: "Jumbo shrimp", full: "Shrimp · 5 pcs" },
+              { src: "/images/menu/chicken.jpg", label: "Chicken", full: "Chicken · 5 oz" },
+            ].map((dish) => (
+              <div key={dish.src} className="flex flex-col gap-1.5 lg:gap-2">
+                <div className="relative aspect-square overflow-hidden rounded-full">
+                  <Image src={dish.src} alt={dish.label} fill sizes="(max-width: 1024px) 33vw, 200px" className="object-cover saturate-[1.15]" />
                 </div>
+                <span className="text-center text-xs font-semibold lg:text-sm">
+                  <span className="lg:hidden">{dish.label}</span>
+                  <span className="hidden lg:inline">{dish.full}</span>
+                </span>
               </div>
-            </AnimateOnScroll>
+            ))}
           </div>
-        </section>
-      </AnimateOnScroll>
+          <div className="mt-4 flex flex-col gap-3 lg:mt-0 lg:gap-4">
+            <h2 className="font-serif text-2xl font-extrabold lg:text-[40px] lg:leading-[1.1]">
+              <span className="lg:hidden">Fresh off the griddle</span>
+              <span className="hidden lg:inline">Fresh off the griddle, portions in writing</span>
+            </h2>
+            <p className="hidden text-base leading-relaxed text-clay-700 lg:block">
+              Every guest picks 2 proteins. USDA Choice Angus sirloin, BAP-certified colossal shrimp, boneless breast — plus 8 oz
+              fried rice, vegetables and salad. Refills free.
+            </p>
+            <Link
+              href="/menu"
+              onClick={() => trackEvent("menu_view")}
+              className="inline-flex items-center gap-1 self-start text-sm font-semibold text-flame-700 hover:text-flame-800 lg:text-[15px]"
+            >
+              See full menu <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
 
-      {/* Customer Reactions Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Chef Show & Entertainment
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Experience Japanese tradition as our chefs bring fire tricks, knife skills, and nonstop
-                entertainment to your table.
-              </p>
-            </AnimateOnScroll>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-              <AnimateOnScroll direction="left">
-                <div className="relative">
-                  <img
-                    src="/images/customer-enjoying-hibachi.png"
-                    alt="Chef entertaining delighted customers during hibachi experience"
-                    className="w-full h-auto rounded-xl shadow-2xl"
-                    loading="lazy"
-                  />
-                  <div className="absolute -bottom-4 -right-4 bg-amber-500 text-white p-4 rounded-full shadow-lg">
-                    <Flame className="h-7 w-7" aria-hidden="true" />
-                  </div>
+      {/* ── Reviews ── verbatim Google reviews, config/reviews.ts */}
+      <section className="pt-9 lg:pt-24">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <h2 className="font-serif text-2xl font-extrabold lg:text-[40px]">Real reviews, real parties</h2>
+          <div className="mt-3 flex flex-col gap-3 lg:mt-6 lg:grid lg:grid-cols-3 lg:gap-5">
+            {reviews.map((review, i) => (
+              <blockquote
+                key={review.name}
+                className={`flex flex-col gap-2 rounded-[28px] border border-ink/10 bg-surface p-[18px] shadow-organic lg:p-6 ${i === 2 ? "hidden lg:flex" : ""}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-full font-serif text-[15px] font-extrabold ${i % 2 ? "bg-flame-300" : "bg-gold-300"}`}>
+                    {review.name.charAt(0)}
+                  </span>
+                  <span className="text-sm font-semibold">{review.name}</span>
+                  <span className="ml-auto rounded-full bg-white px-2.5 py-0.5 text-[11px] text-ink/80">Google</span>
                 </div>
-              </AnimateOnScroll>
+                <p className="text-sm leading-6 text-ink/90 line-clamp-4 lg:line-clamp-none">{review.text}</p>
+              </blockquote>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <AnimateOnScroll direction="right">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-white rounded-lg shadow-md">
-                      <div className="text-2xl font-bold text-amber-600 mb-1">1 per 28</div>
-                      <div className="text-sm text-gray-600">A dedicated chef & griddle per 28 guests</div>
-                    </div>
-                    <div className="text-center p-4 bg-white rounded-lg shadow-md">
-                      <div className="text-2xl font-bold text-amber-600 mb-1">Included</div>
-                      <div className="text-sm text-gray-600">Full setup & cleanup, every event</div>
-                    </div>
-                  </div>
-                </div>
-              </AnimateOnScroll>
+      {/* ── Questions ── */}
+      <section className="pt-9 lg:pt-24">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <h2 className="font-serif text-2xl font-extrabold lg:text-[40px]">Questions</h2>
+          <div className="mt-2 lg:mt-4 lg:max-w-3xl">
+            {FAQ.map((item) => (
+              <details key={item.q} className="group border-b border-ink/15">
+                <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 py-3.5 text-[15px] font-medium [&::-webkit-details-marker]:hidden lg:text-base">
+                  {item.q}
+                  <span className="text-xl leading-none text-flame transition group-open:rotate-45">+</span>
+                </summary>
+                <p className="pb-4 text-sm leading-relaxed text-clay-700 lg:text-[15px]">{item.a}</p>
+              </details>
+            ))}
+          </div>
+          <Link
+            href="/faq"
+            onClick={() => trackEvent("faq_view")}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-flame-700 hover:text-flame-800"
+          >
+            All FAQs <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Closing CTA ── desktop card; on phones the sticky bar below does the job. */}
+      <section className="hidden pt-24 lg:block">
+        <div className="mx-auto max-w-7xl px-8">
+          <div className="flex items-center gap-8 rounded-[32px] bg-cocoa px-12 py-11 text-white">
+            <div className="flex flex-1 flex-col gap-2">
+              <h2 className="font-serif text-4xl font-extrabold leading-[1.1]">Ready to create great memories?</h2>
+              <p className="text-base text-white/80">Exact price in 30 seconds. No phone number needed. A $19.90 deposit holds your date.</p>
             </div>
+            <Link
+              href="/quote?source=home_cta"
+              onClick={onQuote("home_cta")}
+              className="inline-flex h-14 items-center rounded-full bg-flame px-8 text-[17px] font-semibold text-white transition hover:bg-flame-600"
+            >
+              Get instant quote
+            </Link>
           </div>
-        </section>
-      </AnimateOnScroll>
+        </div>
+      </section>
 
-      {/* FAQ Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-orange-50 to-amber-50">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h3 className="text-2xl md:text-3xl font-serif font-bold text-center mb-8">Frequently Asked Questions</h3>
-            </AnimateOnScroll>
+      <div className="h-10 lg:h-20" />
 
-            <div className="space-y-4">
-              {[
-                {
-                  question: "How much space do you need for the hibachi setup?",
-                  answer:
-                    "We need a minimum 8x8 feet outdoor space for our hibachi grill setup. This includes space for the chef to perform safely and for guests to gather around comfortably.",
-                },
-                {
-                  question: "What's included in the hibachi experience?",
-                  answer:
-                    "Our service includes a professional hibachi chef, all cooking equipment, ingredients for your selected menu, chef performance with tricks and entertainment, and complete cleanup afterward.",
-                },
-                {
-                  question: "Can you provide tables and chairs?",
-                  answer:
-                    "Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included in this package. If you need utensils, we can provide them for an additional $5 per person. If you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in advance.",
-                },
-                {
-                  question: "What is your cancellation policy?",
-                  answer:
-                    "Our cancellation policy includes the following terms: 72 hours' notice required for cancellations or reschedules to receive a full deposit refund. Changes made inside 72 hours may make the deposit non-refundable. For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents. If you still need to cancel due to weather, please let us know at least 72 hours beforehand.",
-                },
-              ].map((faq, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <button
-                    className="w-full p-6 text-left flex justify-between items-center hover:bg-amber-50 transition-colors"
-                    onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-                  >
-                    <h4 className="font-bold text-lg text-amber-600 pr-4">{faq.question}</h4>
-                    <span
-                      className={`text-amber-600 text-xl transition-transform ${expandedFAQ === index ? "rotate-180" : ""}`}
-                    >
-                      ▼
-                    </span>
-                  </button>
-                  {expandedFAQ === index && (
-                    <div className="px-6 pb-6">
-                      <p className="text-gray-600">{faq.answer}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="mt-8 text-center">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-                  onClick={handleViewFAQ}
-                >
-                  <Link href="/faq">View All FAQs</Link>
-                </Button>
-              </div>
-            </AnimateOnScroll>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Call to Action Section */}
-      <AnimateOnScroll>
-        <section className="py-20 bg-gradient-to-r from-amber-600 to-orange-600">
-          <div className="container mx-auto px-4 text-center">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
-                Ready to Create Great Memories?
-              </h2>
-              <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
-                Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home.
-                Our chefs are ready to create a great show and delicious meal for you and your guests.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
-                <Button asChild className="bg-white text-amber-700 hover:bg-amber-50 min-w-[170px]">
-                  <Link href="/quote">Get Instant Quote</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="min-w-[170px] border-white text-white bg-transparent hover:bg-white/10 hover:text-white"
-                >
-                  <Link href="/book">Book Now</Link>
-                </Button>
-              </div>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-
-                {cardItems.map((card, index) => (
-                  <Card key={index} className={`text-center flex flex-col ${card.className}`}>
-                    <CardHeader className="h-[100px] flex flex-col justify-center">
-                      <CardTitle className="text-white text-lg">{card.title}</CardTitle>
-                      <CardDescription className="h-[30px] flex items-center justify-center text-amber-100">
-                        {card.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
-                      <Button
-                        className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
-                        variant={card.variant}
-                        onClick={card.onClick}
-                      >
-                        {card.icon}
-                        {card.buttonText}
-                      </Button>
-                      <div className="h-[20px] flex items-center justify-center">
-                        {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll direction="up" delay={400}>
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">500+</div>
-                  <div className="text-amber-100">Parties Served</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">6</div>
-                  <div className="text-amber-100">SoCal Counties Covered</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">72h</div>
-                  <div className="text-amber-100">Full-Refund Cancellation Window</div>
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Testimonials Section */}
-      <TestimonialsSection />
+      {/* Mobile: one primary CTA, always within thumb reach. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-[linear-gradient(to_top,#f7efe2_70%,transparent)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-4 lg:hidden">
+        <Link
+          href="/quote?source=home_sticky"
+          onClick={onQuote("home_sticky")}
+          className="flex h-[52px] w-full items-center justify-center rounded-full bg-flame text-base font-semibold text-white shadow-organic-lg active:bg-flame-600"
+        >
+          Get instant quote · 30 sec
+        </Link>
+        <p className="sr-only">Or call {phone.voice.dashed}</p>
+      </div>
     </div>
   )
 }

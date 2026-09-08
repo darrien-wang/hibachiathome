@@ -7,7 +7,6 @@ import Footer from "@/components/footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
-import { LiveChatLoader } from "@/components/live-chat-loader"
 import { HideOnAdmin } from "@/components/hide-on-admin"
 import LanguageSuggestBanner from "@/components/language-suggest-banner"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
@@ -88,7 +87,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=Permanent+Marker&display=swap"
+          rel="stylesheet"
+        />
         {gtmId ? (
           <Script id="gtm-base" strategy="beforeInteractive">
             {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -140,7 +142,6 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
         <Suspense fallback={null}>
           <HideOnAdmin>
             <TrackingBootstrap />
-            <LiveChatLoader />
           </HideOnAdmin>
         </Suspense>
         <HideOnAdmin>

@@ -25,6 +25,31 @@ const config = {
         montserrat: ["var(--font-montserrat)"],
       },
       colors: {
+        // 2026-09 "Organic" palette (Claude Design project "Realhibachi 手机端优化调研").
+        cream: "#f7efe2",
+        surface: "#fffaf3",
+        ink: "#3d2a1c",
+        cocoa: "#2a1a10",
+        clay: { 600: "#7c6a5c", 700: "#5e4b3c" },
+        flame: {
+          DEFAULT: "#e8722a",
+          100: "#fdeee2",
+          200: "#fbd7bd",
+          300: "#f7b78a",
+          500: "#e8722a",
+          600: "#cc5e1b",
+          700: "#a34812",
+          800: "#75330c",
+        },
+        gold: {
+          DEFAULT: "#c9962e",
+          100: "#fbefd6",
+          200: "#f5dfae",
+          300: "#ecc97e",
+          500: "#c9962e",
+          700: "#8a5f12",
+          800: "#66440c",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -58,6 +83,10 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+      },
+      boxShadow: {
+        organic: "0 1px 2px rgba(61,42,28,.05)",
+        "organic-lg": "0 12px 32px rgba(61,42,28,.16)",
       },
       borderRadius: {
         lg: "var(--radius)",

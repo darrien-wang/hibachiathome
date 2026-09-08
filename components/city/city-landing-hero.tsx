@@ -41,7 +41,7 @@ export default function CityLandingHero({
   const media = PROOF_MEDIA.slice(0, proofCount)
 
   return (
-    <section className="hero-section bg-gradient-to-b from-amber-50 to-orange-50 pb-8">
+    <section className="hero-section bg-cream pb-8">
       <div className="container mx-auto px-4">
         <nav className="mb-2 hidden pt-2 text-xs text-gray-500 md:block" aria-label="Breadcrumb">
           {breadcrumb}
@@ -78,7 +78,7 @@ export default function CityLandingHero({
 
           <ul className="mt-3 flex flex-wrap justify-center gap-1.5 text-[11px] text-gray-700 sm:text-sm">
             {TRUST.map((item) => (
-              <li key={item.text} className="flex items-center rounded-full border border-amber-200 bg-white px-2.5 py-1">
+              <li key={item.text} className="flex items-center rounded-full border border-ink/10 bg-surface px-2.5 py-1">
                 <item.icon className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 {item.text}
               </li>
@@ -96,10 +96,10 @@ export default function CityLandingHero({
           </div>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {reviews.map((review, i) => (
-              <blockquote key={review.name} className={`rounded-xl border border-amber-100 bg-white/90 p-4 ${i >= 2 ? "hidden md:block" : ""}`}>
+              <blockquote key={review.name} className={`rounded-2xl border border-ink/10 bg-surface p-4 ${i >= 2 ? "hidden md:block" : ""}`}>
                 <p className="line-clamp-3 text-sm leading-6 text-gray-700 md:line-clamp-none">{review.text}</p>
                 <footer className="mt-2 flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-sm font-bold text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-flame text-sm font-bold text-white">
                     {review.name.charAt(0)}
                   </span>
                   <span className="text-xs text-gray-600">

@@ -4,10 +4,11 @@
 
 /* Header height variable - automatically updated by header component */
 :root {
-  --header-height: 120px; /* Increased default fallback for safety */
-  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
-  --font-montserrat: "Montserrat", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --header-height: 60px; /* redesign 2026-09: 60px phone / 72px desktop, measured live by <Header> */
+  /* 2026-09 "Organic" type: Figtree for copy, Bricolage Grotesque (800) for headings. */
+  --font-sans: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: "Bricolage Grotesque", "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-montserrat: "Figtree", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Fixed header layout utilities */
@@ -15,14 +16,14 @@
   /* Main page container that accounts for fixed header */
   .page-container {
     @apply min-h-screen;
-    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    padding-top: calc(var(--header-height, 60px) + 2rem) !important;
     margin-top: 1rem !important;
   }
   
   /* Hero sections that should start right below the header */
   .hero-section {
     @apply relative;
-    padding-top: calc(var(--header-height) + 2rem);
+    padding-top: calc(var(--header-height) + 1.25rem);
   }
   
   /* Full-height hero that accounts for header */
@@ -44,51 +45,52 @@
   
   /* Menu page specific fix */
   .menu-page-safe {
-    padding-top: calc(var(--header-height, 120px) + 5rem) !important;
+    padding-top: calc(var(--header-height, 60px) + 2rem) !important;
     margin-top: 1rem !important;
   }
   
   /* Blog page specific fix */
   .blog-page-safe {
-    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    padding-top: calc(var(--header-height, 60px) + 2rem) !important;
     margin-top: 1rem !important;
   }
   
   /* Gallery page specific fix */
   .gallery-page-safe {
-    padding-top: calc(var(--header-height, 120px) + 6rem) !important;
+    padding-top: calc(var(--header-height, 60px) + 2rem) !important;
     margin-top: 1rem !important;
   }
   
   /* Universal strong fix for any remaining issues */
   .super-safe {
-    padding-top: calc(var(--header-height, 120px) + 7rem) !important;
+    padding-top: calc(var(--header-height, 60px) + 2.5rem) !important;
     margin-top: 1rem !important;
   }
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-    --primary: 24.6 95% 53.1%;
-    --primary-foreground: 60 9.1% 97.8%;
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
-    --muted: 60 4.8% 95.9%;
-    --muted-foreground: 25 5.3% 44.7%;
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
+    /* Organic palette: cream ground, warm ink, flame accent (#e8722a). */
+    --background: 37 57% 93%;
+    --foreground: 25 37% 17%;
+    --card: 35 100% 98%;
+    --card-foreground: 25 37% 17%;
+    --popover: 35 100% 98%;
+    --popover-foreground: 25 37% 17%;
+    --primary: 23 81% 54%;
+    --primary-foreground: 37 57% 96%;
+    --secondary: 38 45% 92%;
+    --secondary-foreground: 25 37% 17%;
+    --muted: 38 45% 92%;
+    --muted-foreground: 25 18% 42%;
+    --accent: 38 45% 92%;
+    --accent-foreground: 25 37% 17%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 9.1% 97.8%;
-    --border: 20 5.9% 90%;
-    --input: 20 5.9% 90%;
-    --ring: 24.6 95% 53.1%;
-    --radius: 0.75rem;
+    --border: 30 20% 86%;
+    --input: 30 20% 86%;
+    --ring: 23 81% 54%;
+    --radius: 1rem;
   }
 
   .dark {
@@ -126,7 +128,6 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-bottom: 70px; /* ✅ 为浮动按钮预留空间，防止遮挡footer */
     max-width: 100vw;
     position: relative;
   }
@@ -136,7 +137,8 @@
   h4,
   h5,
   h6 {
-    @apply font-serif;
+    @apply font-serif font-extrabold;
+    letter-spacing: -0.025em;
   }
   p,
   span,
