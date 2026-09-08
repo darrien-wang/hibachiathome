@@ -1,279 +1,147 @@
 import Link from "next/link"
-import Image from "next/image"
-import { Facebook, Instagram, Twitter, Phone, Mail, MessageSquare } from "lucide-react"
+import { Facebook, Instagram } from "lucide-react"
+import BrandMark from "@/components/site/brand-mark"
 import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
-import { serviceAreas } from "@/config/service-areas"
 
-const popularCityLinks = [
-  { slug: "san-diego", name: "San Diego" },
-  { slug: "irvine", name: "Irvine" },
-  { slug: "anaheim", name: "Anaheim" },
-  { slug: "long-beach", name: "Long Beach" },
-  { slug: "pasadena", name: "Pasadena" },
-  { slug: "santa-monica", name: "Santa Monica" },
-  { slug: "huntington-beach", name: "Huntington Beach" },
-  { slug: "riverside", name: "Riverside" },
-]
+// 2026-09-08 redesign: cream footer that reads as a colophon, not a second
+// navigation. Same link set as before (search engines still see every
+// service, city and sitemap link) — just three short columns on desktop and
+// two wrapped rows on phones.
 
-// Helper function to format phone number for WhatsApp link
-function formatPhoneForWhatsApp(phone: string) {
-  return phone.replace(/\D/g, "") // Remove all non-digit characters
-}
+const EXPLORE = [
+  { name: "Menu", href: "/menu" },
+  { name: "Gallery", href: "/gallery" },
+  { name: "Party ideas", href: "/party" },
+  { name: "FAQ", href: "/faq" },
+  { name: "Blog", href: "/blog" },
+  { name: "Partner opportunities", href: "/partner-opportunities" },
+] as const
+
+const AREAS = [
+  { name: "Los Angeles", href: "/hibachi-at-home/los-angeles" },
+  { name: "Orange County", href: "/locations/la-orange-county" },
+  { name: "San Diego", href: "/hibachi-at-home/san-diego" },
+  { name: "Irvine", href: "/hibachi-at-home/irvine" },
+  { name: "Pasadena", href: "/hibachi-at-home/pasadena" },
+  { name: "Riverside", href: "/hibachi-at-home/riverside" },
+  { name: "All cities →", href: "/locations" },
+] as const
+
+const SERVICES = [
+  { name: "Hibachi at Home", href: "/hibachi-at-home" },
+  { name: "Hibachi Catering", href: "/hibachi-catering" },
+  { name: "Mobile Hibachi", href: "/mobile-hibachi" },
+  { name: "Private Hibachi Chef", href: "/private-hibachi-chef" },
+] as const
+
+const link = "text-clay-600 transition-colors hover:text-flame-700"
 
 export default function Footer() {
+  const year = new Date().getFullYear()
   return (
-    <footer className="bg-[#0E1117] text-white py-[60px]" role="contentinfo">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-          {/* Left Column: Brand Logo and Description */}
-          <div className="flex flex-col items-start">
-            <div className="flex items-center mb-4">
-              <Image
-                src={siteConfig.logo.main || "/placeholder.svg"}
-                alt={siteConfig.logo.alt}
-                width={siteConfig.logo.width || 60} // Fallback if not in siteConfig
-                height={siteConfig.logo.height || 60} // Fallback if not in siteConfig
-                className="h-auto rounded-full relative z-10 bg-white/95 backdrop-blur-sm after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1/2 after:rounded-b-full after:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.2)]"
-                priority={false} // Set to true if it's LCP, usually not for footer logo
-              />
-            </div>
-            <p className="text-[16px] text-white/80 mt-2">
-              Bringing the hibachi experience directly to your home or venue.
+    <footer className="bg-cream pb-28 pt-10 text-ink lg:pb-16 lg:pt-14" role="contentinfo">
+      <div className="mx-auto max-w-7xl px-5 lg:px-8">
+        <div className="border-t border-ink/10 pt-8 lg:flex lg:items-start lg:justify-between lg:gap-12 lg:pt-10">
+          <div className="max-w-xs">
+            <BrandMark />
+            <p className="mt-3 text-[13px] leading-relaxed text-clay-600">
+              Bringing the hibachi experience to your home across Southern California.
             </p>
-            <div className="mt-4 flex gap-4">
-              <Link
-                href="/privacy-policy"
-                className="text-[14px] text-white/70 hover:text-[#F1691B] transition-colors duration-200"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="text-[14px] text-white/70 hover:text-[#F1691B] transition-colors duration-200"
-              >
-                Terms of Service
-              </Link>
+            <div className="mt-3 flex gap-3">
+              <a href={siteConfig.social.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={link}>
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a href={siteConfig.social.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className={link}>
+                <Instagram className="h-5 w-5" />
+              </a>
             </div>
           </div>
 
-          {/* Middle Column: Quick Links */}
-          <div className="mb-8 md:mb-0">
-            <h4 className="text-[18px] font-bold text-white mb-6">Quick Links</h4>
-            <ul className="space-y-3">
-              <li>
-                <Link href="/" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link href="/book" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Book Now
-                </Link>
-              </li>
-              <li>
-                <Link href="/menu" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Menu
-                </Link>
-              </li>
-              <li>
-                <Link href="/gallery" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Gallery
-                </Link>
-              </li>
-              <li>
-                <Link href="/party" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Party Ideas
-                </Link>
-              </li>
-              <li>
-                <Link href="/locations" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  All Cities We Serve
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/locations/la-orange-county"
-                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  LA & Orange County Hibachi
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-[16px] hover:text-[#F1691B] transition-colors duration-200">
-                  Feedback
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/partner-opportunities"
-                  className="text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  Partner Opportunities
-                </Link>
-              </li>
-            </ul>
+          {/* Phones: two wrapped rows. Desktop: three columns. */}
+          <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-semibold lg:hidden">
+            {EXPLORE.slice(0, 4).map((item) => (
+              <Link key={item.href} href={item.href} className="text-ink/85 hover:text-flame-700">
+                {item.name}
+              </Link>
+            ))}
+            <Link href="/contact" className="text-ink/85 hover:text-flame-700">Contact</Link>
+            <Link href="/es" className="text-ink/85 hover:text-flame-700">Español</Link>
+          </div>
+          <div className="mt-2.5 text-[12px] leading-relaxed text-clay-600 lg:hidden">
+            <Link href="/locations" className={link}>Cities we serve</Link>
+            {" · "}
+            <Link href="/blog" className={link}>Blog</Link>
+            {" · "}
+            <Link href="/partner-opportunities" className={link}>Partner opportunities</Link>
+            <br />
+            {SERVICES.map((s, i) => (
+              <span key={s.href}>
+                {i > 0 ? " · " : ""}
+                <Link href={s.href} className={link}>{s.name}</Link>
+              </span>
+            ))}
+            <br />
+            <a href={phone.voice.tel} className={link}>{phone.voice.dashed}</a>
+            {" · "}
+            <a href={smsHref()} className={link}>SMS</a>
+            {" · "}
+            <a href={whatsappHref()} target="_blank" rel="noopener noreferrer" className={link}>WhatsApp</a>
+            {" · "}
+            <a href={`mailto:${siteConfig.contact.email}`} className={link}>{siteConfig.contact.email}</a>
           </div>
 
-          {/* Right Column: Connect With Us & Contact Info */}
-          <div>
-            <h4 className="text-[18px] font-bold text-white mb-6">Connect With Us</h4>
-            <div className="flex space-x-4 mb-6">
-              <a
-                href={siteConfig.social?.facebook ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[#F1691B] transition-colors duration-200"
-                aria-label="Facebook"
-              >
-                <Facebook size={24} />
-                <span className="sr-only">Facebook</span>
-              </a>
-              <a
-                href={siteConfig.social?.instagram ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[#F1691B] transition-colors duration-200"
-                aria-label="Instagram"
-              >
-                <Instagram size={24} />
-                <span className="sr-only">Instagram</span>
-              </a>
-              <a
-                href={siteConfig.social?.twitter ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[#F1691B] transition-colors duration-200"
-                aria-label="Twitter"
-              >
-                <Twitter size={24} />
-                <span className="sr-only">Twitter</span>
-              </a>
+          <div className="hidden gap-12 text-[13px] leading-[1.9] text-clay-600 lg:flex">
+            <div>
+              <p className="font-semibold text-ink">Explore</p>
+              {EXPLORE.map((item) => (
+                <Link key={item.href} href={item.href} className={`block ${link}`}>
+                  {item.name}
+                </Link>
+              ))}
             </div>
-            <div className="space-y-3 mb-4">
-              {siteConfig.contact.phone && (
-                <a
-                  href={phone.voice.tel}
-                  className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  <Phone className="h-5 w-5 mr-2 text-[#F1691B]" />
-                  {phone.voice.dashed}
-                </a>
-              )}
-              {siteConfig.contact.phone && (
-                <a
-                  href={whatsappHref()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  <svg // WhatsApp Icon
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="currentColor" // Changed to currentColor to inherit color, or use #F1691B
-                    className="mr-2 text-[#F1691B]" // Explicitly set color here if needed
-                  >
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  WhatsApp
-                </a>
-              )}
-              {siteConfig.contact.phone && (
-                <a
-                  href={smsHref()}
-                  className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  <MessageSquare className="h-5 w-5 mr-2 text-[#F1691B]" />
-                  SMS {phone.sms.dashed}
-                </a>
-              )}
-              {siteConfig.contact.email && (
-                <a
-                  href={`mailto:${siteConfig.contact.email}`}
-                  className="flex items-center text-[16px] hover:text-[#F1691B] transition-colors duration-200"
-                >
-                  <Mail className="h-5 w-5 mr-2 text-[#F1691B]" />
-                  {siteConfig.contact.email}
-                </a>
-              )}
+            <div>
+              <p className="font-semibold text-ink">Areas</p>
+              {AREAS.map((item) => (
+                <Link key={item.href} href={item.href} className={`block ${link}`}>
+                  {item.name}
+                </Link>
+              ))}
             </div>
-            <div className="space-y-2">
-              <p className="text-[14px] text-[#A1A1A1]">
-                Proudly serving {serviceAreas.southernCalifornia.cities.join(", ")} and nearby{" "}
-                {serviceAreas.southernCalifornia.label} cities.
-              </p>
-              <p className="text-[14px] text-[#A1A1A1]">
-                Popular cities:{" "}
-                {popularCityLinks.map((city, index) => (
-                  <span key={city.slug}>
-                    {index > 0 && " · "}
-                    <Link href={`/hibachi-at-home/${city.slug}`} className="hover:text-[#F1691B] hover:underline">
-                      {city.name}
-                    </Link>
-                  </span>
-                ))}
-              </p>
-              <p className="text-[14px]">
-                <Link href="/locations" className="text-[#F1691B] hover:underline">
-                  View all service areas
+            <div>
+              <p className="font-semibold text-ink">Services</p>
+              {SERVICES.map((item) => (
+                <Link key={item.href} href={item.href} className={`block ${link}`}>
+                  {item.name}
                 </Link>
-              </p>
-              <p className="text-[14px] text-[#A1A1A1]">
-                Services:{" "}
-                <Link href="/hibachi-at-home" className="hover:text-[#F1691B] hover:underline">
-                  Hibachi at Home
-                </Link>
+              ))}
+            </div>
+            <div>
+              <p className="font-semibold text-ink">Contact</p>
+              <a href={phone.voice.tel} className={`block ${link}`}>{phone.voice.dashed}</a>
+              <span className="block">
+                <a href={whatsappHref()} target="_blank" rel="noopener noreferrer" className={link}>WhatsApp</a>
                 {" · "}
-                <Link href="/hibachi-catering" className="hover:text-[#F1691B] hover:underline">
-                  Hibachi Catering
-                </Link>
-                {" · "}
-                <Link href="/mobile-hibachi" className="hover:text-[#F1691B] hover:underline">
-                  Mobile Hibachi
-                </Link>
-                {" · "}
-                <Link href="/private-hibachi-chef" className="hover:text-[#F1691B] hover:underline">
-                  Private Hibachi Chef
-                </Link>
-              </p>
+                <a href={smsHref()} className={link}>SMS</a>
+              </span>
+              <a href={`mailto:${siteConfig.contact.email}`} className={`block ${link}`}>{siteConfig.contact.email}</a>
+              <Link href="/contact" className={`block ${link}`}>Contact form</Link>
+              <Link href="/es" className={`block ${link}`}>Español</Link>
             </div>
           </div>
         </div>
 
-        {/* Bottom Section: Sitemap Links and Copyright */}
-        <div className="border-t border-[#21212A] pt-6 mt-6 text-center">
-          <div className="mb-4">
-            <Link href="/blog" className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]">
-              <strong>Blog </strong>
-            </Link>
-            <a
-              href="https://www.realhibachi.com/sitemap.html" // Assuming this is the correct public URL
-              title="Hibachi at Home Southern California - HTML Sitemap"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]"
-            >
-              <strong>HTML Sitemap</strong>
-            </a>
-            <a
-              href="https://www.realhibachi.com/sitemap.xml" // Assuming this is the correct public URL
-              title="Hibachi at Home Southern California - XML Sitemap"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mx-2 text-[14px] text-[#A1A1A1] hover:text-[#F1691B]"
-            >
-              <strong>XML Sitemap</strong>
-            </a>
-          </div>
-          <p className="text-[14px] text-[#A1A1A1]">
-            &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
-          </p>
+        <div className="mt-6 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-clay-600 lg:mt-10 lg:justify-between">
+          <span>
+            <Link href="/privacy-policy" className={link}>Privacy</Link>
+            {" · "}
+            <Link href="/terms" className={link}>Terms</Link>
+            {" · "}© {year} {siteConfig.name}
+          </span>
+          <span>
+            <a href="https://www.realhibachi.com/sitemap.html" title="HTML sitemap" className={link}>Sitemap</a>
+            {" · "}
+            <a href="https://www.realhibachi.com/sitemap.xml" title="XML sitemap" className={link}>XML</a>
+          </span>
         </div>
       </div>
     </footer>
