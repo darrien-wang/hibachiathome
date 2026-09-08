@@ -201,14 +201,14 @@ export default function Home() {
               onClick={onQuote("home_pricing_standard")}
             />
             <PlanCard
-              kicker={`Save · Mon–Thu · ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests`}
+              kicker="Mon–Thu · any party size"
               title="Weekday Special"
               price={`$${fmt(GUEST_TIERS.adult.weekdayPrice)}`}
               unit="/adult"
               lines={[
                 `$${fmt(GUEST_TIERS.child.weekdayPrice)}/child · under 5 free`,
-                "Pick 2 of chicken, steak, shrimp",
-                "No premium upgrades",
+                `${WEEKDAY_SPECIAL.appetizerPlatter.label} ($${WEEKDAY_SPECIAL.appetizerPlatter.value} value)`,
+                "Full menu, upgrades welcome",
               ]}
               cta="Check weekday dates"
               href="/quote?source=home_pricing_weekday&plan=weekday"

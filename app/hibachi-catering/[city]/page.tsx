@@ -73,7 +73,7 @@ const eventTypes = [
   {
     title: "Corporate & team events",
     description:
-      "Office parties, launch dinners, wrap parties — a hibachi show is the team event people actually talk about after. Weekday dates often qualify for the $45.90/adult Weekday Special.",
+      "Office parties, launch dinners, wrap parties — a hibachi show is the team event people actually talk about after. Weekday dates get the $54.90/adult Weekday Special with a free appetizer platter.",
   },
   {
     title: "Milestones & celebrations",
@@ -103,7 +103,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
   const faqs = [
     {
       question: `How much does hibachi catering cost in ${page.city}?`,
-      answer: `$59.90 per adult and $29.90 per child (5–12), with a $599 event minimum — food, chef, live show, setup, and cleanup included. Monday–Thursday events with 15+ guests qualify for the $45.90/adult Weekday Special. The first 50 miles of travel are free; anything beyond is $1/mile, shown upfront in your quote.`,
+      answer: `$59.90 per adult and $29.90 per child (5–12), with a $599 event minimum — food, chef, live show, setup, and cleanup included. Monday–Thursday events get the $54.90/adult Weekday Special at any size, with a free appetizer platter. The first 50 miles of travel are free; anything beyond is $1/mile, shown upfront in your quote.`,
     },
     {
       question: "How many guests can you cater?",

@@ -95,7 +95,7 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
     city: "irvine",
     localIntro: [
       "Irvine's office parks host a thousand forgettable catered lunches a week. A hibachi chef on the patio is the one team event people don't invent meetings to skip — live fire, games, and dinner cooked in front of the whole floor.",
-      "Weekday events with 15+ people hit our $45.90/person Weekday Special — corporate budgets love that math.",
+      "Weekday events get our $54.90/person Weekday Special with a free appetizer platter — corporate budgets love that math.",
     ],
   },
   {
@@ -143,7 +143,7 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
     city: "san-diego",
     localIntro: [
       "San Diego's biotech campuses and Sorrento Valley office parks were built with patios nobody uses — until the grill shows up. A hibachi team event gives the lab crew and the sales floor the same thing to cheer for.",
-      "Weekday daytime slots are easy to book, and Monday–Thursday events with 15+ people get the $45.90/person Weekday Special — happy finance team included.",
+      "Weekday daytime slots are easy to book, and Monday–Thursday events get the $54.90/person Weekday Special with a free appetizer platter — happy finance team included.",
     ],
   },
 ]

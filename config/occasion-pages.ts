@@ -733,7 +733,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       "Office parties, launch dinners, team celebrations: a private hibachi chef brings dinner and a live show to your office patio or venue. Southern California, from $59.90/person.",
     intro: [
       "Another catered tray of sandwiches isn't a team event — it's lunch with an agenda. A hibachi chef cooking live, with fire and games, gives a team something to react to together, which is the entire point of gathering people who usually only share a Slack channel.",
-      "Weekday events are our sweet spot: Monday–Thursday bookings with 15+ people qualify for the $45.90/person Weekday Special, and daytime slots are usually easy to get.",
+      "Weekday events are our sweet spot: Monday–Thursday bookings get the $54.90/person Weekday Special with a free appetizer platter, and daytime slots are usually easy to get.",
     ],
     moments: [
       {
@@ -789,7 +789,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "Do weekday corporate events get a discount?",
         answer:
-          "Monday–Thursday events with 15+ guests qualify for the Weekday Special: $45.90/person instead of $59.90. Same food, same show — corporate events are exactly what that tier is for.",
+          "Monday–Thursday events get the Weekday Special at any party size: $54.90/person instead of $59.90, plus a free appetizer platter. Same food, same show — corporate events are exactly what that rate is for.",
       },
       PRICE_FAQ,
     ],

@@ -126,14 +126,7 @@ const QUOTE_TESTIMONIALS = [
   },
 ] as const
 const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
-const WEEKDAY_SAVER_PROTEIN_LABELS: Record<keyof QuoteInput["weekdaySaverProteins"], string> = {
-  chicken: "Chicken",
-  steak: "Steak",
-  shrimp: "Shrimp",
-}
-const WEEKDAY_SAVER_MENU_PROTEINS = Object.values(WEEKDAY_SAVER_PROTEIN_LABELS)
-const WEEKDAY_SAVER_MENU_TEXT = WEEKDAY_SAVER_MENU_PROTEINS.join(", ")
-const WEEKDAY_SAVER_MENU_DETAIL = `Guests pick 2 of 3 proteins: ${WEEKDAY_SAVER_MENU_TEXT}`
+const WEEKDAY_SAVER_MENU_DETAIL = `Full menu, 2 regular proteins per guest + ${WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail})`
 
 function encodeUrlComponent(value: string): string {
   return encodeURIComponent(value)
@@ -391,7 +384,7 @@ export default function QuoteBuilderClient() {
   useEffect(() => {
     if (!weekdayNudgeRef.current) return
     weekdayNudgeRef.current = false
-    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "Your party size qualifies — it only needs the date.")
+    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "It only needs a Monday–Thursday date — and it comes with a free appetizer platter.")
   }, [pushToast])
   const quoteSurface = "quote_builder"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
@@ -409,10 +402,10 @@ export default function QuoteBuilderClient() {
     child: Math.max(0, Math.floor(input.kids || 0)),
     toddler: 0,
   })
-  const weekdayHeadcountOk = weekdayAdultEquivalents >= WEEKDAY_SPECIAL.minAdultEquivalents
   const weekdayDateOk = Boolean(input.eventDate) && isWeekdayEligibleDate(input.eventDate)
   const hasPremiumUpgrades = input.addOns.steak || input.addOns.shrimp || input.addOns.lobster
-  const weekdayEligible = weekdaySaverEnabled && weekdayHeadcountOk && weekdayDateOk
+  // No headcount gate any more: a Mon–Thu date is the whole condition.
+  const weekdayEligible = weekdaySaverEnabled && weekdayDateOk
 
   const standardRatesLabel = `$${GUEST_TIERS.adult.price.toFixed(2)}/adult, $${GUEST_TIERS.child.price.toFixed(2)}/child`
   const weekdayRatesLabel = `$${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult, $${GUEST_TIERS.child.weekdayPrice.toFixed(2)}/child`
@@ -436,24 +429,18 @@ export default function QuoteBuilderClient() {
   const weekdayHint = useMemo(() => {
     if (weekdayEligible || input.pricingTier === "weekday_saver") return null
     if (!weekdaySaverEnabled) return weekdaySaverPolicy.unavailableMessage
-    if (!weekdayHeadcountOk) {
-      const need = Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - weekdayAdultEquivalents))
-      return `Weekday Special — ${weekdayAdultRateLabel} on Mon–Thu — unlocks at ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half). Add ${need} more to qualify.`
-    }
     if (!input.eventDate) {
-      return `Your party size qualifies for Weekday Special (${weekdayAdultRateLabel}) — pick a Mon–Thu date to see the option.`
+      return `Pick a Mon–Thu date for the Weekday Special — ${weekdayAdultRateLabel} plus a free appetizer platter.`
     }
     const described = describeEventDate(input.eventDate)
     return described
-      ? `${described.label} is a ${described.weekday} — Weekday Special (${weekdayAdultRateLabel}) is Mon–Thu only. Your party size already qualifies.`
-      : `Weekday Special (${weekdayAdultRateLabel}) is Mon–Thu only.`
+      ? `${described.label} is a ${described.weekday} — the Weekday Special (${weekdayAdultRateLabel} + free appetizer platter) is Mon–Thu only.`
+      : `Weekday Special (${weekdayAdultRateLabel} + free appetizer platter) is Mon–Thu only.`
   }, [
     input.eventDate,
     input.pricingTier,
-    weekdayAdultEquivalents,
     weekdayAdultRateLabel,
     weekdayEligible,
-    weekdayHeadcountOk,
     weekdaySaverEnabled,
     weekdaySaverPolicy.unavailableMessage,
   ])
@@ -475,7 +462,7 @@ export default function QuoteBuilderClient() {
         ? described
           ? `${described.label} is a ${described.weekday} — Weekday Special is Mon–Thu only.`
           : "Weekday Special needs a Mon–Thu event date."
-        : `Weekday Special needs ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids 5–12 count as half).`
+        : "Weekday Special needs a Mon–Thu event date."
     pushToast("error", "Back to Standard Plan pricing", reason)
   }, [
     input.eventDate,
@@ -497,7 +484,7 @@ export default function QuoteBuilderClient() {
     pushToast(
       "promo",
       "You qualify for Weekday Special",
-      `Mon–Thu party with ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests — tap the green plan to get ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}.`,
+      `Mon–Thu date — tap the green plan for ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}, with a free appetizer platter.`,
     )
   }, [input.pricingTier, pushToast, weekdayAdultRateLabel, weekdayEligible])
   // Display-only scarcity: real remaining capacity clamped to 1-3 (never zero —
@@ -581,6 +568,7 @@ export default function QuoteBuilderClient() {
     // congratulate once when it crosses 20. Event-driven toasts only — the
     // persistent mention lives in the quote card itself.
     const guests = result.guestCount
+    if (result.includesAppetizerPlatter) return // the Weekday Special already includes it
     if (guests >= 20) {
       if (promoStageRef.current !== "unlocked") {
         promoStageRef.current = "unlocked"
@@ -599,7 +587,7 @@ export default function QuoteBuilderClient() {
         "Parties of 20+ get gyoza, edamame & spring rolls free ($40 value).",
       )
     }
-  }, [result.guestCount, pushToast, quoteStartIntentCaptured])
+  }, [result.guestCount, result.includesAppetizerPlatter, pushToast, quoteStartIntentCaptured])
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
@@ -778,19 +766,13 @@ export default function QuoteBuilderClient() {
     setInput((prev) => ({ ...prev, [field]: value }))
   }
 
-  // Tap to take the discount, tap again to go back. Selecting it clears
-  // premium upgrades — they're not part of the Weekday Special menu.
+  // Tap to take the weekday rate, tap again to go back. Upgrades stay as
+  // they are — the Weekday Special carries the full menu.
   const handleWeekdaySaverToggle = () => {
-    setInput((prev) => {
-      if (prev.pricingTier === "weekday_saver") {
-        return { ...prev, pricingTier: "standard" }
-      }
-      return {
-        ...prev,
-        pricingTier: "weekday_saver",
-        addOns: { steak: false, shrimp: false, lobster: false },
-      }
-    })
+    setInput((prev) => ({
+      ...prev,
+      pricingTier: prev.pricingTier === "weekday_saver" ? "standard" : "weekday_saver",
+    }))
   }
 
   // First-screen estimate for the hero: same rates as the builder, before the
@@ -815,8 +797,8 @@ export default function QuoteBuilderClient() {
       if (!weekdayEligible) {
         pushToast(
           "error",
-          "Weekday Special needs a Mon–Thu date and 15+ guests",
-          `Kids 5–12 count as half. Otherwise the Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
+          "Weekday Special needs a Mon–Thu date",
+          `Pick a Monday–Thursday date for ${weekdayAdultRateLabel} and a free appetizer platter. The Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
         )
       }
     } else if (input.pricingTier === "weekday_saver") {
@@ -825,15 +807,10 @@ export default function QuoteBuilderClient() {
     scrollToBuilder(input.eventDate ? "quote-location" : "quote-event-date")
   }
 
-  // Upgrades stay clickable on every tier: checking one while Weekday Special
-  // is selected moves the quote back to the Standard Plan (with a toast).
+  // Upgrades are available on every tier, Weekday Special included.
   const handleAddOnToggle = (key: keyof QuoteInput["addOns"], checked: boolean) => {
-    if (checked && input.pricingTier === "weekday_saver") {
-      pushToast("error", "Switched to Standard Plan", "Premium upgrades aren't part of Weekday Special.")
-    }
     setInput((prev) => ({
       ...prev,
-      pricingTier: checked ? "standard" : prev.pricingTier,
       addOns: {
         ...prev.addOns,
         [key]: checked,
@@ -1523,14 +1500,12 @@ export default function QuoteBuilderClient() {
                   {weekdayDateOk || isWeekdaySaverTier ? (
                     <div className="flex items-center gap-2.5 rounded-2xl bg-gold-100 px-3.5 py-3 text-[13px] leading-snug text-gold-800">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-300 text-xs font-bold">
-                        {weekdayEligible ? "✓" : `${Math.min(WEEKDAY_SPECIAL.minAdultEquivalents, Math.round(weekdayAdultEquivalents))}/${WEEKDAY_SPECIAL.minAdultEquivalents}`}
+                        {weekdayEligible ? "✓" : "🥟"}
                       </span>
                       <span className="flex-1">
                         {isWeekdaySaverTier
-                          ? `Weekday Special unlocked — ${weekdayRatesLabel}.`
-                          : weekdayEligible
-                            ? `You qualify for Weekday Special — save $${weekdaySavings}.`
-                            : `${Math.round(weekdayAdultEquivalents)} of ${WEEKDAY_SPECIAL.minAdultEquivalents} guests — add ${Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - weekdayAdultEquivalents))} more to unlock $${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult (kids count as half).`}
+                          ? `Weekday Special on — ${weekdayRatesLabel}, free appetizer platter included.`
+                          : `Mon–Thu date — take the Weekday Special and save $${weekdaySavings}, plus a free appetizer platter.`}
                       </span>
                       {weekdayEligible ? (
                         <button
@@ -1550,7 +1525,7 @@ export default function QuoteBuilderClient() {
                     </div>
                   ) : (
                     <p className="text-xs text-clay-600">
-                      Save on Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult for parties of {WEEKDAY_SPECIAL.minAdultEquivalents}+.
+                      Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult + a free appetizer platter.
                     </p>
                   )}
                   <button
@@ -1681,10 +1656,12 @@ export default function QuoteBuilderClient() {
                       <span className="font-semibold">−${result.loyaltyDiscount.toFixed(0)}</span>
                     </div>
                   ) : null}
-                  {result.guestCount >= 20 ? (
+                  {result.includesAppetizerPlatter || result.guestCount >= 20 ? (
                     <div className="flex items-start gap-1.5 py-2.5 text-[13px] font-semibold text-gold-800">
                       <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                      Free appetizer platter — gyoza, edamame &amp; spring rolls ($40 value, parties of 20+, through Oct 31)
+                      {result.includesAppetizerPlatter
+                        ? "Free appetizer platter — gyoza, edamame & spring rolls ($40 value, included with the Weekday Special)"
+                        : "Free appetizer platter — gyoza, edamame & spring rolls ($40 value, parties of 20+, through Oct 31)"}
                     </div>
                   ) : null}
                 </div>

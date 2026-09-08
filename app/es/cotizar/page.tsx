@@ -29,7 +29,7 @@ const PRICE_ROWS = [
   ["Pequeños (3–4)", "Gratis"],
   ["Bebés (0–2)", "Gratis"],
   ["Consumo mínimo", "$599 por evento"],
-  ["Especial entre semana (dom–jue)", "$45.9 por adulto"],
+  ["Especial entre semana (lun–jue)", "$54.90 por adulto + charola de aperitivos gratis"],
   ["Mesas, sillas y mantel", "+$10 por persona (opcional)"],
   ["Cubiertos y vajilla", "+$5 por persona (opcional)"],
   ["Depósito para apartar", "$19.90 — reembolsable hasta 72h antes"],

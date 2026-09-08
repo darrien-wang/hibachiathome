@@ -38,7 +38,7 @@ export default function LandingEstimator({
   const [adults, setAdults] = useState(15)
   const [weekday, setWeekday] = useState(false)
 
-  const qualifies = weekday && adults >= WEEKDAY_SPECIAL.minAdultEquivalents
+  const qualifies = weekday
   const rate = qualifies ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price
   const raw = roundCurrency(adults * rate)
   const fee = travelFee && travelFee > 0 ? Math.round(travelFee) : 0
@@ -119,12 +119,6 @@ export default function LandingEstimator({
             No fees hidden
           </p>
         </div>
-        {weekday && !qualifies ? (
-          <p className="rounded-lg bg-flame-100 px-2.5 py-2 text-xs leading-snug text-flame-700">
-            Weekday Special unlocks at {WEEKDAY_SPECIAL.minAdultEquivalents} guests — add {WEEKDAY_SPECIAL.minAdultEquivalents - adults} more, or switch to
-            any-day pricing.
-          </p>
-        ) : null}
         <Link
           href={quoteHref}
           onClick={onQuote("landing_card")}

@@ -233,10 +233,10 @@ export async function PATCH(request: NextRequest) {
 
   // Merge duplicates that automatic dedupe cannot catch: an inbound call and an
   // email inquiry from the same person share no field to match on.
+  // Agents merge too: they are the ones who spot the duplicate while the
+  // customer is still on the line, and parking it until the owner logs in
+  // leaves a split timeline that the next person answers from blind.
   if (body.action === "merge") {
-    if (actor.role !== "owner") {
-      return NextResponse.json({ error: "owner only" }, { status: 403 })
-    }
     const ids = Array.isArray(body.leadIds) ? body.leadIds.filter((x) => typeof x === "string") : []
     if (ids.length < 2 || ids.length > 10) {
       return NextResponse.json({ error: "select between 2 and 10 leads to merge" }, { status: 400 })

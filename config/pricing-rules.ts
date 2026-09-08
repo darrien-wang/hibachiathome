@@ -23,8 +23,13 @@ export const GUEST_TIERS = {
     label: "Adult",
     ageLabel: "13+",
     price: 59.9,
-    weekdayPrice: 45.9,
-    /** Counts as one whole guest for the Weekday Special headcount rule. */
+    // 2026-09-08: $45.90 -> $54.90. The old 23% cut mostly reached parties that
+    // were booking Mon-Thu anyway, and its 15-guest gate made a 14-guest party
+    // $150 dearer than a 15-guest one. A small nudge plus a free appetizer
+    // platter reaches the genuinely flexible host without reading as a weekend
+    // surcharge to everyone else (docs/决策日志.md).
+    weekdayPrice: 54.9,
+    /** Counts as one whole guest for adult-equivalent headcounts. */
     adultEquivalent: 1,
     /** Gets the full included-protein allowance and can take upgrades. */
     servesFullPortion: true,
@@ -34,7 +39,7 @@ export const GUEST_TIERS = {
     label: "Child",
     ageLabel: "5-12",
     price: 29.9,
-    weekdayPrice: 22.95,
+    weekdayPrice: 27.45,
     adultEquivalent: 0.5,
     servesFullPortion: true,
   },
@@ -46,7 +51,7 @@ export const GUEST_TIERS = {
     // charge). Keep the tier so headcount/planner logic still tracks them.
     price: 0,
     weekdayPrice: 0,
-    /** Under-5s do not count toward the Weekday Special 15-guest minimum. */
+    /** Under-5s do not count toward adult-equivalent headcounts. */
     adultEquivalent: 0,
     /** Small plate off the grill — no protein allowance, no upgrades. */
     servesFullPortion: false,
@@ -135,12 +140,14 @@ export const WEEKDAY_SPECIAL = {
   title: "Weekday Special",
   /** Monday(1) through Thursday(4). */
   eligibleWeekdays: [1, 2, 3, 4] as const,
-  /** Adults + children x 0.5 must reach this; under-5s do not count. */
-  minAdultEquivalents: 15,
-  /** Guests pick 2 of these 3; no premium upgrades are available. */
-  includedProteins: ["chicken", "steak", "shrimp"] as const,
-  proteinPickCount: 2,
-  allowsPremiumUpgrades: false,
+  // No headcount gate and the full menu, including premium upgrades. The
+  // weekday rate is only a nudge, so it is not paired with a worse menu; the
+  // thing that makes it feel like a gift rather than a discount is the platter.
+  appetizerPlatter: {
+    label: "Free appetizer platter",
+    detail: "gyoza, edamame & spring rolls",
+    value: 40,
+  },
 } as const
 
 // Major holiday periods book at the standard rate — the Weekday Special is a
@@ -193,7 +200,6 @@ export function calcAdultEquivalents(counts: Record<GuestTier, number>): number 
 
 export interface WeekdayEligibility {
   isDateEligible: boolean
-  isHeadcountEligible: boolean
   adultEquivalents: number
   isEligible: boolean
   violations: string[]
@@ -205,21 +211,14 @@ export function checkWeekdayEligibility(
 ): WeekdayEligibility {
   const isDateEligible = isWeekdayEligibleDate(eventDate)
   const adultEquivalents = calcAdultEquivalents(counts)
-  const isHeadcountEligible = adultEquivalents >= WEEKDAY_SPECIAL.minAdultEquivalents
 
   const violations: string[] = []
   if (!isDateEligible) {
     violations.push("Weekday Special applies to Monday-Thursday events only.")
   }
-  if (!isHeadcountEligible) {
-    violations.push(
-      `Weekday Special requires ${WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (a child counts as half an adult; under-5s do not count). This party counts as ${adultEquivalents}.`,
-    )
-  }
 
   return {
     isDateEligible,
-    isHeadcountEligible,
     adultEquivalents,
     isEligible: violations.length === 0,
     violations,

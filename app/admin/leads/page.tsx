@@ -963,10 +963,13 @@ export default function LeadsDashboard() {
           const badge = responseBadge(l.response_seconds)
           const isAd = l.utm_source === "google" || Boolean(l.gclid)
           const isSelected = selected.has(l.id)
+          // 点卡片一律看详情;多选走左边的勾选框(它自己 stopPropagation)。
+          // 以前 owner 点卡片是选中、agent 是看详情,两边现在都能合并了,再留着
+          // 这个分叉只会让人点错。
           return (
             <div
               key={l.id}
-              onClick={() => (viewerRole === "owner" ? toggleSelect(l.id) : openDetail(l))}
+              onClick={() => openDetail(l)}
               style={{
                 background: isSelected ? "#eff6ff" : "#fff",
                 border: "1px solid " + (isSelected ? "#2563eb" : "#e5e7eb"),
@@ -978,15 +981,13 @@ export default function LeadsDashboard() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  {viewerRole === "owner" && (
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(l.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ width: 16, height: 16, cursor: "pointer" }}
-                    />
-                  )}
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(l.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ width: 16, height: 16, cursor: "pointer" }}
+                  />
                   <strong style={{ fontSize: 15 }}>{l.full_name || "（未留名）"}</strong>
                   <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, color: "#fff", background: STATUS_COLORS[l.status] ?? "#6b7280" }}>
                     {STATUS_LABELS[l.status] ?? l.status}
@@ -1178,30 +1179,31 @@ export default function LeadsDashboard() {
         )}
       </div>
 
-      {/* ── Bulk action floating bar (owner) ── */}
-      {viewerRole === "owner" && selected.size > 0 && (
+      {/* ── Bulk action floating bar (merge: anyone; bulk status: owner) ── */}
+      {selected.size > 0 && (
         <div style={{ position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 40, background: "#111827", color: "#fff", borderRadius: 999, padding: "10px 18px", display: "flex", gap: 10, alignItems: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.35)", maxWidth: "calc(100% - 24px)", flexWrap: "wrap", justifyContent: "center" }}>
           <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>已选 {selected.size} 条</span>
-          {[
-            { s: "disqualified", label: "标无效" },
-            { s: "lost", label: "标流失" },
-          ].map(({ s, label }) => (
-            <button
-              key={s}
-              onClick={async () => {
-                await fetch("/api/admin/leads", {
-                  method: "PATCH",
-                  headers: { "content-type": "application/json", "x-admin-key": adminKey },
-                  body: JSON.stringify({ action: "bulk_status", status: s, leadIds: Array.from(selected) }),
-                })
-                setSelected(new Set())
-                fetchLeads()
-              }}
-              style={{ padding: "6px 14px", borderRadius: 999, border: "1px solid #6b7280", background: "transparent", color: "#fff", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
-            >
-              {label}
-            </button>
-          ))}
+          {viewerRole === "owner" &&
+            [
+              { s: "disqualified", label: "标无效" },
+              { s: "lost", label: "标流失" },
+            ].map(({ s, label }) => (
+              <button
+                key={s}
+                onClick={async () => {
+                  await fetch("/api/admin/leads", {
+                    method: "PATCH",
+                    headers: { "content-type": "application/json", "x-admin-key": adminKey },
+                    body: JSON.stringify({ action: "bulk_status", status: s, leadIds: Array.from(selected) }),
+                  })
+                  setSelected(new Set())
+                  fetchLeads()
+                }}
+                style={{ padding: "6px 14px", borderRadius: 999, border: "1px solid #6b7280", background: "transparent", color: "#fff", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                {label}
+              </button>
+            ))}
           {selected.size >= 2 && (
             <button
               onClick={async () => {

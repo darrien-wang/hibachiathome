@@ -41,18 +41,19 @@ const PRICING_POLICY_DEFINITIONS: Record<PricingPolicyKey, PricingPolicyDefiniti
     key: "weekday_saver",
     title: "Weekday Special",
     description:
-      "Includes the Standard food and chef show package. Difference: guests pick 2 of 3 proteins (chicken, steak, shrimp).",
+      "The Standard food and chef show package at the Mon–Thu rate, with a free appetizer platter added.",
     unavailableMessage: "Weekday Special is currently available in Southern California only.",
     homeFeatureList: [
-      "$45.9/adult; $22.95/child 5–12; under 5 free",
+      "$54.90/adult; $27.45/child 5–12; under 5 free",
       "Fried rice, fresh vegetables, and house salad included",
       "Live chef performance and on-site grill cooking",
-      "Monday-Thursday events only, major holidays excluded; 15+ guests (a child counts as half, under-5s do not count)",
-      "No premium add-ons or custom menu upgrades",
+      "Monday-Thursday events only, major holidays excluded; any party size",
+      "Free appetizer platter (gyoza, edamame & spring rolls, $40 value)",
+      "Full menu; premium upgrades available",
       "Optional full setup (tables, chairs, utensils): +$15 per guest",
     ],
     quoteDescription:
-      "$45.9/adult, $22.95/child. Includes the Standard food/show package; guests pick 2 of 3 proteins (chicken/steak/shrimp).",
+      "$54.90/adult, $27.45/child. The Standard food/show package plus a free appetizer platter; full menu and upgrades available.",
   },
 }
 

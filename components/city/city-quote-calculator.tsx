@@ -80,13 +80,11 @@ export default function CityQuoteCalculator({
     () => checkWeekdayEligibility(date, { adult: adults, child: kids, toddler: 0 }),
     [date, adults, kids],
   )
-  const headcountOk = eligibility.isHeadcountEligible
   const dateKnown = /^\d{4}-\d{2}-\d{2}$/.test(date)
   const blackout = dateKnown ? weekdayBlackoutLabel(date) : null
   // No date yet: show the weekday price as reachable ("pick a Mon–Thu date").
-  // Date set: it either applies or it doesn't.
-  const weekdayApplies = dateKnown ? eligibility.isEligible : headcountOk
-  const moreForWeekday = Math.max(1, Math.ceil(WEEKDAY_SPECIAL.minAdultEquivalents - eligibility.adultEquivalents))
+  // Date set: it either applies or it doesn't — there is no headcount gate.
+  const weekdayApplies = dateKnown ? eligibility.isEligible : true
   const dateLabel = dateKnown ? describeDate(date) : null
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
@@ -135,8 +133,7 @@ export default function CityQuoteCalculator({
     if (!dateKnown) return "Mon–Thu saves"
     if (weekdayApplies) return `Saves $${fmt(standard - weekdayTotal)}`
     if (blackout) return "Holiday · standard"
-    if (!eligibility.isDateEligible) return "Weekend · standard"
-    return `${moreForWeekday} more for Mon–Thu rate`
+    return "Weekend · standard"
   })()
 
   // Sticky mobile bar: shown once the visitor has touched an input and the
@@ -187,8 +184,8 @@ export default function CityQuoteCalculator({
             <li>Kids under 5 eat free</li>
             <li>First 50 miles of travel free — any travel fee shows before you pay</li>
             <li>
-              Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu,{" "}
-              {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests (kids count as half)
+              Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu, plus a{" "}
+              {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.value} value)
             </li>
             <li>
               Standard: ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid, any day, ${MINIMUM_SPEND} minimum
@@ -246,7 +243,7 @@ export default function CityQuoteCalculator({
             {weekdayApplies ? <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />}
           </p>
           <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">${fmt(weekdayTotal)}</p>
-          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Mon–Thu · {WEEKDAY_SPECIAL.minAdultEquivalents}+ guests</p>
+          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Mon–Thu · free appetizer platter</p>
         </Link>
         <Link
           href={buildHref("standard")}

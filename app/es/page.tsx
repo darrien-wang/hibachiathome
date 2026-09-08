@@ -164,12 +164,12 @@ export default function HomeEs() {
                 <div className="rounded-3xl bg-emerald-50 border border-emerald-200 p-8 md:p-10 text-stone-700 shadow-[0_12px_28px_rgba(5,150,105,0.15)]">
                   <p className="text-lg font-semibold text-emerald-900">Especial Entre Semana</p>
                   <div className="mt-5 flex items-baseline gap-2">
-                    <p className="text-5xl font-black text-emerald-950">$45.9</p>
+                    <p className="text-5xl font-black text-emerald-950">$54.90</p>
                     <p className="text-lg font-medium text-emerald-800">/adulto</p>
                   </div>
                   <p className="mt-3 text-base text-emerald-900">
-                    Lunes a jueves (excepto días festivos), con menú simplificado — la misma experiencia,
-                    mejor precio.
+                    Lunes a jueves (excepto días festivos), cualquier tamaño de fiesta, con charola de
+                    aperitivos gratis — la misma experiencia, mejor precio.
                   </p>
                   <Button
                     asChild

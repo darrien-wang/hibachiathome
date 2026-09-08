@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
-import { Car, CreditCard, FileText, Plus, Tent } from "lucide-react"
+import { Car, CreditCard, FileText, Mail, Plus, Tent } from "lucide-react"
+import { phone } from "@/config/site"
 
 // ============================================================
 // 订单工作台 · V1
@@ -129,6 +130,73 @@ function eventLabel(iso: string | null, now: number): string {
   const days = Math.round((ms - now) / 86400_000)
   if (days === 0) return `${date} · 今天`
   return days > 0 ? `${date} · ${days} 天后` : `${date} · ${-days} 天前`
+}
+
+// ============================================================
+// ✉️ 客户邮件模板
+// ============================================================
+// 订单侧边栏点邮箱即起草,服务端从 support@realhibachi.com 发出(Resend 已验证
+// 的发件人),客户回信也落回 support@ —— 绝不走个人邮箱,否则回复进了没人看的
+// 收件箱,单子就这么静悄悄丢了。
+
+// event_start 是"墙上时间存成 UTC"(见 eventLabel),客户邮件里也必须照读 UTC
+// 字段,否则发出去的时间会被浏览器时区平移几小时。
+function customerEventTime(iso: string | null): string {
+  if (!iso) return ""
+  const ms = Date.parse(iso)
+  if (!Number.isFinite(ms)) return ""
+  const d = new Date(ms)
+  const day = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })
+  const h24 = d.getUTCHours()
+  const mm = String(d.getUTCMinutes()).padStart(2, "0")
+  const h12 = h24 % 12 || 12
+  return `${day} at ${h12}:${mm}${h24 >= 12 ? "pm" : "am"}`
+}
+
+type EmailTemplateId = "details" | "balance" | "thanks"
+
+const EMAIL_TEMPLATES: Array<{ id: EmailTemplateId; label: string }> = [
+  { id: "details", label: "收细节" },
+  { id: "balance", label: "确认 + 尾款" },
+  { id: "thanks", label: "活动后致谢" },
+]
+
+const SIGN_OFF = `\n\nBling\nReal Hibachi · www.realhibachi.com\nsupport@realhibachi.com · ${phone.sms.dashed}`
+
+function buildOrderEmail(o: OrderRow, template: EmailTemplateId): { subject: string; body: string } {
+  const firstName = (o.customer_name || "").split(" ")[0]
+  const hi = `Hi${firstName ? " " + firstName : ""},`
+  const when = customerEventTime(o.event_start)
+  const guests = (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
+  const whereLine = o.event_address ? ` at ${o.event_address}` : ""
+  const eventLine = when
+    ? `Your hibachi party is set for ${when}${whereLine}${guests > 0 ? ` for ${guests} guests` : ""}.`
+    : `Your hibachi party is confirmed${whereLine}${guests > 0 ? ` for ${guests} guests` : ""}.`
+  const balance = o.balance_due_cents ?? 0
+  const balanceLine =
+    balance > 0
+      ? `Your remaining balance is ${money(balance)}, due on the day of the event - cash, Zelle, Venmo or card all work.`
+      : `Your balance is fully settled - nothing more to pay.`
+
+  if (template === "details") {
+    return {
+      subject: `Real Hibachi ${o.order_no} - a few details to lock in`,
+      body: `${hi}\n\n${eventLine} We're looking forward to cooking for you!\n\nTo finish your order we just need a few things back from you:\n\n1. Protein choice for each guest - chicken, steak, shrimp, salmon or tofu are included; filet mignon and lobster are available as upgrades.\n2. The exact setup spot - backyard, patio, driveway - and where we can park.\n3. Any allergies or dietary restrictions we should cook around.\n\nJust reply to this email with those three and we'll take care of the rest.\n\n${balanceLine}${SIGN_OFF}`,
+    }
+  }
+
+  if (template === "thanks") {
+    const reviewUrl = process.env.NEXT_PUBLIC_GBP_REVIEW_URL
+    return {
+      subject: `Thank you from Real Hibachi \u{1F64F}`,
+      body: `${hi}\n\nThank you for having us${when ? ` on ${when}` : ""} - we had a great time cooking for your group, and we hope the food and the show lived up to it.\n\nIf you enjoyed it, a quick review helps a small family business more than you'd guess:\n${reviewUrl || "https://g.page/r/realhibachi/review"}\n\nAnd whenever the next birthday, graduation or backyard get-together comes around, just reply to this email - we'll hold your date.${SIGN_OFF}`,
+    }
+  }
+
+  return {
+    subject: `Real Hibachi ${o.order_no} - you're confirmed \u{1F389}`,
+    body: `${hi}\n\n${eventLine} Everything on our side is confirmed.\n\nHere's what happens next:\n\n1. We confirm your chef by name 48 hours before the event.\n2. Your chef arrives about 15 minutes early to set up - we bring the grill, and clean up everything we bring.\n3. Please have a flat spot roughly 6 x 6 feet outdoors, and let us know if parking is tight.\n\n${balanceLine}\n\nAnything you'd like to change - guest count, menu, timing - just reply to this email and we'll update your order.${SIGN_OFF}`,
+  }
 }
 
 const inputStyle: React.CSSProperties = { padding: "9px 11px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14, width: "100%", boxSizing: "border-box" }
@@ -439,6 +507,8 @@ function OrderDrawer({
   const [finalChannel, setFinalChannel] = useState("cash")
   const [finalProof, setFinalProof] = useState("")
   const [finalMsg, setFinalMsg] = useState("")
+  const [emailDraft, setEmailDraft] = useState<{ template: EmailTemplateId; to: string; cc: string; subject: string; body: string } | null>(null)
+  const [emailSending, setEmailSending] = useState(false)
 
   useEffect(() => {
     setPlannerUrl("")
@@ -448,6 +518,7 @@ function OrderDrawer({
     setTravelResult("")
     if (detail?.order.event_address) setTravelDest(detail.order.event_address)
     setFinalMsg("")
+    setEmailDraft(null)
     setFinalProof("")
     setFinalChannel("cash")
     setFinalAmount(
@@ -522,6 +593,61 @@ function OrderDrawer({
     [o, call, chefName, onChanged],
   )
 
+  // 默认模板按订单状态选:细节没齐就去要细节,活动过了就致谢,其余是确认+尾款。
+  const defaultTemplate = useCallback(
+    (order: OrderRow): EmailTemplateId => {
+      const ms = order.event_start ? Date.parse(order.event_start) : NaN
+      if (Number.isFinite(ms) && ms < now) return "thanks"
+      if (order.details_status !== "complete") return "details"
+      return "balance"
+    },
+    [now],
+  )
+
+  const openEmailDraft = useCallback(
+    (template: EmailTemplateId) => {
+      if (!o?.customer_email) return
+      const { subject, body } = buildOrderEmail(o, template)
+      setEmailDraft({ template, to: o.customer_email, cc: "", subject, body })
+    },
+    [o],
+  )
+
+  const sendOrderEmail = useCallback(async () => {
+    if (!emailDraft || !o || emailSending) return
+    setEmailSending(true)
+    try {
+      const res = await fetch("/api/admin/send-followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({
+          to: emailDraft.to,
+          cc: emailDraft.cc,
+          subject: emailDraft.subject,
+          text: emailDraft.body,
+        }),
+      })
+      const data = await res.json()
+      if (!data.ok) throw new Error(data.error || "failed")
+      const ccSent: string[] = Array.isArray(data.cc) ? data.cc : []
+      // 记到订单时间线:共享工作台里别人才看得见这封已经发过了。
+      await call("/api/admin/orders/email-sent", {
+        orderId: o.id,
+        to: emailDraft.to,
+        cc: ccSent,
+        subject: emailDraft.subject,
+        operator: localStorage.getItem("rh_operator_name") ?? "staff",
+      })
+      setEmailDraft(null)
+      onChanged()
+      window.alert(`✅ 已从 support@realhibachi.com 发送${ccSent.length > 0 ? `(抄送 ${ccSent.length} 人)` : ""}`)
+    } catch (e) {
+      window.alert("发送失败: " + e)
+    } finally {
+      setEmailSending(false)
+    }
+  }, [emailDraft, emailSending, o, adminKey, call, onChanged])
+
   return (
     <div
       onClick={onClose}
@@ -542,7 +668,18 @@ function OrderDrawer({
               </button>
             </div>
             <div style={{ fontSize: 14, marginBottom: 2 }}>
-              <b>{o.customer_name || "—"}</b> · {o.customer_phone || "无电话"} · {o.customer_email || "无邮箱"}
+              <b>{o.customer_name || "—"}</b> · {o.customer_phone || "无电话"} ·{" "}
+              {o.customer_email ? (
+                <button
+                  onClick={() => openEmailDraft(defaultTemplate(o))}
+                  title="写邮件 — 从 support@realhibachi.com 发送"
+                  style={{ border: "none", background: "none", padding: 0, font: "inherit", color: "#1d4ed8", textDecoration: "underline", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+                >
+                  <Mail size={13} /> {o.customer_email}
+                </button>
+              ) : (
+                "无邮箱"
+              )}
             </div>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>
               {eventLabel(o.event_start, now)} · {o.event_address || "地址未填"} · 大人 {o.guest_adult_count ?? 0} / 小孩 {o.guest_child_count ?? 0}
@@ -929,6 +1066,87 @@ function OrderDrawer({
           </>
         )}
       </div>
+
+      {/* ---------- ✉️ 写邮件(从 support@ 发出) ---------- */}
+      {emailDraft && o && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div style={{ background: "#fff", borderRadius: 14, width: "min(560px, 100%)", maxHeight: "88vh", overflowY: "auto", padding: "18px 20px", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <strong style={{ fontSize: 16 }}>✉️ 写邮件 · {o.order_no}</strong>
+              <button onClick={() => setEmailDraft(null)} style={{ border: "none", background: "#f3f4f6", borderRadius: 8, width: 30, height: 30, cursor: "pointer" }}>
+                ✕
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 10px" }}>
+              发件人: <strong>Real Hibachi &lt;support@realhibachi.com&gt;</strong>
+              <br />
+              收件人: <strong>{emailDraft.to}</strong>(客户回信也进 support@)
+            </p>
+
+            <div style={labelStyle}>模板(切换会覆盖下面已改的正文)</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {EMAIL_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    const { subject, body } = buildOrderEmail(o, t.id)
+                    setEmailDraft((d) => (d ? { ...d, template: t.id, subject, body } : d))
+                  }}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                    border: "1px solid " + (emailDraft.template === t.id ? "#111827" : "#d1d5db"),
+                    background: emailDraft.template === t.id ? "#111827" : "#fff",
+                    color: emailDraft.template === t.id ? "#fff" : "#374151",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={labelStyle}>抄送(选填,逗号分隔,最多 5 个)</div>
+            <input
+              style={inputStyle}
+              placeholder="配偶/同事等共同决策人,例如 spouse@gmail.com, boss@company.com"
+              value={emailDraft.cc}
+              onChange={(e) => setEmailDraft((d) => (d ? { ...d, cc: e.target.value } : d))}
+            />
+            <div style={labelStyle}>主题</div>
+            <input
+              style={inputStyle}
+              value={emailDraft.subject}
+              onChange={(e) => setEmailDraft((d) => (d ? { ...d, subject: e.target.value } : d))}
+            />
+            <div style={labelStyle}>正文(可直接修改)</div>
+            <textarea
+              style={{ ...inputStyle, height: 280, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+              value={emailDraft.body}
+              onChange={(e) => setEmailDraft((d) => (d ? { ...d, body: e.target.value } : d))}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button
+                onClick={sendOrderEmail}
+                disabled={emailSending}
+                style={{ flex: 1, padding: "11px 16px", borderRadius: 8, border: "none", background: emailSending ? "#9ca3af" : "#0f766e", color: "#fff", fontSize: 14, fontWeight: 700, cursor: emailSending ? "default" : "pointer" }}
+              >
+                {emailSending ? "发送中…" : "从 support@ 发送"}
+              </button>
+              <button
+                onClick={() => setEmailDraft(null)}
+                style={{ padding: "11px 16px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontSize: 14, cursor: "pointer" }}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
