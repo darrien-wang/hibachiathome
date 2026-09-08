@@ -373,7 +373,8 @@ export default function QuoteBuilderClient() {
   const pushToast = useCallback(
     (kind: QuoteToast["kind"], title: string, detail?: string) => {
       const id = Date.now() + Math.random()
-      setToasts((previous) => [...previous.slice(-2), { id, kind, title, detail }])
+      // Two on screen at most: three stacked toasts covered the whole hero on a 390px phone.
+      setToasts((previous) => [...previous.slice(-1), { id, kind, title, detail }])
       window.setTimeout(() => dismissToast(id), kind === "urgency" ? 10000 : 6500)
     },
     [dismissToast],
