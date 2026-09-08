@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import ProofStrip from "@/components/proof-strip"
-import AppreciationBanner from "@/components/appreciation-banner"
-import AvailabilityCalendar from "@/components/quote/availability-calendar"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -213,6 +211,13 @@ const HEAR_ABOUT_US_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "other", label: "Other" },
 ]
 
+// Below-the-fold and click-to-open pieces load as their own chunks so the form
+// on the first screen hydrates first. 2026-09-08: field INP on /quote averaged
+// 1.3s — the whole ~2,000-line tree was hydrating as one 796ms task.
+const AvailabilityCalendar = dynamic(() => import("@/components/quote/availability-calendar"))
+const AppreciationBanner = dynamic(() => import("@/components/appreciation-banner"))
+const ProofStrip = dynamic(() => import("@/components/proof-strip"))
+
 export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false)
@@ -263,18 +268,27 @@ export default function QuoteBuilderClient() {
       const bottom = top + (vv ? vv.height : window.innerHeight)
       setSmsCtaVisible(r.top >= top && r.bottom <= bottom)
     }
+    // One getBoundingClientRect per frame at most, and no 1s polling — both were
+    // forced reflows on the interaction-critical path.
+    let raf = 0
+    const schedule = () => {
+      if (raf) return
+      raf = window.requestAnimationFrame(() => {
+        raf = 0
+        check()
+      })
+    }
     check()
-    window.addEventListener("scroll", check, { passive: true })
-    window.addEventListener("resize", check)
-    window.visualViewport?.addEventListener("resize", check)
-    window.visualViewport?.addEventListener("scroll", check)
-    const t = window.setInterval(check, 1000)
+    window.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule)
+    window.visualViewport?.addEventListener("resize", schedule)
+    window.visualViewport?.addEventListener("scroll", schedule)
     return () => {
-      window.removeEventListener("scroll", check)
-      window.removeEventListener("resize", check)
-      window.visualViewport?.removeEventListener("resize", check)
-      window.visualViewport?.removeEventListener("scroll", check)
-      window.clearInterval(t)
+      if (raf) window.cancelAnimationFrame(raf)
+      window.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+      window.visualViewport?.removeEventListener("resize", schedule)
+      window.visualViewport?.removeEventListener("scroll", schedule)
     }
   }, [heroTouched])
 
@@ -330,6 +344,9 @@ export default function QuoteBuilderClient() {
     // sub-pixel step to el.scrollLeft directly gets swallowed and the strip
     // never moves (seen on mobile). Track position ourselves instead.
     let pos: number | null = null
+    let visible = false
+    let frame = 0
+    let max = 0
     const pause = () => {
       pausedUntil = Date.now() + 4000
       pos = null
@@ -339,8 +356,17 @@ export default function QuoteBuilderClient() {
     el.addEventListener("wheel", pause, { passive: true })
 
     const step = () => {
-      if (Date.now() > pausedUntil) {
-        const max = el.scrollWidth - el.clientWidth
+      if (!visible) {
+        raf = 0
+        return
+      }
+      frame += 1
+      // Every frame used to read scrollWidth/clientWidth/scrollLeft and write
+      // scrollLeft — a forced reflow 60×/s for the whole session, competing with
+      // every tap on the page. Half the frames is plenty for a slow drift, and the
+      // extent only changes on resize.
+      if (frame % 2 === 0 && Date.now() > pausedUntil) {
+        if (max === 0 || frame % 120 === 0) max = el.scrollWidth - el.clientWidth
         if (max > 1) {
           // Resync after a pause or if the user dragged the strip elsewhere.
           if (pos === null || Math.abs(el.scrollLeft - pos) > 2) pos = el.scrollLeft
@@ -357,9 +383,19 @@ export default function QuoteBuilderClient() {
       }
       raf = requestAnimationFrame(step)
     }
-    raf = requestAnimationFrame(step)
+    // The strip sits at the bottom of /quote — it was idle-thrashing layout the
+    // entire time a visitor was filling in the form above it. Animate only on screen.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting
+        if (visible && !raf) raf = requestAnimationFrame(step)
+      },
+      { threshold: 0.05 },
+    )
+    io.observe(el)
 
     return () => {
+      io.disconnect()
       cancelAnimationFrame(raf)
       el.removeEventListener("pointerdown", pause)
       el.removeEventListener("touchstart", pause)

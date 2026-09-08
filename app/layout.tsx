@@ -92,7 +92,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         {gtmId ? (
-          <Script id="gtm-base" strategy="beforeInteractive">
+          <Script id="gtm-base" strategy="afterInteractive">
             {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -102,11 +102,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         ) : null}
         {googleAdsId ? (
           <>
-            <Script
-              id="aw-gtag-lib"
-              src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
-              strategy="afterInteractive"
-            />
+            {/* The AW library itself is loaded by GTM's Google tag (googtag
+                AW-17018331447). This only installs the gtag() queue shim so
+                lib/tracking.ts can push conversion + user_data commands; loading
+                gtag/js here as well was a duplicate ~350ms of JS bootup and two
+                long tasks on every page (Clarity INP 0.9–2.1s, 2026-09-08). */}
             <Script id="aw-gtag-init" strategy="afterInteractive">
               {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
 window.gtag=window.gtag||gtag;
