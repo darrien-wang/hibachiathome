@@ -548,6 +548,15 @@ function OrderDrawer({
 
   const o = detail?.order
 
+  // 派对已经办完(或订单取消)后,"确认/标记完成"这两个按钮就藏起来——它们会
+  // 经发票 app 给客户发"更新已完成"邮件+短信,事后再发只是打扰。这类残留请求
+  // 由 /api/admin/orders 在列表刷新时静默关闭。
+  const orderFinished = (() => {
+    if (!o) return false
+    const stage = stageOf(o, now)
+    return stage === "已办完" || stage === "已取消"
+  })()
+
   // SOP 已发状态:order_events 里的 sop_sent 记录
   const doneSopIds = useMemo(() => {
     const done = new Set<string>()
@@ -863,11 +872,21 @@ function OrderDrawer({
             {detail!.updateRequests.length > 0 && (
               <>
                 <div style={labelStyle}>客户提交的修改</div>
+                {orderFinished && (
+                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
+                    派对已办完/订单已取消 —— 未结的修改请求已自动关闭,不再给客户发通知。
+                  </div>
+                )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
                   {detail!.updateRequests.map((r) => {
+                    // 真正人工处理完的请求一定带 chef_notified_at;没有它的"已完成"
+                    // 是派对办完后自动静默关掉的(客户没收到任何通知),分开显示,
+                    // 免得以为这条真被处理过。
+                    const autoClosed = r.status === "updated_chef_notified" && !r.chef_notified_at
                     const statusLabel =
                       r.status === "received" ? { t: "待确认", bg: "#fef3c7", fg: "#92400e" }
                       : r.status === "confirmed_in_progress" ? { t: "处理中", bg: "#dbeafe", fg: "#1d4ed8" }
+                      : autoClosed ? { t: "已自动关闭", bg: "#f3f4f6", fg: "#6b7280" }
                       : { t: "已完成", bg: "#d1fae5", fg: "#065f46" }
                     return (
                       <div key={r.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "9px 12px", fontSize: 13 }}>
@@ -876,7 +895,7 @@ function OrderDrawer({
                             <span style={{ background: statusLabel.bg, color: statusLabel.fg, borderRadius: 999, padding: "1px 9px", fontSize: 11.5, marginRight: 8 }}>{statusLabel.t}</span>
                             <span style={{ color: "#6b7280", fontSize: 12 }}>{new Date(r.created_at).toLocaleString()}</span>
                           </span>
-                          {r.status === "received" && (
+                          {r.status === "received" && !orderFinished && (
                             <button
                               style={{ ...btnStyle, padding: "4px 12px", fontSize: 12 }}
                               disabled={busy === `ur_${r.id}`}
@@ -894,7 +913,7 @@ function OrderDrawer({
                               {busy === `ur_${r.id}` ? "…" : "确认(通知客户处理中)"}
                             </button>
                           )}
-                          {r.status === "confirmed_in_progress" && (
+                          {r.status === "confirmed_in_progress" && !orderFinished && (
                             <button
                               style={{ ...btnGhost, padding: "4px 12px", fontSize: 12 }}
                               disabled={busy === `ur_${r.id}`}

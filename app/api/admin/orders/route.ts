@@ -45,6 +45,79 @@ const LIST_COLUMNS = [
   "updated_at",
 ].join(",")
 
+type FinishedOrderShape = {
+  id: string
+  event_start: string | null
+  order_status: string | null
+  balance_due_cents: number | null
+  source_ref: string | null
+}
+
+type PendingRequestShape = {
+  id: string
+  order_id: string | null
+  external_order_id: string | null
+  status: string
+}
+
+// 派对已经办完(或订单取消)的单子上,还挂着"待确认/处理中"的客户修改请求时,
+// 自动静默关闭。两个理由:这些请求已经不可能再执行,留着列表会一直亮"有修改";
+// 而人工去点"标记完成"会经发票 app 给客户补发一封"更新已完成"的邮件——
+// 派对都结束好几天了再收到这个,纯属打扰客户。
+//
+// 静默是靠绕路实现的:客户通知只写在发票 app 的 confirm/complete 两条路由里,
+// 这里直接改共享库里的行,不碰那两条路由,所以一封邮件、一条短信都不会发。
+//
+// 只关 balance_due_cents === 0 的单:还欠尾款时,"改人数"这类请求可能仍然
+// 影响最终账单,必须留给人工处理,不能替他关掉。
+//
+// 不写 chef_notified_at —— 真正人工完成的请求一定会写上(见发票 app 的
+// completeInvoiceUpdateRequest),所以"状态已完成 + chef_notified_at 为空"
+// 就是自动关闭的标记,工作台据此区分显示,统计时也不会把它算成人工处理过。
+async function autoCloseFinishedOrderRequests(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  orders: FinishedOrderShape[],
+  pending: PendingRequestShape[]
+): Promise<PendingRequestShape[]> {
+  if (pending.length === 0) return pending
+
+  const now = Date.now()
+  const finishedIds = new Set<string>()
+  const finishedRefs = new Set<string>()
+  for (const o of orders) {
+    const eventMs = o.event_start ? Date.parse(o.event_start) : NaN
+    const eventPassed = Number.isFinite(eventMs) && eventMs < now
+    const finished = o.order_status === "cancelled" || (eventPassed && o.balance_due_cents === 0)
+    if (!finished) continue
+    finishedIds.add(o.id)
+    if (o.source_ref) finishedRefs.add(o.source_ref)
+  }
+  if (finishedIds.size === 0) return pending
+
+  const stale = pending.filter(
+    (r) =>
+      (r.order_id && finishedIds.has(r.order_id)) ||
+      (r.external_order_id && finishedRefs.has(r.external_order_id))
+  )
+  if (stale.length === 0) return pending
+
+  const { error } = await supabase
+    .from("invoice_update_requests")
+    .update({ status: "updated_chef_notified" })
+    .in(
+      "id",
+      stale.map((r) => r.id)
+    )
+  if (error) {
+    // 关不掉不该影响工作台本身能不能打开,下次刷新会再试一次。
+    console.error("[orders] auto-close stale update requests failed", error.message)
+    return pending
+  }
+
+  const closed = new Set(stale.map((r) => r.id))
+  return pending.filter((r) => !closed.has(r.id))
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
@@ -107,7 +180,7 @@ export async function GET(request: NextRequest) {
     supabase.from("orders").select(LIST_COLUMNS).order("created_at", { ascending: false }).limit(200),
     supabase
       .from("invoice_update_requests")
-      .select("order_id,external_order_id,status")
+      .select("id,order_id,external_order_id,status")
       .in("status", ["received", "confirmed_in_progress"])
       .limit(300),
   ])
@@ -116,5 +189,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: listRes.error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, orders: listRes.data ?? [], pendingUpdateRequests: pendingRes.data ?? [] })
+  const orders = (listRes.data ?? []) as FinishedOrderShape[]
+  const stillPending = await autoCloseFinishedOrderRequests(supabase, orders, pendingRes.data ?? [])
+
+  return NextResponse.json({ ok: true, orders, pendingUpdateRequests: stillPending })
 }
