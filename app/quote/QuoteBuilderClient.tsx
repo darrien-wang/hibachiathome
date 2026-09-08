@@ -252,6 +252,7 @@ export default function QuoteBuilderClient() {
   // on screen (measured against the visual viewport so the keyboard counts
   // as covering it).
   const [heroTouched, setHeroTouched] = useState(false)
+  const weekdayNudgeRef = useRef(false)
   const [smsCtaVisible, setSmsCtaVisible] = useState(true)
   const smsButtonRef = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
@@ -301,6 +302,10 @@ export default function QuoteBuilderClient() {
     const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
     const wantsWeekday = params.get("plan") === "weekday"
     if (!Number.isFinite(adults) && !Number.isFinite(kids) && !dateOk && !wantsWeekday) return
+    // The landing estimator shows the Weekday price before a date is picked;
+    // without a date the tier below reverts to Standard and the number jumps.
+    // Say why, once, instead of letting the price silently change.
+    if (wantsWeekday && !dateOk) weekdayNudgeRef.current = true
     setInput((previous) => ({
       ...previous,
       ...(Number.isFinite(adults) && adults > 0 && adults <= 200 ? { adults } : {}),
@@ -373,6 +378,12 @@ export default function QuoteBuilderClient() {
     },
     [dismissToast],
   )
+
+  useEffect(() => {
+    if (!weekdayNudgeRef.current) return
+    weekdayNudgeRef.current = false
+    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "Your party size qualifies — it only needs the date.")
+  }, [pushToast])
   const quoteSurface = "quote_builder"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
   const activeRegionDefinition = regionPolicySnapshot.region
@@ -720,8 +731,11 @@ export default function QuoteBuilderClient() {
     }
     if (lastTrackedTierRef.current === input.pricingTier) return
     lastTrackedTierRef.current = input.pricingTier
+    // URL prefill and the eligibility revert change the tier on load; only a
+    // visitor's own tap counts as a plan selection.
+    if (!quoteStartIntentCaptured && !heroTouched) return
     trackEvent("quote_plan_select", { quote_surface: quoteSurface, quote_tier: input.pricingTier })
-  }, [input.pricingTier, quoteSurface])
+  }, [input.pricingTier, quoteSurface, quoteStartIntentCaptured, heroTouched])
 
   useEffect(() => {
     if (!quoteCompletedTracked && result.hasCoreInputs) {
@@ -1525,6 +1539,7 @@ export default function QuoteBuilderClient() {
                   role="radiogroup"
                   aria-labelledby="quote-event-time-label"
                   data-quote-field="time"
+                  tabIndex={-1}
                   className="grid grid-cols-4 gap-1.5"
                 >
                   {EVENT_TIME_OPTIONS.map((timeValue) => {
