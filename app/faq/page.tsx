@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import FAQClientPage from "./FAQClientPage"
-import { faqItems } from "@/config/faq"
+import { faqAllEntries } from "@/config/faq-groups"
 import { JsonLd } from "@/components/structured-data"
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 const faqJsonLd = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: faqItems.map((item) => ({
+  mainEntity: faqAllEntries.map((item) => ({
     "@type": "Question",
     name: item.question,
     acceptedAnswer: {
