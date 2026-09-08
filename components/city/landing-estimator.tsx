@@ -25,11 +25,14 @@ export default function LandingEstimator({
   cityName,
   source,
   smsHref,
+  travelFee,
 }: {
   citySlug: string
   cityName: string
   source?: string
   smsHref?: string
+  /** Approximate travel fee for this city (config/city-travel); 0 / undefined = included. */
+  travelFee?: number | null
 }) {
   const shownCity = useLocCity(cityName)
   const [adults, setAdults] = useState(15)
@@ -38,7 +41,10 @@ export default function LandingEstimator({
   const qualifies = weekday && adults >= WEEKDAY_SPECIAL.minAdultEquivalents
   const rate = qualifies ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price
   const raw = roundCurrency(adults * rate)
-  const total = Math.max(raw, MINIMUM_SPEND)
+  const fee = travelFee && travelFee > 0 ? Math.round(travelFee) : 0
+  // Far cities: the estimate carries the approximate travel fee so the card
+  // and the "50 mi" differentiator never disagree (Palm Springs, 2026-09-08).
+  const total = Math.max(raw, MINIMUM_SPEND) + fee
   const minApplied = !qualifies && raw < MINIMUM_SPEND
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
@@ -46,11 +52,9 @@ export default function LandingEstimator({
   if (weekday) params.set("plan", "weekday")
   const quoteHref = `/quote?${params.toString()}`
 
-  const planLabel = qualifies
-    ? `Weekday Special · ${adults} adults`
-    : minApplied
-      ? `Standard · $${MINIMUM_SPEND} event minimum`
-      : `Standard · ${adults} adults`
+  const planLabel =
+    (qualifies ? `Weekday Special · ${adults} adults` : minApplied ? `Standard · $${MINIMUM_SPEND} event minimum` : `Standard · ${adults} adults`) +
+    (fee > 0 ? ` · incl. ~$${fee} travel` : "")
   const planShort = qualifies ? "Mon–Thu" : "any day"
 
   const onQuote = (surface: string) => () =>
@@ -110,7 +114,7 @@ export default function LandingEstimator({
             </p>
           </div>
           <p className="text-right text-xs font-semibold leading-snug text-gold-700">
-            Travel included
+            {fee > 0 ? `~$${fee} travel added` : "Travel included"}
             <br />
             No fees hidden
           </p>
@@ -128,7 +132,7 @@ export default function LandingEstimator({
         >
           Get my exact quote
         </Link>
-        <p className="text-center text-xs text-clay-600">No phone number needed · exact travel fee shown before you pay</p>
+        <p className="text-center text-xs text-clay-600">No phone number needed · {fee > 0 ? "exact travel fee confirmed from your address" : "exact travel fee shown before you pay"}</p>
         <div className="flex items-center justify-center gap-4 text-xs font-semibold text-clay-700">
           {smsHref ? (
             <a href={smsHref} className="inline-flex items-center gap-1 hover:text-flame-700">

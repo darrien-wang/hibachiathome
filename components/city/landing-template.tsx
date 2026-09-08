@@ -155,14 +155,14 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             </div>
           </div>
           <div className="hidden lg:block">
-            <LandingEstimator citySlug={citySlug} cityName={city} source={source} smsHref={smsHref} />
+            <LandingEstimator citySlug={citySlug} cityName={city} source={source} smsHref={smsHref} travelFee={travelFee} />
           </div>
         </div>
       </section>
 
       {/* Phones: the estimator overlaps the hero's bottom edge. */}
       <div className="relative z-[2] -mt-3.5 px-4 lg:hidden">
-        <LandingEstimator citySlug={citySlug} cityName={city} source={source} smsHref={smsHref} />
+        <LandingEstimator citySlug={citySlug} cityName={city} source={source} smsHref={smsHref} travelFee={travelFee} />
       </div>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pt-8 lg:gap-[72px] lg:px-8 lg:pt-16">
