@@ -753,7 +753,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
     ],
     photos: [
       {
-        src: "/gallery/real-hibachi-party-los-angeles-fresh-cooking-05.jpg",
+        src: "/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg",
         alt: "Hibachi chef cooking on the griddle at a catered event",
       },
       {
