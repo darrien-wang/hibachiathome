@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Minus, Plus } from "lucide-react"
+import EstimatorRow from "@/components/ui/estimator-row"
 import { GUEST_TIERS, MINIMUM_SPEND, DEPOSIT_AMOUNT, roundCurrency } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 
@@ -37,21 +37,8 @@ export default function OccasionEstimator({
   const onQuote = (surface: string) => () => trackEvent("lead_start", { contact_surface: surface, adults, kids, quote_total: total })
   const onSms = (surface: string) => () => trackEvent("sms_click", { contact_surface: surface })
 
-  const stepBtn = "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition disabled:opacity-35"
-  const row = (label: string, sub: string, value: number, set: (v: number) => void, min: number) => (
-    <div className="flex items-center gap-2.5">
-      <div className="flex-1">
-        <p className="text-[15px] font-semibold">{label}</p>
-        <p className="text-xs text-clay-600">{sub}</p>
-      </div>
-      <button type="button" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => set(Math.max(min, value - 1))} className={`${stepBtn} border border-ink/15`}>
-        <Minus className="h-4 w-4" />
-      </button>
-      <span className="w-9 text-center font-serif text-[26px] font-extrabold tabular-nums">{value}</span>
-      <button type="button" aria-label={`More ${label.toLowerCase()}`} onClick={() => set(Math.min(200, value + 1))} className={`${stepBtn} bg-flame text-white`}>
-        <Plus className="h-4 w-4" />
-      </button>
-    </div>
+  const row = (label: string, sub: string, value: number, set: (v: number) => void, min: number, field?: string) => (
+    <EstimatorRow label={label} sub={sub} value={value} onValueChange={set} min={min} data-quote-field={field} />
   )
 
   if (variant === "sticky") {
@@ -73,8 +60,8 @@ export default function OccasionEstimator({
         <span className="min-w-0 truncate text-[13px] font-bold uppercase tracking-[0.06em] text-clay-600">Your {occasionLabel}</span>
         <span className="shrink-0 text-xs text-clay-600">30-sec estimate</span>
       </div>
-      {row("Adults", `$${GUEST_TIERS.adult.price.toFixed(2)} each`, adults, setAdults, 1)}
-      {row("Kids 5–12", `$${GUEST_TIERS.child.price.toFixed(2)} · under 5 free`, kids, setKids, 0)}
+      {row("Adults", `$${GUEST_TIERS.adult.price.toFixed(2)} each`, adults, setAdults, 1, "adults")}
+      {row("Kids 5–12", `$${GUEST_TIERS.child.price.toFixed(2)} · under 5 free`, kids, setKids, 0, "kids")}
       <div className="flex items-end justify-between border-t border-ink/10 pt-2">
         <div>
           <p className="text-xs text-clay-600">{underMin ? "Event minimum" : `${adults} adults · ${kids} kids`}</p>

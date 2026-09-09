@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Mail, MessageSquare, Minus, Phone, Plus } from "lucide-react"
+import { Mail, MessageSquare, Phone } from "lucide-react"
+import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone, siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
@@ -73,7 +74,6 @@ export default function LandingEstimator({
       event_date: "unspecified",
     })
 
-  const stepBtn = "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition disabled:opacity-35"
   const toggle = (on: boolean) =>
     `h-11 flex-1 rounded-full text-[13px] font-semibold transition ${on ? "bg-flame text-white" : "bg-cream text-ink hover:bg-ink/5"}`
 
@@ -85,19 +85,14 @@ export default function LandingEstimator({
           <span className="text-[13px] font-bold uppercase tracking-[0.06em] text-clay-600">Your {shownCity} party</span>
           <span className="text-xs text-clay-600">30-sec estimate</span>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="flex-1">
-            <p className="text-[15px] font-semibold">Adults</p>
-            <p className="text-xs text-clay-600">kids 5–12 half · under 5 free</p>
-          </div>
-          <button type="button" aria-label="Fewer adults" disabled={adults <= 1} onClick={() => setAdults((a) => Math.max(1, a - 1))} className={`${stepBtn} border border-ink/15`}>
-            <Minus className="h-4 w-4" />
-          </button>
-          <span data-quote-field="adults" className="w-9 text-center font-serif text-[26px] font-extrabold tabular-nums">{adults}</span>
-          <button type="button" aria-label="More adults" onClick={() => setAdults((a) => Math.min(200, a + 1))} className={`${stepBtn} bg-flame text-white`}>
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
+        <EstimatorRow
+          label="Adults"
+          sub="kids 5–12 half · under 5 free"
+          value={adults}
+          onValueChange={setAdults}
+          min={1}
+          data-quote-field="adults"
+        />
         <div className="flex gap-2" role="radiogroup" aria-label="Pricing plan">
           <button type="button" role="radio" aria-checked={!weekday} onClick={() => setWeekday(false)} className={toggle(!weekday)}>
             Any day · ${GUEST_TIERS.adult.price.toFixed(2)}

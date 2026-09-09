@@ -97,7 +97,9 @@ export default function GuestStepper({
             setDraft(String(value))
             setEditing(true)
           }}
-          className="h-full min-w-0 flex-1 bg-white text-center text-lg font-bold tabular-nums text-gray-900"
+          // Underlined so it reads as editable: the 09-08 tapes caught someone
+          // tapping "+" twelve times rather than typing the number.
+          className="h-full min-w-0 flex-1 bg-white text-center text-lg font-bold tabular-nums text-gray-900 underline decoration-dotted decoration-gray-300 underline-offset-4"
         >
           {value}
         </button>

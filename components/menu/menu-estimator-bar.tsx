@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Minus, Plus } from "lucide-react"
+import EstimatorRow from "@/components/ui/estimator-row"
 import { GUEST_TIERS, MINIMUM_SPEND } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 
@@ -21,19 +22,13 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
     return (
       <div className="flex flex-col gap-4 rounded-[28px] border border-ink/10 bg-white p-6 shadow-organic-lg">
         <p className="text-xs font-bold uppercase tracking-[0.08em] text-clay-600">Quick estimate</p>
-        <div className="flex items-center gap-2.5">
-          <div className="flex-1">
-            <p className="text-[15px] font-semibold">Adults</p>
-            <p className="text-xs text-clay-600">any day · ${GUEST_TIERS.adult.price.toFixed(2)}</p>
-          </div>
-          <button type="button" aria-label="Fewer adults" onClick={() => setAdults((a) => Math.max(1, a - 1))} className="flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 text-ink">
-            <Minus className="h-4 w-4" />
-          </button>
-          <span className="w-9 text-center font-serif text-2xl font-extrabold">{adults}</span>
-          <button type="button" aria-label="More adults" onClick={() => setAdults((a) => Math.min(200, a + 1))} className="flex h-10 w-10 items-center justify-center rounded-full bg-flame text-white">
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
+        <EstimatorRow
+          label="Adults"
+          sub={`any day · $${GUEST_TIERS.adult.price.toFixed(2)}`}
+          value={adults}
+          onValueChange={setAdults}
+          min={1}
+        />
         <div className="flex items-baseline gap-1.5 border-t border-ink/10 pt-3">
           <span className="font-serif text-[40px] font-extrabold leading-none">{totalLabel}</span>
           <span className="text-[13px] text-clay-600">all-in, no travel fee within 50 mi</span>
