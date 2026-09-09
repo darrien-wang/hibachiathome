@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import GuestStepper from "@/components/ui/guest-stepper"
 import InfoTip from "@/components/ui/info-tip"
 import { useLocCity } from "@/components/city/geo-city-name"
-import { siteConfig } from "@/config/site"
+import { phone, siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
+import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
@@ -127,6 +128,21 @@ export default function CityQuoteCalculator({
       event_date: dateKnown ? date : "unspecified",
     })
   }
+
+  // The plain-text version of what the visitor just priced, so a desktop user
+  // can paste it into a text from their own phone.
+  const smsSummary = [
+    `Hibachi quote from realhibachi.com — ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
+    `Date: ${dateLabel ?? "TBD"} · Location: ${shownCity}`,
+    `Estimate shown: ${priceLine}`,
+  ].join("\n")
+
+  const textFallback = useDesktopTextFallback({
+    summary: smsSummary,
+    guests: adults + kids,
+    eventDate: dateKnown ? date : "",
+    location: shownCity,
+  })
 
   // One short status phrase on the date row instead of a paragraph of rules.
   const dateStatus = (() => {
@@ -277,7 +293,7 @@ export default function CityQuoteCalculator({
               variant="outline"
               className="h-11 rounded-full border-2 border-[hsl(24_79%_55%)] bg-white px-3 text-sm font-semibold text-[hsl(24_79%_45%)] hover:bg-[hsl(24_79%_96%)]"
             >
-              <a href={smsHref}>
+              <a href={smsHref} onClick={textFallback.onSmsClick}>
                 <MessageSquare className="mr-1.5 h-4 w-4" />
                 Text us
               </a>
@@ -294,6 +310,10 @@ export default function CityQuoteCalculator({
             </a>
           </Button>
         </div>
+
+        {textFallback.open ? (
+          <DesktopTextPanel summary={smsSummary} emailHref={emailHref} onClose={textFallback.close} />
+        ) : null}
       </div>
 
       {showSticky ? (

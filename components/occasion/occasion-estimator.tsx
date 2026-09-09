@@ -5,6 +5,7 @@ import Link from "next/link"
 import EstimatorRow from "@/components/ui/estimator-row"
 import { GUEST_TIERS, MINIMUM_SPEND, DEPOSIT_AMOUNT, roundCurrency } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
+import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 
 // The occasion page's 30-second estimate (Claude Design "Realhibachi Party",
 // 2026-09-08): adults + kids steppers, Standard-plan total with the $599
@@ -36,6 +37,15 @@ export default function OccasionEstimator({
   const quoteHref = `/quote?${params.toString()}`
   const onQuote = (surface: string) => () => trackEvent("lead_start", { contact_surface: surface, adults, kids, quote_total: total })
   const onSms = (surface: string) => () => trackEvent("sms_click", { contact_surface: surface })
+  // The card's "Text (213) 770-7788" is `lg:flex` — desktop only — and `sms:`
+  // does nothing there, so until 2026-09-08 this link was dead on every screen
+  // that showed it (决策日志 D-0908-04).
+  const smsSummary = [
+    `Hibachi quote from realhibachi.com - ${occasionLabel}`,
+    `Guests: ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
+    `Estimate shown: ${fmt(total)}`,
+  ].join("\n")
+  const textFallback = useDesktopTextFallback({ summary: smsSummary, guests: adults + kids })
 
   const row = (label: string, sub: string, value: number, set: (v: number) => void, min: number, field?: string) => (
     <EstimatorRow label={label} sub={sub} value={value} onValueChange={set} min={min} data-quote-field={field} />
@@ -87,9 +97,17 @@ export default function OccasionEstimator({
       <Link href={quoteHref} onClick={onQuote("occasion_card")} className="flex h-[52px] items-center justify-center rounded-full bg-flame text-base font-bold text-white transition hover:bg-flame-600">
         Get my exact quote
       </Link>
-      <a href={smsHref} onClick={onSms("occasion_card")} className="hidden h-[46px] items-center justify-center rounded-full border border-ink/15 text-sm font-semibold text-ink lg:flex">
+      <a
+        href={smsHref}
+        onClick={(event) => {
+          onSms("occasion_card")()
+          textFallback.onSmsClick(event)
+        }}
+        className="hidden h-[46px] items-center justify-center rounded-full border border-ink/15 text-sm font-semibold text-ink lg:flex"
+      >
         Text (213) 770-7788
       </a>
+      {textFallback.open ? <DesktopTextPanel summary={smsSummary} onClose={textFallback.close} /> : null}
       <p className="text-center text-xs text-clay-600">${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit locks your date · no sign-up</p>
     </div>
   )

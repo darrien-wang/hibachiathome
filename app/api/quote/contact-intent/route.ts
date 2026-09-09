@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     location?: string
     referralCode?: string
     hearAboutUs?: string
+    device?: string
   }
   try {
     body = await request.json()
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
   const location = String(body.location ?? "").slice(0, 80)
   const referralCode = String(body.referralCode ?? "").toUpperCase().replace(/\s+/g, "").slice(0, 32) || undefined
   const hearAboutUs = String(body.hearAboutUs ?? "").slice(0, 64) || undefined
+  // A desktop intent used to be indistinguishable from a phone user who
+  // changed their mind, because `sms:` fails silently on a computer and we
+  // logged the tap either way (D-0908-04). Record which one it was.
+  const device = body.device === "desktop" ? "desktop" : body.device === "mobile" ? "mobile" : undefined
   if (!summary && !guests) {
     return NextResponse.json({ error: "empty intent" }, { status: 400 })
   }
@@ -40,7 +45,9 @@ export async function POST(request: NextRequest) {
     const result = await upsertLeadFromContact(supabase, {
       name: `⚡ ${channel.toUpperCase()} intent — awaiting message`,
       message: [
-        `Tapped ${channel} with this quote (no contact info yet — check the phone!):`,
+        device === "desktop"
+          ? `Tapped ${channel} from a DESKTOP browser — they were shown the number and the copyable quote, so no text may ever arrive. Reply by email if you have it:`
+          : `Tapped ${channel} with this quote (no contact info yet — check the phone!):`,
         summary,
         referralCode ? `Referral code: ${referralCode}` : null,
       ]
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
       touchpointSource: "quote_page",
       referralCode,
       hearAboutUs,
-      rawPayload: { channel, guests, eventDate, location, referralCode, hearAboutUs },
+      rawPayload: { channel, guests, eventDate, location, referralCode, hearAboutUs, device },
     })
     return NextResponse.json({ ok: true, leadId: result.leadId })
   } catch (error) {

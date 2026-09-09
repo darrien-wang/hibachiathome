@@ -7,6 +7,7 @@ import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone, siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
+import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 import { GUEST_TIERS, MINIMUM_SPEND, WEEKDAY_SPECIAL, roundCurrency } from "@/config/pricing-rules"
 
 // The ad landing page's 30-second estimate (Claude Design "Realhibachi Landing
@@ -74,6 +75,17 @@ export default function LandingEstimator({
       event_date: "unspecified",
     })
 
+  // This is the card the 2026-09-07 Temecula visitor used. They tapped
+  // "Text us this quote" on /quote three times from a desktop; `sms:` there
+  // navigates nowhere and says nothing, so they left and the ~$1,800 booking
+  // never happened (决策日志 D-0908-04). The same dead link lived on this card.
+  const smsSummary = [
+    `Hibachi quote from realhibachi.com - ${adults} adults`,
+    `Location: ${shownCity} | Plan: ${qualifies ? "Weekday Special (Mon-Thu)" : "Standard"}`,
+    `Estimate shown: ${fmt(total)}`,
+  ].join("\n")
+  const textFallback = useDesktopTextFallback({ summary: smsSummary, guests: adults, location: shownCity })
+
   const toggle = (on: boolean) =>
     `h-11 flex-1 rounded-full text-[13px] font-semibold transition ${on ? "bg-flame text-white" : "bg-cream text-ink hover:bg-ink/5"}`
 
@@ -124,7 +136,7 @@ export default function LandingEstimator({
         <p className="text-center text-xs text-clay-600">No phone number needed · {fee > 0 ? "exact travel fee confirmed from your address" : "exact travel fee shown before you pay"}</p>
         <div className="flex items-center justify-center gap-4 text-xs font-semibold text-clay-700">
           {smsHref ? (
-            <a href={smsHref} className="inline-flex items-center gap-1 hover:text-flame-700">
+            <a href={smsHref} onClick={textFallback.onSmsClick} className="inline-flex items-center gap-1 hover:text-flame-700">
               <MessageSquare className="h-3.5 w-3.5" /> Text us
             </a>
           ) : null}
@@ -132,6 +144,10 @@ export default function LandingEstimator({
             <Mail className="h-3.5 w-3.5" /> Email us
           </a>
         </div>
+
+        {textFallback.open ? (
+          <DesktopTextPanel summary={smsSummary} emailHref={emailHref} onClose={textFallback.close} />
+        ) : null}
       </div>
 
       {/* Phones: price + call + quote, always in reach. */}

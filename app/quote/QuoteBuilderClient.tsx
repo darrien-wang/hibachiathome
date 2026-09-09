@@ -32,6 +32,7 @@ import {
 } from "@/config/pricing-rules"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { getAdRefCode, getStoredGclid, trackEvent } from "@/lib/tracking"
+import { contactDeviceLabel, copyText, deviceCanOpenSms } from "@/lib/device-contact"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import {
   buildEmailPayload,
@@ -257,6 +258,25 @@ export default function QuoteBuilderClient() {
   const suppressRevertToastRef = useRef(false)
   const [smsCtaVisible, setSmsCtaVisible] = useState(true)
   const smsButtonRef = useRef<HTMLButtonElement | null>(null)
+  // 2026-09-08 (D-0908-04): on a desktop browser `sms:` and `tel:` navigate
+  // nowhere and say nothing. Resolve the capability after mount so the server
+  // markup stays identical, and default to the phone behaviour until we know.
+  const [canOpenSms, setCanOpenSms] = useState(true)
+  const [contactFallback, setContactFallback] = useState<null | "sms" | "call">(null)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  useEffect(() => {
+    setCanOpenSms(deviceCanOpenSms())
+  }, [])
+  // Clipboard writes can be denied (insecure context, permission policy). Say
+  // so instead of leaving a button that looks inert — the whole point of
+  // D-0908-04 is that a silent no-op reads as a broken site.
+  const copyAndFlag = useCallback(async (key: string, value: string) => {
+    const ok = await copyText(value)
+    const flag = ok ? key : `${key}:failed`
+    setCopiedKey(flag)
+    window.setTimeout(() => setCopiedKey((current) => (current === flag ? null : current)), ok ? 2200 : 5000)
+    return ok
+  }, [])
   useEffect(() => {
     if (!heroTouched) return
     const check = () => {
@@ -969,9 +989,12 @@ export default function QuoteBuilderClient() {
   }
 
   // The moment someone taps SMS/WhatsApp we already know the whole quote, so
-  // ping the workbench immediately instead of waiting for the text to arrive
-  // (which pre-port lands only on the owner's phone). sendBeacon survives the
-  // page being replaced by the sms: navigation.
+  // ping the workbench immediately instead of waiting for the text to arrive.
+  // sendBeacon survives the page being replaced by the sms: navigation.
+  //
+  // `device` matters for reading these back: an intent from a desktop that
+  // never became a text is a different animal from a phone user who changed
+  // their mind, and for six weeks we could not tell them apart (D-0908-04).
   const reportContactIntent = (channel: string) => {
     try {
       const payload = JSON.stringify({
@@ -982,6 +1005,7 @@ export default function QuoteBuilderClient() {
         location: input.location || "",
         referralCode: trimmedReferralCode || undefined,
         hearAboutUs: hearAboutUs || undefined,
+        device: contactDeviceLabel(),
       })
       if (navigator.sendBeacon) {
         navigator.sendBeacon("/api/quote/contact-intent", new Blob([payload], { type: "application/json" }))
@@ -1012,8 +1036,15 @@ export default function QuoteBuilderClient() {
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
       event_time: eventTime || "unspecified",
+      device: contactDeviceLabel(),
     })
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
+    // Desktop has nothing to hand an sms: link to. Show the number and the
+    // quote text instead of navigating into silence.
+    if (!canOpenSms) {
+      setContactFallback("sms")
       return
     }
     window.location.href = smsHref
@@ -1065,8 +1096,14 @@ export default function QuoteBuilderClient() {
       add_on_shrimp: input.addOns.shrimp,
       add_on_lobster: input.addOns.lobster,
       event_time: eventTime || "unspecified",
+      device: contactDeviceLabel(),
     })
     if ((window as Window & { __REALHIBACHI_DISABLE_NAVIGATION__?: boolean }).__REALHIBACHI_DISABLE_NAVIGATION__) {
+      return
+    }
+    // Same dead end as sms: on a desktop without a dialer.
+    if (!canOpenSms) {
+      setContactFallback("call")
       return
     }
     window.location.href = phone.voice.tel
@@ -1398,6 +1435,120 @@ export default function QuoteBuilderClient() {
               <p className="mt-4 text-center text-xs leading-5 text-slate-600">
                 Questions? Call {voicePhoneDisplay}, text {smsPhoneDisplay}, or email {displayEmail}.
               </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Desktop contact fallback (D-0908-04). A computer has nothing to
+            hand `sms:` or `tel:` to, so give the visitor the number, the quote
+            text, and the two channels that do work from a browser. */}
+        {contactFallback ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Send us this quote"
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-ink/50 p-4"
+            onClick={() => setContactFallback(null)}
+          >
+            <div
+              className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setContactFallback(null)}
+                aria-label="Close"
+                className="absolute right-3 top-3 rounded-full p-1.5 text-clay-500 transition hover:bg-surface hover:text-ink"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <h2 className="font-serif text-[22px] font-extrabold leading-tight text-ink">
+                {contactFallback === "call" ? "Call us about this quote" : "Send us this quote"}
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-snug text-clay-700">
+                {contactFallback === "call"
+                  ? "Your computer can't place the call for you — here's the number."
+                  : "Texting doesn't open from a computer. Here are three ways that do work."}
+              </p>
+
+              <div className="mt-4 rounded-xl bg-surface p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-clay-600">
+                  {contactFallback === "call" ? "Call" : "Text or call"}
+                </p>
+                <p className="mt-1 font-serif text-[26px] font-extrabold leading-none text-ink">
+                  {contactFallback === "call" ? voicePhoneDisplay : smsPhoneDisplay}
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyAndFlag("number", contactFallback === "call" ? phone.voice.dashed : phone.sms.dashed)
+                  }
+                  className="mt-2.5 inline-flex h-9 items-center rounded-full border border-ink/15 bg-white px-4 text-[13px] font-semibold text-ink transition hover:bg-surface"
+                >
+                  {copiedKey === "number" ? "Number copied" : copiedKey === "number:failed" ? "Select it above" : "Copy number"}
+                </button>
+              </div>
+
+              {contactFallback === "sms" ? (
+                <div className="mt-3 rounded-xl border border-ink/10 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-clay-600">Your quote</p>
+                  <p className="mt-1 text-[13px] leading-snug text-clay-700">
+                    Copy it, then paste it into a text from your phone so we have the details.
+                  </p>
+                  {/* The text is on the page, selectable, whether or not the
+                      clipboard call is allowed to run. */}
+                  <textarea
+                    readOnly
+                    value={smsBodyWithAdRef}
+                    onFocus={(event) => event.currentTarget.select()}
+                    rows={4}
+                    aria-label="Your quote, ready to copy"
+                    className="mt-2 w-full resize-none rounded-lg border border-ink/10 bg-surface p-2.5 text-[12px] leading-snug text-clay-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copyAndFlag("quote", smsBodyWithAdRef)}
+                    className="mt-2 inline-flex h-9 items-center rounded-full border border-ink/15 bg-white px-4 text-[13px] font-semibold text-ink transition hover:bg-surface"
+                  >
+                    {copiedKey === "quote"
+                      ? "Quote copied"
+                      : copiedKey === "quote:failed"
+                        ? "Copy blocked — select the text above"
+                        : "Copy the quote"}
+                  </button>
+                </div>
+              ) : null}
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setContactFallback(null)}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-ink/15 bg-surface text-[13px] font-semibold text-ink transition hover:bg-white"
+                >
+                  <MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp
+                </a>
+                <a
+                  href={emailHref}
+                  onClick={() => setContactFallback(null)}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-ink/15 bg-surface text-[13px] font-semibold text-ink transition hover:bg-white"
+                >
+                  <Mail className="mr-1.5 h-4 w-4" /> Email
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={() => copyAndFlag("email", displayEmail)}
+                className="mt-2 w-full text-center text-xs text-clay-600 underline underline-offset-2 transition hover:text-ink"
+              >
+                {copiedKey === "email"
+                  ? "Address copied"
+                  : copiedKey === "email:failed"
+                    ? `Copy blocked — our address is ${displayEmail}`
+                    : `No mail app? Copy ${displayEmail}`}
+              </button>
             </div>
           </div>
         ) : null}
