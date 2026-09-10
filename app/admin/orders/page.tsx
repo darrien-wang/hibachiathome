@@ -49,6 +49,14 @@ type PaymentRow = {
   created_at: string
 }
 
+type AdMonth = { month: string; cost: number; clicks: number; impressions: number; conversions: number }
+
+type AdSpendState = {
+  status: "idle" | "loading" | "ok" | "error"
+  months: AdMonth[]
+  stale?: boolean
+}
+
 type EventRow = {
   id: string
   actor: string | null
@@ -95,6 +103,32 @@ const STAGE_FILTERS: Array<Stage | "全部"> = ["全部", "待细节", "本周�
 function money(cents: number | null | undefined): string {
   if (typeof cents !== "number" || !Number.isFinite(cents)) return "—"
   return `$${(cents / 100).toFixed(2)}`
+}
+
+// 月份归档键。两套口径的时间基准不一样,必须分开处理:
+//   event  = 活动月。event_start 全链路是"墙上时间存成 UTC",取 UTC 年月。
+//   booked = 下单月。created_at 是真实时刻,按洛杉矶时间切月才符合"这个月
+//            接了几单"的直觉。
+function monthKeyOf(iso: string | null, mode: "event" | "booked"): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  if (mode === "event") {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`
+  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(d)
+  const y = parts.find((x) => x.type === "year")?.value
+  const m = parts.find((x) => x.type === "month")?.value
+  return y && m ? `${y}-${m}` : null
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split("-")
+  return `${y} 年 ${Number(m)} 月`
 }
 
 function stageOf(o: OrderRow, now: number): Stage {
@@ -210,6 +244,9 @@ export default function OrdersWorkbench() {
   const [authFailed, setAuthFailed] = useState(false)
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [showBoard, setShowBoard] = useState(false)
+  const [boardBasis, setBoardBasis] = useState<"event" | "booked">("booked")
+  const [adSpend, setAdSpend] = useState<AdSpendState>({ status: "idle", months: [] })
   const [stageFilter, setStageFilter] = useState<Stage | "全部">("全部")
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ order: OrderRow; payments: PaymentRow[]; events: EventRow[]; updateRequests: UpdateRequestRow[] } | null>(null)
@@ -322,6 +359,95 @@ export default function OrdersWorkbench() {
     })
   }, [orders, stageFilter, now])
 
+  // 广告花费只在看板真正打开时才拉 —— 平时用不到,不必每次进工作台都去
+  // 敲一次 Google Ads API。服务端还有 15 分钟缓存兜着。
+  useEffect(() => {
+    if (!showBoard || !adminKey) return
+    if (adSpend.status === "loading" || adSpend.status === "ok") return
+    let cancelled = false
+    setAdSpend({ status: "loading", months: [] })
+    ;(async () => {
+      try {
+        const res = await fetch("/api/admin/ads-spend", { headers: { "x-admin-key": adminKey }, cache: "no-store" })
+        const data = await res.json()
+        if (cancelled) return
+        if (data.ok) setAdSpend({ status: "ok", months: data.months ?? [], stale: data.stale })
+        else setAdSpend({ status: "error", months: [] })
+      } catch {
+        if (!cancelled) setAdSpend({ status: "error", months: [] })
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [showBoard, adminKey, adSpend.status])
+
+  // ============================================================
+  // 月度营业额看板
+  // ============================================================
+  // 按"活动月份"归账,不是按下单月份也不是按收款月份:这门生意按场交付,
+  // 9 月办的派对就算 9 月的营业额,哪怕客人 7 月就下了单、尾款 10 月才收。
+  // event_start 全链路是"墙上时间存成 UTC",所以这里取 UTC 年月,和表格里
+  // 的日期显示保持同一套口径。
+  //
+  // 三个金额列分开摆,不合并成一个"营业额":
+  //   合同额 = quoted_total_cents,这个月接了多少生意
+  //   已收   = amount_paid_total_cents,订金+尾款,Stripe 和手工确认都算
+  //   待收   = balance_due_cents,还没收回来的
+  // 已办完的单实收常常高于合同额(临时加人、小费),所以两列都给,不去猜
+  // 哪个才算"真"营业额。取消的单全程不计入。
+  const monthlyStats = useMemo(() => {
+    const spendByMonth = new Map(adSpend.months.map((m) => [m.month, m]))
+    const buckets = new Map<
+      string,
+      { key: string; label: string; count: number; quoted: number; paid: number; due: number; guests: number }
+    >()
+    for (const o of orders) {
+      if (o.order_status === "cancelled") continue
+      const key = monthKeyOf(boardBasis === "event" ? o.event_start : o.created_at, boardBasis) ?? "未排期"
+      const label = key === "未排期" ? "未排期" : monthLabel(key)
+      const b = buckets.get(key) ?? { key, label, count: 0, quoted: 0, paid: 0, due: 0, guests: 0 }
+      b.count += 1
+      b.quoted += o.quoted_total_cents ?? 0
+      b.paid += o.amount_paid_total_cents ?? 0
+      b.due += o.balance_due_cents ?? 0
+      b.guests += (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
+      buckets.set(key, b)
+    }
+    // 有花广告但当月一单没成的月份也要出现 —— 那正是最该被看见的月份。
+    for (const m of adSpend.months) {
+      if (m.cost > 0 && !buckets.has(m.month)) {
+        buckets.set(m.month, { key: m.month, label: monthLabel(m.month), count: 0, quoted: 0, paid: 0, due: 0, guests: 0 })
+      }
+    }
+    const rows = [...buckets.values()]
+      .sort((a, b) => {
+        if (a.key === "未排期") return 1
+        if (b.key === "未排期") return -1
+        return a.key < b.key ? 1 : -1
+      })
+      .map((r) => {
+        const spend = spendByMonth.get(r.key)?.cost ?? null
+        return {
+          ...r,
+          spendCents: spend === null ? null : Math.round(spend * 100),
+        }
+      })
+    const peak = rows.reduce((max, r) => (r.quoted > max ? r.quoted : max), 0)
+    const total = rows.reduce(
+      (acc, r) => ({
+        count: acc.count + r.count,
+        quoted: acc.quoted + r.quoted,
+        paid: acc.paid + r.paid,
+        due: acc.due + r.due,
+        guests: acc.guests + r.guests,
+        spendCents: acc.spendCents + (r.spendCents ?? 0),
+      }),
+      { count: 0, quoted: 0, paid: 0, due: 0, guests: 0, spendCents: 0 }
+    )
+    return { rows, peak, total }
+  }, [orders, boardBasis, adSpend])
+
   const stageCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const o of orders) {
@@ -379,6 +505,9 @@ export default function OrdersWorkbench() {
           ))}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button style={showBoard ? btnStyle : btnGhost} onClick={() => setShowBoard((v) => !v)}>
+            📊 月度看板
+          </button>
           <button style={btnGhost} onClick={fetchOrders}>
             {loading ? "刷新中…" : "刷新"}
           </button>
@@ -387,6 +516,133 @@ export default function OrdersWorkbench() {
           </button>
         </div>
       </div>
+
+      {showBoard && (
+        <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, background: "#fff", padding: "14px 16px", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+            <strong style={{ fontSize: 15 }}>月度营业额 · 广告成本</strong>
+            <div style={{ display: "flex", gap: 6 }}>
+              {([
+                { id: "booked", label: "按下单月" },
+                { id: "event", label: "按活动月" },
+              ] as const).map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => setBoardBasis(b.id)}
+                  style={{
+                    padding: "4px 11px",
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                    border: "1px solid " + (boardBasis === b.id ? "#111827" : "#d1d5db"),
+                    background: boardBasis === b.id ? "#111827" : "#fff",
+                    color: boardBasis === b.id ? "#fff" : "#374151",
+                  }}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <p style={{ margin: "0 0 4px", fontSize: 12, color: "#6b7280" }}>
+            {boardBasis === "booked"
+              ? "按订单成交的月份归账。广告费也是自然月,两者对得上,所以这个口径下的获客成本和 ROAS 才有意义。"
+              : "按派对举办的月份归账 —— 看产能和交付节奏用这个。广告费花在成交前,和活动月错位,所以不在这个口径下算获客成本。"}
+          </p>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: "#6b7280" }}>
+            合同额 = 报价总额;已收含订金+尾款(现金/Venmo/Zelle 手工确认的也算);已办完的单实收可能高于合同额(临时加人、小费)。
+            获客成本 = 当月广告费 ÷ 当月总单数,是<b>混合</b>口径 —— 只有一单带得上 gclid,分不出哪些单真由广告带来,所以不装作能分。
+          </p>
+
+          {adSpend.status === "error" && (
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#b45309" }}>
+              广告数据拉取失败,营业额部分不受影响。广告列显示为 —。
+            </p>
+          )}
+          {adSpend.stale && (
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#b45309" }}>广告数据是上一次成功拉取的缓存。</p>
+          )}
+
+          {monthlyStats.rows.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>还没有订单。</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13, minWidth: 820 }}>
+                <thead>
+                  <tr style={{ textAlign: "left", color: "#6b7280", fontSize: 12 }}>
+                    <th style={{ padding: "6px 8px", fontWeight: 600 }}>月份</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>单数</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>合同额</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>已收</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>待收</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>客单价</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>广告费</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>获客成本</th>
+                    <th style={{ padding: "6px 8px", fontWeight: 600, textAlign: "right" }}>ROAS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyStats.rows.map((r) => {
+                    const canAttribute = boardBasis === "booked" && r.spendCents !== null && r.spendCents > 0
+                    return (
+                      <tr key={r.key} style={{ borderTop: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: "7px 8px", whiteSpace: "nowrap" }}>
+                          <div style={{ fontWeight: 600 }}>{r.label}</div>
+                          {/* 条形按最高月归一,一眼看出哪个月最重 */}
+                          <div style={{ height: 4, borderRadius: 2, background: "#f3f4f6", marginTop: 4, width: 110 }}>
+                            <div
+                              style={{
+                                height: 4,
+                                borderRadius: 2,
+                                background: "#0f766e",
+                                width: monthlyStats.peak > 0 ? Math.round((r.quoted / monthlyStats.peak) * 100) + "%" : "0%",
+                              }}
+                            />
+                          </div>
+                        </td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.count || "—"}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{r.quoted ? money(r.quoted) : "—"}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#16a34a" }}>{r.paid ? money(r.paid) : "—"}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: r.due > 0 ? "#b45309" : "#9ca3af" }}>{r.due ? money(r.due) : "—"}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.count > 0 ? money(Math.round(r.quoted / r.count)) : "—"}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#dc2626" }}>
+                          {r.spendCents === null ? "—" : money(r.spendCents)}
+                        </td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{canAttribute && r.count > 0 ? money(Math.round(r.spendCents! / r.count)) : "—"}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{canAttribute && r.quoted > 0 ? (r.quoted / r.spendCents!).toFixed(1) + "x" : "—"}</td>
+                      </tr>
+                    )
+                  })}
+                  <tr style={{ borderTop: "2px solid #e5e7eb", fontWeight: 700 }}>
+                    <td style={{ padding: "8px" }}>合计</td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{monthlyStats.total.count}</td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{money(monthlyStats.total.quoted)}</td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#16a34a" }}>{money(monthlyStats.total.paid)}</td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: monthlyStats.total.due > 0 ? "#b45309" : "#9ca3af" }}>{money(monthlyStats.total.due)}</td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {monthlyStats.total.count > 0 ? money(Math.round(monthlyStats.total.quoted / monthlyStats.total.count)) : "—"}
+                    </td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#dc2626" }}>
+                      {monthlyStats.total.spendCents > 0 ? money(monthlyStats.total.spendCents) : "—"}
+                    </td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {boardBasis === "booked" && monthlyStats.total.spendCents > 0 && monthlyStats.total.count > 0
+                        ? money(Math.round(monthlyStats.total.spendCents / monthlyStats.total.count))
+                        : "—"}
+                    </td>
+                    <td style={{ padding: "8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {boardBasis === "booked" && monthlyStats.total.spendCents > 0
+                        ? (monthlyStats.total.quoted / monthlyStats.total.spendCents).toFixed(1) + "x"
+                        : "—"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 10, background: "#fff" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13.5, minWidth: 760 }}>
