@@ -51,7 +51,7 @@ Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu even
 
 Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones extra de arroz frito y verduras son gratis — solo avísanos antes del evento para que el chef prepare y lleve suficiente. Nadie se va con hambre de una fiesta Real Hibachi.
 
-¿Quieres el arroz frito con extras? Ingredientes al gusto — SPAM, tocino, camarón o pollo — a $10 cada uno, y huevos extra a solo $1.`,
+¿Quieres el arroz frito con extras? Ingredientes al gusto — camarón o pollo — a $10 cada uno, y huevos extra a solo $1.`,
   },
   {
     question: "¿La plancha daña o ensucia mi patio?",

@@ -50,7 +50,7 @@ If using credit card, payment must be settled at least 72 hours before your even
 
 Kids 5-12 get half portions. Want extra? Extra portions of fried rice and vegetables are free — just tell us before the event so the chef preps and brings enough. Nobody leaves a Real Hibachi party hungry.
 
-Want the fried rice loaded? DIY add-ins - SPAM, bacon, shrimp, or chicken - are $10 each, and extra eggs are just $1 apiece.`,
+Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and extra eggs are just $1 apiece.`,
   },
   {
     question: "Will the grill damage or dirty my patio?",
