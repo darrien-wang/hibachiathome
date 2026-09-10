@@ -17,6 +17,13 @@ type SendSupportNotificationEmailParams = {
   replyTo?: string
 }
 
+type SendCustomerEmailParams = {
+  to: string
+  subject: string
+  text: string
+  html: string
+}
+
 const DEFAULT_SUPPORT_EMAIL = "support@realhibachi.com"
 const DEFAULT_SUPPORT_FROM = `Real Hibachi <${DEFAULT_SUPPORT_EMAIL}>`
 
@@ -52,6 +59,70 @@ export function isOpsEmailEffectivelyHandled(result: OpsEmailDeliveryResult): bo
     result.skippedReason === "development_mode_logged" ||
     result.skippedReason === "preview_mode_logged"
   )
+}
+
+/**
+ * Mail addressed to a customer, sent from the mailbox they can reply into.
+ *
+ * Every surface that captures a lead owes the person an acknowledgement: the
+ * /contact form sent one to ops and nothing to the customer, so a real booking
+ * inquiry (2026-09-05, 30 guests) sat four days in silence and only survived
+ * because the customer gave up on email and texted instead. Failures here are
+ * reported, never thrown - a bounced acknowledgement must not lose the lead.
+ */
+export async function sendCustomerEmail(params: SendCustomerEmailParams): Promise<OpsEmailDeliveryResult> {
+  const to = asNonEmptyString(params.to)
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return { attempted: false, delivered: false, skippedReason: "invalid_customer_email" }
+  }
+
+  if (shouldLogOnlyInDevelopment()) {
+    console.info("[customer-email] development mode, logged instead of sent:", { to, subject: params.subject })
+    return { attempted: false, delivered: false, skippedReason: "development_mode_logged", mode: "logged" }
+  }
+
+  if (shouldLogOnlyInPreview()) {
+    console.info("[customer-email] preview mode, logged instead of sent:", { to, subject: params.subject })
+    return { attempted: false, delivered: false, skippedReason: "preview_mode_logged", mode: "logged" }
+  }
+
+  const resendApiKey = asNonEmptyString(process.env.RESEND_API_KEY)
+  if (!resendApiKey) {
+    return { attempted: false, delivered: false, skippedReason: "resend_not_configured" }
+  }
+
+  try {
+    const resend = new Resend(resendApiKey)
+    const { data, error } = await resend.emails.send({
+      from: customerMailFrom(),
+      to: [to],
+      subject: params.subject,
+      text: params.text,
+      html: params.html,
+      reply_to: customerMailbox(),
+    })
+
+    if (error) {
+      return {
+        attempted: true,
+        delivered: false,
+        error: asNonEmptyString(error.message) ?? "customer_email_send_failed",
+      }
+    }
+
+    return {
+      attempted: true,
+      delivered: true,
+      providerMessageId: asNonEmptyString(data?.id),
+      mode: "sent",
+    }
+  } catch (error) {
+    return {
+      attempted: true,
+      delivered: false,
+      error: error instanceof Error ? error.message : "customer_email_send_failed",
+    }
+  }
 }
 
 export async function sendSupportNotificationEmail(

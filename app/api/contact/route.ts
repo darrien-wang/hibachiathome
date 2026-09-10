@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { escapeHtml } from "@/lib/escape-html"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
-import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
+import { isOpsEmailEffectivelyHandled, sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
+import { phone } from "@/config/site"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
 function asString(value: unknown): string | undefined {
@@ -205,6 +206,25 @@ export async function POST(request: Request) {
       replyTo: email,
     })
 
+    // The customer's own copy. Without it this form is a black box: the page
+    // says "we'll follow up" and then nothing arrives, so someone waiting on a
+    // quote has no way to tell us apart from a dead website. Sent after the ops
+    // mail and never allowed to fail the request.
+    const customerAcknowledgement = await sendCustomerAcknowledgement({
+      name,
+      email,
+      reason,
+      eventDate,
+      guestCount,
+      cityOrZip,
+    })
+    if (customerAcknowledgement.attempted && !customerAcknowledgement.delivered) {
+      console.error("[contact] Customer acknowledgement was not delivered.", {
+        error: customerAcknowledgement.error,
+        skippedReason: customerAcknowledgement.skippedReason,
+      })
+    }
+
 
     if (!isOpsEmailEffectivelyHandled(supportNotification)) {
       console.error("[contact] Support notification was not delivered.", {
@@ -230,6 +250,7 @@ export async function POST(request: Request) {
         leadId: leadResult?.leadId ?? null,
         leadDeduped: leadResult?.deduped ?? false,
         notification: supportNotification,
+        customerAcknowledgement,
         leadPersistence: {
           persisted: Boolean(leadResult),
           error: leadPersistenceError,
@@ -237,7 +258,7 @@ export async function POST(request: Request) {
         message:
           supportNotification.skippedReason === "development_mode_logged"
             ? "Your message has been received. In local development, support emails are logged unless ALLOW_DEV_EMAIL_SEND=true."
-            : "Your message has been received and our team will follow up soon.",
+            : "Your message has been received and our team will follow up soon. Check your email for a confirmation.",
       },
       { status: isOpsEmailEffectivelyHandled(supportNotification) ? 200 : 202 },
     )
@@ -251,4 +272,74 @@ export async function POST(request: Request) {
       { status: 500 },
     )
   }
+}
+
+/**
+ * "We have your message" - the reply a person expects within seconds of
+ * pressing Send. Restates what they told us so a wrong date or headcount is
+ * caught immediately, and gives the texting line for anything urgent, because
+ * a same-day party cannot wait on our inbox.
+ */
+async function sendCustomerAcknowledgement(params: {
+  name: string
+  email: string
+  reason?: string
+  eventDate?: string
+  guestCount?: string
+  cityOrZip?: string
+}) {
+  const firstName = params.name.trim().split(/\s+/)[0] || ""
+  const greeting = firstName ? `Hi ${firstName},` : "Hi,"
+  const details: Array<[string, string]> = []
+  if (params.eventDate) details.push(["Event date", params.eventDate])
+  if (params.guestCount) details.push(["Guests", params.guestCount])
+  if (params.cityOrZip) details.push(["Location", params.cityOrZip])
+  if (params.reason) details.push(["About", params.reason])
+
+  const text = [
+    greeting,
+    "",
+    "Thanks for reaching out to Real Hibachi - your message is in, and a real person will get back to you within one business day.",
+    ...(details.length > 0 ? ["", "Here's what we have:", ...details.map(([k, v]) => `${k}: ${v}`)] : []),
+    "",
+    `Need us sooner? Text or call ${phone.sms.dashed} - that reaches us fastest.`,
+    "",
+    "Want numbers right now? Our instant quote prices your party in about a minute: https://www.realhibachi.com/quote",
+    "",
+    "Bling",
+    "Real Hibachi",
+    "www.realhibachi.com",
+  ].join("\n")
+
+  const detailRows = details
+    .map(
+      ([k, v]) =>
+        `<p style="margin:4px 0"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(v)}</p>`,
+    )
+    .join("")
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; color:#0f172a; line-height:1.6;">
+      <p>${escapeHtml(greeting)}</p>
+      <p>Thanks for reaching out to Real Hibachi &mdash; your message is in, and a real person will get back to you within one business day.</p>
+      ${
+        details.length > 0
+          ? `<div style="margin:20px 0;padding:16px;border:1px solid #d1d5db;border-radius:16px;background:#f8fafc;">
+              <p style="margin:0 0 8px;font-weight:bold">Here's what we have:</p>
+              ${detailRows}
+            </div>`
+          : ""
+      }
+      <p>Need us sooner? Text or call <a href="tel:${escapeHtml(phone.sms.e164)}">${escapeHtml(phone.sms.dashed)}</a> &mdash; that reaches us fastest.</p>
+      <p>Want numbers right now? Our <a href="https://www.realhibachi.com/quote">instant quote</a> prices your party in about a minute.</p>
+      <p>Bling<br>Real Hibachi<br><a href="https://www.realhibachi.com">www.realhibachi.com</a></p>
+    </div>
+  `
+
+  return sendCustomerEmail({
+    to: params.email,
+    subject: "We got your message - Real Hibachi",
+    text,
+    html,
+  })
 }
