@@ -445,7 +445,15 @@ export default function OrdersWorkbench() {
       }),
       { count: 0, quoted: 0, paid: 0, due: 0, guests: 0, spendCents: 0 }
     )
-    return { rows, peak, total }
+    // 订单表 2026-09 才建。更早的月份广告是真花了,订单却没进系统,看板上
+    // 会显示成"花了钱零成单"——那是记录缺失,不是投放失败。这里数出来,
+    // 面板据此加一句说明,免得看的人把历史误读成翻车。
+    const firstOrderMonth = rows.filter((r) => r.count > 0 && r.key !== "未排期").map((r) => r.key).sort()[0]
+    const preSystemMonths = firstOrderMonth
+      ? rows.filter((r) => r.count === 0 && r.key !== "未排期" && r.key < firstOrderMonth).length
+      : 0
+
+    return { rows, peak, total, firstOrderMonth, preSystemMonths }
   }, [orders, boardBasis, adSpend])
 
   const stageCounts = useMemo(() => {
@@ -555,6 +563,11 @@ export default function OrdersWorkbench() {
             获客成本 = 当月广告费 ÷ 当月总单数,是<b>混合</b>口径 —— 只有一单带得上 gclid,分不出哪些单真由广告带来,所以不装作能分。
           </p>
 
+          {monthlyStats.preSystemMonths > 0 && monthlyStats.firstOrderMonth && (
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#6b7280", background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 6, padding: "7px 9px" }}>
+              📌 订单系统是 {monthLabel(monthlyStats.firstOrderMonth)} 才上线的。在那之前的 {monthlyStats.preSystemMonths} 个月只有广告费、没有订单记录 —— 那是当时没建库,不是投了广告没成单。
+            </p>
+          )}
           {adSpend.status === "error" && (
             <p style={{ margin: "0 0 10px", fontSize: 12, color: "#b45309" }}>
               广告数据拉取失败,营业额部分不受影响。广告列显示为 —。
