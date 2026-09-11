@@ -13,7 +13,7 @@ import InfoTip from "@/components/ui/info-tip"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Gift, MapPin, Star, X } from "lucide-react"
+import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Gift, MapPin, Star, X, UtensilsCrossed, Users, Clock, Leaf } from "lucide-react"
 import { phone, siteConfig, whatsappHref } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
@@ -1421,38 +1421,41 @@ export default function QuoteBuilderClient() {
                   buys the date, not a locked-in order, and someone who thinks
                   they must have every decision made before paying will wait
                   instead. */}
-              <div className="mt-6 rounded-2xl border border-[#efcfbf] bg-[#fff3ea] p-4">
-                <p className="text-center text-lg font-semibold text-[#9a3412]">Your booking request is complete.</p>
-                <ul className="mx-auto mt-3 grid max-w-md gap-2 text-left text-sm leading-6 text-slate-700">
-                  <li className="flex gap-2">
-                    <span aria-hidden="true">🍤</span>
-                    <span>
-                      Every guest picks <strong>2 proteins</strong> — chicken, steak, shrimp, salmon or tofu — plus
-                      garlic butter fried rice, vegetables and salad. All included, and{" "}
-                      <strong>nobody has to choose today</strong> — send us the picks any time before the party.
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span aria-hidden="true">👥</span>
-                    <span>
-                      <strong>Your headcount isn&apos;t locked either.</strong> Add or drop guests right up to the
-                      party and we&apos;ll re-price it — you only pay for who actually comes.
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span aria-hidden="true">⏱️</span>
-                    <span>
-                      Your chef is with you <strong>about 1.5 to 2 hours</strong>, arriving around 10 minutes early and
-                      leaving the space clean.
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span aria-hidden="true">🌱</span>
-                    <span>
-                      Allergies, or anything you don&apos;t eat? <strong>Just tell us</strong> — we cook around it at no
-                      extra charge.
-                    </span>
-                  </li>
+              <div className="mt-6 rounded-2xl border border-[#f1d4c7] bg-white/90 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Nothing else to decide today</p>
+                <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {[
+                    {
+                      icon: UtensilsCrossed,
+                      title: "Pick proteins later",
+                      body: "Two per guest — chicken, steak, shrimp, salmon or tofu — with fried rice, vegetables and salad. Send us the picks any time before the party.",
+                    },
+                    {
+                      icon: Users,
+                      title: "Headcount stays flexible",
+                      body: "Add or drop guests right up to the party. We re-price it, so you only pay for who actually comes.",
+                    },
+                    {
+                      icon: Clock,
+                      title: "1.5 to 2 hours",
+                      body: "Your chef arrives about 10 minutes early, cooks and performs, then leaves the space clean.",
+                    },
+                    {
+                      icon: Leaf,
+                      title: "Allergies and no-gos",
+                      body: "Tell us anything your guests don't eat and the chef cooks around it, at no extra charge.",
+                    },
+                  ].map(({ icon: Icon, title, body }) => (
+                    <li key={title} className="flex gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fff3ea] text-[#b45309]">
+                        <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-slate-900">{title}</span>
+                        <span className="mt-0.5 block text-[13px] leading-5 text-slate-600">{body}</span>
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
