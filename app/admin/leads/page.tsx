@@ -37,7 +37,7 @@ type Stats = {
 }
 
 type HistoryEvent = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> }
-type SmsMessage = { sid: string; direction: "inbound" | "outbound"; body: string; at: string; status: string; media: number }
+type SmsMessage = { sid: string; direction: "inbound" | "outbound"; body: string; at: string; status: string; media: number; peer: string }
 
 const STATUS_LABELS: Record<string, string> = {
   new: "待联系",
@@ -359,14 +359,12 @@ export default function LeadsDashboard() {
   // The SMS conversation comes from Twilio (the only complete record - see
   // lib/sms-thread.ts), so replies sent from anywhere show up here.
   const loadSmsThread = useCallback(
-    async (phone: string | null) => {
+    async (lead: { id: string; phone: string | null }) => {
       setSmsThread(null)
-      if (!phone) {
-        setSmsThread([])
-        return
-      }
       try {
-        const res = await fetch(`/api/admin/sms-thread?phone=${encodeURIComponent(phone)}`, {
+        // By lead, not by phone: a merged second number (Ravi's 213 line)
+        // belongs in the same conversation.
+        const res = await fetch(`/api/admin/sms-thread?leadId=${encodeURIComponent(lead.id)}${lead.phone ? `&phone=${encodeURIComponent(lead.phone)}` : ""}`, {
           headers: { "x-admin-key": adminKey },
           cache: "no-store",
         })
@@ -386,7 +384,7 @@ export default function LeadsDashboard() {
       setNoteDraft("")
       setSmsDraft("")
       loadHistory(l.id)
-      loadSmsThread(l.phone)
+      loadSmsThread(l)
     },
     [loadHistory, loadSmsThread]
   )
@@ -417,7 +415,7 @@ export default function LeadsDashboard() {
           return
         }
         setSmsDraft("")
-        await Promise.all([loadSmsThread(l.phone), loadHistory(l.id), fetchLeads()])
+        await Promise.all([loadSmsThread(l), loadHistory(l.id), fetchLeads()])
       } finally {
         setSmsSending(false)
       }
@@ -1618,6 +1616,8 @@ export default function LeadsDashboard() {
             )}
             {smsThread?.map((m) => {
               const mine = m.direction === "outbound"
+              const manyNumbers = new Set(smsThread.map((x) => x.peer)).size > 1
+              const peerLabel = m.peer.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3")
               return (
                 <div key={m.sid} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", margin: "4px 0" }}>
                   <div
@@ -1636,6 +1636,7 @@ export default function LeadsDashboard() {
                   >
                     {m.body || (m.media > 0 ? `📎 ${m.media} 张图片` : "")}
                     <div style={{ fontSize: 10.5, color: "#9ca3af", marginTop: 3, textAlign: mine ? "right" : "left" }}>
+                      {manyNumbers ? `${peerLabel} · ` : ""}
                       {new Date(m.at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       {mine ? ` · ${m.status}` : ""}
                     </div>

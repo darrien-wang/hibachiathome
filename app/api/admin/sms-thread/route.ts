@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { fetchSmsThread, sendSms, toE164 } from "@/lib/sms-thread"
+import { fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 
 export const dynamic = "force-dynamic"
 
@@ -17,13 +17,32 @@ function isAuthorized(request: NextRequest): boolean {
   return false
 }
 
-/** GET ?phone=… -> the SMS conversation with that number, oldest first. */
+/**
+ * GET ?leadId=… (preferred) or ?phone=… -> the SMS conversation, oldest first.
+ * With a leadId the thread covers the lead's own number AND the numbers of
+ * every lead merged into it, so a customer who texts from a second phone
+ * still shows up as one conversation.
+ */
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  const phone = toE164(request.nextUrl.searchParams.get("phone"))
-  if (!phone) return NextResponse.json({ error: "invalid phone" }, { status: 400 })
-  const messages = await fetchSmsThread(phone, 80)
-  return NextResponse.json({ ok: true, phone, messages })
+  const phones: string[] = []
+  const phoneParam = toE164(request.nextUrl.searchParams.get("phone"))
+  if (phoneParam) phones.push(phoneParam)
+  const leadId = request.nextUrl.searchParams.get("leadId")?.trim()
+  if (leadId && /^[0-9a-f-]{36}$/i.test(leadId)) {
+    const supabase = createServerSupabaseClient()
+    if (supabase) {
+      const { data } = await supabase.from("leads").select("phone").or(`id.eq.${leadId},merged_into.eq.${leadId}`)
+      for (const row of data ?? []) {
+        const p = toE164((row as { phone: string | null }).phone)
+        if (p) phones.push(p)
+      }
+    }
+  }
+  const unique = Array.from(new Set(phones))
+  if (unique.length === 0) return NextResponse.json({ error: "no phone for this lead" }, { status: 400 })
+  const messages = await fetchSmsThreads(unique, 80)
+  return NextResponse.json({ ok: true, phones: unique, messages })
 }
 
 /**

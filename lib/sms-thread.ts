@@ -17,6 +17,8 @@ export type SmsMessage = {
   at: string
   status: string
   media: number
+  /** The customer's number on this message (E.164) - one person can have two. */
+  peer: string
 }
 
 /** "9512070523", "(951) 207-0523", "+19512070523" -> "+19512070523". */
@@ -84,10 +86,25 @@ export async function fetchSmsThread(peer: string, limit = 60): Promise<SmsMessa
       at: (Number.isNaN(when.getTime()) ? new Date() : when).toISOString(),
       status: m.status,
       media: Number(m.num_media ?? 0) || 0,
+      peer: e164,
     })
   }
   merged.sort((a, b) => a.at.localeCompare(b.at))
   return merged.slice(-limit)
+}
+
+/**
+ * One customer, several numbers: Ravi texts from a 213 line but his lead is
+ * filed under his 818 - the invoice thread was invisible in the workbench
+ * until this looked at every number tied to the lead (2026-09-11).
+ */
+export async function fetchSmsThreads(peers: string[], limit = 80): Promise<SmsMessage[]> {
+  const unique = Array.from(new Set(peers.map((p) => toE164(p)).filter((p): p is string => Boolean(p))))
+  const threads = await Promise.all(unique.map((p) => fetchSmsThread(p, limit)))
+  return threads
+    .flat()
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(-limit)
 }
 
 export type SendSmsResult = { ok: true; sid: string; status: string } | { ok: false; error: string }
