@@ -177,6 +177,17 @@ function describeEventDate(eventDate: string): { weekday: string; label: string 
   }
 }
 
+/** "21:00" -> "9:00 PM". Falls back to the raw value if it isn't HH:MM. */
+function formatClockTime(value: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec((value ?? "").trim())
+  if (!match) return value
+  const hour24 = Number(match[1])
+  if (!Number.isFinite(hour24) || hour24 > 23) return value
+  const suffix = hour24 >= 12 ? "PM" : "AM"
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12
+  return `${hour12}:${match[2]} ${suffix}`
+}
+
 type SlotAvailability = {
   remaining: number
   slots: Record<string, boolean>
@@ -1377,20 +1388,20 @@ export default function QuoteBuilderClient() {
                 <X className="h-4 w-4" />
               </button>
 
+              {/* Kept deliberately short on phones: the deposit button is the
+                  point of this dialog, and a full-height hero pushed it under
+                  the fold on a 375px screen. */}
               <div className="flex flex-col items-center text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-white/70">
-                  <CheckCircle2 className="h-9 w-9" />
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-4 ring-white/70 sm:h-14 sm:w-14 sm:ring-8">
+                  <CheckCircle2 className="h-7 w-7" />
                 </div>
-                <Badge className="mb-3 w-fit bg-[linear-gradient(135deg,#d3542b,#b91c1c)] text-white hover:brightness-105">
-                  Booking Request Sent
-                </Badge>
-                <h2 id="booking-confirmation-title" className="text-3xl font-bold tracking-tight text-[#7f2d16] sm:text-4xl">
-                  Great, you're on our booking list!
+                <h2 id="booking-confirmation-title" className="text-2xl font-bold tracking-tight text-[#7f2d16] sm:text-3xl">
+                  You're on our booking list
                 </h2>
-                <p className="mt-3 max-w-xl text-base leading-7 text-[#9a3412]">
+                <p className="mt-2 max-w-md text-sm leading-6 text-[#9a3412] sm:text-base">
                   {bookingConfirmation.customerEmailDelivered
-                    ? "We received your event details and sent a confirmation email. Our team will contact you soon to confirm chef availability, menu options, and the final details."
-                    : "We received your event details. Our team will contact you soon to confirm chef availability, menu options, and the final details."}
+                    ? "Details received and a confirmation email is on its way. Lock the date below, or we'll reach out to confirm."
+                    : "Details received. Lock the date below, or we'll reach out to confirm."}
                 </p>
               </div>
 
@@ -1398,14 +1409,22 @@ export default function QuoteBuilderClient() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Event</p>
                   <p className="mt-1 font-medium text-slate-900">
-                    {bookingConfirmation.eventDate} at {bookingConfirmation.eventTime}
+                    {(() => {
+                      const described = describeEventDate(bookingConfirmation.eventDate)
+                      const when = described
+                        ? `${described.weekday}, ${described.label}`
+                        : bookingConfirmation.eventDate
+                      return `${when} · ${formatClockTime(bookingConfirmation.eventTime)}`
+                    })()}
                   </p>
                   <p>{bookingConfirmation.location}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Estimate</p>
                   <p className="mt-1 font-medium text-slate-900">
-                    ${bookingConfirmation.estimateLow.toFixed(0)} - ${bookingConfirmation.estimateHigh.toFixed(0)}
+                    {bookingConfirmation.estimateLow.toFixed(0) === bookingConfirmation.estimateHigh.toFixed(0)
+                      ? `$${bookingConfirmation.estimateLow.toFixed(0)}`
+                      : `$${bookingConfirmation.estimateLow.toFixed(0)} - $${bookingConfirmation.estimateHigh.toFixed(0)}`}
                   </p>
                   <p>{bookingConfirmation.adults} adults, {bookingConfirmation.kids} kids</p>
                 </div>
