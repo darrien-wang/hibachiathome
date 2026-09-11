@@ -37,6 +37,7 @@ type Stats = {
 }
 
 type HistoryEvent = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> }
+type SmsMessage = { sid: string; direction: "inbound" | "outbound"; body: string; at: string; status: string; media: number }
 
 const STATUS_LABELS: Record<string, string> = {
   new: "待联系",
@@ -55,6 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const EVENT_LABELS: Record<string, string> = {
+  sms_outbound: "发出短信（213 线）",
   agent_first_response: "✓ 首次联系",
   agent_status_change: "状态变更",
   agent_edit: "✏️ 资料修改",
@@ -192,6 +194,10 @@ export default function LeadsDashboard() {
   const [adding, setAdding] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [historyEvents, setHistoryEvents] = useState<HistoryEvent[]>([])
+  const [smsThread, setSmsThread] = useState<SmsMessage[] | null>(null)
+  const [smsDraft, setSmsDraft] = useState("")
+  const [smsSending, setSmsSending] = useState(false)
+  const pendingLeadRef = useRef<string | null>(null)
   const [editForm, setEditForm] = useState({ full_name: "", phone: "", email: "" })
   const [noteDraft, setNoteDraft] = useState("")
   const [saving, setSaving] = useState(false)
@@ -202,6 +208,14 @@ export default function LeadsDashboard() {
     try {
       // ?key=... in the URL signs in directly (and is then scrubbed from the URL).
       const params = new URLSearchParams(window.location.search)
+      // ?lead=<id> (from the SMS alert email) opens that lead once the list loads.
+      const leadParam = params.get("lead")?.trim()
+      if (leadParam) {
+        pendingLeadRef.current = leadParam
+        params.delete("lead")
+        const rest = params.toString()
+        window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`)
+      }
       const fromUrl = params.get("key")?.trim()
       if (fromUrl) {
         window.localStorage.setItem("rh_admin_key", fromUrl)
@@ -342,14 +356,73 @@ export default function LeadsDashboard() {
     [adminKey]
   )
 
+  // The SMS conversation comes from Twilio (the only complete record - see
+  // lib/sms-thread.ts), so replies sent from anywhere show up here.
+  const loadSmsThread = useCallback(
+    async (phone: string | null) => {
+      setSmsThread(null)
+      if (!phone) {
+        setSmsThread([])
+        return
+      }
+      try {
+        const res = await fetch(`/api/admin/sms-thread?phone=${encodeURIComponent(phone)}`, {
+          headers: { "x-admin-key": adminKey },
+          cache: "no-store",
+        })
+        const data = await res.json()
+        setSmsThread(Array.isArray(data.messages) ? data.messages : [])
+      } catch {
+        setSmsThread([])
+      }
+    },
+    [adminKey]
+  )
+
   const openDetail = useCallback(
     (l: LeadRow) => {
       setDetailId(l.id)
       setEditForm({ full_name: l.full_name ?? "", phone: l.phone ?? "", email: l.email ?? "" })
       setNoteDraft("")
+      setSmsDraft("")
       loadHistory(l.id)
+      loadSmsThread(l.phone)
     },
-    [loadHistory]
+    [loadHistory, loadSmsThread]
+  )
+
+  useEffect(() => {
+    const id = pendingLeadRef.current
+    if (!id || leads.length === 0) return
+    const target = leads.find((l) => l.id === id)
+    if (!target) return
+    pendingLeadRef.current = null
+    openDetail(target)
+  }, [leads, openDetail])
+
+  const sendSmsReply = useCallback(
+    async (l: LeadRow) => {
+      const body = smsDraft.trim()
+      if (!l.phone || !body || smsSending) return
+      setSmsSending(true)
+      try {
+        const res = await fetch("/api/admin/sms-thread", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ phone: l.phone, body, leadId: l.id }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          window.alert(`发送失败：${data.error ?? res.status}`)
+          return
+        }
+        setSmsDraft("")
+        await Promise.all([loadSmsThread(l.phone), loadHistory(l.id), fetchLeads()])
+      } finally {
+        setSmsSending(false)
+      }
+    },
+    [adminKey, smsDraft, smsSending, loadSmsThread, loadHistory, fetchLeads]
   )
 
   // "全部" hides disqualified (junk/test) leads; they live under their own tab.
@@ -1534,6 +1607,61 @@ export default function LeadsDashboard() {
               {saving ? "保存中…" : "保存修改"}
             </button>
           </div>
+
+          <div style={sectionLabel}>短信对话 · 213-770-7788 线</div>
+          <div style={{ border: "1px solid #eee7db", borderRadius: 12, padding: 10, maxHeight: 340, overflowY: "auto", background: "#fbf8f2" }}>
+            {smsThread === null && <div style={{ fontSize: 12, color: "#9ca3af" }}>加载中…</div>}
+            {smsThread && smsThread.length === 0 && (
+              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                {detailLead.phone ? "这个号码和 213 线之间还没有短信。" : "这条线索没有电话号码。"}
+              </div>
+            )}
+            {smsThread?.map((m) => {
+              const mine = m.direction === "outbound"
+              return (
+                <div key={m.sid} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", margin: "4px 0" }}>
+                  <div
+                    style={{
+                      maxWidth: "80%",
+                      padding: "7px 11px",
+                      borderRadius: 14,
+                      fontSize: 13,
+                      lineHeight: 1.45,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      background: mine ? "#fdeee2" : "#fff",
+                      border: `1px solid ${mine ? "#fbd7bd" : "#e5e7eb"}`,
+                      color: "#1f2937",
+                    }}
+                  >
+                    {m.body || (m.media > 0 ? `📎 ${m.media} 张图片` : "")}
+                    <div style={{ fontSize: 10.5, color: "#9ca3af", marginTop: 3, textAlign: mine ? "right" : "left" }}>
+                      {new Date(m.at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {mine ? ` · ${m.status}` : ""}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {detailLead.phone && (
+            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-end" }}>
+              <textarea
+                value={smsDraft}
+                onChange={(e) => setSmsDraft(e.target.value)}
+                placeholder="用 213-770-7788 回复（客户看到的就是这个号）…"
+                rows={2}
+                style={{ ...inputStyle, resize: "vertical" }}
+              />
+              <button
+                disabled={smsSending || !smsDraft.trim()}
+                onClick={() => sendSmsReply(detailLead)}
+                style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: smsDraft.trim() ? "#c2410c" : "#d1d5db", color: "#fff", fontSize: 13, fontWeight: 700, cursor: smsDraft.trim() ? "pointer" : "default", whiteSpace: "nowrap" }}
+              >
+                {smsSending ? "发送中…" : "发送"}
+              </button>
+            </div>
+          )}
 
           <div style={sectionLabel}>操作历史</div>
           <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>

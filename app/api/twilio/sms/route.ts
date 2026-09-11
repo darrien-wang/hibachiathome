@@ -3,10 +3,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
+import { fetchSmsThread, prettyPhone, renderThreadForEmail } from "@/lib/sms-thread"
 
 export const dynamic = "force-dynamic"
-
-const ALERT_SUBJECT_SNIPPET = 80
 
 function escapeHtml(value: string): string {
   return value
@@ -50,8 +49,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerSupabaseClient()
+  let leadId: string | null = null
+  let leadName = ""
   try {
-    await upsertLeadFromContact(supabase, {
+    const upserted = await upsertLeadFromContact(supabase, {
       name: from,
       phone: from,
       message: body,
@@ -62,6 +63,14 @@ export async function POST(request: NextRequest) {
       externalTouchpointId: messageSid,
       rawPayload: params,
     })
+    leadId = upserted?.leadId ?? null
+    if (leadId && supabase) {
+      const { data: lead } = await supabase.from("leads").select("full_name").eq("id", leadId).maybeSingle()
+      const name = (lead?.full_name ?? "").trim()
+      // A lead created from a bare text is named after its number; that is
+      // not a name.
+      if (name && name.replace(/\D/g, "") !== from.replace(/\D/g, "")) leadName = name
+    }
   } catch (error) {
     console.error("[twilio-sms] lead upsert failed", error)
     // Still 200 so Twilio does not retry-storm; message is in Twilio logs.
@@ -71,19 +80,45 @@ export async function POST(request: NextRequest) {
   // unless someone happens to have the workbench open. Mail it to the ops
   // inbox, which does reach a phone.
   try {
-    const snippet = body.trim().slice(0, ALERT_SUBJECT_SNIPPET) || "(no text)"
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
+    const pretty = prettyPhone(from)
     const safeFrom = escapeHtml(from)
     const safeBody = escapeHtml(body.trim() || "(no text)")
+    // One subject per number, on purpose: Gmail groups identical subjects
+    // into a single conversation, so the inbox reads as a chat instead of
+    // eight unrelated rows that all start "SMS from +1951…" (owner, 2026-09-11).
+    const who = leadName ? `${leadName} · ${pretty}` : pretty
+    const subject = `SMS · ${who}`
+    // The thread from Twilio, so the alert carries what came before it. Best
+    // effort: if Twilio is slow or down the alert still goes out.
+    const thread = await fetchSmsThread(from, 12).catch(() => [])
+    const earlier = thread.filter((m) => m.sid !== messageSid)
+    const rendered = earlier.length
+      ? renderThreadForEmail(earlier, { peerLabel: leadName || pretty, context: 8 })
+      : null
+    const workbenchUrl = leadId ? `${baseUrl}/admin/leads?lead=${leadId}` : `${baseUrl}/admin/leads`
     const alert = await sendSupportNotificationEmail({
-      subject: `SMS from ${from}: ${snippet}`,
-      text: [`From: ${from}`, "", body.trim() || "(no text)", "", `Call back: ${from}`, `Workbench: ${baseUrl}/admin/leads`].join("\n"),
+      subject,
+      text: [
+        `${who} wrote:`,
+        "",
+        body.trim() || "(no text)",
+        "",
+        ...(rendered ? ["Earlier in this conversation:", rendered.text, ""] : []),
+        `Reply from the 213 line: ${workbenchUrl}`,
+        `Call back: ${from}`,
+      ].join("\n"),
       html: [
-        `<p style="margin:0 0 8px;font-size:14px;color:#555">New text message from</p>`,
-        `<p style="margin:0 0 16px;font-size:22px;font-weight:700"><a href="tel:${safeFrom}" style="color:#c2410c;text-decoration:none">${safeFrom}</a></p>`,
-        `<div style="white-space:pre-wrap;border-left:3px solid #f59e0b;padding:8px 12px;margin:0 0 20px;font-size:16px">${safeBody}</div>`,
-        `<p style="margin:0 0 8px"><a href="tel:${safeFrom}" style="display:inline-block;background:#c2410c;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600">Call back</a></p>`,
-        `<p style="margin:16px 0 0;font-size:13px"><a href="${baseUrl}/admin/leads" style="color:#1d4ed8">Open the lead workbench</a></p>`,
+        `<p style="margin:0 0 6px;font-size:13px;color:#6b7280">${escapeHtml(who)} wrote</p>`,
+        `<div style="white-space:pre-wrap;border-left:3px solid #f59e0b;background:#fff7ed;padding:10px 12px;margin:0 0 18px;font-size:17px;border-radius:0 8px 8px 0">${safeBody}</div>`,
+        `<p style="margin:0 0 18px"><a href="${workbenchUrl}" style="display:inline-block;background:#c2410c;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">Reply from the 213 line</a>` +
+          ` <a href="tel:${safeFrom}" style="display:inline-block;margin-left:8px;color:#c2410c;text-decoration:none;font-weight:600">Call back</a></p>`,
+        ...(rendered
+          ? [
+              `<p style="margin:0 0 6px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em">Earlier in this conversation</p>`,
+              rendered.html,
+            ]
+          : []),
       ].join(""),
     })
     if (!isOpsEmailEffectivelyHandled(alert)) {
