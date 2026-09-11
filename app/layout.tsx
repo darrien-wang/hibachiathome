@@ -62,15 +62,15 @@ export const metadata: Metadata = {
     images: ["https://www.realhibachi.com/images/hibachi-flame-og.png"],
   },
 
+  // The 1024px logo PNG (1.2 MB) was the favicon and touch icon, so every
+  // page load pulled it - the single heaviest asset on the ad landing pages
+  // (Lighthouse 2026-09-10). These are the same mark at icon sizes.
   icons: {
     icon: [
-      {
-        url: "https://www.realhibachi.com/images/logo-realhibachi.png",
-      },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: {
-      url: "https://www.realhibachi.com/images/logo-realhibachi.png",
-    },
+    apple: { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
   },
 }
 
@@ -115,15 +115,6 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
             </Script>
           </>
         ) : null}
-        <link
-          rel="icon"
-          href="https://www.realhibachi.com/images/logo-realhibachi.png"
-          type="image/png"
-        />
-        <link
-          rel="apple-touch-icon"
-          href="https://www.realhibachi.com/images/logo-realhibachi.png"
-        />
         <JsonLd data={[localBusinessJsonLd, webSiteJsonLd]} />
       </head>
       <body className="font-sans">

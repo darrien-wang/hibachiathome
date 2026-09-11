@@ -2,14 +2,11 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
-import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { AlertCircle, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
 import { getDepositAmount } from "@/config/deposit"
+import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
@@ -49,8 +46,28 @@ function parseBoolean(input: string | null): boolean | undefined {
 }
 
 function formatRange(low: number, high: number): string {
-  return `$${low.toFixed(0)} - $${high.toFixed(0)}`
+  const l = low.toFixed(0)
+  const h = high.toFixed(0)
+  return l === h ? `$${l}` : `$${l} - $${h}`
 }
+
+/** "21:00" -> "9:00 PM"; anything else (incl. "TBD") passes through. */
+function formatClockTime(value: string | undefined): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec((value ?? "").trim())
+  if (!match) return value || "Time TBD"
+  const hour24 = Number(match[1])
+  if (!Number.isFinite(hour24) || hour24 > 23) return value as string
+  const suffix = hour24 >= 12 ? "PM" : "AM"
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12
+  return `${hour12}:${match[2]} ${suffix}`
+}
+
+// Same four reassurances as the /quote confirmation dialog (Claude Design
+// "Realhibachi Booking Confirmed Modal"): the questions people ask right
+// before they decide whether to put money down.
+const CHIPS = ["Pick proteins later", "Headcount stays flexible", "1.5–2 hr show", "Allergies handled free"] as const
+const QUESTION_SMS = "Hi Real Hibachi! Quick question about my booking deposit."
+
 
 function normalizeExternalBookingId(input: string | null): string {
   if (!input) return ""
@@ -327,197 +344,152 @@ function DepositPaymentPageInner() {
 
   if (loading) {
     return (
-      <div className="page-container container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
+        <div className="mx-auto w-full max-w-[560px] animate-pulse rounded-[32px] bg-surface p-9 shadow-organic-lg" aria-busy="true">
+          <div className="mx-auto h-16 w-16 rounded-full bg-cream" />
+          <div className="mx-auto mt-5 h-8 w-2/3 rounded-full bg-cream" />
+          <div className="mx-auto mt-3 h-4 w-3/4 rounded-full bg-cream" />
+          <div className="mt-7 h-14 rounded-[28px] bg-cream" />
+          <div className="mt-6 h-14 rounded-full bg-cream" />
         </div>
-      </div>
+      </main>
     )
   }
 
   if (error || !booking) {
     return (
-      <div className="page-container container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error || "Unable to load booking details."}</AlertDescription>
-          </Alert>
-          <div className="mt-6 text-center">
-            <Button asChild>
-              <Link href="/contact">Contact Us</Link>
-            </Button>
+      <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
+        <div className="mx-auto w-full max-w-[560px] rounded-[32px] bg-surface px-6 py-10 text-center shadow-organic-lg sm:px-9">
+          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-flame-100 text-flame-700">
+            <AlertCircle className="h-7 w-7" aria-hidden="true" />
           </div>
+          <h1 className="font-serif text-[28px] font-extrabold leading-tight text-ink">We couldn&apos;t open this booking</h1>
+          <p className="mt-2 text-base text-clay-700">{error || "Unable to load booking details."}</p>
+          <a
+            href={smsHref("Hi Real Hibachi! My deposit link isn't working - can you help?")}
+            className="mt-6 flex h-14 items-center justify-center gap-2 rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600"
+          >
+            <MessageSquare className="h-5 w-5" aria-hidden="true" />
+            Text us at {phone.sms.dashed}
+          </a>
+          <Link href="/contact" className="mt-4 inline-block text-sm text-clay-700 underline underline-offset-[3px] hover:text-ink">
+            Or use the contact form
+          </Link>
         </div>
-      </div>
+      </main>
     )
   }
 
+  const dateLine = `${formatUiDate(booking.event_date, "Date TBD")} · ${formatClockTime(booking.event_time)}`
+  const guestsLine =
+    (booking.guest_kids ?? 0) > 0
+      ? `${booking.guest_adults ?? 0} adults, ${booking.guest_kids} kids`
+      : `${booking.guest_adults ?? 0} guests`
+  const depositLabel = `$${depositAmount.toFixed(2)}`
+
   return (
-    <div className="page-container container mx-auto px-4 py-12">
-      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-8 rounded-md shadow-sm max-w-3xl mx-auto">
-        <div className="flex items-center">
-          <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-          <p className="text-green-700 font-medium text-lg">
-            <span className="font-bold">72-Hour Free Cancellation Policy:</span> Cancel at least 72 hours before your
-            event for a full refund with no penalty.
-          </p>
+    <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
+      <div className="mx-auto w-full max-w-[560px] rounded-[32px] bg-surface px-6 pb-7 pt-10 text-center shadow-organic-lg sm:px-9">
+        <div className="mx-auto mb-[18px] grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+          <Lock className="h-7 w-7" strokeWidth={2.5} aria-hidden="true" />
         </div>
-      </div>
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Lock Your Date for ${depositAmount.toFixed(2)}</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Please pay the deposit to confirm your private hibachi party booking.
-          </p>
+        <h1 className="font-serif text-[28px] font-extrabold leading-[1.1] text-ink sm:text-[34px]">Lock your date</h1>
+        <p className="mt-2 text-base text-clay-700">
+          A {depositLabel} deposit holds your chef. It comes off your final balance.
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-cream px-5 py-4 text-base text-ink">
+          <span className="font-semibold">{dateLine}</span>
+          {booking.location ? (
+            <>
+              <span className="text-clay-600" aria-hidden="true">·</span>
+              <span>{booking.location}</span>
+            </>
+          ) : null}
+          <span className="text-clay-600" aria-hidden="true">·</span>
+          <span>{guestsLine}</span>
+          <span className="text-clay-600" aria-hidden="true">·</span>
+          <span className="font-serif text-xl font-extrabold text-flame-700">{totalEstimateText}</span>
         </div>
+        {booking.full_name || booking.id ? (
+          <p className="mt-2 text-[13px] text-clay-600">
+            {booking.full_name && booking.full_name !== "Guest" ? booking.full_name : null}
+            {booking.full_name && booking.full_name !== "Guest" && booking.id ? " · " : null}
+            {booking.id ? `Booking ${booking.id}` : null}
+          </p>
+        ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking Details</CardTitle>
-            <CardDescription>Please confirm the following booking information.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Booking Number</p>
-                  <p className="font-medium">{booking.id || "Assigned after deposit payment"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Customer Name</p>
-                  <p className="font-medium">{booking.full_name || "Guest"}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Event Date</p>
-                  <p className="font-medium">{formatUiDate(booking.event_date, "TBD")}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Event Time</p>
-                  <p className="font-medium">{booking.event_time || "TBD"}</p>
-                </div>
-              </div>
-
-              {booking.location && (
-                <div>
-                  <p className="text-sm text-gray-500">City or ZIP</p>
-                  <p className="font-medium">{booking.location}</p>
-                </div>
-              )}
-
-              {typeof booking.tent_10x10 === "boolean" && (
-                <div>
-                  <p className="text-sm text-gray-500">10'x10' Tent</p>
-                  <p className="font-medium">{booking.tent_10x10 ? "Yes" : "No"}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Number of Adults</p>
-                  <p className="font-medium">{booking.guest_adults ?? 0} people</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Number of Children</p>
-                  <p className="font-medium">{booking.guest_kids ?? 0} people</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Total Estimate</p>
-                  <p className="font-medium">{totalEstimateText}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Deposit Amount</p>
-                  <p className="font-bold text-lg text-primary">${depositAmount.toFixed(2)}</p>
-                  <p className="text-xs text-gray-500">
-                    Applied toward your final balance — not an extra fee. Fully refundable with 72+ hours notice.
-                  </p>
-                </div>
-              </div>
-
-              {hasBookingEstimateRange && (
-                <p className="text-xs text-gray-500">
-                  This estimate range is from your Instant Quote selections and will be finalized during confirmation.
-                </p>
-              )}
-            </div>
-          </CardContent>
-
-          <CardFooter className="flex flex-col space-y-4">
-            <Button
-              onClick={handleDepositCtaClick}
-              disabled={checkoutStarting}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-3 disabled:bg-blue-300"
+        <div className="mt-[22px] flex flex-wrap justify-center gap-2">
+          {CHIPS.map((chip) => (
+            <span
+              key={chip}
+              className="inline-flex items-center gap-1.5 rounded-full bg-flame-100 px-3.5 py-[7px] text-sm font-medium text-flame-800"
             >
-              <div className="flex items-center justify-center">
-                <img
-                  src="https://b.stripecdn.com/manage-statics-srv/assets/public/favicon.ico"
-                  alt="Stripe"
-                  className="h-5 w-5 mr-2"
-                />
-                {checkoutStarting ? "Redirecting to secure checkout..." : `Lock Your Date for $${depositAmount.toFixed(2)}`}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </div>
-            </Button>
+              <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
+              {chip}
+            </span>
+          ))}
+        </div>
 
-            {checkoutError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Checkout Error</AlertTitle>
-                <AlertDescription>{checkoutError}</AlertDescription>
-              </Alert>
-            )}
+        <button
+          type="button"
+          onClick={handleDepositCtaClick}
+          disabled={checkoutStarting}
+          className="mt-[26px] flex h-14 w-full items-center justify-center gap-2 rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700 disabled:cursor-wait disabled:opacity-80"
+        >
+          {checkoutStarting ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+              Opening secure checkout…
+            </>
+          ) : (
+            `Pay ${depositLabel} deposit · lock the date`
+          )}
+        </button>
+        <p className="mt-3 text-sm text-clay-700">
+          Fully refundable up to 72h before.{" "}
+          <a href={smsHref(QUESTION_SMS)} className="font-semibold text-flame-700 underline-offset-[3px] hover:underline">
+            Questions? Text {phone.sms.dashed}
+          </a>
+        </p>
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-[13px] text-clay-600">
+          <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+          Secure checkout by Stripe
+        </p>
 
-            <div className="text-sm text-gray-600 mt-4 space-y-4">
-              <p className="text-center font-medium">
-                By paying the deposit, you agree to our Terms of Service and Cancellation Policy.
-              </p>
+        {checkoutError ? (
+          <div role="alert" className="mt-5 flex items-start gap-2 rounded-2xl bg-flame-100 px-4 py-3 text-left text-sm text-flame-800">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{checkoutError}</span>
+          </div>
+        ) : null}
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs">
-                <h4 className="font-semibold mb-2">Important Policies:</h4>
-
-                <p className="mb-2">
-                  <span className="font-semibold">Liability Waiver:</span> Real Hibachi, Inc. will not be liable for
-                  property damage caused during events. The host waives claims against Real Hibachi for loss, damage,
-                  or destruction of property.
-                </p>
-
-                <p className="mb-2">
-                  <span className="font-semibold">Communication Consent:</span> By proceeding, you agree to receive
-                  communications by text message about your booking. You may opt-out by replying STOP.
-                </p>
-
-                <p className="mb-2">
-                  <span className="font-semibold">Cancellation Policy:</span> Notify us at least 72 hours before your
-                  event to cancel or reschedule and receive a full refund of your deposit with no penalty fees. Changes
-                  inside 72 hours may make the deposit non-refundable.
-                </p>
-
-                <p>
-                  <span className="font-semibold">Weather Policy:</span> Cooking is outdoors. If rain is in the forecast
-                  we recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents.
-                  If you still need to cancel due to weather, please let us know at least 72 hours before your party
-                  for a full deposit refund.
-                </p>
-              </div>
-            </div>
-          </CardFooter>
-        </Card>
+        <details className="mt-7 text-left text-[13px] leading-5 text-clay-700">
+          <summary className="cursor-pointer text-center font-medium text-clay-700 hover:text-ink">
+            By paying you agree to our terms and cancellation policy — read the fine print
+          </summary>
+          <div className="mt-3 space-y-2 rounded-2xl bg-cream p-4">
+            <p>
+              <span className="font-semibold text-ink">Cancellation:</span> tell us at least 72 hours before your event to
+              cancel or reschedule for a full deposit refund. Changes inside 72 hours may make the deposit non-refundable.
+            </p>
+            <p>
+              <span className="font-semibold text-ink">Weather:</span> cooking is outdoors. If rain is in the forecast we
+              recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents. Weather
+              cancellations with 72+ hours notice are refunded in full.
+            </p>
+            <p>
+              <span className="font-semibold text-ink">Liability:</span> Real Hibachi, Inc. is not liable for property
+              damage during events; the host waives claims against Real Hibachi for loss, damage or destruction of
+              property.
+            </p>
+            <p>
+              <span className="font-semibold text-ink">Texts:</span> by proceeding you agree to receive text messages
+              about your booking. Reply STOP to opt out.
+            </p>
+          </div>
+        </details>
       </div>
-    </div>
+    </main>
   )
 }

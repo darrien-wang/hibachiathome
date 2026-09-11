@@ -19,7 +19,14 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    // Every <Image> used to ship the original file (4-5 MB gallery JPEGs on
+    // /quote and the ad landing pages - 27 s to interactive on slow 4G).
+    // lib/image-loader.ts maps the hot directories onto a pre-built WebP
+    // ladder in public/_opt; nothing is optimized at request time.
+    loader: "custom",
+    loaderFile: "./lib/image-loader.ts",
+    deviceSizes: [640, 960, 1280, 1920],
+    imageSizes: [256, 384],
   },
   // Internal chef handbook. Served as a standalone static file so its own
   // stylesheet does not collide with the site chrome. Deliberately NOT in

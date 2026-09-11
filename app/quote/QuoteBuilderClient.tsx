@@ -12,7 +12,7 @@ import GuestStepper from "@/components/ui/guest-stepper"
 import InfoTip from "@/components/ui/info-tip"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Gift, MapPin, Star, X, UtensilsCrossed, Users, Clock, Leaf } from "lucide-react"
+import { Phone, MessageSquare, MessageCircle, Mail, AlertTriangle, Calculator, ChevronDown, CircleHelp, Sunset, CloudRain, CloudSun, ThermometerSun, CalendarDays, CheckCircle2, Gift, MapPin, Star, X, Check } from "lucide-react"
 import { phone, siteConfig, whatsappHref } from "@/config/site"
 import { getQuoteContactTemplates } from "@/config/quote-contact-templates"
 import { QUOTE_SLOTS_URGENCY_ENABLED, QUOTE_SOURCE } from "@/config/quote-features"
@@ -185,6 +185,28 @@ function formatClockTime(value: string): string {
   const suffix = hour24 >= 12 ? "PM" : "AM"
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12
   return `${hour12}:${match[2]} ${suffix}`
+}
+
+// The four reassurances on the confirmation dialog (Claude Design
+// "Realhibachi Booking Confirmed Modal", 2026-09-11). These are the things a
+// 15-guest booking asked by text on 2026-09-10 after declining the deposit -
+// answered here, they stop being a reason to wait.
+const CONFIRMATION_CHIPS = ["Pick proteins later", "Headcount stays flexible", "1.5–2 hr show", "Allergies handled free"] as const
+
+function confirmationDateLine(eventDate: string, eventTime: string): string {
+  const described = describeEventDate(eventDate)
+  const day = described ? `${described.weekday.slice(0, 3)}, ${described.label}` : eventDate
+  return `${day} · ${formatClockTime(eventTime)}`
+}
+
+function confirmationGuestsLine(adults: number, kids: number): string {
+  return kids > 0 ? `${adults} adults, ${kids} kids` : `${adults} guests`
+}
+
+function confirmationEstimate(low: number, high: number): string {
+  const l = low.toFixed(0)
+  const h = high.toFixed(0)
+  return l === h ? `$${l}` : `$${l} - $${h}`
 }
 
 type SlotAvailability = {
@@ -1377,148 +1399,81 @@ export default function QuoteBuilderClient() {
             aria-modal="true"
             aria-labelledby="booking-confirmation-title"
           >
-            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-[#f1c7b1] bg-[linear-gradient(135deg,#fff7f2_0%,#fff1ec_52%,#fff8f1_100%)] p-5 shadow-[0_30px_90px_rgba(64,22,10,0.35)] sm:p-7">
+            <div className="relative max-h-[92vh] w-full max-w-[560px] overflow-y-auto rounded-[32px] bg-cream px-6 pb-7 pt-10 text-center shadow-organic-lg sm:px-9">
               <button
                 type="button"
                 onClick={() => setBookingConfirmation(null)}
-                className="absolute right-4 top-4 rounded-full bg-white/80 p-2 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900"
+                className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-surface text-ink transition hover:bg-flame-100"
                 aria-label="Close booking confirmation"
               >
-                <X className="h-4 w-4" />
+                <X className="h-[18px] w-[18px]" strokeWidth={2.75} />
               </button>
 
-              {/* Kept deliberately short on phones: the deposit button is the
-                  point of this dialog, and a full-height hero pushed it under
-                  the fold on a 375px screen. */}
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-4 ring-white/70 sm:h-14 sm:w-14 sm:ring-8">
-                  <CheckCircle2 className="h-7 w-7" />
-                </div>
-                <h2 id="booking-confirmation-title" className="text-2xl font-bold tracking-tight text-[#7f2d16] sm:text-3xl">
-                  You're on our booking list
-                </h2>
-                <p className="mt-2 max-w-md text-sm leading-6 text-[#9a3412] sm:text-base">
-                  {bookingConfirmation.customerEmailDelivered
-                    ? "Details received and a confirmation email is on its way. Lock the date below, or we'll reach out to confirm."
-                    : "Details received. Lock the date below, or we'll reach out to confirm."}
-                </p>
+              <div className="mx-auto mb-[18px] grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                <Check className="h-[30px] w-[30px]" strokeWidth={2.75} aria-hidden="true" />
+              </div>
+              <h2 id="booking-confirmation-title" className="font-serif text-[28px] font-extrabold leading-[1.1] text-ink sm:text-[34px]">
+                You&apos;re on the list
+              </h2>
+              <p className="mt-2 text-base text-clay-700">
+                {bookingConfirmation.customerEmailDelivered
+                  ? "Confirmation email sent. Pay the deposit to lock your chef."
+                  : "Details received. Pay the deposit to lock your chef."}
+              </p>
+
+              {/* One line of facts: date · zip · guests · estimate. */}
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-surface px-5 py-4 text-base text-ink">
+                <span className="font-semibold">
+                  {confirmationDateLine(bookingConfirmation.eventDate, bookingConfirmation.eventTime)}
+                </span>
+                <span className="text-clay-600" aria-hidden="true">·</span>
+                <span>{bookingConfirmation.location}</span>
+                <span className="text-clay-600" aria-hidden="true">·</span>
+                <span>{confirmationGuestsLine(bookingConfirmation.adults, bookingConfirmation.kids)}</span>
+                <span className="text-clay-600" aria-hidden="true">·</span>
+                <span className="font-serif text-xl font-extrabold text-flame-700">
+                  {confirmationEstimate(bookingConfirmation.estimateLow, bookingConfirmation.estimateHigh)}
+                </span>
               </div>
 
-              <div className="mt-6 grid gap-3 rounded-2xl border border-[#f1d4c7] bg-white/90 p-4 text-sm text-slate-700 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Event</p>
-                  <p className="mt-1 font-medium text-slate-900">
-                    {(() => {
-                      const described = describeEventDate(bookingConfirmation.eventDate)
-                      const when = described
-                        ? `${described.weekday}, ${described.label}`
-                        : bookingConfirmation.eventDate
-                      return `${when} · ${formatClockTime(bookingConfirmation.eventTime)}`
-                    })()}
-                  </p>
-                  <p>{bookingConfirmation.location}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Estimate</p>
-                  <p className="mt-1 font-medium text-slate-900">
-                    {bookingConfirmation.estimateLow.toFixed(0) === bookingConfirmation.estimateHigh.toFixed(0)
-                      ? `$${bookingConfirmation.estimateLow.toFixed(0)}`
-                      : `$${bookingConfirmation.estimateLow.toFixed(0)} - $${bookingConfirmation.estimateHigh.toFixed(0)}`}
-                  </p>
-                  <p>{bookingConfirmation.adults} adults, {bookingConfirmation.kids} kids</p>
-                </div>
-              </div>
-
-              {/* The three questions people actually ask before they will put
-                  money down. 2026-09-10: a 15-guest booking reached this exact
-                  screen, took "Wait for Our Contact", and then asked by text
-                  what the proteins were, whether pork could be left out, and
-                  how long the chef stays. She paid 13 seconds after a human
-                  answered. The answers belong here, not in our inbox.
-                  The menu and headcount lines matter just as much: the deposit
-                  buys the date, not a locked-in order, and someone who thinks
-                  they must have every decision made before paying will wait
-                  instead. */}
-              <div className="mt-6 rounded-2xl border border-[#f1d4c7] bg-white/90 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b45309]">Nothing else to decide today</p>
-                <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-                  {[
-                    {
-                      icon: UtensilsCrossed,
-                      title: "Pick proteins later",
-                      body: "Two per guest — chicken, steak, shrimp, salmon or tofu — with fried rice, vegetables and salad. Send us the picks any time before the party.",
-                    },
-                    {
-                      icon: Users,
-                      title: "Headcount stays flexible",
-                      body: "Add or drop guests right up to the party. We re-price it, so you only pay for who actually comes.",
-                    },
-                    {
-                      icon: Clock,
-                      title: "1.5 to 2 hours",
-                      body: "Your chef arrives about 10 minutes early, cooks and performs, then leaves the space clean.",
-                    },
-                    {
-                      icon: Leaf,
-                      title: "Allergies and no-gos",
-                      body: "Tell us anything your guests don't eat and the chef cooks around it, at no extra charge.",
-                    },
-                  ].map(({ icon: Icon, title, body }) => (
-                    <li key={title} className="flex gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fff3ea] text-[#b45309]">
-                        <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-slate-900">{title}</span>
-                        <span className="mt-0.5 block text-[13px] leading-5 text-slate-600">{body}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* One primary action. The old layout gave "Wait for Our Contact"
-                  a button of equal weight next to the deposit, which is an exit
-                  with no cost attached — and visitors took it. Questions now go
-                  to the texting line (the channel they pick anyway), and waiting
-                  stays available as plain text. */}
-              <div className="mt-5">
-                <Button
-                  asChild
-                  size="lg"
-                  className="w-full rounded-full bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
-                >
-                  <Link href={bookingConfirmationDepositHref}>
-                    Pay the ${DEPOSIT_AMOUNT.toFixed(2)} deposit &amp; lock this date
-                  </Link>
-                </Button>
-                <p className="mt-3 text-center text-sm leading-6 text-slate-600">
-                  Fully refundable up to 72 hours before.
-                  <br className="sm:hidden" />{" "}
-                  <button
-                    type="button"
-                    onClick={onSmsClick}
-                    className="font-semibold text-[#9a3412] underline underline-offset-2 hover:text-[#7f2d16]"
+              <div className="mt-[22px] flex flex-wrap justify-center gap-2">
+                {CONFIRMATION_CHIPS.map((chip) => (
+                  <span
+                    key={chip}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-flame-100 px-3.5 py-[7px] text-sm font-medium text-flame-800"
                   >
-                    Still have a question? Text us
-                  </button>
-                  {/* the dot only makes sense when both links share a line */}
-                  <span className="mx-1.5 hidden text-slate-400 sm:inline" aria-hidden="true">
-                    ·
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
+                    {chip}
                   </span>
-                  <br className="sm:hidden" />
-                  <button
-                    type="button"
-                    onClick={() => setBookingConfirmation(null)}
-                    className="text-slate-500 underline underline-offset-2 hover:text-slate-700"
-                  >
-                    I&apos;ll wait for your call
-                  </button>
-                </p>
+                ))}
               </div>
 
-              <p className="mt-4 text-center text-xs leading-5 text-slate-600">
-                Questions? Call {voicePhoneDisplay}, text {smsPhoneDisplay}, or email {displayEmail}.
+              <Link
+                href={bookingConfirmationDepositHref}
+                className="mt-[26px] flex h-14 w-full items-center justify-center rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700"
+              >
+                Pay ${DEPOSIT_AMOUNT.toFixed(2)} deposit · lock the date
+              </Link>
+              <p className="mt-3 text-sm text-clay-700">
+                Fully refundable up to 72h before.{" "}
+                <button
+                  type="button"
+                  onClick={onSmsClick}
+                  className="font-semibold text-flame-700 underline-offset-[3px] hover:underline"
+                >
+                  Questions? Text us
+                </button>
+              </p>
+              <p className="mt-[18px] text-[13px] text-clay-600">
+                Or{" "}
+                <button
+                  type="button"
+                  onClick={() => setBookingConfirmation(null)}
+                  className="underline underline-offset-[3px] hover:text-ink"
+                >
+                  wait for our call
+                </button>{" "}
+                — we confirm within hours.
               </p>
             </div>
           </div>

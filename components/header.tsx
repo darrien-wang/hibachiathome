@@ -7,6 +7,7 @@ import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import BrandMark from "@/components/site/brand-mark"
+import QuoteCtaLink from "@/components/quote-cta-link"
 import { phone, smsHref } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
 
@@ -94,13 +95,14 @@ export function Header() {
             <span className="lg:hidden">Text us</span>
             <span className="hidden lg:inline">Text {phone.sms.dashed}</span>
           </a>
-          <Link
+          <QuoteCtaLink
             href="/quote?source=header"
             onClick={onQuote}
+            pendingLabel="Opening…"
             className="hidden h-10 items-center rounded-full bg-flame px-5 text-[14px] font-semibold text-white transition hover:bg-flame-600 lg:inline-flex"
           >
             Get instant quote
-          </Link>
+          </QuoteCtaLink>
 
           <Sheet>
             <SheetTrigger asChild>
@@ -129,13 +131,13 @@ export function Header() {
                     {item.name}
                   </Link>
                 ))}
-                <Link
+                <QuoteCtaLink
                   href="/quote?source=menu_sheet"
                   onClick={onQuote}
                   className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-flame px-6 text-base font-semibold text-white hover:bg-flame-600"
                 >
                   Get instant quote
-                </Link>
+                </QuoteCtaLink>
                 <a
                   href={phone.voice.tel}
                   onClick={() => trackEvent("phone_click", { contact_surface: "mobile_header" })}

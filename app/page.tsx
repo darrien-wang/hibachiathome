@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import ProofStrip from "@/components/proof-strip"
+import QuoteCtaLink from "@/components/quote-cta-link"
 import PartyPlannerSection from "@/components/party-planner-section"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import { GOOGLE_REVIEWS } from "@/config/reviews"
@@ -129,13 +130,13 @@ export default function Home() {
               <span className="text-[13px] text-white/75">per adult · chef, food, show, setup &amp; cleanup</span>
             </div>
             <div className="hidden items-center gap-3 lg:flex">
-              <Link
+              <QuoteCtaLink
                 href="/quote?source=home_hero"
                 onClick={onQuote("home_hero")}
                 className="inline-flex h-14 items-center rounded-full bg-flame px-8 text-[17px] font-semibold text-white transition hover:bg-flame-600"
               >
                 Get instant quote · 30 sec
-              </Link>
+              </QuoteCtaLink>
               <Link href="/menu" className="inline-flex h-14 items-center px-2 text-base font-semibold text-white hover:text-flame-300">
                 See the menu →
               </Link>
@@ -330,13 +331,13 @@ export default function Home() {
               <h2 className="font-serif text-4xl font-extrabold leading-[1.1]">Ready to create great memories?</h2>
               <p className="text-base text-white/80">Exact price in 30 seconds. No phone number needed. A $19.90 deposit holds your date.</p>
             </div>
-            <Link
+            <QuoteCtaLink
               href="/quote?source=home_cta"
               onClick={onQuote("home_cta")}
               className="inline-flex h-14 items-center rounded-full bg-flame px-8 text-[17px] font-semibold text-white transition hover:bg-flame-600"
             >
               Get instant quote
-            </Link>
+            </QuoteCtaLink>
           </div>
         </div>
       </section>
@@ -345,13 +346,13 @@ export default function Home() {
 
       {/* Mobile: one primary CTA, always within thumb reach. */}
       <div className="fixed inset-x-0 bottom-0 z-40 bg-[linear-gradient(to_top,#f7efe2_70%,transparent)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-4 lg:hidden">
-        <Link
+        <QuoteCtaLink
           href="/quote?source=home_sticky"
           onClick={onQuote("home_sticky")}
           className="flex h-[52px] w-full items-center justify-center rounded-full bg-flame text-base font-semibold text-white shadow-organic-lg active:bg-flame-600"
         >
           Get instant quote · 30 sec
-        </Link>
+        </QuoteCtaLink>
         <p className="sr-only">Or call {phone.voice.dashed}</p>
       </div>
     </div>

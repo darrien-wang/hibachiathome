@@ -7,6 +7,15 @@ import { useEffect, useRef, useState } from "react"
 // when scrolled away so multiple sections never compete for a slow
 // connection. Pair with a poster taken from the video's own first frame so
 // the poster-to-video handoff is invisible.
+// Data-saver, or a 2G/3G-class link: leave the poster up and let the visitor
+// opt in with a tap. Six of these on /quote auto-pulled ~8 MB of loops that
+// nobody asked for, on top of the page they were still waiting for.
+function isSlowConnection(): boolean {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
+  if (!connection) return false
+  return Boolean(connection.saveData) || /(^|-)2g$|^3g$/.test(connection.effectiveType ?? "")
+}
+
 export default function LazyVideo({
   src,
   poster,
@@ -22,6 +31,9 @@ export default function LazyVideo({
   const [active, setActive] = useState(false)
   const [failed, setFailed] = useState(false)
   const [blocked, setBlocked] = useState(false)
+  // Slow connection: src is attached (so a tap on the native controls can
+  // fetch it) but nothing loads or plays until the visitor asks.
+  const [deferred, setDeferred] = useState(false)
 
   useEffect(() => {
     const el = ref.current
@@ -30,7 +42,8 @@ export default function LazyVideo({
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActive(true)
+            if (isSlowConnection()) setDeferred(true)
+            else setActive(true)
           } else {
             ref.current?.pause()
           }
@@ -83,15 +96,19 @@ export default function LazyVideo({
   return (
     <video
       ref={ref}
-      src={active ? src : undefined}
+      src={active || deferred ? src : undefined}
       className={className}
       poster={poster}
       preload="none"
       muted
       loop
       playsInline
-      controls={blocked}
-      onPlay={() => setBlocked(false)}
+      controls={blocked || deferred}
+      onPlay={() => {
+        setBlocked(false)
+        setDeferred(false)
+        setActive(true)
+      }}
       onClick={() => {
         const el = ref.current
         // With native controls visible, taps belong to the control UI.
