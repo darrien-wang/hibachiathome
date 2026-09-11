@@ -91,6 +91,11 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=Permanent+Marker&display=swap"
           rel="stylesheet"
         />
+        {/* No tag manager on the /admin workbench: the owner's own sessions
+            were landing in Clarity (26-minute recordings, LCP 6.8 s) and in
+            GA4/Ads as visitors, skewing every customer metric. HideOnAdmin
+            reads the pathname during SSR too, so the scripts never ship. */}
+        <HideOnAdmin>
         {gtmId ? (
           <Script id="gtm-base" strategy="afterInteractive">
             {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -115,9 +120,11 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
             </Script>
           </>
         ) : null}
+        </HideOnAdmin>
         <JsonLd data={[localBusinessJsonLd, webSiteJsonLd]} />
       </head>
       <body className="font-sans">
+        <HideOnAdmin>
         {gtmId ? (
           <noscript>
             <iframe
@@ -128,6 +135,7 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
             ></iframe>
           </noscript>
         ) : null}
+        </HideOnAdmin>
         {/* Keep client-only trackers inside their own Suspense boundary so a
             useSearchParams() bailout never swallows the page content below. */}
         <Suspense fallback={null}>
@@ -143,7 +151,9 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
         <HideOnAdmin>
           <Footer />
         </HideOnAdmin>
-        <Analytics />
+        <HideOnAdmin>
+          <Analytics />
+        </HideOnAdmin>
       </body>
     </html>
   )
