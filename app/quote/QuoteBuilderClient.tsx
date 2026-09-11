@@ -1502,9 +1502,11 @@ export default function QuoteBuilderClient() {
                   >
                     Still have a question? Text us
                   </button>
-                  <span className="mx-1.5 text-slate-400" aria-hidden="true">
+                  {/* the dot only makes sense when both links share a line */}
+                  <span className="mx-1.5 hidden text-slate-400 sm:inline" aria-hidden="true">
                     ·
                   </span>
+                  <br className="sm:hidden" />
                   <button
                     type="button"
                     onClick={() => setBookingConfirmation(null)}
