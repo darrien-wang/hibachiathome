@@ -1411,25 +1411,87 @@ export default function QuoteBuilderClient() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-[#efcfbf] bg-[#fff3ea] p-4 text-center">
-                <p className="text-lg font-semibold text-[#9a3412]">Your booking request is complete.</p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">
-                  You can pay the deposit now to lock the date, or simply wait for our team to contact you and pay after we confirm the details.
-                </p>
+              {/* The three questions people actually ask before they will put
+                  money down. 2026-09-10: a 15-guest booking reached this exact
+                  screen, took "Wait for Our Contact", and then asked by text
+                  what the proteins were, whether pork could be left out, and
+                  how long the chef stays. She paid 13 seconds after a human
+                  answered. The answers belong here, not in our inbox.
+                  The menu and headcount lines matter just as much: the deposit
+                  buys the date, not a locked-in order, and someone who thinks
+                  they must have every decision made before paying will wait
+                  instead. */}
+              <div className="mt-6 rounded-2xl border border-[#efcfbf] bg-[#fff3ea] p-4">
+                <p className="text-center text-lg font-semibold text-[#9a3412]">Your booking request is complete.</p>
+                <ul className="mx-auto mt-3 grid max-w-md gap-2 text-left text-sm leading-6 text-slate-700">
+                  <li className="flex gap-2">
+                    <span aria-hidden="true">🍤</span>
+                    <span>
+                      Every guest picks <strong>2 proteins</strong> — chicken, steak, shrimp, salmon or tofu — plus
+                      garlic butter fried rice, vegetables and salad. All included, and{" "}
+                      <strong>nobody has to choose today</strong> — send us the picks any time before the party.
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span aria-hidden="true">👥</span>
+                    <span>
+                      <strong>Your headcount isn&apos;t locked either.</strong> Add or drop guests right up to the
+                      party and we&apos;ll re-price it — you only pay for who actually comes.
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span aria-hidden="true">⏱️</span>
+                    <span>
+                      Your chef is with you <strong>about 1.5 to 2 hours</strong>, arriving around 10 minutes early and
+                      leaving the space clean.
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span aria-hidden="true">🌱</span>
+                    <span>
+                      Allergies, or anything you don&apos;t eat? <strong>Just tell us</strong> — we cook around it at no
+                      extra charge.
+                    </span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Button asChild className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
-                  <Link href={bookingConfirmationDepositHref}>Pay Deposit Now</Link>
-                </Button>
+              {/* One primary action. The old layout gave "Wait for Our Contact"
+                  a button of equal weight next to the deposit, which is an exit
+                  with no cost attached — and visitors took it. Questions now go
+                  to the texting line (the channel they pick anyway), and waiting
+                  stays available as plain text. */}
+              <div className="mt-5">
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setBookingConfirmation(null)}
-                  className="rounded-full border-[#efcfbf] bg-white text-[#9a3412] hover:bg-[#fff7f2]"
+                  asChild
+                  size="lg"
+                  className="w-full rounded-full bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
                 >
-                  Wait for Our Contact
+                  <Link href={bookingConfirmationDepositHref}>
+                    Pay the ${DEPOSIT_AMOUNT.toFixed(2)} deposit &amp; lock this date
+                  </Link>
                 </Button>
+                <p className="mt-3 text-center text-sm leading-6 text-slate-600">
+                  Fully refundable up to 72 hours before.
+                  <br className="sm:hidden" />{" "}
+                  <button
+                    type="button"
+                    onClick={onSmsClick}
+                    className="font-semibold text-[#9a3412] underline underline-offset-2 hover:text-[#7f2d16]"
+                  >
+                    Still have a question? Text us
+                  </button>
+                  <span className="mx-1.5 text-slate-400" aria-hidden="true">
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setBookingConfirmation(null)}
+                    className="text-slate-500 underline underline-offset-2 hover:text-slate-700"
+                  >
+                    I&apos;ll wait for your call
+                  </button>
+                </p>
               </div>
 
               <p className="mt-4 text-center text-xs leading-5 text-slate-600">
