@@ -7,10 +7,15 @@ export type ProofMedia =
   | { type: "video"; src: string; poster: string; alt: string }
   | { type: "image"; src: string; alt: string }
 
+// Video srcs point at public/videos/sm: the same clips re-encoded to 768 px
+// on the long side, 24 fps, no audio (they play muted), CRF 30. The strip
+// shows them at 180-352 px wide, so the 720x1280 / 2-3 Mbps masters were
+// 85-90% wasted bandwidth - and on slow 4G they were the last 7 MB standing
+// between a visitor and an interactive /quote (Lighthouse, 2026-09-11).
 export const PROOF_MEDIA: ProofMedia[] = [
   {
     type: "video",
-    src: "/videos/hibachi-show.mp4",
+    src: "/videos/sm/hibachi-show.mp4",
     poster: "/videos/posters/hibachi-show.jpg",
     alt: "Live hibachi chef show",
   },
@@ -21,7 +26,7 @@ export const PROOF_MEDIA: ProofMedia[] = [
   },
   {
     type: "video",
-    src: "/videos/fried-rice.mp4",
+    src: "/videos/sm/fried-rice.mp4",
     poster: "/videos/posters/fried-rice.jpg",
     alt: "Fresh hibachi fried rice on the griddle",
   },
@@ -32,13 +37,13 @@ export const PROOF_MEDIA: ProofMedia[] = [
   },
   {
     type: "video",
-    src: "/videos/real-fire.mp4",
+    src: "/videos/sm/real-fire.mp4",
     poster: "/videos/posters/real-fire.jpg",
     alt: "Real hibachi fire show",
   },
   {
     type: "video",
-    src: "/videos/birthday-moment.mp4",
+    src: "/videos/sm/birthday-moment.mp4",
     poster: "/videos/posters/birthday-moment.jpg",
     alt: "Birthday cake moment at a Real Hibachi party",
   },
@@ -54,13 +59,13 @@ export const PROOF_MEDIA: ProofMedia[] = [
   },
   {
     type: "video",
-    src: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05.mp4",
+    src: "/videos/sm/malibu-beach-sunset.mp4",
     poster: "/gallery/real-hibachi-party-malibu-beach-sunset-video-05-poster.jpg",
     alt: "Oceanfront sunset hibachi dinner party with lanterns",
   },
   {
     type: "video",
-    src: "/videos/party-highlight.mp4",
+    src: "/videos/sm/party-highlight.mp4",
     poster: "/videos/posters/party-highlight.jpg",
     alt: "Party highlights from a Real Hibachi event",
   },

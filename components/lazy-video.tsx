@@ -49,7 +49,9 @@ export default function LazyVideo({
           }
         }
       },
-      { rootMargin: "300px 0px" }
+      // 100px, not 300: strip clips just below the fold were fetching before
+      // anyone scrolled toward them.
+      { rootMargin: "100px 0px" }
     )
     io.observe(el)
     return () => io.disconnect()
