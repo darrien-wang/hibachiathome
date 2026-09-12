@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import LandingEstimator from "@/components/city/landing-estimator"
+import LandingCtaButton from "@/components/city/landing-cta-button"
 import { phone } from "@/config/site"
 import { DEPOSIT_AMOUNT, TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
 import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
@@ -64,10 +65,13 @@ const DISHES = [
 ] as const
 
 const STEPS = [
-  { title: "Get an instant quote", body: "Date, guest count, address — price and any travel fee shown upfront." },
+  { title: "Text yourself the quote", body: "Pick guests and day above, enter your number — the quote and deposit link arrive by text." },
   { title: "Lock your date", body: `A $${DEPOSIT_AMOUNT.toFixed(2)} deposit reserves your chef. Full refund with 72+ hours notice.` },
-  { title: "We bring the restaurant", body: "Chef arrives ~10 min early, sets up, performs, feeds everyone, cleans up." },
+  { title: "We bring the restaurant", body: "Chef arrives about 45 min before serving time, sets up, performs, feeds everyone, cleans up." },
 ] as const
+
+// Inside-the-card proof photo: a different real party from the hero shot.
+const CARD_PROOF_IMG = "/gallery/real-hibachi-party-los-angeles-chef-guest-game-17.jpg"
 
 function Accordion({ items, idPrefix }: { items: Array<{ title: string; body: ReactNode }>; idPrefix: string }) {
   return (
@@ -103,7 +107,6 @@ export default function LandingTemplate(props: LandingTemplateProps) {
     heroImage,
     heroAlt,
     source,
-    smsHref,
     kicker,
     title,
     subhead,
@@ -148,11 +151,11 @@ export default function LandingTemplate(props: LandingTemplateProps) {
       <section className="relative isolate overflow-hidden bg-cocoa text-white">
         <Image src={heroImage ?? HERO_IMG} alt={heroAlt ?? `Live hibachi fire show at a backyard party — hibachi at home in ${city}`} fill priority quality={90} sizes="100vw" className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06] lg:object-[center_45%]" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,26,16,.6)_0%,rgba(42,26,16,.2)_30%,rgba(42,26,16,.5)_60%,#2a1a10_100%)] lg:bg-[linear-gradient(90deg,rgba(42,26,16,.9)_0%,rgba(42,26,16,.65)_50%,rgba(42,26,16,.25)_100%),linear-gradient(180deg,rgba(42,26,16,.3),transparent_30%,#2a1a10_100%)]" />
-        <div className="relative mx-auto max-w-7xl px-5 pb-9 pt-[calc(var(--header-height,60px)+130px)] lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-14 lg:px-8 lg:pb-[70px] lg:pt-[calc(var(--header-height,72px)+48px)]">
+        <div className="relative mx-auto max-w-7xl px-5 pb-9 pt-[calc(var(--header-height,60px)+84px)] lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-14 lg:px-8 lg:pb-[70px] lg:pt-[calc(var(--header-height,72px)+48px)]">
           <div className="flex flex-col gap-3 lg:gap-5">
             <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-flame-300 lg:text-[13px] lg:tracking-[0.14em]">{kicker}</span>
             <h1 className="font-serif text-[40px] font-extrabold leading-[0.98] [text-shadow:0_2px_24px_rgba(0,0,0,.35)] lg:text-[64px] lg:leading-[0.95]">{title}</h1>
-            <p className="text-[15px] leading-relaxed text-white/85 lg:max-w-[520px] lg:text-lg">
+            <p className="hidden text-[15px] leading-relaxed text-white/85 lg:block lg:max-w-[520px] lg:text-lg">
               {subhead} Setup &amp; cleanup included, {travelLine}.
             </p>
             <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
@@ -164,14 +167,14 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             </div>
           </div>
           <div className="hidden lg:block">
-            <LandingEstimator citySlug={citySlug} cityName={city} source={source} smsHref={smsHref} travelFee={travelFee} />
+            <LandingEstimator citySlug={citySlug} cityName={city} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
           </div>
         </div>
       </section>
 
       {/* Phones: the estimator overlaps the hero's bottom edge. */}
       <div className="relative z-[2] -mt-3.5 px-4 lg:hidden">
-        <LandingEstimator citySlug={citySlug} cityName={city} source={source} smsHref={smsHref} travelFee={travelFee} />
+        <LandingEstimator citySlug={citySlug} cityName={city} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
       </div>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pt-8 lg:gap-[72px] lg:px-8 lg:pt-16">
@@ -286,16 +289,11 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             <div className="flex flex-1 flex-col gap-2">
               <h2 className="font-serif text-[28px] font-extrabold leading-[1.05] lg:text-4xl">{ctaHeading}</h2>
               <p className="text-sm leading-relaxed text-white/80 lg:text-base">
-                {ctaBody ?? `Date, guest count, address — done. A $${DEPOSIT_AMOUNT.toFixed(2)} deposit locks your chef.`}
+                {ctaBody ?? `Your quote is ready above. One number, one text, $${DEPOSIT_AMOUNT.toFixed(2)} locks your chef.`}
               </p>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <Link
-                href={`/quote?source=${source ?? `city_${citySlug.replace(/-/g, "_")}`}`}
-                className="flex h-[50px] w-full items-center justify-center rounded-full bg-flame px-8 text-[15px] font-bold text-white transition hover:bg-flame-600 lg:h-14 lg:w-auto lg:text-[17px]"
-              >
-                Get instant quote
-              </Link>
+              <LandingCtaButton className="flex h-[50px] w-full items-center justify-center rounded-full bg-flame px-8 text-[15px] font-bold text-white transition hover:bg-flame-600 lg:h-14 lg:w-auto lg:text-[17px]" />
               <a href={phone.voice.tel} className="text-sm font-semibold text-flame-300">
                 or call {phone.voice.display}
               </a>
