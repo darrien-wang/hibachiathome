@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -115,29 +116,64 @@ async function fetchMonthlySpend(): Promise<MonthSpend[]> {
   return [...byMonth.values()].sort((a, b) => (a.month < b.month ? 1 : -1))
 }
 
+// 2026-09-11 起,月度花费优先取 ad_spend_daily(全渠道:Google 同步 +
+// ChatGPT/Meta/Yelp 手填或 CSV),这样看板的"广告费/获客成本"和渠道计分板
+// 是同一个数;表里还没有的月份再回落到 Google 直连。
+async function monthlyFromSpendTable(): Promise<Map<string, MonthSpend>> {
+  const supabase = createServerSupabaseClient()
+  const out = new Map<string, MonthSpend>()
+  if (!supabase) return out
+  const { data } = await supabase
+    .from("ad_spend_daily")
+    .select("date, cost_cents, clicks, impressions, platform_conversions")
+    .gte("date", windowStart())
+    .limit(20000)
+  for (const r of data ?? []) {
+    const month = String(r.date).slice(0, 7)
+    const acc = out.get(month) ?? { month, cost: 0, clicks: 0, impressions: 0, conversions: 0 }
+    acc.cost += Number(r.cost_cents) / 100
+    acc.clicks += Number(r.clicks)
+    acc.impressions += Number(r.impressions)
+    acc.conversions += Number(r.platform_conversions)
+    out.set(month, acc)
+  }
+  return out
+}
+
+function mergeMonths(table: Map<string, MonthSpend>, live: MonthSpend[]): MonthSpend[] {
+  const merged = new Map<string, MonthSpend>(live.map((m) => [m.month, m]))
+  for (const [month, row] of table) merged.set(month, row)
+  return [...merged.values()].sort((a, b) => (a.month < b.month ? 1 : -1))
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
+  const table = await monthlyFromSpendTable().catch(() => new Map<string, MonthSpend>())
+
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
-    return NextResponse.json({ ok: true, months: cache.data, cachedAt: new Date(cache.at).toISOString() })
+    return NextResponse.json({ ok: true, months: mergeMonths(table, cache.data), cachedAt: new Date(cache.at).toISOString() })
   }
 
   try {
     const months = await fetchMonthlySpend()
     cache = { at: Date.now(), data: months }
-    return NextResponse.json({ ok: true, months, cachedAt: new Date(cache.at).toISOString() })
+    return NextResponse.json({ ok: true, months: mergeMonths(table, months), cachedAt: new Date(cache.at).toISOString() })
   } catch (error) {
     console.error("[ads-spend]", error)
     // 过期缓存也比没有强,先顶上,顺便说明这次刷新失败了。
     if (cache) {
       return NextResponse.json({
         ok: true,
-        months: cache.data,
+        months: mergeMonths(table, cache.data),
         cachedAt: new Date(cache.at).toISOString(),
         stale: true,
       })
+    }
+    if (table.size > 0) {
+      return NextResponse.json({ ok: true, months: mergeMonths(table, []), cachedAt: new Date().toISOString(), stale: true })
     }
     return NextResponse.json({ ok: false, error: String(error) }, { status: 200 })
   }

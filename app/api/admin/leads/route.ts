@@ -267,7 +267,7 @@ export async function PATCH(request: NextRequest) {
       "full_name", "phone", "normalized_phone", "email", "city_or_zip", "guest_count",
       "inquiry_reason", "source_page", "hear_about_us", "referral_code", "external_call_id",
       "manual_entry_id", "utm_source", "utm_medium", "utm_campaign", "utm_term",
-      "utm_content", "gclid", "wbraid", "gbraid",
+      "utm_content", "gclid", "wbraid", "gbraid", "oppref",
     ] as const
     const patch: Record<string, unknown> = {}
     for (const field of FILLABLE) {

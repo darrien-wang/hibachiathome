@@ -13,6 +13,7 @@ import {
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
+import { isChatgptCapiConfigured, sendChatgptDepositConversion } from "@/lib/chatgpt-ads-capi"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail, type OpsEmailDeliveryResult, customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
 import { getRuntimeEnvironmentTag, isPreBranchDeployment, shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
@@ -20,7 +21,7 @@ export const runtime = "nodejs"
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
-const ATTRIBUTION_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "wbraid", "gbraid"] as const
+const ATTRIBUTION_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "wbraid", "gbraid", "oppref"] as const
 
 type AttributionFields = {
   utm_source?: string
@@ -31,6 +32,7 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  oppref?: string
 }
 
 type NotificationDeliveryResult = {
@@ -714,6 +716,7 @@ async function handleCheckoutSessionCompleted(
   if (attribution.gclid) bookingUpdate.gclid = attribution.gclid
   if (attribution.wbraid) bookingUpdate.wbraid = attribution.wbraid
   if (attribution.gbraid) bookingUpdate.gbraid = attribution.gbraid
+  if (attribution.oppref) bookingUpdate.oppref = attribution.oppref
 
   let updatedBookingId: string | null = null
 
@@ -1401,6 +1404,44 @@ export async function POST(request: NextRequest) {
             currency: asNonEmptyString(session.currency),
             depositSource: asNonEmptyString(session.metadata?.deposit_source) ?? asNonEmptyString(session.metadata?.source),
           })
+
+      // ChatGPT Ads gets the same deposit as a server-side conversion (their
+      // EC4L). Only for bookings that carry a ChatGPT signal - an oppref
+      // click id or a chatgpt/openai utm_source - so other customers' hashed
+      // contact details never leave for a platform that did not send them.
+      if (isChatgptCapiConfigured() && !shouldSuppressExternalNotifications()) {
+        const attributionForCapi = readAttributionFromStripeMetadata(session.metadata)
+        let bookingAttribution: { utm_source: string | null; oppref: string | null; email: string | null; phone: string | null; full_name: string | null; zip_code: string | null } | null = null
+        if (result.updatedBookingId) {
+          const { data } = await supabase
+            .from("bookings")
+            .select("utm_source, oppref, email, phone, full_name, zip_code")
+            .eq("id", result.updatedBookingId)
+            .maybeSingle()
+          bookingAttribution = (data as typeof bookingAttribution) ?? null
+        }
+        const oppref = attributionForCapi.oppref ?? bookingAttribution?.oppref ?? null
+        const utmSource = (attributionForCapi.utm_source ?? bookingAttribution?.utm_source ?? "").toLowerCase()
+        if (oppref || utmSource.includes("chatgpt") || utmSource.includes("openai")) {
+          const fullName = (session.customer_details?.name ?? bookingAttribution?.full_name ?? "").trim()
+          const [firstName, ...rest] = fullName.split(/\s+/)
+          const capi = await sendChatgptDepositConversion({
+            eventId: result.paymentIntentId ?? session.id,
+            amountCents: typeof session.amount_total === "number" ? session.amount_total : Math.round((result.depositAmount ?? 0) * 100),
+            currency: asNonEmptyString(session.currency) ?? "USD",
+            email: session.customer_details?.email ?? bookingAttribution?.email ?? null,
+            phone: session.customer_details?.phone ?? bookingAttribution?.phone ?? null,
+            firstName: firstName || null,
+            lastName: rest.length ? rest.join(" ") : null,
+            postalCode: bookingAttribution?.zip_code ?? null,
+            oppref,
+            occurredAtMs: (event.created ?? Math.floor(Date.now() / 1000)) * 1000,
+          })
+          if (capi.attempted && !capi.delivered) {
+            console.error("[stripe/webhook] ChatGPT Ads CAPI order_created failed:", { eventId: event.id, status: capi.status, error: capi.error })
+          }
+        }
+      }
 
       if (!serverTracking.delivered && serverTracking.attempted) {
         console.error("[stripe/webhook] Failed to send server-side GA4 deposit_completed:", {

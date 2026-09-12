@@ -41,6 +41,7 @@ type DepositStartPayload = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  oppref?: string
 }
 
 type NormalizedDepositStartPayload = {
@@ -72,6 +73,7 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  oppref?: string
 }
 
 const CHECKOUT_SUCCESS_PATH = "/deposit/success"
@@ -88,6 +90,7 @@ const ATTRIBUTION_KEYS: Array<keyof AttributionFields> = [
   "gclid",
   "wbraid",
   "gbraid",
+  "oppref",
 ]
 
 function normalizeString(value: unknown): string | undefined {
@@ -163,6 +166,7 @@ function normalizeAttributionInput(value: Partial<AttributionFields> | undefined
     gclid: normalizeAttributionValue(value.gclid),
     wbraid: normalizeAttributionValue(value.wbraid),
     gbraid: normalizeAttributionValue(value.gbraid),
+    oppref: normalizeAttributionValue(value.oppref),
   }
 }
 
@@ -176,6 +180,7 @@ function parseAttributionFromSearchParams(params: URLSearchParams): AttributionF
     gclid: params.get("gclid") ?? undefined,
     wbraid: params.get("wbraid") ?? undefined,
     gbraid: params.get("gbraid") ?? undefined,
+    oppref: params.get("oppref") ?? undefined,
   })
 }
 
@@ -198,6 +203,7 @@ function parseAttributionFromCookieHeader(cookieHeader: string | null): Attribut
       gclid: parsed.gclid as string | undefined,
       wbraid: parsed.wbraid as string | undefined,
       gbraid: parsed.gbraid as string | undefined,
+      oppref: parsed.oppref as string | undefined,
     })
   } catch {
     return {}
@@ -278,6 +284,7 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
       gclid: payload.gclid,
       wbraid: payload.wbraid,
       gbraid: payload.gbraid,
+      oppref: payload.oppref,
     }),
   }
 }
@@ -310,6 +317,7 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
     gclid: params.get("gclid") ?? undefined,
     wbraid: params.get("wbraid") ?? undefined,
     gbraid: params.get("gbraid") ?? undefined,
+    oppref: params.get("oppref") ?? undefined,
   })
 }
 
@@ -392,6 +400,7 @@ function buildMetadata(
     gclid: metadataField(attribution.gclid),
     wbraid: metadataField(attribution.wbraid),
     gbraid: metadataField(attribution.gbraid),
+    oppref: metadataField(attribution.oppref),
   }
 
   return Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined)) as Record<string, string>
@@ -509,6 +518,7 @@ async function persistPendingDepositState(params: {
     gclid: params.attribution.gclid,
     wbraid: params.attribution.wbraid,
     gbraid: params.attribution.gbraid,
+    oppref: params.attribution.oppref,
     updated_at: new Date().toISOString(),
   }
 
@@ -574,6 +584,7 @@ async function persistPendingDepositState(params: {
     gclid: params.attribution.gclid,
     wbraid: params.attribution.wbraid,
     gbraid: params.attribution.gbraid,
+    oppref: params.attribution.oppref,
   }
 
   const { error } = await supabase.from("bookings").insert(placeholderBooking)

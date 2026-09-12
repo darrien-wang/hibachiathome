@@ -46,6 +46,7 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  oppref?: string
 }
 
 type TrackingParamValue = string | number | boolean
@@ -83,6 +84,7 @@ const ATTRIBUTION_KEYS = [
   "gclid",
   "wbraid",
   "gbraid",
+  "oppref",
 ] as const
 
 const COOKIE_NAME = "realhibachi_attribution"

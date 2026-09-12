@@ -11,6 +11,7 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  oppref?: string
 }
 
 export type ContactLeadUpsertInput = {
@@ -175,6 +176,7 @@ function normalizeAttribution(value: AttributionFields | undefined): Attribution
     gclid: asNonEmptyString(value.gclid),
     wbraid: asNonEmptyString(value.wbraid),
     gbraid: asNonEmptyString(value.gbraid),
+    oppref: asNonEmptyString(value.oppref),
   }
 }
 
@@ -342,6 +344,7 @@ export async function upsertLeadFromContact(
       gclid: withFallback(current.gclid, input.attribution.gclid),
       wbraid: withFallback(current.wbraid, input.attribution.wbraid),
       gbraid: withFallback(current.gbraid, input.attribution.gbraid),
+      oppref: withFallback(current.oppref, input.attribution.oppref),
       external_call_id: withFallback(current.external_call_id, input.externalCallId),
       manual_entry_id: withFallback(current.manual_entry_id, input.manualEntryId),
       // First touch wins: a code already on the lead is the original referrer
@@ -394,6 +397,7 @@ export async function upsertLeadFromContact(
     gclid: input.attribution.gclid,
     wbraid: input.attribution.wbraid,
     gbraid: input.attribution.gbraid,
+    oppref: input.attribution.oppref,
     external_call_id: input.externalCallId,
     manual_entry_id: input.manualEntryId,
     referral_code: input.referralCode,
@@ -440,6 +444,7 @@ export function readAttributionFromCookieHeader(cookieHeader: string | null): At
       gclid: asNonEmptyString(parsed.gclid),
       wbraid: asNonEmptyString(parsed.wbraid),
       gbraid: asNonEmptyString(parsed.gbraid),
+      oppref: asNonEmptyString(parsed.oppref),
     })
   } catch {
     return {}

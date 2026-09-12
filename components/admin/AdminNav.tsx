@@ -9,6 +9,7 @@ import { ClipboardList } from "lucide-react"
 const TABS = [
   { href: "/admin/orders", label: "订单" },
   { href: "/admin/leads", label: "线索" },
+  { href: "/admin/channels", label: "渠道" },
 ]
 
 export default function AdminNav() {

@@ -532,6 +532,7 @@ export async function POST(request: Request) {
       gclid: attribution.gclid,
       wbraid: attribution.wbraid,
       gbraid: attribution.gbraid,
+      oppref: attribution.oppref,
       cityOrZip: location,
       guestCount: adults + kids,
       adults,
