@@ -21,6 +21,8 @@ export type ChatgptConversionParams = {
   oppref?: string | null
   sourceUrl?: string
   occurredAtMs?: number
+  /** Dry run: OpenAI validates auth + payload but stores nothing. */
+  validateOnly?: boolean
 }
 
 export type ChatgptConversionResult = { attempted: boolean; delivered: boolean; status?: number; error?: string; skippedReason?: string }
@@ -88,11 +90,12 @@ export async function sendChatgptDepositConversion(params: ChatgptConversionPara
     const res = await fetch(`https://bzr.openai.com/v1/events?pid=${encodeURIComponent(pixelId)}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ integration_source: "realhibachi_stripe_webhook", events: [event] }),
+      body: JSON.stringify({ validate_only: Boolean(params.validateOnly), integration_source: "realhibachi_stripe_webhook", events: [event] }),
       cache: "no-store",
     })
-    if (!res.ok) return { attempted: true, delivered: false, status: res.status, error: (await res.text()).slice(0, 300) }
-    return { attempted: true, delivered: true, status: res.status }
+    const text = (await res.text().catch(() => "")).slice(0, 300)
+    if (!res.ok) return { attempted: true, delivered: false, status: res.status, error: text }
+    return { attempted: true, delivered: true, status: res.status, error: text || undefined }
   } catch (error) {
     return { attempted: true, delivered: false, error: error instanceof Error ? error.message : String(error) }
   }
