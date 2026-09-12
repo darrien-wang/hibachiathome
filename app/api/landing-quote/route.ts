@@ -176,12 +176,12 @@ export async function POST(request: NextRequest) {
       email ? `Email: ${email}` : "No email given.",
       `Source: ${source} · page ${pagePath}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}`,
       `Workbench: ${workbench}`,
-      "Call back within 15 minutes - the text promised it.",
+      "Reply within 15 minutes (text or email) - the page promised it.",
     ].join("\n"),
     html: `<p>Texted the estimate to <strong>${escapeHtml(phoneE164)}</strong>${sms.ok ? "" : ` <strong style="color:#b91c1c">(SMS FAILED: ${escapeHtml(sms.error)})</strong>`}.</p>
 <p>${escapeHtml(guestsLine)} · ${escapeHtml(planLabel)} · ${escapeHtml(dateLine)} · <strong>${money(total)}</strong>${travelFee ? ` incl ~$${travelFee} travel` : ""}</p>
 <p>${email ? `Email: ${escapeHtml(email)}` : "No email given."}<br>Source: ${escapeHtml(source)} · page ${escapeHtml(pagePath)}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}</p>
-<p><a href="${workbench}">Open in workbench</a> · <strong>Call back within 15 minutes</strong> - the text promised it.</p>`,
+<p><a href="${workbench}">Open in workbench</a> · <strong>Reply within 15 minutes</strong> (text or email) - the page promised it.</p>`,
   })
 
   return NextResponse.json({

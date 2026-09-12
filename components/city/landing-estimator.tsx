@@ -250,8 +250,8 @@ export default function LandingEstimator({
               <p className="mt-0.5 text-clay-700">
                 {sent.smsDelivered
                   ? `Your ${fmt(sent.total)} quote and the ${fmt(DEPOSIT_AMOUNT)} deposit link are in your messages${sent.emailed ? " and your inbox" : ""}.`
-                  : `The text is delayed, so a real person will call you with your ${fmt(sent.total)} quote.`}{" "}
-                A real person calls within 15 min.
+                  : `The text is delayed, so a real person will reach out with your ${fmt(sent.total)} quote.`}{" "}
+                A real person follows up within 15 min by text or email.
               </p>
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function LandingEstimator({
             <p className="text-ink">
               &ldquo;{proofQuote.text}&rdquo; <span className="text-clay-600">— {proofQuote.name}, {proofQuote.source}</span>
             </p>
-            <p className="mt-0.5 font-semibold text-clay-700">We call back within 15 min · deposit refundable 72h+</p>
+            <p className="mt-0.5 font-semibold text-clay-700">We reply within 15 min · deposit refundable 72h+</p>
           </div>
         </div>
       </div>
