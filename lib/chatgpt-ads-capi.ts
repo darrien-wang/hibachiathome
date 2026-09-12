@@ -25,6 +25,9 @@ export type ChatgptConversionParams = {
 
 export type ChatgptConversionResult = { attempted: boolean; delivered: boolean; status?: number; error?: string; skippedReason?: string }
 
+// Pixel "My first pixel", created 2026-09-11 in Ads Manager → Conversions. Public.
+const DEFAULT_PIXEL_ID = "S5xiVpByZjY3XVfQsSFMoC"
+
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
 
 function normEmail(v: string | null | undefined): string | null {
@@ -44,12 +47,12 @@ function normName(v: string | null | undefined): string | null {
 }
 
 export function isChatgptCapiConfigured(): boolean {
-  return Boolean(process.env.CHATGPT_ADS_PIXEL_ID && process.env.CHATGPT_ADS_CAPI_KEY)
+  return Boolean((process.env.CHATGPT_ADS_PIXEL_ID || DEFAULT_PIXEL_ID) && process.env.CHATGPT_ADS_CAPI_KEY)
 }
 
 /** Sends one order_created event. Never throws; the webhook must not fail on it. */
 export async function sendChatgptDepositConversion(params: ChatgptConversionParams): Promise<ChatgptConversionResult> {
-  const pixelId = process.env.CHATGPT_ADS_PIXEL_ID
+  const pixelId = process.env.CHATGPT_ADS_PIXEL_ID || DEFAULT_PIXEL_ID
   const apiKey = process.env.CHATGPT_ADS_CAPI_KEY
   if (!pixelId || !apiKey) return { attempted: false, delivered: false, skippedReason: "not_configured" }
   const email = normEmail(params.email)

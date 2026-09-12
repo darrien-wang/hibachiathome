@@ -339,6 +339,45 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
 
   window.dataLayer.push(normalizedPayload)
   mirrorToClarity(name, params)
+  mirrorToChatgptPixel(name, normalizedPayload)
+}
+
+// ChatGPT Ads pixel: only the two events Ads Manager optimises on. A lead is
+// any hand-raise that reaches us (form, SMS/email/phone tap from a quote);
+// order_created is the paid deposit with its value. Everything else stays in
+// GTM/GA4 only. The oaiq stub is installed by components/chatgpt-pixel.tsx.
+const CHATGPT_LEAD_EVENTS = new Set<TrackingEventName>([
+  "booking_submit",
+  "contact_booking_inquiry_submit",
+  "quote_completed",
+  "contact_sms_click",
+  "contact_email_click",
+  "contact_call_click",
+  "sms_click",
+  "phone_click",
+  "chat_lead_submitted",
+])
+
+function mirrorToChatgptPixel(name: TrackingEventName, payload: DataLayerPayload): void {
+  const oaiq = (window as Window & { oaiq?: (...args: unknown[]) => void }).oaiq
+  if (typeof oaiq !== "function") return
+  try {
+    if (name === "deposit_completed") {
+      oaiq("measure", "order_created", {
+        type: "contents",
+        amount: Math.round(Number(payload.value ?? 0) * 100),
+        currency: payload.currency ?? "USD",
+        contents: [{ id: "hibachi_party_deposit", name: "Hibachi party deposit", content_type: "product", quantity: 1 }],
+        event_id: payload.transaction_id ?? payload.event_id,
+      })
+    } else if (CHATGPT_LEAD_EVENTS.has(name)) {
+      oaiq("measure", "lead_created", { type: "customer_action", event_id: payload.event_id, source: name })
+    } else if (name === "page_view") {
+      oaiq("measure", "page_viewed", { type: "contents", contents: [{ id: payload.page_path, name: payload.page_title, content_type: "page" }] })
+    }
+  } catch {
+    // measurement must never break the page
+  }
 }
 
 export function trackDepositCompletedOnce(

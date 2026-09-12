@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { HideOnAdmin } from "@/components/hide-on-admin"
+import { ChatgptPixel } from "@/components/chatgpt-pixel"
 import LanguageSuggestBanner from "@/components/language-suggest-banner"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
 
@@ -141,6 +142,7 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
         <Suspense fallback={null}>
           <HideOnAdmin>
             <TrackingBootstrap />
+            <ChatgptPixel />
           </HideOnAdmin>
         </Suspense>
         <HideOnAdmin>
