@@ -169,7 +169,7 @@ export default function HomeEs() {
                   </div>
                   <p className="mt-3 text-base text-emerald-900">
                     Lunes a jueves (excepto días festivos), cualquier tamaño de fiesta, con charola de
-                    aperitivos gratis — la misma experiencia, mejor precio.
+                    aperitivos gratis y mesas y sillas gratis — la misma experiencia, mejor precio.
                   </p>
                   <Button
                     asChild

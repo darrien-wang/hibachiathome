@@ -3,6 +3,10 @@ import {
   WEEKDAY_SPECIAL,
   MINIMUM_SPEND as RULES_MINIMUM_SPEND,
   FULL_SETUP_PER_GUEST as RULES_FULL_SETUP,
+  UTENSILS_PER_GUEST,
+  TABLES_CHAIRS_PER_GUEST,
+  partySizeDiscount as rulesPartySizeDiscount,
+  partySizeDiscountLabel,
   TRAVEL_FREE_RADIUS_MILES,
   TRAVEL_RATE_PER_MILE,
   CALL_OUT_FEE_PER_CHEF,
@@ -69,6 +73,15 @@ export type QuoteResult = {
   effectiveBase: number
   travelFeeRange: QuoteRange
   tablewareFee: number
+  /** Weekday Special + setup chosen: tables & chairs ride free, only utensils are charged. */
+  freeTablesChairs: boolean
+  /** Dollar value of the free tables & chairs (0 unless freeTablesChairs). */
+  tablesChairsValue: number
+  /** Party Size Discount tier amount ($30 / $60 / $90) for adults + kids 5-12. */
+  partySizeDiscount: number
+  /** How much of it actually lowered the price; the $599 floor can absorb part of it. */
+  partySizeDiscountApplied: number
+  partySizeDiscountLabel: string | null
   addOnTotalRange: QuoteRange
   loyaltyDiscount: number
   totalRange: QuoteRange
@@ -179,7 +192,12 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   const baseSubtotal = isWeekdaySaver
     ? roundCurrency(adults * WEEKDAY_SAVER_ADULT_PRICE + kids * WEEKDAY_SAVER_KID_PRICE + toddlers * TODDLER_PRICE)
     : roundCurrency(adults * ADULT_PRICE + kids * KID_FOOD_PRICE + toddlers * TODDLER_PRICE)
-  const tablewareFee = input.tablewareRental ? roundCurrency(guestCount * FULL_SETUP_PER_GUEST) : 0
+  // Weekday Special: tables & chairs are free, so the setup add-on only
+  // charges utensils on a qualifying date (2026-09-13).
+  const freeTablesChairs = isWeekdaySaver && weekdayIsEligible && input.tablewareRental
+  const setupRate = freeTablesChairs ? UTENSILS_PER_GUEST : FULL_SETUP_PER_GUEST
+  const tablewareFee = input.tablewareRental ? roundCurrency(guestCount * setupRate) : 0
+  const tablesChairsValue = freeTablesChairs ? roundCurrency(guestCount * TABLES_CHAIRS_PER_GUEST) : 0
 
   // One chef per 28 guests, one call-out fee per chef — currently waived.
   const chefCount = calcChefCount(guestCount)
@@ -217,9 +235,16 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
         ? PARTY_GUEST_CARD_DISCOUNT
         : 0
 
+  // Party Size Discount: every party, any day, stacks with the Weekday
+  // Special. Taken off before the $599 floor, exactly as the invoice bills it.
+  const partySizeDiscount = rulesPartySizeDiscount(adults + kids)
+  const floorLow = Math.max(subtotalRange.low - partySizeDiscount, MINIMUM_SPEND)
+  const floorHigh = Math.max(subtotalRange.high - partySizeDiscount, MINIMUM_SPEND)
+  const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotalRange.low - floorLow))
+
   const totalBeforeTravelRange: QuoteRange = {
-    low: Math.max(Math.max(subtotalRange.low, MINIMUM_SPEND) - loyaltyDiscount, 0),
-    high: Math.max(Math.max(subtotalRange.high, MINIMUM_SPEND) - loyaltyDiscount, 0),
+    low: Math.max(floorLow - loyaltyDiscount, 0),
+    high: Math.max(floorHigh - loyaltyDiscount, 0),
   }
 
   const effectiveBase = Math.max(packageSubtotal, MINIMUM_SPEND)
@@ -249,6 +274,11 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     effectiveBase,
     travelFeeRange,
     tablewareFee,
+    freeTablesChairs,
+    tablesChairsValue,
+    partySizeDiscount,
+    partySizeDiscountApplied,
+    partySizeDiscountLabel: partySizeDiscountApplied > 0 ? partySizeDiscountLabel(adults + kids) : null,
     addOnTotalRange,
     loyaltyDiscount,
     totalRange,
@@ -297,7 +327,8 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Date: ${input.eventDate || "TBD"}`,
     `Location: ${input.location || "TBD"}`,
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids 5-12 ${input.kids || 0}, Under 5 ${input.toddlers || 0})`,
-    `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
+    `Full setup (tables/chairs/utensils): ${input.tablewareRental ? (result.freeTablesChairs ? "yes (tables & chairs free with Weekday Special)" : "yes") : "no"}`,
+    result.partySizeDiscountApplied > 0 ? `Party size discount (${result.partySizeDiscountLabel}): -$${result.partySizeDiscountApplied}` : null,
     `Upgrades: ${formatAddOnSummary(input.addOns)}`,
     result.includesAppetizerPlatter ? `Included: ${WEEKDAY_PLATTER_LINE}` : null,
     result.loyaltyDiscount > 0
@@ -335,7 +366,7 @@ export function createQuoteTemplateContext(input: QuoteInput, result: QuoteResul
     quote_tier: getQuoteTierLabel(input.pricingTier),
     tier_menu:
       input.pricingTier === "weekday_saver"
-        ? `Weekday Special; 2 regular proteins per guest + ${WEEKDAY_PLATTER_LINE}`
+        ? `Weekday Special; 2 regular proteins per guest + ${WEEKDAY_PLATTER_LINE} + free tables & chairs`
         : "Standard Plan; 2 regular proteins per guest",
     upgrades: formatAddOnSummary(input.addOns),
     budget: input.budget ? formatCurrency(input.budget) : "Not provided",
@@ -369,7 +400,11 @@ export function buildCallScript(input: QuoteInput, result: QuoteResult, template
   const details: string[] = []
 
   if (input.tablewareRental) {
-    details.push(`We would like tableware rental at $15 per person.`)
+    details.push(
+      result.freeTablesChairs
+        ? `We would like tables, chairs and utensils; tables and chairs are free with the Weekday Special, utensils $${UTENSILS_PER_GUEST} per person.`
+        : `We would like tableware rental at $${FULL_SETUP_PER_GUEST} per person.`,
+    )
   }
 
 

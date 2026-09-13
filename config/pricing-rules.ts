@@ -148,7 +148,82 @@ export const WEEKDAY_SPECIAL = {
     detail: "gyoza, edamame & spring rolls",
     value: 40,
   },
+  // 2026-09-13 (owner): tables & chairs are free on weekday dates for any
+  // party size, when the host wants them. Utensils stay $5/guest. Mirrors the
+  // invoice repo's weekday promo (freeExtraIds: tables_chairs).
+  tablesChairs: {
+    label: "Free tables & chairs",
+    detail: "$10/guest value, if you need them",
+    perGuestValue: TABLES_CHAIRS_PER_GUEST,
+  },
 } as const
+
+/** Per-guest price of the "tables, chairs & utensils" add-on on the given tier. */
+export function setupPerGuest(weekdaySpecial: boolean): number {
+  return weekdaySpecial ? UTENSILS_PER_GUEST : FULL_SETUP_PER_GUEST
+}
+
+// ---------------------------------------------------------------
+// Party Size Discount — every party, any day, on top of the Weekday
+// Special. Automatic by paid headcount (adults + kids 5–12, under-5s don't
+// count); 31+ guests get a custom quote. The $599 minimum still applies
+// after the discount, same as the invoice system. Mirrors the invoice
+// repo's PARTY_SIZE_DISCOUNT_TIERS (kept in sync by hand, 2026-09-13).
+// ---------------------------------------------------------------
+export const PARTY_SIZE_DISCOUNT_TIERS = [
+  { minGuests: 10, maxGuests: 14, amount: 30 },
+  { minGuests: 15, maxGuests: 24, amount: 60 },
+  { minGuests: 25, maxGuests: 30, amount: 90 },
+] as const
+export const PARTY_SIZE_CUSTOM_FROM = 31
+
+export function partySizeDiscount(paidGuests: number): number {
+  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => paidGuests >= t.minGuests && paidGuests <= t.maxGuests)
+  return tier ? tier.amount : 0
+}
+
+/** One-line label for the tier a party earns, e.g. "15–24 guests · $60 off". */
+export function partySizeDiscountLabel(paidGuests: number): string | null {
+  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => paidGuests >= t.minGuests && paidGuests <= t.maxGuests)
+  return tier ? `${tier.minGuests}–${tier.maxGuests} guests · $${tier.amount} off` : null
+}
+
+export type SimpleEstimate = {
+  subtotal: number
+  /** Tier amount the party qualifies for. */
+  partySizeDiscount: number
+  /** How much of it actually lowered the price (the $599 floor can absorb it). */
+  partySizeDiscountApplied: number
+  minApplied: boolean
+  base: number
+  travelFee: number
+  total: number
+}
+
+/**
+ * The one price the simple estimators (city landing pages, occasion pages,
+ * menu bar, landing-quote text) all agree on. /quote's builder carries the
+ * same rules plus upgrades and loyalty.
+ */
+export function calcSimpleEstimate(args: { adults: number; kids: number; weekdaySpecial: boolean; travelFee?: number }): SimpleEstimate {
+  const adults = Math.max(0, Math.floor(args.adults))
+  const kids = Math.max(0, Math.floor(args.kids))
+  const subtotal = roundCurrency(adults * getTierPrice("adult", args.weekdaySpecial) + kids * getTierPrice("child", args.weekdaySpecial))
+  const partySize = partySizeDiscount(adults + kids)
+  const afterDiscount = Math.max(0, subtotal - partySize)
+  const base = Math.max(afterDiscount, MINIMUM_SPEND)
+  const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotal - base))
+  const travelFee = Math.max(0, Math.round(args.travelFee ?? 0))
+  return {
+    subtotal,
+    partySizeDiscount: partySize,
+    partySizeDiscountApplied,
+    minApplied: afterDiscount < MINIMUM_SPEND,
+    base,
+    travelFee,
+    total: roundCurrency(base + travelFee),
+  }
+}
 
 // Major holiday periods book at the standard rate — the Weekday Special is a
 // demand-smoothing discount and these are the highest-demand days of the year

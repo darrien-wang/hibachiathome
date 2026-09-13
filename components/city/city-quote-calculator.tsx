@@ -14,6 +14,7 @@ import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-t
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
+  calcSimpleEstimate,
   WEEKDAY_SPECIAL,
   checkWeekdayEligibility,
   roundCurrency,
@@ -68,14 +69,12 @@ export default function CityQuoteCalculator({
   const [ctaVisible, setCtaVisible] = useState(true)
   const ctaRef = useRef<HTMLDivElement | null>(null)
 
-  const standardSubtotal = roundCurrency(adults * GUEST_TIERS.adult.price + kids * GUEST_TIERS.child.price)
-  const standard = Math.max(standardSubtotal, MINIMUM_SPEND)
-  const atMinimum = standardSubtotal < MINIMUM_SPEND
-
-  const weekdayTotal = Math.max(
-    roundCurrency(adults * GUEST_TIERS.adult.weekdayPrice + kids * GUEST_TIERS.child.weekdayPrice),
-    MINIMUM_SPEND,
-  )
+  const standardEst = calcSimpleEstimate({ adults, kids, weekdaySpecial: false })
+  const weekdayEst = calcSimpleEstimate({ adults, kids, weekdaySpecial: true })
+  const standard = standardEst.total
+  const atMinimum = standardEst.minApplied
+  const weekdayTotal = weekdayEst.total
+  const sizeOff = standardEst.partySizeDiscountApplied
 
   const eligibility = useMemo(
     () => checkWeekdayEligibility(date, { adult: adults, child: kids, toddler: 0 }),
@@ -201,8 +200,9 @@ export default function CityQuoteCalculator({
             <li>First 50 miles of travel free — any travel fee shows before you pay</li>
             <li>
               Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu, plus a{" "}
-              {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.value} value)
+              {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.value} value) and free tables &amp; chairs
             </li>
+            <li>Party size discount, any day: 10–14 guests $30 off · 15–24 $60 off · 25–30 $90 off{sizeOff > 0 ? ` (yours: $${sizeOff})` : ""}</li>
             <li>
               Standard: ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid, any day, ${MINIMUM_SPEND} minimum
             </li>

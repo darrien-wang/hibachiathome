@@ -7,7 +7,7 @@ import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
-import { GUEST_TIERS, MINIMUM_SPEND, checkWeekdayEligibility, roundCurrency, weekdayBlackoutLabel } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, checkWeekdayEligibility, roundCurrency, weekdayBlackoutLabel } from "@/config/pricing-rules"
 
 // The ad landing page's estimate card, revised 2026-09-12 from the Claude
 // Design "Realhibachi Landing Page" board (决策日志 D-0911-05).
@@ -119,15 +119,14 @@ export default function LandingEstimator({
   // A real date decides the rate; without one the visitor's toggle stands.
   const weekday = eligibility ? eligibility.isEligible : manualWeekday
 
-  const subtotal = roundCurrency(
-    adults * (weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price) + kids * (weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price),
-  )
   const fee = travelFee && travelFee > 0 ? Math.round(travelFee) : 0
-  // The $599 event minimum applies to every party. The Weekday Special
-  // lowers the per-guest rate, not the floor (2026-09-13: five adults on a
-  // Thursday were being shown $274.50; the invoice system bills $599).
-  const minApplied = subtotal < MINIMUM_SPEND
-  const total = Math.max(subtotal, MINIMUM_SPEND) + fee
+  // One shared calculation for every simple estimator: tier rate, the Party
+  // Size Discount, then the $599 floor (which applies on weekday dates too —
+  // 2026-09-13: five adults on a Thursday were being shown $274.50).
+  const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee: fee })
+  const minApplied = est.minApplied
+  const sizeOff = est.partySizeDiscountApplied
+  const total = est.total
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
   const phoneReady = phoneValue.replace(/\D/g, "").replace(/^1/, "").length === 10
@@ -135,6 +134,7 @@ export default function LandingEstimator({
   const planShort = weekday ? "Mon–Thu" : "any day"
   const planLabel =
     (minApplied ? `${weekday ? "Weekday Special" : "Standard"} · $${MINIMUM_SPEND} event minimum` : weekday ? `Weekday Special · ${guestsShort}` : `Standard · ${guestsShort}`) +
+    (sizeOff > 0 ? ` · $${sizeOff} party discount` : "") +
     (fee > 0 ? ` · incl. ~$${fee} travel` : "")
   const dateStatus = !dateKnown
     ? "optional"
@@ -268,7 +268,7 @@ export default function LandingEstimator({
           <p className="text-right text-xs font-semibold leading-snug text-gold-700">
             {fee > 0 ? `~$${fee} travel added` : "Travel included"}
             <br />
-            {weekday ? "free appetizer platter" : "No fees hidden"}
+            {weekday ? "free platter + tables & chairs" : "No fees hidden"}
           </p>
         </div>
 

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import EstimatorRow from "@/components/ui/estimator-row"
-import { GUEST_TIERS, MINIMUM_SPEND, roundCurrency } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, roundCurrency } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 
@@ -29,9 +29,10 @@ export default function OccasionEstimator({
 }) {
   const [adults, setAdults] = useState(10)
   const [kids, setKids] = useState(2)
-  const raw = roundCurrency(adults * GUEST_TIERS.adult.price + kids * GUEST_TIERS.child.price)
-  const underMin = raw < MINIMUM_SPEND
-  const total = Math.max(raw, MINIMUM_SPEND)
+  const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: false })
+  const underMin = est.minApplied
+  const total = est.total
+  const sizeOff = est.partySizeDiscountApplied
   const minAdults = Math.ceil(MINIMUM_SPEND / GUEST_TIERS.adult.price)
   const params = new URLSearchParams({ source, adults: String(adults), kids: String(kids) })
   const quoteHref = `/quote?${params.toString()}`
@@ -85,6 +86,9 @@ export default function OccasionEstimator({
           included
         </p>
       </div>
+      {sizeOff > 0 ? (
+        <p className="text-xs font-semibold text-gold-800">Includes your ${sizeOff} party size discount · Mon–Thu adds a free platter and free tables & chairs</p>
+      ) : null}
       {underMin ? (
         <p className="rounded-lg bg-flame-100 px-2.5 py-2 text-xs leading-snug text-flame-700">
           Small group? The ${MINIMUM_SPEND} event minimum still applies — {minAdults} adults covers it, or add upgrades like filet or lobster.

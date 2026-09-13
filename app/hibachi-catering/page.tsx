@@ -55,7 +55,7 @@ const faqs = [
   {
     question: "How much does hibachi catering cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday events get the Weekday Special at any size: $54.90 per adult plus a free appetizer platter. Pricing is published and your exact total — including any travel fee — appears in the instant quote before you pay anything.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday events get the Weekday Special at any size: $54.90 per adult plus a free appetizer platter and free tables & chairs. Parties of 10–14 guests save $30, 15–24 save $60, 25–30 save $90 — any day, applied automatically. Pricing is published and your exact total — including any travel fee — appears in the instant quote before you pay anything.",
   },
   {
     question: "Do you cater corporate events and offices?",
@@ -209,7 +209,7 @@ export default function HibachiCateringHubPage() {
               </div>
               <p className="text-gray-600 mb-1">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
               <p className="text-gray-600 mb-4">
-                Weekday Special: <strong>$54.90/adult</strong> for Mon–Thu events, any size, with a free appetizer platter.
+                Weekday Special: <strong>$54.90/adult</strong> for Mon–Thu events, any size, with a free appetizer platter and free tables & chairs.
               </p>
               <p className="text-sm text-gray-500">
                 No per-guest setup surcharge and no fee to add more grills — the per-person price is the price at 10

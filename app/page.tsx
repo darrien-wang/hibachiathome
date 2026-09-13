@@ -179,11 +179,11 @@ export default function Home() {
                 <span className="hidden lg:inline">Pick the plan that fits your party</span>
               </h2>
               <p className="mt-1 hidden text-base text-clay-700 lg:block">
-                Same food and chef show in every plan. Kids 5–12 half price, under 5 free.
+                Same food and chef show in every plan. Kids 5–12 half price, under 5 free. Parties of 10+ guests save $30–$90 automatically, any day.
               </p>
             </div>
             <span className="text-xs text-clay-600 lg:hidden">swipe →</span>
-            <span className="hidden text-[13px] text-clay-600 lg:block">Optional setup +$15/guest · gratuity 20–25% customary</span>
+            <span className="hidden text-[13px] text-clay-600 lg:block">Tables & chairs $10/guest, utensils $5/guest · tables & chairs free Mon–Thu · gratuity 20–25% customary</span>
           </div>
           <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:grid md:grid-cols-3 md:items-stretch md:overflow-visible md:px-0 md:pt-3 lg:mt-7 lg:gap-5 [&::-webkit-scrollbar]:hidden">
             <PlanCard
@@ -195,7 +195,7 @@ export default function Home() {
               lines={[
                 `$${fmt(GUEST_TIERS.child.price)}/child · under 5 free`,
                 "2 proteins, rice, veg, salad, show",
-                `$${MINIMUM_SPEND} minimum`,
+                `$${MINIMUM_SPEND} minimum · 10+ guests save $30–$90`,
               ]}
               cta="Get instant quote"
               href="/quote?source=home_pricing_standard"
@@ -209,6 +209,7 @@ export default function Home() {
               lines={[
                 `$${fmt(GUEST_TIERS.child.weekdayPrice)}/child · under 5 free`,
                 `${WEEKDAY_SPECIAL.appetizerPlatter.label} ($${WEEKDAY_SPECIAL.appetizerPlatter.value} value)`,
+                `${WEEKDAY_SPECIAL.tablesChairs.label} · any party size`,
                 "Full menu, upgrades welcome",
               ]}
               cta="Check weekday dates"
@@ -225,7 +226,7 @@ export default function Home() {
             />
           </div>
           <p className="mt-2 px-5 text-xs text-clay-600 lg:hidden">
-            Optional full setup (tables, chairs, utensils) +$15/guest. Gratuity 20–25% customary.
+            Tables & chairs $10/guest, utensils $5/guest (tables & chairs free Mon–Thu). Parties of 10+ save $30–$90 any day. Gratuity 20–25% customary.
           </p>
         </div>
       </section>

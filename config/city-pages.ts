@@ -614,7 +614,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Culver City?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) is available.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter and free tables & chairs, Mon–Thu) is available.",
       },
     ],
     nearby: ["santa-monica", "beverly-hills", "los-angeles"],
@@ -794,7 +794,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Thousand Oaks?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["woodland-hills", "santa-clarita", "malibu"],
@@ -884,7 +884,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in West Covina?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) is available.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, 15+ guests) is available.",
       },
     ],
     nearby: ["rowland-heights", "diamond-bar", "whittier"],
@@ -974,7 +974,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Whittier?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($45.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
       },
     ],
     nearby: ["west-covina", "long-beach", "downtown-los-angeles"],
@@ -1334,7 +1334,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Diamond Bar?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter and free tables & chairs, Mon–Thu) applies here too.",
       },
     ],
     nearby: ["rowland-heights", "corona", "san-gabriel"],
@@ -1796,7 +1796,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Irvine?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free with a $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) is also available in California.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free with a $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter and free tables & chairs, Mon–Thu) is also available in California.",
       },
     ],
     nearby: ["newport-beach", "huntington-beach", "anaheim"],
@@ -2344,7 +2344,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Riverside?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — everything included. Weekday Special ($54.90/adult with a free appetizer platter, Mon–Thu) applies in California too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — everything included. Weekday Special ($54.90/adult with a free appetizer platter and free tables & chairs, Mon–Thu) applies in California too.",
       },
     ],
     nearby: ["corona", "temecula", "anaheim"],
@@ -2881,7 +2881,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Corona?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special ($54.90/adult with a free appetizer platter, Mon–Thu) also applies.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special ($54.90/adult with a free appetizer platter and free tables & chairs, Mon–Thu) also applies.",
       },
     ],
     nearby: ["riverside", "anaheim", "temecula"],
@@ -3150,7 +3150,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at a Joshua Tree rental cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
       },
       {
         question: "Is winter too cold for an outdoor hibachi dinner?",
@@ -3240,7 +3240,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does a Big Bear hibachi party cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
       },
       {
         question: "Do you cook in the snow?",
@@ -3330,7 +3330,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at a La Quinta rental cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
       },
       {
         question: "How do gated communities work?",
@@ -3420,7 +3420,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at a La Jolla rental cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus any travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $45.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus any travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
       },
       {
         question: "What about June Gloom?",

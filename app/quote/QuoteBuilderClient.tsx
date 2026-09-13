@@ -123,7 +123,7 @@ const QUOTE_TESTIMONIALS = [
   },
 ] as const
 const QUOTE_STARTED_INPUT_FIELDS: Array<keyof QuoteInput> = ["eventDate", "location", "adults", "kids"]
-const WEEKDAY_SAVER_MENU_DETAIL = `Full menu, 2 regular proteins per guest + ${WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail})`
+const WEEKDAY_SAVER_MENU_DETAIL = `Full menu, 2 regular proteins per guest + ${WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}) + ${WEEKDAY_SPECIAL.tablesChairs.label.toLowerCase()}`
 
 function encodeUrlComponent(value: string): string {
   return encodeURIComponent(value)
@@ -471,7 +471,7 @@ export default function QuoteBuilderClient() {
   useEffect(() => {
     if (!weekdayNudgeRef.current) return
     weekdayNudgeRef.current = false
-    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "It only needs a Monday–Thursday date — and it comes with a free appetizer platter.")
+    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "It only needs a Monday–Thursday date — and it comes with a free appetizer platter and free tables & chairs.")
   }, [pushToast])
   const quoteSurface = "quote_builder"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
@@ -517,12 +517,12 @@ export default function QuoteBuilderClient() {
     if (weekdayEligible || input.pricingTier === "weekday_saver") return null
     if (!weekdaySaverEnabled) return weekdaySaverPolicy.unavailableMessage
     if (!input.eventDate) {
-      return `Pick a Mon–Thu date for the Weekday Special — ${weekdayAdultRateLabel} plus a free appetizer platter.`
+      return `Pick a Mon–Thu date for the Weekday Special — ${weekdayAdultRateLabel} plus a free appetizer platter and free tables & chairs.`
     }
     const described = describeEventDate(input.eventDate)
     return described
-      ? `${described.label} is a ${described.weekday} — the Weekday Special (${weekdayAdultRateLabel} + free appetizer platter) is Mon–Thu only.`
-      : `Weekday Special (${weekdayAdultRateLabel} + free appetizer platter) is Mon–Thu only.`
+      ? `${described.label} is a ${described.weekday} — the Weekday Special (${weekdayAdultRateLabel} + free appetizer platter and free tables & chairs) is Mon–Thu only.`
+      : `Weekday Special (${weekdayAdultRateLabel} + free appetizer platter and free tables & chairs) is Mon–Thu only.`
   }, [
     input.eventDate,
     input.pricingTier,
@@ -571,7 +571,7 @@ export default function QuoteBuilderClient() {
     pushToast(
       "promo",
       "You qualify for Weekday Special",
-      `Mon–Thu date — tap the green plan for ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}, with a free appetizer platter.`,
+      `Mon–Thu date — tap the green plan for ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}, with a free appetizer platter and free tables & chairs.`,
     )
   }, [input.pricingTier, pushToast, weekdayAdultRateLabel, weekdayEligible])
   // Display-only scarcity: real remaining capacity clamped to 1-3 (never zero —
@@ -885,7 +885,7 @@ export default function QuoteBuilderClient() {
         pushToast(
           "error",
           "Weekday Special needs a Mon–Thu date",
-          `Pick a Monday–Thursday date for ${weekdayAdultRateLabel} and a free appetizer platter. The Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
+          `Pick a Monday–Thursday date for ${weekdayAdultRateLabel} and a free appetizer platter and free tables & chairs. The Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
         )
       }
     } else if (input.pricingTier === "weekday_saver") {
@@ -1703,8 +1703,8 @@ export default function QuoteBuilderClient() {
                       </span>
                       <span className="flex-1">
                         {isWeekdaySaverTier
-                          ? `Weekday Special on — ${weekdayRatesLabel}, free appetizer platter included.`
-                          : `Mon–Thu date — take the Weekday Special and save $${weekdaySavings}, plus a free appetizer platter.`}
+                          ? `Weekday Special on — ${weekdayRatesLabel}, free appetizer platter and free tables & chairs included.`
+                          : `Mon–Thu date — take the Weekday Special and save $${weekdaySavings}, plus a free appetizer platter and free tables & chairs.`}
                       </span>
                       {weekdayEligible ? (
                         <button
@@ -1724,7 +1724,7 @@ export default function QuoteBuilderClient() {
                     </div>
                   ) : (
                     <p className="text-xs text-clay-600">
-                      Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult + a free appetizer platter.
+                      Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult + a free appetizer platter and free tables & chairs.
                     </p>
                   )}
                   <button
@@ -1839,8 +1839,14 @@ export default function QuoteBuilderClient() {
                   </div>
                   {input.tablewareRental ? (
                     <div className="flex justify-between border-b border-ink/15 py-2.5">
-                      <span>Tables, chairs &amp; utensils</span>
+                      <span>{result.freeTablesChairs ? "Utensils (tables & chairs free with Weekday Special)" : "Tables, chairs & utensils"}</span>
                       <span className="font-semibold">+${result.tablewareFee.toFixed(0)}</span>
+                    </div>
+                  ) : null}
+                  {result.partySizeDiscountApplied > 0 ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5 text-gold-800">
+                      <span>Party size discount ({result.partySizeDiscountLabel})</span>
+                      <span className="font-semibold">−${result.partySizeDiscountApplied.toFixed(0)}</span>
                     </div>
                   ) : null}
                   {!isWeekdaySaverTier && selectedPremiumUpgrades.length > 0 ? (
@@ -1859,7 +1865,7 @@ export default function QuoteBuilderClient() {
                     <div className="flex items-start gap-1.5 py-2.5 text-[13px] font-semibold text-gold-800">
                       <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       {result.includesAppetizerPlatter
-                        ? "Free appetizer platter — gyoza, edamame & spring rolls ($40 value, included with the Weekday Special)"
+                        ? "Free appetizer platter ($40 value) and free tables & chairs — included with the Weekday Special"
                         : "Free appetizer platter — gyoza, edamame & spring rolls ($40 value, parties of 20+, through Oct 31)"}
                     </div>
                   ) : null}
@@ -1876,9 +1882,13 @@ export default function QuoteBuilderClient() {
                     <span className={`h-[22px] w-[22px] shrink-0 rounded-full border-2 border-flame ${input.tablewareRental ? "bg-flame" : ""}`} />
                     <span className="flex-1">
                       <span className="block text-sm font-semibold">Tables, chairs &amp; utensils</span>
-                      <span className="block text-xs text-clay-600">+$15 per guest · skip if you have your own</span>
+                      <span className="block text-xs text-clay-600">
+                        {isWeekdaySaverTier ? "Tables & chairs free Mon–Thu · utensils +$5 per guest" : "+$15 per guest · skip if you have your own"}
+                      </span>
                     </span>
-                    <span className="text-sm font-semibold">{input.tablewareRental ? `+$${result.tablewareFee.toFixed(0)}` : "+$15/guest"}</span>
+                    <span className="text-sm font-semibold">
+                      {input.tablewareRental ? `+$${result.tablewareFee.toFixed(0)}` : isWeekdaySaverTier ? "+$5/guest" : "+$15/guest"}
+                    </span>
                   </button>
                   <div className="grid grid-cols-3 gap-2">
                     {(

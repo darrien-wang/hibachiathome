@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Minus, Plus } from "lucide-react"
 import EstimatorRow from "@/components/ui/estimator-row"
-import { GUEST_TIERS, MINIMUM_SPEND } from "@/config/pricing-rules"
+import { GUEST_TIERS, calcSimpleEstimate } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 
 // The menu's quick estimate: adults only, any day, one tap to the exact quote.
@@ -13,7 +13,7 @@ import { trackEvent } from "@/lib/tracking"
 // and one button here, not a second form.
 export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "sticky" | "card" }) {
   const [adults, setAdults] = useState(15)
-  const total = Math.max(MINIMUM_SPEND, Math.round(adults * GUEST_TIERS.adult.price * 100) / 100)
+  const total = calcSimpleEstimate({ adults, kids: 0, weekdaySpecial: false }).total
   const totalLabel = `$${total % 1 === 0 ? total.toFixed(0) : total.toFixed(2)}`
   const href = `/quote?source=menu_estimator&adults=${adults}`
   const onQuote = () => trackEvent("lead_start", { contact_surface: "menu_estimator", adults })

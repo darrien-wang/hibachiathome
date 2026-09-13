@@ -5,7 +5,7 @@ import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
-import { DEPOSIT_AMOUNT, GUEST_TIERS, MINIMUM_SPEND, TRAVEL_FREE_RADIUS_MILES, checkWeekdayEligibility, roundCurrency } from "@/config/pricing-rules"
+import { DEPOSIT_AMOUNT, GUEST_TIERS, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, roundCurrency } from "@/config/pricing-rules"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -80,11 +80,12 @@ export async function POST(request: NextRequest) {
   // pick stands and the text says it is a Mon–Thu price.
   const eligibility = eventDate ? checkWeekdayEligibility(eventDate, { adult: adults, child: kids, toddler: 0 }) : null
   const weekday = eligibility ? eligibility.isEligible : body.plan === "weekday"
-  const subtotal = roundCurrency(
-    adults * (weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price) + kids * (weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price),
-  )
-  const base = weekday ? subtotal : Math.max(subtotal, MINIMUM_SPEND)
-  const total = roundCurrency(base + travelFee)
+  // Same shared calculation as the on-page estimator: tier rate, Party Size
+  // Discount, then the $599 floor on every date (the old weekday branch
+  // skipped the floor and under-quoted small Mon–Thu parties).
+  const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee })
+  const subtotal = est.subtotal
+  const total = est.total
   const planLabel = weekday ? "Weekday Special (Mon–Thu)" : "Standard (any day)"
 
   const attribution = readAttributionFromCookieHeader(request.headers.get("cookie"))
