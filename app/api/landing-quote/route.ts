@@ -37,6 +37,12 @@ type Body = {
   name?: string
   /** Which surface asked: the city landing card (default) or the /quote unlock step. */
   channel?: "website_landing_quote" | "website_quote_unlock"
+  /**
+   * Landing card, 2026-09-13 (D-0913-08): "contact" is step 1 — save the lead
+   * as soon as mobile + email are given, send nothing yet. "quote" (default)
+   * is step 2 — text + email the exact price and wake ops.
+   */
+  stage?: "contact" | "quote"
   pagePath?: string
 }
 
@@ -74,6 +80,7 @@ export async function POST(request: NextRequest) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ ok: false, error: "email_invalid" }, { status: 400 })
   const name = asStr(body.name, 80)
   const leadChannel = body.channel === "website_quote_unlock" ? "website_quote_unlock" : "website_landing_quote"
+  const contactOnly = body.stage === "contact"
 
   const cityName = asStr(body.cityName, 60) || "Southern California"
   const citySlug = asStr(body.citySlug, 60).replace(/[^a-z0-9-]/gi, "") || "socal"
@@ -114,13 +121,15 @@ export async function POST(request: NextRequest) {
         phone: phoneE164,
         email,
         reason: "Booking Request",
-        message: `${leadChannel === "website_quote_unlock" ? "Quote unlock" : "Landing quote"} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}`,
+        message: contactOnly
+          ? `Landing contact (${cityName}): gave mobile + email, quote step pending · card default ${guestsLine} · ${planLabel}`
+          : `${leadChannel === "website_quote_unlock" ? "Quote unlock" : "Landing quote"} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}`,
         leadSource: source,
         leadChannel,
         leadType: "booking_inquiry",
         cityOrZip: cityName,
         guestCount: adults + kids,
-        touchpointType: "landing_quote_text",
+        touchpointType: contactOnly ? "landing_contact" : "landing_quote_text",
         touchpointSource: source,
         sourcePage: pagePath,
         attribution,
@@ -131,6 +140,10 @@ export async function POST(request: NextRequest) {
       console.error("[LEAD_PERSISTENCE_FAILED] landing-quote", { error: error instanceof Error ? error.message : String(error), phoneE164, source })
     }
   }
+
+  // Step 1 stops here: the lead exists, nothing has been sent. If the visitor
+  // never reaches step 2 the daily unanswered-leads report still lists them.
+  if (contactOnly) return NextResponse.json({ ok: true, stage: "contact", leadId })
 
   // Deposit link: the same prefilled /deposit/pay the quote page uses, with
   // the lead id so the paid order links back to this text.
