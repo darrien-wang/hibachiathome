@@ -91,6 +91,6 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
   {
     question: "¿Cuál es la política de cancelación?",
     answer:
-      "Nuestra política de cancelación incluye estos términos:\n\n- Se requieren 72 horas de anticipación para cancelar o reagendar con reembolso completo\n- Cambios dentro de las 72 horas pueden hacer el pago no reembolsable\n- Para días de lluvia, considera una carpa de 10'x10' sobre la estación del chef — la pones tú, nosotros no suministramos carpas\n- Si necesitas cancelar por clima, avísanos con al menos 72 horas de anticipación",
+      "Nuestra política de cancelación incluye estos términos:\n\n- Se requieren 72 horas de anticipación para cancelar o reagendar con reembolso completo\n- Dentro de las 72 horas es posible que no podamos reembolsar el total\n- Para días de lluvia, considera una carpa de 10'x10' sobre la estación del chef — la pones tú, nosotros no suministramos carpas\n- Si necesitas cancelar por clima, avísanos con al menos 72 horas de anticipación",
   },
 ]

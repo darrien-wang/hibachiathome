@@ -75,7 +75,7 @@ const faqs = [
   {
     question: "How far in advance should we book?",
     answer:
-      "Weekend evening slots go first — two to three weeks ahead is comfortable for most dates, and longer for December and graduation season. Weekday and daytime slots are often available on shorter notice. Nothing is charged when you ask us to hold a date.",
+      "Weekend evening slots go first — two to three weeks ahead is comfortable for most dates, and longer for December and graduation season. Weekday and daytime slots are often available on shorter notice.",
   },
 ]
 

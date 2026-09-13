@@ -259,7 +259,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
         faqs={faqs}
         faqHeading={`${page.city} catering FAQ`}
         ctaHeading={`Fire up your ${page.city} event.`}
-        ctaBody="Headcount, date, venue — done. Nothing to pay up front, and we staff the show to the room."
+        ctaBody="Headcount, date, venue — done. We staff the show to the room."
         nearby={[
           ...otherCatering.slice(0, 4).map((other) => ({ label: `${other.city} catering`, href: `/hibachi-catering/${other.slug}` })),
           ...nearby.slice(0, 2).map((other) => ({ label: `${other.city} at home`, href: `/hibachi-at-home/${other.slug}` })),

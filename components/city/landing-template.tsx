@@ -145,7 +145,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
   // on it in one session, then "$0" and "50 mi"), so it is a real button that
   // brings them to the phone input; the rest are flat facts, not buttons.
   const diffs = [
-    { big: "$0", label: "to check your date", body: "No card, no sign-up, no pressure", action: true },
+    { big: "15 min", label: "text reply", body: "A real person, not a bot", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
     { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
     { big: "48h", label: "chef named ahead", body: "If we ever cancel, double your money back" },

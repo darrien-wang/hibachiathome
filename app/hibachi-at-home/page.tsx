@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     question: "How do I pay?",
-    answer: "Zelle, Venmo, or cash, with the balance due on the day of service. Nothing is charged when you request a date.",
+    answer: "Zelle, Venmo, or cash, with the balance due on the day of service.",
   },
   {
     question: "What if it rains?",

@@ -1434,7 +1434,7 @@ export default function QuoteBuilderClient() {
                 Text us about this party
               </button>
               <p className="mt-3 text-sm text-clay-700">
-                Nothing to pay right now. Free to cancel or reschedule up to 72h before.
+                Free to cancel or reschedule up to 72h before.
               </p>
               <p className="mt-[18px] text-[13px] text-clay-600">
                 Or{" "}
@@ -1967,7 +1967,7 @@ export default function QuoteBuilderClient() {
                 <div className="flex items-center gap-2.5 rounded-2xl bg-surface px-4 py-3.5 text-[13px] leading-snug">
                   <span className="font-serif text-[22px] font-extrabold">{totalLabel}</span>
                   <span className="text-clay-700">
-                    {planName} · {result.guestCount} guests · no payment now
+                    {planName} · {result.guestCount} guests
                   </span>
                 </div>
 

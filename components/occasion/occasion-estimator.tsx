@@ -108,7 +108,7 @@ export default function OccasionEstimator({
         Text (213) 770-7788
       </a>
       {textFallback.open ? <DesktopTextPanel summary={smsSummary} onClose={textFallback.close} /> : null}
-      <p className="text-center text-xs text-clay-600">Nothing to pay now · no sign-up</p>
+      <p className="text-center text-xs text-clay-600">Exact price · no sign-up</p>
     </div>
   )
 }

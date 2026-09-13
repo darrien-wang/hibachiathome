@@ -215,7 +215,7 @@ export default function MobileHibachiPage() {
         faqs={faqs}
         faqHeading="Mobile hibachi FAQ"
         ctaHeading="Your place. Our grill."
-        ctaBody="See your exact mobile hibachi price in 30 seconds — no phone number, no sign-up, nothing to pay."
+        ctaBody="See your exact mobile hibachi price in 30 seconds — no phone number, no sign-up."
         nearby={topCities.slice(0, 6).map((c) => ({ label: c.city, href: `/hibachi-at-home/${c.slug}` }))}
         nearbyLabel="Local pages"
       />

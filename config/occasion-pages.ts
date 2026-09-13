@@ -41,7 +41,7 @@ const SPACE_FAQ = {
 const PRICE_FAQ = {
   question: "How much does it cost?",
   answer:
-    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Nothing to pay to check your date. Get an exact number in 30 seconds with the instant quote — no sign-up.",
+    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Get an exact number in 30 seconds with the instant quote — no sign-up.",
 }
 
 export const occasionPages: OccasionPage[] = [
@@ -579,7 +579,7 @@ export const occasionPages: OccasionPage[] = [
       {
         question: "Graduation season is busy — how far ahead should we book?",
         answer:
-          "May and June weekends go first. Two to three weeks ahead is comfortable; for a specific Saturday at sunset, book as soon as you have the date. Just ask us to hold it — nothing to pay up front.",
+          "May and June weekends go first. Two to three weeks ahead is comfortable; for a specific Saturday at sunset, book as soon as you have the date. Text us the date and we hold it.",
       },
       SPACE_FAQ,
       PRICE_FAQ,
