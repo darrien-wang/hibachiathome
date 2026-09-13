@@ -252,7 +252,7 @@ export const occasionPages: OccasionPage[] = [
       {
         question: "How many people can you serve?",
         answer:
-          "One chef comfortably serves up to about 25 guests; for bigger reunions we bring a second chef and grill so both ends of the party get the full show. Tell us your headcount in the quote and we'll set it up right.",
+          "One chef comfortably serves up to 28 guests; for bigger reunions we bring a second chef and grill so both ends of the party get the full show. Tell us your headcount in the quote and we'll set it up right.",
       },
       PRICE_FAQ,
     ],
@@ -717,7 +717,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "Can you handle a big quinceañera guest list?",
         answer:
-          "Yes — one chef serves up to about 25 guests with the full show, and larger celebrations get additional chefs and grills so every table has a front row. Tell us your headcount in the quote and we'll staff it right.",
+          "Yes — one chef serves up to 28 guests with the full show, and larger celebrations get additional chefs and grills so every table has a front row. Tell us your headcount in the quote and we'll staff it right.",
       },
       SPACE_FAQ,
       PRICE_FAQ,

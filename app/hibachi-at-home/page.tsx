@@ -122,7 +122,6 @@ export default function HibachiAtHomePage() {
   const router = useRouter()
   const packageSelectionMetadata: Record<string, { name: string; price_tier: string }> = {
     show: { name: "Hibachi Show Package", price_tier: "59.9_per_person" },
-    buffet: { name: "Buffet Style Package", price_tier: "59.9_per_person" },
     party: { name: "Party Experience Package", price_tier: "custom_party" },
   }
 
@@ -421,56 +420,6 @@ export default function HibachiAtHomePage() {
                 </div>
               </AnimateOnScroll>
 
-              {/* Buffet Style Package Card */}
-              <AnimateOnScroll direction="right" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg">
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 border-blue-200">
-                      Self-Service
-                    </span>
-                  </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="/images/design-mode/filetchickenshrimp-Hibachi-Catering-LA.jpg"
-                      alt="Buffet Style Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Buffet Style Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $59.90
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($1497 minimum)</p>
-                    </div>
-                    <ul className="space-y-1 mb-6 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Self-service buffet style</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fixed menu (3 proteins included)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Same price, larger portions & more food</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Minimum 30 people required</span>
-                      </li>
-                    </ul>
-                    <Button className="w-full bg-amber-500 hover:bg-amber-600" onClick={() => handleBookNow("buffet")}>
-                      Book Now
-                    </Button>
-                  </div>
-                </div>
-              </AnimateOnScroll>
             </div>
 
             <AnimateOnScroll direction="up" delay={200}>

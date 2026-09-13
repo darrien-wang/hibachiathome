@@ -109,7 +109,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     {
       question: "How many guests can you cater?",
       answer:
-        "One chef comfortably serves up to about 25 guests. Bigger event? We bring additional chefs and grills so the show reaches every table — 50, 80, 100+ guests are all doable with notice. Tell us your headcount in the quote and we'll staff it right.",
+        "One chef comfortably serves up to 28 guests. Bigger event? We bring additional chefs and grills so the show reaches every table — 50, 80, 100+ guests are all doable with notice. Tell us your headcount in the quote and we'll staff it right.",
     },
     {
       question: "Do you cater at venues, offices, or rentals — or just homes?",
