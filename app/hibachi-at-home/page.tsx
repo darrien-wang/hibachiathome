@@ -34,15 +34,15 @@ const faqs = [
   },
   {
     question: "How do I pay?",
-    answer: "Zelle, Venmo, or cash. Just a $19.90 deposit locks your date, and the remaining balance is due on the day of service.",
+    answer: "Zelle, Venmo, or cash, with the balance due on the day of service. Nothing is charged when you request a date.",
   },
   {
     question: "What if it rains?",
-    answer: "The grill needs cover, not the whole party. Most clients put up a 10'x10' pop-up tent over the chef's station — cheap to buy or rent, and we do not supply them. Guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, give us at least 72 hours notice to receive a full deposit refund.",
+    answer: "The grill needs cover, not the whole party. Most clients put up a 10'x10' pop-up tent over the chef's station — cheap to buy or rent, and we do not supply them. Guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, give us at least 72 hours notice and there is no charge.",
   },
   {
     question: "Can I cancel or reschedule?",
-    answer: "Yes. Cancel or reschedule at least 72 hours before your event for a full deposit refund. Changes inside 72 hours may make the deposit non-refundable.",
+    answer: "Yes. Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full.",
   },
 ]
 

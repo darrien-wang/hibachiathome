@@ -41,7 +41,7 @@ const SPACE_FAQ = {
 const PRICE_FAQ = {
   question: "How much does it cost?",
   answer:
-    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. A $19.90 refundable deposit locks your date. Get an exact number in 30 seconds with the instant quote — no sign-up.",
+    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Nothing to pay to check your date. Get an exact number in 30 seconds with the instant quote — no sign-up.",
 }
 
 export const occasionPages: OccasionPage[] = [
@@ -579,7 +579,7 @@ export const occasionPages: OccasionPage[] = [
       {
         question: "Graduation season is busy — how far ahead should we book?",
         answer:
-          "May and June weekends go first. Two to three weeks ahead is comfortable; for a specific Saturday at sunset, book as soon as you have the date. A $19.90 refundable deposit is all it takes to lock it.",
+          "May and June weekends go first. Two to three weeks ahead is comfortable; for a specific Saturday at sunset, book as soon as you have the date. Just ask us to hold it — nothing to pay up front.",
       },
       SPACE_FAQ,
       PRICE_FAQ,
@@ -645,7 +645,7 @@ export const occasionPages: OccasionPage[] = [
       {
         question: "Do you work on actual holidays?",
         answer:
-          "Yes — Thanksgiving, Christmas Eve, New Year's Eve, and the Fourth of July are some of our biggest dates. They book out first, so lock your date early with the $19.90 refundable deposit.",
+          "Yes — Thanksgiving, Christmas Eve, New Year's Eve, and the Fourth of July are some of our biggest dates. They book out first, so ask us to hold your date early.",
       },
       {
         question: "Is it warm enough for an outdoor party in winter?",
@@ -861,7 +861,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "How does a hibachi rehearsal dinner work?",
         answer:
-          "Pick the house — a family backyard, your rental, the Airbnb where the wedding party is staying. The chef arrives about 10 minutes early, cooks course by course with the full show, and cleans up while your families keep talking. Most rehearsal dinners run 25–50 guests across two grills, and a $19.90 deposit locks the date.",
+          "Pick the house — a family backyard, your rental, the Airbnb where the wedding party is staying. The chef arrives about 10 minutes early, cooks course by course with the full show, and cleans up while your families keep talking. Most rehearsal dinners run 25–50 guests across two grills, and we can hold the date for you.",
       },
       SPACE_FAQ,
       PRICE_FAQ,

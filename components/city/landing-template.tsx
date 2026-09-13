@@ -4,7 +4,7 @@ import Link from "next/link"
 import LandingEstimator from "@/components/city/landing-estimator"
 import LandingCtaButton from "@/components/city/landing-cta-button"
 import { phone } from "@/config/site"
-import { DEPOSIT_AMOUNT, TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
+import { TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
 import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 
 // One template for every paid landing page — /hibachi-at-home/{city},
@@ -67,8 +67,8 @@ const DISHES = [
 ] as const
 
 const STEPS = [
-  { title: "Text yourself the quote", body: "Pick guests and day above, enter your number — the quote and deposit link arrive by text." },
-  { title: "Lock your date", body: `A $${DEPOSIT_AMOUNT.toFixed(2)} deposit reserves your chef. Full refund with 72+ hours notice.` },
+  { title: "Text yourself the quote", body: "Pick guests and day above, enter your number and your quote arrives by text." },
+  { title: "We confirm your date", body: "A real person replies by text, confirms the date and books your chef. Free to cancel with 72+ hours notice." },
   { title: "We bring the restaurant", body: "Chef arrives about 45 min before serving time, sets up, performs, feeds everyone, cleans up." },
 ] as const
 
@@ -141,14 +141,14 @@ export default function LandingTemplate(props: LandingTemplateProps) {
         ? `${city}: about $${travelFee} travel, shown in your quote`
         : "Most SoCal addresses carry no travel fee"
 
-  // The deposit card is the one people try to tap (2026-09-12: 13 rage clicks
+  // The first card is the one people try to tap (2026-09-12: 13 rage clicks
   // on it in one session, then "$0" and "50 mi"), so it is a real button that
   // brings them to the phone input; the rest are flat facts, not buttons.
   const diffs = [
-    { big: `$${DEPOSIT_AMOUNT.toFixed(2)}`, label: "deposit, not $150", body: "Full refund with 72h notice", action: true },
+    { big: "$0", label: "to check your date", body: "No card, no sign-up, no pressure", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
     { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
-    { big: "48h", label: "chef named ahead", body: "If we ever cancel, double deposit back" },
+    { big: "48h", label: "chef named ahead", body: "If we ever cancel, double your money back" },
   ]
 
   return (
@@ -165,7 +165,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
               {subhead} Setup &amp; cleanup included, {travelLine}.
             </p>
             <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
-              {[`$${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit`, "Licensed & insured", "500+ parties"].map((chip) => (
+              {["Free to cancel 72h+", "Licensed & insured", "500+ parties"].map((chip) => (
                 <span key={chip} className="rounded-full border border-white/40 px-3 py-1.5">
                   {chip}
                 </span>
@@ -308,7 +308,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             <div className="flex flex-1 flex-col gap-2">
               <h2 className="font-serif text-[28px] font-extrabold leading-[1.05] lg:text-4xl">{ctaHeading}</h2>
               <p className="text-sm leading-relaxed text-white/80 lg:text-base">
-                {ctaBody ?? `Your quote is ready above. One number, one text, $${DEPOSIT_AMOUNT.toFixed(2)} locks your chef.`}
+                {ctaBody ?? "Your quote is ready above. One number, one text, and we confirm your chef."}
               </p>
             </div>
             <div className="flex flex-col items-center gap-2">

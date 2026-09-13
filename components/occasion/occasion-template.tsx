@@ -4,7 +4,7 @@ import Link from "next/link"
 import LazyVideo from "@/components/lazy-video"
 import OccasionEstimator from "@/components/occasion/occasion-estimator"
 import type { OccasionPage } from "@/config/occasion-pages"
-import { GUEST_TIERS, MINIMUM_SPEND, DEPOSIT_AMOUNT } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND } from "@/config/pricing-rules"
 import { phone } from "@/config/site"
 
 // /party/{occasion} and /party/{occasion}/{city} from the Claude Design
@@ -171,7 +171,7 @@ export default function OccasionTemplate({ page, title, breadcrumb, intro, sourc
               </span>
             </div>
             <p className="text-xs text-clay-600">
-              ${MINIMUM_SPEND} event minimum · ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit locks your date · exact quote in 30 seconds
+              ${MINIMUM_SPEND} event minimum · nothing to pay now · exact quote in 30 seconds
             </p>
           </section>
 

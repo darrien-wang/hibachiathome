@@ -136,7 +136,7 @@ export default function FAQClientPage() {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder={big ? "Search questions…" : "Search: weather, deposit, vegan…"}
+        placeholder={big ? "Search questions…" : "Search: weather, kids, vegan…"}
         aria-label="Search questions"
         className={`w-full rounded-full border border-ink/10 bg-white pl-11 pr-4 text-[15px] text-ink outline-none placeholder:text-clay-600 focus:border-flame ${big ? "h-[50px]" : "h-12"}`}
       />

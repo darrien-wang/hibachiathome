@@ -30,11 +30,11 @@ const FAQ = [
   },
   {
     q: "What if it rains?",
-    a: "We cook rain or shine under a dry area — a 10×10 pop-up over the chef's station works. Need to cancel for weather? 72 hours' notice gets a full deposit refund.",
+    a: "We cook rain or shine under a dry area — a 10×10 pop-up over the chef's station works. Need to cancel for weather? 72 hours' notice and there is no charge.",
   },
   {
     q: "Cancellation policy",
-    a: "Full deposit refund with 72 hours' notice. Your chef is confirmed by name 48 hours ahead — if we ever cancel, we refund double your deposit.",
+    a: "Cancel or reschedule free with 72 hours' notice. Your chef is confirmed by name 48 hours ahead, and if we ever cancel on you we refund double what you have paid.",
   },
 ] as const
 
@@ -329,7 +329,7 @@ export default function Home() {
           <div className="flex items-center gap-8 rounded-[32px] bg-cocoa px-12 py-11 text-white">
             <div className="flex flex-1 flex-col gap-2">
               <h2 className="font-serif text-4xl font-extrabold leading-[1.1]">Ready to create great memories?</h2>
-              <p className="text-base text-white/80">Exact price in 30 seconds. No phone number needed. A $19.90 deposit holds your date.</p>
+              <p className="text-base text-white/80">Exact price in 30 seconds. No phone number needed. Nothing to pay to check your date.</p>
             </div>
             <QuoteCtaLink
               href="/quote?source=home_cta"

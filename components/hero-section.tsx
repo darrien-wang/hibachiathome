@@ -7,7 +7,7 @@ import { trackEvent } from "@/lib/tracking"
 // Trust markers under the CTA — every claim here must stay verifiable from
 // our own published policies (24/7 self-service booking & changes, FAQ refund
 // terms, party count). Within 48h of an event, changes route through the team.
-const TRUST_MARKERS = ["Book & modify online 24/7", "500+ parties served", "Full deposit refund up to 72h"]
+const TRUST_MARKERS = ["Book & modify online 24/7", "500+ parties served", "Free cancellation up to 72h"]
 
 export default function HeroSection() {
   const [isMobile, setIsMobile] = useState(false)

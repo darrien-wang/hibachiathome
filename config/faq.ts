@@ -37,7 +37,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "What if the chef doesn't show up?",
     answer:
-      "This is our show-up promise, in writing: your chef is confirmed by name 48 hours before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double your deposit and give you first priority to rebook. In other words: we show up, or it costs us.",
+      "This is our show-up promise, in writing: your chef is confirmed by name 48 hours before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook. In other words: we show up, or it costs us.",
   },
   {
     question: "How much food does each guest get?",
@@ -84,11 +84,11 @@ Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and 
   {
     question: "How do I make a reservation?",
     answer:
-      "Booking is simple and straightforward:\n\n- Get an instant quote at www.realhibachi.com\n- Select your preferred date and package\n- Provide your guest count and contact information\n- Confirm your booking with a deposit\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
+      "Booking is simple and straightforward:\n\n- Get an instant quote at www.realhibachi.com\n- Select your preferred date and package\n- Provide your guest count and contact information\n- We confirm the booking with you directly\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
   },
   {
     question: "What is your cancellation policy?",
     answer:
-      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules to receive a full deposit refund\n- Changes made inside 72 hours may make the deposit non-refundable\n- For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",
+      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules, at no cost\n- Inside 72 hours we may not be able to refund in full\n- For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",
   },
 ]

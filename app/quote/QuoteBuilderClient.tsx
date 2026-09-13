@@ -25,7 +25,6 @@ import {
   GUEST_TIERS,
   MINIMUM_SPEND,
   WEEKDAY_SPECIAL,
-  DEPOSIT_AMOUNT,
   calcAdultEquivalents,
   isWeekdayEligibleDate,
 } from "@/config/pricing-rules"
@@ -955,27 +954,6 @@ export default function QuoteBuilderClient() {
     missingFieldLabels.length > 1
       ? `${missingFieldLabels.slice(0, -1).join(", ")} and ${missingFieldLabels[missingFieldLabels.length - 1]}`
       : missingFieldLabels[0]
-  const bookingConfirmationDepositHref = useMemo(() => {
-    if (!bookingConfirmation) return "/deposit/pay"
-
-    const params = new URLSearchParams({
-      source: QUOTE_SOURCE,
-      event_date: bookingConfirmation.eventDate,
-      event_time: bookingConfirmation.eventTime,
-      location: bookingConfirmation.location,
-      adults: String(bookingConfirmation.adults),
-      kids: String(bookingConfirmation.kids),
-      tent_10x10: bookingConfirmation.tent10x10 ? "yes" : "no",
-      estimate_low: String(Math.round(bookingConfirmation.estimateLow)),
-      estimate_high: String(Math.round(bookingConfirmation.estimateHigh)),
-    })
-
-    if (bookingConfirmation.bookingId) {
-      params.set("id", bookingConfirmation.bookingId)
-    }
-
-    return `/deposit/pay?${params.toString()}`
-  }, [bookingConfirmation])
   const selectedPremiumUpgrades = useMemo(() => {
     const labels: string[] = []
     if (input.addOns.steak) labels.push("Filet Mignon")
@@ -1166,7 +1144,7 @@ export default function QuoteBuilderClient() {
     window.location.href = emailHref
   }
 
-  const submitBookingRequest = async (conversionType: "book_online_click" | "deposit_lock_click") => {
+  const submitBookingRequest = async (conversionType: "book_online_click") => {
     if (bookingRequestSubmitting) return
     if (missingRequiredBookingFields) {
       pushToast("error", "A few details missing", `Still need ${missingFieldsSentence}.`)
@@ -1417,8 +1395,8 @@ export default function QuoteBuilderClient() {
               </h2>
               <p className="mt-2 text-base text-clay-700">
                 {bookingConfirmation.customerEmailDelivered
-                  ? "Confirmation email sent. Pay the deposit to lock your chef."
-                  : "Details received. Pay the deposit to lock your chef."}
+                  ? "Confirmation email sent. A real person texts you back shortly."
+                  : "Details received. A real person texts you back shortly."}
               </p>
 
               {/* One line of facts: date · zip · guests · estimate. */}
@@ -1448,21 +1426,15 @@ export default function QuoteBuilderClient() {
                 ))}
               </div>
 
-              <Link
-                href={bookingConfirmationDepositHref}
+              <button
+                type="button"
+                onClick={onSmsClick}
                 className="mt-[26px] flex h-14 w-full items-center justify-center rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700"
               >
-                Pay ${DEPOSIT_AMOUNT.toFixed(2)} deposit · lock the date
-              </Link>
+                Text us about this party
+              </button>
               <p className="mt-3 text-sm text-clay-700">
-                Fully refundable up to 72h before.{" "}
-                <button
-                  type="button"
-                  onClick={onSmsClick}
-                  className="font-semibold text-flame-700 underline-offset-[3px] hover:underline"
-                >
-                  Questions? Text us
-                </button>
+                Nothing to pay right now. Free to cancel or reschedule up to 72h before.
               </p>
               <p className="mt-[18px] text-[13px] text-clay-600">
                 Or{" "}
@@ -1995,7 +1967,7 @@ export default function QuoteBuilderClient() {
                 <div className="flex items-center gap-2.5 rounded-2xl bg-surface px-4 py-3.5 text-[13px] leading-snug">
                   <span className="font-serif text-[22px] font-extrabold">{totalLabel}</span>
                   <span className="text-clay-700">
-                    {planName} · {result.guestCount} guests · a ${DEPOSIT_AMOUNT.toFixed(2)} deposit holds your chef
+                    {planName} · {result.guestCount} guests · no payment now
                   </span>
                 </div>
 
@@ -2086,8 +2058,8 @@ export default function QuoteBuilderClient() {
 
                 <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
                   {[
-                    "Chef confirmed by name 48h before — if we cancel, double your deposit back",
-                    "Full deposit refund up to 72h before",
+                    "Chef confirmed by name 48h before — if we cancel, double your money back",
+                    "Free to cancel or reschedule up to 72h before",
                     "Tarp under the grill, full cleanup before we leave",
                   ].map((line) => (
                     <div key={line} className="flex gap-2.5">
@@ -2136,8 +2108,8 @@ export default function QuoteBuilderClient() {
               {priceCard}
               <div className="flex flex-col gap-3 rounded-[28px] border border-ink/10 bg-surface p-6 text-sm leading-relaxed text-clay-700 shadow-organic">
                 {[
-                  "Chef confirmed by name 48h before — if we cancel, double your deposit back",
-                  "Full deposit refund up to 72h before",
+                  "Chef confirmed by name 48h before — if we cancel, double your money back",
+                  "Free to cancel or reschedule up to 72h before",
                   "Tarp under the grill, full cleanup before we leave",
                 ].map((line) => (
                   <div key={line} className="flex gap-2.5">

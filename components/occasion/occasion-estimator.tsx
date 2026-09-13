@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import EstimatorRow from "@/components/ui/estimator-row"
-import { GUEST_TIERS, MINIMUM_SPEND, DEPOSIT_AMOUNT, roundCurrency } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND, roundCurrency } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 
@@ -108,7 +108,7 @@ export default function OccasionEstimator({
         Text (213) 770-7788
       </a>
       {textFallback.open ? <DesktopTextPanel summary={smsSummary} onClose={textFallback.close} /> : null}
-      <p className="text-center text-xs text-clay-600">${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit locks your date · no sign-up</p>
+      <p className="text-center text-xs text-clay-600">Nothing to pay now · no sign-up</p>
     </div>
   )
 }

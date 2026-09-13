@@ -38,7 +38,7 @@ Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu even
   {
     question: "¿Qué pasa si el chef no llega?",
     answer:
-      "Esta es nuestra promesa de asistencia, por escrito: tu chef queda confirmado por nombre 48 horas antes del evento, y nuestros chefs son parte de nuestro propio equipo — no repartidores de una app. Si Real Hibachi alguna vez tuviera que cancelarte, te devolvemos el doble de tu depósito y te damos prioridad para reagendar. En otras palabras: llegamos, o nos cuesta.",
+      "Esta es nuestra promesa de asistencia, por escrito: tu chef queda confirmado por nombre 48 horas antes del evento, y nuestros chefs son parte de nuestro propio equipo — no repartidores de una app. Si Real Hibachi alguna vez tuviera que cancelarte, te devolvemos el doble de lo que hayas pagado y te damos prioridad para reagendar. En otras palabras: llegamos, o nos cuesta.",
   },
   {
     question: "¿Cuánta comida recibe cada invitado?",
@@ -86,11 +86,11 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
   {
     question: "¿Cómo hago una reservación?",
     answer:
-      "Reservar es simple y directo:\n\n- Obtén una cotización al instante en www.realhibachi.com\n- Elige tu fecha y paquete\n- Indica el número de invitados y tus datos de contacto\n- Confirma tu reservación con un depósito\n\nPara fiestas de cualquier tamaño solo necesitas una reservación. Nosotros asignamos el número de chefs según tus invitados.",
+      "Reservar es simple y directo:\n\n- Obtén una cotización al instante en www.realhibachi.com\n- Elige tu fecha y paquete\n- Indica el número de invitados y tus datos de contacto\n- Nosotros te confirmamos la reservación directamente\n\nPara fiestas de cualquier tamaño solo necesitas una reservación. Nosotros asignamos el número de chefs según tus invitados.",
   },
   {
     question: "¿Cuál es la política de cancelación?",
     answer:
-      "Nuestra política de cancelación incluye estos términos:\n\n- Se requieren 72 horas de anticipación para cancelar o reagendar con reembolso completo del depósito\n- Cambios dentro de las 72 horas pueden hacer el depósito no reembolsable\n- Para días de lluvia, considera una carpa de 10'x10' sobre la estación del chef — la pones tú, nosotros no suministramos carpas\n- Si necesitas cancelar por clima, avísanos con al menos 72 horas de anticipación",
+      "Nuestra política de cancelación incluye estos términos:\n\n- Se requieren 72 horas de anticipación para cancelar o reagendar con reembolso completo\n- Cambios dentro de las 72 horas pueden hacer el pago no reembolsable\n- Para días de lluvia, considera una carpa de 10'x10' sobre la estación del chef — la pones tú, nosotros no suministramos carpas\n- Si necesitas cancelar por clima, avísanos con al menos 72 horas de anticipación",
   },
 ]

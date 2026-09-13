@@ -12,7 +12,7 @@ const URL = `${BASE_URL}/mobile-hibachi`
 export const metadata: Metadata = {
   title: "Mobile Hibachi Los Angeles & SoCal | Chef & Grill Come to You from $59.90",
   description:
-    "Mobile hibachi catering across Los Angeles, Orange County, San Diego & all of Southern California. A private chef and teppanyaki grill travel to your backyard or venue. $59.90/adult, setup & cleanup included, $19.90 deposit.",
+    "Mobile hibachi catering across Los Angeles, Orange County, San Diego & all of Southern California. A private chef and teppanyaki grill travel to your backyard or venue. $59.90/adult, setup and cleanup included.",
   alternates: { canonical: URL },
   openGraph: {
     title: "Mobile Hibachi Los Angeles & SoCal | Real Hibachi",
@@ -77,7 +77,7 @@ const faqs = [
   {
     question: "Can I cancel or reschedule?",
     answer:
-      "Yes. Cancel or reschedule at least 72 hours before your event for a full refund of the $19.90 deposit. Changes inside 72 hours may make the deposit non-refundable.",
+      "Yes. Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full.",
   },
 ]
 
@@ -215,7 +215,7 @@ export default function MobileHibachiPage() {
         faqs={faqs}
         faqHeading="Mobile hibachi FAQ"
         ctaHeading="Your place. Our grill."
-        ctaBody="See your exact mobile hibachi price in 30 seconds — no phone number, no sign-up. A $19.90 deposit locks your chef."
+        ctaBody="See your exact mobile hibachi price in 30 seconds — no phone number, no sign-up, nothing to pay."
         nearby={topCities.slice(0, 6).map((c) => ({ label: c.city, href: `/hibachi-at-home/${c.slug}` }))}
         nearbyLabel="Local pages"
       />

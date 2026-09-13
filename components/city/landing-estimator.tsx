@@ -7,7 +7,7 @@ import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
-import { GUEST_TIERS, DEPOSIT_AMOUNT, MINIMUM_SPEND, checkWeekdayEligibility, roundCurrency, weekdayBlackoutLabel } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND, checkWeekdayEligibility, roundCurrency, weekdayBlackoutLabel } from "@/config/pricing-rules"
 
 // The ad landing page's estimate card, revised 2026-09-12 from the Claude
 // Design "Realhibachi Landing Page" board (决策日志 D-0911-05).
@@ -16,7 +16,7 @@ import { GUEST_TIERS, DEPOSIT_AMOUNT, MINIMUM_SPEND, checkWeekdayEligibility, ro
 // paid sessions survived that hop while 9.8% had already started typing here.
 // So the card is now the whole form: guests, an optional date, one phone
 // number, "Text me this quote". The server prices it from config, texts the
-// estimate plus a deposit link from the business line, and the card flips to
+// estimate from the business line, and the card flips to
 // a receipt in place. Every CTA on the page (sticky bar, final section)
 // points back at this one input instead of leaving the page.
 //
@@ -276,7 +276,7 @@ export default function LandingEstimator({
             </span>
             <div className="min-w-0 flex-1 text-sm leading-snug">
               {/* Twilio "accepted" is not "delivered" (T-Mobile rejected every text
-                  on 2026-09-12), so the quote and the deposit link live here too. */}
+                  on 2026-09-12), so the quote is repeated on screen too. */}
               <p className="font-bold">{sent.smsDelivered ? `Texted to ${prettyPhone(phoneValue)}` : `We have your number: ${prettyPhone(phoneValue)}`}</p>
               <p className="mt-0.5 text-clay-700">
                 {sent.smsDelivered
@@ -289,15 +289,6 @@ export default function LandingEstimator({
                 {guestsShort} · {planShort}
                 {fee > 0 ? ` · incl. ~$${fee} travel` : ""}
               </p>
-              {sent.depositUrl ? (
-                <a
-                  href={sent.depositUrl}
-                  onClick={() => trackEvent("deposit_started", { contact_surface: "landing_receipt", quote_total: sent.total })}
-                  className="mt-2.5 flex h-11 items-center justify-center rounded-full bg-flame px-4 text-[14px] font-bold text-white transition hover:bg-flame-600"
-                >
-                  Lock my date · {fmt(DEPOSIT_AMOUNT)} refundable deposit
-                </a>
-              ) : null}
             </div>
           </div>
         ) : (
@@ -327,7 +318,7 @@ export default function LandingEstimator({
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="Email (optional — deposit link goes here too)"
+              placeholder="Email (optional — we send the quote here too)"
               aria-label="Email (optional)"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -344,12 +335,12 @@ export default function LandingEstimator({
               {busy ? "Sending…" : "Text me this quote"}
             </button>
             <p className={`text-center text-xs ${phoneErr || serverErr ? "font-semibold text-flame-700" : "text-clay-600"}`}>
-              {serverErr ?? (phoneErr ? "Enter a 10-digit mobile number so we can text the quote." : `Just your number · quote + ${fmt(DEPOSIT_AMOUNT)} deposit link by text · no spam`)}
+              {serverErr ?? (phoneErr ? "Enter a 10-digit mobile number so we can text the quote." : "Just your number · your quote by text · no spam")}
             </p>
           </form>
         )}
 
-        {/* Proof lives inside the card: paying a deposit is a trust decision. */}
+        {/* Proof lives inside the card: handing over a phone number is a trust decision. */}
         <div className="flex items-center gap-3 border-t border-ink/10 pt-3">
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
             <Image src={proofImage} alt="Real Hibachi party" fill sizes="48px" className="object-cover saturate-[1.15]" />
@@ -358,7 +349,7 @@ export default function LandingEstimator({
             <p className="text-ink">
               &ldquo;{proofQuote.text}&rdquo; <span className="text-clay-600">— {proofQuote.name}, {proofQuote.source}</span>
             </p>
-            <p className="mt-0.5 font-semibold text-clay-700">We reply within 15 min · deposit refundable 72h+</p>
+            <p className="mt-0.5 font-semibold text-clay-700">We reply within 15 min · free to cancel 72h+</p>
           </div>
         </div>
       </div>
@@ -382,32 +373,22 @@ export default function LandingEstimator({
         >
           <Phone className="h-5 w-5" />
         </a>
-        {sent?.depositUrl ? (
-          <a
-            href={sent.depositUrl}
-            onClick={() => trackEvent("deposit_started", { contact_surface: "landing_sticky", quote_total: sent.total })}
-            className="flex h-[50px] items-center rounded-full bg-emerald-600 px-5 text-[15px] font-bold text-white shadow-organic-lg"
-          >
-            Lock my date · {fmt(DEPOSIT_AMOUNT)}
-          </a>
-        ) : (
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              if (sent) return
-              if (phoneReady) {
-                if (!busy) void submit()
-                return
-              }
-              trackEvent("lead_start", { contact_surface: "landing_sticky", adults, kids, quote_plan: weekday ? "weekday" : "standard", quote_total: total })
-              focusLandingPhone()
-            }}
-            className={`flex h-[50px] items-center rounded-full px-5 text-[15px] font-bold shadow-organic-lg ${sent ? "bg-emerald-600 text-white" : "bg-flame text-white"}`}
-          >
-            {sent ? "Sent ✓" : busy ? "Sending…" : phoneReady ? "Send my quote →" : "Text me quote"}
-          </button>
-        )}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            if (sent) return
+            if (phoneReady) {
+              if (!busy) void submit()
+              return
+            }
+            trackEvent("lead_start", { contact_surface: "landing_sticky", adults, kids, quote_plan: weekday ? "weekday" : "standard", quote_total: total })
+            focusLandingPhone()
+          }}
+          className={`flex h-[50px] items-center rounded-full px-5 text-[15px] font-bold shadow-organic-lg ${sent ? "bg-emerald-600 text-white" : "bg-flame text-white"}`}
+        >
+          {sent ? "Sent ✓" : busy ? "Sending…" : phoneReady ? "Send my quote →" : "Text me quote"}
+        </button>
       </div>
     </>
   )

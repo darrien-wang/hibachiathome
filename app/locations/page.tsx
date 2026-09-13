@@ -67,7 +67,7 @@ export default function LocationsPage() {
         name: "How far do you travel?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "The first 50 miles of travel are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote before any deposit.",
+          text: "The first 50 miles of travel are included. Beyond that a travel fee of $1 per extra mile is calculated from your address and shown in your quote up front.",
         },
       },
       {

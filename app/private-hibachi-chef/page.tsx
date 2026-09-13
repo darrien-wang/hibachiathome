@@ -12,7 +12,7 @@ const URL = `${BASE_URL}/private-hibachi-chef`
 export const metadata: Metadata = {
   title: "Private Hibachi Chef Los Angeles & SoCal | Hire a Teppanyaki Chef from $59.90",
   description:
-    "Hire a private hibachi chef for your home, backyard, or event in Los Angeles, Orange County, San Diego & all of Southern California. Live teppanyaki show, $59.90/adult, chef confirmed by name 48h ahead, $19.90 deposit.",
+    "Hire a private hibachi chef for your home, backyard, or event in Los Angeles, Orange County, San Diego & all of Southern California. Live teppanyaki show, $59.90/adult, chef confirmed by name 48h ahead.",
   alternates: { canonical: URL },
   openGraph: {
     title: "Private Hibachi Chef Los Angeles & SoCal | Real Hibachi",
@@ -46,7 +46,7 @@ const chefPromises = [
   {
     title: "Confirmed by name, 48 hours ahead",
     description:
-      "Two days before your party you know exactly which chef is coming. If Real Hibachi ever has to cancel on you, we refund double your deposit and give you first priority to rebook.",
+      "Two days before your party you know exactly which chef is coming. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook.",
   },
   {
     title: "Our own team, not an app",
@@ -69,7 +69,7 @@ const faqs = [
   {
     question: "How do I hire a private hibachi chef?",
     answer:
-      "Get an instant quote online — date, guest count, and address are all we need. A $19.90 deposit locks your date, and your chef is confirmed by name 48 hours before the event. The whole thing takes about two minutes and no phone call is required.",
+      "Get an instant quote online — date, guest count, and address are all we need. Your chef is confirmed by name 48 hours before the event. The whole thing takes about two minutes and no phone call is required.",
   },
   {
     question: "How much does a private hibachi chef cost?",
@@ -99,7 +99,7 @@ const faqs = [
   {
     question: "Can I cancel or reschedule my chef?",
     answer:
-      "Yes. Cancel or reschedule at least 72 hours before your event and the $19.90 deposit is refunded in full. Changes inside 72 hours may make the deposit non-refundable. And the promise runs both ways — if Real Hibachi ever cancels on you, you get double your deposit back.",
+      "Yes. Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full. And the promise runs both ways — if Real Hibachi ever cancels on you, you get double your money back.",
   },
 ]
 

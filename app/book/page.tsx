@@ -154,7 +154,7 @@ export default function BookingPage() {
           <div className="grid gap-3 text-sm text-amber-900 md:grid-cols-2">
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Cancellation</p>
-              <p>Cancel or reschedule with at least 72 hours notice to receive a full deposit refund.</p>
+              <p>Cancel or reschedule with at least 72 hours notice at no cost.</p>
             </div>
             <div className="rounded bg-white/70 p-3 border border-amber-100">
               <p className="font-semibold mb-1">Weather</p>

@@ -66,7 +66,7 @@ export const cityPages: CityPage[] = [
     county: "Los Angeles County",
     metaTitle: "Hibachi at Home Los Angeles CA | Hibachi Catering from $59.90/Person",
     metaDescription:
-      "Private hibachi chef anywhere in Los Angeles — backyards, rooftops, and rentals from the Westside to the Valley. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
+      "Private hibachi chef anywhere in Los Angeles — backyards, rooftops, and rentals from the Westside to the Valley. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Los Angeles is the reason we do this. In a city where a Saturday dinner reservation for twelve means three cars, ninety minutes of traffic, and a table you get pushed off at 9pm, a private hibachi chef in your own backyard is simply the better version of the evening. We bring the mobile teppanyaki grill, the food, and the full show — you stay home.",
       "We cook across the whole city: Westside backyards, Hollywood Hills decks, Valley pools, DTLA rooftops, and Eastside bungalows. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, with setup and cleanup always included and any travel fee shown upfront before you pay anything.",
@@ -144,7 +144,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How far in advance should I book in Los Angeles?",
         answer:
-          "Two to three weeks for a weekend date is safe. Graduation season in May and June and the weeks around major holidays go earlier — a $19.90 deposit locks your date and is fully refundable with 72+ hours notice.",
+          "Two to three weeks for a weekend date is safe. Graduation season in May and June and the weeks around major holidays go earlier — You can cancel or reschedule free with 72+ hours notice.",
       },
       {
         question: "What does hibachi at home cost in Los Angeles?",
@@ -165,7 +165,7 @@ export const cityPages: CityPage[] = [
     county: "Los Angeles County",
     metaTitle: "Hibachi at Home Downtown LA | Hibachi Catering from $59.90/Person",
     metaDescription:
-      "Private hibachi chef for DTLA lofts, rooftops, and offices. Arts District to South Park. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
+      "Private hibachi chef for DTLA lofts, rooftops, and offices. Arts District to South Park. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Downtown LA parties happen on roofs, in loft courtyards, and in office spaces after hours — and almost none of them have a backyard. That is fine. Our teppanyaki grill is mobile, and a DTLA rooftop at sunset with the skyline behind the flame is one of the best rooms we cook in all year.",
       "We serve the Arts District, South Park, Historic Core, Little Tokyo, Chinatown, and the surrounding blocks. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included.",
@@ -255,7 +255,7 @@ export const cityPages: CityPage[] = [
     county: "Los Angeles County",
     metaTitle: "Hibachi at Home Hollywood CA | Hibachi Catering from $59.90/Person",
     metaDescription:
-      "Private hibachi chef in Hollywood and the Hollywood Hills — decks, pools, and rentals. $59.90/adult flat rate, setup & cleanup included, $19.90 deposit.",
+      "Private hibachi chef in Hollywood and the Hollywood Hills — decks, pools, and rentals. $59.90/adult flat rate, setup & cleanup included.",
     intro: [
       "Hollywood parties are usually one of two things: a hillside deck with a view, or a flats bungalow with a yard and string lights. Both are great hibachi venues, and both are far better than trying to get a group of fifteen into a Sunset restaurant on a Saturday night.",
       "We cook throughout Hollywood, the Hollywood Hills, Beachwood Canyon, Los Feliz, and the surrounding blocks. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included.",
@@ -879,7 +879,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How late can we book?",
         answer:
-          "Two to three weeks ahead is safe for a weekend, and holiday weekends fill first. That said, West Covina is close enough to base that we can sometimes accommodate shorter notice \u2014 it is worth asking. A $19.90 deposit locks your date, fully refundable with 72+ hours notice.",
+          "Two to three weeks ahead is safe for a weekend, and holiday weekends fill first. That said, West Covina is close enough to base that we can sometimes accommodate shorter notice \u2014 it is worth asking. You can cancel or reschedule free with 72+ hours notice.",
       },
       {
         question: "What does hibachi at home cost in West Covina?",
@@ -1054,7 +1054,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Do you cook for Lunar New Year and other holiday gatherings?",
         answer:
-          "Yes, and those dates book out early — late January and February weekends fill first. A $19.90 deposit locks your date and is fully refundable with 72+ hours notice.",
+          "Yes, and those dates book out early — late January and February weekends fill first. You can cancel or reschedule free with 72+ hours notice.",
       },
       {
         question: "Do you serve the rest of the San Gabriel Valley?",
@@ -1239,7 +1239,7 @@ export const cityPages: CityPage[] = [
       {
         question: "When should we book for a holiday gathering?",
         answer:
-          "Earlier than you think. Lunar New Year weekends and the weeks around Thanksgiving and Christmas are our busiest SGV dates and fill first. A $19.90 deposit locks your date, fully refundable with 72+ hours notice.",
+          "Earlier than you think. Lunar New Year weekends and the weeks around Thanksgiving and Christmas are our busiest SGV dates and fill first. You can cancel or reschedule free with 72+ hours notice.",
       },
       {
         question: "What does hibachi at home cost in Rowland Heights?",
@@ -1701,7 +1701,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What about June Gloom or marine layer?",
         answer:
-          "The grill doesn't mind the marine layer, and neither do our chefs. If real rain threatens, a 10'x10' pop-up tent over the chef's station solves it — you provide the tent, we do not supply them. You can also seat guests indoors while the chef cooks outside, or reschedule with 72+ hours notice for a full deposit refund.",
+          "The grill doesn't mind the marine layer, and neither do our chefs. If real rain threatens, a 10'x10' pop-up tent over the chef's station solves it — you provide the tent, we do not supply them. You can also seat guests indoors while the chef cooks outside, or reschedule with 72+ hours notice at no cost.",
       },
       {
         question: "How much does hibachi at home cost in San Diego?",
@@ -1786,7 +1786,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you fit a townhome or condo patio?",
         answer:
-          "In most cases yes — we need roughly an 8x8 ft outdoor space for the grill and chef. Send us a photo of your patio if you're unsure and we'll confirm before you pay a deposit.",
+          "In most cases yes — we need roughly an 8x8 ft outdoor space for the grill and chef. Send us a photo of your patio if you're unsure and we'll confirm before you book.",
       },
       {
         question: "Do you do corporate events in Irvine?",
@@ -1876,7 +1876,7 @@ export const cityPages: CityPage[] = [
       {
         question: "We're visiting from out of town — how far ahead should we book?",
         answer:
-          "For weekend dates, 2–3 weeks ahead is safe; holiday weeks around the parks book out earlier. A $19.90 deposit locks your date, fully refundable with 72+ hours notice.",
+          "For weekend dates, 2–3 weeks ahead is safe; holiday weeks around the parks book out earlier. You can cancel or reschedule free with 72+ hours notice.",
       },
       {
         question: "How many guests can you handle at one event?",

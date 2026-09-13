@@ -75,7 +75,7 @@ const faqs = [
   {
     question: "How far in advance should we book?",
     answer:
-      "Weekend evening slots go first — two to three weeks ahead is comfortable for most dates, and longer for December and graduation season. Weekday and daytime slots are often available on shorter notice. A $19.90 refundable deposit locks your date.",
+      "Weekend evening slots go first — two to three weeks ahead is comfortable for most dates, and longer for December and graduation season. Weekday and daytime slots are often available on shorter notice. Nothing is charged when you ask us to hold a date.",
   },
 ]
 
@@ -176,7 +176,7 @@ export default function HibachiCateringHubPage() {
             <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
               <span className="flex items-center">
                 <Check className="h-4 w-4 text-primary mr-1" />
-                Full deposit refund up to 72h
+                Free cancellation up to 72h
               </span>
               <span className="flex items-center">
                 <Users className="h-4 w-4 text-primary mr-1" />
