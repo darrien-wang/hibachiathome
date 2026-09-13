@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Minus, Plus } from "lucide-react"
 import EstimatorRow from "@/components/ui/estimator-row"
-import { GUEST_TIERS, calcSimpleEstimate } from "@/config/pricing-rules"
+import { GUEST_TIERS, calcSimpleEstimate, displayRangeForEstimate, formatDisplayRange } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 
 // The menu's quick estimate: adults only, any day, one tap to the exact quote.
@@ -13,8 +13,8 @@ import { trackEvent } from "@/lib/tracking"
 // and one button here, not a second form.
 export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "sticky" | "card" }) {
   const [adults, setAdults] = useState(15)
-  const total = calcSimpleEstimate({ adults, kids: 0, weekdaySpecial: false }).total
-  const totalLabel = `$${total % 1 === 0 ? total.toFixed(0) : total.toFixed(2)}`
+  const est = calcSimpleEstimate({ adults, kids: 0, weekdaySpecial: false })
+  const totalLabel = formatDisplayRange(displayRangeForEstimate(est))
   const href = `/quote?source=menu_estimator&adults=${adults}`
   const onQuote = () => trackEvent("lead_start", { contact_surface: "menu_estimator", adults })
 
@@ -31,7 +31,7 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
         />
         <div className="flex items-baseline gap-1.5 border-t border-ink/10 pt-3">
           <span className="font-serif text-[40px] font-extrabold leading-none">{totalLabel}</span>
-          <span className="text-[13px] text-clay-600">all-in, no travel fee within 50 mi</span>
+          <span className="text-[13px] text-clay-600">all-in within 50 mi · exact price by text</span>
         </div>
         <Link href={href} onClick={onQuote} className="inline-flex h-[50px] items-center justify-center rounded-full bg-flame text-[15px] font-semibold text-white hover:bg-flame-600">
           Get my exact quote

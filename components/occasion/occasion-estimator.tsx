@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import EstimatorRow from "@/components/ui/estimator-row"
-import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, roundCurrency } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, displayRangeForEstimate, formatDisplayRange, roundCurrency } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
 import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 
@@ -33,6 +33,7 @@ export default function OccasionEstimator({
   const underMin = est.minApplied
   const total = est.total
   const sizeOff = est.partySizeDiscountApplied
+  const rangeLabel = formatDisplayRange(displayRangeForEstimate(est))
   const minAdults = Math.ceil(MINIMUM_SPEND / GUEST_TIERS.adult.price)
   const params = new URLSearchParams({ source, adults: String(adults), kids: String(kids) })
   const quoteHref = `/quote?${params.toString()}`
@@ -44,7 +45,7 @@ export default function OccasionEstimator({
   const smsSummary = [
     `Hibachi quote from realhibachi.com - ${occasionLabel}`,
     `Guests: ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
-    `Estimate shown: ${fmt(total)}`,
+    `Estimate shown: ${rangeLabel}`,
   ].join("\n")
   const textFallback = useDesktopTextFallback({ summary: smsSummary, guests: adults + kids })
 
@@ -59,7 +60,7 @@ export default function OccasionEstimator({
           Text us
         </a>
         <Link href={quoteHref} onClick={onQuote("occasion_sticky")} className="flex h-[50px] flex-1 items-center justify-center rounded-full bg-flame text-[15px] font-bold text-white shadow-organic-lg">
-          Get exact quote · {fmt(total)}
+          Get exact quote · {rangeLabel}
         </Link>
       </div>
     )
@@ -77,7 +78,7 @@ export default function OccasionEstimator({
         <div>
           <p className="text-xs text-clay-600">{underMin ? "Event minimum" : `${adults} adults · ${kids} kids`}</p>
           <p className="font-serif text-4xl font-extrabold leading-none lg:text-[38px]" aria-live="polite">
-            {fmt(total)}
+            {rangeLabel}
           </p>
         </div>
         <p className="text-right text-xs font-semibold leading-snug text-gold-700">
@@ -87,7 +88,7 @@ export default function OccasionEstimator({
         </p>
       </div>
       {sizeOff > 0 ? (
-        <p className="text-xs font-semibold text-gold-800">Includes your ${sizeOff} party size discount · Mon–Thu adds a free platter and free tables & chairs</p>
+        <p className="text-xs font-semibold text-gold-800">A ${sizeOff} party size discount is waiting — the exact price and your code come by text</p>
       ) : null}
       {underMin ? (
         <p className="rounded-lg bg-flame-100 px-2.5 py-2 text-xs leading-snug text-flame-700">
@@ -112,7 +113,7 @@ export default function OccasionEstimator({
         Text (213) 770-7788
       </a>
       {textFallback.open ? <DesktopTextPanel summary={smsSummary} onClose={textFallback.close} /> : null}
-      <p className="text-center text-xs text-clay-600">Exact price · no sign-up</p>
+      <p className="text-center text-xs text-clay-600">Price range now · exact price and discount by text</p>
     </div>
   )
 }

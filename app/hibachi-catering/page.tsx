@@ -332,7 +332,7 @@ export default function HibachiCateringHubPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">Feed Everyone. Entertain Everyone.</h2>
           <p className="text-lg text-amber-100 max-w-2xl mx-auto mb-8">
-            See your exact hibachi catering price in 30 seconds — any party size, no phone number, no sign-up.
+            See your hibachi catering price range in 30 seconds — any party size. Exact quote and party discount by text.
           </p>
           <Button asChild size="lg" className="bg-white text-amber-600 hover:bg-amber-50 text-lg px-8 py-4">
             <Link href={QUOTE_HREF}>Get Instant Quote</Link>

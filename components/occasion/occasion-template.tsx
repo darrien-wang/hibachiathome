@@ -171,7 +171,7 @@ export default function OccasionTemplate({ page, title, breadcrumb, intro, sourc
               </span>
             </div>
             <p className="text-xs text-clay-600">
-              ${MINIMUM_SPEND} event minimum · exact quote in 30 seconds
+              ${MINIMUM_SPEND} event minimum · price range in 30 seconds, exact quote by text
             </p>
           </section>
 

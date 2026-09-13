@@ -7,7 +7,7 @@ import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
-import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, checkWeekdayEligibility, roundCurrency, weekdayBlackoutLabel } from "@/config/pricing-rules"
+import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, checkWeekdayEligibility, displayRangeForEstimate, formatDisplayRange, roundCurrency, weekdayBlackoutLabel } from "@/config/pricing-rules"
 
 // The ad landing page's estimate card, revised 2026-09-12 from the Claude
 // Design "Realhibachi Landing Page" board (决策日志 D-0911-05).
@@ -84,7 +84,8 @@ export default function LandingEstimator({
   const [email, setEmail] = useState("")
   const [phoneErr, setPhoneErr] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null }>(null)
+  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null; discountCode: string | null; discount: number }>(null)
+  const [emailErr, setEmailErr] = useState(false)
   const [serverErr, setServerErr] = useState<string | null>(null)
   const startedRef = useRef(false)
   // Height of the on-screen keyboard (0 when closed). The sticky bar is moved
@@ -127,6 +128,10 @@ export default function LandingEstimator({
   const minApplied = est.minApplied
   const sizeOff = est.partySizeDiscountApplied
   const total = est.total
+  // Price gate (2026-09-13): the card shows a bracket; the exact total and the
+  // Party Size Discount code go out by text + email once we have both.
+  const rangeLabel = formatDisplayRange(displayRangeForEstimate(est))
+  const unlockLine = sizeOff > 0 ? `Exact total + your $${sizeOff} discount code by text` : "Exact total by text"
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
   const phoneReady = phoneValue.replace(/\D/g, "").replace(/^1/, "").length === 10
@@ -134,7 +139,6 @@ export default function LandingEstimator({
   const planShort = weekday ? "Mon–Thu" : "any day"
   const planLabel =
     (minApplied ? `${weekday ? "Weekday Special" : "Standard"} · $${MINIMUM_SPEND} event minimum` : weekday ? `Weekday Special · ${guestsShort}` : `Standard · ${guestsShort}`) +
-    (sizeOff > 0 ? ` · $${sizeOff} party discount` : "") +
     (fee > 0 ? ` · incl. ~$${fee} travel` : "")
   const dateStatus = !dateKnown
     ? "optional"
@@ -163,6 +167,11 @@ export default function LandingEstimator({
       focusLandingPhone()
       return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailErr(true)
+      document.querySelector<HTMLInputElement>("[data-landing-email]")?.focus()
+      return
+    }
     setBusy(true)
     setServerErr(null)
     try {
@@ -179,16 +188,22 @@ export default function LandingEstimator({
           plan: weekday ? "weekday" : "standard",
           travelFee: fee,
           phone: phoneValue,
-          email: email.trim() || undefined,
+          email: email.trim(),
           pagePath: window.location.pathname,
         }),
       })
-      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string } | null
+      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string; discountCode?: string | null; discount?: number } | null
       if (!res.ok || !p?.ok) {
-        setServerErr(p?.error === "phone_invalid" ? "That number doesn't look right — 10 digits, US mobile." : "Couldn't send just now. Call or text (213) 770-7788 and we'll quote you right away.")
+        setServerErr(
+          p?.error === "phone_invalid"
+            ? "That number doesn't look right — 10 digits, US mobile."
+            : p?.error === "email_required" || p?.error === "email_invalid"
+              ? "Add a valid email — we send the exact price there too."
+              : "Couldn't send just now. Call or text (213) 770-7788 and we'll quote you right away.",
+        )
         return
       }
-      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null })
+      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null, discountCode: p.discountCode ?? null, discount: p.discount ?? 0 })
       // Same event the /quote booking request fires, so GA4 / Ads / ChatGPT
       // count it as the lead it is; contact_surface tells the two apart.
       trackEvent("booking_submit", {
@@ -262,8 +277,9 @@ export default function LandingEstimator({
           <div>
             <p className="text-xs text-clay-600">{planLabel}</p>
             <p className="font-serif text-4xl font-extrabold leading-none lg:text-[40px]" aria-live="polite">
-              {fmt(total)}
+              {rangeLabel}
             </p>
+            <p className="mt-1 text-[11px] font-semibold text-gold-700">{unlockLine}</p>
           </div>
           <p className="text-right text-xs font-semibold leading-snug text-gold-700">
             {fee > 0 ? `~$${fee} travel added` : "Travel included"}
@@ -288,6 +304,9 @@ export default function LandingEstimator({
                 A real person follows up within 15 min by text or email.
               </p>
               <p className="mt-2 font-serif text-2xl font-extrabold leading-none">{fmt(sent.total)}</p>
+              {sent.discountCode ? (
+                <p className="mt-1 text-xs font-semibold text-gold-700">Code {sent.discountCode} · −${sent.discount} party size discount, applied automatically when you book</p>
+              ) : null}
               <p className="text-xs text-clay-600">
                 {guestsShort} · {planShort}
                 {fee > 0 ? ` · incl. ~$${fee} travel` : ""}
@@ -318,14 +337,18 @@ export default function LandingEstimator({
               className={`${input} ${phoneErr ? "border-flame ring-2 ring-flame/30" : ""}`}
             />
             <input
+              data-landing-email=""
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="Email (optional — we send the quote here too)"
-              aria-label="Email (optional)"
+              placeholder="Email (we send the exact price here too)"
+              aria-label="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`${input} hidden lg:block`}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setEmailErr(false)
+              }}
+              className={`${input} ${emailErr ? "border-flame ring-2 ring-flame/30" : ""}`}
             />
             <button
               type="submit"
@@ -335,10 +358,15 @@ export default function LandingEstimator({
               disabled={busy}
               className="flex h-[52px] items-center justify-center rounded-full bg-flame text-base font-bold text-white transition hover:bg-flame-600 disabled:opacity-60"
             >
-              {busy ? "Sending…" : "Text me this quote"}
+              {busy ? "Sending…" : sizeOff > 0 ? `Text me my exact price + $${sizeOff} code` : "Text me my exact price"}
             </button>
-            <p className={`text-center text-xs ${phoneErr || serverErr ? "font-semibold text-flame-700" : "text-clay-600"}`}>
-              {serverErr ?? (phoneErr ? "Enter a 10-digit mobile number so we can text the quote." : "Just your number · your quote by text · no spam")}
+            <p className={`text-center text-xs ${phoneErr || emailErr || serverErr ? "font-semibold text-flame-700" : "text-clay-600"}`}>
+              {serverErr ??
+                (phoneErr
+                  ? "Enter a 10-digit mobile number so we can text the price."
+                  : emailErr
+                    ? "Add a valid email — the exact price goes there too."
+                    : "Mobile + email · exact price by text in seconds · a real person follows up within 15 min · no spam")}
             </p>
           </form>
         )}
@@ -366,7 +394,7 @@ export default function LandingEstimator({
           <p className="truncate text-[11px] text-clay-600">
             {guestsShort} · {planShort}
           </p>
-          <p className="font-serif text-[22px] font-extrabold leading-none">{fmt(total)}</p>
+          <p className="font-serif text-[22px] font-extrabold leading-none">{rangeLabel}</p>
         </div>
         <a
           href={phone.voice.tel}
@@ -390,7 +418,7 @@ export default function LandingEstimator({
           }}
           className={`flex h-[50px] items-center rounded-full px-5 text-[15px] font-bold shadow-organic-lg ${sent ? "bg-emerald-600 text-white" : "bg-flame text-white"}`}
         >
-          {sent ? "Sent ✓" : busy ? "Sending…" : phoneReady ? "Send my quote →" : "Text me quote"}
+          {sent ? "Sent ✓" : busy ? "Sending…" : phoneReady ? "Send my price →" : "Get exact price"}
         </button>
       </div>
     </>

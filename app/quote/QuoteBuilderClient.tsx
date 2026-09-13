@@ -23,6 +23,8 @@ import {
 } from "@/config/regional-policies"
 import {
   GUEST_TIERS,
+  displayRange,
+  formatDisplayRange,
   MINIMUM_SPEND,
   WEEKDAY_SPECIAL,
   calcAdultEquivalents,
@@ -258,6 +260,25 @@ export default function QuoteBuilderClient() {
   const [customerEmail, setCustomerEmail] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [smsConsent, setSmsConsent] = useState(false)
+  // Price gate (2026-09-13): the exact total and the Party Size Discount are
+  // shown only after the visitor leaves a mobile number and an email. The
+  // unlock is remembered on this device so a returning visitor is not asked twice.
+  const [unlocked, setUnlocked] = useState(false)
+  const [unlockBusy, setUnlockBusy] = useState(false)
+  const [unlockErr, setUnlockErr] = useState<string | null>(null)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("rh_quote_unlock")
+      if (!raw) return
+      const saved = JSON.parse(raw) as { name?: string; phone?: string; email?: string; at?: number }
+      if (!saved.phone || !saved.email) return
+      setUnlocked(true)
+      setCustomerName((v) => v || saved.name || "")
+      setCustomerPhone((v) => v || saved.phone || "")
+      setCustomerEmail((v) => v || saved.email || "")
+      setSmsConsent(true)
+    } catch {}
+  }, [])
   const [eventTime, setEventTime] = useState("")
   const [referralCode, setReferralCode] = useState("")
   const [hearAboutUs, setHearAboutUs] = useState("")
@@ -1297,6 +1318,10 @@ export default function QuoteBuilderClient() {
       return
     }
     if (step === 2) {
+      if (!unlocked) {
+        void submitUnlock()
+        return
+      }
       goToStep(3)
       return
     }
@@ -1331,26 +1356,123 @@ export default function QuoteBuilderClient() {
     }
     onEmailClick()
   }
+  // Declared ahead of primaryLabel/primaryHint, which read it during render.
+  const unlockDiscount = result.partySizeDiscountApplied
   const primaryLabel =
-    step === 1 ? "See my price" : step === 2 ? "Continue to book" : bookingRequestSubmitting ? "Submitting…" : "Book now"
+    step === 1
+      ? "See my price"
+      : step === 2
+        ? unlocked
+          ? "Continue to book"
+          : unlockBusy
+            ? "Sending…"
+            : unlockDiscount > 0
+              ? `Text me my exact price + $${unlockDiscount} code`
+              : "Text me my exact price"
+        : bookingRequestSubmitting
+          ? "Submitting…"
+          : "Book now"
   const primaryHint =
     step === 1
-      ? "No phone number needed"
+      ? unlocked
+        ? "Exact price below"
+        : "Price range now · exact price and discount by text"
       : step === 2
-        ? "Nothing charged yet"
+        ? unlocked
+          ? "Nothing charged yet"
+          : "Mobile + email · nothing charged"
         : `We confirm within hours · full refund up to 72h before`
   const planName = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
   const totalLabel =
     result.totalRange.low === result.totalRange.high
       ? `$${fmtMoney(result.totalRange.low)}`
       : `$${fmtMoney(result.totalRange.low)}–$${fmtMoney(result.totalRange.high)}`
+  const rangeLabel = formatDisplayRange(displayRange(result.totalRange.low, result.totalRange.high + result.partySizeDiscountApplied))
+  const shownPriceLabel = unlocked ? totalLabel : rangeLabel
+
+  const submitUnlock = async () => {
+    const digits = customerPhone.replace(/\D/g, "").replace(/^1/, "")
+    if (digits.length !== 10) {
+      setUnlockErr("Enter a 10-digit US mobile number.")
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      setUnlockErr("Add a valid email — the exact price goes there too.")
+      return
+    }
+    if (!smsConsent) {
+      setUnlockErr("Tick the box so we can text you the price.")
+      return
+    }
+    setUnlockBusy(true)
+    setUnlockErr(null)
+    try {
+      const response = await fetch("/api/landing-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          citySlug: "quote",
+          cityName: input.location.trim() || "Southern California",
+          source: "quote_unlock",
+          channel: "website_quote_unlock",
+          adults: input.adults,
+          kids: input.kids,
+          eventDate: input.eventDate || "",
+          plan: isWeekdaySaverTier ? "weekday" : "standard",
+          travelFee: result.travelFeeRange.high,
+          phone: customerPhone.trim(),
+          email: customerEmail.trim(),
+          name: customerName.trim(),
+          pagePath: window.location.pathname,
+        }),
+      })
+      const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+      if (!response.ok || !payload?.ok) {
+        setUnlockErr(
+          payload?.error === "phone_invalid"
+            ? "That number doesn't look right — 10 digits, US mobile."
+            : payload?.error === "email_required" || payload?.error === "email_invalid"
+              ? "Add a valid email — the exact price goes there too."
+              : "Couldn't send just now. Text (213) 770-7788 and we'll quote you right away.",
+        )
+        return
+      }
+      try {
+        window.localStorage.setItem("rh_quote_unlock", JSON.stringify({ name: customerName.trim(), phone: customerPhone.trim(), email: customerEmail.trim(), at: Date.now() }))
+      } catch {}
+      setUnlocked(true)
+      trackEvent("booking_submit", {
+        lead_source: "quote_unlock",
+        lead_channel: "website_quote_unlock",
+        lead_type: "booking_inquiry",
+        booking_request: true,
+        contact_surface: "quote_unlock",
+        quote_surface: quoteSurface,
+        city_or_zip: input.location || "unspecified",
+        guest_count: result.guestCount,
+        adults: input.adults,
+        kids: input.kids,
+        event_date: input.eventDate || "unspecified",
+        quote_tier: input.pricingTier,
+        estimate_low: result.totalRange.low,
+        estimate_high: result.totalRange.high,
+        value: result.totalRange.low,
+        currency: "USD",
+      })
+      pushToast("success", "Sent", "Your exact price is on its way by text and email — it's also right here.")
+    } catch {
+      setUnlockErr("Couldn't send just now. Text (213) 770-7788 and we'll quote you right away.")
+    } finally {
+      setUnlockBusy(false)
+    }
+  }
   const priceCard = (
     <div className="flex flex-col gap-1.5 rounded-[28px] bg-flame p-[22px] text-cream lg:p-7">
       <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-flame-100">
         {planName} · {result.guestCount} guests
       </span>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-serif text-[52px] font-extrabold leading-none lg:text-[56px]">{totalLabel}</span>
+        <span className="font-serif text-[52px] font-extrabold leading-none lg:text-[56px]">{shownPriceLabel}</span>
         <span className="text-sm opacity-85">all-in</span>
       </div>
       <p className="text-[13px] leading-relaxed opacity-90">
@@ -1799,7 +1921,90 @@ export default function QuoteBuilderClient() {
               </>
             ) : null}
 
-            {step === 2 ? (
+            {step === 2 && !unlocked ? (
+              <>
+                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your price: {rangeLabel}</h1>
+                <p className="text-[15px] leading-relaxed text-clay-700">
+                  {unlockDiscount > 0
+                    ? `Leave your mobile and email and we text you the exact total plus your $${unlockDiscount} party size discount code right now. A real person follows up within 15 minutes.`
+                    : "Leave your mobile and email and we text you the exact total right now. A real person follows up within 15 minutes."}
+                </p>
+                <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold">Name</span>
+                    <Input
+                      type="text"
+                      data-quote-field="unlock-name"
+                      value={customerName}
+                      placeholder="Maria Lopez"
+                      autoComplete="name"
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold">Mobile</span>
+                    <Input
+                      type="tel"
+                      data-quote-field="unlock-phone"
+                      value={customerPhone}
+                      placeholder="(213) 555-0100"
+                      autoComplete="tel"
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value)
+                        setUnlockErr(null)
+                      }}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 lg:col-span-2">
+                    <span className="text-[13px] font-semibold">Email</span>
+                    <Input
+                      type="email"
+                      data-quote-field="unlock-email"
+                      value={customerEmail}
+                      placeholder="you@email.com"
+                      autoComplete="email"
+                      onChange={(e) => {
+                        setCustomerEmail(e.target.value)
+                        setUnlockErr(null)
+                      }}
+                      className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
+                    />
+                  </label>
+                </div>
+                <label className="flex items-start gap-2.5 text-[12px] leading-snug text-clay-700">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => {
+                      setSmsConsent(e.target.checked)
+                      setUnlockErr(null)
+                    }}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-flame"
+                  />
+                  <span>
+                    I agree to receive texts from Real Hibachi about my quote and booking. Consent is not a condition of purchase; message
+                    and data rates may apply. Reply STOP to opt out, HELP for help.{" "}
+                    <a href="/privacy-policy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a>.
+                  </span>
+                </label>
+                {unlockErr ? <p className="text-[13px] font-semibold text-flame-700">{unlockErr}</p> : null}
+                <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
+                  {[
+                    "Exact total and your discount code by text and email, in seconds",
+                    "Chef confirmed by name 48h before — if we cancel, double your money back",
+                    "Free to cancel or reschedule up to 72h before",
+                  ].map((line) => (
+                    <div key={line} className="flex gap-2.5">
+                      <span className="font-bold text-gold-700">✓</span>
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+            {step === 2 && unlocked ? (
               <>
                 <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your price</h1>
                 <div className="lg:hidden">{priceCard}</div>

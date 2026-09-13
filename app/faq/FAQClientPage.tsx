@@ -89,7 +89,7 @@ export default function FAQClientPage() {
         <a href={phone.voice.tel} className="font-bold">
           {phone.voice.display}
         </a>{" "}
-        — a real person, 9am–9pm. Or skip the reading: a quote takes 30 seconds and shows the exact total before you pay.
+        — a real person, 9am–9pm. Or skip the reading: a quote takes 30 seconds, and the exact total lands on your phone before you pay anything.
       </p>
       <Link
         href="/quote?source=faq"

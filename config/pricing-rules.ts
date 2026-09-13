@@ -358,3 +358,35 @@ export const PARTY_GUEST_CARD_DISCOUNT_REMARK = "Party guest — $50 off with Re
 export function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100
 }
+
+// ---------------------------------------------------------------
+// Price gate (2026-09-13, owner): the site shows a price RANGE for free;
+// the exact total and the Party Size Discount code arrive by text + email
+// once the visitor leaves a mobile number and an email. The range is the
+// honest bracket around the exact figure: top = before the discount, bottom
+// = after it, both rounded outward to $25. Under 10 guests there is no
+// discount, so the bracket collapses and the copy just promises the exact
+// number by text.
+// ---------------------------------------------------------------
+export type DisplayRange = { low: number; high: number; single: boolean }
+
+export function displayRange(low: number, highBeforeDiscount: number): DisplayRange {
+  const lo = Math.floor(Math.min(low, highBeforeDiscount) / 25) * 25
+  const hi = Math.ceil(Math.max(low, highBeforeDiscount) / 25) * 25
+  return { low: lo, high: hi, single: lo === hi }
+}
+
+export function displayRangeForEstimate(est: SimpleEstimate): DisplayRange {
+  return displayRange(est.total, est.total + est.partySizeDiscountApplied)
+}
+
+export function formatDisplayRange(r: DisplayRange): string {
+  const f = (n: number) => `$${n.toLocaleString("en-US")}`
+  return r.single ? `about ${f(r.high)}` : `${f(r.low)}–${f(r.high)}`
+}
+
+/** The code we text for a tier, e.g. PARTY60. Informational: the invoice applies the tier by headcount. */
+export function partySizeDiscountCode(paidGuests: number): string | null {
+  const amount = partySizeDiscount(paidGuests)
+  return amount > 0 ? `PARTY${amount}` : null
+}

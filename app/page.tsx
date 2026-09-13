@@ -330,7 +330,7 @@ export default function Home() {
           <div className="flex items-center gap-8 rounded-[32px] bg-cocoa px-12 py-11 text-white">
             <div className="flex flex-1 flex-col gap-2">
               <h2 className="font-serif text-4xl font-extrabold leading-[1.1]">Ready to create great memories?</h2>
-              <p className="text-base text-white/80">Exact price in 30 seconds. No phone number needed. Chef confirmed by name 48h before your party.</p>
+              <p className="text-base text-white/80">Price range in 30 seconds. Exact quote and your party discount by text. Chef confirmed by name 48h before your party.</p>
             </div>
             <QuoteCtaLink
               href="/quote?source=home_cta"

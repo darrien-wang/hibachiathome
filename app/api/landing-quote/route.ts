@@ -5,7 +5,7 @@ import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
-import { DEPOSIT_AMOUNT, GUEST_TIERS, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, roundCurrency } from "@/config/pricing-rules"
+import { DEPOSIT_AMOUNT, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode } from "@/config/pricing-rules"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -34,6 +34,9 @@ type Body = {
   travelFee?: number
   phone?: string
   email?: string
+  name?: string
+  /** Which surface asked: the city landing card (default) or the /quote unlock step. */
+  channel?: "website_landing_quote" | "website_quote_unlock"
   pagePath?: string
 }
 
@@ -64,8 +67,13 @@ export async function POST(request: NextRequest) {
 
   const phoneE164 = toE164(asStr(body.phone, 32))
   if (!phoneE164) return NextResponse.json({ ok: false, error: "phone_invalid" }, { status: 400 })
+  // Email is required since 2026-09-13: the exact price and discount code go
+  // out on both channels, and T-Mobile is currently rejecting our texts.
   const email = asStr(body.email, 120).toLowerCase()
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ ok: false, error: "email_invalid" }, { status: 400 })
+  if (!email) return NextResponse.json({ ok: false, error: "email_required" }, { status: 400 })
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ ok: false, error: "email_invalid" }, { status: 400 })
+  const name = asStr(body.name, 80)
+  const leadChannel = body.channel === "website_quote_unlock" ? "website_quote_unlock" : "website_landing_quote"
 
   const cityName = asStr(body.cityName, 60) || "Southern California"
   const citySlug = asStr(body.citySlug, 60).replace(/[^a-z0-9-]/gi, "") || "socal"
@@ -87,6 +95,10 @@ export async function POST(request: NextRequest) {
   const subtotal = est.subtotal
   const total = est.total
   const planLabel = weekday ? "Weekday Special (Mon–Thu)" : "Standard (any day)"
+  const discountCode = est.partySizeDiscountApplied > 0 ? partySizeDiscountCode(adults + kids) : null
+  const discountLine = discountCode
+    ? `Your code ${discountCode} (-$${est.partySizeDiscountApplied} party size discount) is already in that price and applies automatically when you book.`
+    : null
 
   const attribution = readAttributionFromCookieHeader(request.headers.get("cookie"))
   const pagePath = asStr(body.pagePath, 200) || `/hibachi-at-home/${citySlug}`
@@ -98,13 +110,13 @@ export async function POST(request: NextRequest) {
   if (supabase) {
     try {
       const lead = await upsertLeadFromContact(supabase, {
-        name: "",
+        name,
         phone: phoneE164,
-        email: email || undefined,
+        email,
         reason: "Booking Request",
-        message: `Landing quote (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}`,
+        message: `${leadChannel === "website_quote_unlock" ? "Quote unlock" : "Landing quote"} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}`,
         leadSource: source,
-        leadChannel: "website_landing_quote",
+        leadChannel,
         leadType: "booking_inquiry",
         cityOrZip: cityName,
         guestCount: adults + kids,
@@ -112,7 +124,7 @@ export async function POST(request: NextRequest) {
         touchpointSource: source,
         sourcePage: pagePath,
         attribution,
-        rawPayload: { ...body, phone: phoneE164, computed: { weekday, subtotal, total, travelFee } },
+        rawPayload: { ...body, phone: phoneE164, computed: { weekday, subtotal, total, travelFee, discountCode, discount: est.partySizeDiscountApplied } },
       })
       leadId = lead.leadId
     } catch (error) {
@@ -139,18 +151,22 @@ export async function POST(request: NextRequest) {
   const depositUrl = `${BASE_URL}/deposit/pay?${dp.toString()}`
 
   const smsBody = [
-    `Real Hibachi: your ${cityName} hibachi estimate is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+    `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+    discountLine,
     travelFee ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).` : "No travel fee for your area.",
     `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
     "Reply here with questions - a real person answers. Reply STOP to opt out.",
-  ].join(" ")
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join(" ")
   const sms = await sendSms(phoneE164, smsBody)
   if (!sms.ok) console.error("[landing-quote] sms failed", { phoneE164, error: sms.error })
 
-  if (email) {
+  {
     const lines = [
-      `Your ${cityName} hibachi estimate: ${money(total)}`,
+      `Your ${cityName} hibachi price: ${money(total)}`,
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
+      ...(discountLine ? [discountLine] : []),
       travelFee ? `Includes about $${travelFee} travel.` : "No travel fee for your area.",
       "",
       `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
@@ -172,7 +188,7 @@ export async function POST(request: NextRequest) {
   await sendSupportNotificationEmail({
     subject: `🔥 Landing quote · ${cityName} · ${guestsLine} · ${money(total)} · ${phoneE164}`,
     text: [
-      `Texted the estimate to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}.`,
+      `Texted the price to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}.`,
       `${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)}${travelFee ? ` incl ~$${travelFee} travel` : ""}`,
       email ? `Email: ${email}` : "No email given.",
       `Source: ${source} · page ${pagePath}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}`,
@@ -193,5 +209,7 @@ export async function POST(request: NextRequest) {
     total,
     weekday,
     depositUrl,
+    discountCode,
+    discount: est.partySizeDiscountApplied,
   })
 }

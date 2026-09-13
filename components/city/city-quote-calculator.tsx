@@ -15,6 +15,8 @@ import {
   GUEST_TIERS,
   MINIMUM_SPEND,
   calcSimpleEstimate,
+  displayRangeForEstimate,
+  formatDisplayRange,
   WEEKDAY_SPECIAL,
   checkWeekdayEligibility,
   roundCurrency,
@@ -75,6 +77,8 @@ export default function CityQuoteCalculator({
   const atMinimum = standardEst.minApplied
   const weekdayTotal = weekdayEst.total
   const sizeOff = standardEst.partySizeDiscountApplied
+  const standardRange = formatDisplayRange(displayRangeForEstimate(standardEst))
+  const weekdayRange = formatDisplayRange(displayRangeForEstimate(weekdayEst))
 
   const eligibility = useMemo(
     () => checkWeekdayEligibility(date, { adult: adults, child: kids, toddler: 0 }),
@@ -202,7 +206,7 @@ export default function CityQuoteCalculator({
               Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu, plus a{" "}
               {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.value} value) and free tables &amp; chairs
             </li>
-            <li>Party size discount, any day: 10–14 guests $30 off · 15–24 $60 off · 25–30 $90 off{sizeOff > 0 ? ` (yours: $${sizeOff})` : ""}</li>
+            <li>Party size discount, any day: 10–14 guests $30 off · 15–24 $60 off · 25–30 $90 off — your code comes with the exact quote</li>
             <li>
               Standard: ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid, any day, ${MINIMUM_SPEND} minimum
             </li>
@@ -258,7 +262,7 @@ export default function CityQuoteCalculator({
             Weekday Special
             {weekdayApplies ? <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />}
           </p>
-          <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">${fmt(weekdayTotal)}</p>
+          <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">{weekdayRange}</p>
           <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Mon–Thu · free appetizer platter</p>
         </Link>
         <Link
@@ -274,7 +278,7 @@ export default function CityQuoteCalculator({
             Standard · any day
             {weekdayApplies ? <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" /> : <Check className="h-4 w-4 text-orange-600" aria-hidden="true" />}
           </p>
-          <p className="mt-0.5 text-xl font-bold text-orange-800 sm:text-2xl">${fmt(standard)}</p>
+          <p className="mt-0.5 text-xl font-bold text-orange-800 sm:text-2xl">{standardRange}</p>
           <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Any day{atMinimum ? ` · $${MINIMUM_SPEND} minimum` : ""}</p>
         </Link>
       </div>

@@ -41,7 +41,7 @@ const SPACE_FAQ = {
 const PRICE_FAQ = {
   question: "How much does it cost?",
   answer:
-    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Get an exact number in 30 seconds with the instant quote — no sign-up.",
+    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Get a price range in 30 seconds with the instant quote; the exact number and your party discount come by text.",
 }
 
 export const occasionPages: OccasionPage[] = [

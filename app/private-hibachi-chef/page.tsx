@@ -237,7 +237,7 @@ export default function PrivateHibachiChefPage() {
         faqs={faqs}
         faqHeading="Hiring a private hibachi chef — questions"
         ctaHeading="Meet your chef at the grill."
-        ctaBody="See your exact price in 30 seconds — no phone number, no sign-up. Your chef is confirmed by name 48 hours before the party."
+        ctaBody="See your price range in 30 seconds; the exact quote and your party discount come by text. Your chef is confirmed by name 48 hours before the party."
         nearby={topCities.slice(0, 6).map((c) => ({ label: c.city, href: `/hibachi-at-home/${c.slug}` }))}
         nearbyLabel="Local pages"
       />
