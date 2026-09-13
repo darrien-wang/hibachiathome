@@ -29,10 +29,10 @@ const PRICE_ROWS = [
   ["Pequeños (3–4)", "Gratis"],
   ["Bebés (0–2)", "Gratis"],
   ["Consumo mínimo", "$599 por evento"],
-  ["Especial entre semana (lun–jue)", "$54.90 por adulto + charola de aperitivos gratis + mesas y sillas gratis"],
+  ["Especial entre semana (lun–jue)", "$54.90 por adulto, $27.45 por niño + charola de aperitivos gratis + mesas y sillas gratis"],
   ["Mesas, sillas y mantel", "+$10 por persona (opcional)"],
   ["Cubiertos y vajilla", "+$5 por persona (opcional)"],
-  ["Depósito para apartar", "$19.90 — reembolsable hasta 72h antes"],
+  ["Descuento por tamaño de fiesta (cualquier día)", "10–14 invitados $30 · 15–24 $60 · 25–30 $90 — se aplica solo"],
 ]
 
 export default function CotizarPage() {

@@ -35,7 +35,7 @@ Weekday parties of every size also get a free appetizer platter (gyoza, edamame 
 
 *The $599 minimum covers small parties — think of it as a private-restaurant buyout for your backyard.
 
-Want your exact number? The [instant quote tool](/quote) does this math in 30 seconds with your real headcount — no sign-up.
+Want your number? The [instant quote tool](/quote) shows your price range in 30 seconds with your real headcount, then texts you the exact total and your party size discount code.
 
 ## The fees to ask any hibachi caterer about
 
@@ -157,7 +157,7 @@ What we can give you is better: **the exact checklist we'd use to compare any at
 ## The 7-question checklist
 
 **1. Is the price on the website?**
-Several SoCal hibachi services quote only after you hand over contact details. Ours is published everywhere: **$59.90/adult, $29.90/child 5–12, $599 event minimum** — and an [instant calculator](/quote) that shows your exact total with no sign-up.
+Several SoCal hibachi services won't show a single number until you fill in a form. Our rates are published everywhere: **$59.90/adult, $29.90/child 5–12, $599 event minimum** — and an [instant calculator](/quote) shows your price range before you type a thing. The exact total and your party size discount code come by text.
 
 **2. How big is the deposit, and does it refund?**
 $150+ deposits are common in this market. Ours is **$19.90, refundable in full with 72+ hours notice.**
@@ -564,7 +564,7 @@ That's the whole picture. No line item I haven't mentioned.
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*Get an exact number for your date, guest count, and address — [instant quote here](/quoteA), no contact form required to see pricing. Or see [hibachi at home in Los Angeles](/hibachi-at-home/los-angeles) and [everywhere else we cook](/hibachi-at-home).*
+*See your price range for your date, guest count, and address — [instant quote here](/quote); the exact number and your discount code come by text. Or see [hibachi at home in Los Angeles](/hibachi-at-home/los-angeles) and [everywhere else we cook](/hibachi-at-home).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-los-angeles-group-dinner-09.jpg",
     date: "2026-08-26",

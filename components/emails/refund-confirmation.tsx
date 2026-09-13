@@ -98,7 +98,7 @@ export const RefundConfirmationEmail = ({
             <Text style={contactText}>
               Email: info@hibachicatering.com
               <br />
-              Phone: (555) 123-4567
+              Phone: (213) 770-7788
             </Text>
 
             <Text style={text}>We hope to have the opportunity to serve you in the future.</Text>

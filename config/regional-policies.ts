@@ -50,7 +50,7 @@ const PRICING_POLICY_DEFINITIONS: Record<PricingPolicyKey, PricingPolicyDefiniti
       "Monday-Thursday events only, major holidays excluded; any party size",
       "Free appetizer platter (gyoza, edamame & spring rolls, $40 value)",
       "Full menu; premium upgrades available",
-      "Optional full setup (tables, chairs, utensils): +$15 per guest",
+      "Free tables & chairs; utensils optional at +$5 per guest",
     ],
     quoteDescription:
       "$54.90/adult, $27.45/child. The Standard food/show package plus a free appetizer platter; full menu and upgrades available.",

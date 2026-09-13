@@ -5,13 +5,17 @@ import { pricing } from "@/config/pricing"
 export const faqItems = [
   {
     question: "How much does your hibachi experience cost?",
-    answer: `Base rate: $${pricing.packages.basic.perPerson} per guest (minimum $${pricing.packages.basic.minimum} total)
+    answer: `Base rate: $${pricing.packages.basic.perPerson.toFixed(2)} per adult (minimum $${pricing.packages.basic.minimum} total)
 
-Kids: $${pricing.children.basic} for ages 5-12, and kids under 5 eat free
+Kids: $${pricing.children.basic.toFixed(2)} for ages 5-12, and kids under 5 eat free
 
-Gratuity: We recommend 20% of the final bill
+Weekday Special (Mon–Thu, any party size): $54.90 per adult, $27.45 per child, plus a free appetizer platter and free tables & chairs
 
-Travel fee: May apply depending on your location; exact amount disclosed during booking
+Party Size Discount (any day, automatic): 10–14 guests save $30, 15–24 save $60, 25–30 save $90
+
+Gratuity: 20–25% of the final bill is customary
+
+Travel fee: first 50 miles free, then $1 per mile — shown in your quote before you pay
 
 Payment options:
 - Cash (preferred, no fee)
@@ -27,7 +31,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "Can you provide tables and chairs?",
     answer:
-      "Yes! We offer table, chair, and tablecloth rental at $10 per person. Utensils are not included in this package. If you need utensils, we can provide them for an additional $5 per person. If you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in advance.",
+      "Yes! We offer table, chair, and tablecloth rental at $10 per person — free on Mon–Thu Weekday Special dates. Utensils are not included in this package. If you need utensils, we can provide them for an additional $5 per person. If you'd rather supply your own tables, chairs, and utensils, that's fine too—just let us know in advance.",
   },
   {
     question: "When will the chef arrive?",

@@ -23,7 +23,7 @@ const featureBullets = [
   "Indica quién viene — niños a mitad de precio, bebés gratis",
   "Cada invitado elige sus proteínas con un enlace compartido",
   "Acomoda mesas y asientos como en un juego, comparte el póster de invitación",
-  "Un depósito de $19.90 asegura tu fecha y tu chef",
+  "Tu chef confirmado por nombre 48h antes de la fiesta",
 ]
 
 // Spanish twin of components/party-planner-section.tsx — the full demo video

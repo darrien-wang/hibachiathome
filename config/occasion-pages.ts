@@ -316,7 +316,7 @@ export const occasionPages: OccasionPage[] = [
       {
         question: "What do we need to provide?",
         answer:
-          "Tables, chairs, and place settings for your guests — or add our tableware rental ($15/person: tables, chairs, tableware, tablecloth) and provide nothing at all. We bring the chef, the grill, all the food, and take everything away after.",
+          "Tables, chairs, and place settings for your guests — or add our tableware rental ($15/person: tables, chairs, tableware, tablecloth — tables & chairs are free on Mon–Thu Weekday Special dates) and provide nothing at all. We bring the chef, the grill, all the food, and take everything away after.",
       },
       SPACE_FAQ,
       PRICE_FAQ,

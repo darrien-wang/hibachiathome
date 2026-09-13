@@ -60,7 +60,7 @@ export default function OccasionEstimator({
           Text us
         </a>
         <Link href={quoteHref} onClick={onQuote("occasion_sticky")} className="flex h-[50px] flex-1 items-center justify-center rounded-full bg-flame text-[15px] font-bold text-white shadow-organic-lg">
-          Get exact quote · {rangeLabel}
+          Get my quote · {rangeLabel}
         </Link>
       </div>
     )
@@ -100,7 +100,7 @@ export default function OccasionEstimator({
         <span className="flex gap-2"><span className="font-bold text-gold-700">✓</span>Live fire show, games, setup and cleanup</span>
       </div>
       <Link href={quoteHref} onClick={onQuote("occasion_card")} className="flex h-[52px] items-center justify-center rounded-full bg-flame text-base font-bold text-white transition hover:bg-flame-600">
-        Get my exact quote
+        Get my quote
       </Link>
       <a
         href={smsHref}

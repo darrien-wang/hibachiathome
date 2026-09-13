@@ -256,7 +256,7 @@ export default function CityQuoteCalculator({
               ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200"
               : "border-gray-200 bg-gray-50 hover:border-emerald-300"
           }`}
-          aria-label={`Weekday Special, $${fmt(weekdayTotal)} total — get exact quote`}
+          aria-label={`Weekday Special, $${fmt(weekdayTotal)} total — get my quote`}
         >
           <p className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-emerald-800">
             Weekday Special
@@ -272,7 +272,7 @@ export default function CityQuoteCalculator({
               ? "border-gray-200 bg-gray-50 hover:border-orange-300"
               : "border-orange-300 bg-orange-50 ring-2 ring-orange-200"
           }`}
-          aria-label={`Standard any day, $${fmt(standard)} total — get exact quote`}
+          aria-label={`Standard any day, $${fmt(standard)} total — get my quote`}
         >
           <p className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-orange-800">
             Standard · any day
@@ -288,7 +288,7 @@ export default function CityQuoteCalculator({
           asChild
           className="h-[52px] w-full rounded-full bg-[hsl(24_79%_55%)] px-6 text-base font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
         >
-          <Link href={quoteHref}>Get my exact quote</Link>
+          <Link href={quoteHref}>Get my quote</Link>
         </Button>
         <div className={`grid gap-2 ${smsHref ? "grid-cols-2" : "grid-cols-1"}`}>
           {smsHref ? (
@@ -330,7 +330,7 @@ export default function CityQuoteCalculator({
             asChild
             className="h-[46px] flex-1 rounded-full bg-[hsl(24_79%_55%)] text-[15px] font-semibold text-white hover:bg-[hsl(24_79%_48%)]"
           >
-            <Link href={quoteHref}>Get my exact quote</Link>
+            <Link href={quoteHref}>Get my quote</Link>
           </Button>
         </div>
       ) : null}

@@ -48,7 +48,7 @@ export const faqGroups: FaqGroup[] = [
     id: "price",
     name: "Pricing",
     items: [
-      ...pick("How much does your hibachi experience cost?", { open: true, cta: { label: "Get my exact quote", href: QUOTE_HREF } }),
+      ...pick("How much does your hibachi experience cost?", { open: true, cta: { label: "Get my quote", href: QUOTE_HREF } }),
       ...pick("Do you offer military, nurse, teacher, or first-responder discounts?"),
     ],
   },

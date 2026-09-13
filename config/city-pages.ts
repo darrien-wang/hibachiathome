@@ -154,7 +154,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Do I need to provide tables and chairs?",
         answer:
-          "You provide the tables, chairs, plates, and utensils, or you can rent them from us — either way there is no per-guest setup surcharge on top of your rate. The chef sets up the cooking station and breaks it down completely.",
+          "Bring your own tables, chairs, plates, and utensils, or rent ours — tables & chairs $10 per guest (free on Mon–Thu Weekday Special dates), utensils $5 per guest. The chef sets up the cooking station and breaks it down completely.",
       },
     ],
     nearby: ["santa-monica", "pasadena", "glendale"],

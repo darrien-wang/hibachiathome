@@ -9,7 +9,7 @@ import { trackEvent } from "@/lib/tracking"
 // matters. `surface` names which button it was for the funnel report.
 export default function LandingCtaButton({
   className,
-  label = "Text me this quote",
+  label = "Text me my exact price",
   surface = "landing_final_cta",
   children,
 }: {

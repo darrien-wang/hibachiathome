@@ -67,7 +67,7 @@ const DISHES = [
 ] as const
 
 const STEPS = [
-  { title: "Text yourself the quote", body: "Pick guests and day above, enter your number and your quote arrives by text." },
+  { title: "Text yourself the quote", body: "Pick guests and day above, add your mobile and email, and your exact price and discount code arrive by text." },
   { title: "We confirm your date", body: "A real person replies by text, confirms the date and books your chef. Free to cancel with 72+ hours notice." },
   { title: "We bring the restaurant", body: "Chef arrives about 45 min before serving time, sets up, performs, feeds everyone, cleans up." },
 ] as const

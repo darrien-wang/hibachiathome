@@ -10,9 +10,9 @@ export const faqItemsEs = [
 
 Niños: $${pricing.children.basic} de 5 a 12 años, y los menores de 5 comen gratis
 
-Propina: recomendamos el 20% de la cuenta final
+Propina: lo habitual es 20–25% de la cuenta final
 
-Cargo por traslado: puede aplicar según tu ubicación; el monto exacto se informa al reservar
+Cargo por traslado: las primeras 50 millas son gratis, después $1 por milla — lo ves en tu cotización antes de pagar
 
 Formas de pago:
 - Efectivo (preferido, sin comisión)

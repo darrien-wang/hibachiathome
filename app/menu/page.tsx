@@ -4,7 +4,7 @@ import MenuEstimatorBar from "@/components/menu/menu-estimator-bar"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Menu & Pricing Los Angeles",
-  description: "Explore our authentic hibachi menu and packages for Los Angeles & Orange County. Premium proteins, fresh vegetables, teppanyaki cooking. Starting at $59.9 per person.",
+  description: "Explore our authentic hibachi menu and packages for Los Angeles & Orange County. Premium proteins, fresh vegetables, teppanyaki cooking. $59.90 per adult.",
   keywords: "hibachi menu Los Angeles, teppanyaki packages LA, Japanese food catering Orange County, hibachi pricing Los Angeles, authentic Japanese cuisine LA",
   openGraph: {
     title: "Hibachi at Home Menu & Pricing | Real Hibachi",

@@ -20,7 +20,7 @@ const WHATSAPP_URL =
   encodeURIComponent("¡Hola! Quiero cotizar una fiesta hibachi a domicilio 🎉")
 const SMS_URL = smsHref("Hola, quiero cotizar una fiesta hibachi (español)")
 
-const TRUST_MARKERS = ["Reserva y modifica en línea 24/7", "Más de 500 fiestas servidas", "Depósito reembolsable hasta 72h antes"]
+const TRUST_MARKERS = ["Reserva y modifica en línea 24/7", "Más de 500 fiestas servidas", "Cancela gratis hasta 72h antes"]
 
 const standardFeatures = [
   "$29.90 por niño (5–12), menores de 5 gratis",

@@ -22,14 +22,14 @@ const rentalItems = [
   {
     id: "tables",
     name: "Tables",
-    description: "8-foot rectangular tables, perfect for hibachi service. Seats 8 people per table.",
+    description: "8-foot rectangular tables, perfect for hibachi service. Seats 8 people per table. Free with the Mon–Thu Weekday Special.",
     rate: "$20 per table",
     image: "/placeholder.svg?height=300&width=400&query=rectangular dining table",
   },
   {
     id: "chairs",
     name: "Chairs",
-    description: "Folding chairs with padded seats for comfort during your meal.",
+    description: "Folding chairs with padded seats for comfort during your meal. Free with the Mon–Thu Weekday Special.",
     rate: "$3 per chair",
     image: "/placeholder.svg?height=300&width=400&query=folding chair with padded seat",
   },
@@ -106,7 +106,7 @@ export default function RentalsPage() {
             <div>
               <h3 className="font-bold text-lg mb-2">Damages & Returns</h3>
               <ul className="list-disc pl-5 space-y-1 text-gray-600">
-                <li>A security deposit may be required for certain rental items</li>
+                <li>A refundable damage hold may apply to certain rental items</li>
                 <li>Client is responsible for any damaged or missing items</li>
                 <li>All equipment is collected immediately after the event</li>
               </ul>

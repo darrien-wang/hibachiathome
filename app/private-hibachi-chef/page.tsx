@@ -69,7 +69,7 @@ const faqs = [
   {
     question: "How do I hire a private hibachi chef?",
     answer:
-      "Get an instant quote online — date, guest count, and address are all we need. Your chef is confirmed by name 48 hours before the event. The whole thing takes about two minutes and no phone call is required.",
+      "Get an instant quote online — date, guest count, and address show your price range; leave your mobile and email and the exact total comes by text. Your chef is confirmed by name 48 hours before the event. No phone call is required.",
   },
   {
     question: "How much does a private hibachi chef cost?",

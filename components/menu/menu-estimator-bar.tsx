@@ -34,7 +34,7 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
           <span className="text-[13px] text-clay-600">all-in within 50 mi · exact price by text</span>
         </div>
         <Link href={href} onClick={onQuote} className="inline-flex h-[50px] items-center justify-center rounded-full bg-flame text-[15px] font-semibold text-white hover:bg-flame-600">
-          Get my exact quote
+          Get my quote
         </Link>
         <p className="text-center text-xs text-clay-600">Kids, weekday special and add-ons on the next screen</p>
       </div>
@@ -55,7 +55,7 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
           <Plus className="h-4 w-4" />
         </button>
         <Link href={href} onClick={onQuote} className="inline-flex h-11 items-center rounded-full bg-flame px-4 text-sm font-semibold text-white">
-          Exact quote
+          My quote
         </Link>
       </div>
     </div>

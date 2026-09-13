@@ -119,7 +119,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     {
       question: "What do we need to provide?",
       answer:
-        "Tables, chairs, and place settings — or add our tableware rental ($15/person: tables, chairs, tableware, tablecloth) and provide nothing. We bring the chef, grill, all food, and take everything away after.",
+        "Tables, chairs, and place settings — or add our tableware rental ($15/person: tables, chairs, tableware, tablecloth — tables & chairs are free on Mon–Thu Weekday Special dates) and provide nothing. We bring the chef, grill, all food, and take everything away after.",
     },
     {
       question: "How far ahead should we book?",

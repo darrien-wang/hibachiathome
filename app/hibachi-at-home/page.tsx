@@ -71,7 +71,7 @@ const serviceFeatures = [
   {
     icon: Users,
     title: "Guest Minimum",
-    description: "Minimum 10 guests or $599 total. Perfect for birthdays or backyard dinners.",
+    description: "$599 event minimum — about 10 adults. Perfect for birthdays or backyard dinners.",
   },
   {
     icon: Armchair,
@@ -301,8 +301,8 @@ export default function HibachiAtHomePage() {
                     <CardTitle>Pricing & minimums</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm text-gray-700">
-                    <p>Standard hibachi at home pricing starts at $59.9 per adult guest.</p>
-                    <p>Most private events use a 10 guest or $599 minimum, with optional upgrades and rentals.</p>
+                    <p>Standard hibachi at home pricing is $59.90 per adult, $29.90 per child 5–12, under 5 free. Mon–Thu Weekday Special $54.90 per adult with a free appetizer platter and free tables & chairs. Parties of 10+ save $30–$90 automatically.</p>
+                    <p>Every event carries a $599 minimum (about 10 adults), with optional upgrades and rentals.</p>
                   </CardContent>
                 </Card>
 
@@ -391,7 +391,7 @@ export default function HibachiAtHomePage() {
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $59.9
+                        $59.90
                         <span className="text-sm font-normal"> per person</span>
                       </p>
                       <p className="text-xs text-gray-600">($599 minimum)</p>
@@ -442,7 +442,7 @@ export default function HibachiAtHomePage() {
                     <div className="mb-4">
                       <p className="text-lg font-semibold text-amber-600">
                         <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $59.9
+                        $59.90
                         <span className="text-sm font-normal"> per person</span>
                       </p>
                       <p className="text-xs text-gray-600">($1497 minimum)</p>

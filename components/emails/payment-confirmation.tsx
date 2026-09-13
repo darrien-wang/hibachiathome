@@ -98,7 +98,7 @@ export const PaymentConfirmationEmail = ({
             <Text style={contactText}>
               Email: info@hibachicatering.com
               <br />
-              Phone: (555) 123-4567
+              Phone: (213) 770-7788
             </Text>
 
             <Text style={text}>We look forward to making your event special!</Text>
