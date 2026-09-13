@@ -123,15 +123,18 @@ export default function LandingEstimator({
     adults * (weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price) + kids * (weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price),
   )
   const fee = travelFee && travelFee > 0 ? Math.round(travelFee) : 0
-  const minApplied = !weekday && subtotal < MINIMUM_SPEND
-  const total = (weekday ? subtotal : Math.max(subtotal, MINIMUM_SPEND)) + fee
+  // The $599 event minimum applies to every party. The Weekday Special
+  // lowers the per-guest rate, not the floor (2026-09-13: five adults on a
+  // Thursday were being shown $274.50; the invoice system bills $599).
+  const minApplied = subtotal < MINIMUM_SPEND
+  const total = Math.max(subtotal, MINIMUM_SPEND) + fee
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
   const phoneReady = phoneValue.replace(/\D/g, "").replace(/^1/, "").length === 10
   const guestsShort = kids > 0 ? `${adults} adults · ${kids} kids` : `${adults} adults`
   const planShort = weekday ? "Mon–Thu" : "any day"
   const planLabel =
-    (weekday ? `Weekday Special · ${guestsShort}` : minApplied ? `Standard · $${MINIMUM_SPEND} event minimum` : `Standard · ${guestsShort}`) +
+    (minApplied ? `${weekday ? "Weekday Special" : "Standard"} · $${MINIMUM_SPEND} event minimum` : weekday ? `Weekday Special · ${guestsShort}` : `Standard · ${guestsShort}`) +
     (fee > 0 ? ` · incl. ~$${fee} travel` : "")
   const dateStatus = !dateKnown
     ? "optional"
