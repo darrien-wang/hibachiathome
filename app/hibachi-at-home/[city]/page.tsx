@@ -10,6 +10,7 @@ import { hasCateringPage } from "@/config/catering-cities"
 import { sourcing, sourcingAllergenNote } from "@/config/sourcing"
 import LandingTemplate, { type LandingDetail } from "@/components/city/landing-template"
 import GeoCityName from "@/components/city/geo-city-name"
+import { greetsWithVisitorCity } from "@/config/geo-locations"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { smsHref } from "@/config/site"
 
@@ -326,12 +327,13 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
       <LandingTemplate
         city={page.city}
         citySlug={page.slug}
+        lockCity={!greetsWithVisitorCity(page.slug)}
         {...coastalHero(page.slug, page.city)}
         smsHref={smsHref(`Hi! I'd like a quote for a hibachi party in ${page.city}.`)}
         kicker={`Private hibachi chef · ${page.city} & all of SoCal`}
         title={
           <>
-            Hibachi at Home in <GeoCityName fallback={page.city} />
+            Hibachi at Home in <GeoCityName fallback={page.city} enabled={greetsWithVisitorCity(page.slug)} />
           </>
         }
         subhead="Private chef, teppanyaki grill and the full fire show in your backyard."

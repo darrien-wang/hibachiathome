@@ -9,6 +9,7 @@ import { pickReviews } from "@/config/reviews"
 import { coastalHero } from "@/config/coastal-cities"
 import LandingTemplate from "@/components/city/landing-template"
 import GeoCityName from "@/components/city/geo-city-name"
+import { greetsWithVisitorCity } from "@/config/geo-locations"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
 
@@ -209,12 +210,13 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
         {...coastalHero(page.slug, page.city)}
         city={page.city}
         citySlug={page.slug}
+        lockCity={!greetsWithVisitorCity(page.slug)}
         source={source}
         smsHref={smsHref}
         kicker={`Hibachi catering · ${page.city} & all of SoCal`}
         title={
           <>
-            Hibachi Catering in <GeoCityName fallback={page.city} />
+            Hibachi Catering in <GeoCityName fallback={page.city} enabled={greetsWithVisitorCity(page.slug)} />
           </>
         }
         subhead="The caterer that brings dinner and the show — a private chef, the teppanyaki grill and live fire at your venue or backyard."

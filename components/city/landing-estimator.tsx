@@ -58,6 +58,7 @@ export function focusLandingPhone() {
 export default function LandingEstimator({
   citySlug,
   cityName,
+  lockCity = false,
   source,
   travelFee,
   proofImage = "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
@@ -65,6 +66,8 @@ export default function LandingEstimator({
 }: {
   citySlug: string
   cityName: string
+  /** Keep cityName even when ?loc= names the visitor's city (destination pages). */
+  lockCity?: boolean
   source?: string
   /** Approximate travel fee for this city (config/city-travel); 0 / undefined = included. */
   travelFee?: number | null
@@ -72,7 +75,7 @@ export default function LandingEstimator({
   proofImage?: string
   proofQuote?: { text: string; name: string; source: string }
 }) {
-  const shownCity = useLocCity(cityName)
+  const shownCity = useLocCity(cityName, !lockCity)
   const [adults, setAdults] = useState(15)
   const [kids, setKids] = useState(0)
   const [date, setDate] = useState("")
@@ -81,9 +84,34 @@ export default function LandingEstimator({
   const [email, setEmail] = useState("")
   const [phoneErr, setPhoneErr] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean }>(null)
+  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null }>(null)
   const [serverErr, setServerErr] = useState<string | null>(null)
   const startedRef = useRef(false)
+  // Height of the on-screen keyboard (0 when closed). The sticky bar is moved
+  // up by this much so "Send" stays reachable while the number is being typed:
+  // 2026-09-12 recordings showed visitors typing a number and never finding
+  // the button underneath the keyboard.
+  const [keyboardInset, setKeyboardInset] = useState(0)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    let raf = 0
+    const measure = () => {
+      raf = 0
+      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+      setKeyboardInset(inset > 80 ? inset : 0)
+    }
+    const schedule = () => {
+      if (!raf) raf = window.requestAnimationFrame(measure)
+    }
+    vv.addEventListener("resize", schedule)
+    vv.addEventListener("scroll", schedule)
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf)
+      vv.removeEventListener("resize", schedule)
+      vv.removeEventListener("scroll", schedule)
+    }
+  }, [])
 
   const dateKnown = /^\d{4}-\d{2}-\d{2}$/.test(date)
   const eligibility = useMemo(() => (dateKnown ? checkWeekdayEligibility(date, { adult: adults, child: kids, toddler: 0 }) : null), [dateKnown, date, adults, kids])
@@ -99,6 +127,7 @@ export default function LandingEstimator({
   const total = (weekday ? subtotal : Math.max(subtotal, MINIMUM_SPEND)) + fee
 
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
+  const phoneReady = phoneValue.replace(/\D/g, "").replace(/^1/, "").length === 10
   const guestsShort = kids > 0 ? `${adults} adults · ${kids} kids` : `${adults} adults`
   const planShort = weekday ? "Mon–Thu" : "any day"
   const planLabel =
@@ -151,12 +180,12 @@ export default function LandingEstimator({
           pagePath: window.location.pathname,
         }),
       })
-      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean } | null
+      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string } | null
       if (!res.ok || !p?.ok) {
         setServerErr(p?.error === "phone_invalid" ? "That number doesn't look right — 10 digits, US mobile." : "Couldn't send just now. Call or text (213) 770-7788 and we'll quote you right away.")
         return
       }
-      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false })
+      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null })
       // Same event the /quote booking request fires, so GA4 / Ads / ChatGPT
       // count it as the lead it is; contact_surface tells the two apart.
       trackEvent("booking_submit", {
@@ -245,23 +274,46 @@ export default function LandingEstimator({
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
               <Check className="h-5 w-5" strokeWidth={3} />
             </span>
-            <div className="text-sm leading-snug">
+            <div className="min-w-0 flex-1 text-sm leading-snug">
+              {/* Twilio "accepted" is not "delivered" (T-Mobile rejected every text
+                  on 2026-09-12), so the quote and the deposit link live here too. */}
               <p className="font-bold">{sent.smsDelivered ? `Texted to ${prettyPhone(phoneValue)}` : `We have your number: ${prettyPhone(phoneValue)}`}</p>
               <p className="mt-0.5 text-clay-700">
                 {sent.smsDelivered
-                  ? `Your ${fmt(sent.total)} quote and the ${fmt(DEPOSIT_AMOUNT)} deposit link are in your messages${sent.emailed ? " and your inbox" : ""}.`
-                  : `The text is delayed, so a real person will reach out with your ${fmt(sent.total)} quote.`}{" "}
+                  ? `If the text${sent.emailed ? " or email" : ""} hasn't landed in a minute, everything is right here.`
+                  : "The text is delayed, so here is everything it would have said."}{" "}
                 A real person follows up within 15 min by text or email.
               </p>
+              <p className="mt-2 font-serif text-2xl font-extrabold leading-none">{fmt(sent.total)}</p>
+              <p className="text-xs text-clay-600">
+                {guestsShort} · {planShort}
+                {fee > 0 ? ` · incl. ~$${fee} travel` : ""}
+              </p>
+              {sent.depositUrl ? (
+                <a
+                  href={sent.depositUrl}
+                  onClick={() => trackEvent("deposit_started", { contact_surface: "landing_receipt", quote_total: sent.total })}
+                  className="mt-2.5 flex h-11 items-center justify-center rounded-full bg-flame px-4 text-[14px] font-bold text-white transition hover:bg-flame-600"
+                >
+                  Lock my date · {fmt(DEPOSIT_AMOUNT)} refundable deposit
+                </a>
+              ) : null}
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (!busy) void submit()
+            }}
+          >
             <input
               data-landing-phone=""
               type="tel"
               inputMode="tel"
               autoComplete="tel"
+              enterKeyHint="send"
               placeholder="Your mobile number"
               aria-label="Your mobile number"
               value={phoneValue}
@@ -269,7 +321,6 @@ export default function LandingEstimator({
                 setPhoneValue(e.target.value)
                 setPhoneErr(false)
               }}
-              onKeyDown={(e) => e.key === "Enter" && !busy && void submit()}
               className={`${input} ${phoneErr ? "border-flame ring-2 ring-flame/30" : ""}`}
             />
             <input
@@ -283,8 +334,10 @@ export default function LandingEstimator({
               className={`${input} hidden lg:block`}
             />
             <button
-              type="button"
-              onClick={() => void submit()}
+              type="submit"
+              // Keep the input focused (and the keyboard open) through the tap,
+              // otherwise iOS blurs first, the layout shifts, and the click is lost.
+              onMouseDown={(e) => e.preventDefault()}
               disabled={busy}
               className="flex h-[52px] items-center justify-center rounded-full bg-flame text-base font-bold text-white transition hover:bg-flame-600 disabled:opacity-60"
             >
@@ -293,7 +346,7 @@ export default function LandingEstimator({
             <p className={`text-center text-xs ${phoneErr || serverErr ? "font-semibold text-flame-700" : "text-clay-600"}`}>
               {serverErr ?? (phoneErr ? "Enter a 10-digit mobile number so we can text the quote." : `Just your number · quote + ${fmt(DEPOSIT_AMOUNT)} deposit link by text · no spam`)}
             </p>
-          </div>
+          </form>
         )}
 
         {/* Proof lives inside the card: paying a deposit is a trust decision. */}
@@ -311,7 +364,10 @@ export default function LandingEstimator({
       </div>
 
       {/* Phones: price + call + the one action, always in reach. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-2.5 bg-[linear-gradient(to_top,#f7efe2_75%,transparent)] px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 lg:hidden">
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-2.5 bg-[linear-gradient(to_top,#f7efe2_75%,transparent)] px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 lg:hidden"
+        style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
+      >
         <div className="min-w-0 flex-1">
           <p className="truncate text-[11px] text-clay-600">
             {guestsShort} · {planShort}
@@ -326,17 +382,32 @@ export default function LandingEstimator({
         >
           <Phone className="h-5 w-5" />
         </a>
-        <button
-          type="button"
-          onClick={() => {
-            if (sent) return
-            trackEvent("lead_start", { contact_surface: "landing_sticky", adults, kids, quote_plan: weekday ? "weekday" : "standard", quote_total: total })
-            focusLandingPhone()
-          }}
-          className={`flex h-[50px] items-center rounded-full px-5 text-[15px] font-bold shadow-organic-lg ${sent ? "bg-emerald-600 text-white" : "bg-flame text-white"}`}
-        >
-          {sent ? "Sent ✓" : "Text me quote"}
-        </button>
+        {sent?.depositUrl ? (
+          <a
+            href={sent.depositUrl}
+            onClick={() => trackEvent("deposit_started", { contact_surface: "landing_sticky", quote_total: sent.total })}
+            className="flex h-[50px] items-center rounded-full bg-emerald-600 px-5 text-[15px] font-bold text-white shadow-organic-lg"
+          >
+            Lock my date · {fmt(DEPOSIT_AMOUNT)}
+          </a>
+        ) : (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              if (sent) return
+              if (phoneReady) {
+                if (!busy) void submit()
+                return
+              }
+              trackEvent("lead_start", { contact_surface: "landing_sticky", adults, kids, quote_plan: weekday ? "weekday" : "standard", quote_total: total })
+              focusLandingPhone()
+            }}
+            className={`flex h-[50px] items-center rounded-full px-5 text-[15px] font-bold shadow-organic-lg ${sent ? "bg-emerald-600 text-white" : "bg-flame text-white"}`}
+          >
+            {sent ? "Sent ✓" : busy ? "Sending…" : phoneReady ? "Send my quote →" : "Text me quote"}
+          </button>
+        )}
       </div>
     </>
   )

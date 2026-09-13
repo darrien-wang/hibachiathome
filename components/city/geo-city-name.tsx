@@ -29,9 +29,10 @@ function resolveLoc(loc: string): Promise<string | null> {
   return p
 }
 
-export function useLocCity(fallback: string): string {
+export function useLocCity(fallback: string, enabled = true): string {
   const [city, setCity] = useState(fallback)
   useEffect(() => {
+    if (!enabled) return
     let alive = true
     try {
       const loc = new URLSearchParams(window.location.search).get("loc")
@@ -45,11 +46,12 @@ export function useLocCity(fallback: string): string {
     return () => {
       alive = false
     }
-  }, [])
-  return city
+  }, [enabled])
+  return enabled ? city : fallback
 }
 
-export default function GeoCityName({ fallback }: { fallback: string }) {
-  const city = useLocCity(fallback)
+/** `enabled=false` pins the page's own city (see GEO_GREETING_SLUGS in config/geo-locations). */
+export default function GeoCityName({ fallback, enabled = true }: { fallback: string; enabled?: boolean }) {
+  const city = useLocCity(fallback, enabled)
   return <>{city}</>
 }

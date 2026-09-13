@@ -29,6 +29,8 @@ export type LandingTemplateProps = {
   /** Driving miles (used only to decide included vs fee); the page never prints them. */
   distanceMiles?: number | null
   travelFee?: number | null
+  /** Keep the page's own city in the estimate card even when ?loc= names the visitor's (config/geo-locations GEO_GREETING_SLUGS). */
+  lockCity?: boolean
   reviews: GoogleReview[]
   included: string[]
   hoods: string[]
@@ -112,6 +114,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
     subhead,
     distanceMiles,
     travelFee,
+    lockCity,
     reviews,
     included,
     hoods,
@@ -138,8 +141,11 @@ export default function LandingTemplate(props: LandingTemplateProps) {
         ? `${city}: about $${travelFee} travel, shown in your quote`
         : "Most SoCal addresses carry no travel fee"
 
+  // The deposit card is the one people try to tap (2026-09-12: 13 rage clicks
+  // on it in one session, then "$0" and "50 mi"), so it is a real button that
+  // brings them to the phone input; the rest are flat facts, not buttons.
   const diffs = [
-    { big: `$${DEPOSIT_AMOUNT.toFixed(2)}`, label: "deposit, not $150", body: "Full refund with 72h notice" },
+    { big: `$${DEPOSIT_AMOUNT.toFixed(2)}`, label: "deposit, not $150", body: "Full refund with 72h notice", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
     { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
     { big: "48h", label: "chef named ahead", body: "If we ever cancel, double deposit back" },
@@ -167,14 +173,14 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             </div>
           </div>
           <div className="hidden lg:block">
-            <LandingEstimator citySlug={citySlug} cityName={city} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
+            <LandingEstimator citySlug={citySlug} cityName={city} lockCity={lockCity} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
           </div>
         </div>
       </section>
 
       {/* Phones: the estimator overlaps the hero's bottom edge. */}
       <div className="relative z-[2] -mt-3.5 px-4 lg:hidden">
-        <LandingEstimator citySlug={citySlug} cityName={city} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
+        <LandingEstimator citySlug={citySlug} cityName={city} lockCity={lockCity} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
       </div>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pt-8 lg:gap-[72px] lg:px-8 lg:pt-16">
@@ -182,13 +188,26 @@ export default function LandingTemplate(props: LandingTemplateProps) {
         <section className="flex flex-col gap-3.5">
           <h2 className="font-serif text-[26px] font-extrabold leading-[1.1] lg:sr-only">What your quote actually includes</h2>
           <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-4">
-            {diffs.map((d) => (
-              <div key={d.label} className="flex flex-col gap-1 rounded-[28px] border border-ink/10 bg-surface p-3.5 shadow-organic lg:p-[22px] lg:gap-1.5">
-                <span className="font-serif text-2xl font-extrabold leading-none text-flame lg:text-[34px]">{d.big}</span>
-                <span className="text-[13px] font-semibold lg:text-[15px]">{d.label}</span>
-                <span className="text-xs leading-snug text-clay-600 lg:text-[13px]">{d.body}</span>
-              </div>
-            ))}
+            {diffs.map((d) =>
+              d.action ? (
+                <LandingCtaButton
+                  key={d.label}
+                  surface="landing_deposit_card"
+                  className="flex flex-col items-start gap-1 rounded-2xl border-2 border-flame/60 bg-surface p-3.5 text-left transition hover:bg-flame/5 lg:gap-1.5 lg:p-[22px]"
+                >
+                  <span className="font-serif text-2xl font-extrabold leading-none text-flame lg:text-[34px]">{d.big}</span>
+                  <span className="text-[13px] font-semibold lg:text-[15px]">{d.label}</span>
+                  <span className="text-xs leading-snug text-clay-600 lg:text-[13px]">{d.body}</span>
+                  <span className="mt-1 text-xs font-bold text-flame lg:text-[13px]">Text me my quote →</span>
+                </LandingCtaButton>
+              ) : (
+                <div key={d.label} className="flex flex-col gap-1 rounded-2xl bg-surface/70 p-3.5 lg:gap-1.5 lg:p-[22px]">
+                  <span className="font-serif text-2xl font-extrabold leading-none text-flame lg:text-[34px]">{d.big}</span>
+                  <span className="text-[13px] font-semibold lg:text-[15px]">{d.label}</span>
+                  <span className="text-xs leading-snug text-clay-600 lg:text-[13px]">{d.body}</span>
+                </div>
+              ),
+            )}
           </div>
         </section>
 

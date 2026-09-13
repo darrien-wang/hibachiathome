@@ -416,3 +416,18 @@ export function geoLocationName(id: string | null | undefined): string | null {
   const key = String(id).trim()
   return Object.prototype.hasOwnProperty.call(GEO_LOCATION_NAMES, key) ? GEO_LOCATION_NAMES[key] : null
 }
+
+// Pages allowed to greet the visitor with their own city. The main campaign's
+// ads say {LOCATION(City)} and land on the generic LA / SoCal pages, so there
+// the swap matches the headline. Every other city page was reached by
+// searching that city — Joshua Tree, Temecula, San Diego — and must keep its
+// own name: on 2026-09-12 a visitor in 90046 searched "joshua tree catering"
+// and got "Hibachi at Home in Los Angeles / Your Los Angeles party" on
+// /hibachi-at-home/joshua-tree, tapped the header four times and left to find
+// the right page via /locations. 23 of 35 destination sessions that week had
+// a SoCal loc and saw the same thing.
+export const GEO_GREETING_SLUGS = new Set(["los-angeles"])
+
+export function greetsWithVisitorCity(slug: string): boolean {
+  return GEO_GREETING_SLUGS.has(slug)
+}
