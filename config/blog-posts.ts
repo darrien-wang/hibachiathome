@@ -18,7 +18,7 @@ Most hibachi catering sites in Los Angeles make you hand over your phone number 
 
 That price includes everything the party actually needs: the chef, the mobile teppanyaki grill, two proteins per guest (chicken, steak, shrimp, salmon, or tofu), garlic butter fried rice, fresh vegetables, house salad, the live fire show, setup, and cleanup.
 
-Booking Monday through Thursday? The **Weekday Special drops adults to $54.90** and kids to $27.45 and adds a free appetizer platter and free tables & chairs — same food, same show, any party size.
+Booking Monday through Thursday? The **Weekday Special drops adults to $54.90** and kids to $27.45 and adds a free appetizer platter — same food, same show, any party size.
 
 ## What that looks like for real party sizes
 
@@ -308,7 +308,7 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer platter and free tables & chairs included). Setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer platter included). Setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-los-angeles-backyard-event-02.jpg",
     date: "2026-08-26",
@@ -394,7 +394,7 @@ That's the trade. If the weather isn't cooperating — too hot at noon, too cold
 
 Weekend evenings go first, especially in spring and graduation season. Weekday lunch is the most available slot on our calendar by a wide margin.
 
-It's also the cheaper one. Our **Weekday Special is $54.90 per adult** — Monday through Thursday at any party size, and it covers lunch as well as dinner because "weekday" here means the whole day. Same chef, same food, same show, full menu, plus a free appetizer platter and free tables & chairs. A 20-person weekday lunch runs $100 less than the same party on a Saturday night, before you count the platter.
+It's also the cheaper one. Our **Weekday Special is $54.90 per adult** — Monday through Thursday at any party size, and it covers lunch as well as dinner because "weekday" here means the whole day. Same chef, same food, same show, full menu, plus a free appetizer platter. A 20-person weekday lunch runs $100 less than the same party on a Saturday night, before you count the platter.
 
 Corporate bookings, retirement lunches, and school-holiday kids' parties all tend to land Monday to Thursday anyway. If that's you, you're already in the cheaper, easier-to-book half of the week and you may not have realized it.
 
@@ -410,7 +410,7 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer platter and free tables & chairs included). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
+*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer platter included). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-orange-county-family-event-04.jpg",
     date: "2026-08-26",
@@ -515,7 +515,7 @@ That last one matters more than it sounds. Some services in this market charge $
 
 You do provide the tables, chairs, plates, and utensils — or you can rent them from us.
 
-## The Weekday Special: $54.90 an adult, plus a free appetizer platter and free tables & chairs
+## The Weekday Special: $54.90 an adult, plus a free appetizer platter
 
 Monday through Thursday, at any party size, the rate is **$54.90 per adult** instead of $59.90, and a free appetizer platter — gyoza, edamame and spring rolls, a $40 value — comes with it. Same chef, same grill, same show, same setup and cleanup, same full menu, premium upgrades included. That's the whole difference.
 
@@ -673,7 +673,7 @@ So if you've been holding off because your space feels too small, or too plain, 
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer platter and free tables & chairs included). Setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
+*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer platter included). Setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-los-angeles-chef-show-07.jpg",
     date: "2026-08-26",

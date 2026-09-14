@@ -43,7 +43,7 @@ export default function PriceTransparency() {
               <p className="text-2xl font-bold text-gray-900">${example.baseTotal.toFixed(0)}</p>
               <p className="text-xs text-gray-500">Most parties pay exactly this — no travel fee within 50 miles.</p>
               <div className="pt-2 border-t border-amber-100 text-xs text-gray-600 space-y-0.5">
-                <p>Optional: tables, chairs &amp; utensils +${example.setupIfNeeded} (skip it if you have your own; tables &amp; chairs free Mon–Thu)</p>
+                <p>Optional: tables, chairs &amp; utensils +${example.setupIfNeeded} (skip it if you have your own)</p>
                 <p>Optional: premium upgrades, appetizers, DIY fried rice add-ins</p>
               </div>
               <PackageSmsButton guests={example.guests} total={example.baseTotal} />

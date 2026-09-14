@@ -9,7 +9,7 @@ export const faqItems = [
 
 Kids: $${pricing.children.basic.toFixed(2)} for ages 5-12, and kids under 5 eat free
 
-Weekday Special (Mon–Thu, any party size): $54.90 per adult, $27.45 per child, plus a free appetizer platter and free tables & chairs
+Weekday Special (Mon–Thu, any party size): $54.90 per adult, $27.45 per child, plus a free appetizer platter
 
 Party Size Discount (any day, automatic): 10–14 guests save $30, 15–24 save $60, 25–30 save $90
 

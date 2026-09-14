@@ -148,19 +148,13 @@ export const WEEKDAY_SPECIAL = {
     detail: "gyoza, edamame & spring rolls",
     value: 40,
   },
-  // 2026-09-13 (owner): tables & chairs are free on weekday dates for any
-  // party size, when the host wants them. Utensils stay $5/guest. Mirrors the
-  // invoice repo's weekday promo (freeExtraIds: tables_chairs).
-  tablesChairs: {
-    label: "Free tables & chairs",
-    detail: "$10/guest value, if you need them",
-    perGuestValue: TABLES_CHAIRS_PER_GUEST,
-  },
+  // Free tables & chairs were added 2026-09-13 and withdrawn 2026-09-14
+  // (owner): the setup add-on is priced the same on every date.
 } as const
 
-/** Per-guest price of the "tables, chairs & utensils" add-on on the given tier. */
-export function setupPerGuest(weekdaySpecial: boolean): number {
-  return weekdaySpecial ? UTENSILS_PER_GUEST : FULL_SETUP_PER_GUEST
+/** Per-guest price of the "tables, chairs & utensils" add-on (same on every date). */
+export function setupPerGuest(): number {
+  return FULL_SETUP_PER_GUEST
 }
 
 // ---------------------------------------------------------------

@@ -300,7 +300,7 @@ export default function HibachiAtHomePage() {
                     <CardTitle>Pricing & minimums</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm text-gray-700">
-                    <p>Standard hibachi at home pricing is $59.90 per adult, $29.90 per child 5–12, under 5 free. Mon–Thu Weekday Special $54.90 per adult with a free appetizer platter and free tables & chairs. Parties of 10+ save $30–$90 automatically.</p>
+                    <p>Standard hibachi at home pricing is $59.90 per adult, $29.90 per child 5–12, under 5 free. Mon–Thu Weekday Special $54.90 per adult with a free appetizer platter. Parties of 10+ save $30–$90 automatically.</p>
                     <p>Every event carries a $599 minimum (about 10 adults), with optional upgrades and rentals.</p>
                   </CardContent>
                 </Card>

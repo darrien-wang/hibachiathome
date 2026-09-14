@@ -183,7 +183,7 @@ export default function Home() {
               </p>
             </div>
             <span className="text-xs text-clay-600 lg:hidden">swipe →</span>
-            <span className="hidden text-[13px] text-clay-600 lg:block">Tables & chairs $10/guest, utensils $5/guest · tables & chairs free Mon–Thu · gratuity 20–25% customary</span>
+            <span className="hidden text-[13px] text-clay-600 lg:block">Tables & chairs $10/guest, utensils $5/guest · gratuity 20–25% customary</span>
           </div>
           <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:grid md:grid-cols-3 md:items-stretch md:overflow-visible md:px-0 md:pt-3 lg:mt-7 lg:gap-5 [&::-webkit-scrollbar]:hidden">
             <PlanCard
@@ -209,7 +209,6 @@ export default function Home() {
               lines={[
                 `$${fmt(GUEST_TIERS.child.weekdayPrice)}/child · under 5 free`,
                 `${WEEKDAY_SPECIAL.appetizerPlatter.label} ($${WEEKDAY_SPECIAL.appetizerPlatter.value} value)`,
-                `${WEEKDAY_SPECIAL.tablesChairs.label} · any party size`,
                 "Full menu, upgrades welcome",
               ]}
               cta="Check weekday dates"
@@ -226,7 +225,7 @@ export default function Home() {
             />
           </div>
           <p className="mt-2 px-5 text-xs text-clay-600 lg:hidden">
-            Tables & chairs $10/guest, utensils $5/guest (tables & chairs free Mon–Thu). Parties of 10+ save $30–$90 any day. Gratuity 20–25% customary.
+            Tables & chairs $10/guest, utensils $5/guest. Parties of 10+ save $30–$90 any day. Gratuity 20–25% customary.
           </p>
         </div>
       </section>

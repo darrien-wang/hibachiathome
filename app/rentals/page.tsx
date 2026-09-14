@@ -22,14 +22,14 @@ const rentalItems = [
   {
     id: "tables",
     name: "Tables",
-    description: "8-foot rectangular tables, perfect for hibachi service. Seats 8 people per table. Free with the Mon–Thu Weekday Special.",
+    description: "8-foot rectangular tables, perfect for hibachi service. Seats 8 people per table.",
     rate: "$20 per table",
     image: "/placeholder.svg?height=300&width=400&query=rectangular dining table",
   },
   {
     id: "chairs",
     name: "Chairs",
-    description: "Folding chairs with padded seats for comfort during your meal. Free with the Mon–Thu Weekday Special.",
+    description: "Folding chairs with padded seats for comfort during your meal.",
     rate: "$3 per chair",
     image: "/placeholder.svg?height=300&width=400&query=folding chair with padded seat",
   },
