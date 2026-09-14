@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import dynamic from "next/dynamic"
@@ -252,6 +252,10 @@ const HEAR_ABOUT_US_OPTIONS: Array<{ value: string; label: string }> = [
 const AvailabilityCalendar = dynamic(() => import("@/components/quote/availability-calendar"))
 const AppreciationBanner = dynamic(() => import("@/components/appreciation-banner"))
 const ProofStrip = dynamic(() => import("@/components/proof-strip"))
+// Each lazy component renders inside its own <Suspense>. Without one, the
+// first render of step 3 (AppreciationBanner) suspended up to the route's
+// loading.tsx: the whole page blanked to "Opening your quote…", mount effects
+// re-ran on reveal, and the visitor was thrown back to step 2 at the footer.
 
 export default function QuoteBuilderClient() {
   const [input, setInput] = useState<QuoteInput>(DEFAULT_INPUT)
@@ -267,7 +271,14 @@ export default function QuoteBuilderClient() {
   const [unlocked, setUnlocked] = useState(false)
   const [unlockBusy, setUnlockBusy] = useState(false)
   const [unlockErr, setUnlockErr] = useState<string | null>(null)
+  // Runs once per page view, and only ever moves the visitor forward from
+  // step 1. It used to fire again when the tree re-appeared after a Suspense
+  // fallback ("Opening your quote…") and yanked a visitor on step 3 back to
+  // step 2, at the old scroll offset — the footer (2026-09-13 report).
+  const restoredContactRef = useRef(false)
   useEffect(() => {
+    if (restoredContactRef.current) return
+    restoredContactRef.current = true
     try {
       const raw = window.localStorage.getItem("rh_quote_unlock")
       if (!raw) return
@@ -278,7 +289,7 @@ export default function QuoteBuilderClient() {
       setCustomerPhone((v) => v || saved.phone || "")
       setCustomerEmail((v) => v || saved.email || "")
       setSmsConsent(true)
-      setStep(2)
+      setStep((current) => (current === 1 ? 2 : current))
     } catch {}
   }, [])
   const [eventTime, setEventTime] = useState("")
@@ -370,7 +381,13 @@ export default function QuoteBuilderClient() {
   // codes arriving via partner links (?ref=RH-MARIA50). Read from
   // window.location instead of useSearchParams — that hook once bailed the
   // whole page to CSR and emptied the SSR HTML (see lib/use-active-region).
+  // Once per page view: re-running when the tree re-appeared after a Suspense
+  // fallback reset guest counts the visitor had already changed (2026-09-13:
+  // 17 adults texted, 18 shown on step 3).
+  const prefilledFromUrlRef = useRef(false)
   useEffect(() => {
+    if (prefilledFromUrlRef.current) return
+    prefilledFromUrlRef.current = true
     const params = new URLSearchParams(window.location.search)
     const ref = (params.get("ref") ?? params.get("code") ?? "").toUpperCase().replace(/\s+/g, "").slice(0, 32)
     if (ref) {
@@ -1306,10 +1323,24 @@ export default function QuoteBuilderClient() {
   }
 
   // ── Wizard plumbing ──
+  // Scroll AFTER the new step has rendered, and instantly. Scrolling in the
+  // same tick as setStep raced the DOM swap: on Android Chrome the smooth
+  // scroll was cancelled when the long step 3 was replaced by step 2 (and
+  // when the keyboard closed), leaving the visitor at the old offset — the
+  // footer (2026-09-13 report).
+  const scrollOnStepRef = useRef(false)
   const goToStep = (next: 1 | 2 | 3) => {
+    scrollOnStepRef.current = true
     setStep(next)
-    window.scrollTo({ top: 0, behavior: "smooth" })
   }
+  useEffect(() => {
+    if (!scrollOnStepRef.current) return
+    scrollOnStepRef.current = false
+    const active = document.activeElement
+    if (active instanceof HTMLElement) active.blur()
+    // The new step is already committed to the DOM when this effect runs.
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  }, [step])
   // The missing-field walker only finds inputs on the current step; send the
   // visitor back to step 1 first when date / time / city are still empty.
   const coreMissing = !input.eventDate || !eventTime || !input.location.trim()
@@ -1327,8 +1358,14 @@ export default function QuoteBuilderClient() {
     }
     if (step === 2) {
       setHeroTouched(true)
-      if (!input.eventDate || !input.location.trim()) {
-        pushToast("error", "Almost there", "Add your event date and city or ZIP to see the price.")
+      // Start time is required here too: step 3's Book now needs it, and
+      // letting it through meant a bounce back from step 3 to step 2.
+      if (coreMissing) {
+        pushToast(
+          "error",
+          "Almost there",
+          !input.eventDate || !input.location.trim() ? "Add your event date and city or ZIP to see the price." : "Pick a start time for your party.",
+        )
         window.setTimeout(focusFirstMissingField, 0)
         return
       }
@@ -1934,13 +1971,15 @@ export default function QuoteBuilderClient() {
                     {showAvailabilityCalendar ? "Hide availability calendar" : "See availability calendar"}
                   </button>
                   {showAvailabilityCalendar ? (
-                    <AvailabilityCalendar
-                      value={input.eventDate}
-                      onSelect={(date) => {
-                        handleFieldChange("eventDate", date)
-                        setShowAvailabilityCalendar(false)
-                      }}
-                    />
+                    <Suspense fallback={null}>
+                      <AvailabilityCalendar
+                        value={input.eventDate}
+                        onSelect={(date) => {
+                          handleFieldChange("eventDate", date)
+                          setShowAvailabilityCalendar(false)
+                        }}
+                      />
+                    </Suspense>
                   ) : null}
                 </div>
 
@@ -2237,7 +2276,9 @@ export default function QuoteBuilderClient() {
                   </div>
                 ) : null}
 
-                <AppreciationBanner source="quote" showCta={false} />
+                <Suspense fallback={null}>
+                  <AppreciationBanner source="quote" showCta={false} />
+                </Suspense>
 
                 <button
                   type="button"
@@ -2434,7 +2475,9 @@ export default function QuoteBuilderClient() {
 
         {/* Proof, after the work: real party clips and two verbatim Google reviews. */}
         <div ref={mediaStripRef} className="mt-10 lg:mt-16">
-          <ProofStrip media={QUOTE_PROOF_MEDIA.slice(0, 6)} size="sm" />
+          <Suspense fallback={null}>
+            <ProofStrip media={QUOTE_PROOF_MEDIA.slice(0, 6)} size="sm" />
+          </Suspense>
         </div>
         <div id="quote-reviews" className="mt-4 flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-5">
           {QUOTE_TESTIMONIALS.slice(0, 3).map((testimonial, i) => (
