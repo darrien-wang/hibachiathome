@@ -141,6 +141,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // The quote step carries the real party. The contact step saved the card's
+  // default (15 adults), and the shared upsert only fills empty fields, so the
+  // workbench kept showing 15 guests for an 8-person quote (2026-09-13).
+  if (!contactOnly && supabase && leadId) {
+    const { error: partyError } = await supabase
+      .from("leads")
+      .update({ guest_count: adults + kids, city_or_zip: cityName, updated_at: new Date().toISOString() })
+      .eq("id", leadId)
+    if (partyError) console.error("[landing-quote] party refresh failed", { leadId, error: partyError.message })
+  }
+
   // Step 1 stops here: the lead exists, nothing has been sent. If the visitor
   // never reaches step 2 the daily unanswered-leads report still lists them.
   if (contactOnly) return NextResponse.json({ ok: true, stage: "contact", leadId })

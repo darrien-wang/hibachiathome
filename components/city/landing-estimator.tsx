@@ -284,8 +284,11 @@ export default function LandingEstimator({
         city_or_zip: shownCity,
         guest_count: adults + kids,
         quote_plan: weekday ? "weekday" : "standard",
-        quote_total: total,
-        value: total,
+        // Step 1 is the conversion, but no party has been priced yet: the card
+        // still holds its default 15 adults. Report the $599 event minimum,
+        // the least any booking is worth, instead of an invented total.
+        value: MINIMUM_SPEND,
+        value_basis: "event_minimum",
         currency: "USD",
       })
     }
@@ -327,6 +330,8 @@ export default function LandingEstimator({
         quote_plan: weekday ? "weekday" : "standard",
         quote_total: total,
         event_date: dateKnown ? date : "unspecified",
+        value: total,
+        currency: "USD",
       })
     } catch {
       setServerErr("Couldn't send just now. Call or text (213) 770-7788 and we'll quote you right away.")

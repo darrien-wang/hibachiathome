@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import dynamic from "next/dynamic"
@@ -1329,6 +1329,14 @@ export default function QuoteBuilderClient() {
   // when the keyboard closed), leaving the visitor at the old offset — the
   // footer (2026-09-13 report).
   const scrollOnStepRef = useRef(false)
+  // Every visit to this page starts at the top. Coming back to /quote a second
+  // time (home -> quote -> back -> Get instant quote) reuses Next's router
+  // cache, which skips the scroll reset: the home page's offset carried over and
+  // clamped to the bottom of the short step 1 - the footer (2026-09-14 report).
+  // The wizard always restarts at step 1, so an old offset is never worth keeping.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  }, [])
   const goToStep = (next: 1 | 2 | 3) => {
     scrollOnStepRef.current = true
     setStep(next)
@@ -1513,9 +1521,10 @@ export default function QuoteBuilderClient() {
         kids: input.kids,
         event_date: input.eventDate || "unspecified",
         quote_tier: input.pricingTier,
-        estimate_low: result.totalRange.low,
-        estimate_high: result.totalRange.high,
-        value: result.totalRange.low,
+        // Contact comes before the party is entered (D-0913-09), so any total
+        // here is the form's default. Report the $599 event minimum instead.
+        value: MINIMUM_SPEND,
+        value_basis: "event_minimum",
         currency: "USD",
       })
     }
@@ -1542,6 +1551,8 @@ export default function QuoteBuilderClient() {
           event_date: input.eventDate || "unspecified",
           estimate_low: result.totalRange.low,
           estimate_high: result.totalRange.high,
+          value: result.totalRange.low,
+          currency: "USD",
         })
         pushToast("success", "Sent", "Your exact price is on its way by text and email — it's also right here.")
       } else {
@@ -2039,9 +2050,6 @@ export default function QuoteBuilderClient() {
             {step === 1 ? (
               <>
                 <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your hibachi quote</h1>
-                <p className="text-[15px] leading-relaxed text-clay-700">
-                  Tell us where to send it. Your exact price is on the next screen and goes to your phone and inbox too, with your party size discount code when your group qualifies. A real person follows up within 15 minutes.
-                </p>
                 <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
                   <label className="flex flex-col gap-1.5">
                     <span className="text-[13px] font-semibold">Name</span>
