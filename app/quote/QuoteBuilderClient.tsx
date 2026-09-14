@@ -2111,18 +2111,6 @@ export default function QuoteBuilderClient() {
                   </span>
                 </label>
                 {unlockErr ? <p className="text-[13px] font-semibold text-flame-700">{unlockErr}</p> : null}
-                <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
-                  {[
-                    "Exact price on the next screen — and by text and email",
-                    "Chef confirmed by name 48h before — if we cancel, double your money back",
-                    "Free to cancel or reschedule up to 72h before",
-                  ].map((line) => (
-                    <div key={line} className="flex gap-2.5">
-                      <span className="font-bold text-gold-700">✓</span>
-                      {line}
-                    </div>
-                  ))}
-                </div>
               </>
             ) : null}
             {step === 3 ? (
