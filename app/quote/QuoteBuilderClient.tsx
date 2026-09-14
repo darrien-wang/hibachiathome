@@ -23,6 +23,7 @@ import {
 } from "@/config/regional-policies"
 import {
   GUEST_TIERS,
+  DEPOSIT_AMOUNT,
   displayRange,
   formatDisplayRange,
   MINIMUM_SPEND,
@@ -277,6 +278,7 @@ export default function QuoteBuilderClient() {
       setCustomerPhone((v) => v || saved.phone || "")
       setCustomerEmail((v) => v || saved.email || "")
       setSmsConsent(true)
+      setStep(2)
     } catch {}
   }, [])
   const [eventTime, setEventTime] = useState("")
@@ -1312,26 +1314,25 @@ export default function QuoteBuilderClient() {
   // visitor back to step 1 first when date / time / city are still empty.
   const coreMissing = !input.eventDate || !eventTime || !input.location.trim()
   const backToCoreFields = () => {
-    if (step !== 1) goToStep(1)
-    window.setTimeout(focusFirstMissingField, step === 1 ? 0 : 450)
+    if (step !== 2) goToStep(2)
+    window.setTimeout(focusFirstMissingField, step === 2 ? 0 : 450)
   }
+  // Contact first (D-0913-09): step 1 = mobile + email (lead saved at once),
+  // step 2 = the party and the exact price (texted + emailed on the way out),
+  // step 3 = breakdown, booking request, and the deposit for whoever is ready.
   const onPrimary = () => {
     if (step === 1) {
+      if (!unlockBusy) void submitContact()
+      return
+    }
+    if (step === 2) {
       setHeroTouched(true)
       if (!input.eventDate || !input.location.trim()) {
         pushToast("error", "Almost there", "Add your event date and city or ZIP to see the price.")
         window.setTimeout(focusFirstMissingField, 0)
         return
       }
-      goToStep(2)
-      return
-    }
-    if (step === 2) {
-      if (!unlocked) {
-        void submitUnlock()
-        return
-      }
-      goToStep(3)
+      if (!unlockBusy) void submitQuote()
       return
     }
     if (coreMissing) {
@@ -1369,28 +1370,24 @@ export default function QuoteBuilderClient() {
   const unlockDiscount = result.partySizeDiscountApplied
   const primaryLabel =
     step === 1
-      ? "See my price"
+      ? unlockBusy
+        ? "One sec…"
+        : "See my price →"
       : step === 2
-        ? unlocked
-          ? "Continue to book"
-          : unlockBusy
-            ? "Sending…"
-            : unlockDiscount > 0
-              ? `Text me my exact price + $${unlockDiscount} code`
-              : "Text me my exact price"
+        ? unlockBusy
+          ? "Sending…"
+          : unlockDiscount > 0
+            ? `Text me this quote + $${unlockDiscount} code`
+            : "Text me this quote"
         : bookingRequestSubmitting
           ? "Submitting…"
           : "Book now"
   const primaryHint =
     step === 1
-      ? unlocked
-        ? "Exact price below"
-        : "Price range now · exact price and discount by text"
+      ? "Mobile + email · price on the next screen · nothing charged"
       : step === 2
-        ? unlocked
-          ? "Nothing charged yet"
-          : "Mobile + email · nothing charged"
-        : `We confirm within hours · full refund up to 72h before`
+        ? "Exact price below · also by text and email · nothing charged"
+        : `We confirm within hours · free to cancel up to 72h before`
   const planName = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
   const totalLabel =
     result.totalRange.low === result.totalRange.high
@@ -1399,57 +1396,73 @@ export default function QuoteBuilderClient() {
   const rangeLabel = formatDisplayRange(displayRange(result.totalRange.low, result.totalRange.high + result.partySizeDiscountApplied))
   const shownPriceLabel = unlocked ? totalLabel : rangeLabel
 
-  const submitUnlock = async () => {
+  const validateContact = () => {
     const digits = customerPhone.replace(/\D/g, "").replace(/^1/, "")
     if (digits.length !== 10) {
       setUnlockErr("Enter a 10-digit US mobile number.")
-      return
+      return false
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       setUnlockErr("Add a valid email — the exact price goes there too.")
-      return
+      return false
     }
     if (!smsConsent) {
       setUnlockErr("Tick the box so we can text you the price.")
-      return
+      return false
     }
+    return true
+  }
+  // One route for both steps: "contact" saves the lead and sends nothing,
+  // "quote" texts + emails the exact price and wakes ops.
+  const postQuote = async (stage: "contact" | "quote") => {
+    const response = await fetch("/api/landing-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        stage,
+        citySlug: "quote",
+        cityName: input.location.trim() || "Southern California",
+        source: "quote_unlock",
+        channel: "website_quote_unlock",
+        adults: input.adults,
+        kids: input.kids,
+        eventDate: input.eventDate || "",
+        plan: isWeekdaySaverTier ? "weekday" : "standard",
+        travelFee: result.travelFeeRange.high,
+        phone: customerPhone.trim(),
+        email: customerEmail.trim(),
+        name: customerName.trim(),
+        pagePath: window.location.pathname,
+      }),
+    })
+    const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+    return { ok: response.ok && Boolean(payload?.ok), error: payload?.error }
+  }
+  // Step 1 → 2. The lead exists before any price is shown; a server hiccup
+  // here never blocks the visitor, step 2 writes everything again.
+  const submitContact = async () => {
+    if (!validateContact()) return
     setUnlockBusy(true)
     setUnlockErr(null)
     try {
-      const response = await fetch("/api/landing-quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          citySlug: "quote",
-          cityName: input.location.trim() || "Southern California",
-          source: "quote_unlock",
-          channel: "website_quote_unlock",
-          adults: input.adults,
-          kids: input.kids,
-          eventDate: input.eventDate || "",
-          plan: isWeekdaySaverTier ? "weekday" : "standard",
-          travelFee: result.travelFeeRange.high,
-          phone: customerPhone.trim(),
-          email: customerEmail.trim(),
-          name: customerName.trim(),
-          pagePath: window.location.pathname,
-        }),
-      })
-      const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
-      if (!response.ok || !payload?.ok) {
-        setUnlockErr(
-          payload?.error === "phone_invalid"
-            ? "That number doesn't look right — 10 digits, US mobile."
-            : payload?.error === "email_required" || payload?.error === "email_invalid"
-              ? "Add a valid email — the exact price goes there too."
-              : "Couldn't send just now. Text (213) 770-7788 and we'll quote you right away.",
-        )
+      const r = await postQuote("contact")
+      if (!r.ok && r.error === "phone_invalid") {
+        setUnlockErr("That number doesn't look right — 10 digits, US mobile.")
         return
       }
-      try {
-        window.localStorage.setItem("rh_quote_unlock", JSON.stringify({ name: customerName.trim(), phone: customerPhone.trim(), email: customerEmail.trim(), at: Date.now() }))
-      } catch {}
-      setUnlocked(true)
+      if (!r.ok && (r.error === "email_required" || r.error === "email_invalid")) {
+        setUnlockErr("Add a valid email — the exact price goes there too.")
+        return
+      }
+    } catch {
+      // offline: carry on
+    } finally {
+      setUnlockBusy(false)
+    }
+    try {
+      window.localStorage.setItem("rh_quote_unlock", JSON.stringify({ name: customerName.trim(), phone: customerPhone.trim(), email: customerEmail.trim(), at: Date.now() }))
+    } catch {}
+    if (!unlocked) {
       trackEvent("booking_submit", {
         lead_source: "quote_unlock",
         lead_channel: "website_quote_unlock",
@@ -1468,13 +1481,60 @@ export default function QuoteBuilderClient() {
         value: result.totalRange.low,
         currency: "USD",
       })
-      pushToast("success", "Sent", "Your exact price is on its way by text and email — it's also right here.")
+    }
+    setUnlocked(true)
+    goToStep(2)
+  }
+  // Step 2 → 3: the exact price goes out by text + email, then the breakdown.
+  const submitQuote = async () => {
+    if (!validateContact()) {
+      goToStep(1)
+      return
+    }
+    setUnlockBusy(true)
+    setUnlockErr(null)
+    try {
+      const r = await postQuote("quote")
+      if (r.ok) {
+        trackEvent("quote_sent", {
+          contact_surface: "quote_unlock",
+          quote_surface: quoteSurface,
+          city_or_zip: input.location || "unspecified",
+          guest_count: result.guestCount,
+          quote_tier: input.pricingTier,
+          event_date: input.eventDate || "unspecified",
+          estimate_low: result.totalRange.low,
+          estimate_high: result.totalRange.high,
+        })
+        pushToast("success", "Sent", "Your exact price is on its way by text and email — it's also right here.")
+      } else {
+        pushToast("error", "Text didn't go out", "Your price is on screen and a real person will text you shortly.")
+      }
     } catch {
-      setUnlockErr("Couldn't send just now. Text (213) 770-7788 and we'll quote you right away.")
+      pushToast("error", "Text didn't go out", "Your price is on screen and a real person will text you shortly.")
     } finally {
       setUnlockBusy(false)
     }
+    goToStep(3)
   }
+  // The deposit is never pitched in marketing copy (D-0913-01), but the path
+  // stays open for the visitor who is ready right now (D-0913-09).
+  const depositHref = useMemo(() => {
+    const params = new URLSearchParams({
+      source: QUOTE_SOURCE,
+      location: input.location.trim(),
+      adults: String(input.adults),
+      kids: String(input.kids),
+      tent_10x10: input.tent10x10 ? "yes" : "no",
+      estimate_low: String(Math.round(result.totalRange.low)),
+      estimate_high: String(Math.round(result.totalRange.high)),
+    })
+    if (input.eventDate) params.set("event_date", input.eventDate)
+    if (eventTime) params.set("event_time", eventTime)
+    if (customerName.trim()) params.set("customer_name", customerName.trim())
+    if (customerEmail.trim()) params.set("customer_email", customerEmail.trim())
+    return `/deposit/pay?${params.toString()}`
+  }, [input, result.totalRange.low, result.totalRange.high, eventTime, customerName, customerEmail])
   const priceCard = (
     <div className="flex flex-col gap-1.5 rounded-[28px] bg-flame p-[22px] text-cream lg:p-7">
       <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-flame-100">
@@ -1564,6 +1624,13 @@ export default function QuoteBuilderClient() {
               >
                 Text us about this party
               </button>
+              <Link
+                href={bookingConfirmation.bookingId ? `${depositHref}&id=${encodeURIComponent(bookingConfirmation.bookingId)}` : depositHref}
+                onClick={() => trackEvent("deposit_start_click", { contact_surface: "quote_confirmation", quote_surface: quoteSurface, value: bookingConfirmation.estimateLow, currency: "USD" })}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-full border-2 border-flame text-base font-semibold text-flame-700 transition hover:bg-flame/5"
+              >
+                Ready now? Pay the ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit
+              </Link>
               <p className="mt-3 text-sm text-clay-700">
                 Free to cancel or reschedule up to 72h before.
               </p>
@@ -1739,7 +1806,7 @@ export default function QuoteBuilderClient() {
           ))}
         </div>
 
-        {/* ── 3-step wizard (2026-09-08 redesign): who's coming → your price → lock your date ── */}
+        {/* ── 3-step wizard (2026-09-08 redesign, reordered 2026-09-13): where to send it → who's coming + your price → lock your date ── */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1761,7 +1828,7 @@ export default function QuoteBuilderClient() {
 
         <div className="mt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-14">
           <div className="flex flex-col gap-5 lg:gap-7">
-            {step === 1 ? (
+            {step === 2 ? (
               <>
                 <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Who&apos;s coming?</h1>
                 <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
@@ -1930,13 +1997,11 @@ export default function QuoteBuilderClient() {
               </>
             ) : null}
 
-            {step === 2 && !unlocked ? (
+            {step === 1 ? (
               <>
-                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your price: {rangeLabel}</h1>
+                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your hibachi quote</h1>
                 <p className="text-[15px] leading-relaxed text-clay-700">
-                  {unlockDiscount > 0
-                    ? `Leave your mobile and email and we text you the exact total plus your $${unlockDiscount} party size discount code right now. A real person follows up within 15 minutes.`
-                    : "Leave your mobile and email and we text you the exact total right now. A real person follows up within 15 minutes."}
+                  Tell us where to send it. Your exact price is on the next screen and goes to your phone and inbox too, with your party size discount code when your group qualifies. A real person follows up within 15 minutes.
                 </p>
                 <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
                   <label className="flex flex-col gap-1.5">
@@ -2001,7 +2066,7 @@ export default function QuoteBuilderClient() {
                 {unlockErr ? <p className="text-[13px] font-semibold text-flame-700">{unlockErr}</p> : null}
                 <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
                   {[
-                    "Exact total and your discount code by text and email, in seconds",
+                    "Exact price on the next screen — and by text and email",
                     "Chef confirmed by name 48h before — if we cancel, double your money back",
                     "Free to cancel or reschedule up to 72h before",
                   ].map((line) => (
@@ -2013,7 +2078,7 @@ export default function QuoteBuilderClient() {
                 </div>
               </>
             ) : null}
-            {step === 2 && unlocked ? (
+            {step === 3 ? (
               <>
                 <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Your price</h1>
                 <div className="lg:hidden">{priceCard}</div>
@@ -2180,22 +2245,38 @@ export default function QuoteBuilderClient() {
                   className="inline-flex items-center gap-2 self-start text-sm font-semibold text-flame-700"
                 >
                   <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                  Text us this quote instead
+                  Questions? Text us
                 </button>
               </>
             ) : null}
 
             {step === 3 ? (
               <>
-                <h1 className="font-serif text-[32px] font-extrabold leading-[1.05] lg:text-[44px]">Lock your date</h1>
-                <div className="flex items-center gap-2.5 rounded-2xl bg-surface px-4 py-3.5 text-[13px] leading-snug">
-                  <span className="font-serif text-[22px] font-extrabold">{totalLabel}</span>
-                  <span className="text-clay-700">
-                    {planName} · {result.guestCount} guests
-                  </span>
-                </div>
+                <h2 className="mt-2 font-serif text-[26px] font-extrabold leading-[1.05] lg:text-[34px]">Lock your date</h2>
+                <p className="-mt-2 text-[14px] leading-relaxed text-clay-700">
+                  Ready now?{" "}
+                  <Link
+                    href={depositHref}
+                    onClick={() => trackEvent("deposit_start_click", { contact_surface: "quote_step3", quote_surface: quoteSurface, value: result.totalRange.low, currency: "USD" })}
+                    className="font-semibold text-flame-700 underline underline-offset-[3px]"
+                  >
+                    Pay the ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit
+                  </Link>{" "}
+                  and your date is held today. Otherwise book below and we confirm with you first.
+                </p>
 
                 <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+                  {unlocked ? (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-surface px-4 py-3 text-[13px] text-clay-700 lg:col-span-2">
+                      <span className="font-semibold text-ink">{customerName.trim() || "You"}</span>
+                      <span>· {customerPhone.trim()}</span>
+                      <span>· {customerEmail.trim()}</span>
+                      <button type="button" onClick={() => goToStep(1)} className="font-semibold text-flame-700 underline underline-offset-[3px]">
+                        change
+                      </button>
+                    </div>
+                  ) : (
+                    <>
                   <label className="flex flex-col gap-1.5">
                     <span className="text-[13px] font-semibold">Name</span>
                     <Input
@@ -2232,6 +2313,8 @@ export default function QuoteBuilderClient() {
                       className="h-12 rounded-full border-ink/15 bg-surface px-4 text-[15px] shadow-none"
                     />
                   </label>
+                    </>
+                  )}
                   <label className="flex flex-col gap-1.5">
                     <span className="text-[13px] font-semibold">How did you hear about us?</span>
                     <select
