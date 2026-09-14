@@ -128,7 +128,9 @@ export async function POST(request: NextRequest) {
         leadChannel,
         leadType: "booking_inquiry",
         cityOrZip: cityName,
-        guestCount: adults + kids,
+        // The contact step has no real party yet (the card's default), so
+        // store no guest count; the quote step writes the real one.
+        guestCount: contactOnly ? undefined : adults + kids,
         touchpointType: contactOnly ? "landing_contact" : "landing_quote_text",
         touchpointSource: source,
         sourcePage: pagePath,
