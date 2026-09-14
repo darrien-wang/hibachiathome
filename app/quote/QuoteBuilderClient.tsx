@@ -699,17 +699,26 @@ export default function QuoteBuilderClient() {
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
+  // Price gate (D-0913-06): until the visitor unlocks, the text and email
+  // they send us quote the on-screen bracket, not the exact total they have
+  // not been shown (2026-09-13: a step-1 text read "~$1,198" next to a
+  // "$1,175–$1,275" card).
+  const shownResult = useMemo(() => {
+    if (unlocked) return result
+    const r = displayRange(result.totalRange.low, result.totalRange.high + result.partySizeDiscountApplied)
+    return { ...result, totalRange: { low: r.low, high: r.high } }
+  }, [unlocked, result])
   const smsBody = useMemo(
-    () => buildSmsBody(input, result, contactTemplates.sms),
-    [input, result, contactTemplates.sms],
+    () => buildSmsBody(input, shownResult, contactTemplates.sms),
+    [input, shownResult, contactTemplates.sms],
   )
   const emailPayload = useMemo(
     () =>
-      buildEmailPayload(input, result, {
+      buildEmailPayload(input, shownResult, {
         subject: contactTemplates.emailSubject,
         body: contactTemplates.emailBody,
       }),
-    [input, result, contactTemplates.emailBody, contactTemplates.emailSubject],
+    [input, shownResult, contactTemplates.emailBody, contactTemplates.emailSubject],
   )
   const isWeekdaySaverTier = input.pricingTier === "weekday_saver"
   const weekdaySaverProteinsValue = isWeekdaySaverTier ? WEEKDAY_SAVER_MENU_DETAIL : "n/a"
