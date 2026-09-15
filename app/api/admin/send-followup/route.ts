@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Resend } from "resend"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
-  let body: { to?: string; cc?: string | string[]; subject?: string; text?: string }
+  let body: { to?: string; cc?: string | string[]; subject?: string; text?: string; leadId?: string }
   try {
     body = await request.json()
   } catch {
@@ -75,6 +76,44 @@ export async function POST(request: NextRequest) {
       text,
     })
     if (result.error) throw new Error(result.error.message)
+
+    // Reaching a lead from here is a real first response. Without this the
+    // workbench still shows "未响应" after an agent has emailed, the response
+    // clock keeps running, and the unanswered-leads alert cries wolf.
+    const leadId = String(body.leadId ?? "").trim()
+    if (leadId) {
+      try {
+        const supabase = createServerSupabaseClient()
+        const { data: existing } = await supabase
+          .from("lead_touchpoints")
+          .select("id")
+          .eq("lead_id", leadId)
+          .eq("touchpoint_type", "agent_first_response")
+          .limit(1)
+        if (!existing || existing.length === 0) {
+          await supabase.from("lead_touchpoints").insert({
+            lead_id: leadId,
+            touchpoint_type: "agent_first_response",
+            touchpoint_source: "admin_dashboard",
+            raw_payload_json: { via: "email", to, subject },
+          })
+        }
+        await supabase.from("lead_touchpoints").insert({
+          lead_id: leadId,
+          touchpoint_type: "agent_note",
+          touchpoint_source: "admin_dashboard",
+          raw_payload_json: { note: `✉️ 邮件已发送：${subject}` },
+        })
+        await supabase
+          .from("leads")
+          .update({ status: "qualified", updated_at: new Date().toISOString() })
+          .eq("id", leadId)
+          .eq("status", "new")
+      } catch (error) {
+        console.error("[send-followup] first-response logging failed", { leadId, error })
+      }
+    }
+
     return NextResponse.json({ ok: true, id: result.data?.id ?? null, cc })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

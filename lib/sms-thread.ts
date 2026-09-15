@@ -122,6 +122,10 @@ export async function sendSms(peer: string, body: string): Promise<SendSmsResult
   const serviceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   if (serviceSid) form.set("MessagingServiceSid", serviceSid)
   else form.set("From", ourSmsNumber())
+  // The response below only tells us Twilio accepted the request. Carrier
+  // rejections arrive minutes later on this callback, which is the only place
+  // a failed send becomes visible to ops.
+  form.set("StatusCallback", `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"}/api/twilio/sms-status`)
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
     method: "POST",
     headers: {

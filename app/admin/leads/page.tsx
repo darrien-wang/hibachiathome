@@ -58,6 +58,7 @@ const STATUS_COLORS: Record<string, string> = {
 const EVENT_LABELS: Record<string, string> = {
   sms_outbound: "发出短信（213 线）",
   agent_first_response: "✓ 首次联系",
+  sms_failed: "⚠️ 短信未送达",
   agent_status_change: "状态变更",
   agent_edit: "✏️ 资料修改",
   agent_note: "📝 备注",
@@ -848,6 +849,7 @@ export default function LeadsDashboard() {
           cc: emailDraft.cc,
           subject: emailDraft.subject,
           text: emailDraft.body,
+          leadId: emailDraft.leadId,
         }),
       })
       const data = await res.json()
