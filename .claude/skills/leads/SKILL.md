@@ -174,8 +174,10 @@ Real Hibachi · (213) 770-7788
 - **派对人数折扣（任何日期自动，按付费人数 = 成人 + 5–12 岁）**：10–14 人 −$30 · 15–24 人 −$60 · 25–30 人 −$90 · **31+ 定制报价**（多厨师，28 人/厨师；永远不在聊天里报固定总价）。折扣码 PARTY30/60/90。
 - **路费**：从 91748 起算，**驾车里程前 50 英里免费，之后 $1/英里**（用 Google Maps 驾车距离）。服务范围：南加州、单程 ≤ 2.5h。
 - **押金 $19.90** 锁日期，尾款派对当天付；**≥72h 取消/改期免费**。押金**只在私聊里提**，公开页面不提（规则 D-0913-01）。
-- **支付**：现金优先（无手续费）；信用卡 / Venmo / Zelle **+4%**；刷卡需派对前 72h 结清。
-- **小费**：20–25% 惯例（可选 20/25/30），派对当天现金给厨师。**永远不淡化、不替客户省小费**；被问就直说。
+- **税**：所有报价都是**含税价**。客户问 "does that include tax" → "tax-included"；不说 "no tax" / "plus tax"。
+- **支付**：现金优先（无手续费）；**线上用信用卡 / Venmo 付 +4% processing fee**（价目表里 Zelle 同档）；刷卡需派对前 72h 结清。
+- **小费**：**不含**；20–25% 惯例（可选 20/25/30），**100% 给厨师**，派对当天现金。**永远不淡化、不替客户省小费**；被问就直说。
+- 客户问"是不是全包/all-in"的标准答法：`$X/head is tax-included (food, chefs, show). Gratuity isn't included - 20-25% is customary, and 100% of it goes to the chefs. Cash has no fee; if you pay online by card or Venmo there's a 4% processing fee.`
 - **桌椅**：$10/人；**餐具** $5/人；全套 $15/人；**每天同价**（09-14 起周中不再免桌椅——`faq.ts` 第 34 行仍写着 "free on Mon–Thu"，已是旧口径，别照着说）。
 - **加菜**：第 3 个蛋白 +$10；升级 filet +$8 / scallops +$6 / lobster tail +$12；gyoza $15、edamame $10、spring rolls $15、noodles $5；炒饭 DIY 加料（虾/鸡）$10、加蛋 $1；饮料 $5/$12。炒饭和蔬菜**加量免费**（提前说）。
 - **Appreciation $50**：轮换致敬（现在 **教师 2026-09-01→10-15**；老兵 10-16→11-30；医护 12-01→01-15；消防/急救 01-16→02-28）。$599+、一单一次、只按职业、**只与 Weekday Special 叠加**，不与人数折扣叠。
@@ -264,7 +266,9 @@ Real Hibachi · (213) 770-7788
 | **太贵 / 超预算** | 重新锚定人均 + 给两个合法降价杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。问："Would a Thursday work, or is it a Saturday thing?" 客户提了竞品 → 走 §5.1 竞争让价流程 |
 | **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" |
 | **X 日期有空吗** | ≥7 天后且非节日：按开着回（"open on our end"），同时在给用户的报告里标"需确认档期"；<7 天或节日/周末黄金档：先 "let me check — 2 min" 问用户 |
-| **小费怎么算** | "20–25% is customary, cash to the chef on the day — it goes straight to him." 不多说 |
+| **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说 |
+| **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
+| **餐具/盘子包含吗** | "Plates & utensils are $5/guest if we bring them, or use your own - either works."（桌椅 $10/人另算） |
 | **能在室内做吗** | "All cooking is outdoors — patio, balcony, deck, or under a canopy. Seating can be inside." |
 | **下雨怎么办** | 10×10 帐篷客户自备；≥72h 改期免费 |
 | **坚果/芝麻过敏** | 第 6 节诚实口径，不承诺 |
