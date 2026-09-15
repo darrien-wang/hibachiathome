@@ -152,7 +152,8 @@ Real Hibachi · (213) 770-7788
 | **f_planner** | 次日，客户在跟朋友对时间/人数 | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link` 拿专属链接；"While you're checking with your group — I set up a party planner just for you: <link> — share it and everyone grabs a seat & picks their proteins (2 min each) 🎪 Your date's still penciled in." |
 | **f_morning** | 次日上午（planner 发了就隔天） | 亮到场承诺 + 押金链接 | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <deposit link>" |
 | **f_promo** | 第 3 天，最后一发 | 体面收尾：一个真钩子 + 放开档期，然后停 | 15–19 人："Last one from me - parties of 20+ get a free appetizer platter ($40 value). You're at N, so X more and it's on us. Want me to keep [date] penciled in?" 其他："Last note from me - [date] is still yours if you want it; I'll open it back up after tomorrow. Either way, hope the party's a great one." |
-| **停** | f_promo 后 4 天无回 | 不再发 | `set_status lost`，note 写最后一次触达；有活动日期的等日期过了再归档 |
+| **停** | f_promo 后 4 天无回 | 不再发，**也不改打电话** | `set_status lost`，note 写最后一次触达；有活动日期的等日期过了再归档 |
+| **押金提醒**（已确认未付） | 确认后 24h 押金没到 | 把押金链接直接放短信里，去掉"去邮箱找"的摩擦 | "Got you down for [day] at [time], [N] guests, $[total]. Here's the $19.90 deposit link; once it's in, your chef is confirmed by name: <link>" ——**不加任何台阶或备选** |
 
 成交后：
 | **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`） |
@@ -282,6 +283,8 @@ Real Hibachi · (213) 770-7788
 
 ## 9. 禁区（一条都不能碰）
 
+- **永远不主动提客户没问的多余事情**：发票、W-9、其他付款方式、可选加购、政策细节、"如果…也可以"之类的台阶。只答被问的，只推下一步。多给一个选项 = 多给一个不付款的理由（用户 09-15 定）。
+- **不打电话追单**：短信阶梯走完就停。客户几条短信都不回，打电话也不会有兴趣；换渠道不等于换结果。电话只用于客户自己打来 / 明确要求回电（用户 09-15 定，本人不喜欢打电话）。
 - **乞求式措辞一律不用**："Just checking in" / "Sorry to bother you" / "Please let me know" / "Whenever you get a chance" / "Are you still interested?" / "Any update?" / "I'd really appreciate it" / "Hope to hear from you" / "We'd love to have your business"。换成邀请句："Want me to pencil it in?" "Still holding Saturday for you - want it?"。道歉只在我们真的出错时说一次（系统没发价），**不为跟进道歉**。
 - 不猜客户名字；不编评分、单量、"500+ parties"。
 - 31+ 人不报固定总价。
