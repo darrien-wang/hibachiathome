@@ -308,7 +308,6 @@ export default function QuoteBuilderClient() {
   const [bookingConfirmation, setBookingConfirmation] = useState<BookingConfirmation | null>(null)
   const [toasts, setToasts] = useState<QuoteToast[]>([])
   const urgencyToastKeyRef = useRef("")
-  const promoStageRef = useRef<"none" | "teased" | "unlocked">("none")
   const mediaStripRef = useRef<HTMLDivElement | null>(null)
 
   // Package B (2026-09-07): the hero carries the three core inputs and both
@@ -690,31 +689,17 @@ export default function QuoteBuilderClient() {
     return () => window.clearTimeout(timer)
   }, [eventTime, input.eventDate, input.location, pushToast, result.hasCoreInputs, slotsLeft])
 
-  useEffect(() => {
-    // Large-party appetizer promo: tease once when the count gets close (15-19),
-    // congratulate once when it crosses 20. Event-driven toasts only — the
-    // persistent mention lives in the quote card itself.
-    const guests = result.guestCount
-    if (result.includesAppetizerPlatter) return // the Weekday Special already includes it
-    if (guests >= 20) {
-      if (promoStageRef.current !== "unlocked") {
-        promoStageRef.current = "unlocked"
-        pushToast(
-          "promo",
-          "Free appetizer platter unlocked",
-          "Parties of 20+ get gyoza, edamame & spring rolls included ($40 value).",
-        )
-      }
-    } else if (guests >= 15 && promoStageRef.current === "none" && quoteStartIntentCaptured) {
-      promoStageRef.current = "teased"
-      const short = 20 - guests
-      pushToast(
-        "promo",
-        `${short} more guest${short === 1 ? "" : "s"} = free appetizer platter`,
-        "Parties of 20+ get gyoza, edamame & spring rolls free ($40 value).",
-      )
-    }
-  }, [result.guestCount, result.includesAppetizerPlatter, pushToast, quoteStartIntentCaptured])
+  // Large-party appetizer promo: shown as a line under the guest buttons, not a
+  // toast. On phones the toast landed right on top of the +/- buttons while
+  // people were still tapping them (2026-09-14 rage clicks, owner hit it too).
+  const platterGuestsShort = Math.max(0, 20 - result.guestCount)
+  const platterHint = result.includesAppetizerPlatter
+    ? null
+    : result.guestCount >= 20
+      ? "Free appetizer platter included: gyoza, edamame & spring rolls ($40 value, parties of 20+)"
+      : result.guestCount >= 15
+        ? `${platterGuestsShort} more guest${platterGuestsShort === 1 ? "" : "s"} = free appetizer platter ($40 value)`
+        : null
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
   const contactTemplates = useMemo(() => getQuoteContactTemplates(), [])
@@ -1813,12 +1798,14 @@ export default function QuoteBuilderClient() {
 
         <div
           aria-live="polite"
-          className="pointer-events-none fixed left-1/2 top-[calc(var(--header-height,60px)+8px)] z-[95] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2"
+          // Phones: above the sticky button, never over the form (a top toast
+          // covered the guest +/- buttons). Desktop keeps them under the header.
+          className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+124px)] left-1/2 z-[95] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2 lg:bottom-auto lg:top-[calc(var(--header-height,72px)+8px)]"
         >
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className={`pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur ${
+              className={`pointer-events-auto animate-in fade-in slide-in-from-bottom-4 lg:slide-in-from-top-4 duration-300 rounded-xl border bg-white p-3 shadow-lg lg:bg-white/95 lg:backdrop-blur ${
                 toast.kind === "urgency"
                   ? "border-red-200"
                   : toast.kind === "promo"
@@ -1922,6 +1909,12 @@ export default function QuoteBuilderClient() {
                     )
                   })}
                 </div>
+                {platterHint ? (
+                  <p className="-mt-2 flex items-start gap-2 px-1 text-[13px] font-semibold leading-snug text-emerald-700" aria-live="polite">
+                    <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    {platterHint}
+                  </p>
+                ) : null}
 
                 <div className="flex flex-col gap-2">
                   <label htmlFor="quote-event-date" className="text-[13px] font-semibold">
