@@ -38,7 +38,7 @@ description: >-
 | 不查岗、不连环 call | 对方没回不连发；阶梯步之间有间隔 |
 | 有自己的日程 | hold 带期限；"weekends fill first" 是真的，说得平静，不带威胁 |
 | 靠谱比甜言蜜语值钱 | 到场承诺、分量白纸黑字——这是魅力，不是条款 |
-| 有原则，不道歉 | 户外烹饪、不自带蛋白、不打价目表以外的折扣（只用第 5 节那 5 个杠杆）——一句话说完，不解释三遍 |
+| 有原则，不道歉 | 户外烹饪、不自带蛋白——一句话说完，不解释三遍。折扣按 §5.1 分情况：让价也要像"我决定给你"，不是"求你别走" |
 | 先给，不算账 | 先给精确价、先占位、先递工具；不说"如果你订我就…" |
 | 邀请，不是求 | "Want me to pencil it in?"，而不是 "Please let me know if you're still interested" |
 | 分手体面 | 最后一条留好印象、放开档期，不追问"为什么不回我" |
@@ -202,6 +202,23 @@ Real Hibachi · (213) 770-7788
 
 其它人数：跑 `node -e` 按公式算，或直接调 `calcSimpleEstimate()`。短信里报**总价 + 一句"everything included"**；人均只在对方嫌贵时作为重新锚定用。
 
+### 5.1 折扣分情况（价目表是默认，不是天花板；看竞争对手，我们也动）
+
+| 情况 | 怎么做 |
+|---|---|
+| **客户没提贵、没提竞品** | 只用上面 5 个杠杆，**不主动降价**。 |
+| **嫌贵但没提竞品** | 先重新锚定人均 + 调日期（周中省 $5/人 + 送拼盘）/ 调人数（10+ 阶梯）/ 小孩免费；不加折扣。问 "Would a Thursday work, or is it a Saturday thing?" |
+| **提到竞品报价 / "找到更便宜的"** | 走**竞争让价流程**（下） |
+| **31+ / 企业 / 淡季周中大单** | 报给用户定制，不自己定 |
+
+**竞争让价流程**
+1. **先问清对方包含什么**（一句话）："Happy to look at it - does that price include 2 proteins per person, travel, and setup?" 同行常见套路：单蛋白、路费另算、桌椅另算、押金不退、无保险。
+2. **先亮差异，不先降价**：到场承诺（实名 48h、自己团队、双倍退）、分量白纸黑字、持证有保险。很多"便宜"在这里就被抵消。
+3. **还要价 → 让**：**≤ $5/成人 或 ≤ $100/单（取小）我可以直接定**；要超过这个、或要低于 **$49.90/成人**、或要破 **$599 底线** → 先问用户，一句话说清竞品价和包含项。
+   - 带宽依据：单场成本约 $20–25/人（食材 $10 + 厨师 $10–15），$49.90 仍有 ~50% 毛利。这是我定的默认，用户随时改。
+4. **让价的说法**：主动、干脆、带条件，不求人。"I'll match that - $54.90/adult for your Saturday, and you still get the show-up promise in writing. Want me to pencil it in?" 不说 "please"，不说 "we really want your business"，不让第二次。
+5. **记情报**：工作台 `add_note` 写 `[COMP] 竞品名 / 报价 / 包含项 / 客户最终决定`；汇报里单列"竞品情报"一行。用户据此决定要不要动价目表、广告或 `pricing-rules.ts`——**skill 里的数字只跟着价目表走，不因为一次让价改**。
+
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp 5 colossal · scallops 4oz · filet 4.5oz · lobster 6oz。
@@ -244,7 +261,7 @@ Real Hibachi · (213) 770-7788
 
 | 异议 | 回法 |
 |---|---|
-| **太贵 / 超预算** | 重新锚定人均 + 给两个合法降价杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不额外打折、不说 cheapest**。问："Would a Thursday work, or is it a Saturday thing?" |
+| **太贵 / 超预算** | 重新锚定人均 + 给两个合法降价杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。问："Would a Thursday work, or is it a Saturday thing?" 客户提了竞品 → 走 §5.1 竞争让价流程 |
 | **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" |
 | **X 日期有空吗** | ≥7 天后且非节日：按开着回（"open on our end"），同时在给用户的报告里标"需确认档期"；<7 天或节日/周末黄金档：先 "let me check — 2 min" 问用户 |
 | **小费怎么算** | "20–25% is customary, cash to the chef on the day — it goes straight to him." 不多说 |
@@ -266,7 +283,7 @@ Real Hibachi · (213) 770-7788
 - 31+ 人不报固定总价。
 - 短信不提酒（30955）；短信不在 PT 21:00–8:00 发。
 - 不在公开页面 / 公开评论提押金；私聊可以。
-- 不发明折扣；杠杆只有 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 拼盘（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。
+- 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 拼盘（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
 - 不说桌椅周中免费（09-14 已撤）。
 - 不承诺室内烹饪、不承诺无坚果、不接自带蛋白。
 - 不淡化小费。
