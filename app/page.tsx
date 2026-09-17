@@ -260,7 +260,7 @@ export default function Home() {
               <span className="hidden lg:inline">Fresh off the griddle, portions in writing</span>
             </h2>
             <p className="hidden text-base leading-relaxed text-clay-700 lg:block">
-              Every guest picks 2 proteins. USDA Choice Angus sirloin, BAP-certified colossal shrimp, boneless breast — plus 8 oz
+              Every guest picks 2 proteins. USDA Choice Angus sirloin, BAP-certified jumbo shrimp, boneless breast — plus 8 oz
               fried rice, vegetables and salad. Refills free.
             </p>
             <Link

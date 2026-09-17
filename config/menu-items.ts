@@ -61,7 +61,7 @@ export const regularProteins: MenuItem[] = [
   {
     id: "shrimp",
     name: "Shrimp",
-    description: "Colossal shrimp (16/22 count), lightly seasoned and grilled to perfection",
+    description: "Jumbo tail-off shrimp, lightly seasoned and grilled to perfection",
     price: 10,
     category: "regular-protein",
     allergens: ["shellfish"],

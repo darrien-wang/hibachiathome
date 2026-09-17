@@ -44,7 +44,7 @@ Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu even
     question: "¿Cuánta comida recibe cada invitado?",
     answer: `Cada adulto recibe 2 proteínas más todas las guarniciones — estas son las porciones exactas, por escrito:
 
-- Pollo: 5 oz | Bistec: 4.5 oz | Salmón: 4 oz | Camarones: 5 colosales (16/22 ct) | Callos de hacha: 4 oz jumbo (10/20 ct) | Filete miñón: 4.5 oz | Cola de langosta: 6 oz
+- Pollo: 5 oz | Bistec: 4.5 oz | Salmón: 4 oz | Camarones: 5 jumbo, sin cola | Callos de hacha: 4 oz jumbo (10/20 ct) | Filete miñón: 4.5 oz | Cola de langosta: 6 oz
 - Arroz frito: 8 oz por persona
 - Verduras a la plancha: 4 oz por persona
 - Ensalada con aderezo de jengibre: 1 por persona
