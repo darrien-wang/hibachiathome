@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
 
   // Delivered/sent/queued are the happy path and would drown the timeline.
   if (!FAILED_STATUSES.has(status) || !to) return new NextResponse(null, { status: 204 })
+  // 555-01xx is the reserved fictional range our own test flows use. Those sends
+  // can never deliver, so a failure there is expected: no timeline entry, no
+  // alert email.
+  if (/^\+1\d{3}55501\d{2}$/.test(to)) return new NextResponse(null, { status: 204 })
 
   const supabase = createServerSupabaseClient()
   try {
