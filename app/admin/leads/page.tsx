@@ -526,6 +526,52 @@ export default function LeadsDashboard() {
     msg.match(/Event\s+(\d{4}-\d{2}-\d{2})/i)?.[1] ||
     msg.match(/(\d{4}-\d{2}-\d{2})/)?.[1]
 
+  // 协议总价：谈下来的特殊报价（企业价、大单价）。存在本机，签名由服务端
+  // 出——客户改链接里的数字没用，验签不过就按标准价走。不填 = 常规单。
+  const readAgreedTotal = (leadId: string): { amount: number; sig: string } | null => {
+    try {
+      const raw = localStorage.getItem(`agreed_total_${leadId}`)
+      if (!raw) return null
+      const v = JSON.parse(raw)
+      return typeof v?.amount === "number" && typeof v?.sig === "string" ? v : null
+    } catch {
+      return null
+    }
+  }
+  const [agreedDraft, setAgreedDraft] = useState("")
+  const [agreedTick, setAgreedTick] = useState(0)
+  const saveAgreedTotal = async (l: LeadRow) => {
+    const amount = Math.round(Number(agreedDraft.replace(/[$,\s]/g, "")) * 100) / 100
+    if (!Number.isFinite(amount) || amount <= 0) {
+      window.alert("请输入协议总价，例如 1285.20")
+      return
+    }
+    try {
+      const res = await fetch("/api/admin/agreed-total", {
+        method: "POST",
+        headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: l.id, agreedTotal: amount }),
+      })
+      const d = await res.json()
+      if (!d.ok || typeof d.sig !== "string") throw new Error(d.error || "sign failed")
+      localStorage.setItem(`agreed_total_${l.id}`, JSON.stringify({ amount, sig: d.sig }))
+      setAgreedDraft("")
+      setAgreedTick((n) => n + 1)
+      await act(l.id, { action: "add_note", note: `[agreed_total] 协议总价 $${amount.toFixed(2)}（此后发出的订金链接按此价建单）` })
+      loadHistory(l.id)
+    } catch (e) {
+      window.alert("保存失败: " + e)
+    }
+  }
+  const clearAgreedTotal = async (l: LeadRow) => {
+    try {
+      localStorage.removeItem(`agreed_total_${l.id}`)
+    } catch {}
+    setAgreedTick((n) => n + 1)
+    await act(l.id, { action: "add_note", note: "[agreed_total] 已清除协议总价，恢复标准价" })
+    loadHistory(l.id)
+  }
+
   // 生成带预填参数的订金链接（source=workbench 走 /deposit/pay 预填模式）。
   // 客人付完后 Stripe webhook 自动：booking 置 confirmed + 发确认邮件/短信，无需人工。
   // 需要留言里能解析出日期；解析不出返回 null，话术退回"要不要我发链接"的问法。
@@ -551,6 +597,15 @@ export default function LeadsDashboard() {
     }
     if (l.full_name) params.set("customer_name", l.full_name)
     if (l.email) params.set("customer_email", l.email)
+    // 协议总价（特殊报价）：带签名随链接走，付款后订单自动按这个数开张。
+    const agreed = readAgreedTotal(l.id)
+    if (agreed) {
+      const fixed = agreed.amount.toFixed(2)
+      params.set("agreed_total", fixed)
+      params.set("agreed_sig", agreed.sig)
+      params.set("estimate_low", fixed)
+      params.set("estimate_high", fixed)
+    }
     return `https://www.realhibachi.com/deposit/pay?${params.toString()}`
   }
 
@@ -1565,6 +1620,39 @@ export default function LeadsDashboard() {
                     清除
                   </button>
                 )}
+              </div>
+            )
+          })()}
+
+          {/* 协议总价：只在谈了特殊价时填；常规单留空 */}
+          {(() => {
+            void agreedTick
+            const agreed = readAgreedTotal(detailLead.id)
+            return (
+              <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 8, border: "1px dashed #cbd5e1", background: "#f8fafc", fontSize: 13, color: "#334155" }}>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                  协议总价（特殊报价）{agreed ? <span style={{ color: "#047857" }}>：已设 ${agreed.amount.toFixed(2)}</span> : <span style={{ color: "#64748b", fontWeight: 400 }}>：未设，按标准价</span>}
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input
+                    value={agreedDraft}
+                    onChange={(e) => setAgreedDraft(e.target.value)}
+                    placeholder="例如 1285.20"
+                    inputMode="decimal"
+                    style={{ flex: 1, minWidth: 0, padding: "6px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                  <button onClick={() => saveAgreedTotal(detailLead)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #0f766e", background: "#0f766e", color: "#fff", fontSize: 13, cursor: "pointer" }}>
+                    保存
+                  </button>
+                  {agreed && (
+                    <button onClick={() => clearAgreedTotal(detailLead)} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: 13, cursor: "pointer" }}>
+                      清除
+                    </button>
+                  )}
+                </div>
+                <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>
+                  填了之后，从这里发出的订金链接会带上这个价；客户付押金后，订单、选菜页、发票都按它开张（系统自动加一行 Special rate 折扣）。
+                </div>
               </div>
             )
           })()}

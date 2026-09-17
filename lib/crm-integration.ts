@@ -38,6 +38,7 @@ export type CrmDepositPaidEventEnvelope = {
     invoice_details?: {
       total_cost?: number
       travel_fee?: number
+      agreed_total?: number
     }
     notes?: string
   }
@@ -465,6 +466,9 @@ export function buildDepositPaidEventEnvelope(params: {
 }): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
   const source = resolveSource(params.source)
   const deploymentEnvironment = getRuntimeEnvironmentTag()
+  // Set server-side at checkout creation, only after its signature verified.
+  const agreedRaw = Number(params.session.metadata?.agreed_total)
+  const agreedTotal = Number.isFinite(agreedRaw) && agreedRaw > 0 ? Math.round(agreedRaw * 100) / 100 : undefined
   const stripeMode = params.session.livemode ? "live" : "test"
   const notificationMode = deploymentEnvironment === "pre" ? "suppressed" : "live"
   const preferredRhBookingId = resolveRhBookingId({
@@ -530,10 +534,15 @@ export function buildDepositPaidEventEnvelope(params: {
         guest_adult_count: typeof params.booking?.guest_adults === "number" ? params.booking.guest_adults : undefined,
         guest_child_count: typeof params.booking?.guest_kids === "number" ? params.booking.guest_kids : undefined,
         invoice_details:
-          typeof params.booking?.total_cost === "number" || typeof params.booking?.travel_fee === "number"
+          typeof params.booking?.total_cost === "number" ||
+          typeof params.booking?.travel_fee === "number" ||
+          agreedTotal !== undefined
             ? {
                 total_cost: params.booking?.total_cost ?? undefined,
                 travel_fee: params.booking?.travel_fee ?? undefined,
+                // Negotiated price, verified when the checkout was created. The
+                // order system turns it into a "Special rate" line on the invoice.
+                agreed_total: agreedTotal,
               }
             : undefined,
         notes:

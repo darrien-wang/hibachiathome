@@ -140,6 +140,9 @@ function DepositPaymentPageInner() {
   const customerNameParam = searchParams.get("customer_name")?.trim() || ""
   const customerEmailParam = searchParams.get("customer_email")?.trim() || ""
   const leadIdParam = searchParams.get("lead_id")?.trim() || ""
+  // Negotiated total, signed by staff; the server re-verifies it.
+  const agreedTotalParam = searchParams.get("agreed_total")?.trim() || ""
+  const agreedSigParam = searchParams.get("agreed_sig")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
   const eventTimeParam = searchParams.get("event_time") || ""
   const locationParam = searchParams.get("location") || ""
@@ -293,6 +296,8 @@ function DepositPaymentPageInner() {
         body: JSON.stringify({
           bookingId: booking.id,
           leadId: leadIdParam || undefined,
+          agreedTotal: agreedTotalParam || undefined,
+          agreedSig: agreedSigParam || undefined,
           source: source || "deposit_pay",
           customerName: booking.full_name,
           customerEmail: booking.email,

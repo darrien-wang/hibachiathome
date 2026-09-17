@@ -1,3 +1,4 @@
+import { verifyAgreedTotal } from "@/lib/agreed-total"
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { getDepositAmount } from "@/config/deposit"
@@ -19,6 +20,8 @@ const DEPOSIT_START_WINDOW_SECONDS = 60
 type DepositStartPayload = {
   bookingId?: string
   leadId?: string
+  agreedTotal?: number | string
+  agreedSig?: string
   source?: string
   customerName?: string
   customerEmail?: string
@@ -47,6 +50,8 @@ type DepositStartPayload = {
 type NormalizedDepositStartPayload = {
   bookingId?: string
   leadId?: string
+  /** Negotiated party total - present only when its signature checked out. */
+  agreedTotal?: number
   source?: string
   customerName?: string
   customerEmail?: string
@@ -252,8 +257,17 @@ function resolveBookingId(input: { bookingId?: string; source?: string }): strin
 
 function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDepositStartPayload {
   const source = normalizeString(payload.source)
+  // A negotiated total only counts when staff signed it for this exact lead
+  // and amount; anything else is dropped and the party is priced as usual.
+  const leadIdForSig = isLikelyUuid(normalizeString(payload.leadId) ?? "") ? normalizeString(payload.leadId) : ""
+  const agreedRaw = normalizeNumber(payload.agreedTotal)
+  const agreedTotal =
+    typeof agreedRaw === "number" && verifyAgreedTotal(leadIdForSig, agreedRaw, normalizeString(payload.agreedSig))
+      ? Math.round(agreedRaw * 100) / 100
+      : undefined
 
   return {
+    agreedTotal,
     bookingId: resolveBookingId({
       bookingId: normalizeString(payload.bookingId),
       source,
@@ -295,6 +309,8 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
   return buildNormalizedPayload({
     bookingId: params.get("booking_id") ?? params.get("id") ?? undefined,
     leadId: params.get("lead_id") ?? undefined,
+    agreedTotal: params.get("agreed_total") ?? undefined,
+    agreedSig: params.get("agreed_sig") ?? undefined,
     source: params.get("source") ?? undefined,
     customerName: params.get("customer_name") ?? undefined,
     customerEmail: params.get("customer_email") ?? params.get("prefilled_email") ?? undefined,
@@ -378,6 +394,7 @@ function buildMetadata(
   const metadata: Record<string, string | undefined> = {
     booking_id: metadataField(payload.bookingId),
     lead_id: metadataField(payload.leadId),
+    agreed_total: metadataField(payload.agreedTotal?.toFixed(2)),
     deposit_source: metadataField(payload.source),
     customer_name: metadataField(payload.customerName),
     customer_email: metadataField(payload.customerEmail),
@@ -539,7 +556,9 @@ async function persistPendingDepositState(params: {
   const customerEmail = isLikelyEmail(params.payload.customerEmail) ? params.payload.customerEmail : "unknown@example.com"
   const guestAdults = Number.isFinite(params.payload.adults) ? Math.max(0, Math.round(params.payload.adults as number)) : 0
   const guestKids = Number.isFinite(params.payload.kids) ? Math.max(0, Math.round(params.payload.kids as number)) : 0
-  const totalCostRaw = Number.isFinite(params.payload.totalAmount)
+  const totalCostRaw = Number.isFinite(params.payload.agreedTotal)
+    ? Number(params.payload.agreedTotal)
+    : Number.isFinite(params.payload.totalAmount)
     ? Number(params.payload.totalAmount)
     : Number.isFinite(params.payload.estimateHigh)
       ? Number(params.payload.estimateHigh)
