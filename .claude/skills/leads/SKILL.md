@@ -78,7 +78,7 @@ description: >-
 
 **④ 起草。** 首条 = `认领一句 + 精确价 + 一个选择题`。展示给用户时，一条线索一个代码块，附一行"为什么这么写"。用户说"发"再发；用户已说过"直接发/不用问我"则直接发。
 
-**⑤ 发送。** 有手机 → 短信；有邮箱 → 邮件（同一内容的稍长版）。两者都有 → **双发**（用户 09-14 定的规则）。短信发出 45–60 秒后查状态；`failed/undelivered` 走邮件并在工作台记 `sms_failed`。短信只在 **PT 8:00–21:00** 发（TCPA 静默时段）；夜里只发邮件，短信排到早上 8 点。
+**⑤ 发送。** 有手机 → 短信；有邮箱 → 邮件（同一内容的稍长版）。两者都有 → **双发**（用户 09-14 定的规则）。短信发出 45–60 秒后查状态；`failed/undelivered` 走邮件并在工作台记 `sms_failed`。**短信不设静默时段**（用户 09-16 定：客户刚留资/刚来信就直接回，不等到早上）。
 
 **⑥ 写回工作台。** `mark_contacted`（首响）+ `add_note`（发了什么、走的哪条阶梯 `[SOP:f45]` 这种前缀）；邮件走 `send-followup` 带 `leadId` 会自动记，短信要手动记。
 
@@ -149,7 +149,7 @@ Real Hibachi · (213) 770-7788
 |---|---|---|---|
 | **T0 首响** | ≤5 min | 认领 + 价 + 一问 | 第 3 节 |
 | **f45** | 首响后 45–60 min 没回 | 确定性 + 选择题 + 限时 hold | "[Date] is open on our end. Dinner parties usually kick off at 7:00 or 7:30. I can pencil you in for either and hold it until tomorrow evening while you finalize headcount — which time works better?" |
-| **f_night** | 当晚 20:30 前仍没回（21:00 后不发短信） | 免押金占位，去压力 | "No rush at all! I'll pencil your date in for now — no deposit needed until you confirm. Just don't want you to lose it while you're deciding 🙌" |
+| **f_night** | 当晚仍没回 | 免押金占位，去压力 | "No rush at all! I'll pencil your date in for now — no deposit needed until you confirm. Just don't want you to lose it while you're deciding 🙌" |
 | **f_planner** | 次日，客户在跟朋友对时间/人数 | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link` 拿专属链接；"While you're checking with your group — I set up a party planner just for you: <link> — share it and everyone grabs a seat & picks their proteins (2 min each) 🎪 Your date's still penciled in." |
 | **f_morning** | 次日上午（planner 发了就隔天） | 亮到场承诺 + 押金链接 | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <deposit link>" |
 | **f_promo** | 第 3 天，最后一发 | 体面收尾：一个真钩子 + 放开档期，然后停 | 15–19 人："Last one from me - parties of 20+ get a free appetizer platter ($40 value). You're at N, so X more and it's on us. Want me to keep [date] penciled in?" 其他："Last note from me - [date] is still yours if you want it; I'll open it back up after tomorrow. Either way, hope the party's a great one." |
@@ -299,7 +299,7 @@ Real Hibachi · (213) 770-7788
 - **乞求式措辞一律不用**："Just checking in" / "Sorry to bother you" / "Please let me know" / "Whenever you get a chance" / "Are you still interested?" / "Any update?" / "I'd really appreciate it" / "Hope to hear from you" / "We'd love to have your business"。换成邀请句："Want me to pencil it in?" "Still holding Saturday for you - want it?"。道歉只在我们真的出错时说一次（系统没发价），**不为跟进道歉**。
 - 不猜客户名字；不编评分、单量、"500+ parties"。
 - 31+ 人不报固定总价。
-- 短信不提酒（30955）；短信不在 PT 21:00–8:00 发。
+- 短信不提酒（30955）。
 - 不在公开页面 / 公开评论提押金；私聊可以。
 - 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 拼盘（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
 - 不说桌椅周中免费（09-14 已撤）。
