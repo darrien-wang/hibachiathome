@@ -136,6 +136,12 @@ export default function ContactPageClient() {
                   <Phone className="h-6 w-6 text-[hsl(24_79%_42%)]" />
                   <span>West Coast - {phone.voice.dashed}</span>
                 </a>
+                <p className="-mt-3 pl-9 text-sm text-gray-500">
+                  Can&apos;t get through? Our second line takes calls and texts too:{" "}
+                  <a href={phone.backup.tel} className="underline hover:text-[hsl(24_79%_42%)]">
+                    {phone.backup.dashed}
+                  </a>
+                </p>
                 <a
                   href={`mailto:${siteConfig.contact.email}`}
                   className="flex items-center gap-3 hover:text-[hsl(24_79%_42%)]"

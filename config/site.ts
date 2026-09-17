@@ -65,6 +65,18 @@ export const phone = {
     display: "(213) 770-7788",
     dashed: "213-770-7788",
   },
+  // Second line, call or text. Shown only as a quiet fallback on the contact
+  // page for customers whose carrier will not connect to the 213 line. It is
+  // NOT the business number: keep it out of headers, CTAs and JSON-LD so the
+  // listed phone (NAP) stays the single 213 number everywhere.
+  backup: {
+    e164: "+16263628824",
+    raw: "6263628824",
+    display: "(626) 362-8824",
+    dashed: "626-362-8824",
+    tel: "tel:+16263628824",
+    sms: "sms:+16263628824",
+  },
 } as const
 
 /** `sms:` link to the texting line, with an optional prefilled body. */
