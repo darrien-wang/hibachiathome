@@ -363,6 +363,19 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
 ```
 客户回邮件落在 Gmail（support@ 转发）：用 Gmail 工具 `search_threads` 查 `to:support@realhibachi.com newer_than:3d`。
 
+**协议总价（特殊报价：企业价、大单价、谈下来的价）**
+```bash
+# 1) 给这条线索的协议总价签名（客户改链接里的数没用，验签不过就按标准价）
+curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d '{"leadId":"<id>","agreedTotal":1285.20}' https://www.realhibachi.com/api/admin/agreed-total   # → {ok, sig, query}
+# 2) 把返回的 query 接到押金长链后面（它会同时把 estimate_low/high 钉在协议价），再去缩短
+```
+客户付押金后，订单、客户选菜页、发票都按协议价开张：系统照常算标准价和自动促销，再自动加一行 `Special rate (agreed total $X)` 抵掉差额。**不填 = 常规单，行为不变。** 工作台线索详情里也有"协议总价"输入框，填了保存即可。
+- 协议总价 = 发票最终总价（含税、含路费，不含小费和 4% 手续费）。
+- 送桌椅/餐具这类让利不用单独配：照常加进发票，差额行自动抵掉，总价仍是协议价。
+- **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData}` 存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
+- 正式发票邮件：`POST https://invoice.realhibachi.com/api/invoice/email {invoiceData, orderNo}`。
+- 人数变了，差额行是固定金额不会自动重算——改人数后要手动调这一行。
+
 **短链（发给客户的链接一律先缩短）**
 ```bash
 # 押金 / planner / Stripe pay-link 都先过这个；30 天有效，过期或不存在的码跳官网首页
