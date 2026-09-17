@@ -206,6 +206,15 @@ Real Hibachi · (213) 770-7788
 
 其它人数：跑 `node -e` 按公式算，或直接调 `calcSimpleEstimate()`。短信里报**总价 + 一句"everything included"**；人均只在对方嫌贵时作为重新锚定用。
 
+### 5.0 大单（31+）成交包（用户 09-16 定，Kande 60–75 人为例）
+
+- 报价按人均（用户定的大单价，如 $55.90/adult 含税）× 两个人数档，+ 路费；小孩 5–12 $29.90、5 岁以下免费；厨师数 = ⌈人数/28⌉。
+- **桌椅+餐具可免费**作为大单让利（用户当场决定，不主动给）。
+- **菜单 + planner 专属链接**单独一条发：客户要提前收齐每位客人的选择，"easiest way is our party planner"，`POST /api/admin/planner-link {email,phone,booked:false}` 生成带身份的链接。
+- **押金 $100**（不是 $19.90）：押金页金额固定，用 `POST /api/admin/pay-link {amount:100, amountIsFinal:true, customerName, note, phone, email}` 铸 Stripe Checkout 链接。**付了不会自动进订单表，要手动建单。**
+- 尾款口径："The balance is collected once the party starts - cash preferred; card or online payment adds a 4% processing fee."
+- 三条分开发：① 报价 ② 菜单+planner ③ 押金+尾款。
+
 ### 5.1 折扣分情况（价目表是默认，不是天花板；看竞争对手，我们也动）
 
 | 情况 | 怎么做 |
