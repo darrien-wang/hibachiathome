@@ -50,6 +50,8 @@ export type TrackBookingSubmitServerParams = {
   premiumUpgradeCount?: number
   referralCode?: string | null
   hearAboutUs?: string | null
+  // True when the request carried the rh_internal cookie (lib/internal-traffic.ts).
+  internalTraffic?: boolean
 }
 
 function asNonEmptyString(value: unknown): string | undefined {
@@ -258,6 +260,8 @@ export async function trackBookingSubmitServer(
       hear_about_us: asNonEmptyString(params.hearAboutUs),
       conversion_surface: "booking_request_api",
       tracking_origin: "server_measurement_protocol",
+      // GA4's Internal Traffic data filter keys on this parameter; undefined is stripped.
+      traffic_type: params.internalTraffic ? "internal" : undefined,
       engagement_time_msec: 1,
     },
   })

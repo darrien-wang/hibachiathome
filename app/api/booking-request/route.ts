@@ -5,6 +5,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 
 import { trackBookingSubmitServer } from "@/lib/ga4-measurement-protocol"
+import { INTERNAL_COOKIE_NAME } from "@/lib/internal-traffic"
 import { upsertLeadFromContact, readAttributionFromCookieHeader } from "@/lib/leads"
 import { sendSupportNotificationEmail, isOpsEmailEffectivelyHandled, customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
 import { createServerSupabaseClient } from "@/lib/supabase"
@@ -520,6 +521,7 @@ export async function POST(request: Request) {
       bookingId: bookingFallback?.bookingId,
       gaClientId,
       gaSessionId,
+      internalTraffic: readCookieValue(cookieHeader, INTERNAL_COOKIE_NAME) === "1",
       leadSource,
       sourcePage,
       pageLocation,

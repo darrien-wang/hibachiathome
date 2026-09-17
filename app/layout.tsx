@@ -11,6 +11,7 @@ import { HideOnAdmin } from "@/components/hide-on-admin"
 import { ChatgptPixel } from "@/components/chatgpt-pixel"
 import LanguageSuggestBanner from "@/components/language-suggest-banner"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
+import { INTERNAL_TRAFFIC_SNIPPET } from "@/lib/internal-traffic"
 
 const DEFAULT_GTM_ID = "GTM-WQZNBK82"
 // Google Ads conversion tag (account tag; conversion labels live in lib/tracking.ts).
@@ -95,11 +96,15 @@ export default function RootLayout({
         {/* No tag manager on the /admin workbench: the owner's own sessions
             were landing in Clarity (26-minute recordings, LCP 6.8 s) and in
             GA4/Ads as visitors, skewing every customer metric. HideOnAdmin
-            reads the pathname during SSR too, so the scripts never ship. */}
+            reads the pathname during SSR too, so the scripts never ship.
+            On public pages the internal-traffic marker runs first, inside the
+            same inline script as the GTM bootstrap, so traffic_type is already
+            on dataLayer when GTM's Google tag boots (lib/internal-traffic.ts). */}
         <HideOnAdmin>
         {gtmId ? (
           <Script id="gtm-base" strategy="afterInteractive">
-            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            {`${INTERNAL_TRAFFIC_SNIPPET}
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);

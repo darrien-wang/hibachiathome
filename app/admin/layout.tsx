@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import AdminNav from "@/components/admin/AdminNav"
 import { SoftphoneProvider } from "@/components/admin/SoftphoneProvider"
+import { MarkInternal } from "@/components/admin/mark-internal"
 
 // Dynamic rendering so usePathname resolves during SSR and the site chrome
 // (header/footer/chat) is stripped server-side — no flash of public-site UI.
@@ -19,6 +20,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&display=swap"
         rel="stylesheet"
       />
+      <MarkInternal />
       <AdminNav />
       <SoftphoneProvider>{children}</SoftphoneProvider>
     </>
