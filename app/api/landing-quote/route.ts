@@ -1,3 +1,4 @@
+import { createShortLink } from "@/lib/short-link"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
@@ -174,7 +175,10 @@ export async function POST(request: NextRequest) {
   // Click ids ride along so a deposit paid from the text still attributes;
   // the utm_* set already lives on the lead.
   for (const k of ["gclid", "wbraid", "gbraid", "oppref"] as const) if (attribution[k]) dp.set(k, attribution[k] as string)
-  const depositUrl = `${BASE_URL}/deposit/pay?${dp.toString()}`
+  const longDepositUrl = `${BASE_URL}/deposit/pay?${dp.toString()}`
+  // Text a short link: the prefilled URL alone is ~300 characters. Falls back
+  // to the long one if the shortener is unavailable - the quote must still go.
+  const depositUrl = (await createShortLink(longDepositUrl, { leadId, createdBy: "landing-quote" }))?.shortUrl ?? longDepositUrl
 
   const smsBody = [
     `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
