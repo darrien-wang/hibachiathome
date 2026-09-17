@@ -234,7 +234,7 @@ Real Hibachi · (213) 770-7788
 
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
-- **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp 5 colossal · scallops 4oz · filet 4.5oz · lobster 6oz。
+- **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
 - **到场承诺（P0，我们的最大差异化）**：厨师开席前 48h **实名**确认；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
 - **厨师到达**：开席前 ~10 分钟，架灶很快。
 - **场地**：**只在户外**做（patio / balcony / deck / 帐篷或雨棚下），座位可以在室内。铺防油布，走前清理，"your patio looks the way we found it"。持证 + 有保险。
