@@ -58,7 +58,9 @@ function describeDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
   if (!m) return ""
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+  // Year included: people do book a year out, and "Sat, Oct 9" without it reads
+  // as this year in the workbench (it was a 2027 party).
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
 }
 
 export async function POST(request: NextRequest) {
