@@ -293,6 +293,7 @@ Real Hibachi · (213) 770-7788
 
 ## 9. 禁区（一条都不能碰）
 
+- **不自卖自夸**（用户 09-16 定）：到场承诺、自有厨师不是平台派单、双倍退款、"我是老板"、"我们做过很多这种派对"——**只在客户主动问起相关顾虑时才说**（"厨师会不会放鸽子""你们靠谱吗"），不主动塞进邮件/短信。也不要用"两件我会想知道的事"这种自我推销框架。客户会自己看网站。
 - **永远不主动提客户没问的多余事情**：发票、W-9、其他付款方式、可选加购、政策细节、"如果…也可以"之类的台阶。只答被问的，只推下一步。多给一个选项 = 多给一个不付款的理由（用户 09-15 定）。
 - **不打电话追单**：短信阶梯走完就停。客户几条短信都不回，打电话也不会有兴趣；换渠道不等于换结果。电话只用于客户自己打来 / 明确要求回电（用户 09-15 定，本人不喜欢打电话）。
 - **乞求式措辞一律不用**："Just checking in" / "Sorry to bother you" / "Please let me know" / "Whenever you get a chance" / "Are you still interested?" / "Any update?" / "I'd really appreciate it" / "Hope to hear from you" / "We'd love to have your business"。换成邀请句："Want me to pencil it in?" "Still holding Saturday for you - want it?"。道歉只在我们真的出错时说一次（系统没发价），**不为跟进道歉**。
