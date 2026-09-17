@@ -399,12 +399,41 @@ export default function LeadsDashboard() {
     openDetail(target)
   }, [leads, openDetail])
 
+  // Long customer-facing links (prefilled deposit page ~300 chars, personal
+  // planner link, Stripe Checkout) are swapped for /d/<code> short links right
+  // before the text leaves the workbench: 30-day life, expired -> homepage.
+  // Any failure keeps the long URL - a long link is fine, an unsent one is not.
+  const shortenLinks = useCallback(
+    async (text: string, leadId?: string): Promise<string> => {
+      const found = text.match(
+        /https:\/\/(?:www\.realhibachi\.com\/deposit\/pay\?|party\.realhibachi\.com\/order\?|checkout\.stripe\.com\/)\S+/g,
+      )
+      if (!found) return text
+      let out = text
+      for (const raw of Array.from(new Set(found))) {
+        const url = raw.replace(/[.,)]+$/, "")
+        try {
+          const res = await fetch("/api/admin/short-link", {
+            method: "POST",
+            headers: { "x-admin-key": adminKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ url, leadId }),
+          })
+          const d = await res.json()
+          if (d.ok && typeof d.shortUrl === "string") out = out.split(url).join(d.shortUrl)
+        } catch {}
+      }
+      return out
+    },
+    [adminKey],
+  )
+
   const sendSmsReply = useCallback(
     async (l: LeadRow) => {
-      const body = smsDraft.trim()
-      if (!l.phone || !body || smsSending) return
+      const draft = smsDraft.trim()
+      if (!l.phone || !draft || smsSending) return
       setSmsSending(true)
       try {
+        const body = await shortenLinks(draft, l.id)
         const res = await fetch("/api/admin/sms-thread", {
           method: "POST",
           headers: { "content-type": "application/json", "x-admin-key": adminKey },
@@ -421,7 +450,7 @@ export default function LeadsDashboard() {
         setSmsSending(false)
       }
     },
-    [adminKey, smsDraft, smsSending, loadSmsThread, loadHistory, fetchLeads]
+    [adminKey, smsDraft, smsSending, loadSmsThread, loadHistory, fetchLeads, shortenLinks]
   )
 
   // "全部" hides disqualified (junk/test) leads; they live under their own tab.
@@ -573,7 +602,7 @@ export default function LeadsDashboard() {
 
   const sendFirstResponse = useCallback(
     async (l: LeadRow) => {
-      const text = buildFirstResponse(l)
+      const text = await shortenLinks(buildFirstResponse(l), l.id)
       try {
         navigator.clipboard.writeText(text)
       } catch {}
@@ -582,7 +611,7 @@ export default function LeadsDashboard() {
       await act(l.id, { action: "add_note", note: "[SOP:first_response] 首响话术已发送" })
       loadHistory(l.id)
     },
-    [act, loadHistory]
+    [act, loadHistory, shortenLinks]
   )
 
   // UGC 邀请：派对结束次日发，鼓励客人晒图 tag——真实用户内容一条顶软广一百条。
@@ -712,7 +741,7 @@ export default function LeadsDashboard() {
             return
           }
         }
-        const text = step.build(l, plannerLink)
+        const text = await shortenLinks(step.build(l, plannerLink), l.id)
         try {
           navigator.clipboard.writeText(text)
         } catch {}
@@ -725,7 +754,7 @@ export default function LeadsDashboard() {
       await act(l.id, { action: "add_note", note: `[SOP:${step.id}] ${step.title} 已发送` })
       loadHistory(l.id)
     },
-    [act, loadHistory, sendReviewInvite, sendUgcInvite, adminKey]
+    [act, loadHistory, sendReviewInvite, sendUgcInvite, adminKey, shortenLinks]
   )
 
   // 💳 信用卡收尾款：先从发票系统拉客户最新 Balance Due（小费档/订金/卡费
@@ -802,7 +831,7 @@ export default function LeadsDashboard() {
           )
         }
         const firstName = (l.full_name || "").split(" ")[0]
-        const text = `Hi${firstName ? " " + firstName : ""}! Here's your secure card payment link for your balance: $${data.total.toFixed(2)} ${smsDetail}\n${data.url}\n(Cash, Venmo or Zelle skip the card fee — just let me know!)`
+        const text = await shortenLinks(`Hi${firstName ? " " + firstName : ""}! Here's your secure card payment link for your balance: $${data.total.toFixed(2)} ${smsDetail}\n${data.url}\n(Cash, Venmo or Zelle skip the card fee — just let me know!)`, l.id)
         try {
           navigator.clipboard.writeText(text)
         } catch {}
@@ -813,7 +842,7 @@ export default function LeadsDashboard() {
         window.alert("生成失败: " + e)
       }
     },
-    [adminKey, act, loadHistory]
+    [adminKey, act, loadHistory, shortenLinks]
   )
 
   // ✉️ 邮件跟进：短信不回时的第二通道。工作台内正式预览（可编辑）后由
@@ -821,13 +850,13 @@ export default function LeadsDashboard() {
   const [emailDraft, setEmailDraft] = useState<{ leadId: string; to: string; cc: string; subject: string; body: string } | null>(null)
   const [emailSending, setEmailSending] = useState(false)
 
-  const sendEmailFollowup = useCallback((l: LeadRow) => {
+  const sendEmailFollowup = useCallback(async (l: LeadRow) => {
     if (!l.email) return
     const firstName = (l.full_name || "").split(" ")[0]
     // Same prefilled /deposit/pay link the SMS scripts use (parsed from the
     // lead, full auto-confirm webhook flow) - one link, one pipeline, no
     // channel drift. Falls back to the generic page if no date is parsable.
-    const depositUrl = buildDepositLink(l) ?? "https://www.realhibachi.com/deposit"
+    const depositUrl = await shortenLinks(buildDepositLink(l) ?? "https://www.realhibachi.com/deposit", l.id)
     setEmailDraft({
       leadId: l.id,
       to: l.email,
@@ -835,7 +864,7 @@ export default function LeadsDashboard() {
       subject: "Your Real Hibachi date is held \u{1F389}",
       body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text ${phone.sms.dashed} - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
     })
-  }, [])
+  }, [shortenLinks])
 
   const dispatchEmailDraft = useCallback(async () => {
     if (!emailDraft || emailSending) return
@@ -917,7 +946,7 @@ export default function LeadsDashboard() {
 
   const sendEsScript = useCallback(
     async (l: LeadRow, s: { id: string; title: string; build: (l: LeadRow) => string }) => {
-      const text = s.build(l)
+      const text = await shortenLinks(s.build(l), l.id)
       try {
         navigator.clipboard.writeText(text)
       } catch {}
@@ -927,7 +956,7 @@ export default function LeadsDashboard() {
       setEsPackFor(null)
       if (l.phone) window.location.href = `sms:${l.phone}?&body=${encodeURIComponent(text)}`
     },
-    [act, loadHistory]
+    [act, loadHistory, shortenLinks]
   )
 
   // 大单前菜促销：常规话术，任何询价犹豫/人数接近 20 时发。
