@@ -362,6 +362,13 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
 ```
 客户回邮件落在 Gmail（support@ 转发）：用 Gmail 工具 `search_threads` 查 `to:support@realhibachi.com newer_than:3d`。
 
+**短链（发给客户的链接一律先缩短）**
+```bash
+# 押金 / planner / Stripe pay-link 都先过这个；30 天有效，过期或不存在的码跳官网首页
+curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d '{"url":"<长链接>","leadId":"<id>"}' https://www.realhibachi.com/api/admin/short-link   # → {ok, shortUrl: https://www.realhibachi.com/d/xxxxxx, expiresAt}
+```
+只接受 realhibachi.com 各子域和 checkout.stripe.com 的 https 链接。落地页自动报价短信已内置短链。**站点 API 一律用 curl 调**（Python urllib 的默认 UA 会被防火墙 403）。
+
 **链接**
 ```bash
 # 专属 planner（booked=true 表示已付押金版）
