@@ -363,6 +363,16 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
 ```
 客户回邮件落在 Gmail（support@ 转发）：用 Gmail 工具 `search_threads` 查 `to:support@realhibachi.com newer_than:3d`。
 
+**线索巡检（自动首响 + 提醒）** — 桌面定时任务 `lead-watch` 每 10 分钟（7:00–23:59 PT）调一次：
+```bash
+curl -s -X POST -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/lead-watch"        # 真跑
+curl -s -X POST -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/lead-watch?dry=1"  # 只看不发
+```
+- **自动发的只有一种**：A 型（留了手机+邮箱、没到报价步）且留资 ≥5 分钟、没填日期 → 发批过的首响模板（价格走 `calcSimpleEstimate`，路费用页面当时给客户看的那个数），并记首响。555 测试号跳过。
+- 其余未首响线索、客户发来没人回的短信 → 放进 `needsHuman`，同一项 2 小时内只报一次（表 `lead_watch_notified`）；定时任务据此推送通知，纯致谢不推。
+- **手动处理线索前先看一眼它有没有已经被自动首响**（工作台备注 `[SOP:first_response] AUTO`），别重复发。
+- 只在桌面 app 开着时运行；app 关着期间的线索要等下次打开才补跑。
+
 **协议总价（特殊报价：企业价、大单价、谈下来的价）**
 ```bash
 # 1) 给这条线索的协议总价签名（客户改链接里的数没用，验签不过就按标准价）
