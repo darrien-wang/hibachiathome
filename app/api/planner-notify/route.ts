@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic"
 // words. This route only sends, through the threaded sender, so the text comes
 // from the business line and sits in the workbench conversation when the
 // person replies to it.
-const KINDS = new Set(["host_first", "host_half", "host_all", "host_nudge", "guest_reminder"])
+// find_party: someone asked the planner's front door to send them the private
+// link to their own party (决策日志 D-0917-02).
+const KINDS = new Set(["host_first", "host_half", "host_all", "host_nudge", "guest_reminder", "find_party"])
 
 export async function POST(request: NextRequest) {
   const expected = process.env.INVOICE_UPDATE_ADMIN_TOKEN?.trim()

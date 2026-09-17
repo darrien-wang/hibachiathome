@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
-  let body: { email?: string; phone?: string; booked?: boolean }
+  let body: { email?: string; phone?: string; booked?: boolean; leadId?: string }
   try {
     body = await request.json()
   } catch {
@@ -40,13 +40,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "email or phone required" }, { status: 400 })
   }
   try {
+    // The lead id rides along so what the customer then does in the planner
+    // (opened it, invited guests, finished the menu) lands on this lead's
+    // timeline. The planner only accepts a lead id with the shared admin
+    // token - a browser cannot attach one - so the header goes with it.
+    const adminToken = process.env.INVOICE_UPDATE_ADMIN_TOKEN?.trim()
+    const leadId = String(body.leadId ?? "").trim()
     const res = await fetch(`${PLANNER_HOST}/api/order-key`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(adminToken ? { "x-admin-token": adminToken } : {}) },
       body: JSON.stringify({
         email: email || undefined,
         phone: phone || undefined,
         booked: body.booked === true,
+        leadId: adminToken && leadId ? leadId : undefined,
       }),
       cache: "no-store",
     })

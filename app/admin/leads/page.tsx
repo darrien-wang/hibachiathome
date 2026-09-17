@@ -56,6 +56,14 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const EVENT_LABELS: Record<string, string> = {
+  // 客户在 party planner 里的动作（D-0917-02）：发出去的链接不再是黑箱
+  planner_unlock: "Planner 留资解锁",
+  planner_opened: "打开了 planner",
+  planner_edited: "正在 planner 里布置派对",
+  planner_shared: "把派对分享给了客人",
+  planner_guest_joined: "第一位客人加入了派对",
+  planner_half_joined: "过半客人已加入",
+  planner_menu_complete: "全员选完菜 — 菜单齐了",
   sms_outbound: "发出短信（213 线）",
   agent_first_response: "✓ 首次联系",
   sms_failed: "⚠️ 短信未送达",
@@ -786,6 +794,9 @@ export default function LeadsDashboard() {
                   email: l.email || undefined,
                   phone: l.phone || undefined,
                   booked: step.stage === "won",
+                  // ties the link to this lead: what they do in the planner
+                  // shows up on this timeline
+                  leadId: l.id,
                 }),
               })
               const d = await res.json()
@@ -1801,7 +1812,7 @@ export default function LeadsDashboard() {
               const extra =
                 ev.touchpoint_type === "agent_status_change"
                   ? ` → ${STATUS_LABELS[String(p.status)] ?? p.status}${p.bulk ? "（批量）" : ""}`
-                  : ev.touchpoint_type === "agent_note"
+                  : ev.touchpoint_type === "agent_note" || (ev.touchpoint_type.startsWith("planner_") && p.note)
                     ? `：${p.note}`
                     : ev.touchpoint_type === "agent_edit"
                       ? editDiff()
