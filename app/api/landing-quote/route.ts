@@ -47,6 +47,9 @@ type Body = {
    * is step 2 — text + email the exact price and wake ops.
    */
   stage?: "contact" | "quote"
+  /** "leave": fired by a beacon when a step-2 visitor leaves without tapping
+   * "Text me this quote". Same send, but skipped if a quote already went out. */
+  auto?: "leave"
   pagePath?: string
 }
 
@@ -152,6 +155,19 @@ export async function POST(request: NextRequest) {
         rawPayload: { ...body, phone: phoneE164, computed: { weekday, subtotal, total, travelFee, discountCode, discount: est.partySizeDiscountApplied } },
       })
       leadId = lead.leadId
+      // A leave-beacon must not repeat a quote the visitor already tapped for
+      // (or an earlier beacon sent). The upsert above just wrote this call's
+      // own landing_quote_text touchpoint, so a second one in the last day
+      // means the price has already gone out.
+      if (!contactOnly && body.auto === "leave") {
+        const { count } = await supabase
+          .from("lead_touchpoints")
+          .select("id", { count: "exact", head: true })
+          .eq("lead_id", lead.leadId)
+          .eq("touchpoint_type", "landing_quote_text")
+          .gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString())
+        if ((count ?? 0) > 1) return NextResponse.json({ ok: true, stage: "quote", leadId, skipped: "already_sent" })
+      }
     } catch (error) {
       console.error("[LEAD_PERSISTENCE_FAILED] landing-quote", { error: error instanceof Error ? error.message : String(error), phoneE164, source })
     }

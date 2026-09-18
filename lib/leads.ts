@@ -67,7 +67,11 @@ export type LeadUpsertResult = {
   dedupeReason: "external_call_id" | "manual_entry_id" | "phone_window" | "email_window" | "new"
 }
 
-const DEDUPE_WINDOW_HOURS = 24
+// Was 24 hours. A customer who texted back two days after their quote was
+// filed as a brand-new lead (three duplicates on 2026-09-18 alone), because
+// our own outbound texts never bump last_seen_at. A phone number or email is
+// the same person for months; the returning-customer flag handles the rest.
+const DEDUPE_WINDOW_HOURS = 24 * 180
 const SUPPORT_REASON_PATTERN = /support|feedback|refund|cancel|cancellation|reschedule|post[- ]?event|complaint|issue|help/i
 const PARTNER_REASON_PATTERN = /partner|partnership|service provider|vendor/i
 

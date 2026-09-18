@@ -40,6 +40,22 @@ export async function GET(request: NextRequest) {
   const from = DATE_RE.test(p.get("from") ?? "") ? (p.get("from") as string) : ptDate(13)
   const to = DATE_RE.test(p.get("to") ?? "") ? (p.get("to") as string) : ptDate(0)
 
+  // Paid deposits with no channel yet: run the sweep before reading, so the
+  // board never shows "unresolved" for something the data already answers.
+  // Nobody had run it between 2026-09-11 and 09-18; three Google/ChatGPT
+  // deposits sat unattributed the whole time. Best effort - a sweep failure
+  // must not take the board down.
+  try {
+    const { count: pending } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .is("acquisition_channel", null)
+      .eq("deposit_status", "paid_verified")
+    if ((pending ?? 0) > 0) await supabase.rpc("rh_sweep_order_acquisition", { p_dry_run: false })
+  } catch (e) {
+    console.error("[channels] acquisition sweep failed", e)
+  }
+
   const { data, error } = await supabase
     .from("channel_scorecard_daily")
     .select("*")

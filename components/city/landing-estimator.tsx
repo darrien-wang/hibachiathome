@@ -126,6 +126,7 @@ export default function LandingEstimator({
   const startedRef = useRef(false)
   const leadSentRef = useRef(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
+  const autoSentRef = useRef(false)
 
   // Already gave us the contact (here or on /quote): straight to the price.
   useEffect(() => {
@@ -295,6 +296,53 @@ export default function LandingEstimator({
     setStep(2)
     window.setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
   }
+
+  // Step 2 shows the exact price on screen, so plenty of visitors read it and
+  // leave without tapping "Text me this quote" - the Clarity pass on
+  // 2026-09-18 found 8 of 36 leads stalled exactly there, and each then waited
+  // for a person to text them the number they had already seen. They gave us
+  // the mobile so the price would be sent, so send it when they leave: a
+  // beacon survives navigation and tab close, once per session, and the
+  // server skips a second send if the tap already went out.
+  const latestRef = useRef({ busy, sent, phoneReady, emailReady, total, discountCode, sizeOff, payload: quotePayload })
+  latestRef.current = { busy, sent, phoneReady, emailReady, total, discountCode, sizeOff, payload: quotePayload }
+  useEffect(() => {
+    if (step !== 2 || sent) return
+    const fire = () => {
+      const l = latestRef.current
+      if (autoSentRef.current || l.busy || l.sent || !l.phoneReady || !l.emailReady) return
+      const body = { ...l.payload(), stage: "quote", auto: "leave" }
+      try {
+        if (sessionStorage.getItem("rh_landing_autosent") === String(body.phone)) return
+        sessionStorage.setItem("rh_landing_autosent", String(body.phone))
+      } catch {}
+      autoSentRef.current = true
+      const queued = navigator.sendBeacon("/api/landing-quote", new Blob([JSON.stringify(body)], { type: "application/json" }))
+      if (!queued) return
+      setSent({ total: l.total, emailed: true, smsDelivered: true, depositUrl: null, discountCode: l.discountCode ?? null, discount: l.sizeOff })
+      trackEvent("quote_sent", {
+        contact_surface: "landing_estimator_autoleave",
+        quote_surface: attribution,
+        city_or_zip: shownCity,
+        guest_count: body.adults + body.kids,
+        quote_plan: body.plan,
+        quote_total: l.total,
+        event_date: body.eventDate || "unspecified",
+        value: l.total,
+        currency: "USD",
+      })
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") fire()
+    }
+    window.addEventListener("pagehide", fire)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      window.removeEventListener("pagehide", fire)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, sent])
 
   // Step 2: text + email the exact price and flip to the receipt.
   const submit = async () => {
