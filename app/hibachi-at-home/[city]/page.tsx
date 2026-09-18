@@ -187,6 +187,23 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
         </>
       ),
     },
+    // Vacation-rental pages: the four host questions that decide whether a
+    // renter can say yes. Answered here, before the price, so they are not
+    // left to the text thread.
+    ...(page.rentalChecklist
+      ? [
+          {
+            title: "Staying in a rental? Four quick checks",
+            body: (
+              <ul className="list-disc space-y-2 pl-5">
+                {page.rentalChecklist.map((item) => (
+                  <li key={item.slice(0, 32)}>{item}</li>
+                ))}
+              </ul>
+            ),
+          },
+        ]
+      : []),
     ...(climate
       ? [
           {

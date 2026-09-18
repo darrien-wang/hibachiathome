@@ -52,6 +52,12 @@ export type CityPage = {
   // changed on the same day is the kind of thing search engines learn to
   // ignore, and so is one that never moves at all.
   lastUpdated?: string
+  // Destination / vacation-rental pages only: the four things a renter has to
+  // settle with the host before they can say yes - outdoor cooking, quiet
+  // hours, the setup spot, and access. Rendered as a short checklist so the
+  // objection is answered before they text. Each item names the local rule or
+  // quirk; a generic list here would just be the FAQ again.
+  rentalChecklist?: string[]
 }
 
 // The date the whole city-page set was last revised together. Bump this when a
@@ -794,7 +800,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Thousand Oaks?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, any party size) applies here too.",
       },
     ],
     nearby: ["woodland-hills", "santa-clarita", "malibu"],
@@ -884,7 +890,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in West Covina?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, 15+ guests) is available.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, food, live show, setup, and cleanup included, with no travel fee and no per-guest setup surcharge. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, any party size) is available.",
       },
     ],
     nearby: ["rowland-heights", "diamond-bar", "whittier"],
@@ -974,7 +980,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Whittier?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, 15+ guests) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, any party size) applies here too.",
       },
     ],
     nearby: ["west-covina", "long-beach", "downtown-los-angeles"],
@@ -2437,7 +2443,14 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
       },
     ],
+    rentalChecklist: [
+      "Outdoor cooking: vineyard estates and Airbnbs almost always allow it — a quick note to the host that it is a propane grill on the patio is all it takes.",
+      "Quiet hours: wine-country rentals sit closer to their neighbors than you would think, and the county's rental rules go quiet at 10pm. A 6pm start keeps the show inside them.",
+      "The spot: a level 6x8 ft area with about 10 ft of clearance — a patio or the flat top of a driveway. Gravel is fine.",
+      "Finding you: send the gate code and a note on where to pull in; cell service drops between the vineyards. Everything leaves with the chef.",
+    ],
     nearby: ["riverside", "corona", "oceanside"],
+    lastUpdated: "2026-09-18T00:00:00.000Z",
   },
   {
     slug: "santa-clarita",
@@ -3063,7 +3076,14 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup, and cleanup included, plus any disclosed travel fee.",
       },
     ],
+    rentalChecklist: [
+      "Outdoor cooking: Palm Springs rentals spell it out in the house rules — a two-line note to the host (private chef, propane grill, on the patio) settles it.",
+      "Quiet hours: most desert rentals go quiet at 10pm. A 6 or 6:30pm start puts the show at dusk and the cleanup well inside them.",
+      "The spot: a level 6x8 ft pad with about 10 ft of clearance — pool deck or patio. Misters and low pergolas are the usual reason we shift a few feet.",
+      "The gate: put the chef's name on the guest list or send the code ahead. Everything leaves with the chef, so the rental looks the way you found it.",
+    ],
     nearby: ["temecula", "riverside", "corona"],
+    lastUpdated: "2026-09-18T00:00:00.000Z",
   },
   // ------------------------------------------------------------------
   // Destination / vacation-rental pages (added 2026-09-07). These target
@@ -3150,7 +3170,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at a Joshua Tree rental cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties get the $54.90/adult Weekday Special, any party size.",
       },
       {
         question: "Is winter too cold for an outdoor hibachi dinner?",
@@ -3158,8 +3178,14 @@ export const cityPages: CityPage[] = [
           "Desert winter days are mild; nights drop quickly. Book a late-afternoon start so the cooking happens in daylight and the fire show lands right at dusk, and put your rental's heaters or firepit to work for the rest of the evening.",
       },
     ],
+    rentalChecklist: [
+      "Outdoor cooking: most desert rentals allow a propane grill on the patio or gravel pad — check the house rules and tell the host it is a private chef, not a bonfire.",
+      "Quiet hours: the county's short-term rental rules go quiet at 10pm. A sunset start puts the show at dusk and the cleanup before the hour.",
+      "The spot: a level 6x8 ft area with about 10 ft of clearance — gravel pads and dirt yards are fine, kept clear of the Joshua trees and brush.",
+      "Finding you: dirt roads and no visible house numbers — send the map pin, the lockbox details, and where to park. Everything leaves with the chef.",
+    ],
     nearby: ["palm-springs", "la-quinta", "riverside"],
-    lastUpdated: "2026-09-07T00:00:00.000Z",
+    lastUpdated: "2026-09-18T00:00:00.000Z",
   },
   {
     slug: "big-bear-lake",
@@ -3240,7 +3266,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does a Big Bear hibachi party cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties get the $54.90/adult Weekday Special, any party size.",
       },
       {
         question: "Do you cook in the snow?",
@@ -3248,8 +3274,14 @@ export const cityPages: CityPage[] = [
           "We cook year-round on the mountain. Book an earlier start in winter so the cooking happens in daylight, keep guests near the deck heaters, and let the fire show do the rest.",
       },
     ],
+    rentalChecklist: [
+      "Outdoor cooking: cabin rentals almost always allow a propane grill on the deck or driveway pad — a quick note to the host settles it.",
+      "Quiet hours: Big Bear's rental rules are strict about noise after 10pm and about guest counts. A 5 or 5:30pm start wraps the show in daylight and inside them.",
+      "The spot: a level 6x8 ft area with about 10 ft of clearance — deck or driveway, cleared of snow in winter. Deep eaves are the usual reason we shift a few feet.",
+      "Parking: steep, tight driveways — tell us where the chef can park close to the setup spot. Everything leaves with the chef; the cabin's kitchen never opens.",
+    ],
     nearby: ["riverside", "corona", "joshua-tree"],
-    lastUpdated: "2026-09-07T00:00:00.000Z",
+    lastUpdated: "2026-09-18T00:00:00.000Z",
   },
   {
     slug: "la-quinta",
@@ -3330,7 +3362,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at a La Quinta rental cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties get the $54.90/adult Weekday Special, any party size.",
       },
       {
         question: "How do gated communities work?",
@@ -3338,8 +3370,14 @@ export const cityPages: CityPage[] = [
           "Add the chef's name to the guest list or send us the gate code before the party. The chef arrives about ten minutes early, sets up on the patio, and is gone after cleanup.",
       },
     ],
+    rentalChecklist: [
+      "Outdoor cooking: gated-community rentals here nearly always allow a propane grill on the patio — check the listing and tell the host it is a private chef.",
+      "Quiet hours: the valley's rental rules go quiet at 10pm and cap guest counts. An early-evening start keeps the show inside both.",
+      "The spot: a level 6x8 ft patio pad or pool deck well clear of the water, with about 10 ft of clearance. Misters and low pergolas are the usual reason we shift.",
+      "The gate: put the chef's name on the guest list or send the code ahead. Everything leaves with the chef.",
+    ],
     nearby: ["palm-springs", "joshua-tree", "temecula"],
-    lastUpdated: "2026-09-07T00:00:00.000Z",
+    lastUpdated: "2026-09-18T00:00:00.000Z",
   },
   {
     slug: "la-jolla",
@@ -3420,7 +3458,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at a La Jolla rental cost?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus any travel fee shown in your quote. Monday–Thursday parties with 15+ guests get the $54.90/adult Weekday Special.",
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus any travel fee shown in your quote. Monday–Thursday parties get the $54.90/adult Weekday Special, any party size.",
       },
       {
         question: "What about June Gloom?",
@@ -3428,8 +3466,202 @@ export const cityPages: CityPage[] = [
           "Book a late-afternoon start in May and June so the cooking happens while it is still warm, and the fire show lands as the light goes. The rest of the year, sunset on the coast is the best slot we have.",
       },
     ],
+    rentalChecklist: [
+      "Outdoor cooking: many beach rentals allow it and some prohibit open flame — check the listing, and tell the host it is a propane grill on the deck, not a fire pit.",
+      "Quiet hours: San Diego's rental rules go quiet at 10pm. A late-afternoon start gets the cooking done in the warm part of the day and the show at dusk.",
+      "The spot: a level 6x8 ft deck or patio with about 10 ft of clearance, ideally with a wall or windbreak on the ocean side.",
+      "Parking: tight in the Shores and along the boardwalk in summer — tell us where the chef can unload. Everything leaves with the chef.",
+    ],
     nearby: ["san-diego", "oceanside", "newport-beach"],
-    lastUpdated: "2026-09-07T00:00:00.000Z",
+    lastUpdated: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    slug: "santa-barbara",
+    city: "Santa Barbara",
+    county: "Santa Barbara County",
+    metaTitle: "Hibachi at Home Santa Barbara CA | Private Chef at Your Rental from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Santa Barbara, Montecito, Carpinteria, and Goleta — chef, grill, and a live fire show at your rental, estate, or backyard. $59.90/adult, travel fee shown upfront.",
+    intro: [
+      "Santa Barbara is where Southern California goes for the weekend that matters: the wedding weekend, the milestone birthday at a Montecito estate, the family in town for a UCSB graduation, the friends who rented a Carpinteria beach house for three nights. Somebody has to feed everyone at least once, and the group that came for the coast has no interest in cooking. A private hibachi chef turns that night into the one they talk about — the grill on the terrace, the fire show against the sunset, and nobody in the kitchen.",
+      "We come to Santa Barbara, Montecito, Summerland, Carpinteria, Goleta, and Hope Ranch. Same published price as everywhere else — $59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, $599 event minimum — and the travel fee for the drive up the coast is calculated from your address and shown in your quote before you pay anything.",
+    ],
+    neighborhoods: [
+      "Montecito",
+      "Hope Ranch",
+      "The Riviera",
+      "The Mesa",
+      "Downtown & the Funk Zone",
+      "Summerland",
+      "Carpinteria",
+      "Goleta",
+    ],
+    occasions: [
+      {
+        title: "Wedding Weekends",
+        description:
+          "The welcome dinner or rehearsal night at the rental house, with a show instead of trays — the one meal of the weekend that is not a seated event.",
+      },
+      {
+        title: "Wine-Country Weekends",
+        description:
+          "Tasting in the Funk Zone or up in the Santa Ynez Valley by day, and a chef already setting up on the terrace when the group gets back. Nobody drives to dinner.",
+      },
+      {
+        title: "Milestone Birthdays at Montecito Estates",
+        description:
+          "The fortieth or the sixtieth with twenty people at one long table on the lawn, and a teppanyaki flame as the evening's centerpiece.",
+      },
+      {
+        title: "UCSB Graduation & Parents' Weekends",
+        description:
+          "Family in from out of town, a rental in Goleta or on the Mesa, and one dinner that the graduate's friends can join without anyone booking a restaurant for fourteen.",
+      },
+    ],
+    venues: [
+      {
+        title: "Montecito & Hope Ranch Estates",
+        description:
+          "Lawns, terraces, and big patios built for a crowd. The grill sets up on any level 6x8 ft spot; the show plays to the whole table at once.",
+      },
+      {
+        title: "Beach Houses in Carpinteria & Summerland",
+        description:
+          "Decks a few steps from the sand. We set against a wall or windbreak on the ocean side, because the afternoon breeze is real.",
+      },
+      {
+        title: "Downtown Casitas & Riviera Rentals",
+        description:
+          "Spanish-style courtyards and hillside patios with a view of the harbor — tight on parking, generous on setting.",
+      },
+    ],
+    logistics: [
+      "Santa Barbara is a real drive from our base — about two hours up the 101 and well past the free 50 miles — so a travel fee applies and is shown upfront in your quote. We build in buffer for 101 traffic through Ventura rather than cutting it fine. The weather is the mildest we serve: marine-layer mornings in May and June, afternoons in the 70s most of the year, and evenings that cool fast once the sun is off the water, so a late-afternoon start gets the cooking done in the warm part of the day and lands the fire show at dusk.",
+      "Access is the Santa Barbara specific. Montecito estates and Riviera homes often mean a gate, a long drive, and a terrace up a flight of stairs — all workable, all things to tell us at booking. Downtown and Mesa street parking is tight on summer weekends, so a driveway spot or a note on where the chef can unload saves circling. During red-flag conditions in the foothills we keep everything on hardscape clear of brush. We need about a 6x8 ft flat area with roughly 10 ft of overhead clearance; the chef brings the grill, the food, and everything for the show, and takes all of it away — your rental's kitchen stays closed.",
+    ],
+    faqs: [
+      {
+        question: "Do you come to Santa Barbara and Montecito?",
+        answer:
+          "Yes — we come to Santa Barbara, Montecito, Summerland, Carpinteria, Goleta, and Hope Ranch. It is past our free 50-mile radius, so a travel fee applies at $1 per additional mile, calculated from your address and shown in your instant quote.",
+      },
+      {
+        question: "Can you cook at our Santa Barbara-area vacation rental?",
+        answer:
+          "Yes. Check the listing for outdoor cooking and evening event rules first — most Montecito and Carpinteria rentals allow a propane grill on the patio or lawn. We need a level spot about 6x8 ft with roughly 10 ft of clearance, and an early-evening start wraps well inside quiet hours.",
+      },
+      {
+        question: "Can you do a wedding welcome dinner or rehearsal night?",
+        answer:
+          "Yes, and it is one of the best uses of the format: a show instead of a seated service, everyone at one long table, and no venue minimum. One chef cooks for up to 28 guests; larger groups get a second chef and a second grill so the whole party eats at the same time.",
+      },
+      {
+        question: "What does hibachi at home cost in Santa Barbara?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties get the $54.90/adult Weekday Special, any party size.",
+      },
+    ],
+    rentalChecklist: [
+      "Outdoor cooking: Montecito and Carpinteria rentals generally allow a propane grill on the patio or lawn — check the house rules and tell the host it is a private chef, not a fire pit.",
+      "Quiet hours: most rentals here go quiet at 10pm. A 5:30 or 6pm start lands the show at sunset and the cleanup before the hour.",
+      "The spot: a level 6x8 ft area with about 10 ft of clearance — a terrace, lawn, or driveway. Low pergolas and deep eaves are the usual reason we shift a few feet.",
+      "Gates and stairs: estate gates, long drives, and a terrace up a flight of stairs are all workable — tell us at booking. Everything leaves with the chef.",
+    ],
+    nearby: ["malibu", "thousand-oaks", "woodland-hills"],
+    lastUpdated: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    slug: "idyllwild",
+    city: "Idyllwild",
+    county: "Riverside County",
+    metaTitle: "Hibachi at Home Idyllwild CA | Private Chef at Your Cabin from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef at your Idyllwild, Pine Cove, or Mountain Center cabin — chef, grill, and a live fire show under the pines. $59.90/adult, travel fee shown upfront.",
+    intro: [
+      "Idyllwild is a mile-high village of cabins rented by the weekend — birthday groups up from LA and Orange County, bachelorette parties from San Diego, three generations in one lodge for Thanksgiving. There are a handful of restaurants in the village and they fill up on a Saturday night, and nobody came up the hill to cook for twelve. A private hibachi chef turns one of those nights into the dinner everyone plans the weekend around: the grill on the deck, the fire show under the pines, and the cabin's kitchen never opened.",
+      "We come to Idyllwild, Fern Valley, Pine Cove, Mountain Center, and Garner Valley. Same published price as everywhere else — $59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, $599 event minimum — and the travel fee for the drive up the mountain is calculated from your address and shown in your quote before you pay anything.",
+    ],
+    neighborhoods: [
+      "Idyllwild Village",
+      "Fern Valley",
+      "Pine Cove",
+      "Strawberry Creek",
+      "Mountain Center",
+      "Garner Valley",
+    ],
+    occasions: [
+      {
+        title: "Cabin Birthday Weekends",
+        description:
+          "The milestone birthday where a dozen friends rent a lodge for two nights. Hibachi night is the one meal nobody has to plan, shop for, or clean up after.",
+      },
+      {
+        title: "Bachelorette & Friends' Getaways",
+        description:
+          "A cabin with a hot tub, a chef show at dusk, and the whole group in one place — dinner, entertainment, and the photos handled in one booking.",
+      },
+      {
+        title: "Family Reunions Under the Pines",
+        description:
+          "Three generations in one big cabin and a dinner that keeps the kids at the table — the egg toss and the onion volcano do most of that work.",
+      },
+      {
+        title: "Fall Color & Holiday Cabins",
+        description:
+          "October through New Year's is when the mountain fills up. A Thanksgiving-weekend or Christmas-week dinner with a show, and no one stuck in the kitchen.",
+      },
+    ],
+    venues: [
+      {
+        title: "A-Frames & Cabin Decks",
+        description:
+          "The classic Idyllwild rental. The grill sets up on the deck or the driveway pad — any level 6x8 ft spot with clearance above it — and the show plays to the railing.",
+      },
+      {
+        title: "Lodges Sleeping Twelve to Twenty",
+        description:
+          "The larger properties in Fern Valley and Pine Cove with wraparound decks and a firepit that already expect a crowd.",
+      },
+      {
+        title: "Mountain Center & Garner Valley Ranches",
+        description:
+          "Open yards and horse properties down the hill from the village, where the party is outside by design.",
+      },
+    ],
+    logistics: [
+      "Idyllwild is about two hours from our base — up the 243 from Banning or the 74 from Hemet — and past the free 50 miles, so a travel fee applies and is shown upfront in your quote. The village sits at about 5,400 feet: evenings are cool even in July and cold from October on, so book an earlier start than you would down the hill and put the cabin's deck heater or firepit to work for the rest of the night. In winter the roads can call for chains and the deck or driveway spot needs to be cleared of snow before the chef arrives; we watch the forecast and talk to you the day before.",
+      "We cook on propane, not wood or charcoal, and we keep the grill on hardscape clear of trees and brush — the mountain's fire rules are real and we treat them that way, and on a red-flag day we will tell you straight if the setup spot has to move. Cabin driveways are steep and narrow and cell service is patchy, so send the map pin, the gate or lockbox details, and where the chef can park. The chef brings the grill, the food, and everything for the show, and takes it all away — your cabin's kitchen never opens.",
+    ],
+    faqs: [
+      {
+        question: "Do you come up to Idyllwild?",
+        answer:
+          "Yes — we come to Idyllwild, Fern Valley, Pine Cove, Mountain Center, and Garner Valley. It is past our free 50-mile radius, so a travel fee applies at $1 per additional mile, calculated from your address and shown in your instant quote.",
+      },
+      {
+        question: "Can you cook on a cabin deck?",
+        answer:
+          "Yes, if it is level, gives us about 6x8 ft, and has roughly 10 ft of clearance above the grill — a low deck roof is the one thing that makes us move to the driveway pad instead. We cook on propane and keep the grill clear of railings, trees, and brush.",
+      },
+      {
+        question: "What does hibachi at an Idyllwild cabin cost?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, live show, setup, and cleanup included — plus the travel fee shown in your quote. Monday–Thursday parties get the $54.90/adult Weekday Special, any party size.",
+      },
+      {
+        question: "Is it too cold up the mountain for an outdoor dinner?",
+        answer:
+          "The cooking is outdoors; the eating does not have to be. Book a late-afternoon start so the show lands at dusk, put the cabin's heater or firepit to work, and if the night turns cold the plates simply come inside while the chef finishes on the deck.",
+      },
+    ],
+    rentalChecklist: [
+      "Outdoor cooking: cabin rentals almost always allow a propane grill on the deck or driveway — a quick note to the host settles it. We cook on propane, never wood or charcoal.",
+      "Quiet hours: Riverside County's rental rules go quiet at 10pm and cap guest counts. A 5 or 5:30pm start wraps the show in daylight and inside them.",
+      "The spot: a level 6x8 ft area with about 10 ft of clearance — deck or driveway pad, cleared of snow in winter. Low deck roofs and deep eaves are the usual reason we shift a few feet.",
+      "Finding you: steep driveways and patchy cell service — send the map pin, the lockbox details, and where to park. Everything leaves with the chef; the cabin's kitchen never opens.",
+    ],
+    nearby: ["palm-springs", "temecula", "riverside"],
+    lastUpdated: "2026-09-18T00:00:00.000Z",
   },
 ]
 

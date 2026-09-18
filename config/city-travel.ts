@@ -43,6 +43,8 @@ export const cityTravel: Record<string, CityTravel> = {
   "big-bear-lake": { miles: 83.0, fee: 33 }, // Big Bear Lake
   "la-quinta": { miles: 112.2, fee: 62 }, // La Quinta
   "la-jolla": { miles: 104.1, fee: 54 }, // La Jolla
+  "santa-barbara": { miles: 121.8, fee: 72 }, // Santa Barbara (2026-09-18)
+  "idyllwild": { miles: 86.7, fee: 37 }, // Idyllwild (2026-09-18)
 }
 
 export function getCityTravel(slug: string): CityTravel | undefined {
