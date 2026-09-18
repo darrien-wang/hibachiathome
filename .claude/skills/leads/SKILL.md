@@ -47,6 +47,8 @@ description: >-
 
 自检一句话：这条发出去，像一个**热爱自己工作、日程排得不错的人**说的，还是像一个怕丢单的人说的？后者重写。
 
+谈价时也一样：有底气的人不急着让步，让步是换来的，不是求来的（§7.1）。
+
 ### 1.2 火花句库（每条最多放一句，放在价格/事务之后；只用真实的）
 
 - "the onion volcano is the moment everyone's phone comes out"
@@ -229,8 +231,9 @@ Real Hibachi · (213) 770-7788
 2. **先亮差异，不先降价**：到场承诺（实名 48h、自己团队、双倍退）、分量白纸黑字、持证有保险。很多"便宜"在这里就被抵消。
 3. **还要价 → 让**：**≤ $5/成人 或 ≤ $100/单（取小）我可以直接定**；要超过这个、或要低于 **$49.90/成人**、或要破 **$599 底线** → 先问用户，一句话说清竞品价和包含项。
    - 带宽依据：单场成本约 $20–25/人（食材 $10 + 厨师 $10–15），$49.90 仍有 ~50% 毛利。这是我定的默认，用户随时改。
-4. **让价的说法**：主动、干脆、带条件，不求人。"I'll match that - $54.90/adult for your Saturday, and you still get the show-up promise in writing. Want me to pencil it in?" 不说 "please"，不说 "we really want your business"，不让第二次。
-5. **记情报**：工作台 `add_note` 写 `[COMP] 竞品名 / 报价 / 包含项 / 客户最终决定`；汇报里单列"竞品情报"一行。用户据此决定要不要动价目表、广告或 `pricing-rules.ts`——**skill 里的数字只跟着价目表走，不因为一次让价改**。
+4. **怎么让**：按 §7.1 谈判模块——先问再让、每步换回报、三步递减、最后留小赢；带宽只是上限，不是一次给完的数。
+5. **让价的说法**：主动、干脆、带条件，不求人。"I'll match that - $54.90/adult for your Saturday, and you still get the show-up promise in writing. Want me to pencil it in?" 不说 "please"，不说 "we really want your business"，不让第二次。
+6. **记情报**：工作台 `add_note` 写 `[COMP] 竞品名 / 报价 / 包含项 / 客户最终决定`；汇报里单列"竞品情报"一行。用户据此决定要不要动价目表、广告或 `pricing-rules.ts`——**skill 里的数字只跟着价目表走，不因为一次让价改**。
 
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
@@ -271,12 +274,54 @@ Real Hibachi · (213) 770-7788
 | **吸引而非追逐（恋爱心态，1.1）** | 每条像"日程排得不错的人在发邀请"；不用乞求词（第 9 节）；描绘他的派对，不讲我们多想要这单 | "Want me to pencil it in?" |
 | **体面撤退（走开的力量）** | 最后一条放开档期，而不是再要一次；有期限的 hold 到期就真的释放——这让之前所有 hold 都可信 | "I'll open it back up after tomorrow. Either way, hope the party's a great one." |
 
+### 7.1 谈判模块（罗杰·道森《优势谈判》，只在价格/条款被拿出来谈时启动）
+
+八成的线索没有谈判——明码标价，要不要而已，**不触发就一个字都不用**。触发条件：客户报预算/说超预算、提竞品价、31+ 或企业单（价格本来就是定制的）、要折扣/要赠品、成交后追加要求。总原则：**让对方觉得自己赢了**，同时我们一分钱都不白让。
+
+**先问再让（信息压力点）** — 报数之前先弄清三件事，问得越多让得越少：预算范围（"What's the number you're working with?"）、还在比谁（"What else are you looking at?"）、谁拍板（"Is it just you deciding, or someone else too?"）。
+
+| 道森的招 | 我们的短信版 | 例句 | 不用的情况 |
+|---|---|---|---|
+| **开价高于预期** | 大单先报标准价 $59.90，低价留作有条件的让步；桌椅、升级永远先按原价列出，不预先打折 | "Standard is $59.90/adult; once headcount's firm I can look at the rate for 60+" | 常规单——网站已经把价挂出去了，报价不能变 |
+| **绝不接受第一次报价** | 客户报数（预算、还价），不马上答应也不马上拒绝：停一拍，先问一句 | "What's the number you're working with?" → 等 | 客户报的数正好是标价（那是成交，不是谈判） |
+| **大惊失色** | 短信版=一句诚实的成本感叹，不演 | "$45 a head would be under what it costs us to run two chefs" | 对方要求合理时 |
+| **不情愿的卖家** | 只用真实的约束表现不急：厨师排班、周六档期 | "Sat 9/26 is 8 days out and I need to lock the chef schedule" | 不能编档期紧张 |
+| **钳子策略** | 客户报数后："I'd need you closer to $X" 然后闭嘴 | — | 一次谈判最多用一次 |
+| **更高权威（真实版）** | 只用真实存在的：食材成本、厨师排班、"let me run it"。Bling 就是老板，**不编合伙人/审批人** | "Let me run 35 against the chef schedule and come back tonight" | 不能编不存在的人 |
+| **反制对方的更高权威** | 对方说"要和未婚夫/经理商量" → 一句把决策权钉住 + 问内部时间表 | "If it were just you, is this a go?" / "When do you two decide?" | — |
+| **索取回报** | **每一次让步都换一样东西**：周中日期、人数定死、当天现金、今天付押金、派对后好评、转介绍 | "I can do $55.90 if we lock 60 as the minimum count today" | 免费给=互惠失效，永远不白给 |
+| **服务价值递减** | 让步当场换回报，不留到以后（事后没人记得你让过） | 同上 | — |
+| **绝不折中** | 客户提"中间价"不接，换成有条件的让步 | "I can't do halfway, but I can do $X if you can Y" | — |
+| **让步递减** | 三步、越来越小、数字不整：$59.90 → $55.90 → $53.90 → $52.99；最后一步小到让人觉得到底了 | — | 第一步不能就给到底 |
+| **收回条件** | 被反复加码时把上一个让步收回 | "That rate was tied to the 60-count; at 45 it goes back to standard" | 只在被蚕食时用 |
+| **欣然接受** | 最后留一个看得见的小赢：免桌椅、送拼盘、"I'll take care of it" | Natalie 的 $50 医护 | 不能是主要让步 |
+| **蚕食（防）** | 成交后要东西 → 报价或换条件，不白给 | "Happy to add tables - $10/guest" | — |
+| **蚕食（用，只用正向）** | 付完押金立刻让他在 planner 选菜（锁承诺）；派对结束当场邀评 | — | 不用来多收钱 |
+| **黑脸白脸** | **不用。** 一个 Bling，没有第二个人 | — | — |
+
+**三个压力点**
+- 时间：80% 的让步发生在最后 20% 的时间——hold 的期限是真武器；让步只在对方截止期临近时给，不在第一轮。
+- 信息：见"先问再让"。
+- 走开："I'll release the date" 用一次，比说十次"我们很想接"管用。
+
+**识别客户在用的招（防守）**
+
+| 客户的招 | 识别 | 应对 |
+|---|---|---|
+| 竞品价（可能是虚的） | "另一家报 $45"，说不出包含什么 | "Send me their quote and I'll match what's apples to apples" |
+| 折中 | "咱们 $50 怎么样" | 不接，换有条件的让步 |
+| 更高权威 | "要问未婚夫/老板" | 钉住决策权 + 问内部决定时间 |
+| 蚕食 | 付押金后要免费桌椅 | 报价，或换回报 |
+| 假的时间压力 | "今天定不了就找别家" | 平静报期限，不加价不降价 |
+
+**让步的记账**：每次让价在工作台记 `[NEGO] 让了什么 / 换了什么 / 第几步`，超出 §5.1 带宽的先问用户。
+
 ## 8. 异议处理（一句答 + 一个问）
 
 | 异议 | 回法 |
 |---|---|
-| **太贵 / 超预算** | 重新锚定人均 + 给两个合法降价杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。问："Would a Thursday work, or is it a Saturday thing?" 客户提了竞品 → 走 §5.1 竞争让价流程 |
-| **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" |
+| **太贵 / 超预算** | 先给合法杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。然后按 §7.1 先问再让："What number were you hoping to land at?" 客户提了竞品 → §5.1 竞争让价流程 + §7.1 |
+| **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" 这是对方的"更高权威"——顺手钉一句："If it were just you, is this a go?"（§7.1） |
 | **X 日期有空吗** | ≥7 天后且非节日：按开着回（"open on our end"），同时在给用户的报告里标"需确认档期"；<7 天或节日/周末黄金档：先 "let me check — 2 min" 问用户 |
 | **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说 |
 | **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
@@ -290,7 +335,7 @@ Real Hibachi · (213) 770-7788
 | **只想要报价别打电话** | 尊重，只邮件；工作台 note 记 "email only" |
 | **你们去 X 城市吗** | 91748 起 2.5h 内都去；50 英里免费后 $1/英里，报一个区间（先 Google Maps 查驾车里程） |
 | **能便宜点吗（回头客）** | 客户自己提"上次订过" → $60/每 10 人 |
-| **31+ 人要总价** | 人均 + "exact number tonight" + 问细节，报给用户人工算 |
+| **31+ 人要总价** | 人均 + "exact number tonight" + 问细节，报给用户人工算；报价按 §7.1：先标准价，低价留作换条件的让步 |
 
 ## 9. 禁区（一条都不能碰）
 
@@ -302,6 +347,7 @@ Real Hibachi · (213) 770-7788
 - 31+ 人不报固定总价。
 - 短信不提酒（30955）。
 - 不在公开页面 / 公开评论提押金；私聊可以。
+- **谈判三条红线（§7.1）**：不编更高权威（Bling 就是老板，只能用真实的成本/排班约束）；不演黑脸白脸；不白给让步——每一次让步都要换回报。
 - 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 拼盘（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
 - 不说桌椅周中免费（09-14 已撤）。
 - 不承诺室内烹饪、不承诺无坚果、不接自带蛋白。
