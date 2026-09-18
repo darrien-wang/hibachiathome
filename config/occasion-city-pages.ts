@@ -135,7 +135,7 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
     city: "los-angeles",
     localIntro: [
       "LA corporate events compete with everything this city offers after 6 PM — which is why the winning move is bringing the event to the office itself. A hibachi chef on the rooftop or patio turns a quarterly milestone into the one gathering people mention in standup the next morning.",
-      "From Culver City studios to DTLA towers with terrace levels, if there's an outdoor spot with ten feet of clearance, the show is on. Weekday 15+ events hit the $45.90/person Weekday Special.",
+      "From Culver City studios to DTLA towers with terrace levels, if there's an outdoor spot with ten feet of clearance, the show is on. Mon–Thu events get the $54.90/person Weekday Special and a free appetizer platter.",
     ],
   },
   {
