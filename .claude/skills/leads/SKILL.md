@@ -327,7 +327,7 @@ Real Hibachi · (213) 770-7788
 |---|---|
 | **太贵 / 超预算** | 先给合法杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。然后按 §7.1 先问再让："What number were you hoping to land at?" 客户提了竞品 → §5.1 竞争让价流程 + §7.1 |
 | **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" 这是对方的"更高权威"——顺手钉一句："If it were just you, is this a go?"（§7.1） |
-| **X 日期有空吗** | ≥7 天后且非节日：按开着回（"open on our end"），同时在给用户的报告里标"需确认档期"；<7 天或节日/周末黄金档：先 "let me check — 2 min" 问用户 |
+| **X 日期有空吗** | 一律按开着回（"open on our end"）。用户 09-18 定：档期都有、兼职厨师充足，容量不是瓶颈；只有 <3 天的临时单或订单表里当天已经明显堆满时才问用户 |
 | **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说 |
 | **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
 | **餐具/盘子包含吗** | "Plates & utensils are $5/guest if we bring them, or use your own - either works."（桌椅 $10/人另算） |
