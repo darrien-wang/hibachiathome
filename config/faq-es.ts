@@ -61,7 +61,7 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
   {
     question: "¿Cocinan en interiores?",
     answer:
-      "Toda la cocina se hace al aire libre — en patios, balcones, terrazas o bajo toldos y carpas. (Los invitados pueden sentarse adentro si gustan, pero la plancha se queda afuera.) Contamos con licencia y seguro.",
+      "Toda la cocina se hace al aire libre — en patios, balcones, terrazas o bajo toldos y carpas. (Los invitados pueden sentarse adentro si gustan, pero la plancha se queda afuera.)",
   },
   {
     question: "¿Usan nueces o ajonjolí?",

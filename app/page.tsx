@@ -142,7 +142,7 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
-              {["500+ parties", "72h full refund", "Licensed & insured"].map((chip) => (
+              {["500+ parties", "72h full refund", "Our own chefs"].map((chip) => (
                 <span key={chip} className="rounded-full border border-white/35 px-3 py-1.5">
                   {chip}
                 </span>

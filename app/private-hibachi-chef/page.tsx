@@ -79,7 +79,7 @@ const faqs = [
   {
     question: "Who are your chefs?",
     answer:
-      "Our chefs are our own employees — a local Southern California team trained in teppanyaki cooking and live entertainment. We are licensed and insured, and because chefs aren't pulled from a gig marketplace, the person we confirm is the person who shows up.",
+      "Our chefs are our own employees — a local Southern California team trained in teppanyaki cooking and live entertainment. Because chefs aren't pulled from a gig marketplace, the person we confirm is the person who shows up.",
   },
   {
     question: "Can I request a specific chef?",

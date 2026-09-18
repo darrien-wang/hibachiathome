@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,7 +13,13 @@ import { phone, siteConfig } from "@/config/site"
 const SUPPORT_REASON_PATTERN = /support|feedback|refund|cancel|cancellation|reschedule|post[- ]?event|complaint|issue|help/i
 
 export default function ContactPageClient() {
-  const searchParams = useSearchParams()
+  // Link parameters are read after mount, not with useSearchParams(): that
+  // hook made the whole page bail out to client rendering, so the server sent
+  // an empty shell - no heading, no form - to search engines and AI agents.
+  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null)
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search))
+  }, [])
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -28,7 +33,7 @@ export default function ContactPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
 
-  const reason = (searchParams.get("reason") ?? "").trim()
+  const reason = (searchParams?.get("reason") ?? "").trim()
   const reasonLooksLikeSupport = reason.length > 0 && SUPPORT_REASON_PATTERN.test(reason)
   const submissionIntent: "booking_inquiry" | "customer_support" = reasonLooksLikeSupport
     ? "customer_support"
@@ -39,6 +44,7 @@ export default function ContactPageClient() {
   const submissionReason = reason || (submissionIntent === "booking_inquiry" ? "Booking Inquiry" : "Customer Support")
 
   useEffect(() => {
+    if (!searchParams) return
     const eventDate = searchParams.get("eventDate") ?? ""
     const guestCount = searchParams.get("guestCount") ?? ""
     const cityOrZip = searchParams.get("cityOrZip") ?? ""

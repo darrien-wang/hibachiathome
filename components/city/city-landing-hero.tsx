@@ -14,7 +14,7 @@ import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 const TRUST = [
   { icon: Check, text: "Refund up to 72h" },
   { icon: ChefHat, text: "Chef named 48h ahead" },
-  { icon: ShieldCheck, text: "Licensed & insured" },
+  { icon: ShieldCheck, text: "Our own chefs" },
 ] as const
 
 export default function CityLandingHero({

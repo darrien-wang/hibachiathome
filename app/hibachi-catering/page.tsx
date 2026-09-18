@@ -60,7 +60,7 @@ const faqs = [
   {
     question: "Do you cater corporate events and offices?",
     answer:
-      "Yes — office parties, team celebrations, and client events are a growing part of our calendar. The grill needs an outdoor spot (courtyard, patio, parking area) with about 10 ft of overhead clearance. We are licensed and insured, and can provide documentation your building manager may ask for.",
+      "Yes — office parties, team celebrations, and client events are a growing part of our calendar. The grill needs an outdoor spot (courtyard, patio, parking area) with about 10 ft of overhead clearance. If your building has vendor requirements, text us the details before you book and we'll confirm what we can provide.",
   },
   {
     question: "Can you cater at a park or rented venue?",
@@ -184,7 +184,7 @@ export default function HibachiCateringHubPage() {
               </span>
               <span className="flex items-center">
                 <ChefHat className="h-4 w-4 text-primary mr-1" />
-                Licensed & Insured
+                Our Own Chefs
               </span>
               <span className="flex items-center">
                 <Clock className="h-4 w-4 text-primary mr-1" />

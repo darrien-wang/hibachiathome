@@ -165,7 +165,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
               {subhead} Setup &amp; cleanup included, {travelLine}.
             </p>
             <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
-              {["Free to cancel 72h+", "Licensed & insured", "500+ parties"].map((chip) => (
+              {["Free to cancel 72h+", "Our own chefs", "500+ parties"].map((chip) => (
                 <span key={chip} className="rounded-full border border-white/40 px-3 py-1.5">
                   {chip}
                 </span>

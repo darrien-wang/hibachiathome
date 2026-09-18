@@ -64,7 +64,7 @@ Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and 
   {
     question: "Do you cook indoors?",
     answer:
-      "All cooking is done outdoors—on patios, balconies, decks or under tents/awnings. (Feel free to arrange seating indoors, but our grill stays outside.) We're fully licensed and insured.",
+      "All cooking is done outdoors—on patios, balconies, decks or under tents/awnings. (Feel free to arrange seating indoors, but our grill stays outside.)",
   },
   {
     question: "Do you use nuts or sesame?",
