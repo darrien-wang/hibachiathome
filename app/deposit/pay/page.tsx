@@ -266,9 +266,21 @@ function DepositPaymentPageInner() {
     booking.estimate_high >= booking.estimate_low
 
   const depositAmount = getDepositAmount(hasBookingEstimateRange ? booking?.estimate_high : totalAmount)
-  const totalEstimateText = hasBookingEstimateRange
-    ? formatRange(Number(booking?.estimate_low), Number(booking?.estimate_high))
-    : `$${totalAmount.toFixed(2)}`
+  // An owner-signed agreed total (the "协议总价" link) is what the customer was
+  // quoted by text, and it is what the server locks in at payment. Until
+  // 2026-09-18 this page still showed the standard rate, so a customer who
+  // ticked the tables she had already been quoted for saw her price jump
+  // $50 above the number she agreed to and stopped to ask. Show the agreed
+  // figure here; the signature is verified server-side when she pays.
+  const agreedTotal = useMemo(() => {
+    const n = Number(agreedTotalParam)
+    return agreedSigParam && Number.isFinite(n) && n > 0 ? n : null
+  }, [agreedTotalParam, agreedSigParam])
+  const totalEstimateText = agreedTotal
+    ? `$${agreedTotal.toFixed(2)}`
+    : hasBookingEstimateRange
+      ? formatRange(Number(booking?.estimate_low), Number(booking?.estimate_high))
+      : `$${totalAmount.toFixed(2)}`
 
   const handleDepositCtaClick = async () => {
     if (!booking) return
@@ -416,6 +428,11 @@ function DepositPaymentPageInner() {
           <span className="text-clay-600" aria-hidden="true">·</span>
           <span className="font-serif text-xl font-extrabold text-flame-700">{totalEstimateText}</span>
         </div>
+        {agreedTotal ? (
+          <p className="mt-2 text-[13px] text-clay-600">
+            Your agreed price from our text thread. Anything you tick below is already included — ticking it just makes sure it's on the order.
+          </p>
+        ) : null}
         {booking.full_name || booking.id ? (
           <p className="mt-2 text-[13px] text-clay-600">
             {booking.full_name && booking.full_name !== "Guest" ? booking.full_name : null}
