@@ -26,6 +26,7 @@ const LAST_UPDATED: Record<string, string> = {
   "/book": "2026-08-27T00:00:00.000Z", // tent copy
   "/blog": "2026-08-26T00:00:00.000Z", // four new posts
   "/locations/la-orange-county": "2026-08-27T00:00:00.000Z", // child pricing
+  "/for-ai": "2026-09-17T00:00:00.000Z", // facts + booking API for AI agents
 }
 
 // Routes not listed above genuinely have not changed since the SEO rebuild.
@@ -36,6 +37,7 @@ const STATIC_ROUTES = [
   "/es", // Spanish homepage
   "/es/preguntas-frecuentes", // Spanish FAQ (/es/cotizar is noindex like /quote)
   "/hibachi-at-home", // Core at-home hibachi service page
+  "/for-ai", // Facts and booking API for AI assistants (D-0917-06)
   "/mobile-hibachi", // Mobile-hibachi keyword family LP
   "/private-hibachi-chef", // Private-chef keyword family LP
   "/hibachi-catering", // Catering hub (city pages hang under it)

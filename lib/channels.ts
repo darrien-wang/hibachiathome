@@ -25,6 +25,7 @@ export const CHANNEL_LABELS: Record<string, string> = {
   other_referral: "其他来源",
   word_of_mouth: "口碑转介绍",
   partner: "合作伙伴",
+  ai_agent: "AI 代理代订",
   organic_direct: "直接/未追踪",
   unresolved: "未归因",
 }

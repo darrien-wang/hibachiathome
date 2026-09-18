@@ -36,8 +36,11 @@ type Body = {
   phone?: string
   email?: string
   name?: string
-  /** Which surface asked: the city landing card (default) or the /quote unlock step. */
-  channel?: "website_landing_quote" | "website_quote_unlock"
+  /** Which surface asked: the city landing card (default), the /quote unlock
+   * step, or an AI agent via /api/agent/quote-request (D-0917-06). */
+  channel?: "website_landing_quote" | "website_quote_unlock" | "ai_agent"
+  /** Free text from /api/agent/quote-request: agent name, under-5s, ZIP, customer notes. */
+  notes?: string
   /**
    * Landing card, 2026-09-13 (D-0913-08): "contact" is step 1 — save the lead
    * as soon as mobile + email are given, send nothing yet. "quote" (default)
@@ -65,7 +68,12 @@ function describeDate(iso: string): string {
 
 export async function POST(request: NextRequest) {
   const limited = await rateLimit("landing-quote", request, LIMIT, WINDOW_SECONDS)
-  if (!limited.ok) return tooManyRequests()
+  if (!limited.ok) {
+    // tooManyRequests() is a plain {status, body}; returning it directly made
+    // the handler throw (a 500, not a 429).
+    const { status, body } = tooManyRequests()
+    return NextResponse.json(body, { status })
+  }
 
   let body: Body
   try {
@@ -82,7 +90,10 @@ export async function POST(request: NextRequest) {
   if (!email) return NextResponse.json({ ok: false, error: "email_required" }, { status: 400 })
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ ok: false, error: "email_invalid" }, { status: 400 })
   const name = asStr(body.name, 80)
-  const leadChannel = body.channel === "website_quote_unlock" ? "website_quote_unlock" : "website_landing_quote"
+  const leadChannel =
+    body.channel === "website_quote_unlock" || body.channel === "ai_agent" ? body.channel : "website_landing_quote"
+  const notes = asStr(body.notes, 800)
+  const surfaceLabel = leadChannel === "website_quote_unlock" ? "Quote unlock" : leadChannel === "ai_agent" ? "AI agent quote" : "Landing quote"
   const contactOnly = body.stage === "contact"
 
   const cityName = asStr(body.cityName, 60) || "Southern California"
@@ -126,7 +137,7 @@ export async function POST(request: NextRequest) {
         reason: "Booking Request",
         message: contactOnly
           ? `Landing contact (${cityName}): gave mobile + email, quote step pending · card default ${guestsLine} · ${planLabel}`
-          : `${leadChannel === "website_quote_unlock" ? "Quote unlock" : "Landing quote"} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}`,
+          : `${surfaceLabel} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}${notes ? ` · ${notes}` : ""}`,
         leadSource: source,
         leadChannel,
         leadType: "booking_inquiry",
@@ -218,18 +229,20 @@ export async function POST(request: NextRequest) {
 
   const workbench = leadId ? `${BASE_URL}/admin/leads?lead=${leadId}` : `${BASE_URL}/admin/leads`
   await sendSupportNotificationEmail({
-    subject: `🔥 Landing quote · ${cityName} · ${guestsLine} · ${money(total)} · ${phoneE164}`,
+    subject: `🔥 ${surfaceLabel} · ${cityName} · ${guestsLine} · ${money(total)} · ${phoneE164}`,
     text: [
       `Texted the price to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}.`,
       `${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)}${travelFee ? ` incl ~$${travelFee} travel` : ""}`,
       email ? `Email: ${email}` : "No email given.",
       `Source: ${source} · page ${pagePath}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}`,
+      ...(notes ? [notes] : []),
       `Workbench: ${workbench}`,
       "Reply within 15 minutes (text or email) - the page promised it.",
     ].join("\n"),
     html: `<p>Texted the estimate to <strong>${escapeHtml(phoneE164)}</strong>${sms.ok ? "" : ` <strong style="color:#b91c1c">(SMS FAILED: ${escapeHtml(sms.error)})</strong>`}.</p>
 <p>${escapeHtml(guestsLine)} · ${escapeHtml(planLabel)} · ${escapeHtml(dateLine)} · <strong>${money(total)}</strong>${travelFee ? ` incl ~$${travelFee} travel` : ""}</p>
 <p>${email ? `Email: ${escapeHtml(email)}` : "No email given."}<br>Source: ${escapeHtml(source)} · page ${escapeHtml(pagePath)}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}</p>
+${notes ? `<p>${escapeHtml(notes)}</p>` : ""}
 <p><a href="${workbench}">Open in workbench</a> · <strong>Reply within 15 minutes</strong> (text or email) - the page promised it.</p>`,
   })
 
