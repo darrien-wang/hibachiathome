@@ -5,6 +5,7 @@ import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
 import { Car, CreditCard, FileText, Mail, Plus, Tent } from "lucide-react"
 import { phone } from "@/config/site"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
+import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 
 // ============================================================
 // 订单工作台 · V1
@@ -1338,6 +1339,21 @@ function OrderDrawer({
                 ))}
               </div>
             )}
+
+            {/* ---------- 已发送的发票 ----------
+                The audit copies from invoice_archive: exactly what the
+                customer was emailed, kept forever and never editable. The
+                customer's own link dies after 30 days. Added 2026-09-19.
+                ---------- */}
+            <div style={labelStyle}>已发送的发票</div>
+            <div style={{ marginBottom: 14 }}>
+              <InvoiceArchivePanel
+                key={o?.id ?? "none"}
+                adminKey={adminKey}
+                orderNo={o?.order_no ?? null}
+                orderId={o?.id ?? null}
+              />
+            </div>
 
             {/* ---------- 短信对话 ----------
                 Read live from Twilio, replies go out on the 213 line and land
