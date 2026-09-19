@@ -41,7 +41,7 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "What if the chef doesn't show up?",
     answer:
-      "This is our show-up promise, in writing: your chef is confirmed by name 48 hours before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook. In other words: we show up, or it costs us.",
+      "This is our show-up promise, in writing: your chef is confirmed by name before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook. In other words: we show up, or it costs us.",
   },
   {
     question: "How much food does each guest get?",

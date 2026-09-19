@@ -12,7 +12,7 @@ const URL = `${BASE_URL}/private-hibachi-chef`
 export const metadata: Metadata = {
   title: "Private Hibachi Chef Los Angeles & SoCal | Hire a Teppanyaki Chef from $59.90",
   description:
-    "Hire a private hibachi chef for your home, backyard, or event in Los Angeles, Orange County, San Diego & all of Southern California. Live teppanyaki show, $59.90/adult, chef confirmed by name 48h ahead.",
+    "Hire a private hibachi chef for your home, backyard, or event in Los Angeles, Orange County, San Diego & all of Southern California. Live teppanyaki show, $59.90/adult, chef confirmed by name before your party.",
   alternates: { canonical: URL },
   openGraph: {
     title: "Private Hibachi Chef Los Angeles & SoCal | Real Hibachi",
@@ -44,7 +44,7 @@ const included = [
 
 const chefPromises = [
   {
-    title: "Confirmed by name, 48 hours ahead",
+    title: "Confirmed by name before your party",
     description:
       "Two days before your party you know exactly which chef is coming. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook.",
   },
@@ -69,7 +69,7 @@ const faqs = [
   {
     question: "How do I hire a private hibachi chef?",
     answer:
-      "Get an instant quote online — date, guest count, and address show your price range; leave your mobile and email and the exact total comes by text. Your chef is confirmed by name 48 hours before the event. No phone call is required.",
+      "Get an instant quote online — date, guest count, and address show your price range; leave your mobile and email and the exact total comes by text. Your chef is confirmed by name before the event. No phone call is required.",
   },
   {
     question: "How much does a private hibachi chef cost?",
@@ -84,7 +84,7 @@ const faqs = [
   {
     question: "Can I request a specific chef?",
     answer:
-      "Yes — tell us when you book. Guests often re-book the chef from their last party by name. We'll confirm availability for your date, and either way your assigned chef is locked in and named 48 hours ahead.",
+      "Yes — tell us when you book. Guests often re-book the chef from their last party by name. We'll confirm availability for your date, and either way your assigned chef is locked in and named before your party.",
   },
   {
     question: "How many chefs does my party need?",
@@ -200,7 +200,7 @@ export default function PrivateHibachiChefPage() {
             Your Private Hibachi Chef in <GeoCityName fallback="LA & SoCal" />
           </>
         }
-        subhead="Live teppanyaki cooking, real fire and a performance at your own table — confirmed by name 48 hours ahead."
+        subhead="Live teppanyaki cooking, real fire and a performance at your own table — confirmed by name before your party."
         reviews={reviews}
         included={included}
         hoods={topCities.map((c) => c.city)}
@@ -227,7 +227,7 @@ export default function PrivateHibachiChefPage() {
                   Hire a private hibachi chef and dinner becomes the event: live teppanyaki cooking, real fire, and a performance at your own table — in your backyard, on your patio, or at your venue.
                 </p>
                 <p>
-                  Our chefs are our own Southern California team, confirmed by name 48 hours before every party — never strangers dispatched from an app.
+                  Our chefs are our own Southern California team, confirmed by name before every party — never strangers dispatched from an app.
                 </p>
               </>
             ),
@@ -237,7 +237,7 @@ export default function PrivateHibachiChefPage() {
         faqs={faqs}
         faqHeading="Hiring a private hibachi chef — questions"
         ctaHeading="Meet your chef at the grill."
-        ctaBody="See your price range in 30 seconds; the exact quote and your party discount come by text. Your chef is confirmed by name 48 hours before the party."
+        ctaBody="See your price range in 30 seconds; the exact quote and your party discount come by text. Your chef is confirmed by name before the party."
         nearby={topCities.slice(0, 6).map((c) => ({ label: c.city, href: `/hibachi-at-home/${c.slug}` }))}
         nearbyLabel="Local pages"
       />

@@ -2395,7 +2395,7 @@ export default function QuoteBuilderClient() {
 
                 <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
                   {[
-                    "Chef confirmed by name 48h before — if we cancel, double your money back",
+                    "Chef confirmed by name before your party — if we cancel, double your money back",
                     "Free to cancel or reschedule up to 72h before",
                     "Tarp under the grill, full cleanup before we leave",
                   ].map((line) => (
@@ -2445,7 +2445,7 @@ export default function QuoteBuilderClient() {
               {priceCard}
               <div className="flex flex-col gap-3 rounded-[28px] border border-ink/10 bg-surface p-6 text-sm leading-relaxed text-clay-700 shadow-organic">
                 {[
-                  "Chef confirmed by name 48h before — if we cancel, double your money back",
+                  "Chef confirmed by name before your party — if we cancel, double your money back",
                   "Free to cancel or reschedule up to 72h before",
                   "Tarp under the grill, full cleanup before we leave",
                 ].map((line) => (

@@ -735,7 +735,7 @@ export default function LeadsDashboard() {
       build: (l) => {
         const link = buildDepositLink(l)
         return (
-          `Morning! Still holding your date for your party${l.guest_count ? ` of ${l.guest_count}` : ""}. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. ` +
+          `Morning! Still holding your date for your party${l.guest_count ? ` of ${l.guest_count}` : ""}. Your chef is confirmed by name before the event — and if we ever cancel, double your deposit back. ` +
           (link ? `Lock it in with the $19.90 deposit here: ${link}` : `Want me to lock it in?`)
         )
       },
@@ -757,8 +757,8 @@ export default function LeadsDashboard() {
           : "You're booked 🎉 Here's your party planner: party.realhibachi.com — set up your tables and share the link with your guests so everyone picks their own proteins. Takes 2 minutes and makes party day seamless!",
     },
     {
-      id: "w_confirm48", stage: "won", emoji: "✅", title: "48小时厨师实名确认（承诺兑现！）", when: "开席前 48 小时，广告承诺过的，必发",
-      build: () => "Hi! Confirming your hibachi party in 48 hours 🎊 Your chef is Bling, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!",
+      id: "w_confirm48", stage: "won", emoji: "✅", title: "厨师实名确认", when: "开席前 1–2 天，师傅定下来就发",
+      build: () => "Hi! Confirming your hibachi party 🎊 Your chef is Bling, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!",
     },
     { id: "w_review", stage: "won", emoji: "⭐", title: "派对次日：邀评", when: "办完派对第二天" },
     { id: "w_ugc", stage: "won", emoji: "📸", title: "派对次日：晒图邀请", when: "邀评后接着发" },
@@ -928,7 +928,7 @@ export default function LeadsDashboard() {
       to: l.email,
       cc: "",
       subject: "Your Real Hibachi date is held \u{1F389}",
-      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name 48 hours before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text ${phone.sms.dashed} - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
+      body: `Hi${firstName ? " " + firstName : ""},\n\nYour booking request is saved and your date is held for you. Lock it in any time with the $19.90 deposit (fully counted toward your total) - this link takes you straight to secure checkout:\n${depositUrl}\n\nOur promises, in writing: your chef is confirmed by name before the event - and if we ever cancel, you get double your deposit back.\n\nQuestions? Just reply to this email or text ${phone.sms.dashed} - happy to help!\n\nBling\nReal Hibachi · www.realhibachi.com`,
     })
   }, [shortenLinks])
 
@@ -997,8 +997,8 @@ export default function LeadsDashboard() {
       },
     },
     {
-      id: "es_confirm48", title: "48小时厨师确认",
-      build: () => "¡Hola! Confirmando tu fiesta hibachi en 48 horas 🎊 Tu chef es Bling, llega unos 10 minutos antes con la parrilla y los ingredientes frescos. Responde para confirmar — ¡nos vemos pronto!",
+      id: "es_confirm48", title: "厨师确认",
+      build: () => "¡Hola! Confirmando tu fiesta hibachi 🎊 Tu chef es Bling, llega unos 10 minutos antes con la parrilla y los ingredientes frescos. Responde para confirmar — ¡nos vemos pronto!",
     },
     {
       id: "es_review", title: "派对后邀评",

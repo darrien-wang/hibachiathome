@@ -13,7 +13,7 @@ import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 
 const TRUST = [
   { icon: Check, text: "Refund up to 72h" },
-  { icon: ChefHat, text: "Chef named 48h ahead" },
+  { icon: ChefHat, text: "Chef confirmed by name" },
   { icon: ShieldCheck, text: "Our own chefs" },
 ] as const
 

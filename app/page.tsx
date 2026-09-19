@@ -34,7 +34,7 @@ const FAQ = [
   },
   {
     q: "Cancellation policy",
-    a: "Cancel or reschedule free with 72 hours' notice. Your chef is confirmed by name 48 hours ahead, and if we ever cancel on you we refund double what you have paid.",
+    a: "Cancel or reschedule free with 72 hours' notice. Your chef is confirmed by name before your party, and if we ever cancel on you we refund double what you have paid.",
   },
 ] as const
 
@@ -329,7 +329,7 @@ export default function Home() {
           <div className="flex items-center gap-8 rounded-[32px] bg-cocoa px-12 py-11 text-white">
             <div className="flex flex-1 flex-col gap-2">
               <h2 className="font-serif text-4xl font-extrabold leading-[1.1]">Ready to create great memories?</h2>
-              <p className="text-base text-white/80">Price range in 30 seconds. Exact quote and your party discount by text. Chef confirmed by name 48h before your party.</p>
+              <p className="text-base text-white/80">Price range in 30 seconds. Exact quote and your party discount by text. Chef confirmed by name before your party.</p>
             </div>
             <QuoteCtaLink
               href="/quote?source=home_cta"

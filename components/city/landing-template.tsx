@@ -148,7 +148,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
     { big: "15 min", label: "text reply", body: "A real person, not a bot", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
     { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
-    { big: "48h", label: "chef named ahead", body: "If we ever cancel, double your money back" },
+    { big: "2×", label: "back if we ever cancel", body: "Your chef is confirmed by name before your party" },
   ]
 
   return (

@@ -97,7 +97,7 @@ description: >-
 | **C 主动来短信** | Twilio 收件箱有客户消息 | 先答他的问题（≤2 句），再收口一个问题。5 分钟内 |
 | **D 主动来邮件 / contact 表单** | Gmail `support@` / `lead_source=contact` | 邮件回 + 若有手机同步一条短信 "just emailed you the details" |
 | **E 大单 31+** | `guest_count ≥ 31` 或客户说 "50-60 people" | **不报总价**。报人均 + "2-chef party" + "exact number tonight" + 问一个信息（晚上还是白天 / 大概几个小孩） |
-| **F 已付押金** | status won / 订单工作台有押金 | 转成交后阶梯：planner → 48h 实名确认 → 邀评 → 晒图 |
+| **F 已付押金** | status won / 订单工作台有押金 | 转成交后阶梯：planner → 实名确认 → 邀评 → 晒图 |
 | **G 骚扰/无效** | 用户标注、470 号那种、空手机 | 不回，`set_status disqualified` |
 
 ### 3.1 首条模板（英文，直接可发）
@@ -155,14 +155,14 @@ Real Hibachi · (213) 770-7788
 | **f45** | 首响后 45–60 min 没回 | 确定性 + 选择题 + 限时 hold | "[Date] is open on our end. Dinner parties usually kick off at 7:00 or 7:30. I can pencil you in for either and hold it until tomorrow evening while you finalize headcount — which time works better?" |
 | **f_night** | 当晚仍没回 | 免押金占位，去压力 | "No rush at all! I'll pencil your date in for now — no deposit needed until you confirm. Just don't want you to lose it while you're deciding 🙌" |
 | **f_planner** | 次日，客户在跟朋友对时间/人数 | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link` 拿专属链接；"While you're checking with your group — I set up a party planner just for you: <link> — share it and everyone grabs a seat & picks their proteins (2 min each) 🎪 Your date's still penciled in." |
-| **f_morning** | 次日上午（planner 发了就隔天） | 亮到场承诺 + 押金链接 | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name 48h before the event — and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <deposit link>" |
+| **f_morning** | 次日上午（planner 发了就隔天） | 亮到场承诺 + 押金链接 | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name before your party— and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <deposit link>" |
 | **f_promo** | 第 3 天，最后一发 | 体面收尾：一个真钩子 + 放开档期，然后停 | 15–19 人："Last one from me - parties of 20+ get a free appetizer platter ($40 value). You're at N, so X more and it's on us. Want me to keep [date] penciled in?" 其他："Last note from me - [date] is still yours if you want it; I'll open it back up after tomorrow. Either way, hope the party's a great one." |
 | **停** | f_promo 后 4 天无回 | 不再发，**也不改打电话** | `set_status lost`，note 写最后一次触达；有活动日期的等日期过了再归档 |
 | **押金提醒**（已确认未付） | 确认后 24h 押金没到 | 把押金链接直接放短信里，去掉"去邮箱找"的摩擦 | "Got you down for [day] at [time], [N] guests, $[total]. Here's the $19.90 deposit link; once it's in, your chef is confirmed by name: <link>" ——**不加任何台阶或备选** |
 
 成交后：
 | **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`） |
-| **w_confirm48** | 开席前 48h，**必发**（广告承诺） | "Confirming your hibachi party in 48 hours 🎊 Your chef is [name], arriving ~10 min before start with the grill and fresh ingredients. Reply to confirm you're all set!" |
+| **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving ~10 min before start with the grill and fresh ingredients. Reply to confirm you're all set!" |
 | **w_review / w_ugc** | 派对次日 | 工作台按钮直接发 |
 
 **接话模式（客户回了）**：答 ≤2 句 → 推进阶梯下一格 → 一个选择题。客户一次问多个问题：短信里逐个一句答完仍只收一个问题；细节多就 "just emailed you the full breakdown" + 邮件。
@@ -230,7 +230,7 @@ Real Hibachi · (213) 770-7788
 
 **竞争让价流程**
 1. **先问清对方包含什么**（一句话）："Happy to look at it - does that price include 2 proteins per person, travel, and setup?" 同行常见套路：单蛋白、路费另算、桌椅另算、押金不退、无保险。
-2. **先亮差异，不先降价**：到场承诺（实名 48h、自己团队、双倍退）、分量白纸黑字、持证有保险。很多"便宜"在这里就被抵消。
+2. **先亮差异，不先降价**：到场承诺（实名确认、自己团队、双倍退）、分量白纸黑字、持证有保险。很多"便宜"在这里就被抵消。
 3. **还要价 → 让**：**≤ $5/成人 或 ≤ $100/单（取小）我可以直接定**；要超过这个、或要低于 **$49.90/成人**、或要破 **$599 底线** → 先问用户，一句话说清竞品价和包含项。
    - 带宽依据：单场成本约 $20–25/人（食材 $10 + 厨师 $10–15），$49.90 仍有 ~50% 毛利。这是我定的默认，用户随时改。
 4. **怎么让**：按 §7.1 谈判模块——先问再让、每步换回报、三步递减、最后留小赢；带宽只是上限，不是一次给完的数。
@@ -240,7 +240,7 @@ Real Hibachi · (213) 770-7788
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
-- **到场承诺（P0，我们的最大差异化）**：厨师开席前 48h **实名**确认；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
+- **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
 - **厨师到达**：开席前 ~10 分钟，架灶很快。
 - **场地**：**只在户外**做（patio / balcony / deck / 帐篷或雨棚下），座位可以在室内。铺防油布，走前清理，"your patio looks the way we found it"。持证 + 有保险。
 - **桌布颜色**：**只有黑色**（用户 09-17 确认）。`config/table-studio.ts` 里白色标着 available、/rentals 页写着 "various colors"，都不是真实库存，别照着答。
@@ -264,7 +264,7 @@ Real Hibachi · (213) 770-7788
 | **互惠** | 先给、不索取：A 型直接给精确价；免押金占位；专属 planner 工具 | "I'll pencil your date in — no deposit needed until you confirm" |
 | **微承诺 / 二选一** | 永远不问开放式 "when?"；问 "7 or 7:30?" "Sat or Sun?" "12 or 15 guests?"。每次只要一个 yes | "Which works better — 7 or 7:30?" |
 | **损失厌恶** | hold 必须带期限（"until tomorrow evening"），到期还能名正言顺再跟一次；72h 免费取消 = 零风险 | "Just don't want you to lose it while you're deciding" |
-| **确定性 / 权威** | 到场承诺写在纸上、分量写在纸上、持证有保险、自己的厨师。客户买的是"这事一定成"，不是最低价 | "Your chef is confirmed by name 48h before" |
+| **确定性 / 权威** | 到场承诺写在纸上、分量写在纸上、持证有保险、自己的厨师。客户买的是"这事一定成"，不是最低价 | "Your chef is confirmed by name before your party" |
 | **真实稀缺** | 只说能兑现的：具体日期开着、"weekends fill up first"（真的）。**不说** "only 1 slot left" | "Saturday's still open on our end" |
 | **锚定** | 先总价后人均；人均对标餐厅 hibachi（"about what a hibachi restaurant costs — at your house, with the show"）；升级项在基础价谈妥后再提 | — |
 | **禀赋效应** | "your date" "your chef" "your party planner"；"penciled you in" 让档期已经是他的 | — |
@@ -335,7 +335,7 @@ Real Hibachi · (213) 770-7788
 | **下雨怎么办** | 10×10 帐篷客户自备；≥72h 改期免费 |
 | **坚果/芝麻过敏** | 第 6 节诚实口径，不承诺 |
 | **能自带牛排吗** | 不行，一句话带过 |
-| **厨师不来怎么办** | 到场承诺（实名 48h、自己团队、双倍退） |
+| **厨师不来怎么办** | 到场承诺（实名确认、自己团队、双倍退） |
 | **押金能退吗** | ≥72h 全退 |
 | **只想要报价别打电话** | 尊重，只邮件；工作台 note 记 "email only" |
 | **你们去 X 城市吗** | 基地起 2.5h 内都去；50 英里免费后 $1/英里，报一个区间（用 `/api/quote/travel-fee?destination=` 查里程） |
@@ -460,7 +460,7 @@ A: ¡Hola! Soy Bling de Real Hibachi — nuestro sistema debió enviarte el prec
 B: ¡Hola! Soy Bling de Real Hibachi 👋 Vi tu cotización para [N] el [fecha] — esa fecha está disponible. Las fiestas suelen empezar a las 7 o 7:30. ¿Cuál te conviene más?
 f45: [Fecha] está disponible. Te la aparto hasta mañana por la noche mientras confirmas cuántos van — ¿a las 7 o a las 7:30?
 f_night: ¡Sin prisa! Te aparto la fecha por ahora — sin depósito hasta que confirmes. Solo no quiero que la pierdas 🙌
-f_morning: ¡Buenos días! Sigo apartando [fecha] para tu fiesta de [N]. Tu chef se confirma por nombre 48h antes — y si nosotros cancelamos, te devolvemos el doble del depósito. Asegúrala con el depósito de $19.90 aquí: <link>
+f_morning: ¡Buenos días! Sigo apartando [fecha] para tu fiesta de [N]. Tu chef se confirma por nombre antes de la fiesta — y si nosotros cancelamos, te devolvemos el doble del depósito. Asegúrala con el depósito de $19.90 aquí: <link>
 ```
 工作台里的 `ES_SCRIPTS` 有更多西语模板可直接用。
 

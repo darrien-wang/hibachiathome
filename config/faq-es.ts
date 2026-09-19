@@ -38,7 +38,7 @@ Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu even
   {
     question: "¿Qué pasa si el chef no llega?",
     answer:
-      "Esta es nuestra promesa de asistencia, por escrito: tu chef queda confirmado por nombre 48 horas antes del evento, y nuestros chefs son parte de nuestro propio equipo — no repartidores de una app. Si Real Hibachi alguna vez tuviera que cancelarte, te devolvemos el doble de lo que hayas pagado y te damos prioridad para reagendar. En otras palabras: llegamos, o nos cuesta.",
+      "Esta es nuestra promesa de asistencia, por escrito: tu chef queda confirmado por nombre antes del evento, y nuestros chefs son parte de nuestro propio equipo — no repartidores de una app. Si Real Hibachi alguna vez tuviera que cancelarte, te devolvemos el doble de lo que hayas pagado y te damos prioridad para reagendar. En otras palabras: llegamos, o nos cuesta.",
   },
   {
     question: "¿Cuánta comida recibe cada invitado?",

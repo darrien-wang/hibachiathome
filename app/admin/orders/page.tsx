@@ -230,7 +230,7 @@ function buildOrderEmail(o: OrderRow, template: EmailTemplateId): { subject: str
 
   return {
     subject: `Real Hibachi ${o.order_no} - you're confirmed \u{1F389}`,
-    body: `${hi}\n\n${eventLine} Everything on our side is confirmed.\n\nHere's what happens next:\n\n1. We confirm your chef by name 48 hours before the event.\n2. Your chef arrives about 15 minutes early to set up - we bring the grill, and clean up everything we bring.\n3. Please have a flat spot roughly 6 x 6 feet outdoors, and let us know if parking is tight.\n\n${balanceLine}\n\nAnything you'd like to change - guest count, menu, timing - just reply to this email and we'll update your order.${SIGN_OFF}`,
+    body: `${hi}\n\n${eventLine} Everything on our side is confirmed.\n\nHere's what happens next:\n\n1. We confirm your chef by name before the event.\n2. Your chef arrives about 15 minutes early to set up - we bring the grill, and clean up everything we bring.\n3. Please have a flat spot roughly 6 x 6 feet outdoors, and let us know if parking is tight.\n\n${balanceLine}\n\nAnything you'd like to change - guest count, menu, timing - just reply to this email and we'll update your order.${SIGN_OFF}`,
   }
 }
 

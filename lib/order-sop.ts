@@ -46,10 +46,10 @@ export const ORDER_SOP_STEPS: OrderSopStep[] = [
     id: "w_confirm48",
     stage: "exec",
     emoji: "✅",
-    title: "48小时厨师实名确认(承诺兑现!)",
-    when: "开席前 48 小时,广告承诺过的,必发",
+    title: "厨师实名确认",
+    when: "开席前 1–2 天,师傅定下来就发",
     build: ({ chefName }) =>
-      `Hi! Confirming your hibachi party in 48 hours 🎊 Your chef is ${chefName?.trim() || "Bling"}, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!`,
+      `Hi! Confirming your hibachi party 🎊 Your chef is ${chefName?.trim() || "Bling"}, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!`,
   },
   {
     id: "w_review",

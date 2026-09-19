@@ -139,8 +139,8 @@ export function nextStep(
       })
     }
     if (!sent("w_confirm48") && eventAt !== null) {
-      return step("w_confirm48", "48小时厨师实名确认", "发确认", eventAt - 48 * HOUR, now, {
-        overdueNote: "48 小时确认已到点",
+      return step("w_confirm48", "厨师实名确认", "发确认", eventAt - 48 * HOUR, now, {
+        overdueNote: "开席前确认已到点",
       })
     }
     // The party runs in the evening, so "the day after" means the next
