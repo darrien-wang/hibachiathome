@@ -171,7 +171,7 @@ Real Hibachi · (213) 770-7788
 |---|---|---|---|
 | **T0 首响** | ≤5 分钟 | 认领 + 价 + 一问 | 第 3 节 |
 | **f_later** | 首响在白天 → 当晚 7–8 点；首响在晚上 → 并入次日 f_morning 不单发 | 当天收尾：选择题 + 免押金占位 | "No rush — I'll pencil [date] in for you, no deposit needed while you decide. 6:30 or 7 when you know?" |
-| **f_morning** | 次日上午 | 到场承诺 + 押金链接（**不写小时数**） | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name before your party — and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <link>" |
+| **f_morning** | 次日上午 | 可逆性 + 押金链接，拆两条发（**用户 09-19 定：短信里不再提 "if we ever cancel / double deposit"，那是把没人想的失败场景放进客户脑子；到场承诺留给网页和确认阶段**） | 第一条："Morning, it's Bling — still holding [Sat, Sept 26] for your [13] in [Chino Hills], $[658.70] all-in. $19.90 holds the date; headcount can change up to the day before, and it's fully refundable 72 hours out: <link>" 第二条："We bring everything — grill, food, tables if you want them. You just need a flat spot outside about the size of a king-size bed, and the whole thing runs about 90 minutes." 没日期的：第一条改成 "happy to pencil in a date for your [Temecula] party of ~[15] — which weekend are you looking at?"，不带链接 |
 | **f_planner** | 只在客户提过"和朋友对时间/人数" | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link`；"While you're checking with your group — I set up a party planner just for you: <link> — everyone grabs a seat & picks their proteins (2 min each). Your date's still penciled in." 没提过就跳过 |
 | **f_deadline** | 第 3 天 | **真实截止 + 邀请异议**（替换原"最后一条"） | "I can hold [date] through [Sunday]; after that it opens back up. If the number is the sticking point, tell me what works and I'll see what I can do." |
 | **f_reason** | 第 7 天 | 一个**真**理由：周中特价 / 20+ 送拼盘 / 那个周末确实紧 | "Quick one — [reason]. [Date] is still open on our end." 没有真理由就跳到 f_door |
@@ -382,6 +382,7 @@ Real Hibachi · (213) 770-7788
 | **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
 | **餐具/盘子包含吗** | "Plates & utensils are $5/guest if we bring them, or use your own - either works."（桌椅 $10/人另算） |
 | **能在室内做吗** | "All cooking is outdoors — patio, balcony, deck, or under a canopy. Seating can be inside." |
+| **要多大地方 / 我家院子够不够** | 永远用比喻不报尺寸（用户 09-19 定，免得客户真去量）："A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill — a patio, deck, driveway or yard all work. Send me a photo if you're not sure." |
 | **下雨怎么办** | 10×10 帐篷客户自备；≥72h 改期免费 |
 | **坚果/芝麻过敏** | 第 6 节诚实口径，不承诺 |
 | **能自带牛排吗** | 不行，一句话带过 |

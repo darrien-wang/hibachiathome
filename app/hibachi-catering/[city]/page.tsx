@@ -114,7 +114,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     {
       question: "Do you cater at venues, offices, or rentals — or just homes?",
       answer:
-        "Anywhere with an outdoor spot for the grill: backyards, rooftops, office patios, event venues, parks with permits, Airbnbs. We need about a 6x8 ft flat area with 10 ft of overhead clearance in open air. Guests can eat indoors while the chef cooks outside.",
+        "Anywhere with an outdoor spot for the grill: backyards, rooftops, office patios, event venues, parks with permits, Airbnbs. We need a flat area about the size of a king-size bed with 10 ft of overhead clearance in open air. Guests can eat indoors while the chef cooks outside.",
     },
     {
       question: "What do we need to provide?",

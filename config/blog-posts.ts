@@ -84,7 +84,7 @@ A backyard hibachi party is the rare event where the host gets to be a guest. Bu
 
 The grill needs three things:
 
-- **A flat area about 6×8 feet** — concrete, pavers, deck, or driveway. Soft lawn isn't ideal.
+- **A flat area about the size of a king-size bed** — concrete, pavers, deck, or driveway. Soft lawn isn't ideal.
 - **About 10 feet of overhead clearance** — watch for pergolas, patio-cover beams, and low branches.
 - **Open air.** The cooking always happens outdoors (a live teppanyaki grill produces real smoke); your guests can eat inside if they like.
 

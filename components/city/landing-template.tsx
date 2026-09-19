@@ -284,7 +284,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
               </div>
               <div className="rounded-[28px] border border-ink/10 bg-surface p-3.5 shadow-organic lg:p-4">
                 <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-clay-600">Space needed</p>
-                <p className="text-[15px] font-semibold lg:text-[17px]">6×8 ft flat, outdoors</p>
+                <p className="text-[15px] font-semibold lg:text-[17px]">King-bed-size flat spot, outdoors</p>
               </div>
             </div>
             {details.length > 0 ? (

@@ -57,7 +57,7 @@ const faqs = [
   {
     question: "Where can a mobile hibachi grill set up?",
     answer:
-      "Any flat outdoor spot about 6x8 ft with roughly 10 ft of overhead clearance: a backyard, patio, deck, driveway, apartment courtyard, or roof terrace. Cooking is always outdoors — a live grill throws real smoke — but your guests can eat indoors while the chef cooks outside.",
+      "Any flat outdoor spot about the size of a king-size bed with roughly 10 ft of overhead clearance: a backyard, patio, deck, driveway, apartment courtyard, or roof terrace. Cooking is always outdoors — a live grill throws real smoke — but your guests can eat indoors while the chef cooks outside.",
   },
   {
     question: "How far will your mobile hibachi travel?",

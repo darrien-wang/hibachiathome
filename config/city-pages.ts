@@ -134,7 +134,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Los Angeles is really a dozen different setup problems wearing one name, and the two that decide how your evening starts are parking and stairs. On the Westside and in the Hills, the chef arrives with a teppanyaki grill, propane, and coolers that need to come within about a block of your door — a held driveway space is worth more to your start time than anything else you can arrange. Hillside homes in Laurel Canyon, Beachwood, and Silver Lake often mean two or three flights up from the street, which is completely fine as long as we know before the day.",
-      "Rooftop and apartment parties need building sign-off, and in LA the answer comes from the HOA or property manager rather than the front desk, so ask a week ahead. Beyond that: we need roughly a 6x8 ft flat area for the grill and about 10 ft of overhead clearance, which rules out low pergolas and a lot of the mature-tree canopy on the Eastside — a photo sent when you book settles it in a minute. During red-flag fire conditions in the Hills we keep the setup on hardscape well clear of brush.",
+      "Rooftop and apartment parties need building sign-off, and in LA the answer comes from the HOA or property manager rather than the front desk, so ask a week ahead. Beyond that: we need a flat area about the size of a king-size bed for the grill and about 10 ft of overhead clearance, which rules out low pergolas and a lot of the mature-tree canopy on the Eastside — a photo sent when you book settles it in a minute. During red-flag fire conditions in the Hills we keep the setup on hardscape well clear of brush.",
     ],
     faqs: [
       {
@@ -229,13 +229,13 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Downtown is the one part of LA where the building matters more than the address. Before anything else, ask your property manager or HOA two questions: is propane cooking allowed on the roof deck or terrace, and is there freight elevator access with a loading dock time. Buildings that say yes to both make for our smoothest parties in the city; buildings that say no to the first cannot be worked around, and it is much better to find out a week ahead than on the day.",
-      "Loading is the other DTLA-specific thing. Metered street parking, one-way blocks, and buildings without a dock all mean the chef needs a plan for moving a grill and coolers from vehicle to venue — a reserved loading zone, a validated garage spot, or a freight elevator window all work. Tell us what your building has and we will schedule the arrival around it. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance, in open air rather than an enclosed room.",
+      "Loading is the other DTLA-specific thing. Metered street parking, one-way blocks, and buildings without a dock all mean the chef needs a plan for moving a grill and coolers from vehicle to venue — a reserved loading zone, a validated garage spot, or a freight elevator window all work. Tell us what your building has and we will schedule the arrival around it. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance, in open air rather than an enclosed room.",
     ],
     faqs: [
       {
         question: "Can you cook on a DTLA rooftop or terrace?",
         answer:
-          "Yes, when the building permits open-flame cooking on that space — most roof decks that allow gas grills allow us. We need open air, roughly a 6x8 ft flat area, and about 10 ft of overhead clearance. Get your property manager's OK before booking and we will handle the rest.",
+          "Yes, when the building permits open-flame cooking on that space — most roof decks that allow gas grills allow us. We need open air, a flat area about the size of a king-size bed, and about 10 ft of overhead clearance. Get your property manager's OK before booking and we will handle the rest.",
       },
       {
         question: "What about parking and loading for the chef?",
@@ -319,7 +319,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "The Hills are the whole Hollywood logistics story. Beachwood Canyon, Outpost, and the streets off Mulholland are narrow, steep, and frequently permit-only, and many homes sit two or three flights below or above the street. The chef can absolutely work with that — it is a normal Hills party — but it needs to be said at booking so the right equipment cart comes and the arrival window is wide enough. A held driveway or garage space is genuinely the difference between a relaxed start and a scramble.",
-      "Short-term rentals need one check before you book us: LA's rules and most Hills rental listings address open-flame cooking and evening noise directly, and an early-evening start almost always sits comfortably inside quiet hours. During red-flag fire conditions we keep the grill on hardscape and well clear of brush — non-negotiable up here. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance; deep eaves and low deck roofs are the common reason we shift the position a few feet.",
+      "Short-term rentals need one check before you book us: LA's rules and most Hills rental listings address open-flame cooking and evening noise directly, and an early-evening start almost always sits comfortably inside quiet hours. During red-flag fire conditions we keep the grill on hardscape and well clear of brush — non-negotiable up here. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance; deep eaves and low deck roofs are the common reason we shift the position a few feet.",
     ],
     faqs: [
       {
@@ -409,7 +409,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Parking is the defining WeHo constraint. Nearly every residential block is permit-only, meters run late on the commercial corridors, and the chef needs to be within about a block of your door with a grill and coolers. A guest permit, a driveway space, or a garage spot held for the chef is the single most useful thing you can arrange here — more so than in almost any other city we serve.",
-      "Shared courtyards and roof decks need building approval for open-flame cooking, and in WeHo's older mid-century complexes the answer varies building to building, so ask the manager or HOA before you book. Neighbors are close everywhere in this city, so we keep setup quiet, keep the footprint tight, and start the loud part of the show only when you are ready. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance in open air.",
+      "Shared courtyards and roof decks need building approval for open-flame cooking, and in WeHo's older mid-century complexes the answer varies building to building, so ask the manager or HOA before you book. Neighbors are close everywhere in this city, so we keep setup quiet, keep the footprint tight, and start the loud part of the show only when you are ready. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance in open air.",
     ],
     faqs: [
       {
@@ -420,7 +420,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can we do this in a building courtyard or on a roof deck?",
         answer:
-          "Yes, with the building's approval for open-flame cooking. WeHo's older complexes vary building to building, so check with your manager or HOA a week ahead. We need open air, a roughly 6x8 ft flat area, and about 10 ft of overhead clearance.",
+          "Yes, with the building's approval for open-flame cooking. WeHo's older complexes vary building to building, so check with your manager or HOA a week ahead. We need open air, a roughly the size of a king-size bed flat area, and about 10 ft of overhead clearance.",
       },
       {
         question: "Will the show bother the neighbors?",
@@ -499,7 +499,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Gates and access are the Beverly Hills planning items. Many properties here have a call box, a gate code, or staff who need the chef's name in advance — without that, the chef sits at the gate while your party waits. Send the code or add the chef to the list when you confirm, and note whether the service entrance or the main drive is the right approach.",
-      "Street parking is restricted on most residential blocks and enforced seriously, so a spot in the motor court or driveway for the chef is the norm here rather than a favor. Beyond that, Beverly Hills setups are among the smoothest we do: level hardscape, real space, and rarely a stair problem. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance — deep loggias and low pergolas are the one thing worth a photo in advance. During red-flag fire conditions in the canyons we keep the setup on hardscape well clear of brush.",
+      "Street parking is restricted on most residential blocks and enforced seriously, so a spot in the motor court or driveway for the chef is the norm here rather than a favor. Beyond that, Beverly Hills setups are among the smoothest we do: level hardscape, real space, and rarely a stair problem. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance — deep loggias and low pergolas are the one thing worth a photo in advance. During red-flag fire conditions in the canyons we keep the setup on hardscape well clear of brush.",
     ],
     story: {
       heading: "An estate here taught me the thing I did not expect",
@@ -599,7 +599,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Culver City is one of our simplest LA cities. Most homes have a driveway, streets are wide, and load-in is short — which is why we can often accommodate later booking requests here than on the coast. Downtown Culver City blocks near the Ivy Station and Platform area are the exception, where parking is metered and busy in the evening.",
-      "The newer Playa Vista and Fox Hills complexes are where rules come up: shared courtyards and podium decks need the association's OK for open-flame cooking, and that answer comes from the HOA rather than the leasing desk. For private yards there is rarely anything to arrange. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance, and we set up on hardscape or firm level ground rather than soft lawn.",
+      "The newer Playa Vista and Fox Hills complexes are where rules come up: shared courtyards and podium decks need the association's OK for open-flame cooking, and that answer comes from the HOA rather than the leasing desk. For private yards there is rarely anything to arrange. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance, and we set up on hardscape or firm level ground rather than soft lawn.",
     ],
     faqs: [
       {
@@ -610,7 +610,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook in a Playa Vista courtyard or podium deck?",
         answer:
-          "With the association's approval for open-flame cooking, yes. Ask the HOA rather than the leasing office, and give it a week. We need open air, a roughly 6x8 ft flat area, and about 10 ft of overhead clearance.",
+          "With the association's approval for open-flame cooking, yes. Ask the HOA rather than the leasing office, and give it a week. We need open air, a roughly the size of a king-size bed flat area, and about 10 ft of overhead clearance.",
       },
       {
         question: "Is this good for a kids' birthday party?",
@@ -689,7 +689,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Burbank is a straightforward logistics city: driveways are standard, streets are wide, and the chef usually parks within a few steps of the gate. The Media District and blocks near the studios are busier on weekday evenings, but residential Burbank rarely presents a parking problem at all.",
-      "Valley heat is the real scheduling factor. From June through September an afternoon start puts your guests next to a teppanyaki grill in triple digits, and the same party at sunset is a completely different evening, so that is what we usually suggest. It is a recommendation, not a rule. Daytime and lunch bookings work well in Burbank from roughly October through May, when a midday party on a shaded patio is genuinely pleasant — it is the peak of Valley summer, not daylight itself, that we steer people away from. Shade over the guest seating matters more than shade over the chef. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance; mature trees and low patio covers are the usual reason we move the grill a few feet.",
+      "Valley heat is the real scheduling factor. From June through September an afternoon start puts your guests next to a teppanyaki grill in triple digits, and the same party at sunset is a completely different evening, so that is what we usually suggest. It is a recommendation, not a rule. Daytime and lunch bookings work well in Burbank from roughly October through May, when a midday party on a shaded patio is genuinely pleasant — it is the peak of Valley summer, not daylight itself, that we steer people away from. Shade over the guest seating matters more than shade over the chef. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance; mature trees and low patio covers are the usual reason we move the grill a few feet.",
     ],
     faqs: [
       {
@@ -705,7 +705,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How much space do we need in the backyard?",
         answer:
-          "Roughly a 6x8 ft flat area for the grill and about 10 ft of overhead clearance, plus your table and seating. Most Burbank yards have far more than that. Send a photo when you book and we will pick the grill position ahead of time.",
+          "Roughly a flat area about the size of a king-size bed for the grill and about 10 ft of overhead clearance, plus your table and seating. Most Burbank yards have far more than that. Send a photo when you book and we will pick the grill position ahead of time.",
       },
       {
         question: "What does hibachi at home cost in Burbank?",
@@ -779,7 +779,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Thousand Oaks is one of the easiest cities we serve for load-in \u2014 long driveways, wide streets, and rarely a stair problem. If you are behind a guard gate in Westlake or North Ranch, send the code or add the chef to the list when you confirm; without it the chef waits at the kiosk while your party waits inside.",
-      "Two local factors. The Conejo Valley runs hot inland in July and August, so we suggest a sunset start in high summer and a lunch or afternoon booking from roughly October through May, when midday out here is genuinely lovely. And during red-flag fire conditions \u2014 which this corridor gets \u2014 we keep the setup on hardscape well clear of dry brush, especially on lots backing onto open hillside. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Two local factors. The Conejo Valley runs hot inland in July and August, so we suggest a sunset start in high summer and a lunch or afternoon booking from roughly October through May, when midday out here is genuinely lovely. And during red-flag fire conditions \u2014 which this corridor gets \u2014 we keep the setup on hardscape well clear of dry brush, especially on lots backing onto open hillside. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -869,7 +869,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "West Covina is close to base, so this is a city where we can sometimes fit a booking in on shorter notice than the coast allows, and where the chef arrives unhurried. Driveways are standard and the streets are wide; load-in is usually a couple of minutes rather than the twenty it can take on the Westside.",
-      "The one thing we plan around is overhead. Older SGV lots often have mature fruit trees or a permanent patio cover right over the natural grill spot, and that is the usual reason we shift a setup a few feet. Send a photo when you book and we will pick the position in advance. Summers here are hot and still, so we suggest an evening start from June through September and a lunch booking from roughly October through May. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance, on concrete or pavers rather than soft lawn.",
+      "The one thing we plan around is overhead. Older SGV lots often have mature fruit trees or a permanent patio cover right over the natural grill spot, and that is the usual reason we shift a setup a few feet. Send a photo when you book and we will pick the position in advance. Summers here are hot and still, so we suggest an evening start from June through September and a lunch booking from roughly October through May. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance, on concrete or pavers rather than soft lawn.",
     ],
     faqs: [
       {
@@ -959,7 +959,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Whittier is close to base, so there is no travel fee and the chef arrives with time in hand. The two things worth telling us at booking are stairs and trees. Friendly Hills and the La Habra Heights side often mean a flight or two from where the chef parks down to the patio, which is completely workable as long as we know in advance and bring the cart.",
-      "The older Uptown and Hadley lots have the same mature-tree situation as Pasadena \u2014 beautiful, and low branches over the natural grill spot are the usual reason we move the setup a few feet. A photo sent with your quote request settles it before the day. Summer afternoons here run hot enough that we suggest an evening start from June through September; from roughly October through May a lunch or afternoon booking works well. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "The older Uptown and Hadley lots have the same mature-tree situation as Pasadena \u2014 beautiful, and low branches over the natural grill spot are the usual reason we move the setup a few feet. A photo sent with your quote request settles it before the day. Summer afternoons here run hot enough that we suggest an evening start from June through September; from roughly October through May a lunch or afternoon booking works well. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -1049,7 +1049,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Arcadia is one of the easiest cities in LA County for us. Driveways are long, streets are wide, gates are usually vehicle-width, and load-in takes minutes. That is also why our Arcadia guest counts run higher than our coastal ones — a 30-person party that would be impossible in Santa Monica is comfortable here.",
-      "Two local specifics. First, mature oaks are protected in Arcadia and common in the older neighborhoods, and low branches over the intended grill spot are the usual reason we shift a setup a few feet — send a photo when you book and we will pick the position in advance. Second, SGV summers run hot and still, so evening starts from June through September make a real difference for guests seated near the grill. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance, set on hardscape rather than soft lawn.",
+      "Two local specifics. First, mature oaks are protected in Arcadia and common in the older neighborhoods, and low branches over the intended grill spot are the usual reason we shift a setup a few feet — send a photo when you book and we will pick the position in advance. Second, SGV summers run hot and still, so evening starts from June through September make a real difference for guests seated near the grill. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance, set on hardscape rather than soft lawn.",
     ],
     faqs: [
       {
@@ -1139,7 +1139,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "San Gabriel's streets are narrower than Arcadia's and driveways are shorter, so parking is the one thing worth arranging. A driveway space held for the chef, or a note about the closest place to pull in, keeps load-in to a few minutes. Side-gate access is common here and usually fine — just tell us if the gate is under about three feet wide so the chef brings the right cart.",
-      "Older SGV lots often have mature fruit trees and low patio covers over the natural grill spot, which is the usual reason we shift the setup. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance, on concrete or pavers rather than soft ground. Summer here is hot and still, so evening starts from June through September are noticeably more comfortable for guests seated near the grill, and Lunar New Year weekends book out first among all our SGV dates.",
+      "Older SGV lots often have mature fruit trees and low patio covers over the natural grill spot, which is the usual reason we shift the setup. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance, on concrete or pavers rather than soft ground. Summer here is hot and still, so evening starts from June through September are noticeably more comfortable for guests seated near the grill, and Lunar New Year weekends book out first among all our SGV dates.",
     ],
     faqs: [
       {
@@ -1155,7 +1155,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Our backyard is small and paved. Is that a problem?",
         answer:
-          "Not at all — paved is better than lawn. We need roughly a 6x8 ft flat area for the grill and about 10 ft of overhead clearance, plus your table and seating. Most SGV patios have it. Send a photo and we will confirm before your date.",
+          "Not at all — paved is better than lawn. We need a flat area about the size of a king-size bed for the grill and about 10 ft of overhead clearance, plus your table and seating. Most SGV patios have it. Send a photo and we will confirm before your date.",
       },
       {
         question: "What does hibachi at home cost in San Gabriel?",
@@ -1229,7 +1229,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Hillside streets are the local specific. Many Rowland Heights homes sit above or below the road with a flight of steps to the entry, and the rear patio is often another level down. That is a normal setup for us, but it needs mentioning at booking so the chef brings the cart and we allow a little extra arrival time. Driveways are generally long enough to park in, which makes the rest of load-in easy.",
-      "Inland summer heat runs hotter here than in the coastal SGV, so evening starts from June through September are the norm and make a real difference for guests near the grill. Lots that back onto open hillside catch an afternoon breeze that an exposed grill will fight, so we set against a wall or fence where we can, and during red-flag fire conditions we keep the setup on hardscape clear of dry brush. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Inland summer heat runs hotter here than in the coastal SGV, so evening starts from June through September are the norm and make a real difference for guests near the grill. Lots that back onto open hillside catch an afternoon breeze that an exposed grill will fight, so we set against a wall or fence where we can, and during red-flag fire conditions we keep the setup on hardscape clear of dry brush. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -1319,7 +1319,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "If you are in The Country Estates or another gated community, send the gate code or add the chef to the guard list when you confirm — otherwise the chef waits at the kiosk while your party waits inside. Everywhere else in Diamond Bar, driveways are long and load-in is quick.",
-      "Heat and wind are the scheduling factors. Inland summer afternoons are genuinely hot next to a teppanyaki grill, so we usually suggest a sunset start in July and August. Outside the hot months — roughly October through May — midday is a genuinely good time out here, and lunch bookings on a shaded patio are easier to schedule than summer evening slots. Hillside lots that back onto open space catch a real afternoon breeze, so we set the grill against a wall or fence where possible, and during red-flag fire conditions we keep everything on hardscape well clear of brush. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Heat and wind are the scheduling factors. Inland summer afternoons are genuinely hot next to a teppanyaki grill, so we usually suggest a sunset start in July and August. Outside the hot months — roughly October through May — midday is a genuinely good time out here, and lunch bookings on a shaded patio are easier to schedule than summer evening slots. Hillside lots that back onto open space catch a real afternoon breeze, so we set the grill against a wall or fence where possible, and during red-flag fire conditions we keep everything on hardscape well clear of brush. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -1409,7 +1409,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Event days are the one thing to plan around in Inglewood. When SoFi, the Forum, or the Intuit Dome has something on, surrounding streets get closed, restricted, or filled by mid-afternoon, and getting a vehicle with a grill and coolers to your door becomes the hard part. Tell us if your date coincides with an event and we will set an earlier arrival window — it works fine, it just cannot be improvised on the day.",
-      "The rest is simple: most Inglewood homes have a driveway, streets are flat, and load-in is short. Marine-layer evenings come in cool and a little damp near the coast side, so an earlier start or a patio heater keeps guests comfortable. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance, set on hardscape rather than soft lawn.",
+      "The rest is simple: most Inglewood homes have a driveway, streets are flat, and load-in is short. Marine-layer evenings come in cool and a little damp near the coast side, so an earlier start or a patio heater keeps guests comfortable. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance, set on hardscape rather than soft lawn.",
     ],
     story: {
       heading: "The smallest backyard I ever cooked in was here",
@@ -1430,7 +1430,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Our backyard is small. Can you set up in the driveway?",
         answer:
-          "Yes, a gated or private driveway works well and it is a common Inglewood setup. We need roughly a 6x8 ft flat area, about 10 ft of overhead clearance, and enough room to keep the station out of the walkway.",
+          "Yes, a gated or private driveway works well and it is a common Inglewood setup. We need a flat area about the size of a king-size bed, about 10 ft of overhead clearance, and enough room to keep the station out of the walkway.",
       },
       {
         question: "Do you serve Westchester, Hawthorne, and El Segundo?",
@@ -1509,7 +1509,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Malibu is a real drive from our base and PCH decides how long it takes, so a travel fee usually applies here — calculated from your address and shown upfront in your quote rather than added later. We also build extra buffer into Malibu arrivals: summer weekend traffic on PCH is unpredictable enough that the chef leaves early by default rather than cutting it fine.",
-      "Access is the other Malibu specific. Beachfront homes on Carbon and Broad Beach often mean a narrow gate, a stairway down to the deck, and no room to park anywhere near the door — all workable, all things we need to know at booking. Send a gate code if you have one. Ocean wind picks up in the afternoon and an exposed deck grill will fight it, so we set against a wall or windbreak where possible. We need roughly a 6x8 ft flat area, about 10 ft of overhead clearance, and during red-flag fire conditions in the canyons we keep everything on hardscape clear of brush.",
+      "Access is the other Malibu specific. Beachfront homes on Carbon and Broad Beach often mean a narrow gate, a stairway down to the deck, and no room to park anywhere near the door — all workable, all things we need to know at booking. Send a gate code if you have one. Ocean wind picks up in the afternoon and an exposed deck grill will fight it, so we set against a wall or windbreak where possible. We need a flat area about the size of a king-size bed, about 10 ft of overhead clearance, and during red-flag fire conditions in the canyons we keep everything on hardscape clear of brush.",
     ],
     faqs: [
       {
@@ -1599,7 +1599,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Valley heat is the single biggest scheduling factor here, more than in any other LA city we serve. Woodland Hills regularly runs ten to fifteen degrees hotter than the Westside, and a July party starting at 4pm puts your guests next to a teppanyaki grill at the worst possible hour. A sunset start is what we recommend from June through September and the difference is dramatic. Daytime is a different story outside the hot months: from roughly October through May a lunch or early-afternoon party on a shaded patio works beautifully out here, and those slots book up far less than summer evenings. Shade over the guest seating matters more than shade over the chef.",
-      "Everything else is easy. Driveways are long, streets are wide, and load-in is short, which is why our largest guest counts in LA proper happen out here. Hillside homes in Calabasas and Tarzana may add a few stairs — mention them at booking. During red-flag fire conditions, and especially on lots backing onto open hillside, we keep the setup on hardscape well clear of dry brush. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Everything else is easy. Driveways are long, streets are wide, and load-in is short, which is why our largest guest counts in LA proper happen out here. Hillside homes in Calabasas and Tarzana may add a few stairs — mention them at booking. During red-flag fire conditions, and especially on lots backing onto open hillside, we keep the setup on hardscape well clear of dry brush. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -1691,7 +1691,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "San Diego is the easiest weather city we serve and the hardest parking city outside LA proper. In Pacific Beach, Mission Beach, and downtown La Jolla the chef needs a spot within about a block to walk the grill and coolers in, so a driveway space or a held street spot saves fifteen minutes. Coronado and parts of La Jolla have permit-only blocks; if that is your street, tell us and we will plan around it.",
-      "Vacation rentals are a large share of our San Diego bookings, so check the listing before you book us: some Mission Beach and Ocean Beach rentals prohibit open-flame cooking, and a few Carmel Valley and Del Mar HOAs require cooking on a hard surface away from the structure. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance. Beach-facing decks with low pergolas are the one setup we occasionally have to move.",
+      "Vacation rentals are a large share of our San Diego bookings, so check the listing before you book us: some Mission Beach and Ocean Beach rentals prohibit open-flame cooking, and a few Carmel Valley and Del Mar HOAs require cooking on a hard surface away from the structure. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance. Beach-facing decks with low pergolas are the one setup we occasionally have to move.",
     ],
     faqs: [
       {
@@ -1781,7 +1781,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Irvine is HOA country and we plan for it. Most associations here are fine with a propane teppanyaki grill on a private patio, but a handful of Village communities ask for notice or restrict cooking near shared walls. If your community has a rule, tell us and we will position the grill to satisfy it.",
-      "Parking is straightforward in most Irvine neighborhoods and genuinely tight in Woodbridge and around UCI during graduation week; a guest spot or driveway space held for the chef makes load-in painless. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance. Solid patio covers usually work; low pergolas with lattice sometimes do not, and a photo sent ahead settles it in a minute.",
+      "Parking is straightforward in most Irvine neighborhoods and genuinely tight in Woodbridge and around UCI during graduation week; a guest spot or driveway space held for the chef makes load-in painless. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance. Solid patio covers usually work; low pergolas with lattice sometimes do not, and a photo sent ahead settles it in a minute.",
     ],
     faqs: [
       {
@@ -1871,7 +1871,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Vacation-rental rules matter more in Anaheim than anywhere else we cook. Rentals near the parks turn over constantly and many carry explicit no-open-flame clauses; a two-line message to your host before booking us avoids the one problem that actually cancels these parties. Hosts who allow it usually just want the grill off the lawn and away from the structure, which is where we set up anyway.",
-      "Park-adjacent streets fill up in the evening and some neighborhoods post overnight restrictions, so a driveway spot for the chef is worth holding. Timing is the other Anaheim-specific thing: families coming off a park day almost always want 7pm or later, and those slots go first on weekends and school holidays. We need about a 6x8 ft flat area, roughly 10 ft of overhead clearance, and a path from the curb that does not involve carrying the grill up more than a short flight of stairs.",
+      "Park-adjacent streets fill up in the evening and some neighborhoods post overnight restrictions, so a driveway spot for the chef is worth holding. Timing is the other Anaheim-specific thing: families coming off a park day almost always want 7pm or later, and those slots go first on weekends and school holidays. We need a flat area about the size of a king-size bed, roughly 10 ft of overhead clearance, and a path from the curb that does not involve carrying the grill up more than a short flight of stairs.",
     ],
     faqs: [
       {
@@ -1961,7 +1961,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Belmont Shore and Naples parking is the biggest variable in a Long Beach booking. Second Street and the canal blocks are permit-heavy and full by early evening; if you can hold a driveway space or a spot on your block for the chef, do it. Naples in particular often means a walk over a bridge or down a walk-street, which is fine — just tell us at booking so the chef brings the cart.",
-      "Coastal wind off the water is the other Long Beach factor. It rarely stops a party, but a grill placed in an exposed corner will fight it, so we look for a wall or fence to set against. Most Belmont Shore and Naples yards are small enough that the grill goes at one end and the table along the fence. The upside of the coastal air is that midday stays comfortable here most of the year, so lunch and afternoon bookings are a real option rather than a summer-only compromise. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance; low canal-side pergolas are worth photographing for us in advance.",
+      "Coastal wind off the water is the other Long Beach factor. It rarely stops a party, but a grill placed in an exposed corner will fight it, so we look for a wall or fence to set against. Most Belmont Shore and Naples yards are small enough that the grill goes at one end and the table along the fence. The upside of the coastal air is that midday stays comfortable here most of the year, so lunch and afternoon bookings are a real option rather than a summer-only compromise. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance; low canal-side pergolas are worth photographing for us in advance.",
     ],
     story: {
       heading: "My very first at-home party was in Long Beach",
@@ -2060,7 +2060,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Pasadena's tree canopy is the thing we plan around. Bungalow Heaven and Madison Heights yards have gorgeous mature oaks and pepper trees, and low branches over the intended grill spot are the most common reason we shift a setup a few feet. Send a photo of your yard when you book and we will pick the position before the chef arrives instead of on the day.",
-      "Street parking is easy most of the year and impossible on Rose Bowl event days — if your party lands on a game or flea-market Sunday, hold a driveway space for the chef. Several Pasadena and South Pasadena blocks are permit-only after 6pm; a guest permit or a driveway spot handles it. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance. Solid-roof patio covers are generally fine; a pergola with a low crossbeam usually is not.",
+      "Street parking is easy most of the year and impossible on Rose Bowl event days — if your party lands on a game or flea-market Sunday, hold a driveway space for the chef. Several Pasadena and South Pasadena blocks are permit-only after 6pm; a guest permit or a driveway spot handles it. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance. Solid-roof patio covers are generally fine; a pergola with a low crossbeam usually is not.",
     ],
     faqs: [
       {
@@ -2150,7 +2150,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Santa Monica parking is the hardest of any city we serve. Nearly everything north of Pico is permit-only, meters run late, and the chef arrives with a grill and coolers that need to be within about a block of your door. A guest permit, a driveway space, or a garage spot held for the chef is the single most useful thing you can arrange — without one, load-in can add twenty minutes to your start time.",
-      "Rooftop and building-deck parties need property sign-off, and Santa Monica buildings are stricter than most: some allow propane on a roof deck, some do not, and the answer usually comes from the HOA or property manager rather than the front desk, so ask early. For yards we need roughly a 6x8 ft flat area and about 10 ft of overhead clearance. The marine layer means evenings cool off fast, so a heater or a slightly earlier start makes dinner more comfortable than it sounds. It also keeps midday pleasant here for most of the year — lunch and early-afternoon bookings work in Santa Monica when they would be unbearable inland, and those slots are much easier to get than weekend evenings.",
+      "Rooftop and building-deck parties need property sign-off, and Santa Monica buildings are stricter than most: some allow propane on a roof deck, some do not, and the answer usually comes from the HOA or property manager rather than the front desk, so ask early. For yards we need a flat area about the size of a king-size bed and about 10 ft of overhead clearance. The marine layer means evenings cool off fast, so a heater or a slightly earlier start makes dinner more comfortable than it sounds. It also keeps midday pleasant here for most of the year — lunch and early-afternoon bookings work in Santa Monica when they would be unbearable inland, and those slots are much easier to get than weekend evenings.",
     ],
     faqs: [
       {
@@ -2240,7 +2240,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Onshore wind is the real Huntington Beach variable and it picks up in the late afternoon almost every day. It does not stop the show, but a grill set in an open corner with nothing to block it runs harder and cooks slower, so we look for a wall, fence, or the lee side of the house. If your only usable space is fully exposed, tell us and the chef brings extra wind shielding.",
-      "Because the ocean keeps midday temperatures reasonable here nearly year-round, lunch and afternoon bookings are a genuine option in Huntington Beach rather than a seasonal one. Downtown blocks near the pier are metered and busy through the evening, and summer weekends make a driveway space genuinely valuable for load-in. Harbour homes are usually easy to park at but often mean a walk down a side yard or a dock ramp — worth mentioning at booking. We need roughly a 6x8 ft flat area, about 10 ft of overhead clearance, and enough distance from a fire pit that the two flames are not competing.",
+      "Because the ocean keeps midday temperatures reasonable here nearly year-round, lunch and afternoon bookings are a genuine option in Huntington Beach rather than a seasonal one. Downtown blocks near the pier are metered and busy through the evening, and summer weekends make a driveway space genuinely valuable for load-in. Harbour homes are usually easy to park at but often mean a walk down a side yard or a dock ramp — worth mentioning at booking. We need a flat area about the size of a king-size bed, about 10 ft of overhead clearance, and enough distance from a fire pit that the two flames are not competing.",
     ],
     faqs: [
       {
@@ -2329,7 +2329,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Riverside is the easiest logistics city we serve: driveways are long, streets are wide, and load-in is usually fifty feet from where the chef parks. That is why our biggest guest counts happen here — a 30 or 40-person party that would be impossible in Santa Monica is routine in Orangecrest.",
-      "Heat is the planning factor instead. From June through September an afternoon start is genuinely uncomfortable for guests standing near a teppanyaki grill, and the parties that go best start at or after sunset. Shade over the guest seating matters more than shade over the chef. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance; for pool decks we keep the grill on the far side from the water and clear of anything overhanging.",
+      "Heat is the planning factor instead. From June through September an afternoon start is genuinely uncomfortable for guests standing near a teppanyaki grill, and the parties that go best start at or after sunset. Shade over the guest seating matters more than shade over the chef. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance; for pool decks we keep the grill on the far side from the water and clear of anything overhanging.",
     ],
     faqs: [
       {
@@ -2419,7 +2419,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Temecula is a long drive from our SoCal base, so a travel fee usually applies here and it is calculated from your address and shown upfront in your quote rather than added afterward. It also means we schedule Temecula parties with more buffer: the chef leaves early and arrives with time to spare rather than cutting it fine on the 15.",
-      "Wine country properties are easy to set up on and occasionally hard to find — gated entries, unnamed driveways, and spotty cell service are all normal out here, so a gate code and a note about where to pull in saves the chef circling. Evening temperature swings are real: a 95-degree afternoon can drop into the 60s by 9pm, which is pleasant for the party but worth knowing when you plan seating. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Wine country properties are easy to set up on and occasionally hard to find — gated entries, unnamed driveways, and spotty cell service are all normal out here, so a gate code and a note about where to pull in saves the chef circling. Evening temperature swings are real: a 95-degree afternoon can drop into the 60s by 9pm, which is pleasant for the party but worth knowing when you plan seating. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -2446,7 +2446,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: vineyard estates and Airbnbs almost always allow it — a quick note to the host that it is a propane grill on the patio is all it takes.",
       "Quiet hours: wine-country rentals sit closer to their neighbors than you would think, and the county's rental rules go quiet at 10pm. A 6pm start keeps the show inside them.",
-      "The spot: a level 6x8 ft area with about 10 ft of clearance — a patio or the flat top of a driveway. Gravel is fine.",
+      "The spot: a level area about the size of a king-size bed with about 10 ft of clearance — a patio or the flat top of a driveway. Gravel is fine.",
       "Finding you: send the gate code and a note on where to pull in; cell service drops between the vineyards. Everything leaves with the chef.",
     ],
     nearby: ["riverside", "corona", "oceanside"],
@@ -2516,7 +2516,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Santa Clarita's HOAs are more organized than most, which is actually good news: if your community requires clubhouse booking or written notice for a cooking event, there is a clear process and it is usually a one-page form. Get it in a week or two ahead and the day itself is easy. Private backyard parties in Valencia and Stevenson Ranch rarely need anything at all.",
-      "Summer heat here runs hotter than the coast and the wind through the pass can gust in the late afternoon, so evening starts are the norm from June to September. Fire-season awareness matters too: during red-flag conditions we keep the grill on hardscape well clear of dry brush, and if your lot backs onto open hillside we will position accordingly. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Summer heat here runs hotter than the coast and the wind through the pass can gust in the late afternoon, so evening starts are the norm from June to September. Fire-season awareness matters too: during red-flag conditions we keep the grill on hardscape well clear of dry brush, and if your lot backs onto open hillside we will position accordingly. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -2605,7 +2605,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Torrance is one of the more forgiving South Bay cities for load-in: most homes have real driveways and the streets are wide enough that the chef parks close. Hollywood Riviera is the exception, where hillside blocks get narrow and a held driveway space genuinely helps.",
-      "The South Bay marine layer means evenings cool down quickly and can come in damp, which affects your guests more than the cooking. An earlier start or a patio heater handles it — and the same marine layer keeps midday mild most of the year, so lunch and early-afternoon parties work well in Torrance and are easier to schedule than weekend evenings. Condo and townhome patios are the one place we hit rules: some West Torrance associations restrict open-flame cooking on shared-wall patios, so confirm with your HOA before booking. We need roughly a 6x8 ft flat area and about 10 ft of overhead clearance above the grill.",
+      "The South Bay marine layer means evenings cool down quickly and can come in damp, which affects your guests more than the cooking. An earlier start or a patio heater handles it — and the same marine layer keeps midday mild most of the year, so lunch and early-afternoon parties work well in Torrance and are easier to schedule than weekend evenings. Condo and townhome patios are the one place we hit rules: some West Torrance associations restrict open-flame cooking on shared-wall patios, so confirm with your HOA before booking. We need a flat area about the size of a king-size bed and about 10 ft of overhead clearance above the grill.",
     ],
     faqs: [
       {
@@ -2695,7 +2695,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Balboa Island and the Peninsula are the tightest access we deal with in Orange County. Streets are narrow, parking is scarce and largely permit or meter, and the chef may need to walk equipment in from a block away. It works fine every time — it just requires telling us in advance so the chef brings the cart and arrives with extra time. A held driveway or garage spot changes the whole load-in.",
-      "Newport Coast and other gated communities need the chef on the guest list or a gate code sent ahead; without one the chef sits at the kiosk while your party waits. Bayfront decks catch afternoon wind, so we set against a rail or wall where we can. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance, and on dock or deck setups we keep the grill on a stable, level surface well clear of the water.",
+      "Newport Coast and other gated communities need the chef on the guest list or a gate code sent ahead; without one the chef sits at the kiosk while your party waits. Bayfront decks catch afternoon wind, so we set against a rail or wall where we can. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance, and on dock or deck setups we keep the grill on a stable, level surface well clear of the water.",
     ],
     faqs: [
       {
@@ -2785,7 +2785,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Glendale's hillside neighborhoods are the planning factor. Verdugo Woodlands and Chevy Chase Canyon homes often mean a flight or two of stairs from the street to the patio, sometimes more. That is completely workable — the chef packs for it — but only if we know before the day, so mention stairs and any narrow side-gate access when you book.",
-      "Parking in the flats is easy; parking in central Glendale near Brand and Americana is not, and several blocks are permit-only in the evening. Hold a driveway or garage space for the chef if you are in that area. Many Glendale hillside patios have deep overhangs and low trellises, so send a photo and we will pick the grill position ahead of time. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Parking in the flats is easy; parking in central Glendale near Brand and Americana is not, and several blocks are permit-only in the evening. Hold a driveway or garage space for the chef if you are in that area. Many Glendale hillside patios have deep overhangs and low trellises, so send a photo and we will pick the grill position ahead of time. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -2874,7 +2874,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Corona shares the Inland Empire advantage: long driveways, wide streets, and load-in that takes minutes rather than a small expedition. It is a good city for a large guest count, and our Corona parties skew bigger than our coastal ones for exactly that reason.",
-      "Summer heat and canyon wind are the two things we schedule around. From June through September, sunset starts are far more comfortable for guests than late-afternoon ones, and lots that back onto the canyons catch a real breeze in the late afternoon that a grill in an open corner will fight. During red-flag fire conditions we keep the setup on hardscape well clear of dry brush. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Summer heat and canyon wind are the two things we schedule around. From June through September, sunset starts are far more comfortable for guests than late-afternoon ones, and lots that back onto the canyons catch a real breeze in the late afternoon that a grill in an open corner will fight. During red-flag fire conditions we keep the setup on hardscape well clear of dry brush. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -2963,7 +2963,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Beach-block Oceanside parking is metered and busy through the summer evening, and rentals near the pier often have a single assigned space. Holding that space for the chef, or telling us where the closest loading spot is, is the most useful thing you can do. Inland neighborhoods have driveways and are simple.",
-      "Vacation rentals here carry the same caution as San Diego and Anaheim: check the listing for open-flame restrictions before you book us. Coastal wind and evening damp are mild but real, so we set against a wall or fence where possible and an earlier start keeps guests comfortable. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance, and a travel fee applies past our free 50-mile radius at $1 for each mile beyond it — calculated from your address and shown upfront in your quote.",
+      "Vacation rentals here carry the same caution as San Diego and Anaheim: check the listing for open-flame restrictions before you book us. Coastal wind and evening damp are mild but real, so we set against a wall or fence where possible and an earlier start keeps guests comfortable. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance, and a travel fee applies past our free 50-mile radius at $1 for each mile beyond it — calculated from your address and shown upfront in your quote.",
     ],
     faqs: [
       {
@@ -3052,7 +3052,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "The desert has two hard rules and both are about heat. From May through September we strongly recommend an evening start — a teppanyaki grill at 105 degrees is miserable for everyone standing near it, and the same party at 8pm is genuinely lovely. Between October and April a lunch or afternoon booking on the patio is one of the best things about the desert. Second, shade and water for your guests matter more than anything we bring; the chef manages the grill heat regardless.",
-      "Vacation rentals dominate our Palm Springs bookings, and desert rentals have the strictest quiet-hours and event rules of anywhere we serve. Check your rental's policy on outdoor cooking and evening noise before booking us — an early-evening slot almost always wraps inside quiet hours. Gated communities need the chef on the list or a gate code sent ahead. A travel fee applies given the distance from our base and is shown upfront in your quote. We need about a 6x8 ft flat area and roughly 10 ft of overhead clearance.",
+      "Vacation rentals dominate our Palm Springs bookings, and desert rentals have the strictest quiet-hours and event rules of anywhere we serve. Check your rental's policy on outdoor cooking and evening noise before booking us — an early-evening slot almost always wraps inside quiet hours. Gated communities need the chef on the list or a gate code sent ahead. A travel fee applies given the distance from our base and is shown upfront in your quote. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance.",
     ],
     faqs: [
       {
@@ -3079,7 +3079,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: Palm Springs rentals spell it out in the house rules — a two-line note to the host (private chef, propane grill, on the patio) settles it.",
       "Quiet hours: most desert rentals go quiet at 10pm. A 6 or 6:30pm start puts the show at dusk and the cleanup well inside them.",
-      "The spot: a level 6x8 ft pad with about 10 ft of clearance — pool deck or patio. Misters and low pergolas are the usual reason we shift a few feet.",
+      "The spot: a level pad about the size of a king-size bed with about 10 ft of clearance — pool deck or patio. Misters and low pergolas are the usual reason we shift a few feet.",
       "The gate: put the chef's name on the guest list or send the code ahead. Everything leaves with the chef, so the rental looks the way you found it.",
     ],
     nearby: ["temecula", "riverside", "corona"],
@@ -3139,7 +3139,7 @@ export const cityPages: CityPage[] = [
       {
         title: "Desert Cabins & Homesteads",
         description:
-          "Fenced yards, gravel pads, and a lot of sky. The grill sets up on any level 6x8 ft spot; dirt and gravel are fine.",
+          "Fenced yards, gravel pads, and a lot of sky. The grill sets up on any level spot about the size of a king-size bed; dirt and gravel are fine.",
       },
       {
         title: "Rental Compounds with Pools",
@@ -3165,7 +3165,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook at our Joshua Tree rental?",
         answer:
-          "Yes. We need a level outdoor spot about 6x8 ft with roughly 10 ft of clearance — a gravel pad, patio, or yard all work. We bring the grill, the food, and everything for the show, and we clean up before we leave.",
+          "Yes. We need a level outdoor spot about the size of a king-size bed with roughly 10 ft of clearance — a gravel pad, patio, or yard all work. We bring the grill, the food, and everything for the show, and we clean up before we leave.",
       },
       {
         question: "What does hibachi at a Joshua Tree rental cost?",
@@ -3181,7 +3181,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: most desert rentals allow a propane grill on the patio or gravel pad — check the house rules and tell the host it is a private chef, not a bonfire.",
       "Quiet hours: the county's short-term rental rules go quiet at 10pm. A sunset start puts the show at dusk and the cleanup before the hour.",
-      "The spot: a level 6x8 ft area with about 10 ft of clearance — gravel pads and dirt yards are fine, kept clear of the Joshua trees and brush.",
+      "The spot: a level area about the size of a king-size bed with about 10 ft of clearance — gravel pads and dirt yards are fine, kept clear of the Joshua trees and brush.",
       "Finding you: dirt roads and no visible house numbers — send the map pin, the lockbox details, and where to park. Everything leaves with the chef.",
     ],
     nearby: ["palm-springs", "la-quinta", "riverside"],
@@ -3245,7 +3245,7 @@ export const cityPages: CityPage[] = [
       {
         title: "Lake Arrowhead A-Frames",
         description:
-          "Steep lots and tiered decks. We need one level 6x8 ft spot with clearance above it, and most Arrowhead decks have exactly that.",
+          "Steep lots and tiered decks. We need one level spot about the size of a king-size bed with clearance above it, and most Arrowhead decks have exactly that.",
       },
     ],
     logistics: [
@@ -3261,7 +3261,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook on a cabin deck?",
         answer:
-          "Yes, on decks, driveways, and patios — we need a level spot about 6x8 ft with roughly 10 ft of clearance above the grill. In winter the spot needs to be cleared of snow before the chef arrives.",
+          "Yes, on decks, driveways, and patios — we need a level spot about the size of a king-size bed with roughly 10 ft of clearance above the grill. In winter the spot needs to be cleared of snow before the chef arrives.",
       },
       {
         question: "What does a Big Bear hibachi party cost?",
@@ -3277,7 +3277,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: cabin rentals almost always allow a propane grill on the deck or driveway pad — a quick note to the host settles it.",
       "Quiet hours: Big Bear's rental rules are strict about noise after 10pm and about guest counts. A 5 or 5:30pm start wraps the show in daylight and inside them.",
-      "The spot: a level 6x8 ft area with about 10 ft of clearance — deck or driveway, cleared of snow in winter. Deep eaves are the usual reason we shift a few feet.",
+      "The spot: a level area about the size of a king-size bed with about 10 ft of clearance — deck or driveway, cleared of snow in winter. Deep eaves are the usual reason we shift a few feet.",
       "Parking: steep, tight driveways — tell us where the chef can park close to the setup spot. Everything leaves with the chef; the cabin's kitchen never opens.",
     ],
     nearby: ["riverside", "corona", "joshua-tree"],
@@ -3346,7 +3346,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "This end of the valley runs even hotter than Palm Springs. From May through September we cook after sunset — the patio is genuinely pleasant once the sun is down, and the fire show is better in the dark anyway. From October through April a lunch or late-afternoon booking on the patio is one of the best things about the desert. La Quinta is well past our free 50-mile radius, so a travel fee applies and is shown upfront in your quote.",
-      "Almost every rental here is behind a gate: put the chef's name on the guest list or send the gate code ahead of the party. We need a level spot about 6x8 ft with roughly 10 ft of clearance — a patio pad or pool deck well clear of the water is ideal. The chef brings everything and takes everything away; your rental's kitchen stays clean.",
+      "Almost every rental here is behind a gate: put the chef's name on the guest list or send the gate code ahead of the party. We need a level spot about the size of a king-size bed with roughly 10 ft of clearance — a patio pad or pool deck well clear of the water is ideal. The chef brings everything and takes everything away; your rental's kitchen stays clean.",
     ],
     faqs: [
       {
@@ -3357,7 +3357,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook at our Coachella rental?",
         answer:
-          "Yes. Festival weekends are the busiest dates in the valley, so book early. We need a level outdoor spot about 6x8 ft with clearance above it, and we work around your shuttle times.",
+          "Yes. Festival weekends are the busiest dates in the valley, so book early. We need a level outdoor spot about the size of a king-size bed with clearance above it, and we work around your shuttle times.",
       },
       {
         question: "What does hibachi at a La Quinta rental cost?",
@@ -3373,7 +3373,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: gated-community rentals here nearly always allow a propane grill on the patio — check the listing and tell the host it is a private chef.",
       "Quiet hours: the valley's rental rules go quiet at 10pm and cap guest counts. An early-evening start keeps the show inside both.",
-      "The spot: a level 6x8 ft patio pad or pool deck well clear of the water, with about 10 ft of clearance. Misters and low pergolas are the usual reason we shift.",
+      "The spot: a level patio pad or pool deck about the size of a king-size bed well clear of the water, with about 10 ft of clearance. Misters and low pergolas are the usual reason we shift.",
       "The gate: put the chef's name on the guest list or send the code ahead. Everything leaves with the chef.",
     ],
     nearby: ["palm-springs", "joshua-tree", "temecula"],
@@ -3432,7 +3432,7 @@ export const cityPages: CityPage[] = [
       {
         title: "Hillside Homes with Ocean Decks",
         description:
-          "Muirlands and Mount Soledad houses with view decks. We need one level 6x8 ft spot with clearance above it — most decks have it.",
+          "Muirlands and Mount Soledad houses with view decks. We need one level spot about the size of a king-size bed with clearance above it — most decks have it.",
       },
       {
         title: "Pacific & Mission Beach Vacation Rentals",
@@ -3453,7 +3453,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook at our beach rental?",
         answer:
-          "Yes, on patios, decks, and courtyards — we need a level spot about 6x8 ft with roughly 10 ft of clearance above the grill. A spot with a little shelter from the afternoon breeze is ideal.",
+          "Yes, on patios, decks, and courtyards — we need a level spot about the size of a king-size bed with roughly 10 ft of clearance above the grill. A spot with a little shelter from the afternoon breeze is ideal.",
       },
       {
         question: "What does hibachi at a La Jolla rental cost?",
@@ -3469,7 +3469,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: many beach rentals allow it and some prohibit open flame — check the listing, and tell the host it is a propane grill on the deck, not a fire pit.",
       "Quiet hours: San Diego's rental rules go quiet at 10pm. A late-afternoon start gets the cooking done in the warm part of the day and the show at dusk.",
-      "The spot: a level 6x8 ft deck or patio with about 10 ft of clearance, ideally with a wall or windbreak on the ocean side.",
+      "The spot: a level deck or patio about the size of a king-size bed with about 10 ft of clearance, ideally with a wall or windbreak on the ocean side.",
       "Parking: tight in the Shores and along the boardwalk in summer — tell us where the chef can unload. Everything leaves with the chef.",
     ],
     nearby: ["san-diego", "oceanside", "newport-beach"],
@@ -3522,7 +3522,7 @@ export const cityPages: CityPage[] = [
       {
         title: "Montecito & Hope Ranch Estates",
         description:
-          "Lawns, terraces, and big patios built for a crowd. The grill sets up on any level 6x8 ft spot; the show plays to the whole table at once.",
+          "Lawns, terraces, and big patios built for a crowd. The grill sets up on any level spot about the size of a king-size bed; the show plays to the whole table at once.",
       },
       {
         title: "Beach Houses in Carpinteria & Summerland",
@@ -3537,7 +3537,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "Santa Barbara is a real drive from our base — about two hours up the 101 and well past the free 50 miles — so a travel fee applies and is shown upfront in your quote. We build in buffer for 101 traffic through Ventura rather than cutting it fine. The weather is the mildest we serve: marine-layer mornings in May and June, afternoons in the 70s most of the year, and evenings that cool fast once the sun is off the water, so a late-afternoon start gets the cooking done in the warm part of the day and lands the fire show at dusk.",
-      "Access is the Santa Barbara specific. Montecito estates and Riviera homes often mean a gate, a long drive, and a terrace up a flight of stairs — all workable, all things to tell us at booking. Downtown and Mesa street parking is tight on summer weekends, so a driveway spot or a note on where the chef can unload saves circling. During red-flag conditions in the foothills we keep everything on hardscape clear of brush. We need about a 6x8 ft flat area with roughly 10 ft of overhead clearance; the chef brings the grill, the food, and everything for the show, and takes all of it away — your rental's kitchen stays closed.",
+      "Access is the Santa Barbara specific. Montecito estates and Riviera homes often mean a gate, a long drive, and a terrace up a flight of stairs — all workable, all things to tell us at booking. Downtown and Mesa street parking is tight on summer weekends, so a driveway spot or a note on where the chef can unload saves circling. During red-flag conditions in the foothills we keep everything on hardscape clear of brush. We need a flat area about the size of a king-size bed with roughly 10 ft of overhead clearance; the chef brings the grill, the food, and everything for the show, and takes all of it away — your rental's kitchen stays closed.",
     ],
     faqs: [
       {
@@ -3548,7 +3548,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook at our Santa Barbara-area vacation rental?",
         answer:
-          "Yes. Check the listing for outdoor cooking and evening event rules first — most Montecito and Carpinteria rentals allow a propane grill on the patio or lawn. We need a level spot about 6x8 ft with roughly 10 ft of clearance, and an early-evening start wraps well inside quiet hours.",
+          "Yes. Check the listing for outdoor cooking and evening event rules first — most Montecito and Carpinteria rentals allow a propane grill on the patio or lawn. We need a level spot about the size of a king-size bed with roughly 10 ft of clearance, and an early-evening start wraps well inside quiet hours.",
       },
       {
         question: "Can you do a wedding welcome dinner or rehearsal night?",
@@ -3564,7 +3564,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: Montecito and Carpinteria rentals generally allow a propane grill on the patio or lawn — check the house rules and tell the host it is a private chef, not a fire pit.",
       "Quiet hours: most rentals here go quiet at 10pm. A 5:30 or 6pm start lands the show at sunset and the cleanup before the hour.",
-      "The spot: a level 6x8 ft area with about 10 ft of clearance — a terrace, lawn, or driveway. Low pergolas and deep eaves are the usual reason we shift a few feet.",
+      "The spot: a level area about the size of a king-size bed with about 10 ft of clearance — a terrace, lawn, or driveway. Low pergolas and deep eaves are the usual reason we shift a few feet.",
       "Gates and stairs: estate gates, long drives, and a terrace up a flight of stairs are all workable — tell us at booking. Everything leaves with the chef.",
     ],
     nearby: ["malibu", "thousand-oaks", "woodland-hills"],
@@ -3615,7 +3615,7 @@ export const cityPages: CityPage[] = [
       {
         title: "A-Frames & Cabin Decks",
         description:
-          "The classic Idyllwild rental. The grill sets up on the deck or the driveway pad — any level 6x8 ft spot with clearance above it — and the show plays to the railing.",
+          "The classic Idyllwild rental. The grill sets up on the deck or the driveway pad — any level spot about the size of a king-size bed with clearance above it — and the show plays to the railing.",
       },
       {
         title: "Lodges Sleeping Twelve to Twenty",
@@ -3641,7 +3641,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you cook on a cabin deck?",
         answer:
-          "Yes, if it is level, gives us about 6x8 ft, and has roughly 10 ft of clearance above the grill — a low deck roof is the one thing that makes us move to the driveway pad instead. We cook on propane and keep the grill clear of railings, trees, and brush.",
+          "Yes, if it is level, gives us a space about the size of a king-size bed, and has roughly 10 ft of clearance above the grill — a low deck roof is the one thing that makes us move to the driveway pad instead. We cook on propane and keep the grill clear of railings, trees, and brush.",
       },
       {
         question: "What does hibachi at an Idyllwild cabin cost?",
@@ -3657,7 +3657,7 @@ export const cityPages: CityPage[] = [
     rentalChecklist: [
       "Outdoor cooking: cabin rentals almost always allow a propane grill on the deck or driveway — a quick note to the host settles it. We cook on propane, never wood or charcoal.",
       "Quiet hours: Riverside County's rental rules go quiet at 10pm and cap guest counts. A 5 or 5:30pm start wraps the show in daylight and inside them.",
-      "The spot: a level 6x8 ft area with about 10 ft of clearance — deck or driveway pad, cleared of snow in winter. Low deck roofs and deep eaves are the usual reason we shift a few feet.",
+      "The spot: a level area about the size of a king-size bed with about 10 ft of clearance — deck or driveway pad, cleared of snow in winter. Low deck roofs and deep eaves are the usual reason we shift a few feet.",
       "Finding you: steep driveways and patchy cell service — send the map pin, the lockbox details, and where to park. Everything leaves with the chef; the cabin's kitchen never opens.",
     ],
     nearby: ["palm-springs", "temecula", "riverside"],

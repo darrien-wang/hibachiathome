@@ -83,7 +83,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
     ...page.faqs,
     {
       question: `How much space do you need in ${page.city}?`,
-      answer: `About a 6x8 ft flat area for the grill plus roughly 10 ft of overhead clearance, in open air — a patio, deck, driveway, or yard all work. Enclosed rooms and covered balconies do not. Send a photo when you book and we'll confirm the setup spot before your date.`,
+      answer: `A flat area about the size of a king-size bed for the grill plus roughly 10 ft of overhead clearance, in open air — a patio, deck, driveway, or yard all work. Enclosed rooms and covered balconies do not. Send a photo when you book and we'll confirm the setup spot before your date.`,
     },
     {
       question: `Is this an indoor or outdoor party?`,
@@ -211,7 +211,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
             body: (
               <>
                 <p>
-                  We need roughly a 6×8 ft flat outdoor area and about 10 ft of overhead clearance. Best evening months in {page.city}: {climate.bestEvening || "ask us — comfortable evenings are limited here"}; best lunch months: {climate.bestLunch || "evening is the better booking here"}.
+                  We need a flat outdoor area about the size of a king-size bed and about 10 ft of overhead clearance. Best evening months in {page.city}: {climate.bestEvening || "ask us — comfortable evenings are limited here"}; best lunch months: {climate.bestLunch || "evening is the better booking here"}.
                 </p>
                 <p>
                   July averages a high of {climate.julyHigh}°F against {climate.januaryHigh}°F in January.{" "}

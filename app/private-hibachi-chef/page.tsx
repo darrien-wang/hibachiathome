@@ -94,7 +94,7 @@ const faqs = [
   {
     question: "What does the chef need from me?",
     answer:
-      "A flat outdoor spot about 6x8 ft with 10 ft of overhead clearance, plus tables and place settings for your guests (or rent them from us). The chef brings everything else, arrives about 10 minutes early, and handles setup and cleanup.",
+      "A flat outdoor spot about the size of a king-size bed with 10 ft of overhead clearance, plus tables and place settings for your guests (or rent them from us). The chef brings everything else, arrives about 10 minutes early, and handles setup and cleanup.",
   },
   {
     question: "Can I cancel or reschedule my chef?",
