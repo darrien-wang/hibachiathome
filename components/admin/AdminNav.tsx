@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ClipboardList } from "lucide-react"
+import GlobalSearch from "./global-search"
 
 // Top-level nav for the order workbench: orders is the main surface, the
 // legacy lead dashboard is one tab of it (pre-deposit work only).
@@ -55,6 +56,7 @@ export default function AdminNav() {
           )
         })}
       </nav>
+      <GlobalSearch />
     </div>
   )
 }

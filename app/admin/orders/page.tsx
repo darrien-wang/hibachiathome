@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
 import { Car, CreditCard, FileText, Mail, Plus, Tent } from "lucide-react"
 import { phone } from "@/config/site"
+import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 
 // ============================================================
 // 订单工作台 · V1
@@ -342,6 +343,9 @@ export default function OrdersWorkbench() {
         const match = orders.find((o) => (o.source_metadata as Record<string, unknown> | null)?.lead_id === leadParam)
         if (match) openDetail(match.id)
       }
+      // ?order=<order id> from the global search box.
+      const orderParam = params.get("order")?.trim()
+      if (orderParam && orders.some((x) => x.id === orderParam)) openDetail(orderParam)
     } catch {}
   }, [orders, openDetail])
 
@@ -1334,6 +1338,22 @@ function OrderDrawer({
                 ))}
               </div>
             )}
+
+            {/* ---------- 短信对话 ----------
+                Read live from Twilio, replies go out on the 213 line and land
+                in the lead's timeline - the same thread the lead page shows.
+                Until 2026-09-18 the only way to see what a paying customer had
+                said was to leave the order and open the lead. ---------- */}
+            <div style={labelStyle}>短信对话</div>
+            <div style={{ marginBottom: 14 }}>
+              <SmsThreadPanel
+                adminKey={adminKey}
+                phone={o?.customer_phone ?? null}
+                leadId={typeof o?.source_metadata?.lead_id === "string" ? (o.source_metadata.lead_id as string) : null}
+                peerLabel={o?.customer_name ?? null}
+                compact
+              />
+            </div>
 
             {/* ---------- 时间线 ---------- */}
             <div style={labelStyle}>时间线</div>
