@@ -69,7 +69,7 @@ const DISHES = [
 const STEPS = [
   { title: "Text yourself the quote", body: "Add your mobile and email, then pick guests and day — your exact price and discount code show on screen and arrive by text." },
   { title: "We confirm your date", body: "A real person replies by text, confirms the date and books your chef. Free to cancel with 72+ hours notice." },
-  { title: "We bring the restaurant", body: "Chef arrives about 45 min before serving time, sets up, performs, feeds everyone, cleans up." },
+  { title: "We bring the restaurant", body: "Chef arrives 10–30 min before start, lays a mat, sets the grill, performs, feeds everyone, cleans up." },
 ] as const
 
 // Inside-the-card proof photo: a different real party from the hero shot.

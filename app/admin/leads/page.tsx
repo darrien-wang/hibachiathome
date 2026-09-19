@@ -758,7 +758,7 @@ export default function LeadsDashboard() {
     },
     {
       id: "w_confirm48", stage: "won", emoji: "✅", title: "厨师实名确认", when: "开席前 1–2 天，师傅定下来就发",
-      build: () => "Hi! Confirming your hibachi party 🎊 Your chef is Bling, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!",
+      build: () => "Hi! Confirming your hibachi party 🎊 Your chef is Bling, arriving 10–30 minutes before start time (earlier for bigger parties) with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!",
     },
     { id: "w_review", stage: "won", emoji: "⭐", title: "派对次日：邀评", when: "办完派对第二天" },
     { id: "w_ugc", stage: "won", emoji: "📸", title: "派对次日：晒图邀请", when: "邀评后接着发" },

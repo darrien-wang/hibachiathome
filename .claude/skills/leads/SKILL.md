@@ -212,7 +212,7 @@ Real Hibachi · (213) 770-7788
 | 步 | 何时 | 内容 |
 |---|---|---|
 | **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`）+ 要地址 / 门禁 |
-| **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving ~10 min before start with the grill and fresh ingredients. Reply to confirm you're all set!" |
+| **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving 10–30 min before start (earlier for bigger parties) with the grill and fresh ingredients. Reply to confirm you're all set!" |
 | **w_review / w_ugc** | 派对次日 | 邀评 → 晒图 |
 
 **接话模式（客户回了）**：答 ≤2 句 → 推进一格 → 一个选择题。客户一次问多个问题：逐个一句答完仍只收一个问题；细节多就 "just emailed you the full breakdown" + 邮件。
@@ -382,6 +382,7 @@ Real Hibachi · (213) 770-7788
 | **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
 | **餐具/盘子包含吗** | "Plates & utensils are $5/guest if we bring them, or use your own - either works."（桌椅 $10/人另算） |
 | **能在室内做吗** | "All cooking is outdoors — patio, balcony, deck, or under a canopy. Seating can be inside." |
+| **当天要准备什么 / 要不要插座** | 这类问题是担心，答案要是一个轻松具体的场景（用户 09-19 定），拆两条："Here's the day: your chef arrives 10–30 min before start (earlier for bigger parties), lays a waterproof mat, sets the grill and hooks up the propane — no outlet, no power needed." "Tables, chairs & dishes: if you booked them, we set them and you just host — when the chef's ready, bring everyone over. If you're using your own, have them set before we arrive. Anything specific you want — a birthday plate, a seating idea — tell me and if we can do it, we will." |
 | **要多大地方 / 我家院子够不够** | 永远用比喻不报尺寸（用户 09-19 定，免得客户真去量）："A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill — a patio, deck, driveway or yard all work. Send me a photo if you're not sure." |
 | **下雨怎么办** | 10×10 帐篷客户自备；≥72h 改期免费 |
 | **坚果/芝麻过敏** | 第 6 节诚实口径，不承诺 |

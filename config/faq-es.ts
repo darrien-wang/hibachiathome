@@ -33,7 +33,12 @@ Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu even
   {
     question: "¿A qué hora llega el chef?",
     answer:
-      "Tu chef llega unos 10 minutos antes de la hora que elegiste. El montaje es muy rápido, así que la plancha y los ingredientes estarán listos en cuestión de minutos.",
+      "Tu chef llega entre 10 y 30 minutos antes de la hora que elegiste — más cerca de 30 si la fiesta es grande — descarga, coloca el tapete, monta la plancha y conecta el propano. A la hora de inicio la plancha ya está caliente y los ingredientes listos.",
+  },
+  {
+    question: "¿Qué necesitan de nosotros ese día? ¿Necesitan un enchufe?",
+    answer:
+      "Solo el lugar. Tu chef llega 10–30 minutos antes de la hora de inicio, descarga, coloca un tapete impermeable y a prueba de grasa, monta la plancha teppanyaki y conecta el propano — sin enchufe, sin electricidad, sin toma de agua. Si reservaste mesas, sillas y cubiertos, también los montamos, y tú no haces nada más que recibir a tus invitados; cuando el chef esté listo, los traes a la mesa. Si usas tus propias mesas y vajilla, tenlas listas antes de que lleguemos y del resto nos encargamos nosotros. ¿Algo especial en mente — un plato de cumpleaños, una idea para los asientos, una sorpresa? Dínoslo al reservar y, si podemos hacerlo, lo haremos.",
   },
   {
     question: "¿Qué pasa si el chef no llega?",

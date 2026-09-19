@@ -36,7 +36,12 @@ If using credit card, payment must be settled at least 72 hours before your even
   {
     question: "When will the chef arrive?",
     answer:
-      "Your chef will pull up about 10 minutes before the start time you chose. Setup is very quick, so we'll be ready with the grill and ingredients moments later.",
+      "Your chef pulls up 10–30 minutes before the start time you chose — closer to 30 for bigger parties — unloads, lays the mat, sets the grill and connects the propane. By your start time the grill is hot and the ingredients are out.",
+  },
+  {
+    question: "What do you need from us on the day? Do you need an outlet?",
+    answer:
+      "Nothing but the spot. Your chef arrives 10–30 minutes before start time, unloads, lays a waterproof, grease-proof mat, sets up the teppanyaki grill and connects the propane — no outlet, no power, no water hookup. If you booked tables, chairs and utensils, we set those up too, and you do nothing but greet your guests; when the chef is ready, bring everyone over. If you're using your own tables and dishes, have them set before we arrive and we handle the rest. Something specific in mind — a birthday plate, a seating idea, a surprise? Tell us when you book, and if we can do it, we will.",
   },
   {
     question: "What if the chef doesn't show up?",
