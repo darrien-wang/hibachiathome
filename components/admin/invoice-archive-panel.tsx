@@ -18,6 +18,7 @@ type Send = {
   totals: { finalTotal?: number; deposit?: number; balanceDue?: number } | null
   source: string
   note: string | null
+  has_pdf?: boolean
   created_at: string
 }
 
@@ -90,6 +91,28 @@ export function InvoiceArchivePanel({
     }
   }
 
+  // The PDF the customer was emailed (sends from 2026-09-19 on). Fetched with
+  // the key in a header, handed to the new tab as a blob URL.
+  const openPdf = async (id: string) => {
+    const win = window.open("", "_blank")
+    setOpening(`${id}:pdf`)
+    try {
+      const res = await fetch(`/api/admin/invoice-archive?id=${encodeURIComponent(id)}&format=pdf`, {
+        headers: { "x-admin-key": adminKey },
+        cache: "no-store",
+      })
+      if (!res.ok) throw new Error((await res.text()).slice(0, 200))
+      const url = URL.createObjectURL(await res.blob())
+      if (win) win.location.href = url
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      if (win) win.close()
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setOpening(null)
+    }
+  }
+
   if (sends === null) return <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>读取中…</p>
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -121,6 +144,16 @@ export function InvoiceArchivePanel({
           >
             {opening === s.id ? "打开中…" : "查看已发送版本"}
           </button>
+          {s.has_pdf && (
+            <button
+              type="button"
+              onClick={() => void openPdf(s.id)}
+              disabled={opening === `${s.id}:pdf`}
+              style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer" }}
+            >
+              {opening === `${s.id}:pdf` ? "打开中…" : "PDF"}
+            </button>
+          )}
         </div>
       ))}
       {error && <p style={{ fontSize: 12, color: "#b91c1c", margin: 0 }}>{error}</p>}

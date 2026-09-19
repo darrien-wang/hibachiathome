@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic"
 //
 //   GET ?order_no=RH-...  or ?order_id=<uuid>   -> list of sends (no html)
 //   GET ?id=<uuid>                              -> the archived document
+//   GET ?id=<uuid>&format=pdf                   -> the PDF the customer was emailed
 //
 // Owner or agent key, header x-admin-key (or ?key=).
 
@@ -32,11 +33,12 @@ type ArchiveRow = {
   provider_message_id: string | null
   source: string
   note: string | null
+  has_pdf: boolean
   created_at: string
 }
 
 const LIST_COLUMNS =
-  "id,order_id,order_no,kind,sent_to,subject,totals,customer_url,provider,provider_message_id,source,note,created_at"
+  "id,order_id,order_no,kind,sent_to,subject,totals,customer_url,provider,provider_message_id,source,note,has_pdf,created_at"
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function escapeHtml(value: string): string {
@@ -79,6 +81,25 @@ export async function GET(request: NextRequest) {
 
   if (id) {
     if (!UUID_RE.test(id)) return NextResponse.json({ error: "bad id" }, { status: 400 })
+    if (p.get("format") === "pdf") {
+      const { data, error } = await supabase
+        .from("invoice_archive")
+        .select("order_no,created_at,pdf_base64")
+        .eq("id", id)
+        .maybeSingle()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      const row = data as { order_no: string | null; created_at: string; pdf_base64: string | null } | null
+      if (!row?.pdf_base64) return NextResponse.json({ error: "no PDF stored for this send" }, { status: 404 })
+      const name = `${(row.order_no ?? "invoice").replace(/[^A-Za-z0-9-]/g, "") || "invoice"}-invoice-sent-${row.created_at.slice(0, 10)}.pdf`
+      return new NextResponse(new Uint8Array(Buffer.from(row.pdf_base64, "base64")), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${name}"`,
+          "Cache-Control": "no-store, no-transform",
+        },
+      })
+    }
     const { data, error } = await supabase
       .from("invoice_archive")
       .select(`${LIST_COLUMNS},html`)
@@ -88,7 +109,9 @@ export async function GET(request: NextRequest) {
     if (!data) return NextResponse.json({ error: "not found" }, { status: 404 })
     return new NextResponse(withBanner(data as ArchiveRow & { html: string }), {
       status: 200,
-      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      // no-transform keeps Cloudflare from rewriting the customer's email
+      // address into "[email protected]" in the archived document.
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store, no-transform" },
     })
   }
 
