@@ -67,6 +67,7 @@ export const faqGroups: FaqGroup[] = [
     name: "On the Day",
     items: [
       ...pick("When will the chef arrive?"),
+      ...pick("What do you need from us on the day? Do you need an outlet?"),
       ...pick("Can you provide tables and chairs?"),
       ...pick("Will the grill damage or dirty my patio?"),
       ...pick("Do you cook indoors?"),
