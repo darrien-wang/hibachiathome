@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
  * latest_message / last_seen_at so the daily "unanswered leads" sweep knows
  * someone replied (see ~/.claude/scheduled-tasks/ads-daily-report).
  */
+// Automated texts (the instant quote, deposit confirmation, planner notices)
+// all open with the house signature "Real Hibachi:" - planner-notify refuses
+// anything else. Personal messages open with "Hi, it's Bling" / "It's Bling".
+function isAutomatedText(body: string): boolean {
+  return body.trimStart().startsWith("Real Hibachi:")
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   let payload: { phone?: string; body?: string; leadId?: string; force?: boolean }
@@ -100,7 +107,12 @@ export async function POST(request: NextRequest) {
         const everReplied = thread.some((m) => m.direction === "inbound")
         const now = Date.now()
         const last24h = outbound.filter((m) => now - new Date(m.at).getTime() < 24 * 3600_000).length
-        const lastOut = outbound[outbound.length - 1]
+        // Spacing is about a person texting twice in a row. An automated
+        // quote reads as automatic, so a personal first message right after
+        // it is fine (owner, 2026-09-19: a new lead waited two hours because
+        // the instant quote had gone out 110 minutes earlier). Automated
+        // texts still count toward the daily and lifetime caps above.
+        const lastPersonalOut = [...outbound].reverse().find((m) => !isAutomatedText(m.body))
         if (!everReplied && outbound.length >= FOLLOWUP_CAP) {
           return NextResponse.json(
             { error: `已发 ${outbound.length} 条、对方从没回过，到上限 ${FOLLOWUP_CAP} 条，停发`, brake: "cap" },
@@ -110,7 +122,7 @@ export async function POST(request: NextRequest) {
         if (last24h >= 2) {
           return NextResponse.json({ error: "24 小时内已经主动发过 2 条", brake: "daily" }, { status: 409 })
         }
-        if (lastOut && now - new Date(lastOut.at).getTime() < 3 * 3600_000) {
+        if (lastPersonalOut && now - new Date(lastPersonalOut.at).getTime() < 3 * 3600_000) {
           return NextResponse.json({ error: "距上一条主动消息不到 3 小时", brake: "spacing" }, { status: 409 })
         }
       }
