@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getDrivingMiles } from "@/lib/travel-distance"
+import { homeBaseOrigin } from "@/config/home-base"
 import {
   DEPOSIT_AMOUNT,
   GUEST_TIERS,
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic"
 //
 // GET /api/agent/price?adults=15&kids=2&under5=1&date=2026-10-14&zip=92618
 
-const ORIGIN_ZIP = process.env.TRAVEL_ORIGIN_ADDRESS ?? "91744"
+const ORIGIN_ZIP = homeBaseOrigin()
 
 const int = (v: string | null, min: number, max: number) => {
   const n = Math.round(Number(v ?? 0))

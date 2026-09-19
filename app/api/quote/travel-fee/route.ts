@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getDrivingMiles, TravelDistanceError } from "@/lib/travel-distance"
+import { homeBaseOrigin } from "@/config/home-base"
 import {
   calcTravelFee,
   TRAVEL_FREE_RADIUS_MILES,
@@ -12,7 +13,7 @@ export const runtime = "nodejs"
 // close enough against a 50-mile free radius, and the exact street address
 // deliberately never appears in code, git history, or API responses.
 // TRAVEL_ORIGIN_ADDRESS overrides without a deploy.
-const ORIGIN_ZIP = process.env.TRAVEL_ORIGIN_ADDRESS ?? "91744"
+const ORIGIN_ZIP = homeBaseOrigin()
 
 // Policy lives in config/pricing-rules.ts and is shared with the invoice app,
 // so a quote and the invoice that follows it can never disagree. This route

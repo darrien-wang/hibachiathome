@@ -2,11 +2,12 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getDrivingMiles, TravelDistanceError } from "@/lib/travel-distance"
 import { calcTravelFee, TRAVEL_FREE_RADIUS_MILES, TRAVEL_RATE_PER_MILE } from "@/config/pricing-rules"
+import { homeBaseOrigin } from "@/config/home-base"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const BASE_ORIGIN_ZIP = "91748"
+const BASE_ORIGIN_ZIP = homeBaseOrigin()
 
 // Staff-only driving-distance calculator for the order workbench. One engine
 // (lib/travel-distance: Google Distance Matrix, OSRM keyless fallback), one

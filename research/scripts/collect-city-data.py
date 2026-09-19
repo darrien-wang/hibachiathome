@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Collect real per-city data for the Real Hibachi city pages.
 
-  distance  OSRM driving miles from our base ZIP 91748 (Rowland Heights)
+  distance  OSRM driving miles from our home base (config/home-base.ts)
   climate   Open-Meteo historical archive, 2019-2024, aggregated by month
   sunset    from the same archive, so it is the real local sunset
 
@@ -11,7 +11,7 @@ import json, os, time, urllib.request, urllib.parse, statistics, re, sys
 
 UA = {'User-Agent': 'realhibachi-city-data/1.0 (support@realhibachi.com)'}
 CACHE = 'city_data.json'
-BASE_QUERY = "Rowland Heights, California, USA"   # ZIP 91748
+BASE_QUERY = "91744, California, USA"   # keep in step with config/home-base.ts (HOME_BASE_ZIP)
 
 CITIES = [
  ("los-angeles","Los Angeles"),("downtown-los-angeles","Downtown Los Angeles"),

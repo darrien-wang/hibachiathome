@@ -2,7 +2,7 @@
 // research/scripts/ if the base location or the source data changes.
 //
 // Every number here is measured, not written:
-//   miles       driving distance from our base ZIP 91748 (Rowland Heights),
+//   miles       driving distance from our home base (config/home-base.ts, 91744),
 //               via OSRM road routing
 //   travelFee   that distance under our published policy: first 50 miles free,
 //               then $1 for each mile beyond
@@ -38,7 +38,7 @@ export type CityClimate = {
 
 export const cityClimate: Record<string, CityClimate> = {
   "anaheim": {
-    miles: 11.9,
+    miles: 18.1,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -65,7 +65,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "arcadia": {
-    miles: 24.5,
+    miles: 13.2,
     travelFee: 0,
     bestEvening: "June through October",
     bestLunch: "June and October",
@@ -92,7 +92,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "beverly-hills": {
-    miles: 34.3,
+    miles: 30.6,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -119,7 +119,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "burbank": {
-    miles: 34.7,
+    miles: 29.2,
     travelFee: 0,
     bestEvening: "May through November",
     bestLunch: "May through June and October through November",
@@ -146,7 +146,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "corona": {
-    miles: 27.1,
+    miles: 31.8,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through May and November",
@@ -173,7 +173,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "culver-city": {
-    miles: 33.3,
+    miles: 29.6,
     travelFee: 0,
     bestEvening: "June through October",
     bestLunch: "April through November",
@@ -200,7 +200,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "diamond-bar": {
-    miles: 7.3,
+    miles: 12.3,
     travelFee: 0,
     bestEvening: "May through November",
     bestLunch: "May and October through November",
@@ -227,7 +227,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "downtown-los-angeles": {
-    miles: 24.7,
+    miles: 21.7,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -254,7 +254,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "glendale": {
-    miles: 33.0,
+    miles: 27.5,
     travelFee: 0,
     bestEvening: "May through November",
     bestLunch: "May through June and October through November",
@@ -281,7 +281,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "hollywood": {
-    miles: 30.8,
+    miles: 26.2,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -308,7 +308,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "huntington-beach": {
-    miles: 29.8,
+    miles: 37.3,
     travelFee: 0,
     bestEvening: "June through October",
     bestLunch: "April through November",
@@ -335,7 +335,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "inglewood": {
-    miles: 36.8,
+    miles: 33.1,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through November",
@@ -362,7 +362,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "irvine": {
-    miles: 26.7,
+    miles: 32.8,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through July and September through November",
@@ -389,7 +389,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "long-beach": {
-    miles: 30.6,
+    miles: 32.9,
     travelFee: 0,
     bestEvening: "June through October",
     bestLunch: "April through November",
@@ -416,7 +416,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "los-angeles": {
-    miles: 24.9,
+    miles: 20.3,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -443,8 +443,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "malibu": {
-    miles: 51.0,
-    travelFee: 1,
+    miles: 47.3,
+    travelFee: 0,
     bestEvening: "June through November",
     bestLunch: "April through July and September through November",
     hotMonths: "",
@@ -470,7 +470,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "newport-beach": {
-    miles: 31.2,
+    miles: 37.3,
     travelFee: 0,
     bestEvening: "July through October",
     bestLunch: "May through November",
@@ -497,8 +497,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "oceanside": {
-    miles: 70.1,
-    travelFee: 20,
+    miles: 76.2,
+    travelFee: 26,
     bestEvening: "July through October",
     bestLunch: "May through November",
     hotMonths: "",
@@ -524,8 +524,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "palm-springs": {
-    miles: 86.6,
-    travelFee: 37,
+    miles: 92.2,
+    travelFee: 42,
     bestEvening: "April through May and October through November",
     bestLunch: "November through February",
     hotMonths: "June through September",
@@ -551,7 +551,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "pasadena": {
-    miles: 24.8,
+    miles: 22.3,
     travelFee: 0,
     bestEvening: "May through November",
     bestLunch: "May through June and October through November",
@@ -578,7 +578,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "riverside": {
-    miles: 33.9,
+    miles: 38.9,
     travelFee: 0,
     bestEvening: "April through June and September through November",
     bestLunch: "April through May and November",
@@ -605,7 +605,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "rowland-heights": {
-    miles: 0.0,
+    miles: 8.3,
     travelFee: 0,
     bestEvening: "May through November",
     bestLunch: "May through June and October through November",
@@ -632,8 +632,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "san-diego": {
-    miles: 107.2,
-    travelFee: 57,
+    miles: 113.4,
+    travelFee: 63,
     bestEvening: "June through October",
     bestLunch: "May through November",
     hotMonths: "",
@@ -659,7 +659,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "san-gabriel": {
-    miles: 18.3,
+    miles: 13.3,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -686,8 +686,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "santa-clarita": {
-    miles: 58.9,
-    travelFee: 9,
+    miles: 53.4,
+    travelFee: 3,
     bestEvening: "April through October",
     bestLunch: "April through May and October through November",
     hotMonths: "July through August",
@@ -713,7 +713,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "santa-monica": {
-    miles: 38.6,
+    miles: 34.8,
     travelFee: 0,
     bestEvening: "June through November",
     bestLunch: "April through November",
@@ -740,8 +740,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "temecula": {
-    miles: 64.9,
-    travelFee: 15,
+    miles: 69.7,
+    travelFee: 20,
     bestEvening: "May through November",
     bestLunch: "May through June and October through November",
     hotMonths: "",
@@ -767,8 +767,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "thousand-oaks": {
-    miles: 65.9,
-    travelFee: 16,
+    miles: 60.4,
+    travelFee: 10,
     bestEvening: "May through November",
     bestLunch: "April through June and October through November",
     hotMonths: "",
@@ -794,7 +794,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "torrance": {
-    miles: 33.1,
+    miles: 35.4,
     travelFee: 0,
     bestEvening: "June through October",
     bestLunch: "April through November",
@@ -821,7 +821,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "west-covina": {
-    miles: 9.2,
+    miles: 4.1,
     travelFee: 0,
     bestEvening: "May through November",
     bestLunch: "May and October through November",
@@ -848,7 +848,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "west-hollywood": {
-    miles: 32.8,
+    miles: 28.2,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -875,7 +875,7 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "whittier": {
-    miles: 10.8,
+    miles: 9.0,
     travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
@@ -902,8 +902,8 @@ export const cityClimate: Record<string, CityClimate> = {
     ],
   },
   "woodland-hills": {
-    miles: 51.2,
-    travelFee: 1,
+    miles: 45.7,
+    travelFee: 0,
     bestEvening: "April through November",
     bestLunch: "April through June and October through November",
     hotMonths: "",

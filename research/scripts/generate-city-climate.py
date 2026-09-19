@@ -76,7 +76,7 @@ header = '''// GENERATED FILE - do not hand-edit. Regenerate with the collector 
 // research/scripts/ if the base location or the source data changes.
 //
 // Every number here is measured, not written:
-//   miles       driving distance from our base ZIP 91748 (Rowland Heights),
+//   miles       driving distance from our home base (config/home-base.ts),
 //               via OSRM road routing
 //   travelFee   that distance under our published policy: first %d miles free,
 //               then $%d for each mile beyond

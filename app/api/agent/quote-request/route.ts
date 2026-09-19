@@ -4,6 +4,7 @@ import { getDrivingMiles } from "@/lib/travel-distance"
 import { toE164 } from "@/lib/sms-thread"
 import { calcTravelFee } from "@/config/pricing-rules"
 import { POST as landingQuote } from "@/app/api/landing-quote/route"
+import { homeBaseOrigin } from "@/config/home-base"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic"
 // explicit statement that the customer asked for it, and throttles per phone
 // number as well as per IP.
 
-const ORIGIN_ZIP = process.env.TRAVEL_ORIGIN_ADDRESS ?? "91744"
+const ORIGIN_ZIP = homeBaseOrigin()
 
 type Body = {
   name?: unknown
