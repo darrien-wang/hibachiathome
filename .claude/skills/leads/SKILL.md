@@ -390,20 +390,20 @@ curl -s -X PATCH -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
   -d '{"action":"call_note","phone":"+1…","note":"…"}'
 ```
 
-**短信（Twilio）**
+**短信（一律走工作台接口，不直接调 Twilio 发；09-18 用户定：沟通记录要全）**
 ```bash
-# 收件箱 / 与某客户的来往
-curl -s -u "$SID:$TOK" "https://api.twilio.com/2010-04-01/Accounts/$SID/Messages.json?To=%2B12137707788&PageSize=20"
-curl -s -u "$SID:$TOK" "https://api.twilio.com/2010-04-01/Accounts/$SID/Messages.json?From=%2B1XXXXXXXXXX&PageSize=20"
-# 发送（务必带 StatusCallback，失败才会进工作台）
-curl -s -u "$SID:$TOK" -X POST "https://api.twilio.com/2010-04-01/Accounts/$SID/Messages.json" \
-  --data-urlencode "MessagingServiceSid=$MSG" \
-  --data-urlencode "To=+1XXXXXXXXXX" \
-  --data-urlencode "StatusCallback=https://www.realhibachi.com/api/twilio/sms-status" \
-  --data-urlencode "Body=…"
-# 45–60 秒后验送达
+# 与某客户的来往（从 Twilio 实时读，含所有渠道发出的；带 leadId 会把合并进来的第二个号码一起读）
+curl -s -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/sms-thread?leadId=<id>&phone=%2B1XXXXXXXXXX"
+# 发送：从 213 线发出，自动带 StatusCallback，并在线索时间线记一条 sms_outbound（含完整正文）、刷新 latest_message / last_seen_at
+curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
+  "https://www.realhibachi.com/api/admin/sms-thread" \
+  -d '{"phone":"+1XXXXXXXXXX","body":"…","leadId":"<id>"}'
+# 返回 {ok, sid, status}；45–60 秒后验送达
 curl -s -u "$SID:$TOK" "https://api.twilio.com/2010-04-01/Accounts/$SID/Messages/<MessageSid>.json" | grep -o '"status": *"[a-z]*"\|"error_code": *[0-9]*'
+# 找人：姓名 / 手机 / 邮箱 / 订单号 / 地址 → 按客户分组返回其所有线索和订单
+curl -s -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/search?q=natalie"
 ```
+直接调 Twilio 只用于**读**状态和历史；用它发出去的短信不会进线索时间线，只能在对话面板里看到。
 状态处理：`delivered` ✅；`30003` 手机不可达（试一次后改邮件）；`30005` T-Mobile 拒收（改邮件，报用户）；`21703/21704/30024` 是我们配置问题（停发，报用户）；`queued/sent` 超过 2 分钟再查一次。
 
 **邮件（Resend，从 support@realhibachi.com 发；带 leadId 会自动记首响 + 备注 + new→qualified）**
