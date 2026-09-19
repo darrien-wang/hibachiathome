@@ -58,6 +58,18 @@ export async function POST(request: NextRequest) {
       .limit(1)
     const lead = leads?.[0]
 
+    // A number that is off / unreachable (30003) or a landline (30006) is not
+    // texted again (owner, 2026-09-19): every lead on it is blocked, and the
+    // block lifts by itself the day that number texts us. 30005 is not here on
+    // purpose - that one was our own brand registration, not their phone.
+    if (errorCode === "30003" || errorCode === "30006") {
+      await supabase
+        .from("leads")
+        .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `${errorCode} ${describe(errorCode)}` })
+        .eq("phone", to)
+        .is("sms_blocked_at", null)
+    }
+
     if (lead) {
       await supabase.from("lead_touchpoints").insert({
         lead_id: lead.id,

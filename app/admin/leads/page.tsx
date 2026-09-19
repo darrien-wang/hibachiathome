@@ -442,14 +442,21 @@ export default function LeadsDashboard() {
       setSmsSending(true)
       try {
         const body = await shortenLinks(draft, l.id)
-        const res = await fetch("/api/admin/sms-thread", {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-admin-key": adminKey },
-          body: JSON.stringify({ phone: l.phone, body, leadId: l.id }),
-        })
-        const data = await res.json().catch(() => ({}))
+        const post = (force: boolean) =>
+          fetch("/api/admin/sms-thread", {
+            method: "POST",
+            headers: { "content-type": "application/json", "x-admin-key": adminKey },
+            body: JSON.stringify({ phone: l.phone, body, leadId: l.id, force }),
+          })
+        let res = await post(false)
+        let data = await res.json().catch(() => ({}))
+        // Brakes (cap / spacing / dead number) are rules the owner can overrule.
+        if (res.status === 409 && data.brake && window.confirm(`${data.error}。\n\n仍然发送？`)) {
+          res = await post(true)
+          data = await res.json().catch(() => ({}))
+        }
         if (!res.ok) {
-          window.alert(`发送失败：${data.error ?? res.status}`)
+          if (res.status !== 409) window.alert(`发送失败：${data.error ?? res.status}`)
           return
         }
         setSmsDraft("")

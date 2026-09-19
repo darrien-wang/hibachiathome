@@ -83,14 +83,21 @@ export function SmsThreadPanel({
     if (!phone || !body || sending) return
     setSending(true)
     try {
-      const res = await fetch("/api/admin/sms-thread", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ phone, body, leadId: leadId ?? undefined }),
-      })
-      const data = await res.json().catch(() => ({}))
+      const post = (force: boolean) =>
+        fetch("/api/admin/sms-thread", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ phone, body, leadId: leadId ?? undefined, force }),
+        })
+      let res = await post(false)
+      let data = await res.json().catch(() => ({}))
+      // A brake is a rule, not an error: show why and let the owner overrule it.
+      if (res.status === 409 && data.brake && window.confirm(`${data.error}。\n\n仍然发送？`)) {
+        res = await post(true)
+        data = await res.json().catch(() => ({}))
+      }
       if (!res.ok) {
-        window.alert(`发送失败：${data.error ?? res.status}`)
+        if (res.status !== 409) window.alert(`发送失败：${data.error ?? res.status}`)
         return
       }
       setDraft("")

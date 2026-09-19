@@ -163,54 +163,67 @@ Real Hibachi · (213) 770-7788
 | **S0 自助** | 自己付了 | 不打扰，直接 4.5 成交后流程 |
 | **S1 接话** | 24 小时内有回复 | 接话模式：答 ≤2 句 + 一个选择题；**不走定时阶梯** |
 | **S2 摇摆·开口型** | 回过话，但价格 / 时间 / 人数拿不定，不付 | 4.3 截止 + 小赢 |
-| **S3 摇摆·沉默型** | 报价后 24 小时零回复 | 4.2 十四天理由阶梯 |
-| **S4 休眠** | 阶梯走完仍无回 | `dormant`，只按派对日期倒推触达（f_date） |
+| **S3 摇摆·沉默型** | 报价后 24 小时零回复 | 4.2 理由阶梯（最多 6 条，最后一条说到做到） |
+| **S4 休眠** | 阶梯走完仍无回 | `dormant`，**不再主动发**，只等他来；他一开口立即接话 |
 
 `lost` 只有三种：客户明确说不、日期已过、明确选了别家。**沉默永远不等于 lost。** 客户一回话，任何段都立即切回 S1 接话模式，定时步全部作废重排。
 
-### 4.2 沉默型：十四天理由阶梯
+### 4.2 沉默型：理由阶梯（09-19 第二版，用户对抗性审查后定）
 
-规则：每步一个**不同**的理由；每步只发一次；定时步只在 **9:00–20:00 PT** 发（接话不限时）；两条之间至少隔 3 小时；链接一律押金页短链（30 天有效），**不用 Stripe 的 24 小时收款链接**；不打电话追单。
+**规则**
+- 每步一个**不同的真理由**；每步只发一次；客户一回话立刻切接话模式，后面的步全部作废重排。
+- **不设静默时段、不按对方时区**（用户定：响应越快越好）。回复和首响随到随回；定时步按下表的时点发。
+- 自动报价就算首响：它发出去了，就不再补一条人工首响，除非有新信息（例如他填的日期要确认、价格要修正）。
+- 链接一律押金页短链（30 天有效），不用 Stripe 的 24 小时收款链接；不打电话追单。
+- 同一天追第二条**取消**：老 f45 发过 8 次，1 小时、3 小时内都是零回复；会回话的人 64% 在 45 分钟内就回了。
 
-| 步 | 时点 | 理由 | 话术要点 |
-|---|---|---|---|
-| **T0 首响** | ≤5 分钟 | 认领 + 价 + 一问 | 第 3 节 |
-| **f_later** | 首响在白天 → 当晚 7–8 点；首响在晚上 → 并入次日 f_morning 不单发 | 当天收尾：选择题 + 免押金占位 | "No rush — I'll pencil [date] in for you, no deposit needed while you decide. 6:30 or 7 when you know?" |
-| **f_morning** | 次日上午 | 可逆性 + 押金链接，拆两条发（**用户 09-19 定：短信里不再提 "if we ever cancel / double deposit"，那是把没人想的失败场景放进客户脑子；到场承诺留给网页和确认阶段**） | 第一条："Morning, it's Bling — still holding [Sat, Sept 26] for your [13] in [Chino Hills], $[658.70] all-in. $19.90 holds the date; headcount can change up to the day before, and it's fully refundable 72 hours out: <link>" 第二条："We bring everything — grill, food, tables if you want them. You just need a flat spot outside about the size of a king-size bed, and the whole thing runs about 90 minutes." 没日期的：第一条改成 "happy to pencil in a date for your [Temecula] party of ~[15] — which weekend are you looking at?"，不带链接 |
-| **f_planner** | 只在客户提过"和朋友对时间/人数" | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link`；"While you're checking with your group — I set up a party planner just for you: <link> — everyone grabs a seat & picks their proteins (2 min each). Your date's still penciled in." 没提过就跳过 |
-| **f_deadline** | 第 3 天 | **真实截止 + 邀请异议**（替换原"最后一条"） | "I can hold [date] through [Sunday]; after that it opens back up. If the number is the sticking point, tell me what works and I'll see what I can do." |
-| **f_reason** | 第 7 天 | 一个**真**理由：周中特价 / 20+ 送拼盘 / 那个周末确实紧 | "Quick one — [reason]. [Date] is still open on our end." 没有真理由就跳到 f_door |
-| **f_door** | 第 14 天 | 留门不关门，然后进休眠 | "No pressure from me. If the party's still on, the quote and the link still work — just text when you're ready." → `dormant` |
-| **f_date** | 派对前 21 天、前 7 天（有日期的，任何段） | 日期驱动 | "Three weeks out from [date] — still open, still $[X]. Want it?" |
-| **押金提醒**（已确认未付） | 确认后 24 小时押金没到 | 把链接直接放短信里 | "Got you down for [day] at [time], [N] guests, $[total]. Here's the $19.90 deposit link; once it's in, your chef is confirmed by name: <link>" ——不加台阶不加备选 |
+| # | 步 | 时点 | 真理由 | 话术要点 |
+|---|---|---|---|---|
+| 1 | **报价 / T0** | 第 0 天，≤5 分钟 | 认领 + 价 + 一问 | 第 3 节；自动报价已发就不重复 |
+| 2–3 | **f_morning** | 次日上午，拆两条 | 可逆性 + 链接；物流一句 | "Morning, it's Bling — still holding [Sat, Sept 26] for your [13] in [Chino Hills], $[658.70] all-in. $19.90 holds the date; headcount can change up to the day before, and it's fully refundable 72 hours out: <link>" / "We bring everything — grill, food, tables if you want them. You just need a flat spot outside about the size of a king-size bed, and the whole thing runs about 90 minutes." 没日期的第一条改问 "which weekend are you looking at?" 不带链接 |
+| — | **f_planner** | 只在客户提过"和朋友对时间/人数" | 递工具帮他组局 | 先 `POST /api/admin/planner-link`；占一条名额 |
+| 4 | **f_deadline** | 第 3 天 | **真截止** + 开门问"什么挡着你" | 截止三选一，见下；后半句固定："If something's in the way — the date, the headcount, the budget — tell me and I'll see what I can do." |
+| 5 | **f_last** | 第 7–10 天 | 真收尾，发完**真停** | "Last note from me — I'll take [date] off my calendar after [Sunday]. If the party's still on, the link still works: <link>" → `dormant`，不再主动发 |
 
-老 f45（首响后 45 分钟追一条）**取消**：发过 8 次，1 小时内零回复、3 小时内零回复、零负面；会回话的人 64% 在 45 分钟内就回了，45 分钟还没回的当下就是不打算回，追上去只剩"一小时两条"的观感。
+**截止只挂在真会发生的事上（三选一，按顺序）**
+1. **派对在 6 周内**：用客户自己的时钟。"If invites are going out this week, lock it now so the date on the invite is real." / 3 周内的周末："Saturday's [12] days out — lock it now and I'll assign your chef and start the shopping list."
+2. **有真实到期的优惠**：20+ 送拼盘到 10/31、周中特价、当期致敬计划的截止日。没有就不编。
+3. **都没有**：只说我们这边真会做的动作——"I'll take the pencil off my calendar Sunday." 之后**永远不说 "still open"**，改成 "Want me to check [date] for you?"，查了再说开着，前后不互相拆穿。
 
-### 4.3 开口型：截止 + 小赢（Dunn 剧本，用 §7.1 谈判模块）
+**周末是最快成交的杠杆（用户 09-19），但只说真话**：12 单押金里 9 单在周末、8 单在周六；8 天内的周末单 3/3 在 22 小时内付完——快是因为客户自己的时钟。可用的三句：3 周内的周末用上面的时钟句；更远的周末 "Saturdays are when most of our parties land, so they're the dates I'd lock first."；那天订单表里已经有单 "We already have a party that Saturday."（发前查 orders）。**"那个周末紧 / 快满了"不说**——按订单每个周六都只有 1 场，说了下一条就穿帮。
 
-触发：客户回了话但不付；或截止短信之后客户提出价格 / 条件。
+### 4.3 开口型：截止 + 小赢（Dunn 剧本）——让步规则以此为准
 
-1. **先问再让**：一句 "What works for you?" 让他先出数，不先报让步。
-2. **一个小赢**，按我们的真实成本从低到高挑（**用户 09-19 定的顺序**）：
+触发：客户回了话但不付；或截止短信之后他说出了挡着的东西。
+
+1. **先问再让**："What would make it work?" 让他先说，不先报数。
+2. **一个小赢**，按我们的真实成本从低到高挑（用户 09-19 定的顺序）：
    - ① 调日期 / 时间（周中 $54.90 + 送拼盘；白天场）——零成本
-   - ② 拼盘 / 致敬计划（已有政策内的东西）
-   - ③ 现金折扣：§5.1 已授权带宽内我直接定（**每人 ≤$5 或每单 ≤$100，取小**）
-   - ④ **桌椅折扣放最后**：桌椅我们的成本是每人 $4（付给师傅的搬运工资），不比现金折扣便宜，别把它当"免费筹码"
-3. **锁进签名链接 + 明确有效期**（协议总价，§10）："Good through Sunday — here's the link with that price locked in: <link>"
-4. **只让一次**。超带宽、低于 $49.90/人、破 $599 底线 → 一句话问用户（竞品价 + 包含项）。
-5. 说法主动干脆带条件，不求人（§1.1、§9）。
+   - ② 拼盘 / 致敬计划（已有政策内的）
+   - ③ 现金折扣，带宽内（**每人 ≤$5 或每单 ≤$100，取小**）
+   - ④ **桌椅放最后**：桌椅成本 $4/人（付师傅），不比现金折扣便宜
+3. **带宽内我直接定、当场发，事后在汇报里告诉用户**——为成交抢速度；超带宽、低于 $49.90/人、破 $599 底线 → 一句话问用户。
+4. **锁进签名链接 + 明确有效期**（协议总价，§10）："Good through Sunday — here's the link with that price locked in: <link>"
+5. **只让一次**。§5.1 的"三步递减"**只用于客户拿竞品报价来比**的情况。
+6. 说法主动干脆带条件，不求人（§1.1、§9）。
 
-### 4.4 状态字段与自主权限（心跳的执行边界）
+### 4.4 刹车、状态与自主权限
 
-**状态进库，不进浏览器**：`leads.segment`（self / talk / swing_open / swing_silent / dormant）、`leads.ladder_step`（t0 / f_later / f_morning / f_planner / f_deadline / f_reason / f_door / f_date_21 / f_date_7 / done）、`leads.next_action_at`、`leads.hold_until`。心跳按 `next_action_at` 跑；工作台 localStorage 里的提醒和"已发"勾**作废不看**。写法见 §10（`update_fields` 接口补上之前先用 SQL）。
+**刹车（发送接口 `/api/admin/sms-thread` 服务器端强制，读 Twilio 真实往来，不靠我记得）**
+- 客户最后说话的 → **永远不刹**，立刻回。
+- 主动跟进时：对方从没回过、已发满 **6 条**（自动报价算 1、拆两条算 2）→ 拒发；24 小时内已主动发 2 条 → 拒发；距上一条主动消息不到 3 小时 → 拒发。返回 409 + `brake`（cap / daily / spacing / sms_blocked）。用户本人可以 `force:true` 覆盖，工作台会弹确认。
+- **打不通的号码不再发短信**（用户定）：送达回执 30003（关机/收不到）或 30006（座机）→ `leads.sms_blocked_at` 自动标记、接口拒发；这个号码哪天自己发短信进来自动解除。30005 不算——那是 9/14 前我们自己品牌注册的问题。有邮箱的继续走邮件。
+- **每周看两个数**（周报固定项）：回 STOP 的比例、未送达比例。STOP 超过 2% 或出现一次垃圾短信投诉 → 上限砍到 4 条并告诉用户。09-19 基线：池子 20 个号码 0 个 STOP。
+
+**状态进库**：`leads.segment`（self / talk / swing_open / swing_silent / dormant）、`leads.ladder_step`（t0 / f_morning / f_planner / f_deadline / f_last / done）、`leads.next_action_at`、`leads.hold_until`、`leads.sms_blocked_at`。工作台 localStorage 里的提醒和"已发"勾作废不看。
 
 | 我不问直接做 | 起草等用户说"发" | 永远不做 |
 |---|---|---|
-| T0（A/B 型）、f_later、f_morning、f_deadline、f_reason、f_door、f_date、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；标 dormant | 任何让价（含带宽内的，第一次给之前说一声）、协议总价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、一天超过两条定时步 |
+| 报价/T0、f_morning、f_deadline、f_last、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；**带宽内的一次小赢**（事后报告）；标 dormant | 超带宽的让价、协议总价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、编"快满了"、给打不通的号码发短信 |
 
-汇报：每个心跳只在有事时给用户一条："发了 N 条，M 件要你定，新押金 K 单。"
+汇报：只在有事时给用户一条："发了 N 条，M 件要你定，新押金 K 单。"
 
-**指标**（周报固定项）：**摇摆池转化率** = 报价后沉默超过 24 小时的线索，14 天内付押金的比例；成交天数；成交触达数；按周批次。09-19 基线：11 池 1 中（Diana），Dunn 算开口型 1/1。
+**指标**：摇摆池转化率 = 报价后沉默超过 24 小时的线索，14 天内付押金的比例；成交天数；成交触达数；STOP 率；按周批次。09-19 基线：11 池 1 中（Diana），开口型 Dunn 1/1。**特别对照**：新的 f_last 和旧"最后一条"（Diana 在它之后两天付款）效果，样本够了再判。
 
 ### 4.5 成交后
 
@@ -278,7 +291,7 @@ Real Hibachi · (213) 770-7788
 
 | 情况 | 怎么做 |
 |---|---|
-| **客户没提贵、没提竞品** | 只用上面 5 个杠杆，**不主动降价**。 |
+| **客户没提贵、没提竞品** | 只用上面 5 个杠杆，**不先报让步的数**；可以在 f_deadline 开门问"什么挡着你"（§4.2），他说了再按 §4.3 给一个小赢。 |
 | **嫌贵但没提竞品** | 先重新锚定人均 + 调日期（周中省 $5/人 + 送拼盘）/ 调人数（10+ 阶梯）/ 小孩免费；不加折扣。问 "Would a Thursday work, or is it a Saturday thing?" |
 | **提到竞品报价 / "找到更便宜的"** | 走**竞争让价流程**（下） |
 | **31+ / 企业 / 淡季周中大单** | 报给用户定制，不自己定 |
@@ -296,7 +309,8 @@ Real Hibachi · (213) 770-7788
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
 - **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
-- **厨师到达**：开席前 ~10 分钟，架灶很快。
+- **厨师到达**：开席前 10–30 分钟（人多提前多），卸货、铺防水防油垫、架铁板、接丙烷，不用插座不用电。
+- **改人数**（用户 09-19 认定）：押金锁日期不锁人数，**派对前一天都能改**，总价跟着人数走，$599 最低消费不变；72 小时外取消 / 改期押金全退。
 - **场地**：**只在户外**做（patio / balcony / deck / 帐篷或雨棚下），座位可以在室内。铺防油布，走前清理，"your patio looks the way we found it"。持证 + 有保险。
 - **桌布颜色**：**只有黑色**（用户 09-17 确认）。`config/table-studio.ts` 里白色标着 available、/rentals 页写着 "various colors"，都不是真实库存，别照着答。
 - **灶台占地**：每个灶台需要约 **6 × 8 英尺**的平地（用户 09-18 确认），厨师站一侧操作，客人坐对面；patio、balcony 都做得了。客户担心放不下 → 让他发一张场地照片来确认。

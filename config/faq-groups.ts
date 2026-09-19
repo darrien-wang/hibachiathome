@@ -58,6 +58,7 @@ export const faqGroups: FaqGroup[] = [
     items: [
       EXTRA.weather,
       ...pick("What is your cancellation policy?", { open: true }),
+      ...pick("Can I change the headcount after I book?"),
       ...pick("How do I make a reservation?", { cta: { label: "Start a booking", href: QUOTE_HREF } }),
       ...pick("What if the chef doesn't show up?"),
     ],

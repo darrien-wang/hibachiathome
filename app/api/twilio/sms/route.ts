@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   let leadId: string | null = null
   let leadName = ""
+  // They texted us, so the number works: lift any "don't text" block on it.
+  try {
+    await supabase.from("leads").update({ sms_blocked_at: null, sms_blocked_reason: null }).eq("phone", from).not("sms_blocked_at", "is", null)
+  } catch {}
   try {
     const upserted = await upsertLeadFromContact(supabase, {
       name: from,

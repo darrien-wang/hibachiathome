@@ -96,6 +96,11 @@ Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and 
       "Booking is simple and straightforward:\n\n- Get an instant quote at www.realhibachi.com\n- Select your preferred date and package\n- Provide your guest count and contact information\n- We confirm the booking with you directly\n\nFor parties of any size, you only need to make a single reservation. We'll arrange the appropriate number of chefs based on your guest count.",
   },
   {
+    question: "Can I change the headcount after I book?",
+    answer:
+      "Yes. Your deposit holds the date, not a number — you can change your headcount up to the day before your party, and your total adjusts to match (the $599 minimum still applies). Need to cancel or reschedule instead? Tell us at least 72 hours before and your deposit comes back in full.",
+  },
+  {
     question: "What is your cancellation policy?",
     answer:
       "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules, at no cost\n- Inside 72 hours we may not be able to refund in full\n- For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",

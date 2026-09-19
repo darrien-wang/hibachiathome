@@ -1,8 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
+import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 
 export const dynamic = "force-dynamic"
+
+/** Most unprompted texts a lead who has never replied can get, auto quote included (leads skill 4.4). */
+const FOLLOWUP_CAP = 6
 
 // Staff-only. Same key scheme as the rest of /api/admin:
 // owner ADMIN_DASH_KEY, agents AGENT_DASH_KEYS="anna:key1,bob:key2".
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  let payload: { phone?: string; body?: string; leadId?: string }
+  let payload: { phone?: string; body?: string; leadId?: string; force?: boolean }
   try {
     payload = await request.json()
   } catch {
@@ -64,6 +67,55 @@ export async function POST(request: NextRequest) {
   if (!phone) return NextResponse.json({ error: "invalid phone" }, { status: 400 })
   if (!body) return NextResponse.json({ error: "empty message" }, { status: 400 })
   if (body.length > 1200) return NextResponse.json({ error: "message too long" }, { status: 400 })
+
+  // ---- Brakes (owner, 2026-09-19) ------------------------------------------
+  // Replies are never braked: when the customer spoke last, answer at once.
+  // Unprompted follow-ups to someone who has never answered are capped, so a
+  // silent lead cannot be texted into a STOP or a spam report that drags down
+  // the 213 line's standing for every deposit and chef text. The thread is
+  // read from Twilio, so the count includes texts sent from anywhere.
+  // force:true is the owner overriding on purpose.
+  {
+    const supabase = createServerSupabaseClient()
+    if (supabase && !payload.force) {
+      const { data: blocked } = await supabase
+        .from("leads")
+        .select("sms_blocked_reason")
+        .eq("phone", phone)
+        .not("sms_blocked_at", "is", null)
+        .limit(1)
+      if (blocked && blocked.length > 0) {
+        return NextResponse.json(
+          { error: `这个号码收不到短信（${blocked[0].sms_blocked_reason ?? "unreachable"}），已停发，改用邮件`, brake: "sms_blocked" },
+          { status: 409 },
+        )
+      }
+    }
+    if (!payload.force) {
+      const thread = await fetchSmsThread(phone, 100)
+      const last = thread[thread.length - 1]
+      const customerSpokeLast = last?.direction === "inbound"
+      if (!customerSpokeLast) {
+        const outbound = thread.filter((m) => m.direction === "outbound")
+        const everReplied = thread.some((m) => m.direction === "inbound")
+        const now = Date.now()
+        const last24h = outbound.filter((m) => now - new Date(m.at).getTime() < 24 * 3600_000).length
+        const lastOut = outbound[outbound.length - 1]
+        if (!everReplied && outbound.length >= FOLLOWUP_CAP) {
+          return NextResponse.json(
+            { error: `已发 ${outbound.length} 条、对方从没回过，到上限 ${FOLLOWUP_CAP} 条，停发`, brake: "cap" },
+            { status: 409 },
+          )
+        }
+        if (last24h >= 2) {
+          return NextResponse.json({ error: "24 小时内已经主动发过 2 条", brake: "daily" }, { status: 409 })
+        }
+        if (lastOut && now - new Date(lastOut.at).getTime() < 3 * 3600_000) {
+          return NextResponse.json({ error: "距上一条主动消息不到 3 小时", brake: "spacing" }, { status: 409 })
+        }
+      }
+    }
+  }
 
   const sent = await sendSms(phone, body)
   if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 502 })
