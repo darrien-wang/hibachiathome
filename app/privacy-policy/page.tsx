@@ -124,6 +124,32 @@ export default function PrivacyPolicyPage() {
                 those sites and recommend reviewing their policies individually.
               </p>
 
+              <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">7a. Google API Services and Our Internal Tools</h2>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                Real Hibachi LLC operates an internal application (&quot;Real Hibachi&quot;) that our staff use to manage
+                our own advertising and reporting. It connects to Google services such as the Google Ads API, Google
+                Analytics, and Search Console on behalf of Real Hibachi&apos;s own accounts. Only our staff sign in to
+                it; customers never do. The application does not access the Gmail, Drive, Contacts, or Calendar data of
+                anyone who signs in.
+              </p>
+              <p className="text-gray-700 leading-relaxed mb-6">
+                Information received through Google APIs is used only to operate and report on Real Hibachi&apos;s own
+                advertising. It is not sold, shared with third parties, used to serve advertising to other people, or
+                used to train machine-learning models. Our use of information received from Google APIs adheres to the{" "}
+                <a
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-600 underline"
+                >
+                  Google API Services User Data Policy
+                </a>
+                , including the Limited Use requirements. A plain description of the application is at{" "}
+                <a href="https://www.realhibachi.com/app" className="text-orange-600 underline">
+                  realhibachi.com/app
+                </a>
+                .
+              </p>
               <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">8. Policy Updates</h2>
               <p className="text-gray-700 leading-relaxed mb-6">
                 We may revise this Privacy Policy from time to time. Updates will be posted on this page with the
