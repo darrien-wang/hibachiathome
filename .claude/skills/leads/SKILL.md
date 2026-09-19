@@ -147,25 +147,75 @@ Bling
 Real Hibachi · (213) 770-7788
 ```
 
-## 4. 推进节奏（阶梯；每一步只发一次，客户回复就重置到"接话"模式）
+## 4. 成单流程：只为"报价之后没马上付"的人服务（2026-09-19 重写）
 
-| 步 | 何时 | 目的 | 模板要点 |
+**依据**：8/28 起 13 单押金——3 单自助零人工（Jane / Aryan / Eileen，6–7 分钟付完，这是落地页的成绩）、6 单当天聊完就付、**4 单隔天以上才付**（Marissa 第 4 天、Sergio 第 10 天、Natalie Dunn 第 2 天、Diana Lai 第 5 天）。后 4 单才是销售流程的成绩。两种摇摆：Dunn 是**开口型**（截止短信把价格异议逼出来 → $50 小让步锁进链接 → 3 小时付）；Diana 是**沉默型**（全程零回复，"最后一条"之后两天自己点链接付）。老阶梯第 3 天就"最后一条"然后标 lost，对这批人是错的。流失的 3 条里 2 条明说预算——沉默背后多半是价格。
+
+### 4.1 分流（报价发出后开始计时，按行为不按来源）
+
+| 段 | 判定 | 动作 |
+|---|---|---|
+| **S0 自助** | 自己付了 | 不打扰，直接 4.5 成交后流程 |
+| **S1 接话** | 24 小时内有回复 | 接话模式：答 ≤2 句 + 一个选择题；**不走定时阶梯** |
+| **S2 摇摆·开口型** | 回过话，但价格 / 时间 / 人数拿不定，不付 | 4.3 截止 + 小赢 |
+| **S3 摇摆·沉默型** | 报价后 24 小时零回复 | 4.2 十四天理由阶梯 |
+| **S4 休眠** | 阶梯走完仍无回 | `dormant`，只按派对日期倒推触达（f_date） |
+
+`lost` 只有三种：客户明确说不、日期已过、明确选了别家。**沉默永远不等于 lost。** 客户一回话，任何段都立即切回 S1 接话模式，定时步全部作废重排。
+
+### 4.2 沉默型：十四天理由阶梯
+
+规则：每步一个**不同**的理由；每步只发一次；定时步只在 **9:00–20:00 PT** 发（接话不限时）；两条之间至少隔 3 小时；链接一律押金页短链（30 天有效），**不用 Stripe 的 24 小时收款链接**；不打电话追单。
+
+| 步 | 时点 | 理由 | 话术要点 |
 |---|---|---|---|
-| **T0 首响** | ≤5 min | 认领 + 价 + 一问 | 第 3 节 |
-| **f45** | 首响后 45–60 min 没回 | 确定性 + 选择题 + 限时 hold | "[Date] is open on our end. Dinner parties usually kick off at 7:00 or 7:30. I can pencil you in for either and hold it until tomorrow evening while you finalize headcount — which time works better?" |
-| **f_night** | 当晚仍没回 | 免押金占位，去压力 | "No rush at all! I'll pencil your date in for now — no deposit needed until you confirm. Just don't want you to lose it while you're deciding 🙌" |
-| **f_planner** | 次日，客户在跟朋友对时间/人数 | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link` 拿专属链接；"While you're checking with your group — I set up a party planner just for you: <link> — share it and everyone grabs a seat & picks their proteins (2 min each) 🎪 Your date's still penciled in." |
-| **f_morning** | 次日上午（planner 发了就隔天） | 亮到场承诺 + 押金链接 | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name before your party— and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <deposit link>" |
-| **f_promo** | 第 3 天，最后一发 | 体面收尾：一个真钩子 + 放开档期，然后停 | 15–19 人："Last one from me - parties of 20+ get a free appetizer platter ($40 value). You're at N, so X more and it's on us. Want me to keep [date] penciled in?" 其他："Last note from me - [date] is still yours if you want it; I'll open it back up after tomorrow. Either way, hope the party's a great one." |
-| **停** | f_promo 后 4 天无回 | 不再发，**也不改打电话** | `set_status lost`，note 写最后一次触达；有活动日期的等日期过了再归档 |
-| **押金提醒**（已确认未付） | 确认后 24h 押金没到 | 把押金链接直接放短信里，去掉"去邮箱找"的摩擦 | "Got you down for [day] at [time], [N] guests, $[total]. Here's the $19.90 deposit link; once it's in, your chef is confirmed by name: <link>" ——**不加任何台阶或备选** |
+| **T0 首响** | ≤5 分钟 | 认领 + 价 + 一问 | 第 3 节 |
+| **f_later** | 首响在白天 → 当晚 7–8 点；首响在晚上 → 并入次日 f_morning 不单发 | 当天收尾：选择题 + 免押金占位 | "No rush — I'll pencil [date] in for you, no deposit needed while you decide. 6:30 or 7 when you know?" |
+| **f_morning** | 次日上午 | 到场承诺 + 押金链接（**不写小时数**） | "Morning! Still holding [date] for your party of [N]. Your chef is confirmed by name before your party — and if we ever cancel, double your deposit back. Lock it in with the $19.90 deposit here: <link>" |
+| **f_planner** | 只在客户提过"和朋友对时间/人数" | 递工具帮他组局，不催 | 先 `POST /api/admin/planner-link`；"While you're checking with your group — I set up a party planner just for you: <link> — everyone grabs a seat & picks their proteins (2 min each). Your date's still penciled in." 没提过就跳过 |
+| **f_deadline** | 第 3 天 | **真实截止 + 邀请异议**（替换原"最后一条"） | "I can hold [date] through [Sunday]; after that it opens back up. If the number is the sticking point, tell me what works and I'll see what I can do." |
+| **f_reason** | 第 7 天 | 一个**真**理由：周中特价 / 20+ 送拼盘 / 那个周末确实紧 | "Quick one — [reason]. [Date] is still open on our end." 没有真理由就跳到 f_door |
+| **f_door** | 第 14 天 | 留门不关门，然后进休眠 | "No pressure from me. If the party's still on, the quote and the link still work — just text when you're ready." → `dormant` |
+| **f_date** | 派对前 21 天、前 7 天（有日期的，任何段） | 日期驱动 | "Three weeks out from [date] — still open, still $[X]. Want it?" |
+| **押金提醒**（已确认未付） | 确认后 24 小时押金没到 | 把链接直接放短信里 | "Got you down for [day] at [time], [N] guests, $[total]. Here's the $19.90 deposit link; once it's in, your chef is confirmed by name: <link>" ——不加台阶不加备选 |
 
-成交后：
-| **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`） |
+老 f45（首响后 45 分钟追一条）**取消**：发过 8 次，1 小时内零回复、3 小时内零回复、零负面；会回话的人 64% 在 45 分钟内就回了，45 分钟还没回的当下就是不打算回，追上去只剩"一小时两条"的观感。
+
+### 4.3 开口型：截止 + 小赢（Dunn 剧本，用 §7.1 谈判模块）
+
+触发：客户回了话但不付；或截止短信之后客户提出价格 / 条件。
+
+1. **先问再让**：一句 "What works for you?" 让他先出数，不先报让步。
+2. **一个小赢**，按我们的真实成本从低到高挑（**用户 09-19 定的顺序**）：
+   - ① 调日期 / 时间（周中 $54.90 + 送拼盘；白天场）——零成本
+   - ② 拼盘 / 致敬计划（已有政策内的东西）
+   - ③ 现金折扣：§5.1 已授权带宽内我直接定（**每人 ≤$5 或每单 ≤$100，取小**）
+   - ④ **桌椅折扣放最后**：桌椅我们的成本是每人 $4（付给师傅的搬运工资），不比现金折扣便宜，别把它当"免费筹码"
+3. **锁进签名链接 + 明确有效期**（协议总价，§10）："Good through Sunday — here's the link with that price locked in: <link>"
+4. **只让一次**。超带宽、低于 $49.90/人、破 $599 底线 → 一句话问用户（竞品价 + 包含项）。
+5. 说法主动干脆带条件，不求人（§1.1、§9）。
+
+### 4.4 状态字段与自主权限（心跳的执行边界）
+
+**状态进库，不进浏览器**：`leads.segment`（self / talk / swing_open / swing_silent / dormant）、`leads.ladder_step`（t0 / f_later / f_morning / f_planner / f_deadline / f_reason / f_door / f_date_21 / f_date_7 / done）、`leads.next_action_at`、`leads.hold_until`。心跳按 `next_action_at` 跑；工作台 localStorage 里的提醒和"已发"勾**作废不看**。写法见 §10（`update_fields` 接口补上之前先用 SQL）。
+
+| 我不问直接做 | 起草等用户说"发" | 永远不做 |
+|---|---|---|
+| T0（A/B 型）、f_later、f_morning、f_deadline、f_reason、f_door、f_date、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；标 dormant | 任何让价（含带宽内的，第一次给之前说一声）、协议总价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、一天超过两条定时步 |
+
+汇报：每个心跳只在有事时给用户一条："发了 N 条，M 件要你定，新押金 K 单。"
+
+**指标**（周报固定项）：**摇摆池转化率** = 报价后沉默超过 24 小时的线索，14 天内付押金的比例；成交天数；成交触达数；按周批次。09-19 基线：11 池 1 中（Diana），Dunn 算开口型 1/1。
+
+### 4.5 成交后
+
+| 步 | 何时 | 内容 |
+|---|---|---|
+| **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`）+ 要地址 / 门禁 |
 | **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving ~10 min before start with the grill and fresh ingredients. Reply to confirm you're all set!" |
-| **w_review / w_ugc** | 派对次日 | 工作台按钮直接发 |
+| **w_review / w_ugc** | 派对次日 | 邀评 → 晒图 |
 
-**接话模式（客户回了）**：答 ≤2 句 → 推进阶梯下一格 → 一个选择题。客户一次问多个问题：短信里逐个一句答完仍只收一个问题；细节多就 "just emailed you the full breakdown" + 邮件。
+**接话模式（客户回了）**：答 ≤2 句 → 推进一格 → 一个选择题。客户一次问多个问题：逐个一句答完仍只收一个问题；细节多就 "just emailed you the full breakdown" + 邮件。
 
 ## 5. 定价事实源与速算（唯一真源 `config/pricing-rules.ts`，改价先改那里）
 
