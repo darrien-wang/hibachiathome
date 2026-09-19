@@ -1,7 +1,7 @@
 import { createShortLink } from "@/lib/short-link"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
+import { isPlaceholderName, readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
@@ -200,6 +200,9 @@ export async function POST(request: NextRequest) {
   })
   if (eventDate) dp.set("event_date", eventDate)
   if (email) dp.set("customer_email", email)
+  // Without this the deposit page falls back to "Guest", which then rides
+  // into the Stripe metadata, the placeholder booking and the success page.
+  if (name && !isPlaceholderName(name)) dp.set("customer_name", name)
   if (leadId) dp.set("lead_id", leadId)
   // Click ids ride along so a deposit paid from the text still attributes;
   // the utm_* set already lives on the lead.

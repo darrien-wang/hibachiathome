@@ -6,6 +6,7 @@ import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { isPlaceholderName } from "@/lib/leads"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 
@@ -300,6 +301,24 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
       gbraid: payload.gbraid,
       oppref: payload.oppref,
     }),
+  }
+}
+
+// Deposit links texted before 2026-09-19 carry no customer_name, so the page
+// sends "Guest". When the link names a lead that has a real name, use it: it
+// reaches Stripe metadata, the placeholder booking, the ops email and the
+// success page. Best effort - a lookup failure keeps the payload as it came.
+async function withLeadName(payload: NormalizedDepositStartPayload): Promise<NormalizedDepositStartPayload> {
+  if (!payload.leadId || !isPlaceholderName(payload.customerName)) return payload
+  try {
+    const supabase = createServerSupabaseClient()
+    if (!supabase) return payload
+    const { data } = await supabase.from("leads").select("full_name").eq("id", payload.leadId).maybeSingle()
+    const leadName = typeof data?.full_name === "string" ? data.full_name.trim() : ""
+    return leadName && !isPlaceholderName(leadName) ? { ...payload, customerName: leadName } : payload
+  } catch (error) {
+    console.warn("[deposit/start] lead name lookup failed", error instanceof Error ? error.message : error)
+    return payload
   }
 }
 
@@ -769,7 +788,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid request body." }, { status: 400 })
   }
 
-  const payload = buildNormalizedPayload((rawPayload ?? {}) as DepositStartPayload)
+  const payload = await withLeadName(buildNormalizedPayload((rawPayload ?? {}) as DepositStartPayload))
   const attribution = buildResolvedAttribution(request, payload)
 
   try {
@@ -808,7 +827,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(body, { status })
   }
 
-  const payload = parseGetPayload(request)
+  const payload = await withLeadName(parseGetPayload(request))
   const attribution = buildResolvedAttribution(request, payload)
 
   try {

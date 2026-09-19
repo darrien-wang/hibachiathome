@@ -81,6 +81,30 @@ function asNonEmptyString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
+// Names that only stand in for a person: a phone number (the SMS and voice
+// webhooks pass the caller's number as the name), the "Unknown Contact"
+// default, the deposit page's "Guest", and the tap-intent labels. Found on
+// 2026-09-19: Eileen Heng typed her name on the /quote unlock card, texted us
+// 20 minutes later, and the SMS webhook's upsert replaced her name with her
+// number. Four of five unlock leads that week lost their name the same way.
+const PLACEHOLDER_NAMES = new Set(["unknown contact", "unknown", "unknown caller", "guest", "customer", "n/a", "na", "none"])
+
+export function isPlaceholderName(value: unknown): boolean {
+  const name = asNonEmptyString(value)
+  if (!name) return true
+  if (!/\p{L}/u.test(name)) return true // digits, +, spaces, dashes: a phone number
+  if (name.startsWith("\u26A1")) return true // "⚡ SMS intent - awaiting message"
+  return PLACEHOLDER_NAMES.has(name.toLowerCase())
+}
+
+// A newly submitted real name wins (people correct their own name), but a
+// placeholder never replaces a real name already on the lead.
+function mergeFullName(incoming: string, current: string | null | undefined): string {
+  const existing = asNonEmptyString(current)
+  if (existing && isPlaceholderName(incoming) && !isPlaceholderName(existing)) return existing
+  return withFallback(incoming, current) ?? incoming
+}
+
 function normalizeEmail(value: unknown): string | undefined {
   const email = asNonEmptyString(value)
   return email ? email.toLowerCase() : undefined
@@ -327,7 +351,7 @@ export async function upsertLeadFromContact(
   if (existing) {
     const current = existing.row
     const updatePayload = {
-      full_name: withFallback(input.fullName, current.full_name),
+      full_name: mergeFullName(input.fullName, current.full_name),
       email: withFallback(current.email, input.email),
       phone: withFallback(current.phone, input.phone),
       normalized_phone: withFallback(current.normalized_phone, input.normalizedPhone),
