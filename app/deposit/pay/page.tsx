@@ -501,7 +501,7 @@ function DepositPaymentPageInner() {
               cancellations with 72+ hours notice are refunded in full.
             </p>
             <p>
-              <span className="font-semibold text-ink">Liability:</span> Real Hibachi, Inc. is not liable for property
+              <span className="font-semibold text-ink">Liability:</span> Real Hibachi LLC is not liable for property
               damage during events; the host waives claims against Real Hibachi for loss, damage or destruction of
               property.
             </p>
