@@ -6,6 +6,7 @@ import { Car, CreditCard, FileText, Mail, Plus, Tent } from "lucide-react"
 import { phone } from "@/config/site"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
+import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
 
 // ============================================================
 // 订单工作台 · V1
@@ -1339,6 +1340,16 @@ function OrderDrawer({
                 ))}
               </div>
             )}
+
+            {/* ---------- 派对照片 ----------
+                Shot by the chef on the prep sheet, setup and end of party.
+                The host never gets pictures of their own party, so these are
+                the thank-you the next morning and our only honest ad
+                material. Added 2026-09-19. ---------- */}
+            <div style={labelStyle}>派对照片</div>
+            <div style={{ marginBottom: 14 }}>
+              <OrderPhotosPanel key={o?.id ?? "none"} adminKey={adminKey} orderId={o?.id ?? null} />
+            </div>
 
             {/* ---------- 已发送的发票 ----------
                 The audit copies from invoice_archive: exactly what the
