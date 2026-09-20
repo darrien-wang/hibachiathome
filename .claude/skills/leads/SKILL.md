@@ -455,7 +455,7 @@ curl -s -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/leads?deta
 # 首响标记（幂等；new→qualified）
 curl -s -X PATCH -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
   -d '{"action":"mark_contacted","leadId":"<id>"}' https://www.realhibachi.com/api/admin/leads
-# 备注（阶梯步用 [SOP:f45] 前缀，工作台据此打勾）
+# 备注（阶梯步用 [SOP:f45] 前缀，时间线里一眼能看出走到哪一步）
   -d '{"action":"add_note","leadId":"<id>","note":"[SOP:f45] SMS sent: …"}'
 # 状态 new | qualified | won | lost | disqualified
   -d '{"action":"set_status","leadId":"<id>","status":"lost"}'
@@ -503,7 +503,7 @@ curl -s -X POST -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/le
 curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d '{"leadId":"<id>","agreedTotal":1285.20}' https://www.realhibachi.com/api/admin/agreed-total   # → {ok, sig, query}
 # 2) 把返回的 query 接到押金长链后面（它会同时把 estimate_low/high 钉在协议价），再去缩短
 ```
-客户付押金后，订单、客户选菜页、发票都按协议价开张：系统照常算标准价和自动促销，再自动加一行 `Special rate (agreed total $X)` 抵掉差额。**不填 = 常规单，行为不变。** 工作台线索详情里也有"协议总价"输入框，填了保存即可。
+客户付押金后，订单、客户选菜页、发票都按协议价开张：系统照常算标准价和自动促销，再自动加一行 `Special rate (agreed total $X)` 抵掉差额。**不填 = 常规单，行为不变。** 2026-09-20 起工作台线索抽屉不再有协议总价输入框和话术/阶梯按钮（用户定“以 agent 优先”）：首响、跟进阶梯、促销/让步/西语话术、邮件跟进、提醒全由本 skill 执行；抽屉只留状态、备注、短信对话、操作历史和信用卡收款链接。
 - 协议总价 = 发票最终总价（含税、含路费，不含小费和 4% 手续费）。
 - 送桌椅/餐具这类让利不用单独配：照常加进发票，差额行自动抵掉，总价仍是协议价。
 - **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData}` 存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
