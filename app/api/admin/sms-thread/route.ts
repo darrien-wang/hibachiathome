@@ -61,6 +61,15 @@ function isAutomatedText(body: string): boolean {
   return body.trimStart().startsWith("Real Hibachi:")
 }
 
+// Answering is not pestering. A customer who asks three things in one text
+// gets three short answers, and the follow-up caps must not count them as
+// three unprompted messages (2026-09-20: a Temecula lead asked about
+// headcount, tofu and rentals; answer 1 went out and answers 2 and 3 were
+// refused). Anything sent within this window of an inbound message counts as
+// part of the reply, both for this send and when counting history.
+const REPLY_WINDOW_MS = 15 * 60_000
+const REPLY_BURST_CAP = 5
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   let payload: { phone?: string; body?: string; leadId?: string; force?: boolean }
@@ -102,10 +111,24 @@ export async function POST(request: NextRequest) {
       const thread = await fetchSmsThread(phone, 100)
       const last = thread[thread.length - 1]
       const customerSpokeLast = last?.direction === "inbound"
-      if (!customerSpokeLast) {
-        const outbound = thread.filter((m) => m.direction === "outbound")
+      const now = Date.now()
+      const inboundTimes = thread.filter((m) => m.direction === "inbound").map((m) => new Date(m.at).getTime())
+      const lastInbound = inboundTimes.length > 0 ? Math.max(...inboundTimes) : null
+      // Still answering the customer's last message.
+      const inReplyWindow = lastInbound !== null && now - lastInbound < REPLY_WINDOW_MS
+      const repliesInWindow = thread.filter(
+        (m) => m.direction === "outbound" && lastInbound !== null && new Date(m.at).getTime() > lastInbound,
+      ).length
+      if (!customerSpokeLast && inReplyWindow && repliesInWindow < REPLY_BURST_CAP) {
+        // Let the rest of the answer through.
+      } else if (!customerSpokeLast) {
+        const answeredAt = (m: { at: string }) => {
+          const t = new Date(m.at).getTime()
+          return inboundTimes.some((i) => t >= i && t - i < REPLY_WINDOW_MS)
+        }
+        // Only messages that were not answers count against the caps.
+        const outbound = thread.filter((m) => m.direction === "outbound" && !answeredAt(m))
         const everReplied = thread.some((m) => m.direction === "inbound")
-        const now = Date.now()
         const last24h = outbound.filter((m) => now - new Date(m.at).getTime() < 24 * 3600_000).length
         // Spacing is about a person texting twice in a row. An automated
         // quote reads as automatic, so a personal first message right after
