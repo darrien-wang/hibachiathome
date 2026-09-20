@@ -33,6 +33,12 @@ const ITEMS = [
     name: "Plates & utensils",
     price: UTENSILS_PER_GUEST,
     points: ["A place setting for every guest", "Plates, napkins and silverware, ready at the table", "Chopsticks on request, no extra charge"],
+    // Asked twice in one week: are these paper plates? They are not, and a
+    // photo settles it faster than a sentence.
+    photo: {
+      src: "/gallery/real-hibachi-place-settings-hard-plastic-plates.jpg",
+      alt: "Place settings on black tablecloths: white hard-plastic plates with a gold rim, gold cutlery, clear cups and sunflowers",
+    },
   },
 ] as const
 
@@ -75,6 +81,17 @@ export default function RentalsPage() {
                 <span className="text-sm font-semibold text-clay-600"> / guest</span>
               </p>
             </div>
+            {"photo" in item && item.photo ? (
+              <div className="relative mt-4 aspect-[4/3] overflow-hidden rounded-xl">
+                <Image
+                  src={item.photo.src}
+                  alt={item.photo.alt}
+                  fill
+                  sizes="(min-width: 768px) 45vw, 92vw"
+                  className="object-cover"
+                />
+              </div>
+            ) : null}
             <ul className="mt-4 space-y-2">
               {item.points.map((p) => (
                 <li key={p} className="flex gap-2 text-clay-700">
