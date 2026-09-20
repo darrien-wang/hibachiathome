@@ -55,8 +55,8 @@ export default function RentalsPage() {
         </div>
         <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
           <Image
-            src="/gallery/real-hibachi-party-los-angeles-group-dinner-09.jpg"
-            alt="Real Hibachi tables, chairs, black tablecloths and place settings on a backyard deck in Los Angeles"
+            src="/gallery/real-hibachi-table-setup-black-linen-place-settings.jpg"
+            alt="Real Hibachi tables and chairs set up in a U shape with black tablecloths, a gold runner, red and black place settings and roses, next to the chef's grill"
             fill
             sizes="(min-width: 768px) 50vw, 100vw"
             className="object-cover"
