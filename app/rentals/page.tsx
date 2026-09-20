@@ -28,10 +28,6 @@ const ITEMS = [
     name: "Tables, chairs & tablecloths",
     price: TABLES_CHAIRS_PER_GUEST,
     points: ["Seating for every guest", "Tablecloths on every table", "Set up before the chef starts, taken away after"],
-    photo: {
-      src: "/gallery/real-hibachi-party-los-angeles-group-dinner-09.jpg",
-      alt: "Long tables in black tablecloths with folding chairs set up on a backyard deck before a hibachi party",
-    },
   },
   {
     name: "Plates & utensils",
