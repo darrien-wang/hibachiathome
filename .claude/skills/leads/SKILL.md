@@ -401,7 +401,7 @@ Real Hibachi · (213) 770-7788
 | **X 日期有空吗** | 一律按开着回（"open on our end"）。用户 09-18 定：档期都有、兼职厨师充足，容量不是瓶颈；只有 <3 天的临时单或订单表里当天已经明显堆满时才问用户 |
 | **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说 |
 | **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
-| **餐具/盘子包含吗** | "Plates & utensils are $5/guest if we bring them, or use your own - either works."（桌椅 $10/人另算） |
+| **餐具/盘子包含吗** | "Plates, napkins and silverware are $5/guest if we bring them, or use your own - either works. Chopsticks if you want them, no charge."（桌椅 $10/人另算；**筷子默认不带、要就给、不加钱，用户 09-20 定**） |
 | **能在室内做吗** | "All cooking is outdoors — patio, balcony, deck, or under a canopy. Seating can be inside." |
 | **当天要准备什么 / 要不要插座** | 这类问题是担心，答案要是一个轻松具体的场景（用户 09-19 定），拆两条："Here's the day: your chef arrives 10–30 min before start (earlier for bigger parties), lays a waterproof mat, sets the grill and hooks up the propane — no outlet, no power needed." "Tables, chairs & dishes: if you booked them, we set them and you just host — when the chef's ready, bring everyone over. If you're using your own, have them set before we arrive. Anything specific you want — a birthday plate, a seating idea — tell me and if we can do it, we will." |
 | **要多大地方 / 我家院子够不够** | 永远用比喻不报尺寸（用户 09-19 定，免得客户真去量）："A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill — a patio, deck, driveway or yard all work. Send me a photo if you're not sure." |

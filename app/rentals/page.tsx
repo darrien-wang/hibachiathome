@@ -32,7 +32,7 @@ const ITEMS = [
   {
     name: "Plates & utensils",
     price: UTENSILS_PER_GUEST,
-    points: ["A place setting for every guest", "Plates and chopsticks, ready at the table"],
+    points: ["A place setting for every guest", "Plates, napkins and silverware, ready at the table", "Chopsticks on request, no extra charge"],
   },
 ] as const
 

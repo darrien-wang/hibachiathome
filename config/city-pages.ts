@@ -160,7 +160,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Do I need to provide tables and chairs?",
         answer:
-          "Bring your own tables, chairs, plates, and utensils, or rent ours — tables & chairs $10 per guest, utensils $5 per guest. The chef sets up the cooking station and breaks it down completely.",
+          "Bring your own tables, chairs, plates, and utensils, or rent ours — tables & chairs $10 per guest, place settings $5 per guest (plates, napkins, silverware; chopsticks free on request). The chef sets up the cooking station and breaks it down completely.",
       },
     ],
     nearby: ["santa-monica", "pasadena", "glendale"],
