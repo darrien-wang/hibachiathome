@@ -50,6 +50,13 @@ export default function AdminLoginPage() {
   }, [])
 
   const finish = () => window.location.replace(nextUrl())
+  // A phone / passkey login is an explicit identity: drop any key an old
+  // ?key= link left behind so it cannot shadow this person later.
+  const dropStoredKey = () => {
+    try {
+      localStorage.removeItem(ADMIN_KEY_STORAGE)
+    } catch {}
+  }
 
   const sendCode = async () => {
     setBusy("send")
@@ -75,6 +82,7 @@ export default function AdminLoginPage() {
     setErr(null)
     try {
       const d = await post<{ viewer?: { name?: string } }>("/api/admin/auth/verify", { phone, code })
+      dropStoredKey()
       setName(d.viewer?.name ?? name)
       if (canPasskey && !hasPasskey) setStep("remember")
       else finish()
@@ -103,6 +111,7 @@ export default function AdminLoginPage() {
     setErr(null)
     try {
       await loginWithPasskey(phone)
+      dropStoredKey()
       finish()
     } catch (e) {
       setErr(passkeyErrorText(e))

@@ -107,16 +107,21 @@ async function sessionActor(token: string): Promise<AdminActor | null> {
   return actor
 }
 
-/** Key header first (scripts, old links), then the login-session cookie. */
+/**
+ * The login-session cookie wins when it is valid: it is the person who
+ * actually signed in on this browser. A key left in localStorage from an
+ * old link (often an agent key) must not shadow that, nor lend the owner's
+ * key to whoever logs in next on a shared computer. Scripts send no cookie
+ * and keep working through the key exactly as before.
+ */
 export async function resolveAdminActor(request: NextRequest): Promise<AdminActor | null> {
-  const provided = request.headers.get("x-admin-key") ?? request.nextUrl.searchParams.get("key") ?? ""
-  if (provided) {
-    const byKey = keyActor(provided)
-    if (byKey) return byKey
-  }
   const token = request.cookies.get(SESSION_COOKIE)?.value ?? ""
-  if (!token) return null
-  return sessionActor(token)
+  if (token) {
+    const bySession = await sessionActor(token)
+    if (bySession) return bySession
+  }
+  const provided = request.headers.get("x-admin-key") ?? request.nextUrl.searchParams.get("key") ?? ""
+  return provided ? keyActor(provided) : null
 }
 
 export function requestMeta(request: NextRequest): { ip: string | null; userAgent: string | null } {
