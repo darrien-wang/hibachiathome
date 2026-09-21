@@ -3,13 +3,14 @@
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { AlertCircle, Check, Loader2, Lock, MessageSquare } from "lucide-react"
+import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
 import { getDepositAmount } from "@/config/deposit"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
+import { readDepositMarker, writeDepositMarker, type DepositMarker } from "@/lib/deposit-marker"
 
 type BookingPreview = {
   id: string
@@ -140,6 +141,9 @@ function DepositPaymentPageInner() {
   const customerNameParam = searchParams.get("customer_name")?.trim() || ""
   const customerEmailParam = searchParams.get("customer_email")?.trim() || ""
   const leadIdParam = searchParams.get("lead_id")?.trim() || ""
+  // "Booking another party" door: the host said this is a second party, so
+  // the already-paid check is skipped here and on the server.
+  const anotherParam = searchParams.get("another") === "1"
   // Negotiated total, signed by staff; the server re-verifies it.
   const agreedTotalParam = searchParams.get("agreed_total")?.trim() || ""
   const agreedSigParam = searchParams.get("agreed_sig")?.trim() || ""
@@ -186,6 +190,18 @@ function DepositPaymentPageInner() {
   const [error, setError] = useState<string | null>(null)
   const [checkoutStarting, setCheckoutStarting] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
+  // Already paid? Three layers: what this device remembers (instant), what
+  // the server knows (durable), and the server's refusal when paying (last).
+  // Fail open: a slow or failed check must not hide the pay button, the
+  // server refusal still stands behind it.
+  const [lock, setLock] = useState<{ status: "checking" | "clear" | "locked"; info?: DepositMarker }>({ status: "checking" })
+  const [lockTimedOut, setLockTimedOut] = useState(false)
+  const anotherHref = useMemo(() => {
+    const q = new URLSearchParams(searchParams.toString())
+    q.set("another", "1")
+    return `/deposit/pay?${q.toString()}`
+  }, [searchParams])
 
   useEffect(() => {
     if (!suppressLegacyRhId) {
@@ -257,6 +273,71 @@ function DepositPaymentPageInner() {
     fetchBookingDetails()
   }, [bookingId, contextBooking, isPrefillSource])
 
+  useEffect(() => {
+    const t = window.setTimeout(() => setLockTimedOut(true), 1500)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    if (anotherParam) {
+      setLock({ status: "clear" })
+      return
+    }
+    const identity = { leadId: leadIdParam, email: customerEmailParam, eventDate: eventDateParam }
+    let cancelled = false
+    const check = async () => {
+      const marker = readDepositMarker(identity)
+      if (marker) setLock({ status: "locked", info: marker })
+      const canAsk = Boolean(leadIdParam) || Boolean(customerEmailParam && eventDateParam)
+      if (!canAsk) {
+        if (!marker) setLock({ status: "clear" })
+        return
+      }
+      try {
+        const q = new URLSearchParams()
+        if (leadIdParam) q.set("lead_id", leadIdParam)
+        if (customerEmailParam) q.set("email", customerEmailParam)
+        if (eventDateParam) q.set("event_date", eventDateParam)
+        const res = await fetch(`/api/deposit/status?${q.toString()}`, { cache: "no-store" })
+        const data = (await res.json().catch(() => null)) as
+          | { locked?: boolean; order_no?: string; event_date?: string; event_time?: string; manage_url?: string }
+          | null
+        if (cancelled) return
+        if (data?.locked) {
+          const info: DepositMarker = {
+            orderNo: data.order_no ?? marker?.orderNo ?? null,
+            eventDate: data.event_date ?? marker?.eventDate ?? null,
+            eventTime: data.event_time ?? marker?.eventTime ?? null,
+            manageUrl: data.manage_url ?? marker?.manageUrl ?? null,
+            savedAt: Date.now(),
+          }
+          setLock({ status: "locked", info })
+          writeDepositMarker(identity, info)
+        } else if (!marker) {
+          setLock({ status: "clear" })
+        }
+      } catch {
+        if (!cancelled && !marker) setLock({ status: "clear" })
+      }
+    }
+    void check()
+    // Safari restores this tab from its cache without reloading; ask again
+    // whenever the page comes back into view.
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) void check()
+    }
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check()
+    }
+    window.addEventListener("pageshow", onShow)
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      cancelled = true
+      window.removeEventListener("pageshow", onShow)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [anotherParam, leadIdParam, customerEmailParam, eventDateParam])
+
   const totalAmount = useMemo(() => (booking ? calculateTotalAmount(booking) : 0), [booking])
   const hasBookingEstimateRange =
     booking &&
@@ -308,6 +389,7 @@ function DepositPaymentPageInner() {
         body: JSON.stringify({
           bookingId: booking.id,
           leadId: leadIdParam || undefined,
+          another: anotherParam || undefined,
           agreedTotal: agreedTotalParam || undefined,
           agreedSig: agreedSigParam || undefined,
           source: source || "deposit_pay",
@@ -331,12 +413,33 @@ function DepositPaymentPageInner() {
         success?: boolean
         checkoutUrl?: string
         error?: string
+        locked?: boolean
+        order_no?: string
+        event_date?: string
+        event_time?: string
+        manage_url?: string
         opsNotification?: {
           attempted?: boolean
           delivered?: boolean
           skippedReason?: string
           error?: string
         }
+      }
+
+      if (response.status === 409 && payload.locked) {
+        // The server found a paid deposit for this party: show the locked
+        // state instead of an error, and remember it on this device.
+        const info: DepositMarker = {
+          orderNo: payload.order_no ?? null,
+          eventDate: payload.event_date ?? null,
+          eventTime: payload.event_time ?? null,
+          manageUrl: payload.manage_url ?? null,
+          savedAt: Date.now(),
+        }
+        writeDepositMarker({ leadId: leadIdParam, email: customerEmailParam, eventDate: eventDateParam }, info)
+        setLock({ status: "locked", info })
+        setCheckoutStarting(false)
+        return
       }
 
       if (!response.ok || !payload.checkoutUrl) {
@@ -359,7 +462,7 @@ function DepositPaymentPageInner() {
     }
   }
 
-  if (loading) {
+  if (loading || (lock.status === "checking" && !lockTimedOut)) {
     return (
       <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
         <div className="mx-auto w-full max-w-[560px] animate-pulse rounded-[32px] bg-surface p-9 shadow-organic-lg" aria-busy="true">
@@ -368,6 +471,69 @@ function DepositPaymentPageInner() {
           <div className="mx-auto mt-3 h-4 w-3/4 rounded-full bg-cream" />
           <div className="mt-7 h-14 rounded-[28px] bg-cream" />
           <div className="mt-6 h-14 rounded-full bg-cream" />
+        </div>
+      </main>
+    )
+  }
+
+  if (lock.status === "locked") {
+    const info = lock.info
+    const lockedDate = formatUiDate(info?.eventDate || booking?.event_date || eventDateParam, "Date on file")
+    const lockedTime = formatClockTime(info?.eventTime || booking?.event_time || eventTimeParam || undefined)
+    const lockedGuests = booking
+      ? (booking.guest_kids ?? 0) > 0
+        ? `${booking.guest_adults ?? 0} adults, ${booking.guest_kids} kids`
+        : `${booking.guest_adults ?? 0} guests`
+      : null
+    return (
+      <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
+        <div className="mx-auto w-full max-w-[560px] rounded-[32px] bg-surface px-6 pb-7 pt-10 text-center shadow-organic-lg sm:px-9">
+          <div className="mx-auto mb-[18px] grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+            <CalendarCheck className="h-7 w-7" strokeWidth={2.5} aria-hidden="true" />
+          </div>
+          <h1 className="font-serif text-[28px] font-extrabold leading-[1.1] text-ink sm:text-[34px]">Your date is locked</h1>
+          <p className="mt-2 text-base text-clay-700">
+            A deposit is already on file for this party. Nothing more to pay today.
+          </p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-cream px-5 py-4 text-base text-ink">
+            <span className="font-semibold">{lockedDate}{lockedTime !== "Time TBD" ? ` · ${lockedTime}` : ""}</span>
+            {booking?.location ? (
+              <>
+                <span className="text-clay-600" aria-hidden="true">·</span>
+                <span>{booking.location}</span>
+              </>
+            ) : null}
+            {lockedGuests ? (
+              <>
+                <span className="text-clay-600" aria-hidden="true">·</span>
+                <span>{lockedGuests}</span>
+              </>
+            ) : null}
+          </div>
+          {info?.orderNo ? <p className="mt-2 text-[13px] text-clay-600">Booking {info.orderNo}</p> : null}
+
+          {info?.manageUrl ? (
+            <a
+              href={info.manageUrl}
+              className="mt-[26px] flex h-14 w-full items-center justify-center gap-2 rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700"
+            >
+              Manage your party
+            </a>
+          ) : null}
+          <a
+            href={smsHref(QUESTION_SMS)}
+            className={`${info?.manageUrl ? "mt-3 h-12 bg-cream text-ink hover:bg-flame-100" : "mt-[26px] h-14 bg-flame text-white hover:bg-flame-600"} flex w-full items-center justify-center gap-2 rounded-full text-base font-semibold transition`}
+          >
+            <MessageSquare className="h-5 w-5" aria-hidden="true" />
+            Questions? Text {phone.sms.dashed}
+          </a>
+          <p className="mt-5 text-[13px] text-clay-600">
+            Booking a second party?{" "}
+            <Link href={anotherHref} className="font-semibold text-flame-700 underline-offset-[3px] hover:underline">
+              Start a new deposit
+            </Link>
+          </p>
         </div>
       </main>
     )

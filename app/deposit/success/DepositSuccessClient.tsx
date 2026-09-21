@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { fireGoogleAdsDepositConversion, trackDepositCompletedOnce } from "@/lib/tracking"
+import { writeDepositMarker } from "@/lib/deposit-marker"
 
 type DepositVerifyStatus = "pending" | "paid" | "refunded" | "not_found" | "invalid_request"
 
@@ -42,6 +43,7 @@ type DepositSuccessClientProps = {
   initialLocation: string | null
   initialAdults: string | null
   initialKids: string | null
+  initialLeadId: string | null
 }
 
 type VerifyState =
@@ -206,6 +208,7 @@ export default function DepositSuccessClient({
   initialLocation,
   initialAdults,
   initialKids,
+  initialLeadId,
 }: DepositSuccessClientProps) {
   const [state, setState] = useState<VerifyState>({ stage: "idle" })
 
@@ -259,6 +262,22 @@ export default function DepositSuccessClient({
       initialSource,
     ],
   )
+
+  // Remember on this device that the party is paid, so a restored deposit
+  // tab shows "date locked" instead of a live pay button (lib/deposit-marker).
+  useEffect(() => {
+    if (!isPaidState) return
+    writeDepositMarker(
+      { leadId: initialLeadId, email: displayEmail, eventDate: displayEventDate },
+      {
+        orderNo: displayBookingId,
+        eventDate: displayEventDate,
+        eventTime: displayEventTime,
+        manageUrl: invoiceSelfServiceHref ?? null,
+        savedAt: Date.now(),
+      },
+    )
+  }, [isPaidState, initialLeadId, displayEmail, displayEventDate, displayEventTime, displayBookingId, invoiceSelfServiceHref])
 
   const verify = useCallback(async () => {
     if (!sessionId) {

@@ -7,6 +7,7 @@ import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName } from "@/lib/leads"
+import { findDepositLock } from "@/lib/deposit-lock"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 
@@ -46,6 +47,8 @@ type DepositStartPayload = {
   wbraid?: string
   gbraid?: string
   oppref?: string
+  /** "Booking another party" door: skip the already-paid check. */
+  another?: boolean | string
 }
 
 type NormalizedDepositStartPayload = {
@@ -68,6 +71,7 @@ type NormalizedDepositStartPayload = {
   depositAmount?: number
   currency: string
   attribution: AttributionFields
+  another: boolean
 }
 
 type AttributionFields = {
@@ -290,6 +294,7 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
     totalAmount: normalizeNumber(payload.totalAmount),
     depositAmount: normalizeNumber(payload.depositAmount),
     currency: normalizeCurrency(payload.currency),
+    another: payload.another === true || payload.another === "1" || payload.another === "true",
     attribution: normalizeAttributionInput({
       utm_source: payload.utm_source,
       utm_medium: payload.utm_medium,
@@ -322,12 +327,30 @@ async function withLeadName(payload: NormalizedDepositStartPayload): Promise<Nor
   }
 }
 
+// A party already locked with a deposit does not get a second checkout - a
+// restored Safari tab with a live pay button was one tap from a double
+// charge (2026-09-20, RH-20260921-4337). The "another party" door
+// (another=1) is the only way past this; the deposit page offers it.
+async function alreadyLocked(payload: NormalizedDepositStartPayload) {
+  if (payload.another) return null
+  const lock = await findDepositLock({ leadId: payload.leadId, email: payload.customerEmail, eventDate: payload.eventDate })
+  if (!lock.locked) return null
+  return {
+    locked: true as const,
+    order_no: lock.matchedBy === "lead" ? lock.orderNo : undefined,
+    event_date: lock.eventDate ?? undefined,
+    event_time: lock.eventTime ?? undefined,
+    manage_url: lock.manageUrl ?? undefined,
+  }
+}
+
 function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
   const params = request.nextUrl.searchParams
 
   return buildNormalizedPayload({
     bookingId: params.get("booking_id") ?? params.get("id") ?? undefined,
     leadId: params.get("lead_id") ?? undefined,
+    another: params.get("another") ?? undefined,
     agreedTotal: params.get("agreed_total") ?? undefined,
     agreedSig: params.get("agreed_sig") ?? undefined,
     source: params.get("source") ?? undefined,
@@ -445,6 +468,12 @@ function buildMetadata(
 function buildSuccessUrl(origin: string, payload: NormalizedDepositStartPayload): string {
   const base = `${origin}${CHECKOUT_SUCCESS_PATH}?session_id={CHECKOUT_SESSION_ID}`
   const params = new URLSearchParams()
+
+  // The success page remembers the paid party on the device under this id
+  // (lib/deposit-marker), so a restored deposit tab shows "date locked".
+  if (payload.leadId) {
+    params.set("lead_id", payload.leadId)
+  }
 
   if (payload.bookingId) {
     params.set("booking_id", payload.bookingId)
@@ -789,6 +818,13 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await withLeadName(buildNormalizedPayload((rawPayload ?? {}) as DepositStartPayload))
+  const locked = await alreadyLocked(payload)
+  if (locked) {
+    return NextResponse.json(
+      { success: false, error: "This date is already locked with a deposit on file.", ...locked },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    )
+  }
   const attribution = buildResolvedAttribution(request, payload)
 
   try {
@@ -828,6 +864,13 @@ export async function GET(request: NextRequest) {
   }
 
   const payload = await withLeadName(parseGetPayload(request))
+  if (await alreadyLocked(payload)) {
+    // Direct links land on the deposit page, which shows the locked state.
+    const q = new URLSearchParams(request.nextUrl.searchParams)
+    const prefilledEmail = q.get("prefilled_email")
+    if (!q.get("customer_email") && prefilledEmail) q.set("customer_email", prefilledEmail)
+    return NextResponse.redirect(`${resolveOrigin(request)}/deposit/pay?${q.toString()}`, 302)
+  }
   const attribution = buildResolvedAttribution(request, payload)
 
   try {

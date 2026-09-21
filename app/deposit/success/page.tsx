@@ -24,6 +24,7 @@ export default async function DepositSuccessPage({ searchParams }: DepositSucces
   const location = firstParam(resolvedSearchParams.location)
   const adults = firstParam(resolvedSearchParams.adults)
   const kids = firstParam(resolvedSearchParams.kids)
+  const leadId = firstParam(resolvedSearchParams.lead_id)
 
   return (
     <DepositSuccessClient
@@ -38,6 +39,7 @@ export default async function DepositSuccessPage({ searchParams }: DepositSucces
       initialLocation={location}
       initialAdults={adults}
       initialKids={kids}
+      initialLeadId={leadId}
     />
   )
 }
