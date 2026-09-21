@@ -29,6 +29,51 @@ function stamp(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { timeZone: PT, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
 }
 
+// One MMS attachment. Twilio keeps them behind basic auth, so the bytes come
+// through /api/admin/sms-media with the admin key in a header and are handed
+// to the tag as a blob URL. Videos get a player, images a thumbnail that
+// opens full size.
+function Attachment({ adminKey, sid, index }: { adminKey: string; sid: string; index: number }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [type, setType] = useState<string>("")
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let revoked: string | null = null
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/admin/sms-media?sid=${encodeURIComponent(sid)}&i=${index}`, {
+          headers: { "x-admin-key": adminKey },
+        })
+        if (!res.ok) throw new Error(String(res.status))
+        const blob = await res.blob()
+        if (cancelled) return
+        revoked = URL.createObjectURL(blob)
+        setType(blob.type)
+        setUrl(revoked)
+      } catch {
+        if (!cancelled) setFailed(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+      if (revoked) URL.revokeObjectURL(revoked)
+    }
+  }, [adminKey, sid, index])
+
+  if (failed) return <div style={{ fontSize: 12, color: "#b91c1c" }}>附件打不开</div>
+  if (!url) return <div style={{ fontSize: 12, color: "#9ca3af" }}>附件加载中…</div>
+  if (type.startsWith("video/") || type.startsWith("audio/")) {
+    return <video src={url} controls playsInline style={{ maxWidth: 240, borderRadius: 10, display: "block", marginTop: 6 }} />
+  }
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 6 }}>
+      <img src={url} alt="客户发来的附件" style={{ maxWidth: 240, borderRadius: 10, display: "block" }} />
+    </a>
+  )
+}
+
 export function SmsThreadPanel({
   adminKey,
   phone,
@@ -146,7 +191,11 @@ export function SmsThreadPanel({
                   color: "#1f2937",
                 }}
               >
-                {m.body || (m.media ? `[${m.media} 张图片]` : "")}
+                {m.body}
+                {m.media > 0 &&
+                  Array.from({ length: m.media }).map((_, i) => (
+                    <Attachment key={`${m.sid}-${i}`} adminKey={adminKey} sid={m.sid} index={i} />
+                  ))}
                 <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, textAlign: mine ? "right" : "left" }}>
                   {mine ? "我们（213）" : label} · {stamp(m.at)}
                   {mine && m.status && m.status !== "delivered" ? ` · ${m.status}` : ""}
