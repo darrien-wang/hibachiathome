@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import twilio from "twilio"
-import { identityForAlias } from "@/lib/twilio-identity"
+import { identityForActor } from "@/lib/twilio-identity"
 
 export const dynamic = "force-dynamic"
 
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const identity = identityForAlias(actor.alias)
+  const identity = identityForActor(actor)
   const AccessToken = twilio.jwt.AccessToken
   const token = new AccessToken(accountSid, apiKeySid, apiKeySecret, { identity, ttl: 3600 })
   token.addGrant(

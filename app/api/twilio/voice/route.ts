@@ -2,7 +2,7 @@ import crypto from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
-import { agentIdentities, escapeXml } from "@/lib/twilio-identity"
+import { escapeXml, ringIdentities } from "@/lib/twilio-identity"
 import { RECORDING_NOTICE, recordingAttributes } from "@/lib/twilio-recording"
 
 export const dynamic = "force-dynamic"
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
   }
 
   const forwardTo = process.env.TWILIO_FORWARD_TO
-  const clients = agentIdentities()
+  const clients = await ringIdentities()
 
   if (!forwardTo && clients.length === 0) {
     return twiml(

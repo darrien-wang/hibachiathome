@@ -20,6 +20,32 @@ export function agentIdentities(): string[] {
     .filter((id) => id !== "agent_" && !seen.has(id) && seen.add(id))
 }
 
+/** Identity for whoever the token route authenticated: key alias, or a
+ *  workbench member (SMS / passkey login). Names that slug to nothing
+ *  (e.g. Chinese) fall back to the member id so two people never share one. */
+export function identityForActor(actor: { alias: string; memberId?: string | null }): string {
+  const id = identityForAlias(actor.alias)
+  if (id !== "agent_") return id
+  return identityForAlias(`m${(actor.memberId ?? "anon").replace(/-/g, "").slice(0, 8)}`)
+}
+
+// Inbound calls ring the static list above plus every active workbench
+// member, so someone logged in by phone number rings the same as a key user.
+export async function ringIdentities(): Promise<string[]> {
+  const ids = new Set(agentIdentities())
+  try {
+    const { createServerSupabaseClient } = await import("@/lib/supabase")
+    const supabase = createServerSupabaseClient()
+    if (supabase) {
+      const { data } = await supabase.from("workbench_members").select("id, name").eq("active", true)
+      for (const m of (data ?? []) as Array<{ id: string; name: string }>) ids.add(identityForActor({ alias: m.name, memberId: m.id }))
+    }
+  } catch {
+    // Members table unreachable: the static list still rings.
+  }
+  return [...ids].slice(0, 10)
+}
+
 export function escapeXml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
