@@ -130,10 +130,16 @@ export function LeadsTab({
     }
   }
 
+  // "最后一条": who said it decides the colour. Red only when the customer is
+  // actually waiting on us (Twilio thread + timeline agree); the robot's
+  // quote is ours, shown neutral with a nudge if nobody followed up.
   const lastLine = (l: LeadRow) => {
     const un = leadUnreplied(l)
-    const text = (l.latest_message ?? "").replace(/\s+/g, " ").trim()
-    return { text: text || "（还没有留言）", color: un ? "var(--color-accent-700)" : "var(--color-neutral-700)", weight: un ? 600 : 400, prefix: un ? "客人：" : "" }
+    const speaker = l.last_speaker ?? (un ? "customer" : l.last_outbound_at ? "us" : null)
+    const text = (l.last_preview ?? l.latest_message ?? "").replace(/\s+/g, " ").trim()
+    const prefix = speaker === "customer" ? "客人：" : speaker === "auto" ? "自动报价：" : speaker === "us" ? "我方：" : ""
+    const suffix = speaker === "auto" && l.needs_followup ? " · 还没人工跟进" : ""
+    return { text: text || "（还没有留言）", color: un ? "var(--color-accent-700)" : "var(--color-neutral-700)", weight: un ? 600 : 400, prefix, suffix }
   }
 
   return (
@@ -229,6 +235,7 @@ export function LeadsTab({
                     <div className="clamp1" style={{ color: last.color, fontWeight: last.weight }}>
                       {last.prefix}
                       {last.text}
+                      {last.suffix ? <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>{last.suffix}</span> : null}
                     </div>
                   </td>
                   <td className="r" style={{ color: resp.late ? "var(--color-accent-700)" : undefined, whiteSpace: "nowrap" }}>
@@ -266,6 +273,7 @@ export function LeadsTab({
                 <div className="clamp2" style={{ fontSize: 13, lineHeight: 1.45, color: last.color, fontWeight: last.weight }}>
                   {last.prefix}
                   {last.text}
+                  {last.suffix ? <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>{last.suffix}</span> : null}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "var(--color-neutral-600)", borderTop: "1px solid var(--color-line)", paddingTop: 8 }}>
                   <span>

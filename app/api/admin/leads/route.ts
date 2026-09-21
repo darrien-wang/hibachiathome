@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
+import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 
 export const dynamic = "force-dynamic"
 
@@ -109,17 +110,25 @@ export async function GET(request: NextRequest) {
   // Who spoke last. The workbench sorts "客人等回复" to the top from this:
   // the latest thing the customer did vs. the latest thing we did, plus the
   // party date they typed into a form, so the list can show "想订 10/3".
-  const INBOUND_TYPES = ["sms_inbound", "call_inbound", "landing_contact", "landing_quote_text", "contact_form", "contact_intent", "quote_book_online", "manual_entry", "planner_unlock"]
+  // The timeline alone is not enough - replies sent outside the workbench
+  // never wrote a line - so the Twilio thread (the complete record) is
+  // merged in below. The automated landing quote is OUR message: it counts
+  // as outbound for timing but is labelled "auto" so a lead that only ever
+  // got the robot's price still reads as needing a human.
+  const INBOUND_TYPES = ["sms_inbound", "call_inbound", "landing_contact", "contact_form", "contact_intent", "quote_book_online", "manual_entry", "planner_unlock"]
+  const AUTO_TYPES = ["landing_quote_text"]
   const OUTBOUND_TYPES = ["sms_outbound", FIRST_RESPONSE_TYPE, "sms_failed"]
   const lastInbound: Record<string, string> = {}
   const lastOutbound: Record<string, string> = {}
+  const lastPersonal: Record<string, string> = {}
+  const lastAuto: Record<string, string> = {}
   const eventHint: Record<string, string> = {}
   if (ids.length > 0) {
     const { data: recent } = await supabase
       .from("lead_touchpoints")
       .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
       .in("lead_id", ids)
-      .in("touchpoint_type", [...INBOUND_TYPES, ...OUTBOUND_TYPES])
+      .in("touchpoint_type", [...INBOUND_TYPES, ...AUTO_TYPES, ...OUTBOUND_TYPES])
       .order("occurred_at", { ascending: false })
       .limit(3000)
     for (const ev of recent ?? []) {
@@ -131,10 +140,40 @@ export async function GET(request: NextRequest) {
           const d = p.eventDate ?? p.event_date ?? p.partyDate ?? p.date
           if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) eventHint[ev.lead_id] = d.slice(0, 10)
         }
-      } else if (!lastOutbound[ev.lead_id]) {
-        lastOutbound[ev.lead_id] = ev.occurred_at
+      } else if (AUTO_TYPES.includes(t)) {
+        if (!lastAuto[ev.lead_id]) lastAuto[ev.lead_id] = ev.occurred_at
+        if (!lastOutbound[ev.lead_id]) lastOutbound[ev.lead_id] = ev.occurred_at
+        if (!eventHint[ev.lead_id]) {
+          const p = (ev.raw_payload_json ?? {}) as Record<string, unknown>
+          const d = p.eventDate ?? p.event_date
+          if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) eventHint[ev.lead_id] = d.slice(0, 10)
+        }
+      } else {
+        if (!lastOutbound[ev.lead_id]) lastOutbound[ev.lead_id] = ev.occurred_at
+        if (!lastPersonal[ev.lead_id] && t !== "sms_failed") lastPersonal[ev.lead_id] = ev.occurred_at
       }
     }
+  }
+  // Twilio: newest inbound / outbound per number, whoever sent it.
+  const isAutoText = (body: string) => body.trimStart().startsWith("Real Hibachi:")
+  const twilio = await fetchLastByPeer().catch(() => new Map())
+  const lastPreview: Record<string, { speaker: "customer" | "us" | "auto"; body: string; at: string }> = {}
+  for (const l of leads ?? []) {
+    const peer = toE164(l.phone)
+    const tw = peer ? twilio.get(peer) : undefined
+    if (tw) {
+      if (tw.lastInAt && (!lastInbound[l.id] || tw.lastInAt > lastInbound[l.id])) lastInbound[l.id] = tw.lastInAt
+      if (tw.lastOutAt && (!lastOutbound[l.id] || tw.lastOutAt > lastOutbound[l.id])) lastOutbound[l.id] = tw.lastOutAt
+      if (tw.lastOutAt && !isAutoText(tw.last.direction === "outbound" ? tw.last.body : "") && (!lastPersonal[l.id] || tw.lastOutAt > lastPersonal[l.id]) && tw.last.direction === "outbound") lastPersonal[l.id] = tw.lastOutAt
+      lastPreview[l.id] = { speaker: tw.last.direction === "inbound" ? "customer" : isAutoText(tw.last.body) ? "auto" : "us", body: tw.last.body, at: tw.last.at }
+    }
+    // A form or auto quote newer than anything on the phone wins the label.
+    const candidates: Array<{ at: string; speaker: "customer" | "us" | "auto" }> = []
+    if (lastInbound[l.id]) candidates.push({ at: lastInbound[l.id], speaker: "customer" })
+    if (lastAuto[l.id]) candidates.push({ at: lastAuto[l.id], speaker: "auto" })
+    if (lastPersonal[l.id]) candidates.push({ at: lastPersonal[l.id], speaker: "us" })
+    const top = candidates.sort((a, b) => b.at.localeCompare(a.at))[0]
+    if (top && (!lastPreview[l.id] || top.at > lastPreview[l.id].at)) lastPreview[l.id] = { speaker: top.speaker, body: l.latest_message ?? "", at: top.at }
   }
 
   // A lead that never typed a name but paid a deposit has one on the order
@@ -194,6 +233,11 @@ export async function GET(request: NextRequest) {
       response_seconds: responseSeconds,
       last_inbound_at: lastInbound[l.id] ?? null,
       last_outbound_at: lastOutbound[l.id] ?? null,
+      last_speaker: lastPreview[l.id]?.speaker ?? null,
+      last_preview: lastPreview[l.id]?.body ?? null,
+      last_at: lastPreview[l.id]?.at ?? null,
+      // The robot quoted and nobody followed up in person yet.
+      needs_followup: !!lastAuto[l.id] && (!lastPersonal[l.id] || lastPersonal[l.id] < lastAuto[l.id]) && (!lastInbound[l.id] || lastInbound[l.id] < lastAuto[l.id]),
       event_hint: eventHint[l.id] ?? null,
     }
   })

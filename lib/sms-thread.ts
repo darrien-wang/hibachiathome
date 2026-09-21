@@ -107,6 +107,49 @@ export async function fetchSmsThreads(peers: string[], limit = 80): Promise<SmsM
     .slice(-limit)
 }
 
+/**
+ * The last thing said on every number, in one pass (2026-09-21). The lead
+ * list needs "who spoke last" for 300 leads at once; reading 300 threads is
+ * out of the question, and the lead timeline misses replies that were sent
+ * outside the workbench. Two list calls on our own number give the newest
+ * inbound and outbound message per peer; cached a minute because the list
+ * polls every 30 s.
+ */
+export type LastByPeer = {
+  lastInAt: string | null
+  lastOutAt: string | null
+  last: { at: string; direction: "inbound" | "outbound"; body: string }
+}
+let lastByPeerCache: { at: number; map: Map<string, LastByPeer> } | null = null
+
+export async function fetchLastByPeer(limit = 800, maxAgeMs = 60_000): Promise<Map<string, LastByPeer>> {
+  if (lastByPeerCache && Date.now() - lastByPeerCache.at < maxAgeMs) return lastByPeerCache.map
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const token = process.env.TWILIO_AUTH_TOKEN
+  const ours = ourSmsNumber()
+  const map = new Map<string, LastByPeer>()
+  if (!accountSid || !token || !ours) return map
+  const auth = Buffer.from(`${accountSid}:${token}`).toString("base64")
+  const [outbound, inbound] = await Promise.all([
+    listMessages(auth, accountSid, `From=${encodeURIComponent(ours)}`, Math.min(1000, limit)),
+    listMessages(auth, accountSid, `To=${encodeURIComponent(ours)}`, Math.min(1000, limit)),
+  ])
+  const consider = (m: TwilioMessage, direction: "inbound" | "outbound", peer: string) => {
+    const when = new Date(m.date_sent ?? m.date_created)
+    if (Number.isNaN(when.getTime()) || !peer) return
+    const at = when.toISOString()
+    const cur = map.get(peer) ?? { lastInAt: null, lastOutAt: null, last: { at, direction, body: m.body ?? "" } }
+    if (direction === "inbound") cur.lastInAt = !cur.lastInAt || at > cur.lastInAt ? at : cur.lastInAt
+    else cur.lastOutAt = !cur.lastOutAt || at > cur.lastOutAt ? at : cur.lastOutAt
+    if (at >= cur.last.at) cur.last = { at, direction, body: m.body ?? "" }
+    map.set(peer, cur)
+  }
+  for (const m of outbound) consider(m, "outbound", m.to)
+  for (const m of inbound) consider(m, "inbound", m.from)
+  lastByPeerCache = { at: Date.now(), map }
+  return map
+}
+
 export type SendSmsResult = { ok: true; sid: string; status: string } | { ok: false; error: string }
 
 /** Send from the business line (Messaging Service when configured). */

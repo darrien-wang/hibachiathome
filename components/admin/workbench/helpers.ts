@@ -31,6 +31,12 @@ export type LeadRow = {
   response_seconds: number | null
   last_inbound_at?: string | null
   last_outbound_at?: string | null
+  /** Who said the last thing, from the Twilio thread merged with the timeline. */
+  last_speaker?: "customer" | "us" | "auto" | null
+  last_preview?: string | null
+  last_at?: string | null
+  /** Only the automated quote went out; no person has followed up. */
+  needs_followup?: boolean
   event_hint?: string | null
 }
 
