@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
     // texted again (owner, 2026-09-19): every lead on it is blocked, and the
     // block lifts by itself the day that number texts us. 30005 is not here on
     // purpose - that one was our own brand registration, not their phone.
-    if (errorCode === "30003" || errorCode === "30006") {
+    // 21610 = they opted out; that block only lifts when they text START.
+    if (errorCode === "30003" || errorCode === "30006" || errorCode === "21610") {
       await supabase
         .from("leads")
         .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `${errorCode} ${describe(errorCode)}` })

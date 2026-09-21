@@ -1,7 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
+import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const dynamic = "force-dynamic"
@@ -105,14 +106,23 @@ export async function POST(request: NextRequest) {
         .limit(1)
       isCustomer = (paid?.length ?? 0) > 0
     }
-    if (supabase && !payload.force) {
+    // An opt-out (they texted STOP / CANCEL) holds even against force: texting
+    // them again is a compliance problem, and Twilio refuses it anyway (21610).
+    if (supabase) {
       const { data: blocked } = await supabase
         .from("leads")
         .select("sms_blocked_reason")
-        .eq("phone", phone)
+        .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
         .not("sms_blocked_at", "is", null)
-        .limit(1)
-      if (blocked && blocked.length > 0) {
+        .limit(5)
+      const optOut = (blocked ?? []).find((b) => isOptOutBlock(b.sms_blocked_reason))
+      if (optOut) {
+        return NextResponse.json(
+          { error: `这个号码已退订短信（${optOut.sms_blocked_reason}），不能再发；对方回 START 才会恢复`, brake: "sms_opted_out" },
+          { status: 409 },
+        )
+      }
+      if (!payload.force && blocked && blocked.length > 0) {
         return NextResponse.json(
           { error: `这个号码收不到短信（${blocked[0].sms_blocked_reason ?? "unreachable"}），已停发，改用邮件`, brake: "sms_blocked" },
           { status: 409 },

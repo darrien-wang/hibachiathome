@@ -5,6 +5,7 @@ import { upsertLeadFromContact } from "@/lib/leads"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { fetchSmsThread, prettyPhone, renderThreadForEmail } from "@/lib/sms-thread"
 import { forwardMmsToInbox } from "@/lib/mms-forward"
+import { classifySmsKeyword, OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 
 export const dynamic = "force-dynamic"
 
@@ -54,9 +55,24 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   let leadId: string | null = null
   let leadName = ""
-  // They texted us, so the number works: lift any "don't text" block on it.
+  // STOP / CANCEL / ... blocks every lead on this number; START / UNSTOP / YES
+  // lifts it. Any other text proves the phone works, which lifts a dead-number
+  // block (30003/30006) but not an opt-out - Twilio keeps refusing those sends
+  // until they opt back in.
+  const keyword = classifySmsKeyword(body, params.OptOutType)
+  const digits = from.replace(/\D/g, "").slice(-10)
   try {
-    await supabase.from("leads").update({ sms_blocked_at: null, sms_blocked_reason: null }).eq("phone", from).not("sms_blocked_at", "is", null)
+    if (keyword?.kind === "opt_in") {
+      await supabase.from("leads").update({ sms_blocked_at: null, sms_blocked_reason: null }).eq("normalized_phone", digits).not("sms_blocked_at", "is", null)
+    } else if (!keyword) {
+      await supabase
+        .from("leads")
+        .update({ sms_blocked_at: null, sms_blocked_reason: null })
+        .eq("normalized_phone", digits)
+        .not("sms_blocked_at", "is", null)
+        .not("sms_blocked_reason", "like", `${OPT_OUT_REASON_PREFIX}%`)
+        .not("sms_blocked_reason", "like", "21610%")
+    }
   } catch {}
   try {
     const upserted = await upsertLeadFromContact(supabase, {
@@ -81,6 +97,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[twilio-sms] lead upsert failed", error)
     // Still 200 so Twilio does not retry-storm; message is in Twilio logs.
+  }
+
+  // After the upsert, so a number whose first text is STOP is blocked too.
+  if (keyword?.kind === "opt_out") {
+    try {
+      await supabase
+        .from("leads")
+        .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `${OPT_OUT_REASON_PREFIX}: texted ${keyword.keyword}` })
+        .eq("normalized_phone", digits)
+    } catch (error) {
+      console.error("[twilio-sms] opt-out block failed", error)
+    }
   }
 
   // An inbound text has no landing page behind it, so nothing surfaces it
