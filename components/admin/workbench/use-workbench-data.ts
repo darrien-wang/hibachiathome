@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import type { LeadRow, LeadStats, OrderRow, UpdateRequest } from "./helpers"
 import type { AssignmentMap, ChefSummary } from "./chef-types"
+import { EMPTY_PLANNER_LIVE, type PlannerLive } from "./planner-live"
 import { DEFAULT_SETTINGS, type WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // One place that owns the lists every tab reads. Leads poll every 30 s (a
@@ -24,6 +25,8 @@ export type WorkbenchData = {
   chefs: ChefSummary[]
   chefAlerts: number
   refreshChefs: () => Promise<void>
+  /** Who is in the party planner now / lately (polled every 15 s). */
+  planner: PlannerLive
   settings: WorkbenchSettings
   settingsMeta: Record<string, { updated_at: string; updated_by: string | null }>
   code: CodeConfig | null
@@ -63,6 +66,8 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   const [assignments, setAssignments] = useState<AssignmentMap>({})
   const [chefs, setChefs] = useState<ChefSummary[]>([])
   const [chefAlerts, setChefAlerts] = useState(0)
+  const [planner, setPlanner] = useState<PlannerLive>(EMPTY_PLANNER_LIVE)
+  const liveRef = useRef(0)
   const [settings, setSettings] = useState<WorkbenchSettings>(DEFAULT_SETTINGS)
   const [settingsMeta, setSettingsMeta] = useState<Record<string, { updated_at: string; updated_by: string | null }>>({})
   const [code, setCode] = useState<CodeConfig | null>(null)
@@ -118,6 +123,19 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
     }
   }, [key])
 
+  const refreshPlanner = useCallback(async () => {
+    if (!key) return
+    try {
+      const d = await adminJson<Omit<PlannerLive, "fetchedAt">>(key, "/api/admin/planner-live?hours=24")
+      setPlanner({ ...d, fetchedAt: Date.now() })
+      // Someone new started playing: one short beep, no notification spam.
+      if (d.liveCount > liveRef.current && liveRef.current >= 0 && document.visibilityState === "visible") beep(1)
+      liveRef.current = d.liveCount
+    } catch {
+      /* the strip just goes stale; the next tick retries */
+    }
+  }, [key])
+
   const refreshChefs = useCallback(async () => {
     if (!key) return
     try {
@@ -150,7 +168,7 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
     if (!enabled || !key) return
     let alive = true
     ;(async () => {
-      await Promise.all([refreshLeads(), refreshOrders(), refreshSettings(), refreshChefs()])
+      await Promise.all([refreshLeads(), refreshOrders(), refreshSettings(), refreshChefs(), refreshPlanner()])
       if (alive) setLoaded(true)
     })()
     const a = setInterval(() => void refreshLeads(), 30_000)
@@ -158,6 +176,10 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
       void refreshOrders()
       void refreshChefs()
     }, 60_000)
+    // 15 s keeps "正在操作" honest without hammering the table; skip hidden tabs.
+    const c = setInterval(() => {
+      if (document.visibilityState === "visible") void refreshPlanner()
+    }, 15_000)
     try {
       if ("Notification" in window && Notification.permission === "default") void Notification.requestPermission()
     } catch {}
@@ -165,8 +187,9 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
       alive = false
       clearInterval(a)
       clearInterval(b)
+      clearInterval(c)
     }
-  }, [enabled, key, refreshLeads, refreshOrders, refreshSettings, refreshChefs])
+  }, [enabled, key, refreshLeads, refreshOrders, refreshSettings, refreshChefs, refreshPlanner])
 
-  return { leads, stats, viewer, orders, pendingUpdates, assignments, chefs, chefAlerts, refreshChefs, settings, settingsMeta, code, loaded, authFailed, error, refreshLeads, refreshOrders, refreshSettings, applySettings }
+  return { leads, stats, viewer, orders, pendingUpdates, assignments, chefs, chefAlerts, refreshChefs, planner, settings, settingsMeta, code, loaded, authFailed, error, refreshLeads, refreshOrders, refreshSettings, applySettings }
 }

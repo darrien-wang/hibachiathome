@@ -28,6 +28,7 @@ import {
   type OrderRow,
 } from "./helpers"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
+import { PlannerPill, type PlannerSession } from "./planner-live"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { calcSimpleEstimate, WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, GUEST_TIERS, DEPOSIT_AMOUNT } from "@/config/pricing-rules"
 
@@ -54,6 +55,8 @@ export function LeadDialog({
   settings,
   viewerRole,
   isMobile,
+  live,
+  clarityProject,
   onClose,
   onChanged,
   onOpenOrder,
@@ -66,6 +69,8 @@ export function LeadDialog({
   settings: WorkbenchSettings
   viewerRole: "owner" | "agent" | null
   isMobile: boolean
+  live?: PlannerSession
+  clarityProject: string
   onClose: () => void
   onChanged: () => Promise<void> | void
   onOpenOrder: (orderId: string) => void
@@ -298,6 +303,7 @@ export function LeadDialog({
         tags={
           <>
             <Tag cls={LEAD_TAG_CLASS[lead.status] ?? "tag-neutral"}>{LEAD_STATUS_LABELS[lead.status] ?? lead.status}</Tag>
+            <PlannerPill s={live} project={clarityProject} />
             <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
               {leadKeyword(lead)} · 首响 <span style={{ color: resp.late ? "var(--color-accent-700)" : undefined }}>{resp.text}</span> · 收到 {relativeTime(lead.created_at)}
             </span>

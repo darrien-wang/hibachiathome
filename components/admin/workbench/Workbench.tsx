@@ -192,7 +192,7 @@ export default function Workbench() {
   const searching = q.trim().length >= 2
   const tabs: Array<[Tab, React.ReactNode]> = [
     ["board", "看板"],
-    ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}</>],
+    ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}{data.planner.liveCount ? <span className="wb-live" title={`${data.planner.liveCount} 人正在操作 Planner`} /> : null}</>],
     ["orders", <>订单{changedCount ? <span className="wb-badge">{changedCount}</span> : null}</>],
     ["chefs", <>厨师{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
     ["cal", "日历"],
@@ -254,7 +254,7 @@ export default function Workbench() {
         ) : tab === "board" ? (
           <BoardTab adminKey={key} settings={data.settings} leads={data.leads} orders={data.orders} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onGoLeads={(s) => setParams({ tab: "leads", since: s })} onGoOrders={() => setParams({ tab: "orders", filter: "all" })} />
         ) : tab === "orders" ? (
-          <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
+          <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} planner={data.planner} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
         ) : tab === "chefs" ? (
           <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
         ) : tab === "cal" ? (
@@ -262,7 +262,7 @@ export default function Workbench() {
         ) : tab === "settings" ? (
           <SettingsTab adminKey={key} settings={data.settings} meta={data.settingsMeta} code={data.code} viewerRole={data.viewer?.role ?? null} onSaved={data.applySettings} onLogout={clearKey} />
         ) : (
-          <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onCall={onCall} onChanged={data.refreshLeads} />
+          <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} planner={data.planner} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onOpenOrder={openOrder} onCall={onCall} onChanged={data.refreshLeads} />
         )}
         {!data.loaded && !searching ? <div className="empty">读取中…</div> : null}
       </main>
@@ -285,6 +285,8 @@ export default function Workbench() {
           settings={data.settings}
           viewerRole={data.viewer?.role ?? null}
           isMobile={isMobile}
+          live={data.planner.byLead[lead.id]}
+          clarityProject={data.planner.clarityProject}
           onClose={closeDialogs}
           onChanged={data.refreshLeads}
           onOpenOrder={openOrder}
@@ -310,6 +312,8 @@ export default function Workbench() {
           leads={data.leads}
           chefs={data.chefs}
           assignments={data.assignments[orderId] ?? []}
+          live={data.planner.byOrder[orderId]}
+          clarityProject={data.planner.clarityProject}
           settings={data.settings}
           viewerRole={data.viewer?.role ?? null}
           onClose={closeDialogs}

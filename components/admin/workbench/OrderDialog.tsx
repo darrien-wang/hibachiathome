@@ -26,6 +26,7 @@ import {
   type UpdateRequest,
 } from "./helpers"
 import type { ChefSummary, OrderAssignment } from "./chef-types"
+import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
@@ -136,6 +137,8 @@ export function OrderDialog({
   leads,
   chefs,
   assignments,
+  live,
+  clarityProject,
   settings,
   viewerRole,
   onClose,
@@ -150,6 +153,9 @@ export function OrderDialog({
   leads: LeadRow[]
   chefs: ChefSummary[]
   assignments: OrderAssignment[]
+  /** This order's planner session, if anyone touched it lately. */
+  live?: PlannerSession
+  clarityProject: string
   settings: WorkbenchSettings
   viewerRole: "owner" | "agent" | null
   onClose: () => void
@@ -385,7 +391,8 @@ export function OrderDialog({
           <>
             {o.event_address ?? "地址未填"} · 大人 {o.guest_adult_count ?? 0} / 小孩 {o.guest_child_count ?? 0}
           </>,
-          <span style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 12 }}>
+          <span style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 12, alignItems: "center" }}>
+            <PlannerPill s={live} project={clarityProject} />
             <span style={{ fontWeight: 600, color: pstate.accent ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{pstate.text}</span>
             <span style={{ color: assignments.length ? "var(--color-neutral-600)" : "var(--color-accent-700)" }}>
               师傅 {chefLabel}
@@ -582,6 +589,18 @@ export function OrderDialog({
               <span style={{ color: pstate.accent ? "var(--color-accent-700)" : undefined }}>{pstate.text}</span>
               <span style={{ color: "var(--color-neutral-600)" }}>最后改动</span>
               <span>{pstate.at || "—"}</span>
+              {live && live.state !== "earlier" ? (
+                <>
+                  <span style={{ color: "var(--color-neutral-600)" }}>此刻</span>
+                  <span>
+                    <PlannerPill s={live} project={clarityProject} />
+                    <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 2 }}>
+                      {live.events} 步：{live.steps.slice(0, 5).reverse().map(stepLabel).join(" → ")}
+                      {live.guests != null ? ` · ${live.guests} 人${live.picked != null ? `，选菜 ${live.picked}/${live.guests}` : ""}` : ""}
+                    </div>
+                  </span>
+                </>
+              ) : null}
             </div>
           </div>
           <div>

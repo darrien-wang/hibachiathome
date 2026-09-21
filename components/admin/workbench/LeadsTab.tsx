@@ -21,6 +21,7 @@ import {
   type LeadStats,
 } from "./helpers"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
+import { PlannerLiveStrip, PlannerPill, type PlannerLive } from "./planner-live"
 
 // 线索 · 客服. Won leads are orders now and live on the 订单 tab; 无效
 // (spam/tests) stays out of 全部 so the list is the work queue, not a log.
@@ -54,8 +55,10 @@ export function LeadsTab({
   viewerRole,
   isMobile,
   since,
+  planner,
   onClearSince,
   onOpenLead,
+  onOpenOrder,
   onCall,
   onChanged,
 }: {
@@ -65,6 +68,8 @@ export function LeadsTab({
   settings: WorkbenchSettings
   viewerRole: "owner" | "agent" | null
   isMobile: boolean
+  planner: PlannerLive
+  onOpenOrder: (id: string) => void
   /** From the board: only leads received on/after this Pacific date. */
   since: string | null
   onClearSince: () => void
@@ -153,6 +158,8 @@ export function LeadsTab({
         />
       </div>
 
+      <PlannerLiveStrip live={planner} onOpenLead={onOpenLead} onOpenOrder={onOpenOrder} />
+
       <div style={{ display: "flex", gap: 8, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(([k, label]) => (
           <Chip key={k} active={filter === k} onClick={() => setFilter(k)}>
@@ -212,6 +219,7 @@ export function LeadsTab({
                       {leadIsAds(l) ? "广告 · " : ""}
                       {leadKeyword(l)}
                     </div>
+                    <PlannerPill s={planner.byLead[l.id]} project={planner.clarityProject} compact style={{ marginTop: 3 }} />
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     {l.city_or_zip ?? "—"} <span style={{ color: "var(--color-neutral-600)" }}>· {l.guest_count ?? "?"} 人</span>
@@ -246,7 +254,10 @@ export function LeadsTab({
                     <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>{displayName(l.full_name, l.phone)}</div>
                     <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>{prettyPhone(l.phone)}</div>
                   </div>
-                  <Tag cls={LEAD_TAG_CLASS[l.status] ?? "tag-neutral"}>{LEAD_STATUS_LABELS[l.status] ?? l.status}</Tag>
+                  <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <PlannerPill s={planner.byLead[l.id]} project={planner.clarityProject} compact />
+                    <Tag cls={LEAD_TAG_CLASS[l.status] ?? "tag-neutral"}>{LEAD_STATUS_LABELS[l.status] ?? l.status}</Tag>
+                  </span>
                 </div>
                 <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>
                   {l.city_or_zip ?? "—"} · {l.guest_count ?? "?"} 人 · <span style={{ color: "var(--color-neutral-600)" }}>{leadKeyword(l)}</span>

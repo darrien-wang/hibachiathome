@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { Chip, Tag } from "./ui"
 import { displayName, dowZh, eventParts, inDaysLabel, md, money, prettyPhone, ptToday, stageOf, STAGE_TAG_CLASS, type OrderRow, type Stage, type UpdateRequest } from "./helpers"
 import type { AssignmentMap } from "./chef-types"
+import { PlannerPill, type PlannerLive } from "./planner-live"
 
 // 订单 · 售后. One row per order; "有修改" surfaces the ones the customer
 // changed in the planner and nobody has looked at yet.
@@ -38,6 +39,7 @@ export function OrdersTab({
   orders,
   pendingUpdates,
   assignments,
+  planner,
   isMobile,
   initialFilter,
   onOpenOrder,
@@ -45,6 +47,7 @@ export function OrdersTab({
   orders: OrderRow[]
   pendingUpdates: UpdateRequest[]
   assignments: AssignmentMap
+  planner: PlannerLive
   isMobile: boolean
   initialFilter?: OrderFilter | null
   onOpenOrder: (id: string) => void
@@ -73,9 +76,13 @@ export function OrdersTab({
     return r.stage === f
   }
   const counts = Object.fromEntries(FILTERS.map(([k]) => [k, rowsAll.filter((r) => match(r, k)).length])) as Record<OrderFilter, number>
+  const liveOf = (id: string) => planner.byOrder[id]
   const rows = rowsAll
     .filter((r) => match(r, filter))
     .sort((a, b) => {
+      const al = liveOf(a.o.id)?.state === "live" ? 1 : 0
+      const bl = liveOf(b.o.id)?.state === "live" ? 1 : 0
+      if (al !== bl) return bl - al
       if (a.changed !== b.changed) return a.changed ? -1 : 1
       const am = a.ev?.ms ?? 0
       const bm = b.ev?.ms ?? 0
@@ -151,6 +158,7 @@ export function OrdersTab({
                       </Tag>
                     ) : null}
                     <div style={{ fontSize: 11, marginTop: 4, color: pl.color }}>{pl.text}</div>
+                    <PlannerPill s={liveOf(r.o.id)} project={planner.clarityProject} compact style={{ marginTop: 3 }} />
                   </td>
                   <td className="mono" style={{ fontSize: 11, color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>
                     {r.o.order_no}
@@ -171,7 +179,8 @@ export function OrdersTab({
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>
                     {r.ev ? `${md(r.ev.ymd)} ${dowZh(r.ev.ymd)}` : "日期未定"} <span style={{ fontWeight: 400, fontSize: 14 }}>{r.ev?.hm}</span>
                   </div>
-                  <span style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <span style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+                    <PlannerPill s={liveOf(r.o.id)} project={planner.clarityProject} compact />
                     <Tag cls={STAGE_TAG_CLASS[r.stage]}>{r.stage}</Tag>
                     {r.changed ? <Tag cls="tag-outline">Planner 改了</Tag> : null}
                   </span>
