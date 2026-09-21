@@ -478,8 +478,8 @@ export function BoardTab({
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: "var(--color-neutral-600)" }}>
             <span>数据：</span>
-            <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy || viewerRole !== "owner"} onClick={() => void sync("sync")}>
-              {busy === "sync" ? "同步中…" : "同步 Google 花费"}
+            <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void sync("sync")} title={viewerRole === "owner" ? undefined : "坐席也可以点：只是把 Google 的花费拉进来"}>
+              {busy === "sync" ? "同步中…" : `同步 Google 花费${lastSync ? "" : " · 未同步过"}`}
             </button>
             <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void sync("sweep")}>
               {busy === "sweep" ? "扫描中…" : `归因扫描${cur?.unresolvedOrders ? ` (${cur.unresolvedOrders} 单未归因)` : ""}`}
