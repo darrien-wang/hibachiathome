@@ -5,7 +5,7 @@ import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
   type AuthenticationResponseJSON,
-  type AuthenticatorTransportFuture,
+  type AuthenticatorTransport,
   type RegistrationResponseJSON,
 } from "@simplewebauthn/server"
 import { createSession, memberActor, publicActor, requestMeta, resolveAdminActor, sessionCookie, type MemberRow } from "@/lib/admin-auth"
@@ -63,7 +63,7 @@ async function takeChallenge(supabase: Supabase, kind: "reg" | "auth", challenge
   return { memberId: data.member_id ?? null }
 }
 
-const transportsOf = (t: string[] | null | undefined) => (t && t.length ? (t as AuthenticatorTransportFuture[]) : undefined)
+const transportsOf = (t: string[] | null | undefined) => (t && t.length ? (t as AuthenticatorTransport[]) : undefined)
 
 export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     // With a phone we can hint the browser which credentials qualify; without
     // one the authenticator lists its discoverable passkeys for this site.
     const phone = normalizeLoginPhone(body.phone)
-    let allow: Array<{ id: string; transports?: AuthenticatorTransportFuture[] }> = []
+    let allow: Array<{ id: string; transports?: AuthenticatorTransport[] }> = []
     if (phone) {
       const m = await findActiveMember(phone)
       if (m) {

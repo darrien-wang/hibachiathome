@@ -194,8 +194,12 @@ export async function GET(request: NextRequest) {
       .select("id, order_id, staff_member_id, guest_share, staff_members(display_name, full_name)")
       .in("order_id", orderIds)
       .in("assignment_status", ["tentative", "confirmed", "completed"])
-    for (const r of (rows ?? []) as Array<{ id: string; order_id: string; staff_member_id: string; guest_share: number | null; staff_members: { display_name: string | null; full_name: string | null } | null }>) {
-      const name = (r.staff_members?.display_name ?? r.staff_members?.full_name ?? "").trim() || "?"
+    type Named = { display_name: string | null; full_name: string | null }
+    type Joined = { id: string; order_id: string; staff_member_id: string; guest_share: number | null; staff_members: Named | Named[] | null }
+    for (const r of (rows ?? []) as unknown as Joined[]) {
+      // PostgREST embeds a to-one relation as an object; guard the array shape anyway.
+      const sm = Array.isArray(r.staff_members) ? r.staff_members[0] : r.staff_members
+      const name = (sm?.display_name ?? sm?.full_name ?? "").trim() || "?"
       ;(assignments[r.order_id] = assignments[r.order_id] ?? []).push({ assignmentId: r.id, staffId: r.staff_member_id, name, share: r.guest_share })
     }
   }
