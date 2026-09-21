@@ -249,7 +249,8 @@ export default function Workbench() {
         </header>
       )}
 
-      <main style={{ flex: 1, minWidth: 0, padding: isMobile ? "16px 16px 88px" : "20px 24px 48px" }}>
+      {/* Desktop keeps a right gutter so the softphone handle never sits on a table's last column. */}
+      <main style={{ flex: 1, minWidth: 0, padding: isMobile ? "16px 16px 88px" : "20px 52px 72px 24px" }}>
         {data.error ? <div className="notice danger" style={{ marginBottom: 12 }}>{data.error}</div> : null}
         {searching ? (
           <SearchResults q={q.trim()} hits={hits} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />

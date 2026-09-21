@@ -57,6 +57,9 @@ export function OrdersTab({
     return team.length ? { text: `师傅 ${team.map((a) => a.name).join(" + ")}`, color: "var(--color-neutral-600)" } : { text: "师傅 未派", color: "var(--color-accent-700)" }
   }
   const [filter, setFilter] = useState<OrderFilter>(initialFilter ?? "upcoming")
+  // 排序：活动时间（默认升序，最近的派对在最上面）或下单时间；点表头切换升降。
+  const [sortKey, setSortKey] = useState<"event" | "created">("event")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const now = Date.now()
   const today = ptToday()
   const changed = useMemo(() => changedOrderIds(pendingUpdates, orders), [pendingUpdates, orders])
@@ -77,18 +80,23 @@ export function OrdersTab({
   }
   const counts = Object.fromEntries(FILTERS.map(([k]) => [k, rowsAll.filter((r) => match(r, k)).length])) as Record<OrderFilter, number>
   const liveOf = (id: string) => planner.byOrder[id]
+  const dirSign = sortDir === "asc" ? 1 : -1
   const rows = rowsAll
     .filter((r) => match(r, filter))
     .sort((a, b) => {
-      const al = liveOf(a.o.id)?.state === "live" ? 1 : 0
-      const bl = liveOf(b.o.id)?.state === "live" ? 1 : 0
-      if (al !== bl) return bl - al
-      if (a.changed !== b.changed) return a.changed ? -1 : 1
-      const am = a.ev?.ms ?? 0
-      const bm = b.ev?.ms ?? 0
-      const pastView = filter === "已办完" || filter === "待尾款" || filter === "已取消" || filter === "all"
-      return pastView ? bm - am : am - bm
+      if (sortKey === "created") return dirSign * (Date.parse(a.o.created_at) - Date.parse(b.o.created_at))
+      const am = a.ev?.ms ?? Number.MAX_SAFE_INTEGER
+      const bm = b.ev?.ms ?? Number.MAX_SAFE_INTEGER
+      return dirSign * (am - bm)
     })
+  const toggleSort = (key: "event" | "created") => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc")
+    else {
+      setSortKey(key)
+      setSortDir(key === "event" ? "asc" : "desc")
+    }
+  }
+  const arrow = (key: "event" | "created") => (sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "")
 
   const plannerLine = (r: (typeof rowsAll)[number]) =>
     r.changed ? { text: "客人改了，未核对", color: "var(--color-accent-700)" } : r.o.details_status !== "complete" ? { text: "Planner 未填", color: "var(--color-accent-700)" } : { text: "细节已填", color: "var(--color-neutral-600)" }
@@ -101,20 +109,33 @@ export function OrdersTab({
             {label} <span style={{ opacity: 0.6 }}>{counts[k]}</span>
           </Chip>
         ))}
+        <span style={{ marginLeft: "auto", display: "flex", gap: 0, alignItems: "center", flex: "none" }}>
+          <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginRight: 8, whiteSpace: "nowrap" }}>排序</span>
+          <Chip small active={sortKey === "event"} onClick={() => toggleSort("event")} title="点一下切换升降">
+            活动时间{arrow("event")}
+          </Chip>
+          <Chip small active={sortKey === "created"} onClick={() => toggleSort("created")} style={{ marginLeft: -1 }} title="点一下切换升降">
+            下单时间{arrow("created")}
+          </Chip>
+        </span>
       </div>
       {rows.length === 0 ? <div className="empty">这一栏没有订单。</div> : null}
       {!isMobile ? (
         <table className="table">
           <thead>
             <tr style={{ whiteSpace: "nowrap" }}>
-              <th>活动时间</th>
+              <th style={{ cursor: "pointer" }} onClick={() => toggleSort("event")} title="按活动时间排序，再点切换升降">
+                活动时间{arrow("event")}
+              </th>
               <th>客户</th>
               <th>地址</th>
               <th className="r">人数</th>
               <th className="r">总报价</th>
               <th className="r">尾款</th>
               <th>状态</th>
-              <th>单号</th>
+              <th style={{ cursor: "pointer" }} onClick={() => toggleSort("created")} title="按下单时间排序，再点切换升降">
+                单号{arrow("created")}
+              </th>
             </tr>
           </thead>
           <tbody>

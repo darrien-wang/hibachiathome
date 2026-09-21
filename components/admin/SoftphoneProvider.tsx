@@ -602,21 +602,22 @@ function SoftphoneDrawer() {
   return (
     <>
       {/* Always-visible edge handle: the phone has to be one click away from
-          whatever page you are on, and it doubles as the status light. */}
+          whatever page you are on, and it doubles as the status light. It
+          sits in the bottom corner (2026-09-21: at mid-height it covered the
+          last column of every table) and the workbench keeps a gutter for it. */}
       <button
         onClick={() => setDrawerOpen(!drawerOpen)}
         title={drawerOpen ? "收起电话" : "打开电话"}
         style={{
           position: "fixed",
-          top: "50%",
+          bottom: 28,
           right: drawerOpen ? DRAWER_WIDTH : 0,
-          transform: "translateY(-50%)",
           zIndex: 210,
-          background: ringing ? "#dc2626" : "#111827",
-          color: "#fff",
+          background: ringing ? "#ec3013" : "#201e1d",
+          color: "#f3f2f2",
           border: "none",
-          borderRadius: "10px 0 0 10px",
-          padding: "14px 8px",
+          borderRadius: 0,
+          padding: "10px 7px",
           cursor: "pointer",
           display: "flex",
           flexDirection: "column",
