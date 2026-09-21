@@ -161,7 +161,8 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   }, [])
 
   useEffect(() => {
-    if (!enabled || !key) return
+    // No key is fine: SMS / passkey logins carry a session cookie instead.
+    if (!enabled) return
     let alive = true
     ;(async () => {
       await Promise.all([refreshLeads(), refreshOrders(), refreshSettings(), refreshChefs(), refreshPlanner()])
