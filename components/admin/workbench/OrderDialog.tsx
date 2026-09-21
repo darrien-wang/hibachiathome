@@ -30,7 +30,7 @@ import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
-import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
+import { ORDER_SOP_STEPS } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // 订单弹窗 · 售后：金额·收款 / Planner·派单 / 短信 / 记录.
@@ -80,13 +80,6 @@ function renderChanges(summary: unknown): Array<{ field: string; from: string; t
       .slice(0, 20)
   }
   return summary ? [{ field: "改动", from: "", to: String(summary) }] : []
-}
-
-function sopStageOf(stage: string): OrderSopStage | null {
-  if (stage === "待细节" || stage === "已订") return "booked"
-  if (stage === "本周执行") return "exec"
-  if (stage === "待尾款" || stage === "已办完") return "post"
-  return null
 }
 
 function customerEventTime(iso: string | null): string {
@@ -228,8 +221,6 @@ export function OrderDialog({
   const stage = stageOf(o, now)
   const pstate = plannerState(o, detail?.events ?? null)
   const first = firstName(o.customer_name)
-  const doneSop = new Set((detail?.events ?? []).filter((e) => e.action === "sop_sent").map((e) => String(e.metadata?.sop_id ?? "")))
-  const curSop = sopStageOf(stage)
   const deposit = (detail?.payments ?? []).find((p) => p.type === "deposit")
   const otherPaid = Math.max(0, (o.amount_paid_total_cents ?? 0) - (o.deposit_paid_total_cents ?? 0))
   const guests = (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
@@ -275,17 +266,6 @@ export function OrderDialog({
     if (!d.ok || !d.url) throw new Error(d.error ?? "planner 链接失败")
     return d.url
   }
-
-  const runSop = (step: (typeof ORDER_SOP_STEPS)[number]) =>
-    call(step.id, async () => {
-      let link: string | undefined
-      if (step.id === "w_planner") link = await plannerLink()
-      const chefName = assignments[0]?.name ?? settings.business.chef_default_name
-      const text = step.build({ firstName: first || undefined, plannerLink: link, chefName, reviewUrl: settings.business.review_url || undefined })
-      toSms(text)
-      await adminJson(adminKey, "/api/admin/orders/sop-sent", { body: { orderId: o.id, sopId: step.id, title: step.title, operator: operatorName() } })
-      await load()
-    })
 
   const genPayLink = () =>
     call("pay", async () => {
@@ -446,26 +426,6 @@ export function OrderDialog({
               </button>
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、报价一律在专业表单里改，保存后这里自动同步。</div>
-            <div>
-              <Kicker>成单 SOP{curSop ? ` · 现在该发：${curSop === "booked" ? "已订" : curSop === "exec" ? "本周执行" : "派对后"}` : ""}</Kicker>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {ORDER_SOP_STEPS.map((s) => {
-                  const done = doneSop.has(s.id)
-                  const hot = s.stage === curSop && !done
-                  return (
-                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13, opacity: done ? 0.55 : 1 }}>
-                      <span style={{ width: 16, color: done ? "var(--color-text)" : hot ? "var(--color-accent)" : "var(--color-neutral-400)", fontWeight: 800 }}>{done ? "✓" : "○"}</span>
-                      <span style={{ flex: 1 }}>
-                        {s.emoji} {s.title} <span style={{ color: "var(--color-neutral-600)", fontSize: 12 }}>· {s.when}</span>
-                      </span>
-                      <button type="button" className={`btn btn-sm ${hot ? "btn-primary" : "btn-secondary"}`} disabled={!!busy || !o.customer_phone} onClick={() => void runSop(s)}>
-                        {busy === s.id ? "…" : done ? "再发" : "写进短信框"}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
           </div>
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>
