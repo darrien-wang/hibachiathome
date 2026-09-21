@@ -94,6 +94,21 @@ export async function POST(request: NextRequest) {
   // force:true is the owner overriding on purpose.
   {
     const supabase = createServerSupabaseClient()
+    // A customer who has paid a deposit is not a lead being chased: address,
+    // planner and day-of texts must never be capped (2026-09-21, a paid
+    // customer was braked because the automatic deposit confirmation counted
+    // toward the daily limit). The dead-number block below still applies.
+    let isCustomer = false
+    if (supabase) {
+      const digits = phone.replace(/\D/g, "").slice(-10)
+      const { data: paid } = await supabase
+        .from("orders")
+        .select("id")
+        .ilike("customer_phone", `%${digits}`)
+        .eq("deposit_status", "paid_verified")
+        .limit(1)
+      isCustomer = (paid?.length ?? 0) > 0
+    }
     if (supabase && !payload.force) {
       const { data: blocked } = await supabase
         .from("leads")
@@ -108,7 +123,7 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-    if (!payload.force) {
+    if (!payload.force && !isCustomer) {
       const brakes = (await getWorkbenchSettings()).sms_brakes
       const FOLLOWUP_CAP = brakes.followup_cap
       const REPLY_WINDOW_MS = brakes.reply_window_minutes * 60_000
