@@ -19,7 +19,8 @@ export function OrderPhotosPanel({ adminKey, orderId }: { adminKey: string; orde
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!adminKey || !orderId) return
+    // No key is fine: the login-session cookie carries the identity.
+    if (!orderId) return
     setError(null)
     try {
       const res = await fetch(`/api/admin/order-photos?orderId=${encodeURIComponent(orderId)}`, {

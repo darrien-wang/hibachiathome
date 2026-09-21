@@ -46,7 +46,8 @@ export function InvoiceArchivePanel({
   const [opening, setOpening] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!adminKey || (!orderNo && !orderId)) return
+    // No key is fine: the login-session cookie carries the identity.
+    if (!orderNo && !orderId) return
     setError(null)
     const qs = new URLSearchParams()
     if (orderNo) qs.set("order_no", orderNo)
