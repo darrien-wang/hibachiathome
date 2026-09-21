@@ -157,6 +157,10 @@ export function PlannerLiveStrip({ live, onOpenLead, onOpenOrder }: { live: Plan
                     {s.orderNo ? <span className="mono" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}> {s.orderNo}</span> : null}
                     {s.leadPhone && !who.includes(prettyPhone(s.leadPhone)) ? <span style={{ color: "var(--color-neutral-600)", fontWeight: 400 }}> · {prettyPhone(s.leadPhone)}</span> : null}
                   </button>
+                ) : s.entry === "key" || s.entry === "known" ? (
+                  <span style={{ fontWeight: 600 }} title="通过私链或认识的入口进来，但这次会话没带上钥匙（部署前的老会话），对不上是谁">
+                    私链访客 · 没对上订单
+                  </span>
                 ) : (
                   <span style={{ fontWeight: 600 }}>匿名{s.identified ? "（填过联系方式）" : ""}</span>
                 )}

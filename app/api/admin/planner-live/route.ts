@@ -163,10 +163,25 @@ export async function GET(request: NextRequest) {
     const { data: leads } = await supabase.from("leads").select("id, full_name, phone, email").in("id", Array.from(leadIds))
     for (const l of leads ?? []) leadMap.set(l.id, l)
   }
+  // A key minted for a booked customer carries phone/email but often no
+  // leadId; find the lead by contact so the session lands on the lead too.
+  const contactLeads = draft.filter((s) => !s.leadId && (s.phone || s.email))
+  if (contactLeads.length) {
+    const { data: recentLeads } = await supabase.from("leads").select("id, full_name, phone, email").is("merged_into", null).order("created_at", { ascending: false }).limit(400)
+    for (const s of contactLeads) {
+      const p = digits10(s.phone)
+      const e = (s.email ?? "").trim().toLowerCase()
+      const hit = (recentLeads ?? []).find((l) => (p && digits10(l.phone) === p) || (e && (l.email ?? "").trim().toLowerCase() === e))
+      if (hit) {
+        s.leadId = hit.id
+        leadMap.set(hit.id, hit)
+      }
+    }
+  }
   // Orders: match by explicit order_id, then the lead behind the key, then phone/email.
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, order_no, customer_name, customer_phone, customer_email, event_start, order_status, source_metadata")
+    .select("id, order_no, source_ref, customer_name, customer_phone, customer_email, event_start, order_status, source_metadata")
     .neq("order_status", "cancelled")
     .order("created_at", { ascending: false })
     .limit(300)
@@ -175,17 +190,23 @@ export async function GET(request: NextRequest) {
     const lead = s.leadId ? leadMap.get(s.leadId) : undefined
     const phone = digits10(s.phone ?? lead?.phone)
     const email = (s.email ?? lead?.email ?? "").trim().toLowerCase()
+    const ext = s.keyId ? keyContacts.get(s.keyId)?.externalOrderId : undefined
     let order = s.orderId ? orderList.find((o) => o.id === s.orderId) : undefined
+    if (!order && ext) order = orderList.find((o) => o.id === ext || o.order_no === ext || (o as { source_ref?: string | null }).source_ref === ext)
     if (!order && s.leadId) order = orderList.find((o) => ((o.source_metadata ?? {}) as Record<string, unknown>).lead_id === s.leadId)
     if (!order && (phone || email)) order = orderList.find((o) => (phone && digits10(o.customer_phone) === phone) || (email && (o.customer_email ?? "").trim().toLowerCase() === email))
     const { phone: _p, email: _e, ...rest } = s
     void _p
     void _e
+    const realName = (v: string | null | undefined) => {
+      const n = (v ?? "").trim()
+      return n && !/^\+?\d[\d\s().-]{6,}$/.test(n) && !/^(unknown contact|unknown|guest)$/i.test(n) ? n : null
+    }
     return {
       ...rest,
       orderId: order?.id ?? s.orderId,
       orderNo: order?.order_no ?? null,
-      customerName: order?.customer_name ?? lead?.full_name ?? null,
+      customerName: realName(order?.customer_name) ?? realName(lead?.full_name) ?? null,
       eventDate: order?.event_start ? String(order.event_start).slice(0, 10) : null,
       leadName: lead?.full_name ?? null,
       leadPhone: lead?.phone ?? null,

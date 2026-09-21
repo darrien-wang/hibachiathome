@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { sendCrmEventEnvelope, type CrmEventEnvelope } from "@/lib/crm-integration"
+import { isPlaceholderName } from "@/lib/leads"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -181,6 +182,19 @@ export async function POST(request: NextRequest) {
     })
     if (leadId) {
       await supabase.from("leads").update({ status: "won", updated_at: nowIso }).eq("id", leadId).neq("status", "won")
+      // The deposit form is often the first place the customer types a name;
+      // a lead that only ever had a phone number gets it now (2026-09-21).
+      const { data: leadRow } = await supabase.from("leads").select("full_name").eq("id", leadId).maybeSingle()
+      if (leadRow && isPlaceholderName(leadRow.full_name) && !isPlaceholderName(customerName)) {
+        await supabase.from("leads").update({ full_name: customerName, updated_at: nowIso }).eq("id", leadId)
+        await supabase.from("lead_touchpoints").insert({
+          lead_id: leadId,
+          touchpoint_type: "agent_edit",
+          touchpoint_source: "admin_dashboard",
+          raw_payload_json: { actor: "system:name_from_deposit", note: "姓名从押金登记补回", before: { full_name: leadRow.full_name }, after: { full_name: customerName } },
+          occurred_at: nowIso,
+        })
+      }
     }
   }
 

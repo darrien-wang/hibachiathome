@@ -137,6 +137,50 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // A lead that never typed a name but paid a deposit has one on the order
+  // (the deposit form asks). Show that name here rather than "未留名";
+  // the stored row is backfilled separately, this covers the gap in between.
+  const isPlaceholderName = (v: unknown) => {
+    const n = typeof v === "string" ? v.trim() : ""
+    return !n || /^\+?\d[\d\s().-]{6,}$/.test(n) || /^(unknown contact|unknown|guest|sms lead|caller)$/i.test(n)
+  }
+  const nameFromOrder: Record<string, string> = {}
+  const nameless = (leads ?? []).filter((l) => isPlaceholderName(l.full_name))
+  if (nameless.length > 0) {
+    const phones = nameless.map((l) => (l.phone ?? "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10)
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("customer_name, customer_phone, source_metadata")
+      .not("customer_name", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(300)
+    for (const l of nameless) {
+      const p = (l.phone ?? "").replace(/\D/g, "").slice(-10)
+      const hit = (orders ?? []).find((o) => {
+        if (isPlaceholderName(o.customer_name)) return false
+        const meta = (o.source_metadata ?? {}) as Record<string, unknown>
+        if (meta.lead_id === l.id) return true
+        return p.length === 10 && phones.includes(p) && (o.customer_phone ?? "").replace(/\D/g, "").slice(-10) === p
+      })
+      if (hit?.customer_name) nameFromOrder[l.id] = String(hit.customer_name).trim()
+    }
+    // Persist what we just recovered (a few at a time), with an audit line, so
+    // texts and templates that read leads.full_name get the name too.
+    const heal = Object.entries(nameFromOrder).slice(0, 20)
+    for (const [id, name] of heal) {
+      const before = (leads ?? []).find((l) => l.id === id)?.full_name ?? null
+      const { error: upErr } = await supabase.from("leads").update({ full_name: name, updated_at: new Date().toISOString() }).eq("id", id)
+      if (!upErr) {
+        await supabase.from("lead_touchpoints").insert({
+          lead_id: id,
+          touchpoint_type: "agent_edit",
+          touchpoint_source: "admin_dashboard",
+          raw_payload_json: { actor: "system:name_from_order", note: "姓名从订单补回", before: { full_name: before }, after: { full_name: name } },
+        })
+      }
+    }
+  }
+
   const rows = (leads ?? []).map((l) => {
     const firstResponseAt = responses[l.id] ?? null
     const responseSeconds = firstResponseAt
@@ -144,6 +188,8 @@ export async function GET(request: NextRequest) {
       : null
     return {
       ...l,
+      full_name: nameFromOrder[l.id] ?? l.full_name,
+      name_source: nameFromOrder[l.id] ? "order" : "lead",
       first_response_at: firstResponseAt,
       response_seconds: responseSeconds,
       last_inbound_at: lastInbound[l.id] ?? null,
