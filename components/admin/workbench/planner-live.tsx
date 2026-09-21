@@ -171,6 +171,18 @@ function progress(s: PlannerSession): string {
   return bits.join(" · ")
 }
 
+// ---------------------------------------------------------------- the tab
+
+type Filter = "all" | "live" | "hour" | "host" | "guest" | "anonymous"
+const FILTERS: Array<[Filter, string]> = [
+  ["all", "全部"],
+  ["live", "正在动"],
+  ["hour", "最近一小时"],
+  ["host", "本人"],
+  ["guest", "客人"],
+  ["anonymous", "匿名"],
+]
+
 export function PlannerTab({ adminKey, live, isMobile, onOpenLead, onOpenOrder }: { adminKey: string; live: PlannerLive; isMobile: boolean; onOpenLead: (id: string) => void; onOpenOrder: (id: string) => void }) {
   const [hours, setHours] = useState<24 | 168>(24)
   const [week, setWeek] = useState<PlannerLive | null>(null)
