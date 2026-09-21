@@ -64,8 +64,23 @@ function Attachment({ adminKey, sid, index }: { adminKey: string; sid: string; i
 
   if (failed) return <div style={{ fontSize: 12, color: "#b91c1c" }}>附件打不开</div>
   if (!url) return <div style={{ fontSize: 12, color: "#9ca3af" }}>附件加载中…</div>
+  // Carriers transcode MMS video to 3GPP (H.263/AMR), which no browser can
+  // decode - a <video> tag there is just a black box. Offer the file instead;
+  // it plays on a phone, and the same file is emailed to the inbox.
   if (type.startsWith("video/") || type.startsWith("audio/")) {
-    return <video src={url} controls playsInline style={{ maxWidth: 240, borderRadius: 10, display: "block", marginTop: 6 }} />
+    const playable = /^(video\/(mp4|webm|ogg)|audio\/(mpeg|mp4|ogg|wav))$/.test(type)
+    if (playable) {
+      return <video src={url} controls playsInline style={{ maxWidth: 240, borderRadius: 10, display: "block", marginTop: 6 }} />
+    }
+    return (
+      <a
+        href={url}
+        download={`mms-${sid}-${index + 1}.3gp`}
+        style={{ display: "inline-block", marginTop: 6, fontSize: 12, color: "#1d4ed8", textDecoration: "underline" }}
+      >
+        下载视频（{type.replace("video/", "")}，浏览器放不了，手机可以）
+      </a>
+    )
   }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 6 }}>

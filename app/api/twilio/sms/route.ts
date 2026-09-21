@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { fetchSmsThread, prettyPhone, renderThreadForEmail } from "@/lib/sms-thread"
+import { forwardMmsToInbox } from "@/lib/mms-forward"
 
 export const dynamic = "force-dynamic"
 
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
   const from = params.From ?? ""
   const body = params.Body ?? ""
   const messageSid = params.MessageSid ?? ""
+  // Pictures and video the customer attached (Twilio sends NumMedia on MMS).
+  const mediaCount = Number(params.NumMedia ?? "0") || 0
   if (!from || !messageSid) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 })
   }
@@ -130,6 +133,18 @@ export async function POST(request: NextRequest) {
         error: alert.error,
         skippedReason: alert.skippedReason,
       })
+    }
+    // Pictures and video: the alert above can only describe them, and a
+    // carrier-transcoded clip will not play in a browser at all. Mail the
+    // files so they open on the phone. Best effort.
+    if (mediaCount > 0) {
+      const forwarded = await forwardMmsToInbox({
+        messageSid,
+        fromLabel: who,
+        text: body,
+        workbenchUrl,
+      }).catch((error) => ({ ok: false, files: 0, detail: String(error) }))
+      if (!forwarded.ok) console.error("[twilio-sms] attachments not forwarded", forwarded.detail)
     }
   } catch (error) {
     console.error("[twilio-sms] alert email failed", error)
