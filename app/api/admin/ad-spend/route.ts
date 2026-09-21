@@ -9,10 +9,13 @@ export const dynamic = "force-dynamic"
 
 // ad_spend_daily is the one place paid spend lives, whatever the channel.
 //   GET  ?from&to[&channel]          rows in the window
-//   POST {rows:[...]}                upsert manual / CSV rows (any channel)
+//   POST {rows:[...]}                upsert manual / CSV / api rows (any channel)
 //   POST ?action=sync_google&days=N  pull campaign×day from the Google Ads API
-// The daily report calls sync_google with ?key=; the workbench calls it from
-// the 渠道 page. Other channels arrive as CSV until they have a connector.
+// The workbench calls sync_google from the 看板. The ads-analytics repo pushes
+// the same campaign×day rows with source "api" through its service account
+// (`sync-spend.ts --google-sa`), which does not depend on the OAuth refresh
+// token that Google revokes; both writers share the upsert key, so whichever
+// runs last simply refreshes the row. Other channels arrive as CSV.
 
 type SpendRowInput = {
   channel: string
@@ -27,7 +30,7 @@ type SpendRowInput = {
   costCents?: number
   platformConversions?: number
   platformConversionValueCents?: number
-  source?: "csv" | "manual"
+  source?: "api" | "csv" | "manual"
   note?: string
 }
 
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
         cost_cents: int(r.costCents),
         platform_conversions: Number(r.platformConversions ?? 0) || 0,
         platform_conversion_value_cents: int(r.platformConversionValueCents),
-        source: r.source === "csv" ? "csv" : "manual",
+        source: r.source === "csv" ? "csv" : r.source === "api" ? "api" : "manual",
         note: r.note?.trim() || null,
         created_by: actor.alias,
         updated_at: now,
