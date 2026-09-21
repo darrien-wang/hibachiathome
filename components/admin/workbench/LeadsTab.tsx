@@ -21,7 +21,7 @@ import {
   type LeadStats,
 } from "./helpers"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
-import { PlannerLiveStrip, PlannerPill, type PlannerLive } from "./planner-live"
+import { PlannerPill, type PlannerLive } from "./planner-live"
 
 // 线索 · 客服. Won leads are orders now and live on the 订单 tab; 无效
 // (spam/tests) stays out of 全部 so the list is the work queue, not a log.
@@ -59,7 +59,6 @@ export function LeadsTab({
   onClearSince,
   onOpenLead,
   onOpenOrder,
-  onOpenPlanner,
   onCall,
   onChanged,
 }: {
@@ -71,7 +70,6 @@ export function LeadsTab({
   isMobile: boolean
   planner: PlannerLive
   onOpenOrder: (id: string) => void
-  onOpenPlanner: () => void
   /** From the board: only leads received on/after this Pacific date. */
   since: string | null
   onClearSince: () => void
@@ -166,7 +164,6 @@ export function LeadsTab({
         />
       </div>
 
-      <PlannerLiveStrip live={planner} onOpenLead={onOpenLead} onOpenOrder={onOpenOrder} onOpenTab={onOpenPlanner} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(([k, label]) => (

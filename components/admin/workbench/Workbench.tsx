@@ -264,7 +264,7 @@ export default function Workbench() {
         ) : tab === "settings" ? (
           <SettingsTab adminKey={key} settings={data.settings} meta={data.settingsMeta} code={data.code} viewerRole={data.viewer?.role ?? null} viewer={data.viewer} onSaved={data.applySettings} onLogout={() => void logout()} />
         ) : (
-          <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} planner={data.planner} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onOpenOrder={openOrder} onOpenPlanner={() => go("planner")} onCall={onCall} onChanged={data.refreshLeads} />
+          <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} planner={data.planner} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onOpenOrder={openOrder} onCall={onCall} onChanged={data.refreshLeads} />
         )}
         {!data.loaded && !searching ? <div className="empty">读取中…</div> : null}
       </main>

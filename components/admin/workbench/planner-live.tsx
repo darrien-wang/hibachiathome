@@ -171,66 +171,6 @@ function progress(s: PlannerSession): string {
   return bits.join(" · ")
 }
 
-/** The strip on the leads tab: everyone in the planner now / lately, named or not. */
-export function PlannerLiveStrip({ live, onOpenLead, onOpenOrder, onOpenTab }: { live: PlannerLive; onOpenLead: (id: string) => void; onOpenOrder: (id: string) => void; onOpenTab: () => void }) {
-  const shown = live.sessions.filter((s) => s.state !== "earlier" && s.role !== "staff").slice(0, 8)
-  if (shown.length === 0) return null
-  return (
-    <div style={{ border: "2px solid var(--color-divider)", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <span className="kicker" style={{ color: live.liveCount ? "var(--color-accent)" : undefined, fontWeight: 800 }}>
-          Planner 上的人 · 现在 {live.liveCount} · 最近一小时 {live.recentCount}
-        </span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenTab}>
-          看全部 →
-        </button>
-      </div>
-      {shown.map((s) => {
-        const who = sessionWho(s)
-        const open = s.orderId ? () => onOpenOrder(s.orderId!) : s.leadId ? () => onOpenLead(s.leadId!) : null
-        return (
-          <div key={s.sid} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", fontSize: 13, padding: "4px 0", borderTop: "1px solid var(--color-line)" }}>
-            <span className={s.state === "live" ? "wb-live" : "wb-live wb-live-off"} aria-hidden="true" />
-            <div style={{ minWidth: 0 }}>
-              <div className="clamp1">
-                {open ? (
-                  <button type="button" className="wb-row" onClick={open} style={{ border: 0, background: "transparent", padding: 0, font: "inherit", color: "inherit", fontWeight: 600 }}>
-                    {who.main}
-                    {s.orderNo ? <span className="mono" style={{ fontSize: 11, color: "var(--color-neutral-600)", fontWeight: 400 }}> {s.orderNo}</span> : null}
-                  </button>
-                ) : (
-                  <span style={{ fontWeight: 600 }}>{who.main}</span>
-                )}
-                <span style={{ color: "var(--color-neutral-600)" }}>
-                  {who.sub ? ` · ${who.sub}` : ""} · {ENTRY_LABELS[s.entry ?? ""] ?? s.entry ?? "—"} · {s.state === "live" ? "正在动" : `${s.minutesAgo} 分钟前`}
-                  {s.eventDate ? ` · 派对 ${md(s.eventDate)}` : ""}
-                </span>
-              </div>
-              <div className="clamp1" style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                {progress(s) ? `${progress(s)} · ` : ""}
-                {s.events} 步：{s.steps.slice(0, 4).reverse().map(stepLabel).join(" → ")}
-              </div>
-            </div>
-            <ClarityLink s={s} project={live.clarityProject} asButton />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------- the tab
-
-type Filter = "all" | "live" | "hour" | "host" | "guest" | "anonymous"
-const FILTERS: Array<[Filter, string]> = [
-  ["all", "全部"],
-  ["live", "正在动"],
-  ["hour", "最近一小时"],
-  ["host", "本人"],
-  ["guest", "客人"],
-  ["anonymous", "匿名"],
-]
-
 export function PlannerTab({ adminKey, live, isMobile, onOpenLead, onOpenOrder }: { adminKey: string; live: PlannerLive; isMobile: boolean; onOpenLead: (id: string) => void; onOpenOrder: (id: string) => void }) {
   const [hours, setHours] = useState<24 | 168>(24)
   const [week, setWeek] = useState<PlannerLive | null>(null)

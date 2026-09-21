@@ -224,9 +224,9 @@
 .wb details[open] > summary::before { content: "▾ "; }
 
 /* live dot: someone is in the planner right now */
-.wb-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); flex: none; animation: wb-pulse 1.3s ease-in-out infinite; }
+.wb-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a; flex: none; animation: wb-pulse 1.3s ease-in-out infinite; }
 .wb-live-off { background: var(--color-neutral-400); animation: none; }
-@keyframes wb-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
+@keyframes wb-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, #16a34a 55%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
 
 /* messages */
 .wb .notice { border: 1px solid var(--color-divider); padding: 8px 10px; font-size: 13px; background: var(--color-surface); }
