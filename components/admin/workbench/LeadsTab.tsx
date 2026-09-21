@@ -59,6 +59,7 @@ export function LeadsTab({
   onClearSince,
   onOpenLead,
   onOpenOrder,
+  onOpenPlanner,
   onCall,
   onChanged,
 }: {
@@ -70,6 +71,7 @@ export function LeadsTab({
   isMobile: boolean
   planner: PlannerLive
   onOpenOrder: (id: string) => void
+  onOpenPlanner: () => void
   /** From the board: only leads received on/after this Pacific date. */
   since: string | null
   onClearSince: () => void
@@ -164,7 +166,7 @@ export function LeadsTab({
         />
       </div>
 
-      <PlannerLiveStrip live={planner} onOpenLead={onOpenLead} onOpenOrder={onOpenOrder} />
+      <PlannerLiveStrip live={planner} onOpenLead={onOpenLead} onOpenOrder={onOpenOrder} onOpenTab={onOpenPlanner} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(([k, label]) => (

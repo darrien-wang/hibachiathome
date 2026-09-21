@@ -12,6 +12,7 @@ import { OrdersTab, changedOrderIds, type OrderFilter } from "./OrdersTab"
 import { CalendarTab } from "./CalendarTab"
 import { SettingsTab } from "./SettingsTab"
 import { ChefsTab, type ChefTabKey } from "./ChefsTab"
+import { PlannerTab } from "./planner-live"
 import { ChefDialog } from "./ChefDialog"
 import { LeadDialog } from "./LeadDialog"
 import { OrderDialog } from "./OrderDialog"
@@ -28,8 +29,8 @@ import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnrepl
 // out of that lead, ?since=YYYY-MM-DD scopes the lead list (from the board).
 // The old /admin/leads, /admin/orders, /admin/channels URLs redirect here.
 
-type Tab = "board" | "leads" | "orders" | "chefs" | "cal" | "settings"
-const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", chefs: "厨师", cal: "日历", settings: "设置" }
+type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "cal" | "settings"
+const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "厨师", cal: "日历", settings: "设置" }
 const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files"])
 
 type SearchHit = {
@@ -192,8 +193,9 @@ export default function Workbench() {
   const searching = q.trim().length >= 2
   const tabs: Array<[Tab, React.ReactNode]> = [
     ["board", "看板"],
-    ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}{data.planner.liveCount ? <span className="wb-live" title={`${data.planner.liveCount} 人正在操作 Planner`} /> : null}</>],
+    ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}</>],
     ["orders", <>订单{changedCount ? <span className="wb-badge">{changedCount}</span> : null}</>],
+    ["planner", <>Planner{data.planner.liveCount ? <span className="wb-live" title={`${data.planner.liveCount} 人正在操作 Planner`} /> : null}</>],
     ["chefs", <>厨师{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
     ["cal", "日历"],
     ["settings", "设置"],
@@ -255,6 +257,8 @@ export default function Workbench() {
           <BoardTab adminKey={key} settings={data.settings} leads={data.leads} orders={data.orders} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onGoLeads={(s) => setParams({ tab: "leads", since: s })} onGoOrders={() => setParams({ tab: "orders", filter: "all" })} />
         ) : tab === "orders" ? (
           <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} planner={data.planner} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
+        ) : tab === "planner" ? (
+          <PlannerTab adminKey={key} live={data.planner} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
         ) : tab === "chefs" ? (
           <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
         ) : tab === "cal" ? (
@@ -262,7 +266,7 @@ export default function Workbench() {
         ) : tab === "settings" ? (
           <SettingsTab adminKey={key} settings={data.settings} meta={data.settingsMeta} code={data.code} viewerRole={data.viewer?.role ?? null} onSaved={data.applySettings} onLogout={clearKey} />
         ) : (
-          <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} planner={data.planner} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onOpenOrder={openOrder} onCall={onCall} onChanged={data.refreshLeads} />
+          <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} planner={data.planner} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onOpenOrder={openOrder} onOpenPlanner={() => go("planner")} onCall={onCall} onChanged={data.refreshLeads} />
         )}
         {!data.loaded && !searching ? <div className="empty">读取中…</div> : null}
       </main>
