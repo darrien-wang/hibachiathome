@@ -139,6 +139,51 @@ function Modal({ onClose, children, title }: { onClose: () => void; children: Re
 const inputStyle: React.CSSProperties = { padding: "9px 11px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14, width: "100%", boxSizing: "border-box" }
 const sectionLabel: React.CSSProperties = { fontSize: 12, color: "#6b7280", margin: "14px 0 6px", fontWeight: 600 }
 
+// A picture or video a customer texted us. Twilio keeps MMS attachments
+// behind basic auth, so the bytes come through /api/admin/sms-media with the
+// admin key in a header and reach the tag as a blob URL. Same component idea
+// as components/admin/sms-thread-panel.tsx, kept local to this page's markup.
+function SmsAttachment({ adminKey, sid, index }: { adminKey: string; sid: string; index: number }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [type, setType] = useState("")
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let objectUrl: string | null = null
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/admin/sms-media?sid=${encodeURIComponent(sid)}&i=${index}`, {
+          headers: { "x-admin-key": adminKey },
+        })
+        if (!res.ok) throw new Error(String(res.status))
+        const blob = await res.blob()
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(blob)
+        setType(blob.type)
+        setUrl(objectUrl)
+      } catch {
+        if (!cancelled) setFailed(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [adminKey, sid, index])
+
+  if (failed) return <div style={{ fontSize: 11, color: "#b91c1c" }}>附件打不开</div>
+  if (!url) return <div style={{ fontSize: 11, color: "#9ca3af" }}>附件加载中…</div>
+  if (type.startsWith("video/") || type.startsWith("audio/")) {
+    return <video src={url} controls playsInline style={{ maxWidth: 220, borderRadius: 10, display: "block", marginTop: 6 }} />
+  }
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 6 }}>
+      <img src={url} alt="客户发来的附件" style={{ maxWidth: 220, borderRadius: 10, display: "block" }} />
+    </a>
+  )
+}
+
 export default function LeadsDashboard() {
   const softphone = useSoftphone()
   const [adminKey, setAdminKey] = useState<string>("")
@@ -999,7 +1044,11 @@ export default function LeadsDashboard() {
                       color: "#1f2937",
                     }}
                   >
-                    {m.body || (m.media > 0 ? `📎 ${m.media} 张图片` : "")}
+                    {m.body}
+                    {m.media > 0 &&
+                      Array.from({ length: m.media }).map((_, i) => (
+                        <SmsAttachment key={`${m.sid}-${i}`} adminKey={adminKey} sid={m.sid} index={i} />
+                      ))}
                     <div style={{ fontSize: 10.5, color: "#9ca3af", marginTop: 3, textAlign: mine ? "right" : "left" }}>
                       {manyNumbers ? `${peerLabel} · ` : ""}
                       {new Date(m.at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
