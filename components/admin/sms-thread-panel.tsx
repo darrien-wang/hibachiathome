@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 // ============================================================
 // The SMS conversation with one customer, anywhere in the admin.
@@ -8,10 +8,12 @@ import { useCallback, useEffect, useState } from "react"
 // Reads the thread from /api/admin/sms-thread (which reads Twilio, the only
 // complete record of what was said) and sends replies through the same
 // route, so a reply typed here is written to the lead's timeline exactly
-// like one typed on the lead page. Built 2026-09-18 so the order drawer can
-// show the conversation instead of sending the owner to the lead page for
-// it. Pass leadId when you have one: the thread then also covers a second
-// number merged into that lead, and the reply is logged against it.
+// like one typed on the lead page. Built 2026-09-18 for the order drawer;
+// 2026-09-21 restyled for the workbench (modernist tokens) and given quick
+// replies, an insert slot for generated links, and an onSent hook so the
+// lead dialog can mark the first response. Pass leadId when you have one:
+// the thread then also covers a second number merged into that lead, and
+// the reply is logged against it.
 
 type SmsMessage = {
   sid: string
@@ -23,10 +25,12 @@ type SmsMessage = {
   peer: string
 }
 
+export type QuickReplyChip = { id: string; label: string; body: string }
+
 const PT = "America/Los_Angeles"
 
 function stamp(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", { timeZone: PT, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+  return new Date(iso).toLocaleString("en-US", { timeZone: PT, month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
 }
 
 // One MMS attachment. Twilio keeps them behind basic auth, so the bytes come
@@ -62,29 +66,25 @@ function Attachment({ adminKey, sid, index }: { adminKey: string; sid: string; i
     }
   }, [adminKey, sid, index])
 
-  if (failed) return <div style={{ fontSize: 12, color: "#b91c1c" }}>附件打不开</div>
-  if (!url) return <div style={{ fontSize: 12, color: "#9ca3af" }}>附件加载中…</div>
+  if (failed) return <div style={{ fontSize: 12, opacity: 0.7 }}>附件打不开</div>
+  if (!url) return <div style={{ fontSize: 12, opacity: 0.6 }}>附件加载中…</div>
   // Carriers transcode MMS video to 3GPP (H.263/AMR), which no browser can
   // decode - a <video> tag there is just a black box. Offer the file instead;
   // it plays on a phone, and the same file is emailed to the inbox.
   if (type.startsWith("video/") || type.startsWith("audio/")) {
     const playable = /^(video\/(mp4|webm|ogg)|audio\/(mpeg|mp4|ogg|wav))$/.test(type)
     if (playable) {
-      return <video src={url} controls playsInline style={{ maxWidth: 240, borderRadius: 10, display: "block", marginTop: 6 }} />
+      return <video src={url} controls playsInline style={{ maxWidth: 240, display: "block", marginTop: 6 }} />
     }
     return (
-      <a
-        href={url}
-        download={`mms-${sid}-${index + 1}.3gp`}
-        style={{ display: "inline-block", marginTop: 6, fontSize: 12, color: "#1d4ed8", textDecoration: "underline" }}
-      >
+      <a href={url} download={`mms-${sid}-${index + 1}.3gp`} style={{ display: "inline-block", marginTop: 6, fontSize: 12, textDecoration: "underline" }}>
         下载视频（{type.replace("video/", "")}，浏览器放不了，手机可以）
       </a>
     )
   }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 6 }}>
-      <img src={url} alt="客户发来的附件" style={{ maxWidth: 240, borderRadius: 10, display: "block" }} />
+      <img src={url} alt="客户发来的附件" style={{ maxWidth: 240, display: "block", filter: "grayscale(1) contrast(1.08)" }} />
     </a>
   )
 }
@@ -95,6 +95,11 @@ export function SmsThreadPanel({
   leadId,
   peerLabel,
   compact = false,
+  quickReplies,
+  fillTemplate,
+  insert,
+  onSent,
+  header,
 }: {
   adminKey: string
   phone: string | null | undefined
@@ -102,11 +107,24 @@ export function SmsThreadPanel({
   peerLabel?: string | null
   /** Shorter bubbles and a smaller box, for a drawer. */
   compact?: boolean
+  /** Chips above the composer; clicking one puts its text in the box. */
+  quickReplies?: QuickReplyChip[]
+  /** Replaces {placeholders} in a chip's text (may fetch, e.g. a deposit link). */
+  fillTemplate?: (body: string) => Promise<string> | string
+  /** Text pushed into the composer from outside (a generated pay link etc.). */
+  insert?: { text: string; nonce: number } | null
+  /** Fired after a successful send, with the sent text. */
+  onSent?: (body: string) => void
+  /** Optional strip above the thread (e.g. "客人在等回复"). */
+  header?: React.ReactNode
 }) {
   const [messages, setMessages] = useState<SmsMessage[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
+  const [filling, setFilling] = useState<string | null>(null)
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const textRef = useRef<HTMLTextAreaElement | null>(null)
 
   const load = useCallback(async () => {
     if (!phone && !leadId) {
@@ -138,6 +156,18 @@ export function SmsThreadPanel({
     void load()
   }, [load])
 
+  // Keep the newest message in view.
+  useEffect(() => {
+    const el = boxRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages])
+
+  useEffect(() => {
+    if (!insert || !insert.text) return
+    setDraft((d) => (d.trim() ? `${d.trimEnd()}\n${insert.text}` : insert.text))
+    textRef.current?.focus()
+  }, [insert])
+
   const send = useCallback(async () => {
     const body = draft.trim()
     if (!phone || !body || sending) return
@@ -162,101 +192,98 @@ export function SmsThreadPanel({
       }
       setDraft("")
       await load()
+      onSent?.(body)
     } finally {
       setSending(false)
     }
-  }, [adminKey, phone, leadId, draft, sending, load])
+  }, [adminKey, phone, leadId, draft, sending, load, onSent])
+
+  const pick = useCallback(
+    async (chip: QuickReplyChip) => {
+      setFilling(chip.id)
+      try {
+        const text = fillTemplate ? await fillTemplate(chip.body) : chip.body
+        setDraft(text)
+        textRef.current?.focus()
+      } catch (e) {
+        window.alert(e instanceof Error ? e.message : "模板填不上")
+      } finally {
+        setFilling(null)
+      }
+    },
+    [fillTemplate],
+  )
 
   const label = peerLabel && peerLabel.trim() ? peerLabel.trim() : "客户"
+  const canSend = !!phone && !sending && !!draft.trim()
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
+      {header}
       <div
+        ref={boxRef}
         style={{
-          maxHeight: compact ? 320 : 480,
-          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          gap: 6,
-          padding: 10,
-          background: "#f9fafb",
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
+          gap: 8,
+          padding: compact ? "10px 0" : "14px 0",
+          flex: 1,
+          overflowY: "auto",
+          minHeight: compact ? 160 : 220,
+          maxHeight: compact ? 300 : 400,
         }}
       >
-        {messages === null && <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>读取短信中…</p>}
+        {messages === null && <p className="empty">读取短信中…</p>}
         {messages !== null && messages.length === 0 && (
-          <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>{error ? `读不到短信：${error}` : phone ? "还没有短信往来" : "没有手机号"}</p>
+          <p className="empty">{error ? `读不到短信：${error}` : phone ? "还没有短信往来" : "没有手机号"}</p>
         )}
         {(messages ?? []).map((m) => {
           const mine = m.direction === "outbound"
           return (
-            <div key={m.sid} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
-              <div
-                style={{
-                  maxWidth: "82%",
-                  padding: "7px 11px",
-                  borderRadius: 14,
-                  fontSize: compact ? 13 : 14,
-                  lineHeight: 1.45,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  background: mine ? "#fdeee2" : "#ffffff",
-                  border: `1px solid ${mine ? "#fbd7bd" : "#e5e7eb"}`,
-                  color: "#1f2937",
-                }}
-              >
-                {m.body}
-                {m.media > 0 &&
-                  Array.from({ length: m.media }).map((_, i) => (
-                    <Attachment key={`${m.sid}-${i}`} adminKey={adminKey} sid={m.sid} index={i} />
-                  ))}
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, textAlign: mine ? "right" : "left" }}>
-                  {mine ? "我们（213）" : label} · {stamp(m.at)}
-                  {mine && m.status && m.status !== "delivered" ? ` · ${m.status}` : ""}
-                </div>
+            <div key={m.sid} className={mine ? "wb-bubble-us" : "wb-bubble-them"}>
+              <div>{m.body}</div>
+              {m.media > 0 && Array.from({ length: m.media }).map((_, i) => <Attachment key={`${m.sid}-${i}`} adminKey={adminKey} sid={m.sid} index={i} />)}
+              <div className="wb-bubble-meta" style={{ textAlign: mine ? "right" : "left" }}>
+                {mine ? "我们 · 213" : label} · {stamp(m.at)}
+                {mine && m.status && m.status !== "delivered" ? ` · ${m.status}` : ""}
               </div>
             </div>
           )
         })}
       </div>
-      <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={phone ? "回短信（从 213 线发出，自动记进线索时间线）" : "没有手机号，无法发短信"}
-          disabled={!phone || sending}
-          rows={2}
-          style={{ flex: 1, padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 10, fontSize: 13, resize: "vertical", fontFamily: "inherit" }}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void send()
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => void send()}
-          disabled={!phone || sending || !draft.trim()}
-          style={{
-            padding: "8px 14px",
-            borderRadius: 10,
-            border: "none",
-            background: !phone || sending || !draft.trim() ? "#e5e7eb" : "#ea580c",
-            color: !phone || sending || !draft.trim() ? "#9ca3af" : "#fff",
-            fontWeight: 600,
-            fontSize: 13,
-            cursor: !phone || sending || !draft.trim() ? "default" : "pointer",
-          }}
-        >
-          {sending ? "发送中…" : "发送"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void load()}
-          title="重新读取"
-          style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", fontSize: 13, cursor: "pointer" }}
-        >
-          刷新
-        </button>
+      <div style={{ paddingTop: 10, borderTop: "2px solid var(--color-divider)", display: "flex", flexDirection: "column", gap: 8 }}>
+        {quickReplies && quickReplies.length > 0 ? (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {quickReplies.map((c) => (
+              <button key={c.id} type="button" className="wb-chip wb-chip-sm" disabled={!!filling || !phone} onClick={() => void pick(c)} title={c.body}>
+                {filling === c.id ? "…" : c.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+          <textarea
+            ref={textRef}
+            className="input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={phone ? "回复客人…（Ctrl/⌘+Enter 发送，从 213 线发出，自动记进线索时间线）" : "没有手机号，无法发短信"}
+            disabled={!phone || sending}
+            rows={compact ? 2 : 3}
+            style={{ flex: 1, minHeight: 44 }}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void send()
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button type="button" className="btn btn-primary" onClick={() => void send()} disabled={!canSend}>
+              {sending ? "发送中…" : "发送"}
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void load()} title="重新读取">
+              刷新
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

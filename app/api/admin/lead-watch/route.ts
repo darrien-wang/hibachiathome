@@ -5,6 +5,7 @@ import { escapeHtml } from "@/lib/escape-html"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -24,10 +25,11 @@ export const maxDuration = 60
 // "needs a human" item is reported once (then again only if it is still open
 // two hours later).
 
-const GRACE_MINUTES = 5 // let step 2 of the form land first
+// Grace (let step 2 of the form land first), re-notify spacing and the on/off
+// switches are owner-editable in /admin → 设置 → 线索巡检; the code defaults
+// (5 min / 120 min / on) are what was hard-coded here until 2026-09-21.
 const MAX_LEAD_AGE_HOURS = 24
 const SMS_LOOKBACK_HOURS = 24
-const RENOTIFY_AFTER_MINUTES = 120
 
 function isAuthorized(request: NextRequest): boolean {
   const provided = request.headers.get("x-admin-key") ?? ""
@@ -120,6 +122,10 @@ export async function POST(request: NextRequest) {
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const dryRun = request.nextUrl.searchParams.get("dry") === "1"
   const now = Date.now()
+  const watch = (await getWorkbenchSettings()).lead_watch
+  if (!watch.enabled) {
+    return NextResponse.json({ ok: true, dryRun, disabled: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 })
+  }
 
   // ---- open leads with no first response --------------------------------
   const since = new Date(now - MAX_LEAD_AGE_HOURS * 3600_000).toISOString()
@@ -155,9 +161,9 @@ export async function POST(request: NextRequest) {
 
     // Left contact details, never reached the quote step: send the price.
     if (contact && !gotQuote) {
-      if (ageMin < GRACE_MINUTES) continue
+      if (ageMin < watch.grace_minutes) continue
       const payload = (contact.raw_payload_json ?? {}) as ContactPayload
-      if (payload.eventDate && describeDate(payload.eventDate)) {
+      if (!watch.auto_first_response || (payload.eventDate && describeDate(payload.eventDate))) {
         // A date is already on file, so the approved "what date?" wording does
         // not fit - hand this one to a person instead of improvising.
         humanLeads.push({ kind: "lead", leadId: lead.id, phone, email: lead.email, city: lead.city_or_zip, minutesWaiting: ageMin, summary: lead.latest_message })
@@ -237,7 +243,7 @@ export async function POST(request: NextRequest) {
       .select("key, notified_at")
       .in("key", candidates.map((c) => c.key))
     const recent = new Set(
-      (already ?? []).filter((r) => now - new Date(r.notified_at).getTime() < RENOTIFY_AFTER_MINUTES * 60_000).map((r) => r.key),
+      (already ?? []).filter((r) => now - new Date(r.notified_at).getTime() < watch.renotify_minutes * 60_000).map((r) => r.key),
     )
     const fresh = candidates.filter((c) => !recent.has(c.key))
     needsHuman = fresh.map((c) => c.item)

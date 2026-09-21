@@ -1,11 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
+import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const dynamic = "force-dynamic"
 
-/** Most unprompted texts a lead who has never replied can get, auto quote included (leads skill 4.4). */
-const FOLLOWUP_CAP = 6
+// The brake numbers (lifetime cap for a never-replier, daily cap, spacing,
+// reply window) are owner-editable in /admin → 设置 → 短信刹车; the code
+// defaults in lib/workbench-settings-shared.ts are the values that were
+// hard-coded here until 2026-09-21 (leads skill 4.4).
 
 // Staff-only. Same key scheme as the rest of /api/admin:
 // owner ADMIN_DASH_KEY, agents AGENT_DASH_KEYS="anna:key1,bob:key2".
@@ -67,8 +70,6 @@ function isAutomatedText(body: string): boolean {
 // headcount, tofu and rentals; answer 1 went out and answers 2 and 3 were
 // refused). Anything sent within this window of an inbound message counts as
 // part of the reply, both for this send and when counting history.
-const REPLY_WINDOW_MS = 15 * 60_000
-const REPLY_BURST_CAP = 5
 
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
@@ -108,6 +109,10 @@ export async function POST(request: NextRequest) {
       }
     }
     if (!payload.force) {
+      const brakes = (await getWorkbenchSettings()).sms_brakes
+      const FOLLOWUP_CAP = brakes.followup_cap
+      const REPLY_WINDOW_MS = brakes.reply_window_minutes * 60_000
+      const REPLY_BURST_CAP = brakes.reply_burst_cap
       const thread = await fetchSmsThread(phone, 100)
       const last = thread[thread.length - 1]
       const customerSpokeLast = last?.direction === "inbound"
@@ -142,11 +147,11 @@ export async function POST(request: NextRequest) {
             { status: 409 },
           )
         }
-        if (last24h >= 2) {
-          return NextResponse.json({ error: "24 小时内已经主动发过 2 条", brake: "daily" }, { status: 409 })
+        if (last24h >= brakes.daily_cap) {
+          return NextResponse.json({ error: `24 小时内已经主动发过 ${brakes.daily_cap} 条`, brake: "daily" }, { status: 409 })
         }
-        if (lastPersonalOut && now - new Date(lastPersonalOut.at).getTime() < 3 * 3600_000) {
-          return NextResponse.json({ error: "距上一条主动消息不到 3 小时", brake: "spacing" }, { status: 409 })
+        if (lastPersonalOut && now - new Date(lastPersonalOut.at).getTime() < brakes.spacing_hours * 3600_000) {
+          return NextResponse.json({ error: `距上一条主动消息不到 ${brakes.spacing_hours} 小时`, brake: "spacing" }, { status: 409 })
         }
       }
     }

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { deriveScore, type ChannelGroup, type ChannelScore } from "@/lib/channels"
+import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -99,6 +100,9 @@ export async function GET(request: NextRequest) {
   const totalLeads = channels.reduce((a, c) => a + c.leads, 0)
   const totalRevenue = channels.reduce((a, c) => a + c.revenueCents, 0)
   const paidDeposits = channels.filter((c) => c.group === "paid").reduce((a, c) => a + c.deposits, 0)
+  // CPA thresholds are owner-editable (/admin → 设置 → 目标); the defaults
+  // are the $150 target / $80 goal that used to be hard-coded here.
+  const targets = (await getWorkbenchSettings()).targets
   const blended = {
     costCents: totalSpend,
     deposits: totalDeposits,
@@ -107,8 +111,8 @@ export async function GET(request: NextRequest) {
     blendedCpaCents: totalSpend > 0 && totalDeposits > 0 ? Math.round(totalSpend / totalDeposits) : null,
     paidCpaCents: totalSpend > 0 && paidDeposits > 0 ? Math.round(totalSpend / paidDeposits) : null,
     freeDeposits: totalDeposits - paidDeposits,
-    targetCpaCents: 15000,
-    ultimateCpaCents: 8000,
+    targetCpaCents: targets.cpa_target_cents,
+    ultimateCpaCents: targets.cpa_goal_cents,
   }
 
   // Unresolved orders in the window are the attribution debt to sweep.

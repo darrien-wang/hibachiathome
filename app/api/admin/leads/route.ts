@@ -106,12 +106,50 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Who spoke last. The workbench sorts "客人等回复" to the top from this:
+  // the latest thing the customer did vs. the latest thing we did, plus the
+  // party date they typed into a form, so the list can show "想订 10/3".
+  const INBOUND_TYPES = ["sms_inbound", "call_inbound", "landing_contact", "landing_quote_text", "contact_form", "contact_intent", "quote_book_online", "manual_entry", "planner_unlock"]
+  const OUTBOUND_TYPES = ["sms_outbound", FIRST_RESPONSE_TYPE, "sms_failed"]
+  const lastInbound: Record<string, string> = {}
+  const lastOutbound: Record<string, string> = {}
+  const eventHint: Record<string, string> = {}
+  if (ids.length > 0) {
+    const { data: recent } = await supabase
+      .from("lead_touchpoints")
+      .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+      .in("lead_id", ids)
+      .in("touchpoint_type", [...INBOUND_TYPES, ...OUTBOUND_TYPES])
+      .order("occurred_at", { ascending: false })
+      .limit(3000)
+    for (const ev of recent ?? []) {
+      const t = String(ev.touchpoint_type)
+      if (INBOUND_TYPES.includes(t)) {
+        if (!lastInbound[ev.lead_id]) lastInbound[ev.lead_id] = ev.occurred_at
+        if (!eventHint[ev.lead_id]) {
+          const p = (ev.raw_payload_json ?? {}) as Record<string, unknown>
+          const d = p.eventDate ?? p.event_date ?? p.partyDate ?? p.date
+          if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) eventHint[ev.lead_id] = d.slice(0, 10)
+        }
+      } else if (!lastOutbound[ev.lead_id]) {
+        lastOutbound[ev.lead_id] = ev.occurred_at
+      }
+    }
+  }
+
   const rows = (leads ?? []).map((l) => {
     const firstResponseAt = responses[l.id] ?? null
     const responseSeconds = firstResponseAt
       ? Math.max(0, (new Date(firstResponseAt).getTime() - new Date(l.created_at).getTime()) / 1000)
       : null
-    return { ...l, first_response_at: firstResponseAt, response_seconds: responseSeconds }
+    return {
+      ...l,
+      first_response_at: firstResponseAt,
+      response_seconds: responseSeconds,
+      last_inbound_at: lastInbound[l.id] ?? null,
+      last_outbound_at: lastOutbound[l.id] ?? null,
+      event_hint: eventHint[l.id] ?? null,
+    }
   })
 
   // Stats over the returned window (newest N leads). Disqualified leads are

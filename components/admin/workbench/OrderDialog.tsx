@@ -1,0 +1,585 @@
+"use client"
+
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { adminJson, AdminApiError } from "./api"
+import { Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
+import {
+  copyText,
+  digits10,
+  displayName,
+  dowZh,
+  eventParts,
+  firstName,
+  inDaysLabel,
+  leadForOrder,
+  md,
+  money,
+  operatorName,
+  ORDER_EVENT_LABELS,
+  prettyPhone,
+  stageOf,
+  STAGE_TAG_CLASS,
+  stamp,
+  type LeadRow,
+  type OrderDetail,
+  type OrderRow,
+  type UpdateRequest,
+} from "./helpers"
+import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
+import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
+import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
+import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
+import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
+
+// 订单弹窗 · 售后：核对金额 + 收款链接（可换付款人）+ 客人在 Planner 改了什么.
+// Orders are owned by the invoice app; this dialog reads them and acts
+// through the admin routes (pay link, final payment, SOP, travel fee,
+// update-request confirm/complete) and the SMS line.
+
+const OPEN_REQUEST = new Set(["received", "confirmed_in_progress"])
+
+function plannerState(o: OrderRow, events: OrderDetail["events"] | null): { text: string; accent: boolean } {
+  const saves = (events ?? []).filter((e) => e.action === "invoice_saved" || e.action === "invoice_update_submitted")
+  const last = saves[0]
+  if (o.details_status !== "complete") return { text: "Planner 未填 · 客人还没选", accent: true }
+  if (last) return { text: `细节已填 · 最后改动 ${stamp(last.created_at)}`, accent: false }
+  return { text: "细节已填", accent: false }
+}
+
+function renderChanges(summary: unknown): Array<{ field: string; from: string; to: string }> {
+  if (Array.isArray(summary)) {
+    return summary
+      .map((c) => {
+        if (c && typeof c === "object") {
+          const r = c as Record<string, unknown>
+          return { field: String(r.field ?? r.label ?? r.key ?? "—"), from: String(r.from ?? r.before ?? r.old ?? "—"), to: String(r.to ?? r.after ?? r.new ?? "—") }
+        }
+        return { field: String(c), from: "", to: "" }
+      })
+      .slice(0, 20)
+  }
+  if (summary && typeof summary === "object") {
+    return Object.entries(summary as Record<string, unknown>)
+      .map(([k, v]) => {
+        if (v && typeof v === "object" && !Array.isArray(v)) {
+          const r = v as Record<string, unknown>
+          return { field: k, from: String(r.from ?? r.before ?? "—"), to: String(r.to ?? r.after ?? JSON.stringify(v)) }
+        }
+        return { field: k, from: "", to: typeof v === "string" ? v : JSON.stringify(v) }
+      })
+      .slice(0, 20)
+  }
+  return summary ? [{ field: "改动", from: "", to: String(summary) }] : []
+}
+
+function sopStageOf(stage: string): OrderSopStage | null {
+  if (stage === "待细节" || stage === "已订") return "booked"
+  if (stage === "本周执行") return "exec"
+  if (stage === "待尾款" || stage === "已办完") return "post"
+  return null
+}
+
+function customerEventTime(iso: string | null): string {
+  const p = eventParts(iso)
+  if (!p) return ""
+  const d = new Date(p.ms)
+  const day = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })
+  const h12 = p.hour % 12 || 12
+  return `${day} at ${h12}:${String(p.minute).padStart(2, "0")}${p.hour >= 12 ? "pm" : "am"}`
+}
+
+type EmailTemplate = "details" | "balance" | "thanks"
+const EMAIL_TEMPLATES: Array<{ id: EmailTemplate; label: string }> = [
+  { id: "details", label: "收细节" },
+  { id: "balance", label: "确认 + 尾款" },
+  { id: "thanks", label: "活动后致谢" },
+]
+
+function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings): { subject: string; body: string } {
+  const first = firstName(o.customer_name)
+  const hi = `Hi${first ? " " + first : ""},`
+  const when = customerEventTime(o.event_start)
+  const guests = (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
+  const where = o.event_address ? ` at ${o.event_address}` : ""
+  const line = when ? `Your hibachi party is set for ${when}${where}${guests ? ` for ${guests} guests` : ""}.` : `Your hibachi party is confirmed${where}.`
+  const bal = o.balance_due_cents ?? 0
+  const sign = `\n\n${s.business.agent_name}\n${s.business.brand} · www.realhibachi.com\n${s.business.support_email} · ${s.business.support_phone}`
+  if (t === "details")
+    return {
+      subject: `Your hibachi party - a few details to lock in (${o.order_no ?? ""})`,
+      body: `${hi}\n\n${line}\n\nTo get everything ready, could you send me:\n- the exact address (and gate code / parking notes if any)\n- final headcount, adults and kids\n- each guest's two proteins (chicken, steak, shrimp, salmon, scallops, tofu...) - or use the party planner link and let everyone pick their own\n- any allergies\n\nReply here or text ${s.business.support_phone} anytime.${sign}`,
+    }
+  if (t === "balance")
+    return {
+      subject: `You're confirmed - ${md(eventParts(o.event_start)?.ymd ?? "")} hibachi party (${o.order_no ?? ""})`,
+      body: `${hi}\n\n${line}\n\n${bal > 0 ? `Your remaining balance is ${money(bal)}, due on the day of the party - cash, Zelle, Venmo or card all work (card adds 4%).` : "Your balance is settled - nothing more to pay."}\n\nYour chef will be confirmed by name before the party and arrives about 10 minutes before start time with the grill and fresh ingredients. See you soon!${sign}`,
+    }
+  return {
+    subject: `Thank you from ${s.business.brand}!`,
+    body: `${hi}\n\nThank you for having us at your party - we hope everyone loved the show! If you have 30 seconds, a Google review would mean the world to our small team: ${s.business.review_url || "https://www.realhibachi.com"}\n\nAnd if you caught any photos or videos, we'd love to see them - just reply here.${sign}`,
+  }
+}
+
+export function OrderDialog({
+  adminKey,
+  orderId,
+  orders,
+  leads,
+  settings,
+  onClose,
+  onChanged,
+  onOpenLead,
+  onCall,
+}: {
+  adminKey: string
+  orderId: string
+  orders: OrderRow[]
+  leads: LeadRow[]
+  settings: WorkbenchSettings
+  onClose: () => void
+  onChanged: () => Promise<void> | void
+  onOpenLead: (leadId: string) => void
+  onCall: (phone: string) => void
+}) {
+  const [detail, setDetail] = useState<OrderDetail | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [insert, setInsert] = useState<{ text: string; nonce: number } | null>(null)
+  const [payAmount, setPayAmount] = useState("")
+  const [payPhone, setPayPhone] = useState("")
+  const [payFinal, setPayFinal] = useState(false)
+  const [payUrl, setPayUrl] = useState<string | null>(null)
+  const [finalAmount, setFinalAmount] = useState("")
+  const [finalChannel, setFinalChannel] = useState<"cash" | "venmo" | "zelle" | "stripe" | "other">("zelle")
+  const [finalRef, setFinalRef] = useState("")
+  const [travel, setTravel] = useState<{ miles: number; fee: number } | null>(null)
+  const [emailTpl, setEmailTpl] = useState<EmailTemplate | null>(null)
+  const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
+
+  const load = useCallback(async () => {
+    try {
+      const d = await adminJson<OrderDetail & { ok: boolean }>(adminKey, `/api/admin/orders?id=${encodeURIComponent(orderId)}`)
+      setDetail({ order: d.order, payments: d.payments ?? [], events: d.events ?? [], updateRequests: d.updateRequests ?? [] })
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "读取失败")
+    }
+  }, [adminKey, orderId])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const o = detail?.order ?? orders.find((x) => x.id === orderId) ?? null
+  useEffect(() => {
+    if (!o) return
+    setPayAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
+    setPayPhone(o.customer_phone ?? "")
+    setFinalAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [o?.id, o?.balance_due_cents])
+
+  const lead = useMemo(() => (o ? leadForOrder(o, leads) : null), [o, leads])
+  const now = Date.now()
+
+  if (!o) {
+    return (
+      <Dialog onClose={onClose} width={920}>
+        <DialogHead title="订单" onClose={onClose} />
+        <div className="dialog-col">{msg ? <div className="notice danger">{msg}</div> : <div className="empty">读取中…</div>}</div>
+      </Dialog>
+    )
+  }
+
+  const ev = eventParts(o.event_start)
+  const stage = stageOf(o, now)
+  const pstate = plannerState(o, detail?.events ?? null)
+  const openReqs = (detail?.updateRequests ?? []).filter((r) => OPEN_REQUEST.has(r.status))
+  const first = firstName(o.customer_name)
+  const doneSop = new Set((detail?.events ?? []).filter((e) => e.action === "sop_sent").map((e) => String(e.metadata?.sop_id ?? "")))
+  const curSop = sopStageOf(stage)
+  const deposit = (detail?.payments ?? []).find((p) => p.type === "deposit")
+  const otherPaid = Math.max(0, (o.amount_paid_total_cents ?? 0) - (o.deposit_paid_total_cents ?? 0))
+
+  const call = async <T,>(label: string, fn: () => Promise<T>): Promise<T | null> => {
+    setBusy(label)
+    setMsg(null)
+    try {
+      return await fn()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "操作失败")
+      return null
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const sendSms = async (phone: string, body: string) => {
+    const leadId = lead && digits10(lead.phone) === digits10(phone) ? lead.id : undefined
+    try {
+      await adminJson(adminKey, "/api/admin/sms-thread", { body: { phone, body, leadId } })
+    } catch (e) {
+      if (e instanceof AdminApiError && e.status === 409 && e.data.brake && window.confirm(`${e.message}。\n\n仍然发送？`)) {
+        await adminJson(adminKey, "/api/admin/sms-thread", { body: { phone, body, leadId, force: true } })
+      } else throw e
+    }
+  }
+
+  const plannerLink = async (): Promise<string> => {
+    const d = await adminJson<{ ok: boolean; url?: string; error?: string }>(adminKey, "/api/admin/planner-link", { body: { email: o.customer_email ?? "", phone: o.customer_phone ?? "", booked: true } })
+    if (!d.ok || !d.url) throw new Error(d.error ?? "planner 链接失败")
+    return d.url
+  }
+
+  const runSop = (step: (typeof ORDER_SOP_STEPS)[number]) =>
+    call(step.id, async () => {
+      let link: string | undefined
+      if (step.id === "w_planner") link = await plannerLink()
+      const text = step.build({ firstName: first || undefined, plannerLink: link, chefName: settings.business.chef_default_name, reviewUrl: settings.business.review_url || undefined })
+      setInsert({ text, nonce: Date.now() })
+      await adminJson(adminKey, "/api/admin/orders/sop-sent", { body: { orderId: o.id, sopId: step.id, title: step.title, operator: operatorName() } })
+      await load()
+    })
+
+  const genPayLink = () =>
+    call("pay", async () => {
+      const amount = Number(payAmount)
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
+      const d = await adminJson<{ ok: boolean; url?: string; total?: number; error?: string }>(adminKey, "/api/admin/pay-link", {
+        body: { orderId: o.id, amount, amountIsFinal: payFinal, customerName: o.customer_name ?? undefined, phone: payPhone || undefined, note: `workbench ${o.order_no ?? ""}` },
+      })
+      if (!d.ok || !d.url) throw new Error(d.error ?? "链接生成失败")
+      setPayUrl(d.url)
+      const to = payPhone.trim()
+      const total = Number(d.total ?? amount)
+      const body = `${settings.business.brand}: here's the card link for your ${ev ? md(ev.ymd) : ""} party balance, $${total.toFixed(2)}${payFinal ? "" : " (includes the 4% card fee)"}: ${d.url}`
+      if (to && window.confirm(`发到 ${prettyPhone(to)}？\n\n${body}`)) {
+        await sendSms(to, body)
+        await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to, subject: `pay link $${total.toFixed(2)} via SMS`, operator: operatorName() } }).catch(() => null)
+      } else copyText(d.url)
+      await load()
+    })
+
+  const confirmFinal = () =>
+    call("final", async () => {
+      const amount = Number(finalAmount)
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
+      if (finalChannel === "stripe" && !/^(pi|ch|py|cs)_[A-Za-z0-9_]{8,}$/.test(finalRef.trim())) throw new Error("Stripe 收款要填 pi_/ch_/cs_ 开头的 ID")
+      if (!window.confirm(`登记尾款 $${amount.toFixed(2)}（${finalChannel}）？发票系统会同步为已收。`)) return
+      const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/orders/final-payment-confirm", {
+        body: { orderId: o.id, amount, channel: finalChannel, paymentRef: finalChannel === "stripe" ? finalRef.trim() : undefined, proofUrl: finalChannel !== "stripe" && finalRef.trim() ? finalRef.trim() : undefined, operator: operatorName() },
+      })
+      if (!d.ok) throw new Error(d.error ?? "登记失败")
+      await Promise.all([load(), onChanged()])
+    })
+
+  const requestAction = (r: UpdateRequest, action: "confirm" | "complete") =>
+    call(`${action}:${r.id}`, async () => {
+      if (action === "complete" && !window.confirm("标记为已更新并通知师傅？发票系统会给客人发确认。")) return
+      const d = await adminJson<{ ok?: boolean; error?: string }>(adminKey, "/api/admin/orders/update-request-action", { body: { requestId: r.id, action, operator: operatorName() } })
+      if (d.ok === false) throw new Error(d.error ?? "失败")
+      await Promise.all([load(), onChanged()])
+    })
+
+  const calcTravel = () =>
+    call("travel", async () => {
+      if (!o.event_address) throw new Error("没有地址")
+      const d = await adminJson<{ ok: boolean; miles?: number; customerFee?: number; error?: string }>(adminKey, "/api/admin/orders/travel-fee", { body: { orderId: o.id, destination: o.event_address, operator: operatorName() } })
+      if (!d.ok) throw new Error(d.error ?? "算不出")
+      setTravel({ miles: Number(d.miles ?? 0), fee: Number(d.customerFee ?? 0) })
+      await load()
+    })
+
+  const sendEmail = () =>
+    call("email", async () => {
+      if (!o.customer_email) throw new Error("没有邮箱")
+      if (!window.confirm(`从 ${settings.business.support_email} 发给 ${o.customer_email}？\n\n${emailDraft.subject}`)) return
+      const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/send-followup", { body: { to: o.customer_email, subject: emailDraft.subject, text: emailDraft.body, leadId: lead?.id } })
+      if (!d.ok) throw new Error(d.error ?? "发送失败")
+      await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to: o.customer_email, subject: emailDraft.subject, operator: operatorName() } })
+      setEmailTpl(null)
+      await load()
+    })
+
+  const openInvoiceTool = () => {
+    const p = new URLSearchParams()
+    if (o.customer_phone) p.set("phone", o.customer_phone.replace(/\D/g, ""))
+    if (o.customer_email) p.set("email", o.customer_email)
+    window.open(`${settings.business.invoice_tool_url.replace(/\/$/, "")}/?${p.toString()}`, "_blank", "noopener")
+  }
+
+  const payOther = digits10(payPhone) !== digits10(o.customer_phone)
+
+  return (
+    <Dialog onClose={onClose} width={960}>
+      <DialogHead
+        title={ev ? `${md(ev.ymd)} ${dowZh(ev.ymd)} ${ev.hm}` : "日期未定"}
+        tags={
+          <>
+            <Tag cls={STAGE_TAG_CLASS[stage]}>{stage}</Tag>
+            {openReqs.length > 0 ? <Tag cls="tag-outline">客人改了 {openReqs.length} 项</Tag> : null}
+            <span className="mono" style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+              {o.order_no}
+            </span>
+            {ev ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{inDaysLabel(ev.ymd)}</span> : null}
+          </>
+        }
+        lines={[
+          <>
+            <strong style={{ color: "var(--color-text)" }}>{displayName(o.customer_name, o.customer_phone)}</strong> · {prettyPhone(o.customer_phone)} · {o.customer_email ?? "—"}
+          </>,
+          <>
+            {o.event_address ?? "地址未填"} · 大人 {o.guest_adult_count ?? 0} / 小孩 {o.guest_child_count ?? 0}
+          </>,
+          <span style={{ fontWeight: 600, color: pstate.accent ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{pstate.text} · 发消息前先看这里</span>,
+        ]}
+        actions={
+          o.customer_phone ? (
+            <button type="button" className="btn btn-primary" onClick={() => onCall(o.customer_phone!)}>
+              {PhoneIcon} 打电话
+            </button>
+          ) : null
+        }
+        onClose={onClose}
+      />
+      <div className="dialog-grid">
+        <div className="dialog-col">
+          {msg ? <div className="notice danger">{msg}</div> : null}
+
+          {openReqs.map((r) => (
+            <div key={r.id} className="notice notice-accent" style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                <h6 style={{ margin: 0, color: "var(--color-accent)" }}>客人在 Planner 改了 · {stamp(r.created_at)}</h6>
+                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{r.status === "received" ? "未核对" : "已核对，待通知师傅"}</span>
+              </div>
+              <div style={{ fontSize: 13 }}>
+                {renderChanges(r.change_summary).map((c, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "88px 1fr", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--color-line)" }}>
+                    <span style={{ color: "var(--color-neutral-600)" }}>{c.field}</span>
+                    <span>
+                      {c.from ? (
+                        <>
+                          <span style={{ textDecoration: "line-through", color: "var(--color-neutral-500)" }}>{c.from}</span> →{" "}
+                        </>
+                      ) : null}
+                      <strong>{c.to}</strong>
+                    </span>
+                  </div>
+                ))}
+                {r.customer_message ? <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>客人留言：{r.customer_message}</div> : null}
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {r.status === "received" ? (
+                  <button type="button" className="btn btn-primary btn-left" disabled={!!busy} onClick={() => void requestAction(r, "confirm")}>
+                    已核对
+                  </button>
+                ) : null}
+                <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void requestAction(r, "complete")}>
+                  已更新 · 通知师傅
+                </button>
+                <button type="button" className="btn btn-secondary btn-left" onClick={() => setInsert({ text: `${settings.business.brand}: got your update for the ${ev ? md(ev.ymd) : ""} party - I've updated the invoice, you'll get the new copy by email. Anything else, just text here.`, nonce: Date.now() })}>
+                  发短信确认新金额
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <div>
+            <Kicker>核对金额</Kicker>
+            <Lines
+              rows={[
+                { label: "总报价（发票）", value: money(o.quoted_total_cents), strong: true },
+                { label: `已收押金${deposit?.paid_at ? ` · ${stamp(deposit.paid_at)}` : ""}`, value: `− ${money(o.deposit_paid_total_cents)}` },
+                ...(otherPaid > 0 ? [{ label: "其他已收", value: `− ${money(otherPaid)}` }] : []),
+                ...(travel ? [{ label: `路费核算 · ${Math.round(travel.miles)} 英里`, value: `$${travel.fee}`, muted: true }] : []),
+              ]}
+              total={{ label: "尾款应收", value: money(o.balance_due_cents), color: stage === "待尾款" ? "var(--color-accent-700)" : undefined }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
+              发 / 改 Invoice（专业表单）
+            </button>
+            <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => setInsert({ text: `Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`, nonce: Date.now() }))}>
+              {busy === "planner" ? "生成中…" : "布置工具链接"}
+            </button>
+            <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || !o.event_address} onClick={() => void calcTravel()}>
+              {busy === "travel" ? "计算中…" : "算路费"}
+            </button>
+            <button type="button" className="btn btn-secondary btn-left" disabled={!lead} onClick={() => lead && onOpenLead(lead.id)} title={lead ? "打开线索期的对话和承诺" : "没找到对应线索"}>
+              线索期对话 / 承诺
+            </button>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、报价一律在专业表单里改，保存后这里自动同步。</div>
+
+          <div>
+            <Kicker>成单 SOP{curSop ? ` · 现在该发：${curSop === "booked" ? "已订" : curSop === "exec" ? "本周执行" : "派对后"}` : ""}</Kicker>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {ORDER_SOP_STEPS.map((s) => {
+                const done = doneSop.has(s.id)
+                const hot = s.stage === curSop && !done
+                return (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13, opacity: done ? 0.55 : 1 }}>
+                    <span style={{ width: 16, color: done ? "var(--color-text)" : hot ? "var(--color-accent)" : "var(--color-neutral-400)", fontWeight: 800 }}>{done ? "✓" : "○"}</span>
+                    <span style={{ flex: 1 }}>
+                      {s.emoji} {s.title} <span style={{ color: "var(--color-neutral-600)", fontSize: 12 }}>· {s.when}</span>
+                    </span>
+                    <button type="button" className={`btn btn-sm ${hot ? "btn-primary" : "btn-secondary"}`} disabled={!!busy || !o.customer_phone} onClick={() => void runSop(s)}>
+                      {busy === s.id ? "…" : done ? "再发" : "写进短信框"}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Kicker>短信 · {settings.business.support_phone}</Kicker>
+            <SmsThreadPanel adminKey={adminKey} phone={o.customer_phone} leadId={lead?.id ?? null} peerLabel={first || "客户"} compact insert={insert} quickReplies={settings.quick_replies.filter((q) => !q.body.includes("{deposit_link}"))} fillTemplate={(b) => b.replaceAll("{first_name}", first).replaceAll("{date}", ev ? md(ev.ymd) : "your date").replaceAll("{planner_link}", "").replace(/^Hi\s*,/, "Hi,")} />
+          </div>
+
+          <div>
+            <Kicker>邮件 · {settings.business.support_email}</Kicker>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {EMAIL_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className="wb-chip wb-chip-sm"
+                  aria-pressed={emailTpl === t.id ? "true" : "false"}
+                  disabled={!o.customer_email}
+                  onClick={() => {
+                    setEmailTpl(t.id)
+                    setEmailDraft(buildEmail(o, t.id, settings))
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+              {!o.customer_email ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>没有邮箱</span> : null}
+            </div>
+            {emailTpl ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                <input className="input" value={emailDraft.subject} onChange={(e) => setEmailDraft({ ...emailDraft, subject: e.target.value })} />
+                <textarea className="input" rows={8} value={emailDraft.body} onChange={(e) => setEmailDraft({ ...emailDraft, body: e.target.value })} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void sendEmail()}>
+                    {busy === "email" ? "发送中…" : `发给 ${o.customer_email}`}
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setEmailTpl(null)}>
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <details>
+            <summary>派对照片</summary>
+            <div style={{ marginTop: 8 }}>
+              <OrderPhotosPanel adminKey={adminKey} orderId={o.id} />
+            </div>
+          </details>
+          <details>
+            <summary>已发送的发票（存档）</summary>
+            <div style={{ marginTop: 8 }}>
+              <InvoiceArchivePanel adminKey={adminKey} orderNo={o.order_no} orderId={o.id} />
+            </div>
+          </details>
+          <details>
+            <summary>时间线（{detail?.events.length ?? "…"}）</summary>
+            <div style={{ marginTop: 8, fontSize: 12.5 }}>
+              {(detail?.events ?? []).map((e) => (
+                <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--color-line)" }}>
+                  <span>
+                    <strong>{ORDER_EVENT_LABELS[e.action] ?? e.action}</strong>
+                    {e.metadata && typeof e.metadata.title === "string" ? <span style={{ color: "var(--color-neutral-600)" }}> · {e.metadata.title}</span> : null}
+                    <span style={{ color: "var(--color-neutral-500)" }}> · {e.actor}</span>
+                  </span>
+                  <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{stamp(e.created_at)}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+          {o.internal_notes || o.customer_notes || o.notes ? (
+            <details>
+              <summary>备注</summary>
+              <div style={{ fontSize: 13, whiteSpace: "pre-wrap", marginTop: 6 }}>{[o.customer_notes, o.internal_notes, o.notes].filter(Boolean).join("\n\n")}</div>
+            </details>
+          ) : null}
+        </div>
+
+        <div className="dialog-col dialog-side" style={{ gap: 14 }}>
+          <div>
+            <Kicker>信用卡收款链接</Kicker>
+            <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>金额默认尾款；付款人默认客人，别人付就换手机号。链接发出后记在这一单上。</div>
+          </div>
+          <Field label="金额 $">
+            <input className="input num" style={{ fontSize: 18 }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+          </Field>
+          <Field label="付款人手机号">
+            <input className="input" value={payPhone} onChange={(e) => setPayPhone(e.target.value)} />
+          </Field>
+          {payOther ? <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>与客人电话不同 · 将发给新号码</div> : null}
+          <label className="check">
+            <input type="checkbox" checked={payFinal} onChange={(e) => setPayFinal(e.target.checked)} /> 金额已含卡费（不再 +4%）
+          </label>
+          <button type="button" className="btn btn-primary btn-block" style={{ margin: 0 }} disabled={!!busy || !payAmount} onClick={() => void genPayLink()}>
+            {busy === "pay" ? "生成中…" : "生成并发送链接"}
+          </button>
+          {payUrl ? (
+            <div style={{ fontSize: 12, wordBreak: "break-all" }}>
+              <a href={payUrl} target="_blank" rel="noreferrer">
+                {payUrl}
+              </a>{" "}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(payUrl)}>
+                复制
+              </button>
+            </div>
+          ) : null}
+
+          <div className="hr" style={{ margin: "4px 0" }} />
+          <div>
+            <Kicker>现金 / Venmo / Zelle / Stripe 已收，登记</Kicker>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Field label="金额 $">
+                <input className="input" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
+              </Field>
+              <Field label="方式">
+                <select className="input" value={finalChannel} onChange={(e) => setFinalChannel(e.target.value as typeof finalChannel)}>
+                  <option value="zelle">Zelle</option>
+                  <option value="venmo">Venmo</option>
+                  <option value="cash">现金</option>
+                  <option value="stripe">Stripe</option>
+                  <option value="other">其他</option>
+                </select>
+              </Field>
+            </div>
+            <Field label={finalChannel === "stripe" ? "Stripe 付款 ID（pi_… / ch_…）" : "凭证链接（可选）"} style={{ marginTop: 8 }}>
+              <input className="input" value={finalRef} onChange={(e) => setFinalRef(e.target.value)} />
+            </Field>
+            <button type="button" className="btn btn-secondary btn-block" disabled={!!busy || !finalAmount} onClick={() => void confirmFinal()}>
+              {busy === "final" ? "登记中…" : "登记尾款已收"}
+            </button>
+          </div>
+
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", borderTop: "1px solid var(--color-line)", paddingTop: 10 }}>
+            <div className="kicker" style={{ marginBottom: 4 }}>已收</div>
+            {(detail?.payments ?? []).length === 0 ? <div>还没有收款记录</div> : null}
+            {(detail?.payments ?? []).map((p) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "3px 0" }}>
+                <span>
+                  {p.type === "deposit" ? "押金" : p.type === "final" ? "尾款" : p.type ?? "收款"} · {p.provider ?? "—"}
+                  {p.status && p.status !== "paid" ? ` · ${p.status}` : ""}
+                </span>
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {money(p.amount_cents)} · {stamp(p.paid_at ?? p.created_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
