@@ -11,6 +11,7 @@ import {
   eventParts,
   firstName,
   inDaysLabel,
+  invoiceTravelFee,
   leadForOrder,
   md,
   money,
@@ -169,7 +170,6 @@ export function OrderDialog({
   const [finalAmount, setFinalAmount] = useState("")
   const [finalChannel, setFinalChannel] = useState<"cash" | "venmo" | "zelle" | "stripe" | "other">("zelle")
   const [finalRef, setFinalRef] = useState("")
-  const [travel, setTravel] = useState<{ miles: number; fee: number } | null>(null)
   const [emailTpl, setEmailTpl] = useState<EmailTemplate | null>(null)
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
   const [team, setTeam] = useState<string[] | null>(null)
@@ -307,14 +307,7 @@ export function OrderDialog({
       await Promise.all([load(), onChanged()])
     })
 
-  const calcTravel = () =>
-    call("travel", async () => {
-      if (!o.event_address) throw new Error("没有地址")
-      const d = await adminJson<{ ok: boolean; miles?: number; customerFee?: number; error?: string }>(adminKey, "/api/admin/orders/travel-fee", { body: { orderId: o.id, destination: o.event_address, operator: operatorName() } })
-      if (!d.ok) throw new Error(d.error ?? "算不出")
-      setTravel({ miles: Number(d.miles ?? 0), fee: Number(d.customerFee ?? 0) })
-      await load()
-    })
+  const travel = invoiceTravelFee(o.invoice_data)
 
   const saveTeam = () =>
     call("assign", async () => {
@@ -409,7 +402,7 @@ export function OrderDialog({
                   { label: "总报价（发票）", value: money(o.quoted_total_cents), strong: true },
                   { label: `已收押金${deposit?.paid_at ? ` · ${stamp(deposit.paid_at)}` : ""}`, value: `− ${money(o.deposit_paid_total_cents)}` },
                   ...(otherPaid > 0 ? [{ label: "其他已收", value: `− ${money(otherPaid)}` }] : []),
-                  ...(travel ? [{ label: `路费核算 · ${Math.round(travel.miles)} 英里`, value: `$${travel.fee}`, muted: true }] : []),
+                  ...(travel ? [{ label: `含路费（发票）${travel.manual ? " · 手动" : travel.miles != null ? ` · ${Math.round(travel.miles)} 英里` : ""}`, value: `$${travel.fee}`, muted: true }] : []),
                 ]}
                 total={{ label: "尾款应收", value: money(o.balance_due_cents), color: stage === "待尾款" ? "var(--color-accent-700)" : undefined }}
               />
@@ -418,14 +411,11 @@ export function OrderDialog({
               <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
                 发 / 改 Invoice（专业表单）
               </button>
-              <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || !o.event_address} onClick={() => void calcTravel()}>
-                {busy === "travel" ? "计算中…" : "算路费"}
-              </button>
               <button type="button" className="btn btn-secondary btn-left" disabled={!lead} onClick={() => lead && onOpenLead(lead.id)} title={lead ? "打开线索期的对话和承诺" : "没找到对应线索"}>
                 线索期承诺 / 优惠
               </button>
             </div>
-            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、报价一律在专业表单里改，保存后这里自动同步。</div>
+            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、路费、报价一律在专业表单里算和改，保存后这里自动同步。</div>
           </div>
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>

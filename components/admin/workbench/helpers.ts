@@ -82,6 +82,23 @@ export type OrderRow = {
   internal_notes?: string | null
   customer_notes?: string | null
   notes?: string | null
+  /** The invoice as the professional tool saved it (detail only). */
+  invoice_data?: Record<string, unknown> | null
+}
+
+/**
+ * Travel fee exactly as the invoice tool computes it (lib/pricing.ts over
+ * there): a manual override wins, else miles beyond the free radius × rate.
+ * The workbench never calculates a fee of its own.
+ */
+export function invoiceTravelFee(invoice: Record<string, unknown> | null | undefined): { fee: number; miles: number | null; manual: boolean } | null {
+  const t = invoice?.travelFee as { distanceMiles?: number | null; manualOverride?: number | null; ratePerMile?: number; freeRadiusMiles?: number } | undefined
+  if (!t) return null
+  if (typeof t.manualOverride === "number") return { fee: t.manualOverride, miles: typeof t.distanceMiles === "number" ? t.distanceMiles : null, manual: true }
+  if (typeof t.distanceMiles !== "number") return null
+  const free = typeof t.freeRadiusMiles === "number" ? t.freeRadiusMiles : 50
+  const rate = typeof t.ratePerMile === "number" ? t.ratePerMile : 1
+  return { fee: Math.max(0, Math.round((t.distanceMiles - free) * rate)), miles: t.distanceMiles, manual: false }
 }
 
 export type UpdateRequest = {

@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
   if (orderId) {
     const [orderRes, paymentsRes, eventsRes] = await Promise.all([
-      supabase.from("orders").select(LIST_COLUMNS + ",internal_notes,customer_notes,notes").eq("id", orderId).maybeSingle(),
+      supabase.from("orders").select(LIST_COLUMNS + ",internal_notes,customer_notes,notes,invoice_data").eq("id", orderId).maybeSingle(),
       supabase
         .from("payments")
         .select("id,provider,external_payment_id,type,status,amount_cents,paid_at,refunded_at,transaction_ref,created_at")
