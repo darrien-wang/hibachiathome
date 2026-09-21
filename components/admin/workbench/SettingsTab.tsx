@@ -252,6 +252,22 @@ export function SettingsTab({
         </div>
       </Section>
 
+      <Section title="厨师" hint="新加厨师时的默认工价，以及资料页里可选的能力 / 区域。每位厨师的工价在他自己的资料页改。" section="chefs" meta={meta} canEdit={canEdit} dirty={dirty("chefs")} busy={busy === "chefs"} onSave={() => void save("chefs")} onReset={() => void save("chefs", true)}>
+        <div style={grid}>
+          {numField("默认每场底价 $", Number(cents(draft.chefs.default_base_pay_cents)), (n) => set("chefs", { default_base_pay_cents: toCents(String(n)) }))}
+          {numField("默认超过多少人开始加", draft.chefs.default_head_from, (n) => set("chefs", { default_head_from: n }), { suffix: "人" })}
+          {numField("默认每加一人 $", draft.chefs.default_per_head_cents / 100, (n) => set("chefs", { default_per_head_cents: toCents(String(n)) }), { step: 0.5 })}
+        </div>
+        <div style={grid}>
+          <Field label="能力选项（逗号分隔）">
+            <input className="input" value={draft.chefs.skill_options.join("，")} disabled={!canEdit} onChange={(e) => set("chefs", { skill_options: e.target.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean) })} />
+          </Field>
+          <Field label="区域选项（逗号分隔）">
+            <input className="input" value={draft.chefs.area_options.join("，")} disabled={!canEdit} onChange={(e) => set("chefs", { area_options: e.target.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean) })} />
+          </Field>
+        </div>
+      </Section>
+
       <section style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <h4>代码里的配置（只读）</h4>

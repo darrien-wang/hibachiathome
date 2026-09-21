@@ -11,6 +11,8 @@ import { LeadsTab } from "./LeadsTab"
 import { OrdersTab, changedOrderIds, type OrderFilter } from "./OrdersTab"
 import { CalendarTab } from "./CalendarTab"
 import { SettingsTab } from "./SettingsTab"
+import { ChefsTab, type ChefTabKey } from "./ChefsTab"
+import { ChefDialog } from "./ChefDialog"
 import { LeadDialog } from "./LeadDialog"
 import { OrderDialog } from "./OrderDialog"
 import { DepositDialog } from "./DepositDialog"
@@ -26,8 +28,9 @@ import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnrepl
 // out of that lead, ?since=YYYY-MM-DD scopes the lead list (from the board).
 // The old /admin/leads, /admin/orders, /admin/channels URLs redirect here.
 
-type Tab = "board" | "leads" | "orders" | "cal" | "settings"
-const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", cal: "日历", settings: "设置" }
+type Tab = "board" | "leads" | "orders" | "chefs" | "cal" | "settings"
+const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", chefs: "厨师", cal: "日历", settings: "设置" }
+const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files"])
 
 type SearchHit = {
   key: string
@@ -69,6 +72,10 @@ export default function Workbench() {
   const leadOrder = sp.get("lead_order")
   const since = sp.get("since")
   const filter = sp.get("filter") as OrderFilter | null
+  const chefId = sp.get("chef")
+  const ctabRaw = sp.get("ctab")
+  const ctab = ctabRaw && CHEF_TABS.has(ctabRaw) ? (ctabRaw as ChefTabKey) : null
+  const chefView = sp.get("view") === "media" ? "media" : "list"
 
   const setParams = useCallback(
     (patch: Record<string, string | null>) => {
@@ -81,10 +88,11 @@ export default function Workbench() {
     },
     [router, pathname, sp],
   )
-  const go = (t: Tab) => setParams({ tab: t, since: null, filter: null })
-  const openLead = useCallback((id: string) => setParams({ lead: id, order: null, lead_order: null }), [setParams])
-  const openOrder = useCallback((id: string) => setParams({ order: id, lead: null, lead_order: null }), [setParams])
-  const closeDialogs = useCallback(() => setParams({ lead: null, order: null, lead_order: null }), [setParams])
+  const go = (t: Tab) => setParams({ tab: t, since: null, filter: null, view: null })
+  const openLead = useCallback((id: string) => setParams({ lead: id, order: null, lead_order: null, chef: null, ctab: null }), [setParams])
+  const openOrder = useCallback((id: string) => setParams({ order: id, lead: null, lead_order: null, chef: null, ctab: null }), [setParams])
+  const openChef = useCallback((id: string, t?: ChefTabKey) => setParams({ chef: id, ctab: t ?? null, lead: null, order: null, lead_order: null }), [setParams])
+  const closeDialogs = useCallback(() => setParams({ lead: null, order: null, lead_order: null, chef: null, ctab: null }), [setParams])
 
   // ?lead_order=<leadId> (old /admin/orders?lead=) → the order that lead became.
   useEffect(() => {
@@ -186,9 +194,13 @@ export default function Workbench() {
     ["board", "看板"],
     ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}</>],
     ["orders", <>订单{changedCount ? <span className="wb-badge">{changedCount}</span> : null}</>],
+    ["chefs", <>厨师{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
     ["cal", "日历"],
     ["settings", "设置"],
   ]
+  const refreshOrdersAndChefs = async () => {
+    await Promise.all([data.refreshOrders(), data.refreshChefs()])
+  }
 
   return (
     <div className="wb">
@@ -242,7 +254,9 @@ export default function Workbench() {
         ) : tab === "board" ? (
           <BoardTab adminKey={key} settings={data.settings} leads={data.leads} orders={data.orders} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onGoLeads={(s) => setParams({ tab: "leads", since: s })} onGoOrders={() => setParams({ tab: "orders", filter: "all" })} />
         ) : tab === "orders" ? (
-          <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
+          <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
+        ) : tab === "chefs" ? (
+          <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
         ) : tab === "cal" ? (
           <CalendarTab orders={data.orders} settings={data.settings.calendar} isMobile={isMobile} onOpenOrder={openOrder} />
         ) : tab === "settings" ? (
@@ -270,6 +284,7 @@ export default function Workbench() {
           orders={data.orders}
           settings={data.settings}
           viewerRole={data.viewer?.role ?? null}
+          isMobile={isMobile}
           onClose={closeDialogs}
           onChanged={data.refreshLeads}
           onOpenOrder={openOrder}
@@ -293,10 +308,28 @@ export default function Workbench() {
           orderId={orderId}
           orders={data.orders}
           leads={data.leads}
+          chefs={data.chefs}
+          assignments={data.assignments[orderId] ?? []}
           settings={data.settings}
+          viewerRole={data.viewer?.role ?? null}
           onClose={closeDialogs}
-          onChanged={data.refreshOrders}
+          onChanged={refreshOrdersAndChefs}
           onOpenLead={openLead}
+          onOpenChef={(id) => openChef(id, "shifts")}
+          onCall={onCall}
+        />
+      ) : null}
+      {chefId ? (
+        <ChefDialog
+          key={chefId}
+          adminKey={key}
+          chefId={chefId}
+          initialTab={ctab}
+          settings={data.settings}
+          viewerRole={data.viewer?.role ?? null}
+          onClose={closeDialogs}
+          onChanged={refreshOrdersAndChefs}
+          onOpenOrder={openOrder}
           onCall={onCall}
         />
       ) : null}

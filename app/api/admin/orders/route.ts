@@ -192,5 +192,20 @@ export async function GET(request: NextRequest) {
   const orders = (listRes.data ?? []) as FinishedOrderShape[]
   const stillPending = await autoCloseFinishedOrderRequests(supabase, orders, pendingRes.data ?? [])
 
-  return NextResponse.json({ ok: true, orders, pendingUpdateRequests: stillPending })
+  // 派单：每单的师傅（工作台列表和订单弹窗都显示；详情/结算在 /api/admin/chefs）。
+  const assignments: Record<string, Array<{ assignmentId: string; staffId: string; name: string; share: number | null }>> = {}
+  const orderIds = orders.map((o) => (o as { id: string }).id)
+  if (orderIds.length) {
+    const { data: rows } = await supabase
+      .from("order_staff_assignments")
+      .select("id, order_id, staff_member_id, guest_share, staff_members(display_name, full_name)")
+      .in("order_id", orderIds)
+      .in("assignment_status", ["tentative", "confirmed", "completed"])
+    for (const r of (rows ?? []) as Array<{ id: string; order_id: string; staff_member_id: string; guest_share: number | null; staff_members: { display_name: string | null; full_name: string | null } | null }>) {
+      const name = (r.staff_members?.display_name ?? r.staff_members?.full_name ?? "").trim() || "?"
+      ;(assignments[r.order_id] = assignments[r.order_id] ?? []).push({ assignmentId: r.id, staffId: r.staff_member_id, name, share: r.guest_share })
+    }
+  }
+
+  return NextResponse.json({ ok: true, orders, pendingUpdateRequests: stillPending, assignments })
 }

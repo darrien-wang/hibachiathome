@@ -66,6 +66,14 @@ export type WorkbenchSettings = {
     day_end_hour: number
     evening_from_hour: number
   }
+  chefs: {
+    /** Defaults for a newly added chef (cents / head count). */
+    default_base_pay_cents: number
+    default_head_from: number
+    default_per_head_cents: number
+    skill_options: string[]
+    area_options: string[]
+  }
 }
 
 export type SettingsSection = keyof WorkbenchSettings
@@ -77,6 +85,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "lead_watch",
   "quick_replies",
   "calendar",
+  "chefs",
 ]
 
 // Placeholders the lead dialog fills in before the text goes into the box.
@@ -154,6 +163,13 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     day_start_hour: 10,
     day_end_hour: 22,
     evening_from_hour: 17,
+  },
+  chefs: {
+    default_base_pay_cents: 20000,
+    default_head_from: 16,
+    default_per_head_cents: 600,
+    skill_options: ["英文流利", "中文", "西语", "大场 30+", "素食 / 过敏处理", "表演火焰", "日式刀工"],
+    area_options: ["LA", "OC", "SD", "IE", "PS", "SB"],
   },
 }
 
@@ -250,6 +266,18 @@ export function sanitizeSection<K extends SettingsSection>(section: K, raw: unkn
         day_start_hour: start,
         day_end_hour: Math.max(start + 2, num(r.day_end_hour, d.calendar.day_end_hour, 2, 24)),
         evening_from_hour: num(r.evening_from_hour, d.calendar.evening_from_hour, 0, 23),
+      }
+      return out as WorkbenchSettings[K]
+    }
+    case "chefs": {
+      const r = isObj(raw) ? raw : {}
+      const list = (v: unknown, fallback: string[]) => (Array.isArray(v) ? v.map((x) => str(x, 40)).filter(Boolean).slice(0, 30) : fallback)
+      const out: WorkbenchSettings["chefs"] = {
+        default_base_pay_cents: num(r.default_base_pay_cents, d.chefs.default_base_pay_cents, 0, 100_000_00),
+        default_head_from: num(r.default_head_from, d.chefs.default_head_from, 0, 200),
+        default_per_head_cents: num(r.default_per_head_cents, d.chefs.default_per_head_cents, 0, 100_00),
+        skill_options: list(r.skill_options, d.chefs.skill_options),
+        area_options: list(r.area_options, d.chefs.area_options),
       }
       return out as WorkbenchSettings[K]
     }

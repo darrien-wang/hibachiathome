@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import type { LeadRow, LeadStats, OrderRow, UpdateRequest } from "./helpers"
+import type { AssignmentMap, ChefSummary } from "./chef-types"
 import { DEFAULT_SETTINGS, type WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // One place that owns the lists every tab reads. Leads poll every 30 s (a
@@ -18,6 +19,11 @@ export type WorkbenchData = {
   viewer: Viewer | null
   orders: OrderRow[]
   pendingUpdates: UpdateRequest[]
+  /** 派单：orderId → chefs on that party (from the orders list call). */
+  assignments: AssignmentMap
+  chefs: ChefSummary[]
+  chefAlerts: number
+  refreshChefs: () => Promise<void>
   settings: WorkbenchSettings
   settingsMeta: Record<string, { updated_at: string; updated_by: string | null }>
   code: CodeConfig | null
@@ -54,6 +60,9 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   const [viewer, setViewer] = useState<Viewer | null>(null)
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [pendingUpdates, setPendingUpdates] = useState<UpdateRequest[]>([])
+  const [assignments, setAssignments] = useState<AssignmentMap>({})
+  const [chefs, setChefs] = useState<ChefSummary[]>([])
+  const [chefAlerts, setChefAlerts] = useState(0)
   const [settings, setSettings] = useState<WorkbenchSettings>(DEFAULT_SETTINGS)
   const [settingsMeta, setSettingsMeta] = useState<Record<string, { updated_at: string; updated_by: string | null }>>({})
   const [code, setCode] = useState<CodeConfig | null>(null)
@@ -99,12 +108,24 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   const refreshOrders = useCallback(async () => {
     if (!key) return
     try {
-      const d = await adminJson<{ orders: OrderRow[]; pendingUpdateRequests: UpdateRequest[] }>(key, "/api/admin/orders")
+      const d = await adminJson<{ orders: OrderRow[]; pendingUpdateRequests: UpdateRequest[]; assignments?: AssignmentMap }>(key, "/api/admin/orders")
       setOrders(Array.isArray(d.orders) ? d.orders : [])
       setPendingUpdates(Array.isArray(d.pendingUpdateRequests) ? d.pendingUpdateRequests : [])
+      setAssignments(d.assignments && typeof d.assignments === "object" ? d.assignments : {})
     } catch (e) {
       if (e instanceof AdminApiError && e.status === 401) setAuthFailed(true)
       else setError(e instanceof Error ? e.message : "load failed")
+    }
+  }, [key])
+
+  const refreshChefs = useCallback(async () => {
+    if (!key) return
+    try {
+      const d = await adminJson<{ chefs: ChefSummary[]; alertsCount: number }>(key, "/api/admin/chefs")
+      setChefs(Array.isArray(d.chefs) ? d.chefs : [])
+      setChefAlerts(Number(d.alertsCount ?? 0))
+    } catch (e) {
+      if (e instanceof AdminApiError && e.status === 401) setAuthFailed(true)
     }
   }, [key])
 
@@ -129,11 +150,14 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
     if (!enabled || !key) return
     let alive = true
     ;(async () => {
-      await Promise.all([refreshLeads(), refreshOrders(), refreshSettings()])
+      await Promise.all([refreshLeads(), refreshOrders(), refreshSettings(), refreshChefs()])
       if (alive) setLoaded(true)
     })()
     const a = setInterval(() => void refreshLeads(), 30_000)
-    const b = setInterval(() => void refreshOrders(), 60_000)
+    const b = setInterval(() => {
+      void refreshOrders()
+      void refreshChefs()
+    }, 60_000)
     try {
       if ("Notification" in window && Notification.permission === "default") void Notification.requestPermission()
     } catch {}
@@ -142,7 +166,7 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
       clearInterval(a)
       clearInterval(b)
     }
-  }, [enabled, key, refreshLeads, refreshOrders, refreshSettings])
+  }, [enabled, key, refreshLeads, refreshOrders, refreshSettings, refreshChefs])
 
-  return { leads, stats, viewer, orders, pendingUpdates, settings, settingsMeta, code, loaded, authFailed, error, refreshLeads, refreshOrders, refreshSettings, applySettings }
+  return { leads, stats, viewer, orders, pendingUpdates, assignments, chefs, chefAlerts, refreshChefs, settings, settingsMeta, code, loaded, authFailed, error, refreshLeads, refreshOrders, refreshSettings, applySettings }
 }

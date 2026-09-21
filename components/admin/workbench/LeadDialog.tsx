@@ -45,12 +45,15 @@ function isWeekdaySpecialDate(ymd: string | null | undefined): boolean {
   return !WEEKDAY_SPECIAL_BLACKOUTS.some((b) => ymd >= b.start && ymd <= b.end)
 }
 
+type LTab = "chat" | "deal" | "info"
+
 export function LeadDialog({
   adminKey,
   lead,
   orders,
   settings,
   viewerRole,
+  isMobile,
   onClose,
   onChanged,
   onOpenOrder,
@@ -62,12 +65,19 @@ export function LeadDialog({
   orders: OrderRow[]
   settings: WorkbenchSettings
   viewerRole: "owner" | "agent" | null
+  isMobile: boolean
   onClose: () => void
   onChanged: () => Promise<void> | void
   onOpenOrder: (orderId: string) => void
   onDeposit: (lead: LeadRow) => void
   onCall: (phone: string) => void
 }) {
+  // Desktop: 对话 + 成交 side by side, 资料 separate. Phone: one at a time.
+  const [ltab, setLtab] = useState<LTab>("chat")
+  const tabs: Array<[LTab, string]> = isMobile ? [["chat", "对话"], ["deal", "状态 · 承诺 · 报价"], ["info", "资料"]] : [["chat", "对话 + 成交"], ["info", "资料"]]
+  const effTab: LTab = !isMobile && ltab === "deal" ? "chat" : ltab
+  const showChat = effTab !== "info" && (!isMobile || effTab === "chat")
+  const showDeal = effTab !== "info" && (!isMobile || effTab === "deal")
   const [events, setEvents] = useState<LeadEvent[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -308,9 +318,60 @@ export function LeadDialog({
         }
         onClose={onClose}
       />
-      <div className="dialog-grid">
+      <div style={{ display: "flex", padding: "0 20px", borderBottom: "2px solid var(--color-divider)", overflowX: "auto" }}>
+        {tabs.map(([k, label]) => (
+          <button key={k} type="button" className="wb-tab" aria-current={effTab === k ? "page" : undefined} onClick={() => setLtab(k)} style={{ marginRight: 20 }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {effTab === "info" ? (
+        <div className="dialog-col" style={{ gap: 14 }}>
+          {msg ? <div className="notice danger">{msg}</div> : null}
+          <Kicker style={{ margin: 0 }}>修改资料（留痕）</Kicker>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <label className="field">
+              <span className="label">姓名</span>
+              <input className="input" value={edit.full_name} onChange={(e) => setEdit({ ...edit, full_name: e.target.value })} />
+            </label>
+            <label className="field">
+              <span className="label">电话</span>
+              <input className="input" value={edit.phone} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} />
+            </label>
+            <label className="field">
+              <span className="label">邮箱</span>
+              <input className="input" value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
+            </label>
+            <label className="field">
+              <span className="label">城市 / ZIP</span>
+              <input className="input" value={edit.city_or_zip} onChange={(e) => setEdit({ ...edit, city_or_zip: e.target.value })} />
+            </label>
+            <label className="field">
+              <span className="label">人数</span>
+              <input className="input" type="number" value={edit.guest_count} onChange={(e) => setEdit({ ...edit, guest_count: e.target.value })} />
+            </label>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+            来源 {leadKeyword(lead)} · {lead.lead_channel ?? "—"} · 首响 {resp.text} · 收到 {stamp(lead.created_at)}
+            {lead.utm_campaign ? ` · 系列 ${lead.utm_campaign}` : ""}
+            {lead.gclid ? " · 广告点击" : ""}
+          </div>
+          <button type="button" className="btn btn-secondary" style={{ alignSelf: "flex-start" }} disabled={!!busy} onClick={() => void saveEdit()}>
+            保存修改
+          </button>
+          {viewerRole === "owner" ? (
+            <div style={{ fontSize: 11, color: "var(--color-neutral-500)" }}>
+              线索 ID <span className="mono">{lead.id}</span>{" "}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(lead.id)}>
+                复制
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="dialog-grid" style={{ display: effTab === "info" ? "none" : undefined, gridTemplateColumns: isMobile ? "1fr" : undefined }}>
         {/* ── left: the conversation ── */}
-        <div className="dialog-col" style={{ gap: 0, paddingTop: 0 }}>
+        <div className="dialog-col" style={{ gap: 0, paddingTop: 0, display: showChat ? undefined : "none" }}>
           <SmsThreadPanel
             adminKey={adminKey}
             phone={lead.phone}
@@ -338,7 +399,7 @@ export function LeadDialog({
         </div>
 
         {/* ── right: state, promises, quote, actions ── */}
-        <div className="dialog-col">
+        <div className="dialog-col" style={{ display: showDeal ? undefined : "none" }}>
           {msg ? <div className="notice danger">{msg}</div> : null}
           <div>
             <Kicker>状态</Kicker>
@@ -448,20 +509,6 @@ export function LeadDialog({
           </div>
 
           <details>
-            <summary>修改资料（留痕）</summary>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
-              <input className="input" value={edit.full_name} placeholder="姓名" onChange={(e) => setEdit({ ...edit, full_name: e.target.value })} />
-              <input className="input" value={edit.phone} placeholder="手机" onChange={(e) => setEdit({ ...edit, phone: e.target.value })} />
-              <input className="input" value={edit.email} placeholder="邮箱" onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
-              <input className="input" value={edit.city_or_zip} placeholder="城市 / ZIP" onChange={(e) => setEdit({ ...edit, city_or_zip: e.target.value })} />
-              <input className="input" value={edit.guest_count} placeholder="人数" type="number" onChange={(e) => setEdit({ ...edit, guest_count: e.target.value })} />
-              <button type="button" className="btn btn-secondary" disabled={!!busy} onClick={() => void saveEdit()}>
-                保存修改
-              </button>
-            </div>
-          </details>
-
-          <details>
             <summary>操作历史（{events?.length ?? "…"}）</summary>
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", fontSize: 12.5 }}>
               {(events ?? []).map((e, i) => {
@@ -479,14 +526,6 @@ export function LeadDialog({
               })}
             </div>
           </details>
-          {viewerRole === "owner" ? (
-            <div style={{ fontSize: 11, color: "var(--color-neutral-500)" }}>
-              线索 ID <span className="mono">{lead.id}</span>{" "}
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(lead.id)}>
-                复制
-              </button>
-            </div>
-          ) : null}
         </div>
       </div>
     </Dialog>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
-import { Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
+import { Chip, Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
 import {
   copyText,
   digits10,
@@ -25,25 +25,34 @@ import {
   type OrderRow,
   type UpdateRequest,
 } from "./helpers"
+import type { ChefSummary, OrderAssignment } from "./chef-types"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
 import { ORDER_SOP_STEPS, type OrderSopStage } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
-// 订单弹窗 · 售后：核对金额 + 收款链接（可换付款人）+ 客人在 Planner 改了什么.
+// 订单弹窗 · 售后：金额·收款 / Planner·派单 / 短信 / 记录.
 // Orders are owned by the invoice app; this dialog reads them and acts
 // through the admin routes (pay link, final payment, SOP, travel fee,
-// update-request confirm/complete) and the SMS line.
+// update-request confirm/complete, chef assignment) and the SMS line.
 
 const OPEN_REQUEST = new Set(["received", "confirmed_in_progress"])
+type OTab = "money" | "planner" | "sms" | "records"
+const OTABS: Array<[OTab, string]> = [
+  ["money", "金额 · 收款"],
+  ["planner", "Planner · 派单"],
+  ["sms", "短信"],
+  ["records", "记录"],
+]
 
-function plannerState(o: OrderRow, events: OrderDetail["events"] | null): { text: string; accent: boolean } {
+function plannerState(o: OrderRow, events: OrderDetail["events"] | null): { text: string; accent: boolean; at: string } {
   const saves = (events ?? []).filter((e) => e.action === "invoice_saved" || e.action === "invoice_update_submitted")
   const last = saves[0]
-  if (o.details_status !== "complete") return { text: "Planner 未填 · 客人还没选", accent: true }
-  if (last) return { text: `细节已填 · 最后改动 ${stamp(last.created_at)}`, accent: false }
-  return { text: "细节已填", accent: false }
+  const at = last ? stamp(last.created_at) : ""
+  if (o.details_status !== "complete") return { text: "Planner 未填 · 客人还没选", accent: true, at }
+  if (last) return { text: `细节已填 · 最后改动 ${at}`, accent: false, at }
+  return { text: "细节已填", accent: false, at }
 }
 
 function renderChanges(summary: unknown): Array<{ field: string; from: string; to: string }> {
@@ -125,23 +134,32 @@ export function OrderDialog({
   orderId,
   orders,
   leads,
+  chefs,
+  assignments,
   settings,
+  viewerRole,
   onClose,
   onChanged,
   onOpenLead,
+  onOpenChef,
   onCall,
 }: {
   adminKey: string
   orderId: string
   orders: OrderRow[]
   leads: LeadRow[]
+  chefs: ChefSummary[]
+  assignments: OrderAssignment[]
   settings: WorkbenchSettings
+  viewerRole: "owner" | "agent" | null
   onClose: () => void
   onChanged: () => Promise<void> | void
   onOpenLead: (leadId: string) => void
+  onOpenChef: (id: string) => void
   onCall: (phone: string) => void
 }) {
   const [detail, setDetail] = useState<OrderDetail | null>(null)
+  const [tab, setTab] = useState<OTab | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [insert, setInsert] = useState<{ text: string; nonce: number } | null>(null)
@@ -155,6 +173,7 @@ export function OrderDialog({
   const [travel, setTravel] = useState<{ miles: number; fee: number } | null>(null)
   const [emailTpl, setEmailTpl] = useState<EmailTemplate | null>(null)
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
+  const [team, setTeam] = useState<string[] | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -170,6 +189,7 @@ export function OrderDialog({
   }, [load])
 
   const o = detail?.order ?? orders.find((x) => x.id === orderId) ?? null
+  const openReqs = (detail?.updateRequests ?? []).filter((r) => OPEN_REQUEST.has(r.status))
   useEffect(() => {
     if (!o) return
     setPayAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
@@ -177,6 +197,14 @@ export function OrderDialog({
     setFinalAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [o?.id, o?.balance_due_cents])
+  // Land on 派单/Planner when the customer changed something (comp: orderTab = changed ? 'planner' : 'money').
+  useEffect(() => {
+    if (detail && tab === null) setTab(openReqs.length > 0 ? "planner" : "money")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail])
+  useEffect(() => {
+    setTeam(assignments.map((a) => a.staffId))
+  }, [assignments])
 
   const lead = useMemo(() => (o ? leadForOrder(o, leads) : null), [o, leads])
   const now = Date.now()
@@ -193,12 +221,24 @@ export function OrderDialog({
   const ev = eventParts(o.event_start)
   const stage = stageOf(o, now)
   const pstate = plannerState(o, detail?.events ?? null)
-  const openReqs = (detail?.updateRequests ?? []).filter((r) => OPEN_REQUEST.has(r.status))
   const first = firstName(o.customer_name)
   const doneSop = new Set((detail?.events ?? []).filter((e) => e.action === "sop_sent").map((e) => String(e.metadata?.sop_id ?? "")))
   const curSop = sopStageOf(stage)
   const deposit = (detail?.payments ?? []).find((p) => p.type === "deposit")
   const otherPaid = Math.max(0, (o.amount_paid_total_cents ?? 0) - (o.deposit_paid_total_cents ?? 0))
+  const guests = (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
+  const chefLabel = assignments.length ? assignments.map((a) => a.name).join(" + ") : "未派"
+  const chefNote = assignments.length > 1 ? `${assignments.length} 位师傅 · 人头平分 ${Math.round(guests / assignments.length)} 人/位` : ""
+  const teamDirty = team !== null && (team.length !== assignments.length || team.some((id) => !assignments.find((a) => a.staffId === id)))
+  const curTab: OTab = tab ?? "money"
+  const goTab = (t: OTab) => {
+    if (t !== "sms") setInsert(null)
+    setTab(t)
+  }
+  const toSms = (text: string) => {
+    setInsert({ text, nonce: Date.now() })
+    setTab("sms")
+  }
 
   const call = async <T,>(label: string, fn: () => Promise<T>): Promise<T | null> => {
     setBusy(label)
@@ -234,8 +274,9 @@ export function OrderDialog({
     call(step.id, async () => {
       let link: string | undefined
       if (step.id === "w_planner") link = await plannerLink()
-      const text = step.build({ firstName: first || undefined, plannerLink: link, chefName: settings.business.chef_default_name, reviewUrl: settings.business.review_url || undefined })
-      setInsert({ text, nonce: Date.now() })
+      const chefName = assignments[0]?.name ?? settings.business.chef_default_name
+      const text = step.build({ firstName: first || undefined, plannerLink: link, chefName, reviewUrl: settings.business.review_url || undefined })
+      toSms(text)
       await adminJson(adminKey, "/api/admin/orders/sop-sent", { body: { orderId: o.id, sopId: step.id, title: step.title, operator: operatorName() } })
       await load()
     })
@@ -289,6 +330,14 @@ export function OrderDialog({
       await load()
     })
 
+  const saveTeam = () =>
+    call("assign", async () => {
+      const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: o.id, staff_member_ids: team ?? [] } })
+      if (!d.ok) throw new Error(d.error ?? "派单失败")
+      await Promise.all([load(), onChanged()])
+      setMsg("派单已保存")
+    })
+
   const sendEmail = () =>
     call("email", async () => {
       if (!o.customer_email) throw new Error("没有邮箱")
@@ -308,6 +357,12 @@ export function OrderDialog({
   }
 
   const payOther = digits10(payPhone) !== digits10(o.customer_phone)
+  const smsChips = [
+    { id: "confirm", label: "开席前确认", body: ORDER_SOP_STEPS.find((s) => s.id === "w_confirm48")!.build({ chefName: assignments[0]?.name ?? settings.business.chef_default_name }) },
+    { id: "balance", label: "尾款提醒", body: `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - the balance is ${money(o.balance_due_cents)} and is due on the day (cash, Zelle, Venmo, or card with 4%). Text here if you'd like a card link.` },
+    { id: "review", label: "邀评", body: ORDER_SOP_STEPS.find((s) => s.id === "w_review")!.build({ firstName: first || undefined, reviewUrl: settings.business.review_url || undefined }) },
+    { id: "ugc", label: "晒图邀请", body: ORDER_SOP_STEPS.find((s) => s.id === "w_ugc")!.build({ firstName: first || undefined }) },
+  ]
 
   return (
     <Dialog onClose={onClose} width={960}>
@@ -330,7 +385,13 @@ export function OrderDialog({
           <>
             {o.event_address ?? "地址未填"} · 大人 {o.guest_adult_count ?? 0} / 小孩 {o.guest_child_count ?? 0}
           </>,
-          <span style={{ fontWeight: 600, color: pstate.accent ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{pstate.text} · 发消息前先看这里</span>,
+          <span style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 12 }}>
+            <span style={{ fontWeight: 600, color: pstate.accent ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{pstate.text}</span>
+            <span style={{ color: assignments.length ? "var(--color-neutral-600)" : "var(--color-accent-700)" }}>
+              师傅 {chefLabel}
+              {chefNote ? ` · ${chefNote}` : ""}
+            </span>
+          </span>,
         ]}
         actions={
           o.customer_phone ? (
@@ -341,10 +402,138 @@ export function OrderDialog({
         }
         onClose={onClose}
       />
-      <div className="dialog-grid">
-        <div className="dialog-col">
-          {msg ? <div className="notice danger">{msg}</div> : null}
+      <div style={{ display: "flex", padding: "0 20px", borderBottom: "2px solid var(--color-divider)", overflowX: "auto" }}>
+        {OTABS.map(([k, label]) => (
+          <button key={k} type="button" className="wb-tab" aria-current={curTab === k ? "page" : undefined} onClick={() => goTab(k)} style={{ marginRight: 20 }}>
+            {label}
+            {k === "planner" && openReqs.length ? <span className="wb-badge">●</span> : null}
+          </button>
+        ))}
+      </div>
+      {msg ? <div className="notice" style={{ margin: "12px 20px 0" }}>{msg}</div> : null}
 
+      {curTab === "money" ? (
+        <div className="dialog-grid">
+          <div className="dialog-col">
+            <div>
+              <Kicker>核对金额</Kicker>
+              <Lines
+                rows={[
+                  { label: "总报价（发票）", value: money(o.quoted_total_cents), strong: true },
+                  { label: `已收押金${deposit?.paid_at ? ` · ${stamp(deposit.paid_at)}` : ""}`, value: `− ${money(o.deposit_paid_total_cents)}` },
+                  ...(otherPaid > 0 ? [{ label: "其他已收", value: `− ${money(otherPaid)}` }] : []),
+                  ...(travel ? [{ label: `路费核算 · ${Math.round(travel.miles)} 英里`, value: `$${travel.fee}`, muted: true }] : []),
+                ]}
+                total={{ label: "尾款应收", value: money(o.balance_due_cents), color: stage === "待尾款" ? "var(--color-accent-700)" : undefined }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
+                发 / 改 Invoice（专业表单）
+              </button>
+              <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || !o.event_address} onClick={() => void calcTravel()}>
+                {busy === "travel" ? "计算中…" : "算路费"}
+              </button>
+              <button type="button" className="btn btn-secondary btn-left" disabled={!lead} onClick={() => lead && onOpenLead(lead.id)} title={lead ? "打开线索期的对话和承诺" : "没找到对应线索"}>
+                线索期承诺 / 优惠
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、报价一律在专业表单里改，保存后这里自动同步。</div>
+            <div>
+              <Kicker>成单 SOP{curSop ? ` · 现在该发：${curSop === "booked" ? "已订" : curSop === "exec" ? "本周执行" : "派对后"}` : ""}</Kicker>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {ORDER_SOP_STEPS.map((s) => {
+                  const done = doneSop.has(s.id)
+                  const hot = s.stage === curSop && !done
+                  return (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13, opacity: done ? 0.55 : 1 }}>
+                      <span style={{ width: 16, color: done ? "var(--color-text)" : hot ? "var(--color-accent)" : "var(--color-neutral-400)", fontWeight: 800 }}>{done ? "✓" : "○"}</span>
+                      <span style={{ flex: 1 }}>
+                        {s.emoji} {s.title} <span style={{ color: "var(--color-neutral-600)", fontSize: 12 }}>· {s.when}</span>
+                      </span>
+                      <button type="button" className={`btn btn-sm ${hot ? "btn-primary" : "btn-secondary"}`} disabled={!!busy || !o.customer_phone} onClick={() => void runSop(s)}>
+                        {busy === s.id ? "…" : done ? "再发" : "写进短信框"}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="dialog-col dialog-side" style={{ gap: 14 }}>
+            <div>
+              <Kicker>信用卡收款链接</Kicker>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>金额默认尾款；付款人默认客人，别人付就换手机号。链接发出后记在这一单上。</div>
+            </div>
+            <Field label="金额 $">
+              <input className="input num" style={{ fontSize: 18 }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+            </Field>
+            <Field label="付款人手机号">
+              <input className="input" value={payPhone} onChange={(e) => setPayPhone(e.target.value)} />
+            </Field>
+            {payOther ? <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>与客人电话不同 · 将发给新号码</div> : null}
+            <label className="check">
+              <input type="checkbox" checked={payFinal} onChange={(e) => setPayFinal(e.target.checked)} /> 金额已含卡费（不再 +4%）
+            </label>
+            <button type="button" className="btn btn-primary btn-block" style={{ margin: 0 }} disabled={!!busy || !payAmount} onClick={() => void genPayLink()}>
+              {busy === "pay" ? "生成中…" : "生成并发送链接"}
+            </button>
+            {payUrl ? (
+              <div style={{ fontSize: 12, wordBreak: "break-all" }}>
+                <a href={payUrl} target="_blank" rel="noreferrer">
+                  {payUrl}
+                </a>{" "}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(payUrl)}>
+                  复制
+                </button>
+              </div>
+            ) : null}
+            <div className="hr" style={{ margin: "4px 0" }} />
+            <div>
+              <Kicker>现金 / Venmo / Zelle / Stripe 已收，登记</Kicker>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Field label="金额 $">
+                  <input className="input" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
+                </Field>
+                <Field label="方式">
+                  <select className="input" value={finalChannel} onChange={(e) => setFinalChannel(e.target.value as typeof finalChannel)}>
+                    <option value="zelle">Zelle</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="cash">现金</option>
+                    <option value="stripe">Stripe</option>
+                    <option value="other">其他</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label={finalChannel === "stripe" ? "Stripe 付款 ID（pi_… / ch_…）" : "凭证链接（可选）"} style={{ marginTop: 8 }}>
+                <input className="input" value={finalRef} onChange={(e) => setFinalRef(e.target.value)} />
+              </Field>
+              <button type="button" className="btn btn-secondary btn-block" disabled={!!busy || !finalAmount} onClick={() => void confirmFinal()}>
+                {busy === "final" ? "登记中…" : "登记尾款已收"}
+              </button>
+              {assignments.length ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>师傅现场代收的尾款在厨师 → 结算里登记，才能从他的工钱里扣。</div> : null}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", borderTop: "1px solid var(--color-line)", paddingTop: 10 }}>
+              <div className="kicker" style={{ marginBottom: 4 }}>已收</div>
+              {(detail?.payments ?? []).length === 0 ? <div>还没有收款记录</div> : null}
+              {(detail?.payments ?? []).map((p) => (
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "3px 0" }}>
+                  <span>
+                    {p.type === "deposit" ? "押金" : p.type === "final" ? "尾款" : p.type ?? "收款"} · {p.provider ?? "—"}
+                    {p.status && p.status !== "paid" ? ` · ${p.status}` : ""}
+                  </span>
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {money(p.amount_cents)} · {stamp(p.paid_at ?? p.created_at)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {curTab === "planner" ? (
+        <div className="dialog-col">
           {openReqs.map((r) => (
             <div key={r.id} className="notice notice-accent" style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
@@ -376,68 +565,93 @@ export function OrderDialog({
                 <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void requestAction(r, "complete")}>
                   已更新 · 通知师傅
                 </button>
-                <button type="button" className="btn btn-secondary btn-left" onClick={() => setInsert({ text: `${settings.business.brand}: got your update for the ${ev ? md(ev.ymd) : ""} party - I've updated the invoice, you'll get the new copy by email. Anything else, just text here.`, nonce: Date.now() })}>
+                <button type="button" className="btn btn-secondary btn-left" onClick={() => toSms(`${settings.business.brand}: got your update for the ${ev ? md(ev.ymd) : ""} party - I've updated the invoice, you'll get the new copy by email. Anything else, just text here.`)}>
                   发短信确认新金额
                 </button>
               </div>
             </div>
           ))}
-
           <div>
-            <Kicker>核对金额</Kicker>
-            <Lines
-              rows={[
-                { label: "总报价（发票）", value: money(o.quoted_total_cents), strong: true },
-                { label: `已收押金${deposit?.paid_at ? ` · ${stamp(deposit.paid_at)}` : ""}`, value: `− ${money(o.deposit_paid_total_cents)}` },
-                ...(otherPaid > 0 ? [{ label: "其他已收", value: `− ${money(otherPaid)}` }] : []),
-                ...(travel ? [{ label: `路费核算 · ${Math.round(travel.miles)} 英里`, value: `$${travel.fee}`, muted: true }] : []),
-              ]}
-              total={{ label: "尾款应收", value: money(o.balance_due_cents), color: stage === "待尾款" ? "var(--color-accent-700)" : undefined }}
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
-              发 / 改 Invoice（专业表单）
-            </button>
-            <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => setInsert({ text: `Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`, nonce: Date.now() }))}>
-              {busy === "planner" ? "生成中…" : "布置工具链接"}
-            </button>
-            <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || !o.event_address} onClick={() => void calcTravel()}>
-              {busy === "travel" ? "计算中…" : "算路费"}
-            </button>
-            <button type="button" className="btn btn-secondary btn-left" disabled={!lead} onClick={() => lead && onOpenLead(lead.id)} title={lead ? "打开线索期的对话和承诺" : "没找到对应线索"}>
-              线索期对话 / 承诺
-            </button>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、报价一律在专业表单里改，保存后这里自动同步。</div>
-
-          <div>
-            <Kicker>成单 SOP{curSop ? ` · 现在该发：${curSop === "booked" ? "已订" : curSop === "exec" ? "本周执行" : "派对后"}` : ""}</Kicker>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {ORDER_SOP_STEPS.map((s) => {
-                const done = doneSop.has(s.id)
-                const hot = s.stage === curSop && !done
-                return (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13, opacity: done ? 0.55 : 1 }}>
-                    <span style={{ width: 16, color: done ? "var(--color-text)" : hot ? "var(--color-accent)" : "var(--color-neutral-400)", fontWeight: 800 }}>{done ? "✓" : "○"}</span>
-                    <span style={{ flex: 1 }}>
-                      {s.emoji} {s.title} <span style={{ color: "var(--color-neutral-600)", fontSize: 12 }}>· {s.when}</span>
-                    </span>
-                    <button type="button" className={`btn btn-sm ${hot ? "btn-primary" : "btn-secondary"}`} disabled={!!busy || !o.customer_phone} onClick={() => void runSop(s)}>
-                      {busy === s.id ? "…" : done ? "再发" : "写进短信框"}
-                    </button>
-                  </div>
-                )
-              })}
+            <Kicker>Planner 当前</Kicker>
+            <div style={{ fontSize: 13, display: "grid", gridTemplateColumns: "72px 1fr", gap: 8, borderTop: "2px solid var(--color-divider)", paddingTop: 8 }}>
+              <span style={{ color: "var(--color-neutral-600)" }}>人数</span>
+              <span>
+                大人 {o.guest_adult_count ?? 0} · 小孩 {o.guest_child_count ?? 0}
+              </span>
+              <span style={{ color: "var(--color-neutral-600)" }}>状态</span>
+              <span style={{ color: pstate.accent ? "var(--color-accent-700)" : undefined }}>{pstate.text}</span>
+              <span style={{ color: "var(--color-neutral-600)" }}>最后改动</span>
+              <span>{pstate.at || "—"}</span>
             </div>
           </div>
-
-          <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <Kicker>短信 · {settings.business.support_phone}</Kicker>
-            <SmsThreadPanel adminKey={adminKey} phone={o.customer_phone} leadId={lead?.id ?? null} peerLabel={first || "客户"} compact insert={insert} quickReplies={settings.quick_replies.filter((q) => !q.body.includes("{deposit_link}"))} fillTemplate={(b) => b.replaceAll("{first_name}", first).replaceAll("{date}", ev ? md(ev.ymd) : "your date").replaceAll("{planner_link}", "").replace(/^Hi\s*,/, "Hi,")} />
+          <div>
+            <Kicker>派单</Kicker>
+            <div style={{ fontSize: 13, borderTop: "2px solid var(--color-divider)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span>
+                  <strong style={{ color: assignments.length ? undefined : "var(--color-accent-700)" }}>{chefLabel}</strong>
+                  {chefNote ? <span style={{ color: "var(--color-neutral-600)" }}> · {chefNote}</span> : null}
+                </span>
+                {assignments.length ? (
+                  <span style={{ display: "flex", gap: 4 }}>
+                    {assignments.map((a) => (
+                      <button key={a.assignmentId} type="button" className="btn btn-ghost btn-sm" onClick={() => onOpenChef(a.staffId)}>
+                        {a.name} →
+                      </button>
+                    ))}
+                  </span>
+                ) : null}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {chefs
+                  .filter((c) => c.status === "active" || (team ?? []).includes(c.id))
+                  .map((c) => {
+                    const on = (team ?? []).includes(c.id)
+                    const dayLoad = ev ? c.shifts.filter((s) => s.date === ev.ymd && s.orderId !== o.id).length : 0
+                    return (
+                      <Chip key={c.id} small active={on} onClick={() => setTeam((t) => (t ?? []).includes(c.id) ? (t ?? []).filter((x) => x !== c.id) : [...(t ?? []), c.id])} title={`${c.areas.join("/")} · ${c.skills.join("、")}`}>
+                        {c.name}
+                        {dayLoad ? <span style={{ opacity: 0.7 }}> · 当天已有 {dayLoad} 场</span> : null}
+                      </Chip>
+                    )
+                  })}
+                {chefs.length === 0 ? <span style={{ color: "var(--color-neutral-600)" }}>还没有厨师，去"厨师"页添加。</span> : null}
+              </div>
+              {teamDirty ? (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!!busy} onClick={() => void saveTeam()}>
+                    {busy === "assign" ? "保存中…" : `保存派单（${(team ?? []).length} 位）`}
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTeam(assignments.map((a) => a.staffId))}>
+                    还原
+                  </button>
+                </div>
+              ) : null}
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单仍从发票工具的 Send to Chef 发。</div>
+            </div>
           </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
+              改日期 / 时段（专业表单）
+            </button>
+            <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
+              改人数 / 菜单
+            </button>
+            <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => toSms(`Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`))}>
+              {busy === "planner" ? "生成中…" : "给客人发 Planner 链接"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
+      {curTab === "sms" ? (
+        <div className="dialog-col" style={{ paddingTop: 0 }}>
+          <SmsThreadPanel adminKey={adminKey} phone={o.customer_phone} leadId={lead?.id ?? null} peerLabel={first || "客户"} insert={insert} quickReplies={smsChips} header={<div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)" }}>短信 · {settings.business.support_phone}{lead ? " · 记进线索时间线" : ""}</div>} />
+        </div>
+      ) : null}
+
+      {curTab === "records" ? (
+        <div className="dialog-col">
           <div>
             <Kicker>邮件 · {settings.business.support_email}</Kicker>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -473,113 +687,43 @@ export function OrderDialog({
               </div>
             ) : null}
           </div>
-
-          <details>
-            <summary>派对照片</summary>
-            <div style={{ marginTop: 8 }}>
-              <OrderPhotosPanel adminKey={adminKey} orderId={o.id} />
-            </div>
-          </details>
-          <details>
-            <summary>已发送的发票（存档）</summary>
-            <div style={{ marginTop: 8 }}>
-              <InvoiceArchivePanel adminKey={adminKey} orderNo={o.order_no} orderId={o.id} />
-            </div>
-          </details>
-          <details>
-            <summary>时间线（{detail?.events.length ?? "…"}）</summary>
-            <div style={{ marginTop: 8, fontSize: 12.5 }}>
+          <div>
+            <Kicker>派对照片（师傅端上传）</Kicker>
+            <OrderPhotosPanel adminKey={adminKey} orderId={o.id} />
+          </div>
+          <div>
+            <Kicker>已发送的发票（存档）</Kicker>
+            <InvoiceArchivePanel adminKey={adminKey} orderNo={o.order_no} orderId={o.id} />
+          </div>
+          <div>
+            <Kicker>时间线（{detail?.events.length ?? "…"}）</Kicker>
+            <div style={{ fontSize: 12.5, borderTop: "2px solid var(--color-divider)" }}>
               {(detail?.events ?? []).map((e) => (
                 <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--color-line)" }}>
                   <span>
                     <strong>{ORDER_EVENT_LABELS[e.action] ?? e.action}</strong>
                     {e.metadata && typeof e.metadata.title === "string" ? <span style={{ color: "var(--color-neutral-600)" }}> · {e.metadata.title}</span> : null}
+                    {e.action === "chef_assigned" && Array.isArray(e.metadata?.names) ? <span style={{ color: "var(--color-neutral-600)" }}> · {(e.metadata!.names as string[]).join(" + ") || "清空"}</span> : null}
                     <span style={{ color: "var(--color-neutral-500)" }}> · {e.actor}</span>
                   </span>
                   <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{stamp(e.created_at)}</span>
                 </div>
               ))}
             </div>
-          </details>
+          </div>
           {o.internal_notes || o.customer_notes || o.notes ? (
-            <details>
-              <summary>备注</summary>
-              <div style={{ fontSize: 13, whiteSpace: "pre-wrap", marginTop: 6 }}>{[o.customer_notes, o.internal_notes, o.notes].filter(Boolean).join("\n\n")}</div>
-            </details>
-          ) : null}
-        </div>
-
-        <div className="dialog-col dialog-side" style={{ gap: 14 }}>
-          <div>
-            <Kicker>信用卡收款链接</Kicker>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>金额默认尾款；付款人默认客人，别人付就换手机号。链接发出后记在这一单上。</div>
-          </div>
-          <Field label="金额 $">
-            <input className="input num" style={{ fontSize: 18 }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
-          </Field>
-          <Field label="付款人手机号">
-            <input className="input" value={payPhone} onChange={(e) => setPayPhone(e.target.value)} />
-          </Field>
-          {payOther ? <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>与客人电话不同 · 将发给新号码</div> : null}
-          <label className="check">
-            <input type="checkbox" checked={payFinal} onChange={(e) => setPayFinal(e.target.checked)} /> 金额已含卡费（不再 +4%）
-          </label>
-          <button type="button" className="btn btn-primary btn-block" style={{ margin: 0 }} disabled={!!busy || !payAmount} onClick={() => void genPayLink()}>
-            {busy === "pay" ? "生成中…" : "生成并发送链接"}
-          </button>
-          {payUrl ? (
-            <div style={{ fontSize: 12, wordBreak: "break-all" }}>
-              <a href={payUrl} target="_blank" rel="noreferrer">
-                {payUrl}
-              </a>{" "}
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(payUrl)}>
-                复制
-              </button>
+            <div>
+              <Kicker>备注</Kicker>
+              <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{[o.customer_notes, o.internal_notes, o.notes].filter(Boolean).join("\n\n")}</div>
             </div>
           ) : null}
-
-          <div className="hr" style={{ margin: "4px 0" }} />
-          <div>
-            <Kicker>现金 / Venmo / Zelle / Stripe 已收，登记</Kicker>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <Field label="金额 $">
-                <input className="input" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
-              </Field>
-              <Field label="方式">
-                <select className="input" value={finalChannel} onChange={(e) => setFinalChannel(e.target.value as typeof finalChannel)}>
-                  <option value="zelle">Zelle</option>
-                  <option value="venmo">Venmo</option>
-                  <option value="cash">现金</option>
-                  <option value="stripe">Stripe</option>
-                  <option value="other">其他</option>
-                </select>
-              </Field>
+          {viewerRole === "owner" ? (
+            <div style={{ fontSize: 11, color: "var(--color-neutral-500)" }}>
+              订单 ID <span className="mono">{o.id}</span>
             </div>
-            <Field label={finalChannel === "stripe" ? "Stripe 付款 ID（pi_… / ch_…）" : "凭证链接（可选）"} style={{ marginTop: 8 }}>
-              <input className="input" value={finalRef} onChange={(e) => setFinalRef(e.target.value)} />
-            </Field>
-            <button type="button" className="btn btn-secondary btn-block" disabled={!!busy || !finalAmount} onClick={() => void confirmFinal()}>
-              {busy === "final" ? "登记中…" : "登记尾款已收"}
-            </button>
-          </div>
-
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", borderTop: "1px solid var(--color-line)", paddingTop: 10 }}>
-            <div className="kicker" style={{ marginBottom: 4 }}>已收</div>
-            {(detail?.payments ?? []).length === 0 ? <div>还没有收款记录</div> : null}
-            {(detail?.payments ?? []).map((p) => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "3px 0" }}>
-                <span>
-                  {p.type === "deposit" ? "押金" : p.type === "final" ? "尾款" : p.type ?? "收款"} · {p.provider ?? "—"}
-                  {p.status && p.status !== "paid" ? ` · ${p.status}` : ""}
-                </span>
-                <span style={{ whiteSpace: "nowrap" }}>
-                  {money(p.amount_cents)} · {stamp(p.paid_at ?? p.created_at)}
-                </span>
-              </div>
-            ))}
-          </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
     </Dialog>
   )
 }

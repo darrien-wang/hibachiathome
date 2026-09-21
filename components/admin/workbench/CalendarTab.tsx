@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react"
 import { Chip } from "./ui"
-import { addDays, eventParts, firstName, md, parseYmd, ptToday, stageOf, type OrderRow } from "./helpers"
+import { addDays, dowZh, eventParts, firstName, md, parseYmd, ptToday, stageOf, type OrderRow } from "./helpers"
+import { holidayOn, upcomingHolidays } from "./holidays"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // 日历 · every booked party on a month grid or a week timeline. Evening
@@ -54,14 +55,15 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
     const d = addDays(gridStart, i)
     const inMonth = parseYmd(d).getUTCMonth() === m
     const dow = parseYmd(d).getUTCDay()
-    return { d, day: parseYmd(d).getUTCDate(), inMonth, isToday: d === today, weekend: dow === 0 || dow === 6, events: byDate[d] ?? [] }
+    return { d, day: parseYmd(d).getUTCDate(), inMonth, isToday: d === today, weekend: dow === 0 || dow === 6, events: byDate[d] ?? [], holiday: holidayOn(d) }
   })
   const wkStart = addDays(cursor, -((cur.getUTCDay() + 6) % 7))
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = addDays(wkStart, i)
     const events = byDate[d] ?? []
-    return { d, label: md(d), dow: DOW_MON[i], isToday: d === today, events, guests: events.reduce((a, e) => a + e.guests, 0) }
+    return { d, label: md(d), dow: DOW_MON[i], isToday: d === today, events, guests: events.reduce((a, e) => a + e.guests, 0), holiday: holidayOn(d) }
   })
+  const nextHolidays = upcomingHolidays(today, 4).map((h) => ({ ...h, count: (byDate[h.date] ?? []).length }))
   const hours = Array.from({ length: Math.max(1, settings.day_end_hour - settings.day_start_hour) }, (_, i) => settings.day_start_hour + i)
   const rowH = 44
 
@@ -120,7 +122,7 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
                   padding: 6,
                   borderRight: "2px solid var(--color-divider)",
                   borderBottom: "1px solid var(--color-line)",
-                  background: c.isToday ? "var(--color-surface)" : c.weekend && c.inMonth ? "color-mix(in srgb, var(--color-text) 3%, transparent)" : "transparent",
+                  background: c.isToday ? "var(--color-surface)" : c.holiday && c.inMonth ? "var(--color-accent-100)" : c.weekend && c.inMonth ? "color-mix(in srgb, var(--color-text) 3%, transparent)" : "transparent",
                   opacity: c.inMonth ? 1 : 0.35,
                   display: "flex",
                   flexDirection: "column",
@@ -128,10 +130,11 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
                   minWidth: 0,
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontWeight: c.isToday ? 800 : 400, fontSize: 13, color: c.isToday ? "var(--color-accent)" : c.d < today ? "var(--color-neutral-600)" : "var(--color-text)" }}>{c.day}</span>
-                  {c.events.length ? <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{c.events.length} 场</span> : null}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 4 }}>
+                  <span style={{ fontWeight: c.isToday || c.holiday ? 800 : 400, fontSize: 13, whiteSpace: "nowrap", color: c.isToday ? "var(--color-accent)" : c.holiday ? "var(--color-accent-700)" : c.d < today ? "var(--color-neutral-600)" : "var(--color-text)" }}>{c.day}</span>
+                  {c.events.length ? <span style={{ fontSize: 11, color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{c.events.length} 场</span> : null}
                 </div>
+                {c.holiday ? <div className="clamp1" style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{c.holiday}</div> : null}
                 {c.events.map((e) => (
                   <button key={e.id} type="button" className="wb-ev clamp1" onClick={() => onOpenOrder(e.id)} style={{ padding: "3px 6px", fontSize: isMobile ? 10 : 11, lineHeight: 1.3, ...evStyle(e) }}>
                     <strong>{e.time}</strong> {isMobile ? e.name : `${e.name} · ${e.guests}人`}
@@ -153,16 +156,44 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
               <span style={{ display: "inline-block", width: 10, height: 10, borderLeft: "3px solid var(--color-accent)", marginRight: 6, verticalAlign: "middle" }} />
               待细节 / 待尾款
             </span>
+            <span>
+              <span style={{ display: "inline-block", width: 10, height: 10, background: "var(--color-accent-100)", border: "1px solid var(--color-accent-300)", marginRight: 6, verticalAlign: "middle" }} />
+              节假日
+            </span>
           </div>
         </>
-      ) : !isMobile ? (
+      ) : null}
+
+      <div style={{ display: "flex", alignItems: "baseline", gap: "8px 18px", flexWrap: "wrap", fontSize: 13, borderTop: "2px solid var(--color-divider)", paddingTop: 10 }}>
+        <span className="kicker" style={{ whiteSpace: "nowrap" }}>接下来的节假日</span>
+        {nextHolidays.map((h) => (
+          <button
+            key={h.date}
+            type="button"
+            className="wb-row"
+            onClick={() => {
+              setCursor(h.date)
+              setView("week")
+            }}
+            style={{ border: 0, background: "transparent", padding: 0, font: "inherit", color: "inherit", whiteSpace: "nowrap" }}
+          >
+            <strong style={{ color: "var(--color-accent-700)" }}>{h.name}</strong>{" "}
+            <span style={{ color: "var(--color-neutral-600)" }}>
+              {md(h.date)} {dowZh(h.date)} · 已订 {h.count ? `${h.count} 场` : "空"}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {view === "month" ? null : !isMobile ? (
         <div style={{ display: "grid", gridTemplateColumns: `48px repeat(7, minmax(0,1fr))`, borderTop: "2px solid var(--color-divider)" }}>
           <div style={{ borderBottom: "2px solid var(--color-divider)" }} />
           {weekDays.map((d) => (
-            <div key={d.d} style={{ padding: 8, borderLeft: "1px solid var(--color-line)", borderBottom: "2px solid var(--color-divider)", background: d.isToday ? "var(--color-surface)" : "transparent" }}>
+            <div key={d.d} style={{ padding: 8, borderLeft: "1px solid var(--color-line)", borderBottom: "2px solid var(--color-divider)", background: d.isToday ? "var(--color-surface)" : d.holiday ? "var(--color-accent-100)" : "transparent" }}>
               <div className="kicker">{d.dow}</div>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: d.isToday ? "var(--color-accent)" : "var(--color-text)" }}>{d.label}</div>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: d.isToday ? "var(--color-accent)" : d.holiday ? "var(--color-accent-700)" : "var(--color-text)" }}>{d.label}</div>
               <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{d.events.length ? `${d.events.length} 场 · ${d.guests} 人` : ""}</div>
+              {d.holiday ? <div className="clamp1" style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{d.holiday}</div> : null}
             </div>
           ))}
           <div>
@@ -203,11 +234,12 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
       ) : (
         <div style={{ display: "flex", flexDirection: "column", borderTop: "2px solid var(--color-divider)" }}>
           {weekDays.map((d) => (
-            <div key={d.d} style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--color-line)", background: d.isToday ? "var(--color-surface)" : "transparent" }}>
+            <div key={d.d} style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--color-line)", background: d.isToday ? "var(--color-surface)" : d.holiday ? "var(--color-accent-100)" : "transparent" }}>
               <div>
                 <div className="kicker">{d.dow}</div>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 22, color: d.isToday ? "var(--color-accent)" : "var(--color-text)" }}>{d.label}</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 22, color: d.isToday ? "var(--color-accent)" : d.holiday ? "var(--color-accent-700)" : "var(--color-text)" }}>{d.label}</div>
                 <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{d.events.length ? `${d.events.length} 场 · ${d.guests} 人` : "空"}</div>
+                {d.holiday ? <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{d.holiday}</div> : null}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {d.events.length === 0 ? <div style={{ fontSize: 13, color: "var(--color-neutral-500)", padding: "6px 0" }}>空</div> : null}
