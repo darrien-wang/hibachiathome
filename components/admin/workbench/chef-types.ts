@@ -26,7 +26,7 @@ export type ChefSummary = {
   name: string
   phone: string | null
   status: string
-  rate: ChefRate
+  rate: ChefRate | null
   skills: string[]
   areas: string[]
   billing_cycle: string
@@ -80,7 +80,7 @@ export type ChefRecord = {
 export type PerfRow = { id: string; order_id: string | null; event_date: string; customer_label: string | null; review: "good" | "bad" | null; comment: string | null; late_minutes: number; source: string; created_at: string }
 export type ChefFile = { id: string; order_id: string | null; kind: "receipt" | "photo" | "video" | "food_card" | "id_doc" | "w9" | "other"; title: string | null; content_type: string | null; bytes: number | null; amount_cents: number | null; status: "none" | "pending" | "approved" | "paid" | "rejected"; approved_at: string | null; settled_at: string | null; note: string | null; uploaded_by: string | null; created_at: string }
 export type Settlement = { id: string; period_start: string | null; period_end: string | null; shifts: number; pay_cents: number; reimb_cents: number; cash_cents: number; net_cents: number; method: string | null; note: string | null; created_by: string | null; created_at: string }
-export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; today: string }
+export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; today: string; sensitive?: boolean }
 
 export type MediaItem = {
   id: string

@@ -30,7 +30,7 @@ type PhotoRow = {
 }
 
 export async function GET(request: NextRequest) {
-  if (!resolveAdminActor(request)) {
+  if (!(await resolveAdminActor(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   const orderId = (request.nextUrl.searchParams.get("orderId") ?? "").trim()

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { resolveAdminActor } from "@/lib/admin-auth"
+import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { fetchGoogleCampaignDays, googleAdsCustomerId } from "@/lib/google-ads-rest"
 import { PAID_CHANNELS, isPaidChannel } from "@/lib/channels"
 
@@ -51,7 +51,9 @@ const int = (v: unknown) => {
 }
 
 export async function GET(request: NextRequest) {
-  if (!resolveAdminActor(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const actor = await resolveAdminActor(request)
+  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const p = request.nextUrl.searchParams
@@ -72,8 +74,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const action = request.nextUrl.searchParams.get("action")
@@ -163,8 +166,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const id = request.nextUrl.searchParams.get("id") ?? ""

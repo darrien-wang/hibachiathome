@@ -18,6 +18,7 @@ export function ChefsTab({
   settings,
   isMobile,
   viewerRole,
+  sensitive,
   initialView,
   onOpenChef,
   onChanged,
@@ -27,6 +28,7 @@ export function ChefsTab({
   settings: WorkbenchSettings
   isMobile: boolean
   viewerRole: "owner" | "agent" | null
+  sensitive: boolean
   initialView?: "list" | "media" | null
   onOpenChef: (id: string, tab?: ChefTabKey) => void
   onChanged: () => Promise<void> | void
@@ -52,6 +54,7 @@ export function ChefsTab({
   const weekTotal = rows.reduce((a, r) => a + r.weekCount, 0)
   const alerts = useMemo(() => {
     const out: Array<{ who: string; kind: string; text: string; id: string; tab: ChefTabKey }> = []
+    if (!sensitive) return out
     for (const c of chefs) {
       if (c.status !== "active") continue
       if (c.doc.level !== "ok") out.push({ who: c.name, kind: "证件", text: c.doc.label, id: c.id, tab: "docs" })
@@ -59,7 +62,7 @@ export function ChefsTab({
       if (c.pendingReceipts) out.push({ who: c.name, kind: "报销", text: `${c.pendingReceipts} 张发票待报销 · ${money(c.pendingReceiptCents)}`, id: c.id, tab: "files" })
     }
     return out
-  }, [chefs])
+  }, [chefs, sensitive])
 
   const balanceLabel = (net: number) => (net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清")
 
@@ -91,9 +94,11 @@ export function ChefsTab({
                 回到本周
               </button>
             ) : null}
-            <button type="button" className="btn btn-secondary" style={{ whiteSpace: "nowrap" }} onClick={() => setShowAdd(true)}>
-              + 添加厨师
-            </button>
+            {sensitive ? (
+              <button type="button" className="btn btn-secondary" style={{ whiteSpace: "nowrap" }} onClick={() => setShowAdd(true)}>
+                + 添加厨师
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -121,9 +126,9 @@ export function ChefsTab({
                 <tr style={{ whiteSpace: "nowrap" }}>
                   <th>厨师</th>
                   <th className="r">{weekTitle}场次</th>
-                  <th>工价 · 能力</th>
+                  <th>{sensitive ? "工价 · 能力" : "能力"}</th>
                   <th>评价 · 准时</th>
-                  <th className="r">本期结余</th>
+                  {sensitive ? <th className="r">本期结余</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -151,7 +156,7 @@ export function ChefsTab({
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{weekGuests} 人</div>
                     </td>
                     <td style={{ maxWidth: 0, width: "36%", minWidth: 150 }}>
-                      <div className="clamp1">{rateLabel(c.rate)}</div>
+                      {sensitive && c.rate ? <div className="clamp1">{rateLabel(c.rate)}</div> : null}
                       <div className="clamp1" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
                         {c.skills.join(" · ") || "能力未填"}
                       </div>
@@ -168,7 +173,8 @@ export function ChefsTab({
                       </div>
                       <div style={{ color: c.late ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{c.perfCount ? (c.late ? `迟到 ${c.late} 次 · ${Math.round((100 * c.late) / c.perfCount)}%` : "从未迟到") : "还没记录"}</div>
                     </td>
-                    <td
+                    {sensitive ? (
+<td
                       className="r"
                       style={{ whiteSpace: "nowrap" }}
                       onClick={(e) => {
@@ -182,6 +188,7 @@ export function ChefsTab({
                         {c.openShifts ? ` · 未结 ${c.openShifts} 场` : ""}
                       </div>
                     </td>
+) : null}
                   </tr>
                 ))}
               </tbody>
@@ -195,7 +202,7 @@ export function ChefsTab({
                     <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{c.areas.join(" / ")}</span>
                   </div>
                   <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>{prettyPhone(c.phone)}</div>
-                  <div style={{ fontSize: 13 }}>{rateLabel(c.rate)}</div>
+                  {sensitive && c.rate ? <div style={{ fontSize: 13 }}>{rateLabel(c.rate)}</div> : null}
                   <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{c.skills.join(" · ")}</div>
                   <div style={{ fontSize: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <span>
@@ -207,7 +214,7 @@ export function ChefsTab({
                     <span>
                       {weekTitle} <strong>{weekCount}</strong> 场 · {weekGuests} 人
                     </span>
-                    <span style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{balanceLabel(net)}</span>
+                    {sensitive ? <span style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{balanceLabel(net)}</span> : null}
                   </div>
                 </article>
               ))}
@@ -228,7 +235,7 @@ export function ChefsTab({
           }}
         />
       ) : null}
-      {viewerRole === "agent" ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>坐席可以派单、记迟到和评价；工价、证件、结算只有老板能改。</div> : null}
+      {!sensitive ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>坐席可以看场次、记迟到和评价、派单；工价、证件、报税、结算和报销只有管理员（或开了权限的人）能看。</div> : viewerRole === "agent" ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>坐席可以派单、记迟到和评价；工价、证件、结算只有管理员能改。</div> : null}
     </section>
   )
 }

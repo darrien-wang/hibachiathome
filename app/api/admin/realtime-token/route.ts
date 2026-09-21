@@ -10,7 +10,7 @@ const TRANSCRIBE_MODEL = process.env.OPENAI_TRANSCRIBE_MODEL ?? "gpt-live-transc
 // page gets a secret that is scoped to one transcription session and expires
 // in about a minute.
 export async function GET(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }

@@ -72,7 +72,7 @@ function withBanner(row: ArchiveRow & { html: string }): string {
 }
 
 export async function GET(request: NextRequest) {
-  if (!resolveAdminActor(request)) {
+  if (!(await resolveAdminActor(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   const supabase = createServerSupabaseClient()

@@ -1,28 +1,15 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import twilio from "twilio"
 import { identityForAlias } from "@/lib/twilio-identity"
 
 export const dynamic = "force-dynamic"
 
-type Actor = { role: "owner" | "agent"; alias: string }
-
-// Same scheme as the other admin endpoints: owner uses ADMIN_DASH_KEY,
-// agents use AGENT_DASH_KEYS="anna:key1,bob:key2".
-function resolveActor(request: NextRequest): Actor | null {
-  const provided =
-    request.headers.get("x-admin-key") ?? request.nextUrl.searchParams.get("key") ?? ""
-  if (!provided) return null
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return { role: "owner", alias: "owner" }
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return { role: "agent", alias }
-  }
-  return null
-}
+// Owner key, agent keys and SMS-login sessions all resolve through lib/admin-auth.
+const resolveActor = (request: NextRequest) => resolveAdminActor(request)
 
 export async function GET(request: NextRequest) {
-  const actor = resolveActor(request)
+  const actor = await resolveActor(request)
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }

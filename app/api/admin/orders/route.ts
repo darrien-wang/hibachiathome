@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const runtime = "nodejs"
@@ -8,16 +9,8 @@ export const dynamic = "force-dynamic"
 // project and are owned by the invoice app; this surface reads them directly
 // (read-direct) while every state change goes through the integration event
 // channel (write-via-events) — see the order-workbench design doc.
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 const LIST_COLUMNS = [
@@ -119,7 +112,7 @@ async function autoCloseFinishedOrderRequests(
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 

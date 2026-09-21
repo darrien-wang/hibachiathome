@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic"
 // reports whether the key + payload were accepted. The daily report can
 // call this to catch a rotated/expired key before a real deposit hits it.
 export async function GET(request: NextRequest) {
-  if (!resolveAdminActor(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!(await resolveAdminActor(request))) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (!isChatgptCapiConfigured()) return NextResponse.json({ ok: false, configured: false, error: "CHATGPT_ADS_CAPI_KEY not set" })
   const result = await sendChatgptDepositConversion({
     eventId: `capi_smoke_${new Date().toISOString().slice(0, 10)}`,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useSoftphone } from "@/components/admin/SoftphoneProvider"
 import { useIsMobile } from "@/components/admin/SoftphoneMobileDrawer"
-import { adminJson, useAdminKey } from "./api"
+import { adminJson, loginUrl, useAdminKey } from "./api"
 import { useWorkbenchData } from "./use-workbench-data"
 import { BoardTab } from "./BoardTab"
 import { LeadsTab } from "./LeadsTab"
@@ -42,28 +42,14 @@ type SearchHit = {
   orders: Array<{ id: string; order_no: string; customer_name: string | null; customer_phone: string | null; event_start: string | null; event_address: string | null; order_status: string | null; balance_due_cents: number | null }>
 }
 
-function KeyGate({ onKey }: { onKey: (k: string) => void }) {
-  const [v, setV] = useState("")
-  return (
-    <div className="wb" style={{ alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div className="card" style={{ width: "min(360px, 100%)", padding: 20, gap: 12 }}>
-        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20 }}>Real Hibachi · Workbench</div>
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>输入工作台密钥。只存在这台设备上。</div>
-        <input className="input" type="password" value={v} placeholder="密钥" onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && v.trim() && onKey(v.trim())} autoFocus />
-        <button type="button" className="btn btn-primary btn-block" style={{ margin: 0 }} disabled={!v.trim()} onClick={() => onKey(v.trim())}>
-          进入
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function Workbench() {
   const router = useRouter()
   const pathname = usePathname()
   const sp = useSearchParams()
-  const { key, ready, setKey, clearKey } = useAdminKey()
-  const data = useWorkbenchData(key, ready && !!key)
+  // A key in localStorage (scripts, old links) or a login-session cookie
+  // (SMS / passkey login, see /admin/login): either way the APIs decide.
+  const { key, ready, clearKey } = useAdminKey()
+  const data = useWorkbenchData(key, ready)
   const isMobile = useIsMobile("(max-width: 760px)")
   const phone = useSoftphone()
 
@@ -119,7 +105,7 @@ export default function Workbench() {
   const seq = useRef(0)
   useEffect(() => {
     const term = q.trim()
-    if (term.length < 2 || !key) {
+    if (term.length < 2) {
       setHits(null)
       return
     }
@@ -157,9 +143,24 @@ export default function Workbench() {
   const pendingCount = useMemo(() => data.leads.filter((l) => leadUnreplied(l) || l.status === "new").length, [data.leads])
   const changedCount = useMemo(() => changedOrderIds(data.pendingUpdates, data.orders).size, [data.pendingUpdates, data.orders])
   useEffect(() => {
-    if (!key) return
     document.title = `${pendingCount ? `(${pendingCount}) ` : ""}${TAB_TITLES[tab] ?? "工作台"} · Real Hibachi`
-  }, [tab, pendingCount, key])
+  }, [tab, pendingCount])
+
+  // No key and no live session: go to the login page. A stale key in
+  // localStorage is dropped so it cannot shadow a fresh SMS login.
+  useEffect(() => {
+    if (!data.authFailed) return
+    clearKey()
+    window.location.replace(loginUrl())
+  }, [data.authFailed, clearKey])
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/admin/auth/logout", { method: "POST", credentials: "same-origin" })
+    } catch {}
+    clearKey()
+    window.location.replace("/admin/login")
+  }, [clearKey])
 
   const lead = leadId ? data.leads.find((l) => l.id === leadId) ?? null : null
   const onCall = useCallback(
@@ -178,20 +179,15 @@ export default function Workbench() {
     if (isMobile) phone.setDrawerOpen(true)
   }
 
-  if (!ready) return <div className="wb" />
-  if (!key || data.authFailed) {
-    return (
-      <KeyGate
-        onKey={(k) => {
-          setKey(k)
-          if (data.authFailed) window.location.reload()
-        }}
-      />
-    )
-  }
+  if (!ready || data.authFailed) return <div className="wb" />
+
+  // What this person may see. Until the first response lands nobody gets the
+  // board, so an agent never glimpses it while the page loads.
+  const canBoard = data.viewer?.perms.board === true
+  const canChefMoney = data.viewer?.perms.chef_sensitive === true
 
   const searching = q.trim().length >= 2
-  const tabs: Array<[Tab, React.ReactNode]> = [
+  const allTabs: Array<[Tab, React.ReactNode]> = [
     ["board", "看板"],
     ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}</>],
     ["orders", <>订单{changedCount ? <span className="wb-badge">{changedCount}</span> : null}</>],
@@ -200,6 +196,7 @@ export default function Workbench() {
     ["cal", "日历"],
     ["settings", "设置"],
   ]
+  const tabs = allTabs.filter(([t]) => t !== "board" || canBoard)
   const refreshOrdersAndChefs = async () => {
     await Promise.all([data.refreshOrders(), data.refreshChefs()])
   }
@@ -254,18 +251,18 @@ export default function Workbench() {
         {data.error ? <div className="notice danger" style={{ marginBottom: 12 }}>{data.error}</div> : null}
         {searching ? (
           <SearchResults q={q.trim()} hits={hits} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
-        ) : tab === "board" ? (
+        ) : tab === "board" && canBoard ? (
           <BoardTab adminKey={key} settings={data.settings} leads={data.leads} orders={data.orders} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onGoLeads={(s) => setParams({ tab: "leads", since: s })} onGoOrders={() => setParams({ tab: "orders", filter: "all" })} />
         ) : tab === "orders" ? (
           <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} planner={data.planner} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
         ) : tab === "planner" ? (
           <PlannerTab adminKey={key} live={data.planner} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
         ) : tab === "chefs" ? (
-          <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
+          <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} sensitive={canChefMoney} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
         ) : tab === "cal" ? (
           <CalendarTab orders={data.orders} settings={data.settings.calendar} isMobile={isMobile} onOpenOrder={openOrder} />
         ) : tab === "settings" ? (
-          <SettingsTab adminKey={key} settings={data.settings} meta={data.settingsMeta} code={data.code} viewerRole={data.viewer?.role ?? null} onSaved={data.applySettings} onLogout={clearKey} />
+          <SettingsTab adminKey={key} settings={data.settings} meta={data.settingsMeta} code={data.code} viewerRole={data.viewer?.role ?? null} viewer={data.viewer} onSaved={data.applySettings} onLogout={() => void logout()} />
         ) : (
           <LeadsTab adminKey={key} leads={data.leads} stats={data.stats} settings={data.settings} viewerRole={data.viewer?.role ?? null} isMobile={isMobile} since={since} planner={data.planner} onClearSince={() => setParams({ since: null })} onOpenLead={openLead} onOpenOrder={openOrder} onOpenPlanner={() => go("planner")} onCall={onCall} onChanged={data.refreshLeads} />
         )}
@@ -336,6 +333,7 @@ export default function Workbench() {
           initialTab={ctab}
           settings={data.settings}
           viewerRole={data.viewer?.role ?? null}
+          sensitive={canChefMoney}
           onClose={closeDialogs}
           onChanged={refreshOrdersAndChefs}
           onOpenOrder={openOrder}

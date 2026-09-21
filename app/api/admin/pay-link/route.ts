@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
@@ -79,20 +80,12 @@ async function resolveOrderForLink(params: {
   return { order: candidates[0] as LinkedOrder }
 }
 
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   let body: {

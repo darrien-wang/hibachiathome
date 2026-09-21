@@ -61,6 +61,8 @@
     "@react-email/components": "latest",
     "@react-email/render": "latest",
     "@remix-run/react": "latest",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.2",
     "@supabase/supabase-js": "latest",
     "@sveltejs/kit": "latest",
     "@sveltejs/vite-plugin-svelte": "latest",

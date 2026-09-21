@@ -98,7 +98,7 @@ type Contact = { email?: string; phone?: string; leadId?: string; externalOrderI
 type Host = { hostName?: string; hostPhone?: string; hostEmail?: string; keyId?: string; eventDate?: string }
 
 export async function GET(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })

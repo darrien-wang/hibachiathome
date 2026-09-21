@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 
 import { createShortLink, isAllowedShortLinkTarget, SHORT_LINK_TTL_DAYS } from "@/lib/short-link"
 
@@ -6,20 +7,12 @@ export const dynamic = "force-dynamic"
 
 // Staff-only: shorten a deposit / planner / pay link before texting it.
 //   POST { url, leadId?, ttlDays? } -> { ok, shortUrl, code, expiresAt }
-function actorAlias(request: NextRequest): string | null {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return null
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return "owner"
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return alias
-  }
-  return null
+async function actorAlias(request: NextRequest): Promise<string | null> {
+  return (await resolveAdminActor(request))?.alias ?? null
 }
 
 export async function POST(request: NextRequest) {
-  const actor = actorAlias(request)
+  const actor = await actorAlias(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   let body: { url?: string; leadId?: string; ttlDays?: number }
   try {

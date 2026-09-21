@@ -37,6 +37,7 @@ export function ChefDialog({
   initialTab,
   settings,
   viewerRole,
+  sensitive,
   onClose,
   onChanged,
   onOpenOrder,
@@ -47,13 +48,15 @@ export function ChefDialog({
   initialTab?: ChefTabKey | null
   settings: WorkbenchSettings
   viewerRole: "owner" | "agent" | null
+  sensitive: boolean
   onClose: () => void
   onChanged: () => Promise<void> | void
   onOpenOrder: (id: string) => void
   onCall: (phone: string) => void
 }) {
   const owner = viewerRole === "owner"
-  const [tab, setTab] = useState<ChefTabKey>(initialTab ?? "shifts")
+  const hiddenTab = (k: ChefTabKey) => !sensitive && (k === "docs" || k === "settle")
+  const [tab, setTab] = useState<ChefTabKey>(initialTab && !hiddenTab(initialTab) ? initialTab : "shifts")
   const [d, setD] = useState<ChefDetail | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -67,7 +70,7 @@ export function ChefDialog({
   const [skills, setSkills] = useState<string[]>([])
   const [areas, setAreas] = useState<string[]>([])
   const [perfForm, setPerfForm] = useState<{ open: boolean; date: string; customer: string; review: "good" | "bad" | ""; late: string; comment: string; orderId: string }>({ open: false, date: today, customer: "", review: "", late: "0", comment: "", orderId: "" })
-  const [uploadKind, setUploadKind] = useState<ChefFile["kind"]>("receipt")
+  const [uploadKind, setUploadKind] = useState<ChefFile["kind"]>(sensitive ? "receipt" : "photo")
   const [uploadAmount, setUploadAmount] = useState("")
   const [uploadTitle, setUploadTitle] = useState("")
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -77,7 +80,7 @@ export function ChefDialog({
       const r = await adminJson<ChefDetail & { ok: boolean }>(adminKey, `/api/admin/chefs?id=${encodeURIComponent(chefId)}`)
       setD(r)
       const c = r.chef
-      setProfile({ display_name: c.display_name ?? c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String(c.base_pay_cents / 100), head_from: String(c.head_from), per_head: String(c.per_head_cents / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status })
+      setProfile({ display_name: c.display_name ?? c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String((c.base_pay_cents ?? 0) / 100), head_from: String(c.head_from ?? 0), per_head: String((c.per_head_cents ?? 0) / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status })
       setSkills(c.skills ?? [])
       setAreas(c.areas ?? [])
       setDocs({ food_handler_no: c.food_handler_no ?? "", food_handler_exp: c.food_handler_exp ?? "", id_type: c.id_type ?? "", id_last4: c.id_last4 ?? "", id_exp: c.id_exp ?? "", tax_form: c.tax_form ?? "W-9", tax_legal_name: c.tax_legal_name ?? "", tax_id_last4: c.tax_id_last4 ?? "", tax_address: c.tax_address ?? "" })
@@ -244,9 +247,9 @@ export function ChefDialog({
         onClose={onClose}
       />
       <div style={{ display: "flex", padding: "0 20px", borderBottom: "2px solid var(--color-divider)", overflowX: "auto" }}>
-        {TABS.map(([k, label]) => (
+        {TABS.filter(([k]) => !hiddenTab(k)).map(([k, label]) => (
           <button key={k} type="button" className="wb-tab" aria-current={tab === k ? "page" : undefined} onClick={() => setTab(k)} style={{ marginRight: 20 }}>
-            {label}
+            {k === "profile" && !sensitive ? "资料" : label}
             {k === "files" && pendingReceipts.length ? <span className="wb-badge">{pendingReceipts.length}</span> : null}
             {k === "docs" && dstate && dstate.level !== "ok" ? <span className="wb-badge">!</span> : null}
           </button>
@@ -324,6 +327,7 @@ export function ChefDialog({
                 </Field>
               </div>
             </div>
+{sensitive ? (
             <div>
               <Kicker>工价配置</Kicker>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
@@ -341,7 +345,9 @@ export function ChefDialog({
                 现在：{rateLabel({ base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0 })} · 20 人一场 = {money(chefPayCents({ base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0 }, 20))}
               </div>
             </div>
+) : null}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+{sensitive ? (
               <Field label="结算周期">
                 <select className="input" value={profile.billing_cycle ?? "weekly"} disabled={!owner} onChange={(e) => setProfile({ ...profile, billing_cycle: e.target.value })}>
                   {Object.entries(BILLING_LABELS).map(([k, l]) => (
@@ -351,6 +357,7 @@ export function ChefDialog({
                   ))}
                 </select>
               </Field>
+) : null}
               <Field label="状态">
                 <select className="input" value={profile.status ?? "active"} disabled={!owner} onChange={(e) => setProfile({ ...profile, status: e.target.value })}>
                   <option value="active">在职</option>
@@ -702,7 +709,7 @@ export function ChefDialog({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <Kicker style={{ margin: 0 }}>上传的文件</Kicker>
               <div style={{ display: "flex" }}>
-                {(["all", "receipt", "photo", "video", "food_card", "id_doc", "w9"] as const).map((k) => (
+                {(["all", "receipt", "photo", "video", "food_card", "id_doc", "w9"] as const).filter((k) => sensitive || k === "all" || k === "photo" || k === "video").map((k) => (
                   <Chip key={k} small active={fileFilter === k} onClick={() => setFileFilter(k)} style={{ marginLeft: -1 }}>
                     {k === "all" ? "全部" : FILE_KIND_LABELS[k]}
                   </Chip>
@@ -744,14 +751,16 @@ export function ChefDialog({
                 </div>
               ))}
             </div>
+{sensitive ? (
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
               待报销合计 <strong style={{ color: "var(--color-accent-700)" }}>{money(pendingReceipts.reduce((a, f) => a + (f.amount_cents ?? 0), 0))}</strong>（{pendingReceipts.length} 张）· 已批未结 {money(reimbTotal)}
             </div>
+) : null}
             <div className="notice" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="kicker">代传一个文件（8 MB 以内）</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                 <select className="input" value={uploadKind} onChange={(e) => setUploadKind(e.target.value as ChefFile["kind"])}>
-                  {(Object.keys(FILE_KIND_LABELS) as ChefFile["kind"][]).map((k) => (
+                  {(Object.keys(FILE_KIND_LABELS) as ChefFile["kind"][]).filter((k) => sensitive || k === "photo" || k === "video" || k === "other").map((k) => (
                     <option key={k} value={k}>
                       {FILE_KIND_LABELS[k]}
                     </option>

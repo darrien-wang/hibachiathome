@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 
 export const dynamic = "force-dynamic"
 
@@ -12,20 +13,12 @@ const PLANNER_HOST = "https://party.realhibachi.com"
 // future visits will converge on. `booked:true` (won leads) additionally tells
 // the planner the deposit is confirmed - regardless of channel (Stripe, Venmo,
 // Zelle) - so the customer never sees an "unpaid deposit" warning.
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   let body: { email?: string; phone?: string; booked?: boolean; leadId?: string }

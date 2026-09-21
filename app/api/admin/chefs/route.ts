@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
+import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, docState, taxMissing, type ChefRate } from "@/lib/chef-pay"
 
 export const dynamic = "force-dynamic"
@@ -15,6 +15,16 @@ export const runtime = "nodejs"
 // share = the chef's head count when several chefs work one party.
 
 const BUCKET = "party-photos"
+// What a viewer without the chef_sensitive perm (坐席) never receives: pay,
+// settlement, cash, documents, tax. Media files and reviews stay visible.
+const MEDIA_KINDS = new Set(["photo", "video", "other"])
+const SENSITIVE_STAFF_FIELDS = ["base_pay_cents", "head_from", "per_head_cents", "billing_cycle", "last_settled_at", "food_handler_no", "food_handler_exp", "id_type", "id_last4", "id_exp", "tax_form", "tax_legal_name", "tax_id_last4", "tax_address"]
+function publicStaff(s: Staff): Staff {
+  const out: Staff = { ...s }
+  for (const k of SENSITIVE_STAFF_FIELDS) delete out[k]
+  return out
+}
+const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, payCents: 0, cashCents: 0, cashSource: "none", settledAt: null })
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
 const STAFF_COLUMNS =
   "id, full_name, display_name, staff_type, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
@@ -106,15 +116,16 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
 }
 
 export async function GET(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
 
   const fileId = request.nextUrl.searchParams.get("file")
   if (fileId) {
-    const { data: f } = await supabase.from("chef_files").select("storage_path").eq("id", fileId).maybeSingle()
+    const { data: f } = await supabase.from("chef_files").select("storage_path, kind").eq("id", fileId).maybeSingle()
     if (!f?.storage_path) return NextResponse.json({ error: "not found" }, { status: 404 })
+    if (!can(actor, "chef_sensitive") && !MEDIA_KINDS.has(String(f.kind))) return NextResponse.json({ error: "没有权限看这个文件" }, { status: 403 })
     const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(f.storage_path, 3600)
     if (!signed?.signedUrl) return NextResponse.json({ error: "sign failed" }, { status: 500 })
     // JSON, not a redirect: the browser fetches with the key header and opens the URL itself.
@@ -140,7 +151,10 @@ export async function GET(request: NextRequest) {
       supabase.from("chef_files").select("id, order_id, kind, title, content_type, bytes, amount_cents, status, approved_at, settled_at, note, uploaded_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(300),
       supabase.from("chef_settlements").select("*").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(60),
     ])
-    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], today })
+    if (!can(actor, "chef_sensitive")) {
+      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], today, sensitive: false })
+    }
+    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], today, sensitive: true })
   }
 
   // List: everything the 名单 table and the nav badge need.
@@ -186,6 +200,10 @@ export async function GET(request: NextRequest) {
   for (const [orderId, list] of byOrder) {
     assignments[orderId] = list.map((a) => ({ assignmentId: a.id, staffId: a.staff_member_id, name: staffById.get(a.staff_member_id) ? nameOf(staffById.get(a.staff_member_id)!) : "?", share: a.guest_share }))
   }
+  if (!can(actor, "chef_sensitive")) {
+    const safe = chefs.map((c) => ({ ...c, rate: null, billing_cycle: "", last_settled_at: null, shifts: c.shifts.map(hideShiftMoney), openPayCents: 0, openCashCents: 0, approvedReimbCents: 0, pendingReceipts: 0, pendingReceiptCents: 0, doc: { ...c.doc, level: "ok" as const, label: "" }, taxMissing: false }))
+    return NextResponse.json({ ok: true, chefs: safe, assignments, alertsCount: 0, today, sensitive: false })
+  }
   const alertsCount = chefs.reduce((n, c) => n + c.pendingReceipts + (c.status === "active" && c.doc.level === "bad" ? 1 : 0) + (c.status === "active" && c.taxMissing ? 1 : 0), 0)
   return NextResponse.json({ ok: true, chefs, assignments, alertsCount, today })
 }
@@ -200,7 +218,7 @@ const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}
 const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive"])
 
 export async function POST(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })

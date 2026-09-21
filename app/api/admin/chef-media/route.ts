@@ -31,7 +31,7 @@ export type MediaItem = {
 const ptDate = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
 
 export async function GET(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })

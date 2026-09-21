@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { resolveAdminActor } from "@/lib/admin-auth"
+import { resolveAdminActor, publicActor } from "@/lib/admin-auth"
 import { invalidateWorkbenchSettings, loadWorkbenchSettings } from "@/lib/workbench-settings"
 import { DEFAULT_SETTINGS, isSettingsSection, sanitizeSection } from "@/lib/workbench-settings-shared"
 import {
@@ -56,14 +56,14 @@ function codeConfig() {
 }
 
 export async function GET(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const { settings, meta } = await loadWorkbenchSettings()
-  return NextResponse.json({ ok: true, settings, defaults: DEFAULT_SETTINGS, meta, code: codeConfig(), viewer: actor })
+  return NextResponse.json({ ok: true, settings, defaults: DEFAULT_SETTINGS, meta, code: codeConfig(), viewer: publicActor(actor) })
 }
 
 export async function PUT(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (actor.role !== "owner") return NextResponse.json({ error: "只有老板能改设置" }, { status: 403 })
 

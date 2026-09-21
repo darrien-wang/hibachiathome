@@ -227,11 +227,6 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
 
   const goOnline = useCallback(async () => {
     if (deviceRef.current) return
-    if (!adminKey) {
-      setMessage("需要先登录：在网址后面加 ?key=你的管理密钥")
-      setStatus("error")
-      return
-    }
     setStatus("connecting")
     setMessage("")
     try {
@@ -318,7 +313,9 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   // reject the request anyway when it comes out of nowhere. An explicit
   // "下线" is remembered and always wins.
   useEffect(() => {
-    if (!adminKey || deviceRef.current || status !== "idle") return
+    if (deviceRef.current || status !== "idle") return
+    // Session logins (SMS / passkey) have no key; only the login page itself is skipped.
+    if (!adminKey && window.location.pathname.startsWith("/admin/login")) return
 
     let cancelled = false
     void (async () => {

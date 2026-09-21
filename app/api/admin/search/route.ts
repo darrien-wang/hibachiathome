@@ -72,7 +72,7 @@ function sanitize(q: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  if (!resolveAdminActor(request)) {
+  if (!(await resolveAdminActor(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   const raw = (request.nextUrl.searchParams.get("q") ?? "").trim()

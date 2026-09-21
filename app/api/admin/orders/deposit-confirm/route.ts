@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { sendCrmEventEnvelope, type CrmEventEnvelope } from "@/lib/crm-integration"
@@ -13,16 +14,8 @@ export const dynamic = "force-dynamic"
 // webhook emits — same ingest, same RH- number minting, same audit trail.
 // Policy per design review: record operator + proof link now (audit-first),
 // approval flow only if misuse ever shows up.
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 const CHANNELS = ["venmo", "zelle", "cash", "other"] as const
@@ -42,7 +35,7 @@ function phoneDigits(value: string | undefined): string | undefined {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 

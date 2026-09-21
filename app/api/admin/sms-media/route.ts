@@ -24,7 +24,7 @@ const ALLOWED_TYPES = /^(image|video|audio)\//i
 type MediaItem = { sid: string; uri: string; content_type: string }
 
 export async function GET(request: NextRequest) {
-  if (!resolveAdminActor(request)) {
+  if (!(await resolveAdminActor(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   const messageSid = (request.nextUrl.searchParams.get("sid") ?? "").trim()

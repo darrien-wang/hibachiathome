@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 const MODEL = process.env.OPENAI_TRANSLATE_MODEL ?? "gpt-5.6-luna"
 
 export async function POST(request: NextRequest) {
-  const actor = resolveAdminActor(request)
+  const actor = await resolveAdminActor(request)
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }

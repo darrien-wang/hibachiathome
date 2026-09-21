@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 
 import { calcSimpleEstimate } from "@/config/pricing-rules"
 import { escapeHtml } from "@/lib/escape-html"
@@ -31,16 +32,8 @@ export const maxDuration = 60
 const MAX_LEAD_AGE_HOURS = 24
 const SMS_LOOKBACK_HOURS = 24
 
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 // The 555 exchange is never assigned to real subscribers; our own tests use it.
@@ -117,7 +110,7 @@ async function listTwilio(query: string): Promise<TwilioMessage[]> {
 const when = (m: TwilioMessage) => new Date(m.date_sent ?? m.date_created).getTime()
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!(await isAuthorized(request))) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = getSupabaseAdmin()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const dryRun = request.nextUrl.searchParams.get("dry") === "1"

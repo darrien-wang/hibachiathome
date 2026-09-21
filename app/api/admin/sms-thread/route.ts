@@ -1,4 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
@@ -12,15 +13,8 @@ export const dynamic = "force-dynamic"
 
 // Staff-only. Same key scheme as the rest of /api/admin:
 // owner ADMIN_DASH_KEY, agents AGENT_DASH_KEYS="anna:key1,bob:key2".
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  if (process.env.ADMIN_DASH_KEY && provided === process.env.ADMIN_DASH_KEY) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 /**
@@ -30,7 +24,7 @@ function isAuthorized(request: NextRequest): boolean {
  * still shows up as one conversation.
  */
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!(await isAuthorized(request))) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const phones: string[] = []
   const phoneParam = toE164(request.nextUrl.searchParams.get("phone"))
   if (phoneParam) phones.push(phoneParam)
@@ -72,7 +66,9 @@ function isAutomatedText(body: string): boolean {
 // part of the reply, both for this send and when counting history.
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const actor = await resolveAdminActor(request)
+  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!can(actor, "sms")) return NextResponse.json({ error: "你的账号没有发短信权限，找管理员开" }, { status: 403 })
   let payload: { phone?: string; body?: string; leadId?: string; force?: boolean }
   try {
     payload = await request.json()

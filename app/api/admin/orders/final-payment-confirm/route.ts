@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { buildBalancePaidEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-integration"
@@ -18,16 +19,8 @@ export const dynamic = "force-dynamic"
 // under this channel the row carries provider "stripe" and the real pi_ as
 // both its identity and its transaction ref, so it lines up with the Stripe
 // dashboard and with anything the webhook books for the same payment.
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 const CHANNELS = ["cash", "venmo", "zelle", "stripe", "other"] as const
@@ -42,7 +35,7 @@ function asTrimmed(value: unknown): string | undefined {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 

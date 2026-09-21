@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor, publicActor, type AdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
@@ -14,21 +15,10 @@ const ALLOWED_STATUSES = ["new", "qualified", "disqualified", "won", "lost"] as 
 const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "wechat", "walk_in", "referral", "other"] as const
 const EDITABLE_FIELDS = ["full_name", "phone", "email", "city_or_zip", "guest_count"] as const
 
-type Actor = { role: "owner" | "agent"; alias: string }
+type Actor = AdminActor
 
-// Owner: ADMIN_DASH_KEY. Agents: AGENT_DASH_KEYS="anna:key1,bob:key2".
-function resolveActor(request: NextRequest): Actor | null {
-  const provided =
-    request.headers.get("x-admin-key") ?? request.nextUrl.searchParams.get("key") ?? ""
-  if (!provided) return null
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return { role: "owner", alias: "owner" }
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return { role: "agent", alias }
-  }
-  return null
-}
+// Owner key, agent keys and SMS-login sessions all resolve through lib/admin-auth.
+const resolveActor = (request: NextRequest) => resolveAdminActor(request)
 
 async function logEvent(
   supabase: ReturnType<typeof createServerSupabaseClient>,
@@ -46,7 +36,7 @@ async function logEvent(
 }
 
 export async function GET(request: NextRequest) {
-  const actor = resolveActor(request)
+  const actor = await resolveActor(request)
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
@@ -263,11 +253,11 @@ export async function GET(request: NextRequest) {
     leads_7d: last7d.length,
   }
 
-  return NextResponse.json({ leads: rows, stats, viewer: actor })
+  return NextResponse.json({ leads: rows, stats, viewer: publicActor(actor) })
 }
 
 export async function POST(request: NextRequest) {
-  const actor = resolveActor(request)
+  const actor = await resolveActor(request)
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
@@ -315,7 +305,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const actor = resolveActor(request)
+  const actor = await resolveActor(request)
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }

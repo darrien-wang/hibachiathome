@@ -58,7 +58,17 @@ export class AdminApiError extends Error {
   }
 }
 
-/** JSON call against /api/admin/* with the key header; throws AdminApiError on !ok. */
+/** Where an unauthenticated browser goes; keeps the page it wanted. */
+export function loginUrl(): string {
+  return `/admin/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`
+}
+
+/**
+ * JSON call against /api/admin/*. The key header is sent when this browser
+ * has one; otherwise the login-session cookie (SMS / passkey login) carries
+ * the identity. Throws AdminApiError on !ok; a 401 with no key means the
+ * session is gone, so the browser is sent to the login page.
+ */
 export async function adminJson<T = Record<string, unknown>>(
   key: string,
   path: string,
@@ -66,12 +76,16 @@ export async function adminJson<T = Record<string, unknown>>(
 ): Promise<T> {
   const res = await fetch(path, {
     method: init?.method ?? (init?.body !== undefined ? "POST" : "GET"),
-    headers: { "x-admin-key": key, ...(init?.body !== undefined ? { "content-type": "application/json" } : {}) },
+    headers: { ...(key ? { "x-admin-key": key } : {}), ...(init?.body !== undefined ? { "content-type": "application/json" } : {}) },
     body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
     cache: "no-store",
+    credentials: "same-origin",
     signal: init?.signal,
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  if (res.status === 401 && !key && typeof window !== "undefined" && !window.location.pathname.startsWith("/admin/login")) {
+    window.location.replace(loginUrl())
+  }
   if (!res.ok) throw new AdminApiError(res.status, data)
   return data as T
 }

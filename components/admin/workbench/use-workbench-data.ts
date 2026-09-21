@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import type { PublicActor } from "@/lib/workbench-perms"
 import { adminJson, AdminApiError } from "./api"
 import type { LeadRow, LeadStats, OrderRow, UpdateRequest } from "./helpers"
 import type { AssignmentMap, ChefSummary } from "./chef-types"
@@ -12,7 +13,7 @@ import { DEFAULT_SETTINGS, type WorkbenchSettings } from "@/lib/workbench-settin
 // settings once. Dialogs call refresh* after they write.
 
 export type CodeConfig = Record<string, unknown>
-export type Viewer = { role: "owner" | "agent"; alias: string }
+export type Viewer = PublicActor
 
 export type WorkbenchData = {
   leads: LeadRow[]
@@ -78,7 +79,6 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   const titleRef = useRef<string>("")
 
   const refreshLeads = useCallback(async () => {
-    if (!key) return
     try {
       const d = await adminJson<{ leads: LeadRow[]; stats: LeadStats; viewer: Viewer }>(key, "/api/admin/leads?limit=300")
       const rows = Array.isArray(d.leads) ? d.leads : []
@@ -111,7 +111,6 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   }, [key])
 
   const refreshOrders = useCallback(async () => {
-    if (!key) return
     try {
       const d = await adminJson<{ orders: OrderRow[]; pendingUpdateRequests: UpdateRequest[]; assignments?: AssignmentMap }>(key, "/api/admin/orders")
       setOrders(Array.isArray(d.orders) ? d.orders : [])
@@ -124,7 +123,6 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   }, [key])
 
   const refreshPlanner = useCallback(async () => {
-    if (!key) return
     try {
       const d = await adminJson<Omit<PlannerLive, "fetchedAt">>(key, "/api/admin/planner-live?hours=24")
       setPlanner({ ...d, fetchedAt: Date.now() })
@@ -137,7 +135,6 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   }, [key])
 
   const refreshChefs = useCallback(async () => {
-    if (!key) return
     try {
       const d = await adminJson<{ chefs: ChefSummary[]; alertsCount: number }>(key, "/api/admin/chefs")
       setChefs(Array.isArray(d.chefs) ? d.chefs : [])
@@ -148,7 +145,6 @@ export function useWorkbenchData(key: string, enabled: boolean): WorkbenchData {
   }, [key])
 
   const refreshSettings = useCallback(async () => {
-    if (!key) return
     try {
       const d = await adminJson<{ settings: WorkbenchSettings; meta: Record<string, { updated_at: string; updated_by: string | null }>; code: CodeConfig }>(key, "/api/admin/settings")
       if (d.settings) setSettings(d.settings)

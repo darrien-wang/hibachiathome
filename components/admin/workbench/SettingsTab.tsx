@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import { adminJson } from "./api"
 import { Field, Kicker } from "./ui"
 import { stamp } from "./helpers"
+import { MembersSection } from "./MembersSection"
+import { PasskeySection } from "./PasskeySection"
+import type { PublicActor } from "@/lib/workbench-perms"
 import { DEFAULT_SETTINGS, QUICK_REPLY_PLACEHOLDERS, type QuickReply, type SettingsSection, type WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // 基础设置. Each section is its own little form with its own 保存; the API
@@ -75,6 +78,7 @@ export function SettingsTab({
   meta,
   code,
   viewerRole,
+  viewer,
   onSaved,
   onLogout,
 }: {
@@ -83,6 +87,7 @@ export function SettingsTab({
   meta: Meta
   code: Record<string, unknown> | null
   viewerRole: "owner" | "agent" | null
+  viewer: PublicActor | null
   onSaved: (s: WorkbenchSettings, meta: Meta) => void
   onLogout: () => void
 }) {
@@ -321,17 +326,19 @@ export function SettingsTab({
           <div>
             <Kicker>登录</Kicker>
             <div style={{ fontSize: 13 }}>
-              当前身份：{viewerRole === "owner" ? "老板" : viewerRole === "agent" ? "坐席" : "—"}{" "}
+              {viewer ? `${viewer.name} · ${viewer.role === "owner" ? "管理员" : "坐席"} · ${viewer.via === "session" ? "手机号登录" : "密钥登录"}` : "—"}{" "}
               <button type="button" className="btn btn-ghost btn-sm" onClick={onLogout}>
-                退出（清掉这台电脑上的密钥）
+                退出登录
               </button>
             </div>
           </div>
         </div>
         <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-          数据同步在看板右下角：同步 Google 花费（OAuth 令牌 7 天一吊销，失败就重新授权）、归因扫描（把没渠道的押金单按线索/表单证据补上）。
+          数据同步在看板右下角：同步 Google 花费（日报任务每天用服务账号同步；按钮是手动补）、归因扫描（把没渠道的押金单按线索/表单证据补上）。
         </div>
       </section>
+      <PasskeySection adminKey={adminKey} viewer={viewer} />
+      {canEdit ? <MembersSection adminKey={adminKey} selfId={viewer?.memberId ?? null} /> : null}
       <div style={{ fontSize: 11, color: "var(--color-neutral-500)" }}>默认值来自 lib/workbench-settings-shared.ts · 快捷回复默认 {DEFAULT_SETTINGS.quick_replies.length} 条</div>
     </div>
   )

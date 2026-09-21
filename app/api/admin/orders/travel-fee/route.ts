@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getDrivingMiles, TravelDistanceError } from "@/lib/travel-distance"
 import { calcTravelFee, TRAVEL_FREE_RADIUS_MILES, TRAVEL_RATE_PER_MILE } from "@/config/pricing-rules"
@@ -16,20 +17,12 @@ const BASE_ORIGIN_ZIP = homeBaseOrigin()
 // comes from the shared travel policy, the chef's reimbursement rides the
 // same driving miles. Results are appended to order_events so the same order
 // never needs the same call twice and the drawer shows who calculated what.
-function isAuthorized(request: NextRequest): boolean {
-  const provided = request.headers.get("x-admin-key") ?? ""
-  if (!provided) return false
-  const owner = process.env.ADMIN_DASH_KEY
-  if (owner && provided === owner) return true
-  for (const entry of (process.env.AGENT_DASH_KEYS ?? "").split(",")) {
-    const [alias, key] = entry.split(":").map((s) => s?.trim())
-    if (alias && key && provided === key) return true
-  }
-  return false
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  return (await resolveAdminActor(request)) !== null
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
