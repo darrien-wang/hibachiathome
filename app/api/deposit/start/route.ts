@@ -1,4 +1,5 @@
 import { verifyAgreedTotal } from "@/lib/agreed-total"
+import { encodeDeal, verifyDeal, type CustomDeal } from "@/lib/custom-deal"
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { getDepositAmount } from "@/config/deposit"
@@ -24,6 +25,8 @@ type DepositStartPayload = {
   leadId?: string
   agreedTotal?: number | string
   agreedSig?: string
+  deal?: string
+  dealSig?: string
   source?: string
   customerName?: string
   customerEmail?: string
@@ -56,6 +59,8 @@ type NormalizedDepositStartPayload = {
   leadId?: string
   /** Negotiated party total - present only when its signature checked out. */
   agreedTotal?: number
+  /** The owner's per-party rules - present only when its signature checked out. */
+  deal?: CustomDeal
   source?: string
   customerName?: string
   customerEmail?: string
@@ -271,8 +276,14 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
       ? Math.round(agreedRaw * 100) / 100
       : undefined
 
+  // Same rule as the agreed total: the deal counts only when staff signed
+  // it for this exact lead, so nobody can hand themselves free tables by
+  // editing the link.
+  const deal = verifyDeal(leadIdForSig, normalizeString(payload.deal), normalizeString(payload.dealSig)) ?? undefined
+
   return {
     agreedTotal,
+    deal,
     bookingId: resolveBookingId({
       bookingId: normalizeString(payload.bookingId),
       source,
@@ -353,6 +364,8 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
     another: params.get("another") ?? undefined,
     agreedTotal: params.get("agreed_total") ?? undefined,
     agreedSig: params.get("agreed_sig") ?? undefined,
+    deal: params.get("deal") ?? undefined,
+    dealSig: params.get("deal_sig") ?? undefined,
     source: params.get("source") ?? undefined,
     customerName: params.get("customer_name") ?? undefined,
     customerEmail: params.get("customer_email") ?? params.get("prefilled_email") ?? undefined,
@@ -437,6 +450,8 @@ function buildMetadata(
     booking_id: metadataField(payload.bookingId),
     lead_id: metadataField(payload.leadId),
     agreed_total: metadataField(payload.agreedTotal?.toFixed(2)),
+    // Rules, not a number: the order system re-prices them per change.
+    custom_deal: metadataField(payload.deal ? encodeDeal(payload.deal) : undefined),
     deposit_source: metadataField(payload.source),
     customer_name: metadataField(payload.customerName),
     customer_email: metadataField(payload.customerEmail),

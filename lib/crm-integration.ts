@@ -1,4 +1,5 @@
 import { createHmac, randomUUID } from "node:crypto"
+import { decodeDeal, type CustomDeal } from "@/lib/custom-deal"
 import type Stripe from "stripe"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { getRuntimeEnvironmentTag } from "@/lib/runtime-env"
@@ -39,6 +40,8 @@ export type CrmDepositPaidEventEnvelope = {
       total_cost?: number
       travel_fee?: number
       agreed_total?: number
+      /** Per-party deal rules; the order system re-prices them on every change. */
+      custom_deal?: CustomDeal
     }
     notes?: string
   }
@@ -467,6 +470,9 @@ export function buildDepositPaidEventEnvelope(params: {
   const source = resolveSource(params.source)
   const deploymentEnvironment = getRuntimeEnvironmentTag()
   // Set server-side at checkout creation, only after its signature verified.
+  // Rules the owner signed into the deposit link (free rentals, a per-head
+  // rate). Verified when the checkout was created, so it is trusted here.
+  const customDeal = decodeDeal(params.session.metadata?.custom_deal) ?? undefined
   const agreedRaw = Number(params.session.metadata?.agreed_total)
   const agreedTotal = Number.isFinite(agreedRaw) && agreedRaw > 0 ? Math.round(agreedRaw * 100) / 100 : undefined
   const stripeMode = params.session.livemode ? "live" : "test"
@@ -536,13 +542,15 @@ export function buildDepositPaidEventEnvelope(params: {
         invoice_details:
           typeof params.booking?.total_cost === "number" ||
           typeof params.booking?.travel_fee === "number" ||
-          agreedTotal !== undefined
+          agreedTotal !== undefined ||
+          customDeal !== undefined
             ? {
                 total_cost: params.booking?.total_cost ?? undefined,
                 travel_fee: params.booking?.travel_fee ?? undefined,
                 // Negotiated price, verified when the checkout was created. The
                 // order system turns it into a "Special rate" line on the invoice.
                 agreed_total: agreedTotal,
+                custom_deal: customDeal,
               }
             : undefined,
         notes:
