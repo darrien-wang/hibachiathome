@@ -199,6 +199,32 @@ export async function POST(request: NextRequest) {
         .from("leads")
         .update({ latest_message: `我方 ${now.slice(0, 10)} 短信已回（213 线）：${summary}`, last_seen_at: now, updated_at: now })
         .eq("id", leadId)
+      // A text from here is a real response, same as an email from
+      // send-followup: record the first response once and move 待联系 to
+      // 跟进中. Until 2026-09-21 only the email path did this, so a lead we
+      // had already texted (Zayda, 11:07) still showed 待联系 / 首响未响应 and
+      // every SMS first response was missing from the 7-day response average.
+      try {
+        const { data: existing } = await supabase
+          .from("lead_touchpoints")
+          .select("id")
+          .eq("lead_id", leadId)
+          .eq("touchpoint_type", "agent_first_response")
+          .limit(1)
+        if (!existing || existing.length === 0) {
+          await supabase.from("lead_touchpoints").insert({
+            lead_id: leadId,
+            touchpoint_type: "agent_first_response",
+            touchpoint_source: "admin_dashboard",
+            external_touchpoint_id: sent.sid,
+            raw_payload_json: { via: "sms", to: phone, sid: sent.sid },
+            occurred_at: now,
+          })
+        }
+        await supabase.from("leads").update({ status: "qualified", updated_at: now }).eq("id", leadId).eq("status", "new")
+      } catch (error) {
+        console.error("[sms-thread] first-response logging failed", { leadId, error })
+      }
     }
   }
 
