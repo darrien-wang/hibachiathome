@@ -92,6 +92,8 @@ export function SettingsTab({
   onLogout: () => void
 }) {
   const canEdit = viewerRole === "owner"
+  // Inside the Android shell the notification settings are native; the shell intercepts rhapp:// links.
+  const inApp = typeof navigator !== "undefined" && /RealHibachiWorkbenchAndroid/.test(navigator.userAgent)
   const [draft, setDraft] = useState<WorkbenchSettings>(settings)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -330,6 +332,11 @@ export function SettingsTab({
               <button type="button" className="btn btn-ghost btn-sm" onClick={onLogout}>
                 退出登录
               </button>
+              {inApp ? (
+                <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 6 }} onClick={() => window.location.assign("rhapp://settings")}>
+                  App 通知设置
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
