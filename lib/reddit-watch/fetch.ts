@@ -1,9 +1,11 @@
 // 从 Reddit 取新帖。两条路，自动选：
 //
-//   oauth  设了 REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET 时走官方 API
-//          （client_credentials 应用令牌，每分钟 100 次配额，Vercel 上也能跑）
-//   rss    没凭据时退回公开的 .rss 流（未登录会被 Reddit 按突发限流，
-//          偶发 429 就等下一轮）
+//   rss    现在实际在用：公开的 .rss 流，和 Feedly 之类的订阅器一样。未登录会被
+//          Reddit 按突发限流，偶发 429 就等下一轮（run.ts 错开两组、路由记健康度）。
+//   oauth  设了 REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET 才走官方 API。**暂时用不上**：
+//          Reddit 从 2025-11（Responsible Builder Policy）起所有 API 应用都要先
+//          人工审批、商用要书面批准，2026-09-22 用户在 prefs/apps 点 create app
+//          直接被挡。代码留着，哪天拿到批准只需加两个 env。
 //
 // 两条路都只读，不登录任何账号，不发任何东西。
 

@@ -4,12 +4,13 @@
 // 版块按组合并成一次请求（Reddit 支持 r/a+b+c 多版块流），每组一次请求拿最新
 // 100 帖。组别别拆太细：请求越少越不容易被 Reddit 限流。
 
-export type RedditWatchGroup = { name: string; subs: string[] }
+export type RedditWatchGroup = { name: string; label: string; subs: string[] }
 
 export const REDDIT_WATCH_GROUPS: RedditWatchGroup[] = [
   {
-    // 投放城市：LA 县 + 橙县
+    // 投放城市：LA 县 + 橙县。合并流最新 100 帖约覆盖 12 小时（2026-09-22 实测）。
     name: "la-oc",
+    label: "洛杉矶+橙县",
     subs: [
       "LosAngeles",
       "AskLosAngeles",
@@ -29,8 +30,9 @@ export const REDDIT_WATCH_GROUPS: RedditWatchGroup[] = [
     ],
   },
   {
-    // 内陆帝国 + Ventura + 度假目的地 + 场合类版块
+    // 内陆帝国 + Ventura + 度假目的地 + 场合类版块。最新 100 帖约覆盖 25 小时。
     name: "ie-destinations-occasions",
+    label: "内陆帝国+度假地+婚礼派对",
     subs: [
       "InlandEmpire",
       "Riverside",
@@ -49,6 +51,24 @@ export const REDDIT_WATCH_GROUPS: RedditWatchGroup[] = [
     ],
   },
 ]
+
+/**
+ * 全国性的版块：帖子得提到南加地名才算数（"Birthday in Boston" 这种不要）。
+ * 其余版块本身就是南加本地版，不用再看地名。
+ */
+export const REDDIT_NATIONAL_SUBS = ["Weddingsunder10k", "partyplanning", "EventPlanners", "catering"]
+
+/**
+ * 公开 RSS 模式下，线上每轮只抓"最久没抓的那一组"（一次请求）：未登录时同一 IP
+ * 连发第二个请求，间隔 8 秒也会被限流（2026-09-22 实测），45–70 秒才稳。两组轮流，
+ * 每组每 40 分钟抓一次，远小于它们 12/25 小时的覆盖窗口。
+ * 某组连续失败这么多次（约 4 小时活跃时段）就提醒一次；夜里不跑，不算失败。
+ */
+export const REDDIT_FAIL_ALERT_STREAK = 6
+/** 提醒之后，每再连续失败这么多次（约 12 小时）再提醒一次。 */
+export const REDDIT_FAIL_REALERT_EVERY = 18
+/** 本机干跑一次抓全部组时，组与组之间歇多久。 */
+export const REDDIT_RSS_GAP_MS = 45_000
 
 /** 全站搜索（只在有 Reddit API 凭据时跑）：抓不在名单里的版块，再用南加地名过滤。 */
 export const REDDIT_GLOBAL_SEARCH = { query: "hibachi", limit: 50 }
