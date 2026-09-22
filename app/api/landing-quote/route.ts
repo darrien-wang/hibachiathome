@@ -2,6 +2,7 @@ import { createShortLink } from "@/lib/short-link"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName, readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
+import { findDepositOffer } from "@/config/deposit-offers"
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
@@ -207,6 +208,10 @@ export async function POST(request: NextRequest) {
   // into the Stripe metadata, the placeholder booking and the success page.
   if (name && !isPlaceholderName(name)) dp.set("customer_name", name)
   if (leadId) dp.set("lead_id", leadId)
+  // Channel deposit offer (config/deposit-offers): the code lets the pay page
+  // print the offer before the server confirms it from this lead's utm set.
+  const depositOffer = findDepositOffer(attribution)
+  if (depositOffer) dp.set("offer", depositOffer.code)
   // Click ids ride along so a deposit paid from the text still attributes;
   // the utm_* set already lives on the lead.
   for (const k of ["gclid", "wbraid", "gbraid", "oppref"] as const) if (attribution[k]) dp.set(k, attribution[k] as string)
@@ -214,6 +219,9 @@ export async function POST(request: NextRequest) {
   // Text a short link: the prefilled URL alone is ~300 characters. Falls back
   // to the long one if the shortener is unavailable - the quote must still go.
   const depositUrl = (await createShortLink(longDepositUrl, { leadId, createdBy: "landing-quote" }))?.shortUrl ?? longDepositUrl
+  const depositLine = depositOffer
+    ? `Lock your date for ${money(depositOffer.amount)} - ${depositOffer.sourceLabel} special, normally ${money(DEPOSIT_AMOUNT)}, refundable: ${depositUrl}`
+    : `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`
 
   const smsBody = [
     `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
@@ -223,7 +231,7 @@ export async function POST(request: NextRequest) {
       : body.travelPending
         ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
         : "No travel fee for your area.",
-    `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
+    depositLine,
     "Reply here with questions - a real person answers. Reply STOP to opt out.",
   ]
     .filter((line): line is string => Boolean(line))
@@ -242,7 +250,7 @@ export async function POST(request: NextRequest) {
           ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
           : "No travel fee for your area.",
       "",
-      `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
+      depositLine,
       "",
       "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup and cleanup.",
       "Questions? Reply to this email or text (213) 770-7788.",

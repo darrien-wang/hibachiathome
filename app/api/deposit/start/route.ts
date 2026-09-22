@@ -2,6 +2,8 @@ import { verifyAgreedTotal } from "@/lib/agreed-total"
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { getDepositAmount } from "@/config/deposit"
+import type { DepositOffer } from "@/config/deposit-offers"
+import { resolveDepositOffer } from "@/lib/deposit-offer"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
 import { getStripeServerClient } from "@/lib/stripe-server"
@@ -403,15 +405,13 @@ function resolveOrigin(request: NextRequest): string {
   return request.nextUrl.origin
 }
 
-function resolveDepositAmount(payload: NormalizedDepositStartPayload): number {
-  const ruleBasedAmount = getDepositAmount(payload.estimateHigh ?? payload.totalAmount)
-
-  if (payload.depositAmount === undefined || payload.depositAmount <= 0) {
-    return ruleBasedAmount
-  }
-
-  // Trust the rule-based amount first; this also protects against client-side tampering.
-  return ruleBasedAmount
+function resolveDepositAmount(payload: NormalizedDepositStartPayload, offer?: DepositOffer): number {
+  // A channel offer (config/deposit-offers, e.g. the $1 date lock for Meta
+  // traffic) is decided server-side from attribution and the lead. Otherwise
+  // the rule-based amount. The client's depositAmount is display only -
+  // trusting it would invite tampering.
+  if (offer) return Number(offer.amount.toFixed(2))
+  return getDepositAmount(payload.estimateHigh ?? payload.totalAmount)
 }
 
 function metadataField(value: unknown): string | undefined {
@@ -432,6 +432,7 @@ function buildMetadata(
   depositAmount: number,
   currency: string,
   attribution: AttributionFields,
+  offer?: DepositOffer,
 ): Record<string, string> {
   const metadata: Record<string, string | undefined> = {
     booking_id: metadataField(payload.bookingId),
@@ -451,6 +452,7 @@ function buildMetadata(
     total_amount: metadataField(payload.totalAmount),
     deposit_amount: metadataField(depositAmount.toFixed(2)),
     deposit_currency: metadataField(currency.toUpperCase()),
+    deposit_offer: metadataField(offer?.code),
     utm_source: metadataField(attribution.utm_source),
     utm_medium: metadataField(attribution.utm_medium),
     utm_campaign: metadataField(attribution.utm_campaign),
@@ -745,6 +747,7 @@ async function createCheckoutSession(
   request: NextRequest,
   payload: NormalizedDepositStartPayload,
   attribution: AttributionFields,
+  offer?: DepositOffer,
 ): Promise<{
   session: Stripe.Checkout.Session
   checkoutUrl: string
@@ -754,14 +757,14 @@ async function createCheckoutSession(
   const stripe = getStripeServerClient()
   const origin = resolveOrigin(request)
   const currency = payload.currency
-  const depositAmount = resolveDepositAmount(payload)
+  const depositAmount = resolveDepositAmount(payload, offer)
   const unitAmount = Math.round(depositAmount * 100)
 
   if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
     throw new Error("Invalid deposit amount.")
   }
 
-  const metadata = buildMetadata(payload, depositAmount, currency, attribution)
+  const metadata = buildMetadata(payload, depositAmount, currency, attribution, offer)
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -826,9 +829,10 @@ export async function POST(request: NextRequest) {
     )
   }
   const attribution = buildResolvedAttribution(request, payload)
+  const offer = await resolveDepositOffer({ attribution, leadId: payload.leadId })
 
   try {
-    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload, attribution)
+    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload, attribution, offer)
     await persistPendingDepositState({
       payload,
       attribution,
@@ -872,9 +876,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${resolveOrigin(request)}/deposit/pay?${q.toString()}`, 302)
   }
   const attribution = buildResolvedAttribution(request, payload)
+  const offer = await resolveDepositOffer({ attribution, leadId: payload.leadId })
 
   try {
-    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload, attribution)
+    const { session, checkoutUrl, depositAmount, paymentIntentId } = await createCheckoutSession(request, payload, attribution, offer)
     await persistPendingDepositState({
       payload,
       attribution,

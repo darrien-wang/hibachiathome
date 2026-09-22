@@ -23,7 +23,6 @@ import {
 } from "@/config/regional-policies"
 import {
   GUEST_TIERS,
-  DEPOSIT_AMOUNT,
   displayRange,
   formatDisplayRange,
   MINIMUM_SPEND,
@@ -33,6 +32,7 @@ import {
 } from "@/config/pricing-rules"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { getAdRefCode, getStoredGclid, trackEvent } from "@/lib/tracking"
+import { useDepositOffer } from "@/lib/use-deposit-offer"
 import { contactDeviceLabel, copyText, deviceCanOpenSms } from "@/lib/device-contact"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import {
@@ -269,6 +269,8 @@ export default function QuoteBuilderClient() {
   // shown only after the visitor leaves a mobile number and an email. The
   // unlock is remembered on this device so a returning visitor is not asked twice.
   const [unlocked, setUnlocked] = useState(false)
+  // Channel deposit offer ($1 date lock for Meta traffic) - what the pay page will charge.
+  const { amount: depositAmount } = useDepositOffer()
   const [unlockBusy, setUnlockBusy] = useState(false)
   const [unlockErr, setUnlockErr] = useState<string | null>(null)
   // Runs once per page view, and only ever moves the visitor forward from
@@ -1664,7 +1666,7 @@ export default function QuoteBuilderClient() {
                 onClick={() => trackEvent("deposit_start_click", { contact_surface: "quote_confirmation", quote_surface: quoteSurface, value: bookingConfirmation.estimateLow, currency: "USD" })}
                 className="mt-3 flex h-12 w-full items-center justify-center rounded-full border-2 border-flame text-base font-semibold text-flame-700 transition hover:bg-flame/5"
               >
-                Ready now? Pay the ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit
+                Ready now? Pay the ${depositAmount.toFixed(2)} refundable deposit
               </Link>
               <p className="mt-3 text-sm text-clay-700">
                 Free to cancel or reschedule up to 72h before.
@@ -2292,7 +2294,7 @@ export default function QuoteBuilderClient() {
                     onClick={() => trackEvent("deposit_start_click", { contact_surface: "quote_step3", quote_surface: quoteSurface, value: result.totalRange.low, currency: "USD" })}
                     className="font-semibold text-flame-700 underline underline-offset-[3px]"
                   >
-                    Pay the ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit
+                    Pay the ${depositAmount.toFixed(2)} refundable deposit
                   </Link>{" "}
                   and your date is held today. Otherwise book below and we confirm with you first.
                 </p>

@@ -148,6 +148,12 @@ function readStoredAttribution(): AttributionFields {
   }
 }
 
+// What this device attributes itself to (cookie, then localStorage) - the
+// same set the server reads for channel deposit offers.
+export function getStoredAttribution(): AttributionFields {
+  return readStoredAttribution()
+}
+
 function normalizePagePath(pathname: string | undefined): string {
   if (!pathname) return "/"
   return pathname.startsWith("/") ? pathname : `/${pathname}`
