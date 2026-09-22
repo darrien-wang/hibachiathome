@@ -4,8 +4,14 @@
 export const MOBILE_APP = {
   /** Phones below this versionCode are told to update before continuing. */
   minVersionCode: 2,
-  latestVersionCode: 2,
-  latestVersionName: "2.0.0",
+  latestVersionCode: 3,
+  latestVersionName: "2.1.0",
   apkUrl: "https://www.realhibachi.com/app/realhibachi-workbench.apk",
-  notes: "新工作台：手机号登录，新询盘和客户回复响铃提醒。",
+  notes: "新工作台：手机号登录，新询盘和客户回复响铃提醒，213 号码在 App 里接打电话。",
+  /**
+   * Twilio push credential (CR…) that rings the Android app through Firebase.
+   * Empty until Firebase is set up for the project; then the credential is
+   * created from the Firebase service-account JSON and its SID goes here.
+   */
+  twilioPushCredentialSid: "",
 } as const

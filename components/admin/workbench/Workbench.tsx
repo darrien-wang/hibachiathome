@@ -165,6 +165,12 @@ export default function Workbench() {
   const lead = leadId ? data.leads.find((l) => l.id === leadId) ?? null : null
   const onCall = useCallback(
     (num: string) => {
+      // Inside the Android shell the call goes through the native Twilio
+      // client (rhapp:// is intercepted by the app); browsers use the softphone.
+      if (typeof navigator !== "undefined" && /RealHibachiWorkbenchAndroid/.test(navigator.userAgent)) {
+        window.location.assign(`rhapp://call?to=${encodeURIComponent(num)}`)
+        return
+      }
       phone.setDrawerOpen(true)
       if (phone.status !== "ready") phone.goOnline()
       phone.dial(num)

@@ -1,7 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import twilio from "twilio"
 import { identityForActor } from "@/lib/twilio-identity"
+import { MOBILE_APP } from "@/config/mobile-app"
 
 export const dynamic = "force-dynamic"
 
@@ -27,6 +28,10 @@ export async function GET(request: NextRequest) {
   }
 
   const identity = identityForActor(actor)
+  // The Android app registers for incoming calls through Firebase; the grant
+  // has to name the push credential Twilio uses to ring it. Browsers do not.
+  const platform = request.nextUrl.searchParams.get("platform")
+  const pushCredentialSid = platform === "android" && MOBILE_APP.twilioPushCredentialSid ? MOBILE_APP.twilioPushCredentialSid : undefined
   const AccessToken = twilio.jwt.AccessToken
   const token = new AccessToken(accountSid, apiKeySid, apiKeySecret, { identity, ttl: 3600 })
   token.addGrant(
@@ -35,11 +40,12 @@ export async function GET(request: NextRequest) {
       // Without it the softphone can still receive calls, just not place them.
       outgoingApplicationSid: twimlAppSid,
       incomingAllow: true,
+      ...(pushCredentialSid ? { pushCredentialSid } : {}),
     })
   )
 
   return NextResponse.json(
-    { token: token.toJwt(), identity, canDialOut: Boolean(twimlAppSid) },
+    { token: token.toJwt(), identity, canDialOut: Boolean(twimlAppSid), canReceivePush: Boolean(pushCredentialSid) },
     { headers: { "cache-control": "no-store" } }
   )
 }
