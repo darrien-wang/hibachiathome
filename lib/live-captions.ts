@@ -11,6 +11,10 @@
 // a model that carries the earlier turns as context can infer the word that was
 // probably meant, which is the whole reason these captions exist.
 
+/** Same hint the Android app sends; keep the two in step. */
+export const CAPTION_PROMPT =
+  "Phone call to Real Hibachi, a hibachi-at-home catering company in Southern California. Vocabulary: Real Hibachi, hibachi chef, teppanyaki, deposit, Weekday Special, La Puente, Irvine."
+
 export type CaptionLine = {
   id: string
   /** "them" is the customer; "you" is the agent. */
@@ -95,8 +99,9 @@ export async function startLiveCaptions({
           audio: {
             input: {
               // gpt-live-transcribe segments speech itself and rejects a
-              // turn_detection block outright.
-              transcription: { model },
+              // turn_detection block outright. The prompt biases it toward
+              // our own vocabulary ("Real Hibachi" kept coming out as "Ryo").
+              transcription: { model, prompt: CAPTION_PROMPT },
             },
           },
         },
