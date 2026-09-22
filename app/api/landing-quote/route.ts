@@ -33,6 +33,9 @@ type Body = {
   eventDate?: string
   plan?: "weekday" | "standard"
   travelFee?: number
+  /** Sent by estimators on pages that cover many distances: the fee is not
+   * known yet, so the text must not promise "no travel fee". */
+  travelPending?: boolean
   phone?: string
   email?: string
   name?: string
@@ -215,7 +218,11 @@ export async function POST(request: NextRequest) {
   const smsBody = [
     `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
     discountLine,
-    travelFee ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).` : "No travel fee for your area.",
+    travelFee
+      ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).`
+      : body.travelPending
+        ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
+        : "No travel fee for your area.",
     `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
     "Reply here with questions - a real person answers. Reply STOP to opt out.",
   ]
@@ -229,7 +236,11 @@ export async function POST(request: NextRequest) {
       `Your ${cityName} hibachi price: ${money(total)}`,
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
       ...(discountLine ? [discountLine] : []),
-      travelFee ? `Includes about $${travelFee} travel.` : "No travel fee for your area.",
+      travelFee
+        ? `Includes about $${travelFee} travel.`
+        : body.travelPending
+          ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
+          : "No travel fee for your area.",
       "",
       `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
       "",

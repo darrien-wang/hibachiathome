@@ -6,6 +6,8 @@ import Link from "next/link"
 import { AnimateOnScroll } from "@/components/animate-on-scroll"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone, smsHref } from "@/config/site"
+import LandingEstimator from "@/components/city/landing-estimator"
+import LandingCtaButton from "@/components/city/landing-cta-button"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Los Angeles & Orange County | Private Chef Catering",
@@ -130,7 +132,8 @@ const laOcServiceJsonLd = {
 
 export default function LAOrangeCountyPage() {
   return (
-    <div className="min-h-screen bg-white">
+    // pb-28: room for the estimator's phone bar, same as the city pages.
+    <div className="min-h-screen bg-white pb-28 lg:pb-0">
       <JsonLd data={laOcServiceJsonLd} />
       {/* Hero Section */}
       <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
@@ -147,7 +150,7 @@ export default function LAOrangeCountyPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
-                  <Link href="/quote?source=seo_location_la_oc">Get Instant Quote</Link>
+                  <LandingCtaButton surface="seo_la_oc_hero">Get Instant Quote</LandingCtaButton>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
                   <Link href="/menu">View Menu & Pricing</Link>
@@ -169,6 +172,18 @@ export default function LAOrangeCountyPage() {
               </div>
             </div>
           </AnimateOnScroll>
+        </div>
+      </section>
+
+      {/* Exact price on the page (2026-09-21). ChatGPT recommends this page, and
+          its visitors used to have to click through to /quote before they
+          could leave a number; the one who did booked 30 guests within
+          minutes. Same card as the city pages: phone + email, then the exact
+          price by text with the deposit link. Travel is not known here (LA to
+          south OC), so the card says "first 50 mi free" instead of "included". */}
+      <section className="bg-gradient-to-b from-orange-50 to-white pb-12">
+        <div className="mx-auto -mt-6 max-w-[440px] px-4">
+          <LandingEstimator citySlug="la-orange-county" cityName="LA & Orange County" lockCity source="seo_location_la_oc" travelNote="First 50 mi free" />
         </div>
       </section>
 
@@ -308,7 +323,7 @@ export default function LAOrangeCountyPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-4">
-                  <Link href="/quote?source=seo_location_la_oc">Get Instant Quote</Link>
+                  <LandingCtaButton surface="seo_la_oc_final">Get Instant Quote</LandingCtaButton>
                 </Button>
                 <Button
                   asChild

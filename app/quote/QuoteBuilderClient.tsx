@@ -1462,7 +1462,9 @@ export default function QuoteBuilderClient() {
         phone: customerPhone.trim(),
         email: customerEmail.trim(),
         name: customerName.trim(),
-        pagePath: window.location.pathname,
+        // With the query: "?source=seo_location_la_oc" names the button that
+        // sent the visitor here. The route caps it at 200 characters.
+        pagePath: `${window.location.pathname}${window.location.search}`.slice(0, 200),
       }),
     })
     const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null

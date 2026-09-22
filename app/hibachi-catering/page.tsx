@@ -9,10 +9,11 @@ import { pickReviews, reviewSourceLabel } from "@/config/reviews"
 import AppreciationBanner from "@/components/appreciation-banner"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
+import LandingEstimator from "@/components/city/landing-estimator"
+import LandingCtaButton from "@/components/city/landing-cta-button"
 
 const BASE_URL = "https://www.realhibachi.com"
 const URL = `${BASE_URL}/hibachi-catering`
-const QUOTE_HREF = "/quote?source=seo_hibachi_catering_hub"
 
 export const metadata: Metadata = {
   title: "Hibachi Catering Los Angeles, OC & San Diego | From $59.90/Person",
@@ -137,7 +138,8 @@ export default function HibachiCateringHubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    // pb-28: room for the estimator's phone bar, same as the city pages.
+    <div className="min-h-screen bg-white pb-28 lg:pb-0">
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd]} />
 
       {/* Hero */}
@@ -164,7 +166,7 @@ export default function HibachiCateringHubPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 mb-8">
               <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
-                <Link href={QUOTE_HREF}>Get Instant Quote</Link>
+                <LandingCtaButton surface="seo_catering_hub_hero">Get Instant Quote</LandingCtaButton>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
                 <Link href={phone.voice.tel}>
@@ -192,6 +194,17 @@ export default function HibachiCateringHubPage() {
               </span>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Exact price on the page (2026-09-21), same card as the city pages.
+          ChatGPT recommends this hub; its visitors used to click through to
+          /quote before they could leave a number. The hub covers LA to San
+          Diego, so travel is shown as "first 50 mi free" and the text says it
+          is confirmed from the address - never "no travel fee". */}
+      <section className="bg-gradient-to-b from-orange-50 to-white pb-12">
+        <div className="mx-auto -mt-6 max-w-[440px] px-4">
+          <LandingEstimator citySlug="socal" cityName="Southern California" lockCity source="seo_hibachi_catering_hub" travelNote="First 50 mi free" />
         </div>
       </section>
 
@@ -335,7 +348,7 @@ export default function HibachiCateringHubPage() {
             See your hibachi catering price range in 30 seconds — any party size. Exact quote and party discount by text.
           </p>
           <Button asChild size="lg" className="bg-white text-amber-600 hover:bg-amber-50 text-lg px-8 py-4">
-            <Link href={QUOTE_HREF}>Get Instant Quote</Link>
+            <LandingCtaButton surface="seo_catering_hub_final">Get Instant Quote</LandingCtaButton>
           </Button>
         </div>
       </section>

@@ -12,6 +12,8 @@ type AttributionFields = {
   wbraid?: string
   gbraid?: string
   oppref?: string
+  /** Page the capturing visit started on (rh_landing cookie). */
+  landing_page?: string
 }
 
 export type ContactLeadUpsertInput = {
@@ -205,7 +207,15 @@ function normalizeAttribution(value: AttributionFields | undefined): Attribution
     wbraid: asNonEmptyString(value.wbraid),
     gbraid: asNonEmptyString(value.gbraid),
     oppref: asNonEmptyString(value.oppref),
+    landing_page: normalizeLandingPage(value.landing_page),
   }
+}
+
+/** A site path only: "/locations/la-orange-county", never a query or a host. */
+function normalizeLandingPage(value: unknown): string | undefined {
+  const path = asNonEmptyString(value)
+  if (!path || !path.startsWith("/") || path.startsWith("//")) return undefined
+  return path.split("?")[0].split("#")[0].slice(0, 200)
 }
 
 function normalizeInput(input: ContactLeadUpsertInput): NormalizedLeadInput {
@@ -373,6 +383,7 @@ export async function upsertLeadFromContact(
       wbraid: withFallback(current.wbraid, input.attribution.wbraid),
       gbraid: withFallback(current.gbraid, input.attribution.gbraid),
       oppref: withFallback(current.oppref, input.attribution.oppref),
+      landing_page: withFallback(current.landing_page, input.attribution.landing_page),
       external_call_id: withFallback(current.external_call_id, input.externalCallId),
       manual_entry_id: withFallback(current.manual_entry_id, input.manualEntryId),
       // First touch wins: a code already on the lead is the original referrer
@@ -426,6 +437,7 @@ export async function upsertLeadFromContact(
     wbraid: input.attribution.wbraid,
     gbraid: input.attribution.gbraid,
     oppref: input.attribution.oppref,
+    landing_page: input.attribution.landing_page,
     external_call_id: input.externalCallId,
     manual_entry_id: input.manualEntryId,
     referral_code: input.referralCode,
@@ -450,20 +462,36 @@ export async function upsertLeadFromContact(
   }
 }
 
+/** The visit's first page from the rh_landing cookie (lib/tracking.ts). */
+function readLandingPageFromCookieEntries(cookieEntries: string[]): string | undefined {
+  const raw = cookieEntries.find((entry) => entry.startsWith("rh_landing="))?.slice("rh_landing=".length)
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw)) as { p?: unknown }
+    return normalizeLandingPage(parsed.p)
+  } catch {
+    return undefined
+  }
+}
+
 export function readAttributionFromCookieHeader(cookieHeader: string | null): AttributionFields {
   if (!cookieHeader) return {}
 
   const cookieEntries = cookieHeader.split(";").map((part) => part.trim())
+  // The landing page stands on its own: an organic or direct visit carries no
+  // utm cookie but still started on some page.
+  const landingPage = readLandingPageFromCookieEntries(cookieEntries)
   const rawEntry = cookieEntries.find((entry) => entry.startsWith("realhibachi_attribution="))
-  if (!rawEntry) return {}
+  if (!rawEntry) return landingPage ? { landing_page: landingPage } : {}
 
   const rawValue = rawEntry.slice("realhibachi_attribution=".length)
-  if (!rawValue) return {}
+  if (!rawValue) return landingPage ? { landing_page: landingPage } : {}
 
   try {
     const decoded = decodeURIComponent(rawValue)
     const parsed = JSON.parse(decoded) as Record<string, unknown>
     return normalizeAttribution({
+      landing_page: landingPage,
       utm_source: asNonEmptyString(parsed.utm_source),
       utm_medium: asNonEmptyString(parsed.utm_medium),
       utm_campaign: asNonEmptyString(parsed.utm_campaign),
@@ -475,6 +503,6 @@ export function readAttributionFromCookieHeader(cookieHeader: string | null): At
       oppref: asNonEmptyString(parsed.oppref),
     })
   } catch {
-    return {}
+    return landingPage ? { landing_page: landingPage } : {}
   }
 }

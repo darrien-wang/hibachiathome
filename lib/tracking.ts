@@ -241,6 +241,32 @@ export function getStoredGclid(): string | undefined {
   return safeParseAttribution(parseCookie(COOKIE_NAME)).gclid
 }
 
+// The page this visit started on, GA4-style: a new visit begins after 30
+// minutes idle. Leads captured on /quote used to record only "/quote", so the
+// page that sent them there was invisible - on 2026-09-21 a 30-guest deposit
+// (ChatGPT -> /locations/la-orange-county -> /quote) could only be traced by
+// matching GA4 timestamps. The server reads this cookie into leads.landing_page
+// (lib/leads.ts). Path only, never the query string, so no names or contact
+// details ride along.
+const LANDING_COOKIE = "rh_landing"
+const LANDING_IDLE_SECONDS = 30 * 60
+
+export function recordLandingPage(pathname: string): void {
+  if (typeof document === "undefined" || !pathname) return
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api")) return
+  const now = Math.floor(Date.now() / 1000)
+  let current: { p?: unknown; t?: unknown } = {}
+  try {
+    current = JSON.parse(parseCookie(LANDING_COOKIE) ?? "{}")
+  } catch {
+    current = {}
+  }
+  const last = typeof current.t === "number" ? current.t : 0
+  const fresh = typeof current.p !== "string" || !current.p || now - last > LANDING_IDLE_SECONDS
+  const landing = fresh ? pathname.slice(0, 200) : (current.p as string)
+  writeCookie(LANDING_COOKIE, JSON.stringify({ p: landing, t: now }), 1)
+}
+
 export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 

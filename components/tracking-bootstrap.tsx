@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { captureAttributionOnLanding, trackEvent } from "@/lib/tracking"
+import { captureAttributionOnLanding, recordLandingPage, trackEvent } from "@/lib/tracking"
 import { installGlobalErrorReporting } from "@/lib/report-client-error"
 
 declare global {
@@ -20,6 +20,10 @@ export function TrackingBootstrap() {
   useEffect(() => {
     captureAttributionOnLanding(search ? `?${search}` : "")
   }, [search])
+
+  useEffect(() => {
+    recordLandingPage(pathname ?? "")
+  }, [pathname])
 
   // Error boundaries only see render-time throws. Rejected promises, throwing
   // listeners and third-party scripts need these listeners, and this component

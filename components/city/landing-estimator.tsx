@@ -97,6 +97,7 @@ export default function LandingEstimator({
   travelFee,
   proofImage = "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
   proofQuote = { text: "Chef John was sooooo much fun. 5 stars!", name: "Beatrix B.", source: "Google review" },
+  travelNote,
 }: {
   citySlug: string
   cityName: string
@@ -108,6 +109,10 @@ export default function LandingEstimator({
   /** Real party photo shown inside the card (a different one from the hero). */
   proofImage?: string
   proofQuote?: { text: string; name: string; source: string }
+  /** For pages that cover many distances (the SoCal-wide hub): shown instead of
+   * "Travel included" when no fee is set, and the text message then says the
+   * travel fee is confirmed from the address instead of "no travel fee". */
+  travelNote?: string
 }) {
   const shownCity = useLocCity(cityName, !lockCity)
   const [step, setStep] = useState<1 | 2>(1)
@@ -223,6 +228,7 @@ export default function LandingEstimator({
     phone: phoneValue,
     email: email.trim(),
     pagePath: window.location.pathname,
+    ...(travelNote && fee === 0 ? { travelPending: true } : {}),
   })
 
   const validateContact = () => {
@@ -526,7 +532,7 @@ export default function LandingEstimator({
                 </p>
               </div>
               <p className="text-right text-xs font-semibold leading-snug text-gold-700">
-                {fee > 0 ? `~$${fee} travel added` : "Travel included"}
+                {fee > 0 ? `~$${fee} travel added` : travelNote ?? "Travel included"}
                 <br />
                 {weekday ? "free appetizer platter" : "No fees hidden"}
               </p>
