@@ -47,7 +47,7 @@ export function SoftphoneMobileDrawer() {
     drawerOpen, setDrawerOpen, stickyOffline,
     goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     dialDraft, setDialDraft, smsDraft, setSmsDraft,
-    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
+    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall, inApp,
   } = useSoftphone()
 
   const isMobile = useIsMobile()
@@ -73,9 +73,10 @@ export function SoftphoneMobileDrawer() {
     if (ringing) return "ringing" as const
     if (active) return "active" as const
     if (lastCall) return "wrapup" as const
-    if (status === "ready") return "standby" as const
+    // The Android shell is always "on": the native layer rings and answers.
+    if (status === "ready" || inApp) return "standby" as const
     return "offline" as const
-  }, [screen, ringing, active, lastCall, status])
+  }, [screen, ringing, active, lastCall, status, inApp])
 
   const patchLead = async (body: Record<string, unknown>) => {
     const res = await fetch("/api/admin/leads", {
@@ -155,7 +156,7 @@ export function SoftphoneMobileDrawer() {
       >
         <span style={{ width: 10, height: 10, background: GROUND, flex: "none" }} />
         <span style={{ flex: 1 }}>
-          {ringing ? "来电 · 点开接听" : active ? `通话中 · ${mmss}` : lastCall ? "通话已结束 · 待保存" : status === "ready" ? "客服电话 · 已上线" : "客服电话 · 未上线"}
+          {ringing ? "来电 · 点开接听" : active ? `通话中 · ${mmss}` : lastCall ? "通话已结束 · 待保存" : inApp ? "客服电话 · App 接听" : status === "ready" ? "客服电话 · 已上线" : "客服电话 · 未上线"}
         </span>
         <Chevron up color={GROUND} />
       </button>
@@ -210,7 +211,7 @@ export function SoftphoneMobileDrawer() {
                 <>
                   <span style={{ width: 10, height: 10, background: dotColor, flex: "none" }} />
                   <strong style={{ fontSize: 17, whiteSpace: "nowrap" }}>
-                    {phase === "wrapup" ? "通话已结束" : status === "ready" ? "已上线" : status === "connecting" ? "连接中…" : "未上线"}
+                    {phase === "wrapup" ? "通话已结束" : inApp ? "App 接听" : status === "ready" ? "已上线" : status === "connecting" ? "连接中…" : "未上线"}
                   </strong>
                   {phase === "wrapup" ? (
                     <span style={{ marginLeft: "auto", fontSize: 17, fontWeight: 800, color: MUTED, fontVariantNumeric: "tabular-nums" }}>
@@ -253,8 +254,13 @@ export function SoftphoneMobileDrawer() {
           {phase === "standby" ? (
             <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
               <div style={{ padding: "18px 16px 14px" }}>
-                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>等待来电</div>
-                {!canDialOut ? (
+                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>{inApp ? "来电在手机上响铃" : "等待来电"}</div>
+                {inApp ? (
+                  <div style={{ marginTop: 6, fontSize: 14, color: MUTED, lineHeight: 1.55 }}>
+                    这台手机已登记接听 213 号码，接通后自动出字幕；拨号用线索里的电话按钮。
+                  </div>
+                ) : null}
+                {!canDialOut && !inApp ? (
                   <div style={{ marginTop: 6, fontSize: 14, color: RED_DEEP, lineHeight: 1.55 }}>
                     还没配置 TWILIO_TWIML_APP_SID，目前只能接听、不能外拨。
                   </div>
@@ -282,7 +288,7 @@ export function SoftphoneMobileDrawer() {
                   </button>
                 ) : null}
               </div>
-              <div style={{ marginTop: "auto" }}><MicRow {...{ inputDevices, selectedInputId, setInputDevice, inputLevel }} /></div>
+              {inApp ? null : <div style={{ marginTop: "auto" }}><MicRow {...{ inputDevices, selectedInputId, setInputDevice, inputLevel }} /></div>}
             </div>
           ) : null}
 
@@ -334,7 +340,7 @@ export function SoftphoneMobileDrawer() {
                 <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 0", padding: "12px 16px", borderTop: `1px solid ${LINE}` }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 700 }}>实时字幕</div>
-                    <div style={{ fontSize: 12, color: FAINT }}>按分钟计费，听不清再开</div>
+                    <div style={{ fontSize: 12, color: FAINT }}>接通后自动开启，按分钟计费</div>
                   </div>
                   <button
                     onClick={() => void toggleCaptions()}

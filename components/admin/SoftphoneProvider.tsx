@@ -35,6 +35,8 @@ type SoftphoneContextValue = {
   drawerOpen: boolean
   setDrawerOpen: (open: boolean) => void
   stickyOffline: boolean
+  /** Running inside the Android workbench app, which handles calls natively. */
+  inApp: boolean
   dialDraft: string
   setDialDraft: (value: string) => void
   smsDraft: { to: string; body: string }
@@ -47,7 +49,7 @@ type SoftphoneContextValue = {
   lastCall: { peer: string; direction: "in" | "out"; seconds: number } | null
   dismissLastCall: () => void
   setInputDevice: (deviceId: string) => Promise<void>
-  goOnline: () => Promise<void>
+  goOnline: (opts?: { probeMic?: boolean }) => Promise<void>
   goOffline: () => void
   dial: (rawNumber: string) => Promise<void>
   toggleMute: () => void
@@ -67,6 +69,13 @@ export function useSoftphone(): SoftphoneContextValue {
 // Remembers a deliberate "go offline", so auto-online never overrides someone
 // who switched the phone off on purpose.
 const OFFLINE_KEY = "rh_phone_offline"
+
+// Inside the Android shell the native Twilio SDK owns the 213 line: it rings
+// over Firebase and answers in its own screen. The browser softphone must stay
+// off there, or both would ring and fight over the microphone.
+function inAndroidApp(): boolean {
+  return typeof navigator !== "undefined" && /RealHibachiWorkbenchAndroid/.test(navigator.userAgent)
+}
 
 export function prettyNumber(raw: string): string {
   const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(raw)
@@ -125,6 +134,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const [inputLevel, setInputLevel] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [stickyOffline, setStickyOffline] = useState(false)
+  const [inApp, setInApp] = useState(false)
   const [dialDraft, setDialDraft] = useState("")
   const [smsDraft, setSmsDraft] = useState({ to: "", body: "" })
   const [captions, setCaptions] = useState<CaptionLine[]>([])
@@ -163,6 +173,10 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     captionsRef.current = captions
   }, [captions])
+  // Read after mount so the server and first client render agree.
+  useEffect(() => {
+    setInApp(inAndroidApp())
+  }, [])
 
   const fetchToken = useCallback(async (key: string) => {
     const res = await fetch("/api/twilio/token", { headers: { "x-admin-key": key } })
@@ -225,8 +239,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     [clearCall]
   )
 
-  const goOnline = useCallback(async () => {
-    if (deviceRef.current) return
+  const goOnline = useCallback(async (opts?: { probeMic?: boolean }) => {
+    if (deviceRef.current || inAndroidApp()) return
     setStatus("connecting")
     setMessage("")
     try {
@@ -240,8 +254,10 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       // then release it immediately: leaving these tracks live keeps the device
       // open, and on drivers that capture exclusively the SDK's own stream then
       // comes up silent — you hear the caller, the caller does not hear you.
-      const probe = await navigator.mediaDevices.getUserMedia({ audio: true })
-      probe.getTracks().forEach((track) => track.stop())
+      if (opts?.probeMic !== false) {
+        const probe = await navigator.mediaDevices.getUserMedia({ audio: true })
+        probe.getTracks().forEach((track) => track.stop())
+      }
 
       const { token, identity: id, canDialOut: dialOutAllowed } = await fetchToken(adminKey)
       const { Device: TwilioDevice } = await import("@twilio/voice-sdk")
@@ -306,33 +322,34 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
   }, [adminKey, fetchToken, wireCall])
 
-  // The phone should be on by default: a customer service line that needs a
-  // click every morning is a line that is silently down whenever someone
-  // forgets. It only auto-connects when the mic was already granted — asking
-  // for it on page load would pop a prompt nobody asked for, and browsers
-  // reject the request anyway when it comes out of nowhere. An explicit
-  // "下线" is remembered and always wins.
+  // The phone is on by default: a customer service line that needs a click
+  // every morning is a line that is silently down whenever someone forgets.
+  // Registering does not touch the microphone, so it happens whatever the mic
+  // permission says (2026-09-21: it used to wait for "granted", which left the
+  // line offline on every fresh browser profile); the early mic probe is only
+  // added when permission is already there, otherwise the prompt shows up when
+  // a call is answered, where it makes sense. An explicit "下线" is remembered
+  // and always wins, and the Android shell never registers here at all.
   useEffect(() => {
-    if (deviceRef.current || status !== "idle") return
+    if (deviceRef.current || status !== "idle" || inAndroidApp()) return
     // Session logins (SMS / passkey) have no key; only the login page itself is skipped.
     if (!adminKey && window.location.pathname.startsWith("/admin/login")) return
 
     let cancelled = false
     void (async () => {
-      try {
-        if (window.localStorage.getItem(OFFLINE_KEY) === "1") {
-          setStickyOffline(true)
-          return
-        }
-        const permission = await navigator.permissions.query({
-          name: "microphone" as PermissionName,
-        })
-        if (permission.state !== "granted" || cancelled) return
-        await goOnline()
-      } catch {
-        // No Permissions API (Safari) — leave it to the button rather than
-        // gambling on a prompt the user did not ask for.
+      if (window.localStorage.getItem(OFFLINE_KEY) === "1") {
+        setStickyOffline(true)
+        return
       }
+      let granted = false
+      try {
+        const permission = await navigator.permissions.query({ name: "microphone" as PermissionName })
+        granted = permission.state === "granted"
+      } catch {
+        // No Permissions API (Safari): register anyway, prompt at answer time.
+      }
+      if (cancelled) return
+      await goOnline({ probeMic: granted })
     })()
 
     return () => {
@@ -377,6 +394,11 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       setDrawerOpen(true)
       if (!to) {
         setMessage(`号码格式无法识别：${rawNumber}`)
+        return
+      }
+      // Inside the Android shell the native dialer places the call on the 213 line.
+      if (inAndroidApp()) {
+        window.location.href = `rhapp://call?to=${encodeURIComponent(to)}`
         return
       }
       if (!deviceRef.current) {
@@ -460,6 +482,29 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
   }, [captionsOn, live, stopCaptions])
 
+  // Captions are on by default (2026-09-21): they start themselves once a call
+  // is connected, and the switch still turns them off for that call. The remote
+  // track is not always there the instant the call is accepted, so try a few
+  // times before giving up quietly.
+  const autoCaptionedRef = useRef<Call | null>(null)
+  useEffect(() => {
+    if (live.kind !== "active" || autoCaptionedRef.current === live.call) return
+    const call = live.call
+    autoCaptionedRef.current = call
+    let tries = 0
+    const attempt = () => {
+      const now = liveRef.current
+      if (now.kind !== "active" || now.call !== call) return
+      if (!call.getRemoteStream()?.getAudioTracks()[0] && tries++ < 8) {
+        setTimeout(attempt, 500)
+        return
+      }
+      void toggleCaptions()
+    }
+    const timer = setTimeout(attempt, 300)
+    return () => clearTimeout(timer)
+  }, [live, toggleCaptions])
+
   const toggleMute = useCallback(() => {
     if (live.kind !== "active") return
     const next = !muted
@@ -489,14 +534,14 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     () => ({
       status, identity, canDialOut, message, live, muted, seconds,
       inputDevices, selectedInputId, inputLevel, setInputDevice,
-      drawerOpen, setDrawerOpen, stickyOffline,
+      drawerOpen, setDrawerOpen, stickyOffline, inApp,
       dialDraft, setDialDraft, smsDraft, setSmsDraft, prefill,
       captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
       goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     }),
     [status, identity, canDialOut, message, live, muted, seconds,
      inputDevices, selectedInputId, inputLevel, setInputDevice,
-     drawerOpen, stickyOffline, dialDraft, smsDraft, prefill,
+     drawerOpen, stickyOffline, inApp, dialDraft, smsDraft, prefill,
      captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
      goOnline, goOffline, dial, toggleMute, hangUp, accept, reject]
   )
@@ -516,7 +561,7 @@ function SoftphoneDrawer() {
   const {
     status, identity, canDialOut, message, live, muted, seconds,
     inputDevices, selectedInputId, inputLevel, setInputDevice,
-    drawerOpen, setDrawerOpen, stickyOffline, goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
+    drawerOpen, setDrawerOpen, stickyOffline, inApp, goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     dialDraft, setDialDraft, smsDraft, setSmsDraft,
     captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
   } = useSoftphone()
@@ -588,7 +633,7 @@ function SoftphoneDrawer() {
       setNoteState("error")
     }
   }
-  const dotColor = status === "ready" ? "#16a34a" : status === "connecting" ? "#d97706" : "#9ca3af"
+  const dotColor = inApp || status === "ready" ? "#16a34a" : status === "connecting" ? "#d97706" : "#9ca3af"
 
   // Phones get SoftphoneMobileDrawer instead. This has to sit after every hook
   // above: an early return placed higher would change hook order between the
@@ -666,7 +711,7 @@ function SoftphoneDrawer() {
         >
           <span style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor }} />
           <strong style={{ fontSize: 14, flex: 1 }}>
-            {status === "ready" ? "客服电话 · 已上线" : status === "connecting" ? "连接中…" : "客服电话 · 未上线"}
+            {inApp ? "客服电话 · App 接听" : status === "ready" ? "客服电话 · 已上线" : status === "connecting" ? "连接中…" : "客服电话 · 未上线"}
           </strong>
           <button
             onClick={() => setDrawerOpen(false)}
@@ -678,7 +723,11 @@ function SoftphoneDrawer() {
         </div>
 
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-          {status === "ready" ? (
+          {inApp ? (
+            <p style={{ fontSize: 12.5, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>
+              来电在这台手机上响铃，接听和拨打都由 App 完成。
+            </p>
+          ) : status === "ready" ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12, color: "#6b7280", flex: 1 }}>{identity}</span>
               <button onClick={goOffline} style={btn("#6b7280", false, true)}>下线</button>
@@ -874,7 +923,7 @@ function SoftphoneDrawer() {
                 </div>
               ) : (
                 <p style={{ fontSize: 11.5, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>
-                  按分钟计费，只在听不清时开。开启后客户和你的话都会转写，蓝色是中文翻译。
+                  接通后自动开启，按分钟计费。客户和你的话都会转写，蓝色是中文翻译。
                 </p>
               )}
             </div>
