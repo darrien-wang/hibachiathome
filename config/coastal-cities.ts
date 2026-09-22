@@ -14,6 +14,7 @@ export const COASTAL_CITIES = [
   "malibu",
   "santa-monica",
   "long-beach",
+  "san-pedro",
   "huntington-beach",
   "newport-beach",
   "la-jolla",

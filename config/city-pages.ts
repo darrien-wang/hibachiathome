@@ -983,7 +983,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included, with no travel fee. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, any party size) applies here too.",
       },
     ],
-    nearby: ["west-covina", "long-beach", "downtown-los-angeles"],
+    nearby: ["cerritos", "west-covina", "long-beach"],
   },
   {
     slug: "arcadia",
@@ -1994,7 +1994,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, with a $599 event minimum — covering chef, grill, food, live show, setup, and cleanup.",
       },
     ],
-    nearby: ["torrance", "huntington-beach", "anaheim"],
+    nearby: ["san-pedro", "lakewood", "torrance"],
   },
   {
     slug: "pasadena",
@@ -2629,7 +2629,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup, and cleanup included.",
       },
     ],
-    nearby: ["long-beach", "santa-monica", "huntington-beach"],
+    nearby: ["san-pedro", "long-beach", "santa-monica"],
   },
   {
     slug: "newport-beach",
@@ -3662,6 +3662,276 @@ export const cityPages: CityPage[] = [
     ],
     nearby: ["palm-springs", "temecula", "riverside"],
     lastUpdated: "2026-09-18T00:00:00.000Z",
+  },
+  {
+    slug: "san-pedro",
+    city: "San Pedro",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home San Pedro CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in San Pedro and the Palos Verdes Peninsula — harbor-view decks, hillside yards, big family parties. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "San Pedro throws parties the old way: the whole family, the neighbors, and a yard that has seen forty years of them. From the hillside streets above the harbor to the flat blocks near Averill Park, the lots are small but the crowds are not, and a chef who sets up in one corner and feeds everyone from there fits the town better than a rented hall ever did.",
+      "We cook throughout San Pedro, Rancho Palos Verdes, Palos Verdes Estates, Rolling Hills, Lomita, and Harbor City. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Point Fermin",
+      "Vista del Oro",
+      "Averill Park",
+      "South Shores",
+      "Rancho Palos Verdes",
+      "Palos Verdes Estates",
+      "Rolling Hills",
+      "Harbor City",
+      "Lomita",
+      "Wilmington",
+    ],
+    occasions: [
+      {
+        title: "Quinceañeras & Big Birthdays",
+        description:
+          "San Pedro families host large. Thirty guests on a Saturday evening is a normal booking here, and the chef show gives the night a centerpiece without renting a venue.",
+      },
+      {
+        title: "Retirements & Harbor Milestones",
+        description:
+          "Longshore, port, and Navy retirements are a San Pedro tradition. A backyard dinner with everyone who worked the years beats a banquet room.",
+      },
+      {
+        title: "Peninsula Sunset Dinners",
+        description:
+          "Palos Verdes and South Shores decks face west. Start ninety minutes before sunset and the show runs into the best light on the coast.",
+      },
+      {
+        title: "Graduations & Homecomings",
+        description:
+          "San Pedro High, Mary Star, and PV families hosting relatives who drove in, usually in June, usually more people than the invitation said.",
+      },
+    ],
+    venues: [
+      {
+        title: "Hillside Yards With Harbor Views",
+        description:
+          "Vista del Oro and Point Fermin lots are stepped and small, but a flat patio the size of a king-size bed is all the grill needs. We set up on the level and guests sit where the view is.",
+      },
+      {
+        title: "Palos Verdes Estate Lots",
+        description:
+          "Sloped acreage, wide terraces, and room for thirty. Among the easiest setups on the peninsula once we know which terrace you want.",
+      },
+      {
+        title: "Classic Bungalow Backyards",
+        description:
+          "The flat streets near Averill Park have narrow side gates and deep yards. Our grill cart clears a 30-inch gate, so the chef rolls straight through.",
+      },
+    ],
+    logistics: [
+      "Two San Pedro-specific notes. The hill streets above Gaffey are steep and parking is tight near Point Fermin, so tell us where the chef can pull in for ten minutes to unload; after that the truck moves. And the harbor wind picks up most afternoons — we place the grill so the breeze carries away from the table, which usually means the chef stands on the ocean side.",
+      "Evenings run cool here even in August once the marine layer comes back, so guests bring a layer and the chef keeps cooking. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance, on hardscape or packed ground, not a wooden deck without a mat — we bring the mat.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to San Pedro or Palos Verdes?",
+        answer:
+          "No. San Pedro and the whole Palos Verdes Peninsula sit inside our free 50-mile radius, so your quote carries no travel fee at all.",
+      },
+      {
+        question: "Our yard is on a hill. Can you still set up?",
+        answer:
+          "Yes, as long as there is one level spot about the size of a king-size bed with 10 ft of clearance above it. Stepped yards are normal in San Pedro; the chef cooks on the flat and guests sit where they like.",
+      },
+      {
+        question: "Can you handle 30 or more guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; past that we send a second chef and grill so everyone eats together. Give us the count when you book and the quote reflects it.",
+      },
+      {
+        question: "What does hibachi at home cost in San Pedro?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["torrance", "long-beach", "lakewood"],
+  },
+  {
+    slug: "lakewood",
+    city: "Lakewood",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home Lakewood CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Lakewood, Bellflower, and Cerritos — deep suburban backyards, patio covers, family birthdays. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Lakewood was built for backyard parties. The postwar lots are flat, fenced, and deep, the patios are already poured, and the neighbors on both sides have hosted the same kind of night. A hibachi chef setting up past the patio cover and feeding twenty people is about as natural a use of a Lakewood yard as there is.",
+      "We cook throughout Lakewood, Bellflower, Paramount, Hawaiian Gardens, Signal Hill, and the Long Beach side of the 605. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Lakewood Village",
+      "Lakewood Park",
+      "Lakewood Mutuals",
+      "Carson Park",
+      "Mayfair",
+      "Cherry Cove",
+      "Bellflower",
+      "Paramount",
+      "Hawaiian Gardens",
+      "Signal Hill",
+    ],
+    occasions: [
+      {
+        title: "Kids' & Teen Birthdays",
+        description:
+          "The onion volcano and the egg toss are the party. Ten kids and their parents at one long table, and nobody has to book a restaurant room.",
+      },
+      {
+        title: "Graduations",
+        description:
+          "Lakewood High, Mayfair, and St. Joseph families in June, with grandparents in from out of town and a yard that finally gets used.",
+      },
+      {
+        title: "Family Reunions & Sunday Dinners",
+        description:
+          "Filipino, Mexican, and multi-generation families who would otherwise cook for two days. The chef does it in front of everyone in ninety minutes.",
+      },
+      {
+        title: "Retirement & Anniversary Parties",
+        description:
+          "Milestones for people who have lived on the same block for decades, celebrated at the house with the neighbors invited.",
+      },
+    ],
+    venues: [
+      {
+        title: "Classic Ranch Backyards",
+        description:
+          "Flat, fenced, and deep. A long table down the middle, the grill on the concrete at one end, and room for twenty-five without touching the lawn.",
+      },
+      {
+        title: "Under-the-Patio-Cover Homes",
+        description:
+          "Most Lakewood patios have an aluminum cover about 8 ft up. We set the grill just past its edge, where there is 10 ft of open air, and the table stays in the shade.",
+      },
+      {
+        title: "Country Club-Adjacent Lots",
+        description:
+          "The larger properties around Lakewood Country Club hold thirty comfortably, often with a pool deck that becomes the dining room.",
+      },
+    ],
+    logistics: [
+      "Lakewood is one of the easiest cities we serve: wide streets, driveways for the chef's truck, and side gates that clear our grill cart. The one thing to check is the patio cover. Most are lower than the 10 ft of clearance the grill needs, so the chef sets up just beyond the cover's edge and your guests sit under it.",
+      "Summer evenings here stay warm past sunset, which makes a 6 or 7 pm start ideal from June through September; in the cooler months a lunch or mid-afternoon party works well. We need a flat area about the size of a king-size bed on concrete or packed ground, and we bring a mat for anything else.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Lakewood?",
+        answer:
+          "No. Lakewood, Bellflower, and Paramount all sit inside our free 50-mile radius, so your quote carries no travel fee.",
+      },
+      {
+        question: "Our patio has a cover. Where does the chef cook?",
+        answer:
+          "Just past the edge of the cover, where there is open air above the grill. Your table stays under the cover in the shade, and the chef is a few feet away in full view.",
+      },
+      {
+        question: "Can you do a party of 20 to 30?",
+        answer:
+          "Yes. One chef serves up to 28 guests, and a second chef and grill come for larger groups so everyone eats at once. Lakewood yards hold that many easily.",
+      },
+      {
+        question: "What does hibachi at home cost in Lakewood?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["long-beach", "cerritos", "torrance"],
+  },
+  {
+    slug: "cerritos",
+    city: "Cerritos",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home Cerritos CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Cerritos, Artesia, Norwalk, and La Mirada — multi-generation family dinners, graduations, covered patios. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Cerritos hosts the kind of dinner where three generations sit at one table and the food has to impress the grandparents. A chef cooking at your patio, with steak, shrimp, and salmon going on the grill in front of everyone, does that in a way a catering tray never will, and it gives the kids something to watch.",
+      "We cook throughout Cerritos, Artesia, Norwalk, La Palma, La Mirada, Hawaiian Gardens, and the Buena Park side of the county line. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Artesia",
+      "Norwalk",
+      "La Palma",
+      "La Mirada",
+      "Hawaiian Gardens",
+      "Bellflower",
+      "Buena Park",
+      "Cerritos Towne Center",
+      "Los Cerritos Center",
+      "Santa Fe Springs",
+    ],
+    occasions: [
+      {
+        title: "Multi-Generation Family Dinners",
+        description:
+          "Grandparents, cousins, and kids in one yard. Everyone gets their own two proteins cooked to order, so the table with four diets still eats together.",
+      },
+      {
+        title: "Graduations",
+        description:
+          "Whitney, Cerritos High, and Gahr families in June, usually hosting more relatives than the house has chairs for. We bring tables and chairs if you need them.",
+      },
+      {
+        title: "Lunar New Year, Diwali & Fiestas",
+        description:
+          "Cerritos celebrates a full calendar. A chef at the house means the host is at the party instead of in the kitchen for two days.",
+      },
+      {
+        title: "Birthdays & Sweet Sixteens",
+        description:
+          "The fire show and the egg toss carry a teen party on their own; parents book it because nobody has to entertain anyone.",
+      },
+    ],
+    venues: [
+      {
+        title: "Covered-Patio Tract Homes",
+        description:
+          "The 1970s and 80s houses south of the 91 have solid patio covers and pools. The grill sits past the cover, the table under it, and the pool deck seats the overflow.",
+      },
+      {
+        title: "Cul-de-Sac Driveways",
+        description:
+          "Wide driveways on quiet cul-de-sacs work well for bigger parties: the chef sets up at the top, the tables run down, and nobody blocks a neighbor.",
+      },
+      {
+        title: "Two-Story Homes With Side Gates",
+        description:
+          "Our grill cart clears a 30-inch gate, so the chef rolls straight to the back without coming through the house.",
+      },
+    ],
+    logistics: [
+      "Two things to check in Cerritos. Some tracts have HOA quiet hours around 10 pm, and the neighbors are close, so an evening party that starts by 6 or 6:30 finishes the show with time to spare. And most patio covers sit below the 10 ft of clearance the grill needs, so the chef sets up just beyond the cover's edge.",
+      "Load-in is easy: driveways for the truck, side gates for the cart. We need a flat area about the size of a king-size bed on concrete or packed ground; we bring a mat for pavers and turf. If your party is on a cul-de-sac, tell us and the chef can set up on the driveway so the yard stays for the tables.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Cerritos, Artesia, or Norwalk?",
+        answer:
+          "No. All of them sit inside our free 50-mile radius, so your quote carries no travel fee at all.",
+      },
+      {
+        question: "We have vegetarians and a couple of guests who eat halal. Can you cook for them?",
+        answer:
+          "Yes. Tofu counts as a protein for anyone who wants it, and every guest picks their own two, so dietary needs are handled per plate rather than for the whole table. Tell us the counts when you book.",
+      },
+      {
+        question: "Can you handle 30 guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; larger parties get a second chef and grill so everyone eats together. Give us the count and the quote reflects it.",
+      },
+      {
+        question: "What does hibachi at home cost in Cerritos?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["lakewood", "whittier", "anaheim"],
   },
 ]
 
