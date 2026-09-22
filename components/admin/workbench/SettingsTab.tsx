@@ -294,7 +294,7 @@ export function SettingsTab({
               ["路费", `${code.travel_free_miles} 英里内免，之后 $${code.travel_rate_per_mile}/英里，从 ${code.home_base_zip} 算`],
               ["桌椅 / 餐具 / 全套", `$${code.tables_chairs_per_guest} / $${code.utensils_per_guest} / $${code.full_setup_per_guest} 每人`],
               ["每位师傅", `${code.guests_per_chef} 人`],
-              ["周中特价日", `周${(code.weekday_special_days as number[]).map((d) => "日一二三四五六"[d]).join("")} · 送 $${code.weekday_platter_value} 拼盘`],
+              ["周中特价日", `周${(code.weekday_special_days as number[]).map((d) => "日一二三四五六"[d]).join("")} · 送自选前菜 1 份（最高 $${code.weekday_platter_value}）`],
               ["人数折扣", (code.party_size_tiers as Array<{ minGuests: number; maxGuests: number; amount: number }>).map((x) => `${x.minGuests}–${x.maxGuests} 人 −$${x.amount}`).join(" · ")],
               ["特价黑名单日", (code.blackouts as Array<{ start: string; end: string; label: string }>).map((x) => `${x.start}${x.end !== x.start ? `~${x.end}` : ""} ${x.label}`).join(" · ")],
             ].map(([k, v]) => (

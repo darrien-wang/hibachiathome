@@ -95,7 +95,7 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
     city: "irvine",
     localIntro: [
       "Irvine's office parks host a thousand forgettable catered lunches a week. A hibachi chef on the patio is the one team event people don't invent meetings to skip — live fire, games, and dinner cooked in front of the whole floor.",
-      "Weekday events get our $54.90/person Weekday Special with a free appetizer platter — corporate budgets love that math.",
+      "Weekday events get our $54.90/person Weekday Special with a free appetizer of your choice (gyoza, edamame or spring rolls) — corporate budgets love that math.",
     ],
   },
   {
@@ -135,7 +135,7 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
     city: "los-angeles",
     localIntro: [
       "LA corporate events compete with everything this city offers after 6 PM — which is why the winning move is bringing the event to the office itself. A hibachi chef on the rooftop or patio turns a quarterly milestone into the one gathering people mention in standup the next morning.",
-      "From Culver City studios to DTLA towers with terrace levels, if there's an outdoor spot with ten feet of clearance, the show is on. Mon–Thu events get the $54.90/person Weekday Special and a free appetizer platter.",
+      "From Culver City studios to DTLA towers with terrace levels, if there's an outdoor spot with ten feet of clearance, the show is on. Mon–Thu events get the $54.90/person Weekday Special and a free appetizer of your choice (gyoza, edamame or spring rolls).",
     ],
   },
   {
@@ -143,7 +143,7 @@ export const OCCASION_CITY_COMBOS: OccasionCityCombo[] = [
     city: "san-diego",
     localIntro: [
       "San Diego's biotech campuses and Sorrento Valley office parks were built with patios nobody uses — until the grill shows up. A hibachi team event gives the lab crew and the sales floor the same thing to cheer for.",
-      "Weekday daytime slots are easy to book, and Monday–Thursday events get the $54.90/person Weekday Special with a free appetizer platter — happy finance team included.",
+      "Weekday daytime slots are easy to book, and Monday–Thursday events get the $54.90/person Weekday Special with a free appetizer of your choice (gyoza, edamame or spring rolls) — happy finance team included.",
     ],
   },
 ]

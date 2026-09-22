@@ -136,7 +136,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     {
       id: "pricing",
       label: "报价说明",
-      body: "It's $59.90 per adult and $29.90 per kid (5-12), kids under 5 eat free, $599 minimum. That covers the chef, grill, all the food, the show, setup and cleanup. Mon-Thu parties are $54.90 per adult and come with a free appetizer platter.",
+      body: "It's $59.90 per adult and $29.90 per kid (5-12), kids under 5 eat free, $599 minimum. That covers the chef, grill, all the food, the show, setup and cleanup. Mon-Thu parties are $54.90 per adult and come with a free appetizer of your choice (gyoza, edamame or spring rolls).",
     },
     {
       id: "deposit",
@@ -156,7 +156,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     {
       id: "discounts",
       label: "优惠说明",
-      body: "Party-size discount: $30 off for 10-14 guests, $60 off for 15-24, $90 off for 25-30. Mon-Thu parties also get a free appetizer platter (gyoza, edamame, spring rolls).",
+      body: "Party-size discount: $30 off for 10-14 guests, $60 off for 15-24, $90 off for 25-30. Mon-Thu parties also get a free appetizer of your choice (gyoza, edamame or spring rolls).",
     },
   ],
   calendar: {

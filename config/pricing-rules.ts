@@ -142,11 +142,15 @@ export const WEEKDAY_SPECIAL = {
   eligibleWeekdays: [1, 2, 3, 4] as const,
   // No headcount gate and the full menu, including premium upgrades. The
   // weekday rate is only a nudge, so it is not paired with a worse menu; the
-  // thing that makes it feel like a gift rather than a discount is the platter.
+  // thing that makes it feel like a gift rather than a discount is the free
+  // appetizer. 2026-09-22 (owner): it is ONE appetizer of the customer's choice
+  // — gyoza, edamame or spring rolls, one tray for the table (default gyoza) —
+  // no longer the 3-item platter. `value` is the most it can be worth ($15).
+  // The key keeps its old name so imports don't break.
   appetizerPlatter: {
-    label: "Free appetizer platter",
-    detail: "gyoza, edamame & spring rolls",
-    value: 40,
+    label: "Free appetizer of your choice",
+    detail: "gyoza, edamame or spring rolls",
+    value: 15,
   },
   // Free tables & chairs were added 2026-09-13 and withdrawn 2026-09-14
   // (owner): the setup add-on is priced the same on every date.

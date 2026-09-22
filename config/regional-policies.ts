@@ -41,18 +41,18 @@ const PRICING_POLICY_DEFINITIONS: Record<PricingPolicyKey, PricingPolicyDefiniti
     key: "weekday_saver",
     title: "Weekday Special",
     description:
-      "The Standard food and chef show package at the Mon–Thu rate, with a free appetizer platter added.",
+      "The Standard food and chef show package at the Mon–Thu rate, with a free appetizer of your choice (gyoza, edamame or spring rolls) added.",
     unavailableMessage: "Weekday Special is currently available in Southern California only.",
     homeFeatureList: [
       "$54.90/adult; $27.45/child 5–12; under 5 free",
       "Fried rice, fresh vegetables, and house salad included",
       "Live chef performance and on-site grill cooking",
       "Monday-Thursday events only, major holidays excluded; any party size",
-      "Free appetizer platter (gyoza, edamame & spring rolls, $40 value)",
+      "Free appetizer of your choice (gyoza, edamame or spring rolls)",
       "Full menu; premium upgrades available",
     ],
     quoteDescription:
-      "$54.90/adult, $27.45/child. The Standard food/show package plus a free appetizer platter; full menu and upgrades available.",
+      "$54.90/adult, $27.45/child. The Standard food/show package plus a free appetizer of your choice (gyoza, edamame or spring rolls); full menu and upgrades available.",
   },
 }
 

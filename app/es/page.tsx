@@ -168,8 +168,8 @@ export default function HomeEs() {
                     <p className="text-lg font-medium text-emerald-800">/adulto</p>
                   </div>
                   <p className="mt-3 text-base text-emerald-900">
-                    Lunes a jueves (excepto días festivos), cualquier tamaño de fiesta, con charola de
-                    aperitivos gratis — la misma experiencia, mejor precio.
+                    Lunes a jueves (excepto días festivos), cualquier tamaño de fiesta, con un aperitivo
+                    gratis a elegir (gyozas, edamame o rollitos primavera) — la misma experiencia, mejor precio.
                   </p>
                   <Button
                     asChild

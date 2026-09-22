@@ -59,7 +59,7 @@ const faqs = [
   {
     question: "How much does hibachi catering cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday events get the Weekday Special at any size: $54.90 per adult plus a free appetizer platter. Parties of 10–14 guests save $30, 15–24 save $60, 25–30 save $90 — any day, applied automatically. Pricing is published — the instant quote shows your price range with no sign-up, and your exact total including any travel fee comes by text before you pay anything.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday events get the Weekday Special at any size: $54.90 per adult plus a free appetizer of your choice (gyoza, edamame or spring rolls). Parties of 10–14 guests save $30, 15–24 save $60, 25–30 save $90 — any day, applied automatically. Pricing is published — the instant quote shows your price range with no sign-up, and your exact total including any travel fee comes by text before you pay anything.",
   },
   {
     question: "Do you cater corporate events and offices?",
@@ -196,7 +196,7 @@ export default function HibachiCateringHubPage() {
               </p>
               <p className="text-sm text-clay-700 lg:text-[15px]">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
               <p className="text-sm text-clay-700 lg:text-[15px]">
-                Weekday Special: <strong>$54.90/adult</strong> for Mon–Thu events, any size, with a free appetizer platter.
+                Weekday Special: <strong>$54.90/adult</strong> for Mon–Thu events, any size, with a free appetizer of your choice (gyoza, edamame or spring rolls).
               </p>
               <p className="text-xs leading-relaxed text-clay-600 lg:text-[13px]">
                 No per-guest setup surcharge and no fee to add more grills — the per-person price is the price at 10 guests or 100. The first 50 miles of travel are free, then $1 per additional mile, shown in your quote before you pay. Gratuity (20–25%) is the only thing not included.

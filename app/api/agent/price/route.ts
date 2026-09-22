@@ -103,7 +103,10 @@ export async function GET(request: Request) {
       minimumApplied: est.minApplied,
       travelFee: est.travelFee,
       total: est.total,
-      freeAppetizerPlatter: platter ? `${WEEKDAY_SPECIAL.appetizerPlatter.detail} ($${WEEKDAY_SPECIAL.appetizerPlatter.value} value)` : null,
+      // 2026-09-22: one appetizer of the customer's choice, not a 3-item platter.
+      freeAppetizer: platter
+        ? `One free appetizer of your choice (${WEEKDAY_SPECIAL.appetizerPlatter.detail}), one tray for the table to share; gyoza if you don't choose`
+        : null,
     }
   }
 

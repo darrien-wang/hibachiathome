@@ -143,7 +143,7 @@ Bling here from Real Hibachi. [一句认领/回应]
 
 [价格块，3 行以内]
 • 15 adults, Fri–Sun: $838.50 total
-• Same party Mon–Thu: $763.50 (+ a free appetizer platter)
+• Same party Mon–Thu: $763.50 (+ a free appetizer of your choice: gyoza, edamame or spring rolls)
 • Includes 2 proteins per guest, fried rice, veggies, salad, and the chef show — no hidden fees
 
 [一个问题]
@@ -192,7 +192,7 @@ Real Hibachi · (213) 770-7788
 
 **截止只挂在真会发生的事上（三选一，按顺序）**
 1. **派对在 6 周内**：用客户自己的时钟。"If invites are going out this week, lock it now so the date on the invite is real." / 3 周内的周末："Saturday's [12] days out — lock it now and I'll assign your chef and start the shopping list."
-2. **有真实到期的优惠**：20+ 送拼盘到 10/31、周中特价、当期致敬计划的截止日。没有就不编。
+2. **有真实到期的优惠**：20+ 送一份自选前菜到 10/31、周中特价、当期致敬计划的截止日。没有就不编。
 3. **都没有**：只说我们这边真会做的动作——"I'll take the pencil off my calendar Sunday." 之后**永远不说 "still open"**，改成 "Want me to check [date] for you?"，查了再说开着，前后不互相拆穿。
 
 **周末是最快成交的杠杆（用户 09-19），但只说真话**：12 单押金里 9 单在周末、8 单在周六；8 天内的周末单 3/3 在 22 小时内付完——快是因为客户自己的时钟。可用的三句：3 周内的周末用上面的时钟句；更远的周末 "Saturdays are when most of our parties land, so they're the dates I'd lock first."；那天订单表里已经有单 "We already have a party that Saturday."（发前查 orders）。**"那个周末紧 / 快满了"不说**——按订单每个周六都只有 1 场，说了下一条就穿帮。
@@ -203,8 +203,8 @@ Real Hibachi · (213) 770-7788
 
 1. **先问再让**："What would make it work?" 让他先说，不先报数。
 2. **一个小赢**，按我们的真实成本从低到高挑（用户 09-19 定的顺序）：
-   - ① 调日期 / 时间（周中 $54.90 + 送拼盘；白天场）——零成本
-   - ② 拼盘 / 致敬计划（已有政策内的）
+   - ① 调日期 / 时间（周中 $54.90 + 送一份自选前菜；白天场）——零成本
+   - ② 免费前菜 / 致敬计划（已有政策内的）
    - ③ 现金折扣，带宽内（**每人 ≤$5 或每单 ≤$100，取小**）
    - ④ **桌椅放最后**：桌椅成本 $4/人（付师傅），不比现金折扣便宜
 3. **带宽内我直接定、当场发，事后在汇报里告诉用户**——为成交抢速度；超带宽、低于 $49.90/人、破 $599 底线 → 一句话问用户。
@@ -247,7 +247,7 @@ Real Hibachi · (213) 770-7788
 | 成人 | **$59.90** | **$54.90** |
 | 小孩 5–12 | **$29.90** | **$27.45** |
 | 5 岁以下 | 免费 | 免费 |
-| 附赠 | — | 免费前菜拼盘（gyoza + edamame + spring rolls，$40 值） |
+| 附赠 | — | 免费前菜 1 份，客户三选一：gyoza / edamame / spring rolls（一盘全桌分；没选默认 gyoza；最多值 $15）。**不再是三样拼盘**（2026-09-22 用户定），对客说 "a free appetizer of your choice (gyoza, edamame or spring rolls)"，不说 platter、不说 $40 |
 
 - **最低消费 $599**（折后仍不低于 599）。
 - **派对人数折扣（任何日期自动，按付费人数 = 成人 + 5–12 岁）**：10–14 人 −$30 · 15–24 人 −$60 · 25–30 人 −$90 · **31+ 定制报价**（多厨师，28 人/厨师；永远不在聊天里报固定总价）。折扣码 PARTY30/60/90。
@@ -261,7 +261,8 @@ Real Hibachi · (213) 770-7788
 - **加菜**：第 3 个蛋白 +$10；升级 filet +$8 / scallops +$6 / lobster tail +$12；gyoza $15、edamame $10、spring rolls $15、noodles $5；炒饭 DIY 加料（虾/鸡）$10、加蛋 $1；饮料 $5/$12。炒饭和蔬菜**加量免费**（提前说）。
 - **Appreciation $50**：轮换致敬（现在 **教师 2026-09-01→10-15**；老兵 10-16→11-30；医护 12-01→01-15；消防/急救 01-16→02-28）。$599+、一单一次、只按职业、**只与 Weekday Special 叠加**，不与人数折扣叠。
 - **回头客** $60/每 10 人（隐形福利，客户提到"上次订过"才给）。
-- **20+ 免费前菜拼盘**（发票系统仍自动应用，无到期日；与 Weekday Special 不叠，因为周中本来就送）。**桌椅 −$100** 是关单专用（closer-only），首条不提，只在最后一步犹豫时放。
+- **20+ 免费前菜 1 份（三选一，同上表）**（发票系统仍自动应用，无到期日；与 Weekday Special 不叠，因为周中本来就送）。**桌椅 −$100** 是关单专用（closer-only），首条不提，只在最后一步犹豫时放。
+- Parties booked before 2026-09-22 keep the 3-item platter they were promised (Sergio 9/23, Joshua Tree 10/3, Eileen Heng 10/17, Aryan 10/27, Susan Bell 11/24, Jane Yusim 11/25, Christine Toy 12/15). New bookings get one appetizer of their choice.
 - **Weekday Special 黑名单**：Labor Day、感恩节周（11/23–29）、12/20–1/3、Memorial Day、7/3–5。这些日子按周末价。
 
 **公式**：`max( 成人×成人价 + 小孩×小孩价 − 人数折扣 , 599 ) + 路费`；桌椅/加菜/4% 另加；小费不进报价。
@@ -297,7 +298,7 @@ Real Hibachi · (213) 770-7788
 | 情况 | 怎么做 |
 |---|---|
 | **客户没提贵、没提竞品** | 只用上面 5 个杠杆，**不先报让步的数**；可以在 f_deadline 开门问"什么挡着你"（§4.2），他说了再按 §4.3 给一个小赢。 |
-| **嫌贵但没提竞品** | 先重新锚定人均 + 调日期（周中省 $5/人 + 送拼盘）/ 调人数（10+ 阶梯）/ 小孩免费；不加折扣。问 "Would a Thursday work, or is it a Saturday thing?" |
+| **嫌贵但没提竞品** | 先重新锚定人均 + 调日期（周中省 $5/人 + 送一份自选前菜）/ 调人数（10+ 阶梯）/ 小孩免费；不加折扣。问 "Would a Thursday work, or is it a Saturday thing?" |
 | **提到竞品报价 / "找到更便宜的"** | 走**竞争让价流程**（下） |
 | **31+ / 企业 / 淡季周中大单** | 报给用户定制，不自己定 |
 
@@ -319,7 +320,7 @@ Real Hibachi · (213) 770-7788
 2. 先讲差异，不讲价（§5.1 第 2 步）。只讲具体事实：当天早上买、不冷冻、真黄油。**不说"我们最好""你吃过就知道"**——形容词是自夸，事实让客户自己下结论。
 3. 主动说唯一的短处（海鲜是冷冻的）。这是整组话里最建立可信度的一句：肯说短处的人，说的长处才可信。
 4. 让他把对方报价和"升级项"发过来（§7.1 先问再让），同时先说清"我们食材贵，不一定能匹配，只是看看能不能做到"——把锚定住，免得他期待大砍价；这也是用户的原话意思。
-5. 他回了数再动：升级项多半是菲力/龙虾那类，先用**交换**（周中价、免桌椅、送拼盘）代替降价；带宽内（每人 ≤$5 或每单 ≤$100，取小）我直接定，超过问用户。匹配不了就照实说，留好印象，不第二次挽留。
+5. 他回了数再动：升级项多半是菲力/龙虾那类，先用**交换**（周中价、免桌椅、送前菜）代替降价；带宽内（每人 ≤$5 或每单 ≤$100，取小）我直接定，超过问用户。匹配不了就照实说，留好印象，不第二次挽留。
 
 **话术（三条，分开发；他刚回过话就立刻发，隔太久就别发了）**
 1. "Appreciate you telling me — no hard feelings at all. One thing worth knowing before it's locked in: we're not the biggest outfit in SoCal, but it's the only place we cook, and it shows in the food. Beef and chicken are bought fresh the morning of your party, never frozen, and everything's cooked in real butter."
@@ -367,7 +368,7 @@ Real Hibachi · (213) 770-7788
 | **一致性** | 复述对方说过的信息（人数/日期/场合），让他沿着自己的话往前走 | "You mentioned 15 on Dec 5 —" |
 | **小门槛** | $19.90 押金 = "less than a pizza"；只在私聊提 | — |
 | **减少决策疲劳** | 不甩菜单；给默认（"most people go chicken + shrimp"），让他改而不是让他选 | — |
-| **给体面的犹豫理由** | "while you finalize headcount" 把"还没决定"说成正常流程，同时引导报人数（20+ 触发拼盘） | — |
+| **给体面的犹豫理由** | "while you finalize headcount" 把"还没决定"说成正常流程，同时引导报人数（20+ 触发免费前菜） | — |
 | **吸引而非追逐（恋爱心态，1.1）** | 每条像"日程排得不错的人在发邀请"；不用乞求词（第 9 节）；描绘他的派对，不讲我们多想要这单 | "Want me to pencil it in?" |
 | **体面撤退（走开的力量）** | 最后一条放开档期，而不是再要一次；有期限的 hold 到期就真的释放——这让之前所有 hold 都可信 | "I'll open it back up after tomorrow. Either way, hope the party's a great one." |
 
@@ -393,7 +394,7 @@ Real Hibachi · (213) 770-7788
 | **绝不折中** | 客户提"中间价"不接，换成有条件的让步 | "I can't do halfway, but I can do $X if you can Y" | — |
 | **让步递减** | 三步、越来越小、数字不整：$59.90 → $55.90 → $53.90 → $52.99；最后一步小到让人觉得到底了 | — | 第一步不能就给到底 |
 | **收回条件** | 被反复加码时把上一个让步收回 | "That rate was tied to the 60-count; at 45 it goes back to standard" | 只在被蚕食时用 |
-| **欣然接受** | 最后留一个看得见的小赢：免桌椅、送拼盘、"I'll take care of it" | Natalie 的 $50 医护 | 不能是主要让步 |
+| **欣然接受** | 最后留一个看得见的小赢：免桌椅、送前菜、"I'll take care of it" | Natalie 的 $50 医护 | 不能是主要让步 |
 | **蚕食（防）** | 成交后要东西 → 报价或换条件，不白给 | "Happy to add tables - $10/guest" | — |
 | **蚕食（用，只用正向）** | 付完押金立刻让他在 planner 选菜（锁承诺）；派对结束当场邀评 | — | 不用来多收钱 |
 | **黑脸白脸** | Bling 当白脸，**后厨/成本/排班当黑脸**——客户对着一个抽象的坏人，不会对 Bling 有情绪 | "I'd love to, but the kitchen won't let me go below $52.99 for two chefs" | 黑脸只能是后厨/成本/排班这类抽象的东西，不是另一个人 |
@@ -419,7 +420,7 @@ Real Hibachi · (213) 770-7788
 
 | 异议 | 回法 |
 |---|---|
-| **太贵 / 超预算** | 先给合法杠杆：周一–周四省 $5/成人 + 送 $40 拼盘；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。然后按 §7.1 先问再让："What number were you hoping to land at?" 客户提了竞品 → §5.1 竞争让价流程 + §7.1 |
+| **太贵 / 超预算** | 先给合法杠杆：周一–周四省 $5/成人 + 送一份自选前菜（gyoza / edamame / spring rolls 三选一）；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。然后按 §7.1 先问再让："What number were you hoping to land at?" 客户提了竞品 → §5.1 竞争让价流程 + §7.1 |
 | **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" 这是对方的"更高权威"——顺手钉一句："If it were just you, is this a go?"（§7.1） |
 | **X 日期有空吗** | 一律按开着回（"open on our end"）。用户 09-18 定：档期都有、兼职厨师充足，容量不是瓶颈；只有 <3 天的临时单或订单表里当天已经明显堆满时才问用户 |
 | **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说 |
@@ -449,7 +450,7 @@ Real Hibachi · (213) 770-7788
 - 短信不提酒（30955）。
 - 不在公开页面 / 公开评论提押金；私聊可以。
 - **谈判红线（§7.1）**：姿态可以演（不急、请示后厨、后厨当黑脸），**事实不能编**（假档期、假竞争客户、假到期）；不白给让步——每一次让步都要换回报。
-- 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 拼盘（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
+- 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 送前菜（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
 - 不说桌椅周中免费（09-14 已撤）。
 - 不承诺室内烹饪、不承诺无坚果、不接自带蛋白。
 - 不淡化小费。

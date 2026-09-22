@@ -204,7 +204,7 @@ export default function CityQuoteCalculator({
             <li>First 50 miles of travel free — any travel fee shows before you pay</li>
             <li>
               Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu, plus a{" "}
-              {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.value} value)
+              {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} ({WEEKDAY_SPECIAL.appetizerPlatter.detail})
             </li>
             <li>Party size discount, any day: 10–14 guests $30 off · 15–24 $60 off · 25–30 $90 off — your code comes with the exact quote</li>
             <li>
@@ -263,7 +263,7 @@ export default function CityQuoteCalculator({
             {weekdayApplies ? <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />}
           </p>
           <p className="mt-0.5 text-xl font-bold text-emerald-800 sm:text-2xl">{weekdayRange}</p>
-          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Mon–Thu · free appetizer platter</p>
+          <p className="text-[11px] leading-4 text-gray-600 sm:text-xs">Mon–Thu · free appetizer (your pick)</p>
         </Link>
         <Link
           href={buildHref("standard")}

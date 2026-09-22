@@ -79,7 +79,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
     "Bling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:",
     "",
     `- ${guests}, Fri-Sun: ${money(weekend)} total`,
-    `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer platter)`,
+    `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
     travel > 0 ? `- Travel${city ? ` to ${city}` : ""}: about $${travel}` : `- ${city || "Your area"}: no travel fee`,
     "- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.",
     "",

@@ -84,7 +84,7 @@ export type QuoteResult = {
     isEligible: boolean
     violations: string[]
   }
-  /** The Weekday Special includes an appetizer platter at any party size. */
+  /** The Weekday Special includes a free appetizer of the customer's choice at any party size. */
   includesAppetizerPlatter: boolean
   isBookable: boolean
   budgetFit: "within_budget" | "above_budget" | "not_provided"
@@ -134,11 +134,11 @@ function normalizeGuests(input: number): number {
   return Math.floor(input)
 }
 
-const WEEKDAY_PLATTER_LINE = `${WEEKDAY_SPECIAL.appetizerPlatter.label} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}, $${WEEKDAY_SPECIAL.appetizerPlatter.value} value)`
+const WEEKDAY_PLATTER_LINE = `${WEEKDAY_SPECIAL.appetizerPlatter.label} (${WEEKDAY_SPECIAL.appetizerPlatter.detail})`
 
 function getQuoteTierLabel(pricingTier: QuotePricingTier): string {
   return pricingTier === "weekday_saver"
-    ? `Weekday Special ($${WEEKDAY_SAVER_ADULT_PRICE.toFixed(2)}/adult, $${WEEKDAY_SAVER_KID_PRICE.toFixed(2)}/child + free appetizer platter)`
+    ? `Weekday Special ($${WEEKDAY_SAVER_ADULT_PRICE.toFixed(2)}/adult, $${WEEKDAY_SAVER_KID_PRICE.toFixed(2)}/child + free appetizer of your choice)`
     : "Standard Plan"
 }
 

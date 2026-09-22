@@ -29,7 +29,7 @@ const PRICE_ROWS = [
   ["Pequeños (3–4)", "Gratis"],
   ["Bebés (0–2)", "Gratis"],
   ["Consumo mínimo", "$599 por evento"],
-  ["Especial entre semana (lun–jue)", "$54.90 por adulto, $27.45 por niño + charola de aperitivos gratis"],
+  ["Especial entre semana (lun–jue)", "$54.90 por adulto, $27.45 por niño + un aperitivo gratis a elegir (gyozas, edamame o rollitos primavera)"],
   ["Mesas, sillas y mantel", "+$10 por persona (opcional)"],
   ["Cubiertos y vajilla", "+$5 por persona (opcional)"],
   ["Descuento por tamaño de fiesta (cualquier día)", "10–14 invitados $30 · 15–24 $60 · 25–30 $90 — se aplica solo"],

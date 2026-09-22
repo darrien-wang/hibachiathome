@@ -155,7 +155,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Los Angeles?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, with a $599 event minimum. That covers the chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) is available too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, with a $599 event minimum. That covers the chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) is available too.",
       },
       {
         question: "Do I need to provide tables and chairs?",
@@ -620,7 +620,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Culver City?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) is available.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) is available.",
       },
     ],
     nearby: ["santa-monica", "beverly-hills", "los-angeles"],
@@ -710,7 +710,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Burbank?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies here too.",
       },
     ],
     nearby: ["north-hollywood", "glendale", "pasadena"],
@@ -1070,7 +1070,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Arcadia?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) is available.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) is available.",
       },
     ],
     nearby: ["pasadena", "san-gabriel", "glendale"],
@@ -1340,7 +1340,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Diamond Bar?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies here too.",
       },
     ],
     nearby: ["rowland-heights", "corona", "san-gabriel"],
@@ -1620,7 +1620,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Woodland Hills?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) applies here too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies here too.",
       },
     ],
     nearby: ["encino", "chatsworth", "burbank"],
@@ -1802,7 +1802,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Irvine?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free with a $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) is also available in California.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free with a $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) is also available in California.",
       },
     ],
     nearby: ["newport-beach", "huntington-beach", "anaheim"],
@@ -2350,7 +2350,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Riverside?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — everything included. Weekday Special ($54.90/adult with a free appetizer platter, Mon–Thu) applies in California too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — everything included. Weekday Special ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies in California too.",
       },
     ],
     nearby: ["corona", "temecula", "anaheim"],
@@ -2894,7 +2894,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Corona?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special ($54.90/adult with a free appetizer platter, Mon–Thu) also applies.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup, and cleanup included. Weekday Special ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) also applies.",
       },
     ],
     nearby: ["riverside", "anaheim", "temecula"],

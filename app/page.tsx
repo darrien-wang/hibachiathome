@@ -219,7 +219,7 @@ export default function Home() {
               unit="/adult"
               lines={[
                 `$${fmt(GUEST_TIERS.child.weekdayPrice)}/child · under 5 free`,
-                `${WEEKDAY_SPECIAL.appetizerPlatter.label} ($${WEEKDAY_SPECIAL.appetizerPlatter.value} value)`,
+                WEEKDAY_SPECIAL.appetizerPlatter.label,
                 "Full menu, upgrades welcome",
               ]}
               cta="Check weekday dates"

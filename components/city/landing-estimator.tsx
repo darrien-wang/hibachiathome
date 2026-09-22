@@ -540,7 +540,7 @@ export default function LandingEstimator({
               <p className="text-right text-xs font-semibold leading-snug text-gold-700">
                 {fee > 0 ? `~$${fee} travel added` : travelNote ?? "Travel included"}
                 <br />
-                {weekday ? "free appetizer platter" : "No fees hidden"}
+                {weekday ? "free appetizer (your pick)" : "No fees hidden"}
               </p>
             </div>
 

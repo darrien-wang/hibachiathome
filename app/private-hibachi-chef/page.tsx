@@ -74,7 +74,7 @@ const faqs = [
   {
     question: "How much does a private hibachi chef cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, show, setup, and cleanup all included. Monday–Thursday parties get the Weekday Special at any size: $54.90 per adult plus a free appetizer platter. Parties of 10–14 guests save $30, 15–24 save $60, 25–30 save $90 — any day, applied automatically. Gratuity (20–25%) is the only thing not in the quote.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, show, setup, and cleanup all included. Monday–Thursday parties get the Weekday Special at any size: $54.90 per adult plus a free appetizer of your choice (gyoza, edamame or spring rolls). Parties of 10–14 guests save $30, 15–24 save $60, 25–30 save $90 — any day, applied automatically. Gratuity (20–25%) is the only thing not in the quote.",
   },
   {
     question: "Who are your chefs?",

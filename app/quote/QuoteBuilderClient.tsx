@@ -510,7 +510,7 @@ export default function QuoteBuilderClient() {
   useEffect(() => {
     if (!weekdayNudgeRef.current) return
     weekdayNudgeRef.current = false
-    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "It only needs a Monday–Thursday date — and it comes with a free appetizer platter.")
+    pushToast("promo", "Pick a Mon–Thu date to keep the Weekday price", "It only needs a Monday–Thursday date — and it comes with a free appetizer (your pick).")
   }, [pushToast])
   const quoteSurface = "quote_builder"
   const regionPolicySnapshot = useMemo(() => getRegionalPolicySnapshot(activeRegion), [activeRegion])
@@ -556,12 +556,12 @@ export default function QuoteBuilderClient() {
     if (weekdayEligible || input.pricingTier === "weekday_saver") return null
     if (!weekdaySaverEnabled) return weekdaySaverPolicy.unavailableMessage
     if (!input.eventDate) {
-      return `Pick a Mon–Thu date for the Weekday Special — ${weekdayAdultRateLabel} plus a free appetizer platter.`
+      return `Pick a Mon–Thu date for the Weekday Special — ${weekdayAdultRateLabel} plus a free appetizer (your pick).`
     }
     const described = describeEventDate(input.eventDate)
     return described
-      ? `${described.label} is a ${described.weekday} — the Weekday Special (${weekdayAdultRateLabel} + free appetizer platter) is Mon–Thu only.`
-      : `Weekday Special (${weekdayAdultRateLabel} + free appetizer platter) is Mon–Thu only.`
+      ? `${described.label} is a ${described.weekday} — the Weekday Special (${weekdayAdultRateLabel} + a free appetizer of your choice) is Mon–Thu only.`
+      : `Weekday Special (${weekdayAdultRateLabel} + a free appetizer of your choice) is Mon–Thu only.`
   }, [
     input.eventDate,
     input.pricingTier,
@@ -610,7 +610,7 @@ export default function QuoteBuilderClient() {
     pushToast(
       "promo",
       "You qualify for Weekday Special",
-      `Mon–Thu date — tap the green plan for ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}, with a free appetizer platter.`,
+      `Mon–Thu date — tap the green plan for ${weekdayAdultRateLabel} instead of $${GUEST_TIERS.adult.price.toFixed(2)}, with a free appetizer (your pick).`,
     )
   }, [input.pricingTier, pushToast, weekdayAdultRateLabel, weekdayEligible])
   // Display-only scarcity: real remaining capacity clamped to 1-3 (never zero —
@@ -696,9 +696,9 @@ export default function QuoteBuilderClient() {
   const platterHint = result.includesAppetizerPlatter
     ? null
     : result.guestCount >= 20
-      ? "Free appetizer platter included: gyoza, edamame & spring rolls ($40 value, parties of 20+)"
+      ? "Free appetizer of your choice included: gyoza, edamame or spring rolls (parties of 20+)"
       : result.guestCount >= 15
-        ? `${platterGuestsShort} more guest${platterGuestsShort === 1 ? "" : "s"} = free appetizer platter ($40 value)`
+        ? `${platterGuestsShort} more guest${platterGuestsShort === 1 ? "" : "s"} = free appetizer (your pick)`
         : null
 
   const quoteSummary = useMemo(() => buildQuoteSummary(input, result), [input, result])
@@ -919,7 +919,7 @@ export default function QuoteBuilderClient() {
         pushToast(
           "error",
           "Weekday Special needs a Mon–Thu date",
-          `Pick a Monday–Thursday date for ${weekdayAdultRateLabel} and a free appetizer platter. The Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
+          `Pick a Monday–Thursday date for ${weekdayAdultRateLabel} and a free appetizer of your choice (gyoza, edamame or spring rolls). The Standard Plan at $${GUEST_TIERS.adult.price.toFixed(2)}/person applies any day.`,
         )
       }
     } else if (input.pricingTier === "weekday_saver") {
@@ -1944,8 +1944,8 @@ export default function QuoteBuilderClient() {
                       </span>
                       <span className="flex-1">
                         {isWeekdaySaverTier
-                          ? `Weekday Special on — ${weekdayRatesLabel}, free appetizer platter included.`
-                          : `Mon–Thu date — take the Weekday Special and save $${weekdaySavings}, plus a free appetizer platter.`}
+                          ? `Weekday Special on — ${weekdayRatesLabel}, free appetizer (your pick) included.`
+                          : `Mon–Thu date — take the Weekday Special and save $${weekdaySavings}, plus a free appetizer (your pick).`}
                       </span>
                       {weekdayEligible ? (
                         <button
@@ -1965,7 +1965,7 @@ export default function QuoteBuilderClient() {
                     </div>
                   ) : (
                     <p className="text-xs text-clay-600">
-                      Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult + a free appetizer platter.
+                      Mon–Thu: ${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult + a free appetizer (your pick).
                     </p>
                   )}
                   <button
@@ -2174,8 +2174,8 @@ export default function QuoteBuilderClient() {
                     <div className="flex items-start gap-1.5 py-2.5 text-[13px] font-semibold text-gold-800">
                       <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       {result.includesAppetizerPlatter
-                        ? "Free appetizer platter ($40 value) — included with the Weekday Special"
-                        : "Free appetizer platter — gyoza, edamame & spring rolls ($40 value, parties of 20+, through Oct 31)"}
+                        ? "Free appetizer of your choice (gyoza, edamame or spring rolls) — included with the Weekday Special"
+                        : "Free appetizer of your choice (gyoza, edamame or spring rolls) — parties of 20+, through Oct 31"}
                     </div>
                   ) : null}
                 </div>
