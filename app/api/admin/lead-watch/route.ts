@@ -224,6 +224,8 @@ export async function POST(request: NextRequest) {
     const body = (m.body ?? "").trim()
     // Tapbacks ("Liked "...", "Loved "...") and opt-outs are not questions.
     if (/^(liked|loved|laughed at|emphasized|disliked|questioned)\s/i.test(body) || /^(stop|unsubscribe)$/i.test(body)) continue
+    // A bare "cancel" is an opt-out too (2026-09-22, 用户定): nobody replies to it.
+    if (/^(please\s+)?cancel(l?ed)?(\s+(it|this|that|please|the party|my party))?[.!\s]*$/i.test(body)) continue
     humanSms.push({ kind: "sms", sid: m.sid, from: m.from, minutesWaiting: Math.round((now - at) / 60_000), body: body.slice(0, 400) })
   }
 
