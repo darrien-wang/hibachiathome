@@ -14,6 +14,8 @@ export const dynamic = "force-dynamic"
 //   sms           a customer text on the 213 line with no reply after it
 //   deposit       a deposit that landed in the last two hours
 //   order_change  a customer change request still open
+//   reddit        someone on a watched subreddit asked for hibachi / a private
+//                 chef in the last day and nobody has marked it handled
 // `key` is stable per event so the app can dedupe / snooze; `ring` says
 // whether it should make noise. Same rules as lead-watch, minus its side
 // effects, so desktop, lead-watch and the phone never disagree on what is open.
@@ -29,7 +31,7 @@ const PLANNER_LIVE_MS = 3 * 60_000
 
 type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "deposit" | "order_change"
+  kind: "lead" | "call" | "sms" | "deposit" | "order_change" | "reddit"
   title: string
   body: string
   url: string
@@ -124,8 +126,11 @@ export async function GET(request: NextRequest) {
     if (now - atMs > SMS_LOOKBACK_MS || now - atMs < SMS_GRACE_MS) continue
     if (isTestNumber(peer)) continue
     const body = (v.last.body ?? "").trim()
-    // Tapbacks, opt-outs and plain thank-yous are not questions.
+    // Tapbacks, opt-outs and plain thank-yous are not questions. A bare
+    // "cancel" is an opt-out too (2026-09-22, 用户定): the customer is saying
+    // "stop", so nobody replies and it is not something to answer.
     if (/^(liked|loved|laughed at|emphasized|disliked|questioned)\s/i.test(body) || /^(stop|unsubscribe)$/i.test(body)) continue
+    if (/^(please\s+)?cancel(l?ed)?(\s+(it|this|that|please|the party|my party))?[.!\s]*$/i.test(body)) continue
     if (courtesyOnly(body)) continue
     unanswered.push({ peer, at: v.lastInAt, body })
   }
@@ -211,6 +216,33 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  // ---- reddit: a direct ask on a watched subreddit ---------------------------
+  // Only tier 1 (hibachi / private chef asked outright) reaches the phone; the
+  // adjacent tier stays on the desktop panel. Rings while fresh, then it is a
+  // quiet line like everything else older than MAX_EVENT_AGE_MIN.
+  const { data: redditHits } = await supabase
+    .from("reddit_mentions")
+    .select("id, subreddit, title, found_at, posted_at")
+    .eq("status", "new")
+    .eq("tier", 1)
+    .gte("found_at", new Date(now - LEAD_LOOKBACK_MS).toISOString())
+    .order("found_at", { ascending: false })
+    .limit(10)
+  const redditRows = (redditHits ?? []) as Array<{ id: string; subreddit: string; title: string; found_at: string; posted_at: string }>
+  for (const r of redditRows) {
+    const waited = minutesSince(r.found_at, now)
+    events.push({
+      key: `reddit:${r.id}`,
+      kind: "reddit",
+      title: `Reddit 有人在问 · r/${r.subreddit}`,
+      body: r.title.slice(0, 60),
+      url: "/admin?tab=leads",
+      at: r.found_at,
+      waitedMinutes: waited,
+      ring: waited <= MAX_EVENT_AGE_MIN,
+    })
+  }
+
   // ---- planner: is anyone in there right now --------------------------------
   const { data: live } = await supabase.from("planner_events").select("sid").gte("created_at", new Date(now - PLANNER_LIVE_MS).toISOString()).limit(500)
   const plannerLive = new Set(((live ?? []) as Array<{ sid: string | null }>).map((r) => r.sid).filter(Boolean)).size
@@ -225,6 +257,7 @@ export async function GET(request: NextRequest) {
       newLeads: newLeadsTotal,
       changedOrders: changeRows.length,
       plannerLive,
+      redditNew: redditRows.length,
     },
     events,
   })
