@@ -5,6 +5,9 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import ProofStrip from "@/components/proof-strip"
 import QuoteCtaLink from "@/components/quote-cta-link"
+import LandingEstimator from "@/components/city/landing-estimator"
+import LandingCtaButton from "@/components/city/landing-cta-button"
+import { CARD_PROOF_IMG, FIRST_MILES_FREE } from "@/components/city/landing-hero"
 import PartyPlannerSection from "@/components/party-planner-section"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import { GOOGLE_REVIEWS } from "@/config/reviews"
@@ -100,9 +103,23 @@ export default function Home() {
   const reviews = GOOGLE_REVIEWS.filter((r) => ["Kelsey Molnar", "Lisa Craven", "Beatrix Barrera"].includes(r.name))
   const media = PROOF_MEDIA.slice(0, 6)
 
+  // 2026-09-21: the Joshua Tree first screen - the card that asks for the
+  // phone first sits where the $59.90 block was (desktop) and overlaps the
+  // hero's bottom edge (phones). The price facts moved into the left column.
+  const card = (
+    <LandingEstimator
+      citySlug="socal"
+      cityName="Southern California"
+      source="home_estimator"
+      travelNote={FIRST_MILES_FREE}
+      cardLabel="Your hibachi party"
+      proofImage={CARD_PROOF_IMG}
+    />
+  )
+
   return (
-    <div className="bg-cream text-ink">
-      {/* ── Hero ── full-bleed fire show, cocoa gradient, one price. */}
+    <div className="bg-cream pb-28 text-ink lg:pb-0">
+      {/* ── Hero ── full-bleed fire show, cocoa gradient, the card. */}
       <section className="relative isolate overflow-hidden bg-cocoa text-white">
         <Image
           src={HERO_IMG}
@@ -114,7 +131,7 @@ export default function Home() {
           className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06]"
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,26,16,.55)_0%,rgba(42,26,16,.15)_35%,rgba(42,26,16,.35)_60%,#2a1a10_100%)] lg:bg-[linear-gradient(90deg,rgba(42,26,16,.88)_0%,rgba(42,26,16,.6)_45%,rgba(42,26,16,.15)_100%),linear-gradient(180deg,rgba(42,26,16,.4),transparent_30%,#2a1a10_100%)]" />
-        <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-[calc(var(--header-height,60px)+170px)] lg:grid lg:grid-cols-[1.05fr_1fr] lg:items-end lg:gap-14 lg:px-8 lg:pb-24 lg:pt-[calc(var(--header-height,72px)+110px)]">
+        <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-[calc(var(--header-height,60px)+170px)] lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-14 lg:px-8 lg:pb-[70px] lg:pt-[calc(var(--header-height,72px)+48px)]">
           <div className="flex flex-col gap-3.5 lg:gap-5">
             <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-flame-300 lg:text-[13px] lg:tracking-[0.14em]">
               Live fire show · at your table · all of SoCal
@@ -125,18 +142,20 @@ export default function Home() {
             <p className="text-[15px] leading-relaxed text-white/80 lg:max-w-[520px] lg:text-lg">
               Plan the party in 3 minutes — spend the evening with the people you love.
             </p>
-            <div className="flex items-baseline gap-2 pt-1 lg:hidden">
-              <span className="font-serif text-[34px] font-extrabold leading-none text-flame-300">${fmt(GUEST_TIERS.adult.price)}</span>
-              <span className="text-[13px] text-white/75">per adult · chef, food, show, setup &amp; cleanup</span>
+            <div className="flex items-baseline gap-2 pt-1">
+              <span className="font-serif text-[34px] font-extrabold leading-none text-flame-300 lg:text-[44px]">${fmt(GUEST_TIERS.adult.price)}</span>
+              <span className="text-[13px] text-white/75 lg:text-sm">per adult · chef, food, live show, setup &amp; cleanup — all included</span>
             </div>
+            <p className="hidden max-w-[520px] text-sm text-white/75 lg:block">
+              Kids 5–12 ${fmt(GUEST_TIERS.child.price)}, under 5 free. ${MINIMUM_SPEND} minimum per event, no travel fee within 50 miles.
+            </p>
             <div className="hidden items-center gap-3 lg:flex">
-              <QuoteCtaLink
-                href="/quote?source=home_hero"
-                onClick={onQuote("home_hero")}
+              <LandingCtaButton
+                surface="home_hero"
                 className="inline-flex h-14 items-center rounded-full bg-flame px-8 text-[17px] font-semibold text-white transition hover:bg-flame-600"
               >
                 Get instant quote · 30 sec
-              </QuoteCtaLink>
+              </LandingCtaButton>
               <Link href="/menu" className="inline-flex h-14 items-center px-2 text-base font-semibold text-white hover:text-flame-300">
                 See the menu →
               </Link>
@@ -149,20 +168,12 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="hidden flex-col items-end gap-4 text-right lg:flex">
-            <span className="text-[12px] uppercase tracking-[0.12em] text-white/70">Most parties pay</span>
-            <span className="font-serif text-[76px] font-extrabold leading-none text-flame-300">
-              ${fmt(GUEST_TIERS.adult.price)}
-              <span className="font-sans text-xl font-normal text-white/75"> /adult</span>
-            </span>
-            <span className="text-sm text-white/80">Chef, food, live show, setup &amp; cleanup — all included</span>
-            <span className="h-0.5 w-[120px] bg-flame" />
-            <span className="max-w-[340px] text-sm text-white/80">
-              Kids 5–12 ${fmt(GUEST_TIERS.child.price)}, under 5 free. ${MINIMUM_SPEND} minimum per event, no travel fee within 50 miles.
-            </span>
-          </div>
+          <div className="hidden lg:block">{card}</div>
         </div>
       </section>
+
+      {/* Phones: the card overlaps the hero's bottom edge, as on the city pages. */}
+      <div className="relative z-[2] -mt-3.5 px-4 lg:hidden">{card}</div>
 
       {/* ── Real parties ── the pictures do the talking. Swipe / drag / arrows, tap to play. */}
       <section className="px-5 pt-6 lg:mx-auto lg:max-w-7xl lg:px-8 lg:pt-10">
@@ -344,17 +355,9 @@ export default function Home() {
 
       <div className="h-10 lg:h-20" />
 
-      {/* Mobile: one primary CTA, always within thumb reach. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-[linear-gradient(to_top,#f7efe2_70%,transparent)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-4 lg:hidden">
-        <QuoteCtaLink
-          href="/quote?source=home_sticky"
-          onClick={onQuote("home_sticky")}
-          className="flex h-[52px] w-full items-center justify-center rounded-full bg-flame text-base font-semibold text-white shadow-organic-lg active:bg-flame-600"
-        >
-          Get instant quote · 30 sec
-        </QuoteCtaLink>
-        <p className="sr-only">Or call {phone.voice.dashed}</p>
-      </div>
+      {/* Phones: the card's own sticky bar (price + call + the one action) is the
+          thumb-reach CTA now; the old "Get instant quote" bar would stack on it. */}
+      <p className="sr-only">Or call {phone.voice.dashed}</p>
     </div>
   )
 }

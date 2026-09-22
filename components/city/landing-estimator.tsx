@@ -98,6 +98,8 @@ export default function LandingEstimator({
   proofImage = "/gallery/real-hibachi-party-orange-county-night-fire-show-18.jpg",
   proofQuote = { text: "Chef John was sooooo much fun. 5 stars!", name: "Beatrix B.", source: "Google review" },
   travelNote,
+  defaults,
+  cardLabel,
 }: {
   citySlug: string
   cityName: string
@@ -113,11 +115,15 @@ export default function LandingEstimator({
    * "Travel included" when no fee is set, and the text message then says the
    * travel fee is confirmed from the address instead of "no travel fee". */
   travelNote?: string
+  /** Starting headcount (occasion pages open at their own party size). */
+  defaults?: { adults: number; kids: number }
+  /** Card heading instead of "Your {city} party" (occasion pages: "Your birthday party"). */
+  cardLabel?: string
 }) {
   const shownCity = useLocCity(cityName, !lockCity)
   const [step, setStep] = useState<1 | 2>(1)
-  const [adults, setAdults] = useState(15)
-  const [kids, setKids] = useState(0)
+  const [adults, setAdults] = useState(defaults?.adults ?? 15)
+  const [kids, setKids] = useState(defaults?.kids ?? 0)
   const [date, setDate] = useState("")
   const [manualWeekday, setManualWeekday] = useState(false)
   const [phoneValue, setPhoneValue] = useState("")
@@ -212,7 +218,7 @@ export default function LandingEstimator({
   }
 
   useEffect(() => {
-    if (adults !== 15 || kids !== 0 || date || phoneValue || email) markStarted()
+    if (adults !== (defaults?.adults ?? 15) || kids !== (defaults?.kids ?? 0) || date || phoneValue || email) markStarted()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adults, kids, date, phoneValue, email])
 
@@ -404,7 +410,7 @@ export default function LandingEstimator({
       {/* text-ink is explicit: on desktop this card sits inside the hero, which is text-white. */}
       <div ref={cardRef} id="price" className="scroll-mt-24 flex flex-col gap-3.5 rounded-[28px] border border-ink/10 bg-white p-[18px] text-ink shadow-organic-lg lg:p-[22px]">
         <div className="flex items-baseline justify-between">
-          <span className="text-[13px] font-bold uppercase tracking-[0.06em] text-clay-600">Your {shownCity} party</span>
+          <span className="text-[13px] font-bold uppercase tracking-[0.06em] text-clay-600">{cardLabel ?? `Your ${shownCity} party`}</span>
           <span className="text-xs text-clay-600">{step === 1 ? "Step 1 of 2 · 30 sec" : "Step 2 of 2"}</span>
         </div>
 

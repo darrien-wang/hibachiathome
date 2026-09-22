@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import MenuTabs from "@/components/menu/menu-tabs"
-import MenuEstimatorBar from "@/components/menu/menu-estimator-bar"
+import LandingHero, { FIRST_MILES_FREE } from "@/components/city/landing-hero"
+import LandingDiffs from "@/components/city/landing-diffs"
+import { FinalCta, LandingBody, LandingShell } from "@/components/city/landing-parts"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Menu & Pricing Los Angeles",
@@ -23,28 +25,34 @@ export const metadata: Metadata = {
   },
 }
 
-// 2026-09-08 redesign: title, one line, three tabs, and an estimator that
-// stays on screen (sticky bar on phones, sticky card on desktop).
+// 2026-09-21: the Joshua Tree first screen. "Menu & Pricing" sitelinks on
+// every campaign land here - 50 paid clicks and $267 since 09-13 for one lead,
+// because the old estimator bar only linked out to /quote. The card now asks
+// for the phone on the page; the three menu tabs follow straight after it.
+// h1 "Our Menu" and the one-line intro keep their text.
+const INTRO = "Every guest picks 2 proteins. Fried rice, vegetables and salad included — refills free."
+
 export default function MenuPage() {
   return (
-    <div className="bg-cream text-ink">
-      <div className="mx-auto max-w-7xl px-5 pb-32 pt-[calc(var(--header-height,60px)+16px)] lg:grid lg:grid-cols-[1fr_360px] lg:gap-14 lg:px-8 lg:pb-20 lg:pt-[calc(var(--header-height,72px)+36px)]">
-        <div>
-          <h1 className="font-serif text-[34px] font-extrabold leading-[1.05] lg:text-[52px]">Our Menu</h1>
-          <p className="mt-2 max-w-[600px] text-sm leading-relaxed text-clay-700 lg:text-[17px]">
-            Every guest picks 2 proteins. Fried rice, vegetables and salad included — refills free.
-          </p>
-          <div className="mt-3 lg:mt-6">
+    <LandingShell>
+      <LandingHero
+        kicker="Hibachi at home menu & pricing"
+        title="Our Menu"
+        subhead={INTRO}
+        chips={["2 proteins per guest", "Fried rice, vegetables & salad", "Refills free"]}
+        imageAlt="Hibachi chef cooking steak, shrimp and fried rice on a teppanyaki grill at a backyard party"
+        estimator={{ citySlug: "socal", cityName: "Southern California", source: "menu_estimator", travelNote: FIRST_MILES_FREE, cardLabel: "Your hibachi party" }}
+      />
+      <LandingBody>
+        <section>
+          <p className="max-w-[600px] text-sm leading-relaxed text-clay-700 lg:hidden">{INTRO}</p>
+          <div className="mt-3 lg:mt-0">
             <MenuTabs />
           </div>
-        </div>
-        <aside className="hidden lg:block">
-          <div className="sticky top-[calc(var(--header-height,72px)+24px)]">
-            <MenuEstimatorBar variant="card" />
-          </div>
-        </aside>
-      </div>
-      <MenuEstimatorBar variant="sticky" />
-    </div>
+        </section>
+        <LandingDiffs distanceLine="Most SoCal addresses carry no travel fee" />
+        <FinalCta heading="Pick the proteins later — lock the date now" body="Your exact price is one number away. Guests choose their proteins before the party; the chef shops for exactly that." />
+      </LandingBody>
+    </LandingShell>
   )
 }

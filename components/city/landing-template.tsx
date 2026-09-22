@@ -1,9 +1,9 @@
 import type { ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import LandingEstimator from "@/components/city/landing-estimator"
-import LandingCtaButton from "@/components/city/landing-cta-button"
-import { phone } from "@/config/site"
+import { Accordion, FinalCta, SectionTitle } from "@/components/city/landing-parts"
+import LandingDiffs from "@/components/city/landing-diffs"
+import LandingHero, { FIRST_MILES_FREE, HERO_CHIPS } from "@/components/city/landing-hero"
 import { TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
 import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 
@@ -53,11 +53,20 @@ export type LandingTemplateProps = {
    */
   heroImage?: string
   heroAlt?: string
+  /** Hero chips; defaults to the three every city page shows. */
+  chips?: string[]
+  /** "Every {city} booking includes" / "{city} hosts say" overrides for hub pages. */
+  includedHeading?: string
+  reviewsHeading?: string
+  /** Estimate card starting headcount (default 15 adults). */
+  estimatorDefaults?: { adults: number; kids: number }
+  /** Page-specific sections (menu tabs, occasion moments, city grids),
+   * rendered after "How it works" and before the local details + FAQ. */
+  children?: ReactNode
 }
 
-// 2560px sharpened/denoised master of gallery/…night-fire-show-18.jpg (the 48MP
-// original is a soft phone upscale; served large it read as blur — 2026-09-08).
-const HERO_IMG = "/images/hero/fire-show-hero.jpg"
+// Hero image (2560px sharpened master of the fire-show shot) and the card's
+// proof photo live in components/city/landing-hero.tsx since 2026-09-21.
 
 const DISHES = [
   { src: "/images/menu/steak.jpg", label: "Steak 4.5 oz" },
@@ -72,35 +81,6 @@ const STEPS = [
   { title: "We bring the restaurant", body: "Chef arrives 10–30 min before start, lays a mat, sets the grill, performs, feeds everyone, cleans up." },
 ] as const
 
-// Inside-the-card proof photo: a different real party from the hero shot.
-const CARD_PROOF_IMG = "/gallery/real-hibachi-party-los-angeles-chef-guest-game-17.jpg"
-
-function Accordion({ items, idPrefix }: { items: Array<{ title: string; body: ReactNode }>; idPrefix: string }) {
-  return (
-    <div>
-      {items.map((item, i) => (
-        <details key={`${idPrefix}-${i}`} className="group border-b border-ink/15">
-          <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-3 py-3.5 text-left text-[15px] font-semibold [&::-webkit-details-marker]:hidden lg:text-base">
-            {item.title}
-            <span className="text-xl leading-none text-flame transition group-open:rotate-45" aria-hidden="true">
-              +
-            </span>
-          </summary>
-          <div className="pb-4 text-sm leading-relaxed text-clay-700 [&>p+p]:mt-3">{item.body}</div>
-        </details>
-      ))}
-    </div>
-  )
-}
-
-function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <h2 className="font-serif text-[26px] font-extrabold leading-[1.1] lg:text-4xl">{children}</h2>
-      {aside ? <span className="shrink-0 text-xs text-clay-600 lg:text-[13px]">{aside}</span> : null}
-    </div>
-  )
-}
 
 export default function LandingTemplate(props: LandingTemplateProps) {
   const {
@@ -129,10 +109,17 @@ export default function LandingTemplate(props: LandingTemplateProps) {
     nearby,
     nearbyLabel,
     footnote,
+    chips,
+    includedHeading,
+    reviewsHeading,
+    estimatorDefaults,
+    children,
   } = props
 
   const noTravelFee = travelFee != null ? travelFee <= 0 : distanceMiles != null ? distanceMiles <= TRAVEL_FREE_RADIUS_MILES : null
-  const travelLine = noTravelFee === false ? "travel fee shown upfront" : `no travel fee for ${city}`
+  // noTravelFee === null: a hub page with no single distance (SoCal-wide).
+  const travelLine =
+    noTravelFee === false ? "travel fee shown upfront" : noTravelFee === true ? `no travel fee for ${city}` : `first ${TRAVEL_FREE_RADIUS_MILES} miles free`
   // Never says where the base is — only whether this city carries a fee.
   const distanceLine =
     noTravelFee === true
@@ -141,80 +128,37 @@ export default function LandingTemplate(props: LandingTemplateProps) {
         ? `${city}: about $${travelFee} travel, shown in your quote`
         : "Most SoCal addresses carry no travel fee"
 
-  // The first card is the one people try to tap (2026-09-12: 13 rage clicks
-  // on it in one session, then "$0" and "50 mi"), so it is a real button that
-  // brings them to the phone input; the rest are flat facts, not buttons.
-  const diffs = [
-    { big: "15 min", label: "text reply", body: "A real person, not a bot", action: true },
-    { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
-    { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
-    { big: "2×", label: "back if we ever cancel", body: "Your chef is confirmed by name before your party" },
-  ]
-
   return (
     <div className="bg-cream pb-28 text-ink lg:pb-16">
-      {/* ── Hero ── */}
-      <section className="relative isolate overflow-hidden bg-cocoa text-white">
-        <Image src={heroImage ?? HERO_IMG} alt={heroAlt ?? `Live hibachi fire show at a backyard party — hibachi at home in ${city}`} fill priority quality={90} sizes="100vw" className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06] lg:object-[center_45%]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,26,16,.6)_0%,rgba(42,26,16,.2)_30%,rgba(42,26,16,.5)_60%,#2a1a10_100%)] lg:bg-[linear-gradient(90deg,rgba(42,26,16,.9)_0%,rgba(42,26,16,.65)_50%,rgba(42,26,16,.25)_100%),linear-gradient(180deg,rgba(42,26,16,.3),transparent_30%,#2a1a10_100%)]" />
-        <div className="relative mx-auto max-w-7xl px-5 pb-9 pt-[calc(var(--header-height,60px)+84px)] lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-14 lg:px-8 lg:pb-[70px] lg:pt-[calc(var(--header-height,72px)+48px)]">
-          <div className="flex flex-col gap-3 lg:gap-5">
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-flame-300 lg:text-[13px] lg:tracking-[0.14em]">{kicker}</span>
-            <h1 className="font-serif text-[40px] font-extrabold leading-[0.98] [text-shadow:0_2px_24px_rgba(0,0,0,.35)] lg:text-[64px] lg:leading-[0.95]">{title}</h1>
-            <p className="hidden text-[15px] leading-relaxed text-white/85 lg:block lg:max-w-[520px] lg:text-lg">
-              {subhead} Setup &amp; cleanup included, {travelLine}.
-            </p>
-            <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
-              {["Free to cancel 72h+", "Our own chefs", "500+ parties"].map((chip) => (
-                <span key={chip} className="rounded-full border border-white/40 px-3 py-1.5">
-                  {chip}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="hidden lg:block">
-            <LandingEstimator citySlug={citySlug} cityName={city} lockCity={lockCity} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
-          </div>
-        </div>
-      </section>
-
-      {/* Phones: the estimator overlaps the hero's bottom edge. */}
-      <div className="relative z-[2] -mt-3.5 px-4 lg:hidden">
-        <LandingEstimator citySlug={citySlug} cityName={city} lockCity={lockCity} source={source} travelFee={travelFee} proofImage={CARD_PROOF_IMG} />
-      </div>
+      <LandingHero
+        kicker={kicker}
+        title={title}
+        subhead={
+          <>
+            {subhead} Setup &amp; cleanup included, {travelLine}.
+          </>
+        }
+        chips={chips ?? HERO_CHIPS}
+        image={heroImage}
+        imageAlt={heroAlt ?? `Live hibachi fire show at a backyard party — hibachi at home in ${city}`}
+        estimator={{
+          citySlug,
+          cityName: city,
+          lockCity,
+          source,
+          travelFee,
+          travelNote: noTravelFee === null ? FIRST_MILES_FREE : undefined,
+          defaults: estimatorDefaults,
+        }}
+      />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pt-8 lg:gap-[72px] lg:px-8 lg:pt-16">
-        {/* ── Differentiators ── */}
-        <section className="flex flex-col gap-3.5">
-          <h2 className="font-serif text-[26px] font-extrabold leading-[1.1] lg:sr-only">What your quote actually includes</h2>
-          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-4">
-            {diffs.map((d) =>
-              d.action ? (
-                <LandingCtaButton
-                  key={d.label}
-                  surface="landing_deposit_card"
-                  className="flex flex-col items-start gap-1 rounded-2xl border-2 border-flame/60 bg-surface p-3.5 text-left transition hover:bg-flame/5 lg:gap-1.5 lg:p-[22px]"
-                >
-                  <span className="font-serif text-2xl font-extrabold leading-none text-flame lg:text-[34px]">{d.big}</span>
-                  <span className="text-[13px] font-semibold lg:text-[15px]">{d.label}</span>
-                  <span className="text-xs leading-snug text-clay-600 lg:text-[13px]">{d.body}</span>
-                  <span className="mt-1 text-xs font-bold text-flame lg:text-[13px]">Text me my quote →</span>
-                </LandingCtaButton>
-              ) : (
-                <div key={d.label} className="flex flex-col gap-1 rounded-2xl bg-surface/70 p-3.5 lg:gap-1.5 lg:p-[22px]">
-                  <span className="font-serif text-2xl font-extrabold leading-none text-flame lg:text-[34px]">{d.big}</span>
-                  <span className="text-[13px] font-semibold lg:text-[15px]">{d.label}</span>
-                  <span className="text-xs leading-snug text-clay-600 lg:text-[13px]">{d.body}</span>
-                </div>
-              ),
-            )}
-          </div>
-        </section>
+        <LandingDiffs distanceLine={distanceLine} />
 
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-14">
           {/* ── Included + menu ── */}
           <section className="flex flex-col gap-3.5 lg:gap-4 lg:order-1">
-            <SectionTitle>Every {city} booking includes</SectionTitle>
+            <SectionTitle>{includedHeading ?? `Every ${city} booking includes`}</SectionTitle>
             <div className="flex flex-col gap-2 text-sm leading-snug lg:text-[15px] lg:gap-2.5">
               {included.map((line) => (
                 <div key={line} className="flex gap-2.5">
@@ -238,7 +182,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
 
           {/* ── Reviews ── */}
           <section className="flex flex-col gap-3 lg:order-2 lg:gap-4">
-            <SectionTitle aside="Google & Zola reviews">{city} hosts say</SectionTitle>
+            <SectionTitle aside="Google & Zola reviews">{reviewsHeading ?? `${city} hosts say`}</SectionTitle>
             {reviews.slice(0, 3).map((review, i) => (
               <blockquote key={review.name} className={`flex flex-col gap-2 rounded-[28px] border border-ink/10 bg-surface p-4 shadow-organic lg:p-5 ${i === 2 ? "hidden lg:flex" : ""}`}>
                 <p className="text-sm leading-relaxed lg:text-[15px]">&ldquo;{review.text}&rdquo;</p>
@@ -247,6 +191,9 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             ))}
           </section>
         </div>
+
+        {/* Page-specific sections sit between the pitch and the local detail. */}
+        {children}
 
         {/* ── How it works ── */}
         <section className="flex flex-col gap-3.5 lg:gap-5">
@@ -303,21 +250,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
         </div>
 
         {/* ── Final CTA ── */}
-        <section>
-          <div className="flex flex-col gap-3 rounded-[28px] bg-cocoa px-5 py-6 text-white lg:flex-row lg:items-center lg:gap-8 lg:px-12 lg:py-11">
-            <div className="flex flex-1 flex-col gap-2">
-              <h2 className="font-serif text-[28px] font-extrabold leading-[1.05] lg:text-4xl">{ctaHeading}</h2>
-              <p className="text-sm leading-relaxed text-white/80 lg:text-base">
-                {ctaBody ?? "Your quote is ready above. One number, one text, and we confirm your chef."}
-              </p>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <LandingCtaButton className="flex h-[50px] w-full items-center justify-center rounded-full bg-flame px-8 text-[15px] font-bold text-white transition hover:bg-flame-600 lg:h-14 lg:w-auto lg:text-[17px]" />
-              <a href={phone.voice.tel} className="text-sm font-semibold text-flame-300">
-                or call {phone.voice.display}
-              </a>
-            </div>
-          </div>
+        <FinalCta heading={ctaHeading} body={ctaBody}>
           <div className="pt-6 text-xs leading-[1.8] text-clay-600 lg:flex lg:justify-between lg:pt-8 lg:text-[13px]">
             <div>
               <span className="font-semibold text-ink">{nearbyLabel ?? "Nearby"}:</span>{" "}
@@ -336,7 +269,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
             </div>
           </div>
           {footnote ? <div className="pt-2 text-xs leading-relaxed text-clay-600 lg:text-[13px]">{footnote}</div> : null}
-        </section>
+        </FinalCta>
       </div>
     </div>
   )

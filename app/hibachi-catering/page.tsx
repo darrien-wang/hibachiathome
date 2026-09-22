@@ -1,16 +1,19 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { MapPin, Phone, Users, Clock, ChefHat, Check, PartyPopper } from "lucide-react"
 import { CATERING_CITIES } from "@/config/catering-cities"
 import { getCityPage } from "@/config/city-pages"
 import { occasionPages } from "@/config/occasion-pages"
 import { pickReviews, reviewSourceLabel } from "@/config/reviews"
 import AppreciationBanner from "@/components/appreciation-banner"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
-import { phone } from "@/config/site"
-import LandingEstimator from "@/components/city/landing-estimator"
-import LandingCtaButton from "@/components/city/landing-cta-button"
+import LandingHero, { FIRST_MILES_FREE } from "@/components/city/landing-hero"
+import LandingDiffs from "@/components/city/landing-diffs"
+import { CheckList, FaqList, FinalCta, LandingBody, LandingSection, LandingShell, LinkPills, ReviewCards } from "@/components/city/landing-parts"
+
+// 2026-09-21: rebuilt on the Joshua Tree shell. ChatGPT recommends this hub
+// and the LA Occasions "Large Party 20+" ads land here, so the card opens at
+// 20 adults and asks for the phone first. Metadata, JSON-LD, the h1 and every
+// heading, paragraph and FAQ keep their text - only the layout changed.
 
 const BASE_URL = "https://www.realhibachi.com"
 const URL = `${BASE_URL}/hibachi-catering`
@@ -80,6 +83,11 @@ const faqs = [
   },
 ]
 
+const INTRO = [
+  "Hibachi catering turns any gathering into dinner and a show: our chefs bring the teppanyaki grills to your home, office, or venue and cook live for parties of 10 to 100+.",
+  "One chef and grill per 28 guests, published pricing, and a single booking no matter how big the guest list — serving Los Angeles, Orange County, San Diego, and the Inland Empire.",
+]
+
 export default function HibachiCateringHubPage() {
   const reviews = pickReviews("hibachi-catering-hub")
   const cateringCityPages = CATERING_CITIES.map((slug) => getCityPage(slug)).filter(
@@ -138,220 +146,97 @@ export default function HibachiCateringHubPage() {
   }
 
   return (
-    // pb-28: room for the estimator's phone bar, same as the city pages.
-    <div className="min-h-screen bg-white pb-28 lg:pb-0">
+    <LandingShell>
       <JsonLd data={[serviceJsonLd, faqJsonLd, breadcrumbJsonLd]} />
-
-      {/* Hero */}
-      <section className="hero-section bg-gradient-to-r from-amber-50 to-orange-50 pb-16">
-        <div className="container mx-auto px-4">
-          <nav className="text-sm text-gray-500 mb-6 pt-6" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-primary">
+      <LandingHero
+        breadcrumb={
+          <nav aria-label="Breadcrumb">
+            <Link href="/" className="hover:underline">
               Home
             </Link>
             {" / "}
-            <span className="text-gray-700">Hibachi Catering</span>
+            <span>Hibachi Catering</span>
           </nav>
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-gray-900 mb-6">
-              Hibachi Catering Across <span className="text-primary">Southern California</span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-4 leading-relaxed">
-              Hibachi catering turns any gathering into dinner and a show: our chefs bring the teppanyaki grills to your
-              home, office, or venue and cook live for parties of 10 to 100+.
-            </p>
-            <p className="text-lg md:text-xl text-gray-600 mb-4 leading-relaxed">
-              One chef and grill per 28 guests, published pricing, and a single booking no matter how big the guest
-              list — serving Los Angeles, Orange County, San Diego, and the Inland Empire.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 mb-8">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
-                <LandingCtaButton surface="seo_catering_hub_hero">Get Instant Quote</LandingCtaButton>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4">
-                <Link href={phone.voice.tel}>
-                  <Phone className="h-5 w-5 mr-2" />
-                  Call {phone.voice.display}
-                </Link>
-              </Button>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center">
-                <Check className="h-4 w-4 text-primary mr-1" />
-                Free cancellation up to 72h
-              </span>
-              <span className="flex items-center">
-                <Users className="h-4 w-4 text-primary mr-1" />
-                1 Chef & Grill per 28 Guests
-              </span>
-              <span className="flex items-center">
-                <ChefHat className="h-4 w-4 text-primary mr-1" />
-                Our Own Chefs
-              </span>
-              <span className="flex items-center">
-                <Clock className="h-4 w-4 text-primary mr-1" />
-                Setup & Cleanup Included
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+        }
+        kicker="Hibachi catering · LA, OC, San Diego & Inland Empire"
+        title={
+          <>
+            Hibachi Catering Across <span className="text-flame-300">Southern California</span>
+          </>
+        }
+        subhead={INTRO[0]}
+        chips={["Free cancellation up to 72h", "1 Chef & Grill per 28 Guests", "Our Own Chefs", "Setup & Cleanup Included"]}
+        imageAlt="Hibachi catering event in Southern California - live teppanyaki fire show"
+        estimator={{
+          citySlug: "socal",
+          cityName: "Southern California",
+          lockCity: true,
+          source: "seo_hibachi_catering_hub",
+          travelNote: FIRST_MILES_FREE,
+          cardLabel: "Your catering event",
+          defaults: { adults: 20, kids: 0 },
+        }}
+      />
+      <LandingBody>
+        <LandingDiffs distanceLine="Most SoCal addresses carry no travel fee" />
 
-      {/* Exact price on the page (2026-09-21), same card as the city pages.
-          ChatGPT recommends this hub; its visitors used to click through to
-          /quote before they could leave a number. The hub covers LA to San
-          Diego, so travel is shown as "first 50 mi free" and the text says it
-          is confirmed from the address - never "no travel fee". */}
-      <section className="bg-gradient-to-b from-orange-50 to-white pb-12">
-        <div className="mx-auto -mt-6 max-w-[440px] px-4">
-          <LandingEstimator citySlug="socal" cityName="Southern California" lockCity source="seo_hibachi_catering_hub" travelNote="First 50 mi free" />
+        <div className="flex max-w-[760px] flex-col gap-3 text-[15px] leading-relaxed lg:text-[17px]">
+          {INTRO.map((p, i) => (
+            <p key={p.slice(0, 24)} className={i > 0 ? "text-clay-700" : ""}>
+              {p}
+            </p>
+          ))}
         </div>
-      </section>
 
-      {/* Pricing & What's Included */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 items-start">
-            <div>
-              <h2 className="text-3xl font-serif font-bold text-gray-900 mb-4">
-                Catering Pricing, <span className="text-primary">Published</span>
-              </h2>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-5xl font-black text-gray-900">$59.90</span>
-                <span className="text-lg text-gray-500">/adult</span>
-              </div>
-              <p className="text-gray-600 mb-1">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
-              <p className="text-gray-600 mb-4">
+        <LandingSection title="Catering Pricing, Published">
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
+            <div className="flex flex-col gap-2">
+              <p className="font-serif text-5xl font-extrabold leading-none">
+                $59.90<span className="font-sans text-lg font-medium text-clay-600">/adult</span>
+              </p>
+              <p className="text-sm text-clay-700 lg:text-[15px]">$29.90 per child 5–12 · kids under 5 eat free · $599 event minimum</p>
+              <p className="text-sm text-clay-700 lg:text-[15px]">
                 Weekday Special: <strong>$54.90/adult</strong> for Mon–Thu events, any size, with a free appetizer platter.
               </p>
-              <p className="text-sm text-gray-500">
-                No per-guest setup surcharge and no fee to add more grills — the per-person price is the price at 10
-                guests or 100. The first 50 miles of travel are free, then $1 per additional mile, shown in your quote
-                before you pay. Gratuity (20–25%) is the only thing not included.
+              <p className="text-xs leading-relaxed text-clay-600 lg:text-[13px]">
+                No per-guest setup surcharge and no fee to add more grills — the per-person price is the price at 10 guests or 100. The first 50 miles of travel are free, then $1 per additional mile, shown in your quote before you pay. Gratuity (20–25%) is the only thing not included.
               </p>
             </div>
-            <div className="bg-[#fffdf8] border border-[#e7dbc6] rounded-2xl p-6">
-              <h3 className="text-xl font-bold mb-4">Every catering booking includes</h3>
-              <ul className="space-y-3">
-                {included.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-700">
-                    <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="flex flex-col gap-3 rounded-[28px] border border-ink/10 bg-surface p-5 shadow-organic">
+              <h3 className="font-serif text-xl font-extrabold leading-tight">Every catering booking includes</h3>
+              <CheckList items={included} />
             </div>
           </div>
-          <div className="max-w-4xl mx-auto mt-8">
-            <AppreciationBanner source="hibachi_catering_hub" />
-          </div>
-        </div>
-      </section>
+          <AppreciationBanner source="hibachi_catering_hub" />
+        </LandingSection>
 
-      {/* Occasions */}
-      <section className="py-16 bg-[#fffdf8] border-y border-[#e7dbc6]">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-              Occasions We <span className="text-primary">Cater</span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Every occasion gets its own playbook — see how a hibachi party fits yours.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
-            {occasionPages.map((occasion) => (
-              <Link
-                key={occasion.slug}
-                href={`/party/${occasion.slug}`}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white px-5 py-2.5 text-primary font-medium hover:bg-primary hover:text-white transition-colors"
-              >
-                <PartyPopper className="h-4 w-4" />
-                {occasion.occasion}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+        <LandingSection title="Occasions We Cater" lead="Every occasion gets its own playbook — see how a hibachi party fits yours.">
+          <LinkPills links={occasionPages.map((occasion) => ({ label: occasion.occasion, href: `/party/${occasion.slug}` }))} />
+        </LandingSection>
 
-      {/* Reviews */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif font-bold text-center text-gray-900 mb-10">
-            What Hosts <span className="text-primary">Say</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {reviews.map((review) => (
-              <div key={review.name} className="rounded-xl border border-[#e7dbc6] bg-[#fffdf8] p-6">
-                <p className="text-gray-700 italic mb-4">&ldquo;{review.text}&rdquo;</p>
-                <p className="font-semibold text-gray-900">— {review.name}</p>
-                <p className="text-xs text-gray-500 mt-1">{reviewSourceLabel(review)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <LandingSection title="What Hosts Say">
+          <ReviewCards reviews={reviews.map((review) => ({ name: review.name, text: review.text, source: reviewSourceLabel(review) }))} />
+        </LandingSection>
 
-      {/* FAQ */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif font-bold text-center text-gray-900 mb-10">
-            Hibachi Catering <span className="text-primary">Questions</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {faqs.map((faq) => (
-              <div key={faq.question} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h3 className="font-bold text-lg mb-2 text-gray-900">{faq.question}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.answer}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 text-center">
-            <Button asChild variant="outline" className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50">
-              <Link href="/faq">View All FAQs</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+        <FaqList
+          heading="Hibachi Catering Questions"
+          faqs={faqs}
+          footer={
+            <Link href="/faq" className="font-semibold text-flame-700 underline">
+              View All FAQs
+            </Link>
+          }
+        />
 
-      {/* Catering city pages */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-              Hibachi Catering by <span className="text-primary">City</span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Local pricing, travel details, and neighborhood coverage for each metro we cater.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
-            {cateringCityPages.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/hibachi-catering/${city.slug}`}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white px-5 py-2.5 text-primary font-medium hover:bg-primary hover:text-white transition-colors"
-              >
-                <MapPin className="h-4 w-4" />
-                {city.city}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+        <LandingSection title="Hibachi Catering by City" lead="Local pricing, travel details, and neighborhood coverage for each metro we cater.">
+          <LinkPills links={cateringCityPages.map((city) => ({ label: city.city, href: `/hibachi-catering/${city.slug}` }))} />
+        </LandingSection>
 
-      {/* Final CTA */}
-      <section className="py-16 bg-gradient-to-r from-amber-600 to-orange-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">Feed Everyone. Entertain Everyone.</h2>
-          <p className="text-lg text-amber-100 max-w-2xl mx-auto mb-8">
-            See your hibachi catering price range in 30 seconds — any party size. Exact quote and party discount by text.
-          </p>
-          <Button asChild size="lg" className="bg-white text-amber-600 hover:bg-amber-50 text-lg px-8 py-4">
-            <LandingCtaButton surface="seo_catering_hub_final">Get Instant Quote</LandingCtaButton>
-          </Button>
-        </div>
-      </section>
-    </div>
+        <FinalCta
+          heading="Feed Everyone. Entertain Everyone."
+          body="See your hibachi catering price range in 30 seconds — any party size. Exact quote and party discount by text."
+        />
+      </LandingBody>
+    </LandingShell>
   )
 }

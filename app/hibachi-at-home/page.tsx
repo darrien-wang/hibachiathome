@@ -1,24 +1,34 @@
-"use client"
-
-import { useRouter } from "next/navigation"
-
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, Star, MapPin, ChefHat, UtensilsCrossed, Flame, Clock, Users, Armchair, PartyPopper } from "lucide-react"
-import { phone, siteConfig, smsHref, whatsappHref } from "@/config/site"
-import { AnimateOnScroll } from "@/components/animate-on-scroll"
-import HeroSection from "@/components/hero-section"
-import TestimonialsSection from "@/components/testimonials-section"
-import SocialProofCounter from "@/components/social-proof-counter"
-import { trackEvent } from "@/lib/tracking"
-import LazyVideo from "@/components/lazy-video"
+import Image from "next/image"
 import Link from "next/link"
-import { cityPages } from "@/config/city-pages"
+import LazyVideo from "@/components/lazy-video"
 import { JsonLd, hibachiAtHomeServiceJsonLd } from "@/components/structured-data"
+import LandingHero, { FIRST_MILES_FREE } from "@/components/city/landing-hero"
+import LandingDiffs from "@/components/city/landing-diffs"
+import LandingCtaButton from "@/components/city/landing-cta-button"
+import {
+  CheckList,
+  FactCards,
+  FaqList,
+  FinalCta,
+  LandingBody,
+  LandingSection,
+  LandingShell,
+  LinkPills,
+  PlaceChips,
+  ReviewCards,
+  SectionTitle,
+} from "@/components/city/landing-parts"
+import { cityPages } from "@/config/city-pages"
+import { GOOGLE_REVIEWS } from "@/config/reviews"
+import { phone, smsHref, whatsappHref } from "@/config/site"
 
-// FAQ data
+// 2026-09-21: rebuilt on the Joshua Tree shell (photo hero + the card that
+// asks for the phone first), and as a server component - the old page was a
+// client component with click handlers on every button. Metadata is in
+// layout.tsx and unchanged; every heading, paragraph, FAQ, review and city
+// link keeps its text. The crossed-out "$60" beside $59.90 is gone: nobody was
+// ever charged $60.
+
 const faqs = [
   {
     question: "Do I need to prepare anything?",
@@ -46,38 +56,13 @@ const faqs = [
   },
 ]
 
-// Service features data
 const serviceFeatures = [
-  {
-    icon: ChefHat,
-    title: "What's Included",
-    description: "Private chef, grill, full setup, cleanup. You host, we cook.",
-  },
-  {
-    icon: UtensilsCrossed,
-    title: "What You Eat",
-    description: "Fried rice, salad, veggies, and 2 proteins per guest. Add lobster or filet upgrades!",
-  },
-  {
-    icon: Flame,
-    title: "What to Expect",
-    description: "Live hibachi show with fire tricks, food tossing, and crowd interaction.",
-  },
-  {
-    icon: Clock,
-    title: "Duration",
-    description: "~1.5 to 2 hours depending on guest count and menu.",
-  },
-  {
-    icon: Users,
-    title: "Guest Minimum",
-    description: "$599 event minimum — about 10 adults. Perfect for birthdays or backyard dinners.",
-  },
-  {
-    icon: Armchair,
-    title: "Optional Add-ons",
-    description: "We offer table, chair & utensil rentals — or you're welcome to use your own!",
-  },
+  { title: "What's Included", description: "Private chef, grill, full setup, cleanup. You host, we cook." },
+  { title: "What You Eat", description: "Fried rice, salad, veggies, and 2 proteins per guest. Add lobster or filet upgrades!" },
+  { title: "What to Expect", description: "Live hibachi show with fire tricks, food tossing, and crowd interaction." },
+  { title: "Duration", description: "~1.5 to 2 hours depending on guest count and menu." },
+  { title: "Guest Minimum", description: "$599 event minimum — about 10 adults. Perfect for birthdays or backyard dinners." },
+  { title: "Optional Add-ons", description: "We offer table, chair & utensil rentals — or you're welcome to use your own!" },
 ]
 
 // Customer reviews
@@ -102,678 +87,255 @@ const reviews = [
 ]
 
 
-// Type definitions for card items
-type CardVariant = "default" | "outline" | "link" | "destructive" | "secondary" | "ghost"
+// The four verbatim Google reviews the old TestimonialsSection showed.
+const MORE_REVIEWS = GOOGLE_REVIEWS.filter((r) => ["Kelsey Molnar", "Lisa Craven", "Judy Gothelf", "Beatrix Barrera"].includes(r.name))
 
-interface CardItem {
-  title: string
-  description: string
-  icon: React.ReactNode
-  buttonText: string
-  onClick?: () => void
-  href?: string
-  external?: boolean
-  variant: CardVariant
-  className: string
-  is24_7?: boolean
+const TRUST_MARKERS = ["Book & modify online 24/7", "500+ parties served", "Free cancellation up to 72h"]
+
+function VideoBlock({ poster, src, lead, note }: { poster: string; src: string; lead: string; note: string }) {
+  return (
+    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center lg:gap-10">
+      <div className="relative aspect-video overflow-hidden rounded-[28px] bg-cocoa">
+        <LazyVideo className="absolute inset-0 h-full w-full object-cover" controls poster={poster} src={src} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="font-semibold text-flame-700">{lead}</p>
+        <p className="text-sm leading-relaxed text-clay-700">{note}</p>
+      </div>
+    </div>
+  )
 }
 
 export default function HibachiAtHomePage() {
-  const router = useRouter()
-  const packageSelectionMetadata: Record<string, { name: string; price_tier: string }> = {
-    show: { name: "Hibachi Show Package", price_tier: "59.9_per_person" },
-    party: { name: "Party Experience Package", price_tier: "custom_party" },
-  }
-
-  const handleOnlineBooking = () => {
-    trackEvent("lead_start")
-    router.push("/quote?source=seo_hibachi_at_home")
-  }
-
-  const handleBookNow = (packageType: string) => {
-    const packageSelection = packageSelectionMetadata[packageType]
-
-    if (packageSelection) {
-      trackEvent("package_selected", {
-        package_name: packageSelection.name,
-        price_tier: packageSelection.price_tier,
-        package_type: packageType,
-      })
-    }
-
-    trackEvent("lead_start")
-    router.push(`/quote?source=seo_hibachi_at_home_package&package=${packageType}`)
-  }
-
-  const handleViewMenu = () => {
-    trackEvent("menu_view")
-    router.push("/menu")
-  }
-
-  const handleViewFAQ = () => {
-    trackEvent("faq_view")
-    router.push("/faq")
-  }
-
-  const handleWhatsApp = () => {
-    const url = whatsappHref("Hello, I would like to book a hibachi experience")
-    trackEvent("contact_whatsapp_click")
-    window.location.href = url
-  }
-
-  const handleSMS = () => {
-    const url = smsHref("I'm interested in booking a REAL HIBACHI experience")
-    trackEvent("contact_sms_click")
-    window.location.href = url
-  }
-
-  const handlePhone = () => {
-    const url = phone.voice.tel
-    trackEvent("contact_call_click")
-    window.location.href = url
-  }
-
-  const cardItems: CardItem[] = [
-    {
-      title: "Online Booking",
-      description: "Book at your convenience",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "Book Now",
-      onClick: handleOnlineBooking,
-      variant: "default",
-      className: "bg-white/20 border-white/30",
-      is24_7: true,
-    },
-    {
-      title: "WhatsApp",
-      description: "Fastest response time",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "WhatsApp",
-      onClick: handleWhatsApp,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-    {
-      title: "SMS",
-      description: "Text us directly",
-      icon: <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />,
-      buttonText: "SMS",
-      onClick: handleSMS,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-    {
-      title: "Phone",
-      description: "Speak with us",
-      icon: null,
-      buttonText: phone.voice.dashed,
-      onClick: handlePhone,
-      variant: "outline",
-      className: "bg-white/20 border-white/30",
-    },
-  ]
-
   return (
-    <div className="min-h-screen">
+    <LandingShell>
       <JsonLd data={hibachiAtHomeServiceJsonLd} />
-      <HeroSection />
+      <LandingHero
+        kicker="Private Hibachi Catering"
+        title="The Effortless Hibachi At Home Experience"
+        subhead="Plan the party in 3 minutes — spend the evening with the people you love."
+        chips={TRUST_MARKERS}
+        imageAlt="Live hibachi fire show at a backyard party - private hibachi chef at home in Los Angeles"
+        estimator={{ citySlug: "hibachi-at-home", cityName: "LA & Orange County", source: "seo_hibachi_at_home", travelNote: FIRST_MILES_FREE }}
+      />
 
-      {/* Los Angeles Service Area Highlight */}
-      <AnimateOnScroll>
-        <section className="py-12 relative overflow-hidden">
-          {/* Image Background instead of Video */}
-          <div className="absolute inset-0 w-full h-full z-0">
-            <img
-              src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg"
-              alt="Los Angeles hibachi catering background"
-              className="w-full h-full object-cover"
-            />
-            {/* Overlay to ensure text readability */}
-            <div className="absolute inset-0 bg-black/60 z-10"></div>
-          </div>
+      <LandingBody>
+        <LandingDiffs distanceLine="Most of LA and Orange County sits inside the free 50 miles" />
 
-          <div className="container mx-auto px-4 relative z-20">
-            <div className="text-center max-w-4xl mx-auto">
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-white mb-4">
-                Now Serving <span className="text-primary">Los Angeles & Orange County</span>
-              </h2>
-              <p className="text-lg text-white mb-6">
-                Experience authentic hibachi at home in Los Angeles, Beverly Hills, Santa Monica, Irvine, and nearby
-                Orange County cities.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4 mb-6">
-                <div className="flex items-center text-sm text-white">
-                  <MapPin className="h-4 w-4 text-primary mr-1" />
-                  Los Angeles County
-                </div>
-                <div className="flex items-center text-sm text-white">
-                  <MapPin className="h-4 w-4 text-primary mr-1" />
-                  Orange County
-                </div>
-                <div className="flex items-center text-sm text-white">
-                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                  Same Day Available
-                </div>
+        <p className="text-lg font-semibold leading-snug lg:hidden">Plan the party in 3 minutes — spend the evening with the people you love.</p>
+
+        <LandingSection
+          title="Now Serving Los Angeles & Orange County"
+          lead="Experience authentic hibachi at home in Los Angeles, Beverly Hills, Santa Monica, Irvine, and nearby Orange County cities."
+        >
+          <PlaceChips places={["Los Angeles County", "Orange County", "Same Day Available"]} />
+          <div className="grid grid-cols-3 gap-2.5 lg:gap-4">
+            {[
+              { big: "500+", label: "Parties Served" },
+              { big: "6", label: "SoCal Counties Covered" },
+              { big: "24/7", label: "Online Self-Service Booking" },
+            ].map((c) => (
+              <div key={c.label} className="flex flex-col gap-1 rounded-2xl bg-surface/70 p-3.5 lg:p-[22px]">
+                <span className="font-serif text-2xl font-extrabold leading-none text-flame lg:text-[34px]">{c.big}</span>
+                <span className="text-xs text-clay-700 lg:text-sm">{c.label}</span>
               </div>
-              <Button asChild className="bg-primary hover:bg-primary/90">
-                <a href="/quote?source=seo_hibachi_at_home_la_oc">Book Hibachi at Home in LA</a>
-              </Button>
-            </div>
+            ))}
           </div>
-        </section>
-      </AnimateOnScroll>
+          <div>
+            <LandingCtaButton surface="seo_hibachi_at_home_la_oc" className="inline-flex h-11 items-center rounded-full bg-flame px-6 text-sm font-semibold text-white hover:bg-flame-600">
+              Book Hibachi at Home in LA
+            </LandingCtaButton>
+          </div>
+        </LandingSection>
 
-      {/* Social Proof Counter */}
-      <AnimateOnScroll>
-        <SocialProofCounter />
-      </AnimateOnScroll>
-
-      {/* Search-focused service summary */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-amber-50/60">
-          <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto">
-              <div className="text-center mb-10">
-                <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">
-                  Hibachi at Home Service in Los Angeles & Orange County
-                </h2>
-                <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-                  Real Hibachi brings a private hibachi chef to your house, backyard, apartment community, or event
-                  space. We handle the cooking experience on-site so you can host without turning dinner into another
-                  project.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>What is included</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-gray-700">
+        <LandingSection
+          title="Hibachi at Home Service in Los Angeles & Orange County"
+          lead="Real Hibachi brings a private hibachi chef to your house, backyard, apartment community, or event space. We handle the cooking experience on-site so you can host without turning dinner into another project."
+        >
+          <FactCards
+            items={[
+              {
+                title: "What is included",
+                body: (
+                  <>
                     <p>Private chef, mobile grill, fresh ingredients, chef show, setup, and cleanup.</p>
                     <p>Guests typically receive fried rice, salad, vegetables, and two protein choices.</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pricing & minimums</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-gray-700">
-                    <p>Standard hibachi at home pricing is $59.90 per adult, $29.90 per child 5–12, under 5 free. Mon–Thu Weekday Special $54.90 per adult with a free appetizer platter. Parties of 10+ save $30–$90 automatically.</p>
-                    <p>Every event carries a $599 minimum (about 10 adults), with optional upgrades and rentals.</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Service areas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-gray-700">
+                  </>
+                ),
+              },
+              {
+                title: "Pricing & minimums",
+                body: (
+                  <>
                     <p>
-                      Serving Los Angeles County and Orange County, including LA, Santa Monica, Beverly Hills, Irvine,
-                      Anaheim, and Newport Beach.
+                      Standard hibachi at home pricing is $59.90 per adult, $29.90 per child 5–12, under 5 free. Mon–Thu Weekday Special $54.90 per adult with a free appetizer platter. Parties of 10+ save $30–$90 automatically.
                     </p>
+                    <p>Every event carries a $599 minimum (about 10 adults), with optional upgrades and rentals.</p>
+                  </>
+                ),
+              },
+              {
+                title: "Service areas",
+                body: (
+                  <>
+                    <p>Serving Los Angeles County and Orange County, including LA, Santa Monica, Beverly Hills, Irvine, Anaheim, and Newport Beach.</p>
                     <p>Enter your city or ZIP code in the quote form to confirm availability and any travel fee.</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="mt-8 text-center">
-                <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={handleOnlineBooking}>
-                  Get a Hibachi at Home Quote
-                </Button>
-              </div>
-            </div>
+                  </>
+                ),
+              },
+            ]}
+          />
+          <div>
+            <LandingCtaButton surface="seo_hibachi_at_home_summary" className="inline-flex h-11 items-center rounded-full bg-flame px-6 text-sm font-semibold text-white hover:bg-flame-600">
+              Get a Hibachi at Home Quote
+            </LandingCtaButton>
           </div>
-        </section>
-      </AnimateOnScroll>
+        </LandingSection>
 
-      {/* Service Introduction */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-serif font-bold mb-4">"We bring the restaurant to your backyard."</h3>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                A professional hibachi chef comes to your home with the grill, ingredients, setup, show, and cleanup
-                needed for an authentic Japanese-style private dining experience.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto text-center">
-              {serviceFeatures.map((feature, index) => (
-                <div key={index} className="flex flex-col items-center text-center p-4">
-                  <feature.icon className="h-8 w-8 text-amber-600 mb-3" aria-hidden="true" />
-                  <div className="text-lg font-semibold mb-2">{feature.title}</div>
-                  <div className="text-sm text-gray-600">{feature.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Package Options Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Our Popular <span className="text-primary">Packages</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any
-                occasion
-              </p>
-            </AnimateOnScroll>
-
-            <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto justify-center items-center md:items-start">
-              {/* Basic Package Card */}
-              <AnimateOnScroll direction="left" className="w-full max-w-sm mx-auto md:flex-1 md:max-w-md md:mx-0">
-                <div className="border rounded-lg overflow-hidden transition-all relative hover:shadow-lg border-amber-300/50 hover:border-amber-300">
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 border-amber-200">
-                      Most Popular
-                    </span>
-                  </div>
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg"
-                      alt="Basic Package"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">Hibachi Show Package</h3>
-                    <div className="mb-4">
-                      <p className="text-lg font-semibold text-amber-600">
-                        <span className="text-gray-500 text-sm line-through mr-2">$60</span>
-                        $59.90
-                        <span className="text-sm font-normal"> per person</span>
-                      </p>
-                      <p className="text-xs text-gray-600">($599 minimum)</p>
-                    </div>
-                    <ul className="space-y-1 mb-6 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>2 proteins of your choice</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Fried rice & vegetables</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Chef performance included</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-amber-500 mr-2">•</span>
-                        <span>Perfect for intimate gatherings</span>
-                      </li>
-                    </ul>
-                    <Button className="w-full bg-amber-500 hover:bg-amber-600" onClick={() => handleBookNow("show")}>
-                      Book Now
-                    </Button>
-                  </div>
-                </div>
-              </AnimateOnScroll>
-
-            </div>
-
-            <AnimateOnScroll direction="up" delay={200}>
-              <div className="text-center mt-10">
-                <Button
-                  variant="outline"
-                  className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-                  onClick={handleViewMenu}
-                >
-                  View Menu
-                </Button>
-              </div>
-            </AnimateOnScroll>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Party Experience Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Perfect for <span className="text-primary">Birthday Parties & Celebrations</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Make your special occasions unforgettable with a private hibachi chef and an exciting dining experience
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/party-highlight.jpg"
-                    src="/gallery/real-hibachi-party-orange-county-backyard-video-02.mp4"
-                  />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium">
-                Create lasting memories with friends and family at your next celebration!
-              </p>
-              <p className="text-gray-600 text-sm mt-2">
-                Our chefs bring the entertainment and delicious food directly to your home or venue
-              </p>
-              <Button
-                className="mt-6 bg-amber-500 hover:bg-amber-600 text-white"
-                onClick={() => handleBookNow("party")}
-              >
-                Book Your Party Experience
-              </Button>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Food Preparation Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                When Our Fire Gets Too Real
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[177.78%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/real-fire.jpg"
-                    src="/videos/real-fire.mp4"
-                  />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium">
-                Our hibachi fire is so real, sometimes we get unexpected guests!
-              </p>
-              <p className="text-gray-600 text-sm mt-2">
-                Don't worry - our chefs are trained professionals who know how to handle the heat safely.
-              </p>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Customer Atmosphere Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">
-                Experience the <span className="text-primary">Atmosphere</span>
-              </h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                See how our hibachi experience transforms your home into an exciting dining venue
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-2xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[177.78%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/atmosphere.jpg"
-                    src="/videos/atmosphere.mp4"
-                    />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <AnimateOnScroll delay={100} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <PartyPopper className="h-6 w-6 text-amber-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Lively Atmosphere</h3>
-                  <p className="text-gray-600">
-                    Experience the excitement and energy of a hibachi restaurant in your own home.
-                  </p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={200} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users className="h-6 w-6 text-amber-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Family Friendly</h3>
-                  <p className="text-gray-600">
-                    Perfect entertainment for guests of all ages, creating memorable experiences.
-                  </p>
-                </div>
-              </AnimateOnScroll>
-
-              <AnimateOnScroll delay={300} direction="up">
-                <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Flame className="h-6 w-6 text-amber-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Spectacular Show</h3>
-                  <p className="text-gray-600">
-                    Watch as our skilled chefs perform impressive cooking techniques and fire tricks.
-                  </p>
-                </div>
-              </AnimateOnScroll>
-            </div>
-
-            {/* FAQ Section */}
-            <AnimateOnScroll>
-              <div className="mt-16 max-w-4xl mx-auto">
-                <h3 className="text-2xl md:text-3xl font-serif font-bold text-center mb-8">
-                  Frequently Asked Questions
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {faqs.map((faq, index) => (
-                    <AnimateOnScroll key={index} direction={index % 2 === 0 ? "left" : "right"}>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h4 className="font-bold text-lg mb-3 text-amber-600">{faq.question}</h4>
-                        <p className="text-gray-600">{faq.answer}</p>
-                      </div>
-                    </AnimateOnScroll>
-                  ))}
-                </div>
-                <div className="mt-8 text-center">
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50"
-                    onClick={handleViewFAQ}
-                  >
-                    View All FAQs
-                  </Button>
-                </div>
-              </div>
-            </AnimateOnScroll>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Customer Reviews */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
-          <div className="container mx-auto px-4">
-            <h3 className="text-3xl font-serif font-bold text-center mb-12">What Our Customers Say</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {reviews.map((review, index) => (
-                <AnimateOnScroll key={index} delay={index * 100}>
-                  <Card className="p-6 hover:shadow-lg transition-shadow">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center mb-4">
-                        {[...Array(review.rating)].map((_, i) => (
-                          <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
-                        ))}
-                      </div>
-                      <p className="text-gray-600 mb-4 italic">"{review.text}"</p>
-                      <p className="font-semibold">— {review.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">Google review</p>
-                    </CardContent>
-                  </Card>
-                </AnimateOnScroll>
-              ))}
-            </div>
-
-            <div className="text-center mt-12">
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg font-semibold"
-                onClick={handleSMS}
-              >
-                <MessageSquare className="mr-2 h-5 w-5" /> Text for Instant Quote
-              </Button>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Final CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-amber-600 to-orange-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
-            Ready to Create Unforgettable Memories?
-          </h3>
-          <p className="text-xl text-amber-100 max-w-3xl mx-auto mb-10">
-            Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home. Our
-            professional chefs are ready to create an amazing show and delicious meal for you and your guests.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {cardItems.map((card, index) => (
-              <Card key={index} className={`text-center flex flex-col ${card.className}`}>
-                <CardHeader className="h-[100px] flex flex-col justify-center">
-                  <CardTitle className="text-white text-lg">{card.title}</CardTitle>
-                  <CardDescription className="h-[30px] flex items-center justify-center text-amber-100">
-                    {card.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow flex flex-col items-center justify-end pb-6">
-                  <Button
-                    className="w-full mx-auto h-10 text-xs sm:text-sm whitespace-nowrap overflow-hidden bg-white text-amber-600 hover:bg-amber-50"
-                    variant={card.variant}
-                    onClick={card.onClick}
-                  >
-                    {card.icon}
-                    {card.buttonText}
-                  </Button>
-                  <div className="h-[20px] flex items-center justify-center">
-                    {card.is24_7 && <p className="text-xs text-amber-100 mt-2">24/7 Service Available</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">500+</div>
-              <div className="text-amber-100">Parties Served</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">1 per 28</div>
-              <div className="text-amber-100">A Dedicated Chef & Griddle per 28 Guests</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">72h</div>
-              <div className="text-amber-100">Full-Refund Cancellation Window</div>
-            </div>
-          </div>
-
-          <div className="mt-16 max-w-4xl mx-auto">
-            <img
-              src="/hibachi-group-selfie.jpg"
-              alt="Happy customers enjoying hibachi experience at home"
-              className="w-full h-64 md:h-80 object-cover rounded-xl shadow-2xl"
-              loading="lazy"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <TestimonialsSection />
-
-      {/* Signature Fried Rice Video Section */}
-      <AnimateOnScroll>
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <AnimateOnScroll direction="down">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center mb-6">Signature Fried Rice</h2>
-              <p className="text-lg text-center text-gray-600 max-w-3xl mx-auto mb-10">
-                Watch our chef prepare our signature fried rice.
-              </p>
-            </AnimateOnScroll>
-
-            <AnimateOnScroll>
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                <div className="relative pb-[56.25%] h-0">
-                  <LazyVideo
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                    controls
-                    poster="/videos/posters/fried-rice.jpg"
-                    src="/videos/fried-rice.mp4"
-                  />
-                </div>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="mt-8 text-center">
-              <p className="text-amber-600 font-medium">Our signature fried rice is a crowd favorite!</p>
-              <p className="text-gray-600 text-sm mt-2">Made with fresh ingredients and cooked to perfection.</p>
-            </div>
-          </div>
-        </section>
-      </AnimateOnScroll>
-
-      {/* Cities We Serve */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-              Hibachi at Home Across <span className="text-primary">Southern California</span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Find your city for local pricing, popular occasions, and neighborhood coverage.
+        <section className="flex flex-col gap-3.5 lg:gap-5">
+          <div className="flex flex-col gap-1.5">
+            <SectionTitle as="h3">&ldquo;We bring the restaurant to your backyard.&rdquo;</SectionTitle>
+            <p className="max-w-[760px] text-sm leading-relaxed text-clay-700 lg:text-base">
+              A professional hibachi chef comes to your home with the grill, ingredients, setup, show, and cleanup needed for an authentic Japanese-style private dining experience.
             </p>
           </div>
-          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
-            {cityPages.map((city) => (
-              <Link
-                key={city.slug}
-                href={`/hibachi-at-home/${city.slug}`}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white px-5 py-2.5 text-primary font-medium hover:bg-primary hover:text-white transition-colors"
-              >
-                <MapPin className="h-4 w-4" />
-                {city.city}
-              </Link>
-            ))}
+          <FactCards items={serviceFeatures.map((f) => ({ title: f.title, body: <p>{f.description}</p> }))} />
+        </section>
+
+        <LandingSection title="Our Popular Packages" lead="Choose from our carefully crafted packages designed to provide the perfect hibachi experience for any occasion">
+          <div className="flex flex-col overflow-hidden rounded-[28px] border border-ink/10 bg-surface shadow-organic lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <div className="relative aspect-[4/3] lg:aspect-auto">
+              <Image src="/images/design-mode/Chicken-and-Beef-Hibachi-Catering-LA.jpg" alt="Basic Package" fill sizes="(max-width: 1024px) 100vw, 520px" className="object-cover" />
+            </div>
+            <div className="flex flex-col gap-3 p-5 lg:p-8">
+              <span className="w-fit rounded-full bg-flame-100 px-3 py-1 text-xs font-semibold text-flame-700">Most Popular</span>
+              <h3 className="font-serif text-2xl font-extrabold leading-tight">Hibachi Show Package</h3>
+              <p className="font-serif text-3xl font-extrabold leading-none">
+                $59.90<span className="font-sans text-sm font-medium text-clay-600"> per person</span>
+              </p>
+              <p className="text-xs text-clay-600">($599 minimum)</p>
+              <CheckList items={["2 proteins of your choice", "Fried rice & vegetables", "Chef performance included", "Perfect for intimate gatherings"]} />
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <LandingCtaButton surface="seo_hibachi_at_home_package" className="inline-flex h-11 items-center rounded-full bg-flame px-6 text-sm font-semibold text-white hover:bg-flame-600">
+                  Book Now
+                </LandingCtaButton>
+                <Link href="/menu" className="text-sm font-semibold text-flame-700 underline">
+                  View Menu
+                </Link>
+              </div>
+            </div>
           </div>
+        </LandingSection>
+
+        <LandingSection title="Perfect for Birthday Parties & Celebrations" lead="Make your special occasions unforgettable with a private hibachi chef and an exciting dining experience">
+          <VideoBlock
+            poster="/videos/posters/party-highlight.jpg"
+            src="/gallery/real-hibachi-party-orange-county-backyard-video-02.mp4"
+            lead="Create lasting memories with friends and family at your next celebration!"
+            note="Our chefs bring the entertainment and delicious food directly to your home or venue"
+          />
+          <div>
+            <LandingCtaButton surface="seo_hibachi_at_home_party" className="inline-flex h-11 items-center rounded-full bg-flame px-6 text-sm font-semibold text-white hover:bg-flame-600">
+              Book Your Party Experience
+            </LandingCtaButton>
+          </div>
+        </LandingSection>
+
+        <LandingSection title="When Our Fire Gets Too Real" lead="Sometimes our hibachi fire is so authentic, even the fire department wants to join the party!">
+          <VideoBlock
+            poster="/videos/posters/real-fire.jpg"
+            src="/videos/real-fire.mp4"
+            lead="Our hibachi fire is so real, sometimes we get unexpected guests!"
+            note="Don't worry - our chefs are trained professionals who know how to handle the heat safely."
+          />
+        </LandingSection>
+
+        <LandingSection title="Experience the Atmosphere" lead="See how our hibachi experience transforms your home into an exciting dining venue">
+          <div className="relative aspect-video overflow-hidden rounded-[28px] bg-cocoa">
+            <LazyVideo className="absolute inset-0 h-full w-full object-cover" controls poster="/videos/posters/atmosphere.jpg" src="/videos/atmosphere.mp4" />
+          </div>
+          <FactCards
+            items={[
+              { title: "Lively Atmosphere", body: <p>Experience the excitement and energy of a hibachi restaurant in your own home.</p> },
+              { title: "Family Friendly", body: <p>Perfect entertainment for guests of all ages, creating memorable experiences.</p> },
+              { title: "Spectacular Show", body: <p>Watch as our skilled chefs perform impressive cooking techniques and fire tricks.</p> },
+            ]}
+          />
+        </LandingSection>
+
+        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-14">
+          <FaqList
+            heading="Frequently Asked Questions"
+            faqs={faqs}
+            footer={
+              <Link href="/faq" className="font-semibold text-flame-700 underline">
+                View All FAQs
+              </Link>
+            }
+          />
+          <section className="flex flex-col gap-3">
+            <SectionTitle as="h3">What Our Customers Say</SectionTitle>
+            <ReviewCards reviews={reviews.map((r) => ({ name: r.name, text: r.text, source: "Google review" }))} />
+            <a href={smsHref("I'm interested in booking a REAL HIBACHI experience")} className="text-sm font-semibold text-flame-700 underline">
+              Text for Instant Quote
+            </a>
+          </section>
         </div>
-      </section>
-    </div>
+
+        <LandingSection title="Real Reviews, Real Parties" lead="Verbatim 5-star Google reviews from SoCal events">
+          <ReviewCards reviews={MORE_REVIEWS.map((r) => ({ name: r.name, text: r.text, source: "Google review" }))} />
+        </LandingSection>
+
+        <LandingSection title="Signature Fried Rice" lead="Watch our chef prepare our signature fried rice.">
+          <VideoBlock
+            poster="/videos/posters/fried-rice.jpg"
+            src="/videos/fried-rice.mp4"
+            lead="Our signature fried rice is a crowd favorite!"
+            note="Made with fresh ingredients and cooked to perfection."
+          />
+        </LandingSection>
+
+        <LandingSection title="Hibachi at Home Across Southern California" lead="Find your city for local pricing, popular occasions, and neighborhood coverage.">
+          <LinkPills links={cityPages.map((city) => ({ label: city.city, href: `/hibachi-at-home/${city.slug}` }))} />
+        </LandingSection>
+
+        <FinalCta
+          heading="Ready to Create Unforgettable Memories?"
+          body="Book your hibachi experience today and bring the excitement of Japanese cuisine directly to your home. Our professional chefs are ready to create an amazing show and delicious meal for you and your guests."
+        >
+          <div className="flex flex-col gap-4 pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-10 lg:pt-8">
+            <div className="grid grid-cols-3 gap-2.5">
+              {[
+                { big: "500+", label: "Parties Served" },
+                { big: "1 per 28", label: "A Dedicated Chef & Griddle per 28 Guests" },
+                { big: "72h", label: "Full-Refund Cancellation Window" },
+              ].map((c) => (
+                <div key={c.label} className="flex flex-col gap-1 rounded-2xl bg-surface/70 p-3.5">
+                  <span className="font-serif text-xl font-extrabold leading-none text-flame lg:text-2xl">{c.big}</span>
+                  <span className="text-xs text-clay-700">{c.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="relative aspect-[16/9] overflow-hidden rounded-[28px]">
+              <Image src="/hibachi-group-selfie.jpg" alt="Happy customers enjoying hibachi experience at home" fill sizes="(max-width: 1024px) 100vw, 560px" className="object-cover" />
+            </div>
+          </div>
+          <p className="pt-4 text-xs leading-[1.8] text-clay-600 lg:text-[13px]">
+            Online Booking — book at your convenience, 24/7 Service Available ·{" "}
+            <a href={whatsappHref("Hello, I would like to book a hibachi experience")} className="hover:text-flame-700">
+              WhatsApp
+            </a>{" "}
+            — fastest response time ·{" "}
+            <a href={smsHref("I'm interested in booking a REAL HIBACHI experience")} className="hover:text-flame-700">
+              SMS
+            </a>{" "}
+            — text us directly · Phone — speak with us:{" "}
+            <a href={phone.voice.tel} className="hover:text-flame-700">
+              {phone.voice.dashed}
+            </a>
+          </p>
+        </FinalCta>
+      </LandingBody>
+    </LandingShell>
   )
 }
