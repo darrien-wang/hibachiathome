@@ -242,7 +242,9 @@ export async function POST(request: NextRequest) {
           .insert({
             full_name: name,
             display_name: name,
-            staff_type: str(body.staff_type, 30) || "contractor",
+            // The column's check constraint allows employee / contractor_individual / freelancer / other;
+            // "contractor" (the old default) made every create fail with a 500.
+            staff_type: str(body.staff_type, 30) || "contractor_individual",
             status: "active",
             phone: str(body.phone, 30) || null,
             email: str(body.email, 120) || null,
@@ -494,8 +496,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "unknown action" }, { status: 400 })
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    console.error("[admin/chefs]", action, msg)
+    // Supabase errors are plain objects, not Error instances: read their message
+    // instead of returning "[object Object]" to the workbench.
+    const msg = e instanceof Error ? e.message : e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e)
+    console.error("[admin/chefs]", action, msg, e && typeof e === "object" && "details" in e ? (e as { details?: unknown }).details : "")
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
