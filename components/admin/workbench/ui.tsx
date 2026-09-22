@@ -96,6 +96,8 @@ export function Notice({ children, accent, style }: { children: ReactNode; accen
 }
 
 /** Backdrop + frame. Esc closes; clicks inside stay inside. */
+const openDialogs: symbol[] = []
+
 export function Dialog({ onClose, width, children }: { onClose: () => void; width?: number; children: ReactNode }) {
   // Only a real click on the backdrop closes the dialog. Two things used to
   // count as one and made dialogs "close themselves" (2026-09-21, the chef
@@ -113,13 +115,18 @@ export function Dialog({ onClose, width, children }: { onClose: () => void; widt
     onClose()
   }
   useEffect(() => {
+    // Dialogs stack (a 确认 box on top of a lead dialog): only the topmost one
+    // answers Escape, otherwise one key press would close both.
+    const token = Symbol("dialog")
+    openDialogs.push(token)
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !e.isComposing) onClose()
+      if (e.key === "Escape" && !e.isComposing && openDialogs[openDialogs.length - 1] === token) onClose()
     }
     window.addEventListener("keydown", onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = "hidden"
     return () => {
+      openDialogs.splice(openDialogs.indexOf(token), 1)
       window.removeEventListener("keydown", onKey)
       document.body.style.overflow = prev
     }

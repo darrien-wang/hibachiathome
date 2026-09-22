@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, PhoneIcon, Tag } from "./ui"
+import { askConfirm, askPrompt } from "./ask"
 import { addDays, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
 import { FILE_KIND_LABELS, FILE_STATUS_LABELS, mondayOf, type ChefDetail, type ChefFile, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
@@ -159,7 +160,7 @@ export function ChefDialog({
   const saveDocs = () => post("docs", { action: "update_docs", id: chefId, fields: docs }, "已保存")
   // Not through post(): the dialog has nothing to reload once the chef is gone.
   const deleteChef = async () => {
-    if (!window.confirm(`删掉「${name}」？派单、文件、评价会一起删除，不可恢复。有结算记录的厨师删不了，只能停用。`)) return
+    if (!(await askConfirm({ title: "删除厨师", message: `删掉「${name}」？派单、文件、评价会一起删除，不可恢复。有结算记录的厨师删不了，只能停用。`, okLabel: "删除", danger: true }))) return
     setBusy("delete")
     setMsg(null)
     try {
@@ -177,14 +178,14 @@ export function ChefDialog({
   const settleAll = async () => {
     if (openRows.length === 0 && approvedReimb.length === 0) return
     const what = net > 0 ? `付给 ${name} ${money(net)}` : net < 0 ? `向 ${name} 收 ${money(-net)}` : "标记已结清"
-    const method = window.prompt(`${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销。付款方式（Zelle / Venmo / 现金 / 转账）：`, "Zelle")
+    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销。`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
     if (method === null) return
     await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
   }
   const settleOne = (s: ShiftRow) => post(`settle:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "这一场已结")
   const unsettle = (s: ShiftRow) => post(`unsettle:${s.assignmentId}`, { action: "unsettle", assignment_id: s.assignmentId }, "已撤销")
   const setCash = async (s: ShiftRow) => {
-    const raw = window.prompt(`${s.customer ?? ""} ${md(s.date)}：师傅现场代收了多少尾款（美元）？留空 = 用师傅端上报的数`, s.cashCents ? (s.cashCents / 100).toFixed(2) : "")
+    const raw = await askPrompt({ title: "现场代收", message: `${s.customer ?? ""} ${md(s.date)}：师傅现场代收了多少尾款（美元）？留空 = 用师傅端上报的数`, defaultValue: s.cashCents ? (s.cashCents / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
     if (raw === null) return
     await post(`cash:${s.assignmentId}`, { action: "set_cash", assignment_id: s.assignmentId, cash_cents: raw.trim() === "" ? null : Math.round(Number(raw) * 100) })
   }
@@ -225,7 +226,7 @@ export function ChefDialog({
     }
     const lines = openRows.map((s) => `${md(s.date)} ${s.customer ?? ""} ${s.share}p: pay $${(s.payCents / 100).toFixed(2)}${s.cashCents ? ` - collected $${(s.cashCents / 100).toFixed(2)}` : ""}`)
     const body = `Real Hibachi statement for ${name}:\n${lines.join("\n")}${reimbTotal ? `\nReimbursements: +$${(reimbTotal / 100).toFixed(2)}` : ""}\nNet: ${net >= 0 ? "we owe you" : "you owe us"} $${(Math.abs(net) / 100).toFixed(2)}. Reply if anything looks off.`
-    if (!window.confirm(`发给 ${prettyPhone(c.phone)}？\n\n${body}`)) return
+    if (!(await askConfirm({ title: "发对账单", message: `发给 ${prettyPhone(c.phone)}？\n\n${body}`, okLabel: "发送" }))) return
     setBusy("statement")
     try {
       await adminJson(adminKey, "/api/admin/sms-thread", { body: { phone: c.phone, body, force: true } })
@@ -402,8 +403,9 @@ export function ChefDialog({
                   <Chip
                     small
                     onClick={() => {
-                      const v = window.prompt("加一项能力：")
-                      if (v?.trim()) setSkills([...skills, v.trim()])
+                      void askPrompt({ title: "加一项能力", placeholder: "如：法语、烧烤" }).then((v) => {
+                        if (v?.trim()) setSkills([...skills, v.trim()])
+                      })
                     }}
                   >
                     + 添加
@@ -469,7 +471,7 @@ export function ChefDialog({
                     <Tag cls={r.review === "good" ? "tag-neutral" : r.review === "bad" ? "tag-accent" : "tag-outline"}>{r.review === "good" ? "好评" : r.review === "bad" ? "差评" : "未评"}</Tag>
                     <span style={{ whiteSpace: "nowrap", fontSize: 12, color: r.late_minutes > 0 ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{r.late_minutes > 0 ? `迟到 ${r.late_minutes} 分` : "准时"}</span>
                     {owner ? (
-                      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => window.confirm("删掉这条记录？") && void post(`delperf:${r.id}`, { action: "delete_perf", perfId: r.id })}>
+                      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void askConfirm({ title: "删掉这条记录", message: "这条评价记录会被删除。", okLabel: "删除", danger: true }).then((ok) => { if (ok) void post(`delperf:${r.id}`, { action: "delete_perf", perfId: r.id }) })}>
                         删
                       </button>
                     ) : (
@@ -763,7 +765,7 @@ export function ChefDialog({
                       查看
                     </button>
                     {owner && f.status !== "paid" ? (
-                      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => window.confirm("删掉这个文件？") && void post(`del:${f.id}`, { action: "delete_file", file_id: f.id })}>
+                      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void askConfirm({ title: "删掉这个文件", message: `「${f.title || FILE_KIND_LABELS[f.kind] || "文件"}」会从素材库和存储里删除。`, okLabel: "删除", danger: true }).then((ok) => { if (ok) void post(`del:${f.id}`, { action: "delete_file", file_id: f.id }) })}>
                         删
                       </button>
                     ) : null}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
+import { askConfirm } from "./ask"
 import {
   copyText,
   digits10,
@@ -255,7 +256,7 @@ export function OrderDialog({
     try {
       await adminJson(adminKey, "/api/admin/sms-thread", { body: { phone, body, leadId } })
     } catch (e) {
-      if (e instanceof AdminApiError && e.status === 409 && e.data.brake && window.confirm(`${e.message}。\n\n仍然发送？`)) {
+      if (e instanceof AdminApiError && e.status === 409 && e.data.brake && (await askConfirm({ title: "短信刹车", message: `${e.message}。\n\n仍然发送？`, okLabel: "仍然发送" }))) {
         await adminJson(adminKey, "/api/admin/sms-thread", { body: { phone, body, leadId, force: true } })
       } else throw e
     }
@@ -279,7 +280,7 @@ export function OrderDialog({
       const to = payPhone.trim()
       const total = Number(d.total ?? amount)
       const body = `${settings.business.brand}: here's the card link for your ${ev ? md(ev.ymd) : ""} party balance, $${total.toFixed(2)}${payFinal ? "" : " (includes the 4% card fee)"}: ${d.url}`
-      if (to && window.confirm(`发到 ${prettyPhone(to)}？\n\n${body}`)) {
+      if (to && (await askConfirm({ title: "发付款链接", message: `发到 ${prettyPhone(to)}？\n\n${body}`, okLabel: "发送" }))) {
         await sendSms(to, body)
         await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to, subject: `pay link $${total.toFixed(2)} via SMS`, operator: operatorName() } }).catch(() => null)
       } else copyText(d.url)
@@ -291,7 +292,7 @@ export function OrderDialog({
       const amount = Number(finalAmount)
       if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
       if (finalChannel === "stripe" && !/^(pi|ch|py|cs)_[A-Za-z0-9_]{8,}$/.test(finalRef.trim())) throw new Error("Stripe 收款要填 pi_/ch_/cs_ 开头的 ID")
-      if (!window.confirm(`登记尾款 $${amount.toFixed(2)}（${finalChannel}）？发票系统会同步为已收。`)) return
+      if (!(await askConfirm({ title: "登记尾款", message: `登记尾款 $${amount.toFixed(2)}（${finalChannel}）？发票系统会同步为已收。`, okLabel: "登记" }))) return
       const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/orders/final-payment-confirm", {
         body: { orderId: o.id, amount, channel: finalChannel, paymentRef: finalChannel === "stripe" ? finalRef.trim() : undefined, proofUrl: finalChannel !== "stripe" && finalRef.trim() ? finalRef.trim() : undefined, operator: operatorName() },
       })
@@ -301,7 +302,7 @@ export function OrderDialog({
 
   const requestAction = (r: UpdateRequest, action: "confirm" | "complete") =>
     call(`${action}:${r.id}`, async () => {
-      if (action === "complete" && !window.confirm("标记为已更新并通知师傅？发票系统会给客人发确认。")) return
+      if (action === "complete" && !(await askConfirm({ title: "完成改单", message: "标记为已更新并通知师傅？发票系统会给客人发确认。", okLabel: "标记并通知" }))) return
       const d = await adminJson<{ ok?: boolean; error?: string }>(adminKey, "/api/admin/orders/update-request-action", { body: { requestId: r.id, action, operator: operatorName() } })
       if (d.ok === false) throw new Error(d.error ?? "失败")
       await Promise.all([load(), onChanged()])
@@ -320,7 +321,7 @@ export function OrderDialog({
   const sendEmail = () =>
     call("email", async () => {
       if (!o.customer_email) throw new Error("没有邮箱")
-      if (!window.confirm(`从 ${settings.business.support_email} 发给 ${o.customer_email}？\n\n${emailDraft.subject}`)) return
+      if (!(await askConfirm({ title: "发邮件", message: `从 ${settings.business.support_email} 发给 ${o.customer_email}？\n\n${emailDraft.subject}`, okLabel: "发送" }))) return
       const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/send-followup", { body: { to: o.customer_email, subject: emailDraft.subject, text: emailDraft.body, leadId: lead?.id } })
       if (!d.ok) throw new Error(d.error ?? "发送失败")
       await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to: o.customer_email, subject: emailDraft.subject, operator: operatorName() } })

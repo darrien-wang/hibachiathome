@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Kicker, PhoneIcon, Tag } from "./ui"
+import { askConfirm, askPrompt } from "./ask"
 import {
   copyText,
   displayName,
@@ -248,10 +249,10 @@ export function LeadDialog({
         const card = q.paymentMethod === "credit_card"
         amountIsFinal = card
         const total = card ? bal : Math.round(bal * 1.04 * 100) / 100
-        if (!window.confirm(`已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n发票尾款 $${bal.toFixed(2)}${card ? "（已含卡费）" : " → 刷卡 +4% = $" + total.toFixed(2)}\n\n生成这个金额的收款链接？`)) return
+        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n发票尾款 $${bal.toFixed(2)}${card ? "（已含卡费）" : " → 刷卡 +4% = $" + total.toFixed(2)}\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
         amount = bal
       } else {
-        const raw = window.prompt("发票系统里没有这位客人的尾款。手输金额（美元，链接会自动 +4% 卡费）：", est.total.toFixed(2))
+        const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接会自动 +4% 卡费）：", defaultValue: est.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
         if (!raw) return
         amount = Number(raw)
         if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")

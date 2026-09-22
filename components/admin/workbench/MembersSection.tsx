@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { adminJson } from "./api"
 import { Field, Kicker } from "./ui"
+import { askConfirm } from "./ask"
 import { prettyPhone, stamp } from "./helpers"
 import { PERM_KEYS, PERM_LABELS, ROLE_LABELS, type MemberRole, type Perms } from "@/lib/workbench-perms"
 
@@ -151,10 +152,10 @@ export function MembersSection({ adminKey, selfId }: { adminKey: string; selfId:
                 ) : null}
                 {!self ? (
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy || m.sessions === 0} onClick={() => window.confirm(`把 ${m.name} 从所有设备上退出登录？`) && void post(`kick:${m.id}`, { action: "revoke_sessions", id: m.id }, "已退出他的所有设备")}>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy || m.sessions === 0} onClick={() => void askConfirm({ title: "退出所有设备", message: `把 ${m.name} 从所有设备上退出登录？`, okLabel: "退出" }).then((ok) => { if (ok) void post(`kick:${m.id}`, { action: "revoke_sessions", id: m.id }, "已退出他的所有设备") })}>
                       退出所有设备
                     </button>
-                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => (m.active ? window.confirm(`停用 ${m.name}？他会立刻登不上。`) && void post(`off:${m.id}`, { action: "update", id: m.id, active: false }, "已停用") : void post(`on:${m.id}`, { action: "update", id: m.id, active: true }, "已启用"))}>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => (m.active ? void askConfirm({ title: "停用成员", message: `停用 ${m.name}？他会立刻登不上。`, okLabel: "停用", danger: true }).then((ok) => { if (ok) void post(`off:${m.id}`, { action: "update", id: m.id, active: false }, "已停用") }) : void post(`on:${m.id}`, { action: "update", id: m.id, active: true }, "已启用"))}>
                       {m.active ? "停用" : "启用"}
                     </button>
                   </div>

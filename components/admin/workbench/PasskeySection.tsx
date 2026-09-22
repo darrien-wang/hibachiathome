@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { adminJson } from "./api"
 import { Kicker } from "./ui"
+import { askConfirm } from "./ask"
 import { stamp } from "./helpers"
 import { passkeyErrorText, passkeysSupported, registerThisDevice } from "./passkey-client"
 import type { PublicActor } from "@/lib/workbench-perms"
@@ -46,7 +47,7 @@ export function PasskeySection({ adminKey, viewer }: { adminKey: string; viewer:
     }
   }
   const remove = async (k: Passkey) => {
-    if (!window.confirm(`删掉「${k.device_name ?? "这台设备"}」的通行密钥？那台设备下次要重新收短信登录。`)) return
+    if (!(await askConfirm({ title: "删除通行密钥", message: `删掉「${k.device_name ?? "这台设备"}」的通行密钥？那台设备下次要重新收短信登录。`, okLabel: "删除", danger: true }))) return
     setBusy(k.id)
     try {
       await adminJson(adminKey, "/api/admin/members", { body: { action: "delete_passkey", passkey_id: k.id } })

@@ -18,6 +18,7 @@ import { LeadDialog } from "./LeadDialog"
 import { OrderDialog } from "./OrderDialog"
 import { DepositDialog } from "./DepositDialog"
 import { PhoneIcon, SearchIcon, Tag } from "./ui"
+import { AskHost } from "./ask"
 import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnreplied, md, prettyPhone, relativeTime, stageOf, STAGE_TAG_CLASS, type LeadRow } from "./helpers"
 
 // ============================================================
@@ -372,6 +373,7 @@ export default function Workbench() {
           }}
         />
       ) : null}
+      <AskHost />
     </div>
   )
 }

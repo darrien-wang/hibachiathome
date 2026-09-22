@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Cell, Chip, Dialog, DialogHead, Field, PhoneIcon, Tag } from "./ui"
+import { askConfirm, tell } from "./ask"
 import {
   displayName,
   firstRespText,
@@ -117,14 +118,14 @@ export function LeadsTab({
     })
   const bulk = async (action: "bulk_status" | "merge", status?: string) => {
     if (selected.size === 0) return
-    if (action === "merge" && !window.confirm(`把这 ${selected.size} 条合并成同一个人？最早的一条保留，其余并入。`)) return
+    if (action === "merge" && !(await askConfirm({ title: "合并线索", message: `把这 ${selected.size} 条合并成同一个人？最早的一条保留，其余并入。`, okLabel: "合并" }))) return
     setBulkBusy(true)
     try {
       await adminJson(adminKey, "/api/admin/leads", { method: "PATCH", body: { action, leadIds: Array.from(selected), status } })
       setSelected(new Set())
       await onChanged()
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "操作失败")
+      void tell({ title: "操作失败", message: e instanceof Error ? e.message : "操作失败" })
     } finally {
       setBulkBusy(false)
     }

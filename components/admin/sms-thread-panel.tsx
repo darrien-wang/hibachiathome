@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { askConfirm, tell } from "./workbench/ask"
 
 // ============================================================
 // The SMS conversation with one customer, anywhere in the admin.
@@ -182,12 +183,12 @@ export function SmsThreadPanel({
       let res = await post(false)
       let data = await res.json().catch(() => ({}))
       // A brake is a rule, not an error: show why and let the owner overrule it.
-      if (res.status === 409 && data.brake && window.confirm(`${data.error}。\n\n仍然发送？`)) {
+      if (res.status === 409 && data.brake && (await askConfirm({ title: "短信刹车", message: `${data.error}。\n\n仍然发送？`, okLabel: "仍然发送" }))) {
         res = await post(true)
         data = await res.json().catch(() => ({}))
       }
       if (!res.ok) {
-        if (res.status !== 409) window.alert(`发送失败：${data.error ?? res.status}`)
+        if (res.status !== 409) void tell({ title: "发送失败", message: String(data.error ?? res.status) })
         return
       }
       setDraft("")
@@ -206,7 +207,7 @@ export function SmsThreadPanel({
         setDraft(text)
         textRef.current?.focus()
       } catch (e) {
-        window.alert(e instanceof Error ? e.message : "模板填不上")
+        void tell({ title: "模板填不上", message: e instanceof Error ? e.message : "模板填不上" })
       } finally {
         setFilling(null)
       }
