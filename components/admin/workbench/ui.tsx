@@ -1,7 +1,7 @@
 "use client"
 
 import type { CSSProperties, ReactNode } from "react"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 // Small presentational pieces shared by every tab and dialog. They only
 // know the classes in app/admin/workbench.css.
@@ -97,9 +97,24 @@ export function Notice({ children, accent, style }: { children: ReactNode; accen
 
 /** Backdrop + frame. Esc closes; clicks inside stay inside. */
 export function Dialog({ onClose, width, children }: { onClose: () => void; width?: number; children: ReactNode }) {
+  // Only a real click on the backdrop closes the dialog. Two things used to
+  // count as one and made dialogs "close themselves" (2026-09-21, the chef
+  // dialog on Windows): the backdrop's own scrollbar, which lives inside the
+  // element, and a drag that starts inside the dialog (selecting text) and
+  // ends outside it.
+  const downOnBackdrop = useRef(false)
+  const onBackdropDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    downOnBackdrop.current = e.target === e.currentTarget
+  }
+  const onBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    if (e.target !== el || !downOnBackdrop.current) return
+    if (e.clientX >= el.clientWidth || e.clientY >= el.clientHeight) return
+    onClose()
+  }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape" && !e.isComposing) onClose()
     }
     window.addEventListener("keydown", onKey)
     const prev = document.body.style.overflow
@@ -110,7 +125,7 @@ export function Dialog({ onClose, width, children }: { onClose: () => void; widt
     }
   }, [onClose])
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
+    <div className="dialog-backdrop" onMouseDown={onBackdropDown} onClick={onBackdropClick}>
       <div className="dialog" style={width ? { width: `min(${width}px, 100%)` } : undefined} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         {children}
       </div>
