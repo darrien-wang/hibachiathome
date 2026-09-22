@@ -713,7 +713,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) applies here too.",
       },
     ],
-    nearby: ["glendale", "los-angeles", "pasadena"],
+    nearby: ["north-hollywood", "glendale", "pasadena"],
   },
   {
     slug: "thousand-oaks",
@@ -803,7 +803,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum \u2014 chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon\u2013Thu, any party size) applies here too.",
       },
     ],
-    nearby: ["woodland-hills", "santa-clarita", "malibu"],
+    nearby: ["simi-valley", "woodland-hills", "malibu"],
   },
   {
     slug: "west-covina",
@@ -1623,7 +1623,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, show, setup, and cleanup included. Weekday Special pricing ($54.90/adult with a free appetizer platter, Mon–Thu) applies here too.",
       },
     ],
-    nearby: ["burbank", "santa-clarita", "malibu"],
+    nearby: ["encino", "chatsworth", "burbank"],
   },
   {
     slug: "san-diego",
@@ -1895,7 +1895,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — including chef, grill, 2 proteins per guest, fried rice, vegetables, salad, show, setup, and cleanup.",
       },
     ],
-    nearby: ["irvine", "huntington-beach", "long-beach"],
+    nearby: ["buena-park", "fullerton", "irvine"],
   },
   {
     slug: "long-beach",
@@ -2986,7 +2986,7 @@ export const cityPages: CityPage[] = [
           "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, live show, setup, and cleanup included.",
       },
     ],
-    nearby: ["san-diego", "temecula", "irvine"],
+    nearby: ["vista", "san-diego", "temecula"],
   },
   {
     slug: "palm-springs",
@@ -3932,6 +3932,726 @@ export const cityPages: CityPage[] = [
       },
     ],
     nearby: ["lakewood", "whittier", "anaheim"],
+  },
+  {
+    slug: "sherman-oaks",
+    city: "Sherman Oaks",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home Sherman Oaks CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Sherman Oaks, Studio City, and Valley Glen — hillside pool decks, flat-lot backyards, milestone birthdays. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Sherman Oaks parties split into two kinds: the hillside house south of Ventura Boulevard with a pool deck and a view, and the flat-lot ranch house north of it with a yard that has hosted every birthday since the kids were small. A chef who sets up in one spot and cooks for everyone works in both, and it saves the host from a night of running plates.",
+      "We cook throughout Sherman Oaks, Studio City, Valley Glen, Van Nuys, and the Longridge and Royal Woods hills. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Ventura Boulevard corridor",
+      "Longridge Estates",
+      "Royal Woods",
+      "Chandler Estates",
+      "Sherman Village",
+      "Studio City",
+      "Valley Glen",
+      "Van Nuys",
+      "Magnolia Woods",
+      "Fashion Square area",
+    ],
+    occasions: [
+      {
+        title: "30th, 40th & 50th Birthdays",
+        description:
+          "The Sherman Oaks classic: fifteen to twenty friends on the deck, the fire show as the entertainment, and nobody has to book a private room on Ventura.",
+      },
+      {
+        title: "Baby Showers & Sprinkles",
+        description:
+          "Daytime, seated, and everyone eats at once. The chef cooks to order, so the guest of honor gets what she wants and the shrimp goes to whoever is eating it.",
+      },
+      {
+        title: "Wrap Parties & Industry Dinners",
+        description:
+          "Crews and casts who live in the Valley and would rather celebrate at someone's house than at a restaurant. Two proteins per guest, served hot in a sitting.",
+      },
+      {
+        title: "Kids' Birthdays",
+        description:
+          "The onion volcano and the egg toss carry the party. Parents book it because the kids are entertained and seated for forty-five minutes.",
+      },
+    ],
+    venues: [
+      {
+        title: "Hillside Homes South of the Boulevard",
+        description:
+          "Longridge, Valley Vista, and the streets above them are stepped lots with a pool deck as the one flat surface. That is all the grill needs; we set up at one end and the table runs along the pool.",
+      },
+      {
+        title: "Flat-Lot Ranch Houses",
+        description:
+          "North of Ventura the yards are wide, fenced, and level. Twenty-five guests fit without touching the lawn, and the side gate clears our grill cart.",
+      },
+      {
+        title: "Townhome & Condo Courtyards",
+        description:
+          "Shared courtyards and roof decks work when the building allows it. Send us a photo and the HOA's rules and we will tell you the same day whether it fits.",
+      },
+    ],
+    logistics: [
+      "Hillside streets here are narrow and some carry permit parking, so tell us where the chef can pull in for ten minutes to unload; after that the truck moves. Sherman Oaks runs ten degrees hotter than the Westside in summer, which is why most hosts start at 6:30 or 7 pm from June through September and let the show run into the cooler part of the evening.",
+      "We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance, on hardscape or packed ground. Pool decks and patios qualify; for pavers or turf we bring a mat. Santa Ana winds in the fall are the one thing to plan around: the chef places the grill so the breeze carries away from the table.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Sherman Oaks or Studio City?",
+        answer:
+          "No. Sherman Oaks, Studio City, and the rest of the south Valley sit inside our free 50-mile radius, so your quote carries no travel fee.",
+      },
+      {
+        question: "Our house is on the hill and the only flat spot is the pool deck. Does that work?",
+        answer:
+          "Yes, that is the most common Sherman Oaks setup. The grill needs a level patch about the size of a king-size bed with 10 ft of clearance above it, and a pool deck gives us exactly that. Guests sit along the pool.",
+      },
+      {
+        question: "It gets hot here in summer. When should we start?",
+        answer:
+          "From June through September most Sherman Oaks hosts start at 6:30 or 7 pm. The show runs about 90 minutes, so guests eat as the Valley cools. Lunch parties work well from October through May.",
+      },
+      {
+        question: "What does hibachi at home cost in Sherman Oaks?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["encino", "north-hollywood", "burbank"],
+  },
+  {
+    slug: "encino",
+    city: "Encino",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home Encino CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Encino, Tarzana, and Lake Balboa — estate lots, gated driveways, anniversaries and big family dinners. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Encino yards were built for exactly this. The estate lots in Encino Hills and Amestoy Estates have room for thirty at one long table, the ranch houses north of Ventura have flat lawns and poured patios, and the families who live here host the kind of dinner where three generations expect to be fed well. A chef cooking steak, shrimp, and lobster in front of everyone does that without anyone leaving the yard.",
+      "We cook throughout Encino, Tarzana, Lake Balboa, Reseda, and the hills south of the boulevard. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Encino Hills",
+      "Amestoy Estates",
+      "Encino Village",
+      "Rancho Estates",
+      "Lake Balboa",
+      "Tarzana",
+      "Reseda",
+      "Balboa Park area",
+      "Encino Commons",
+      "Ventura Boulevard",
+    ],
+    occasions: [
+      {
+        title: "Anniversaries & Milestone Birthdays",
+        description:
+          "Encino hosts 50ths, 60ths, and 25th anniversaries at the house, with the whole family at one table and a show the grandparents talk about afterward.",
+      },
+      {
+        title: "Multi-Generation Family Dinners",
+        description:
+          "Everyone picks their own two proteins, so the table with four diets still eats together and nobody is stuck at the grill.",
+      },
+      {
+        title: "Graduations",
+        description:
+          "Crespi, Birmingham, and Portola families in June, with relatives in from out of town and a yard that finally gets used for something.",
+      },
+      {
+        title: "Holiday Dinners at Home",
+        description:
+          "A chef for the night means the host is at the table for the whole meal instead of in the kitchen for two days beforehand.",
+      },
+    ],
+    venues: [
+      {
+        title: "Estate Lots in Encino Hills",
+        description:
+          "Long driveways, gated entries, wide terraces, and room for thirty or more. Among the easiest setups in the Valley once we have the gate code and know which terrace you want.",
+      },
+      {
+        title: "Ranch Houses North of Ventura",
+        description:
+          "Flat, fenced, and deep, usually with a poured patio already in place. A long table down the middle and the grill on the concrete at one end.",
+      },
+      {
+        title: "Amestoy & Rancho Estates Backyards",
+        description:
+          "Half-acre lots with pools and lawns. The pool deck is the grill spot and the lawn takes the overflow tables and chairs, which we can bring.",
+      },
+    ],
+    logistics: [
+      "Most Encino Hills homes are gated, so send us the code or have someone at the gate at load-in; the chef needs about ten minutes to unload and the truck then moves off the driveway. Canyon streets like Hayvenhurst and Encino Hills Drive are steep and winding, so we plan an earlier arrival there.",
+      "Encino is warm from June through September, and most hosts start at 6:30 or 7 pm so the show runs as the Valley cools. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance on hardscape or packed ground; for pavers or turf we bring a mat.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Encino or Tarzana?",
+        answer:
+          "No. Encino, Tarzana, and Lake Balboa all sit inside our free 50-mile radius, so your quote carries no travel fee at all.",
+      },
+      {
+        question: "We are a gated property. What do you need?",
+        answer:
+          "The gate code or a name at the gate for load-in, and a spot near the yard where the chef can park for ten minutes to unload. After that the truck moves wherever you like. Tell us which terrace or patio you want to use and we handle the rest.",
+      },
+      {
+        question: "Can you serve 30 to 40 guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; larger parties get a second chef and grill so everyone eats together. Encino lots hold that many easily, and we can bring tables and chairs.",
+      },
+      {
+        question: "What does hibachi at home cost in Encino?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["sherman-oaks", "woodland-hills", "north-hollywood"],
+  },
+  {
+    slug: "chatsworth",
+    city: "Chatsworth",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home Chatsworth CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Chatsworth, Porter Ranch, Granada Hills, and Northridge — horse property, big flat lots, graduations and reunions. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "The northwest Valley has the biggest backyards in Los Angeles. Chatsworth horse property, Porter Ranch patios, Granada Hills ranch houses, and Northridge lots near CSUN all have one thing in common: room for the whole family and a flat spot for a grill. That is why reunions, graduations, and big summer birthdays land here.",
+      "We cook throughout Chatsworth, Porter Ranch, Granada Hills, Northridge, West Hills, and Canoga Park. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Chatsworth",
+      "Porter Ranch",
+      "Granada Hills",
+      "Northridge",
+      "West Hills",
+      "Canoga Park",
+      "Stoney Point area",
+      "Santa Susana Knolls",
+      "Devonshire corridor",
+      "CSUN area",
+    ],
+    occasions: [
+      {
+        title: "Graduations",
+        description:
+          "Chatsworth, Granada Hills Charter, and CSUN families in May and June, usually hosting more relatives than the invitation said. We bring tables and chairs if you need them.",
+      },
+      {
+        title: "Family Reunions",
+        description:
+          "Horse-property lots hold forty. Two chefs, two grills, and everyone eats at the same time instead of in shifts from a buffet.",
+      },
+      {
+        title: "Summer Birthdays After Sundown",
+        description:
+          "The northwest Valley is hot in July, so the party starts at 7 pm and the fire show runs into the cool part of the evening.",
+      },
+      {
+        title: "Porter Ranch Housewarmings",
+        description:
+          "New homes with covered patios and neighbors to meet. A chef at the patio's edge and a long table under the cover.",
+      },
+    ],
+    venues: [
+      {
+        title: "Horse Property & Acreage",
+        description:
+          "Chatsworth's larger lots have packed-dirt and gravel areas near the house. We bring a mat, set the grill on the flattest spot, and the tables go wherever the shade is.",
+      },
+      {
+        title: "Porter Ranch Covered Patios",
+        description:
+          "Most covers sit below the 10 ft of clearance the grill needs, so the chef sets up just past the cover's edge and your guests stay under it in the shade.",
+      },
+      {
+        title: "Granada Hills & Northridge Ranch Houses",
+        description:
+          "Flat, fenced, deep yards with a poured patio. Twenty-five guests fit without touching the lawn, and the side gate clears our grill cart.",
+      },
+    ],
+    logistics: [
+      "This is the hottest corner of the Valley, so from June through September we recommend a 7 pm start; the show runs about 90 minutes and guests eat as it cools. Porter Ranch and some Chatsworth tracts have HOA quiet hours around 10 pm, which an evening start of 6:30 or 7 still clears with time to spare.",
+      "Load-in is easy: driveways for the truck and side gates for the cart. We need a flat area about the size of a king-size bed on hardscape or packed ground; on gravel or dirt we bring a mat. Santa Ana winds come through the Santa Susana Pass in the fall, and the chef places the grill so the breeze carries away from the table.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Chatsworth or Porter Ranch?",
+        answer:
+          "No. Chatsworth, Porter Ranch, Granada Hills, and Northridge all sit inside our free 50-mile radius, so your quote carries no travel fee.",
+      },
+      {
+        question: "Our yard is dirt and gravel, not a patio. Can you still cook?",
+        answer:
+          "Yes. The grill needs a level spot about the size of a king-size bed; we bring a mat for gravel and dirt, and the chef sets up on the flattest area you have. Tell us when you book and we plan the layout.",
+      },
+      {
+        question: "Can you handle 40 guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; past that we send a second chef and grill so everyone eats together. Give us the count and the quote reflects it.",
+      },
+      {
+        question: "What does hibachi at home cost in Chatsworth?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["woodland-hills", "simi-valley", "santa-clarita"],
+  },
+  {
+    slug: "north-hollywood",
+    city: "North Hollywood",
+    county: "Los Angeles County",
+    metaTitle: "Hibachi at Home North Hollywood CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in North Hollywood, Toluca Lake, and Valley Village — bungalow backyards, wrap parties, engagement dinners. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "NoHo hosts differently. The bungalow backyards of Valley Village, the estate lots of Toluca Lake, and the courtyards off Magnolia all end up with the same crowd: friends who work in the industry, family who drove in from across the Valley, and a host who would rather be at the table than at a stove. A chef cooking in front of everyone is the party.",
+      "We cook throughout North Hollywood, Toluca Lake, Valley Village, Valley Glen, and Sun Valley. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "NoHo Arts District",
+      "Toluca Lake",
+      "Valley Village",
+      "Valley Glen",
+      "Toluca Woods",
+      "Toluca Terrace",
+      "Sun Valley",
+      "Magnolia corridor",
+      "Chandler Boulevard area",
+      "Studio City border",
+    ],
+    occasions: [
+      {
+        title: "Wrap Parties & Cast Dinners",
+        description:
+          "Crews who live in the Valley celebrate at someone's house. Two proteins per guest, cooked hot in one sitting, and a show that photographs well.",
+      },
+      {
+        title: "Engagement Parties",
+        description:
+          "Twenty guests, one long table, and a chef who handles the entertainment so the couple can actually talk to people.",
+      },
+      {
+        title: "30th Birthdays",
+        description:
+          "The NoHo standard: friends in the yard, the fire show as the centerpiece, no private room to book on Lankershim.",
+      },
+      {
+        title: "Toluca Lake Anniversaries",
+        description:
+          "Estate yards with room for the whole family and a lawn for the kids. The grill sits at the patio's edge and the table runs under the trees.",
+      },
+    ],
+    venues: [
+      {
+        title: "Valley Village Bungalow Backyards",
+        description:
+          "Deep lots behind small houses, with a patio or driveway pad that gives the grill its flat spot. Narrow side gates are fine; our cart clears 30 inches.",
+      },
+      {
+        title: "Toluca Lake Estate Lots",
+        description:
+          "Wide lawns, pools, and long driveways. Thirty guests fit comfortably and load-in is the easiest in the east Valley.",
+      },
+      {
+        title: "Duplex & Condo Courtyards",
+        description:
+          "Shared courtyards off Magnolia and Chandler work when the building allows a grill outdoors. Send a photo and the rules and we will confirm the same day.",
+      },
+    ],
+    logistics: [
+      "Streets near the studios and the NoHo Arts District carry permit parking and Lankershim is slow at dinner time, so tell us where the chef can pull in for ten minutes to unload; after that the truck moves. Alleys behind Valley Village lots are often the easiest way in.",
+      "Summer evenings are warm, and most hosts start at 6:30 or 7 pm from June through September. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance on hardscape or packed ground; for pavers or turf we bring a mat.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to North Hollywood or Toluca Lake?",
+        answer:
+          "No. North Hollywood, Toluca Lake, and Valley Village all sit inside our free 50-mile radius, so your quote carries no travel fee.",
+      },
+      {
+        question: "We live in a duplex with a shared yard. Can you set up there?",
+        answer:
+          "Usually yes, as long as the building allows outdoor cooking and there is a level spot about the size of a king-size bed with 10 ft of clearance. Send us a photo and any HOA or landlord rules and we will confirm the same day.",
+      },
+      {
+        question: "Can you do a party of 25?",
+        answer:
+          "Yes. One chef serves up to 28 guests, and a second chef and grill come for larger groups so everyone eats at once. We can bring tables and chairs if the yard needs them.",
+      },
+      {
+        question: "What does hibachi at home cost in North Hollywood?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["burbank", "sherman-oaks", "glendale"],
+  },
+  {
+    slug: "buena-park",
+    city: "Buena Park",
+    county: "Orange County",
+    metaTitle: "Hibachi at Home Buena Park CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Buena Park, La Palma, and Cypress — block-wall backyards, family birthdays, quinceañeras, Korean and Latino family dinners. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Buena Park families host big and host often. The block-wall backyards of the tracts around Knott's, the larger lots near Los Coyotes, and the covered patios of La Palma and Cypress all fill up on Saturdays with cousins, church friends, and neighbors. A chef cooking steak, shrimp, and fried rice in front of thirty people is the easiest way to feed that crowd well.",
+      "We cook throughout Buena Park, La Palma, Cypress, Stanton, and the Fullerton and Anaheim borders. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Los Coyotes",
+      "Bellehurst",
+      "Knott's area",
+      "Beach Boulevard corridor",
+      "La Palma",
+      "Cypress",
+      "Stanton",
+      "West Anaheim border",
+      "Fullerton border",
+      "Buena Park Downtown area",
+    ],
+    occasions: [
+      {
+        title: "Quinceañeras & Big Birthdays",
+        description:
+          "Thirty guests on a Saturday evening is a normal booking here. The show gives the night a centerpiece without renting a hall.",
+      },
+      {
+        title: "Korean & Latino Family Dinners",
+        description:
+          "Every guest picks their own two proteins, cooked to order, so a table with different tastes and diets still eats together at once.",
+      },
+      {
+        title: "Graduations",
+        description:
+          "Buena Park, Kennedy, and Sunny Hills families in June, with relatives in from out of town and a yard that finally gets used.",
+      },
+      {
+        title: "Church & Youth Group Gatherings",
+        description:
+          "Large groups, one long table, and a chef who keeps the food coming hot while the group does its thing.",
+      },
+    ],
+    venues: [
+      {
+        title: "Block-Wall Tract Backyards",
+        description:
+          "The 1960s houses around Knott's have fenced, level yards with a poured patio. The walls keep the wind off, the grill sits on the concrete, and twenty-five guests fit without touching the lawn.",
+      },
+      {
+        title: "Los Coyotes & Bellehurst Lots",
+        description:
+          "Larger properties near the country club with pool decks and room for forty. Among the easiest setups in north Orange County.",
+      },
+      {
+        title: "Covered Patios in La Palma & Cypress",
+        description:
+          "Most covers sit below the 10 ft of clearance the grill needs, so the chef sets up just past the cover's edge and your guests stay under it in the shade.",
+      },
+    ],
+    logistics: [
+      "Buena Park is one of the easiest cities we serve: wide streets, driveways for the chef's truck, and side gates that clear our grill cart. The one thing to check is the patio cover; most are lower than the 10 ft the grill needs, so the chef cooks just beyond its edge and the table stays underneath.",
+      "Summer evenings are warm here and a 6 or 7 pm start works well from June through September; Sunday afternoon parties are popular the rest of the year. We need a flat area about the size of a king-size bed on concrete or packed ground, and we bring a mat for anything else.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Buena Park or La Palma?",
+        answer:
+          "No. Buena Park, La Palma, Cypress, and Stanton all sit inside our free 50-mile radius, so your quote carries no travel fee at all.",
+      },
+      {
+        question: "Can you cook for guests who eat halal, or who do not eat pork?",
+        answer:
+          "Yes. Nothing on our menu is pork; the proteins are chicken, steak, shrimp, salmon, scallops, lobster, and tofu, and every guest picks their own two. Tell us the counts when you book and dietary needs are handled per plate.",
+      },
+      {
+        question: "Can you handle 30 or 40 guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; larger parties get a second chef and grill so everyone eats together. Give us the count and the quote reflects it.",
+      },
+      {
+        question: "What does hibachi at home cost in Buena Park?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["fullerton", "anaheim", "cerritos"],
+  },
+  {
+    slug: "fullerton",
+    city: "Fullerton",
+    county: "Orange County",
+    metaTitle: "Hibachi at Home Fullerton CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Fullerton, Brea, Placentia, and La Habra — Sunny Hills lots, downtown craftsman yards, Cal State Fullerton graduations. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Fullerton has the yards for it. Sunny Hills and the Coyote Hills streets sit on big sloped lots with pool decks, the craftsman blocks near downtown have deep backyards behind small houses, and the newer Amerige Heights homes have patios built for entertaining. A chef setting up in one spot and feeding everyone from there fits all three.",
+      "We cook throughout Fullerton, Brea, Placentia, La Habra, and Yorba Linda. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included, and no travel fee.",
+    ],
+    neighborhoods: [
+      "Sunny Hills",
+      "Coyote Hills",
+      "Downtown Fullerton",
+      "Amerige Heights",
+      "Fullerton Hills",
+      "Raymond Hills",
+      "Brea",
+      "Placentia",
+      "La Habra",
+      "Yorba Linda",
+    ],
+    occasions: [
+      {
+        title: "Cal State Fullerton & College Graduations",
+        description:
+          "May and June, with the whole family in town and more guests than the house has chairs for. We bring tables and chairs if you need them.",
+      },
+      {
+        title: "Milestone Birthdays in Sunny Hills",
+        description:
+          "Twenty-five friends on the pool deck, the fire show as the entertainment, and no private room to book downtown.",
+      },
+      {
+        title: "Engagement & Rehearsal Dinners",
+        description:
+          "One long table, two proteins per guest, and a chef who runs the show so the couple can talk to people.",
+      },
+      {
+        title: "Family Reunions",
+        description:
+          "Big hillside lots hold forty. Two chefs and two grills mean everyone eats at the same time instead of in shifts.",
+      },
+    ],
+    venues: [
+      {
+        title: "Sunny Hills & Coyote Hills Lots",
+        description:
+          "Sloped lots with a pool deck or terrace as the flat surface. That is all the grill needs; the chef sets up at one end and the table runs along the pool.",
+      },
+      {
+        title: "Craftsman Backyards Near Downtown",
+        description:
+          "Deep lots behind small houses, usually with a driveway pad or patio. Narrow side gates are fine; our grill cart clears 30 inches.",
+      },
+      {
+        title: "Amerige Heights Patios",
+        description:
+          "Newer homes with covered patios and HOA rules. The chef cooks just past the cover's edge, the table stays in the shade, and an evening start clears quiet hours easily.",
+      },
+    ],
+    logistics: [
+      "Hillside driveways in Sunny Hills are steep and long, so tell us where the chef can park for ten minutes to unload; after that the truck moves. Near downtown, weekend street parking fills up, and an alley or driveway spot for load-in saves time.",
+      "Summer evenings run warm and a 6:30 or 7 pm start works well from June through September. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance on hardscape or packed ground; for pavers or turf we bring a mat.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Fullerton or Brea?",
+        answer:
+          "No. Fullerton, Brea, Placentia, La Habra, and Yorba Linda all sit inside our free 50-mile radius, so your quote carries no travel fee.",
+      },
+      {
+        question: "Our lot is on a slope. Can you still set up?",
+        answer:
+          "Yes, as long as there is one level spot about the size of a king-size bed with 10 ft of clearance above it. A pool deck, terrace, or driveway pad all work; guests sit where they like.",
+      },
+      {
+        question: "Can you serve 35 guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; larger parties get a second chef and grill so everyone eats together. Give us the count when you book and the quote reflects it.",
+      },
+      {
+        question: "What does hibachi at home cost in Fullerton?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["buena-park", "anaheim", "whittier"],
+  },
+  {
+    slug: "vista",
+    city: "Vista",
+    county: "San Diego County",
+    metaTitle: "Hibachi at Home Vista CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Vista, San Marcos, and inland North County — hillside ranch properties, Shadowridge patios, graduations and reunions. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Inland North County has the properties for a real backyard party: hillside ranches in Buena Creek and Bonsall with avocado trees and a view, Shadowridge tract homes with covered patios, and vacation rentals that families book for a reunion weekend. A chef setting up on the flattest spot and feeding thirty people from one grill is the easiest way to host out here.",
+      "We cook throughout Vista, San Marcos, Bonsall, Fallbrook, inland Oceanside, and Carlsbad. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included. Travel is free for the first 50 miles and $1 per mile after that, so your quote shows one small, fixed travel line and nothing else changes.",
+    ],
+    neighborhoods: [
+      "Shadowridge",
+      "Buena Creek",
+      "Vista Village",
+      "Rancho Buena Vista",
+      "Bonsall",
+      "San Marcos",
+      "Fallbrook",
+      "Oceanside inland",
+      "Carlsbad",
+      "Escondido west",
+    ],
+    occasions: [
+      {
+        title: "Graduations",
+        description:
+          "Rancho Buena Vista, Vista High, and Cal State San Marcos families in May and June, hosting relatives who drove down from Los Angeles and up from San Diego.",
+      },
+      {
+        title: "Family Reunions on Acreage",
+        description:
+          "Bonsall and Buena Creek properties hold forty. Two chefs, two grills, and everyone eats at once instead of in shifts from a buffet.",
+      },
+      {
+        title: "Reunion Weekends at a Vacation Rental",
+        description:
+          "One night of the trip when nobody has to cook or find a restaurant for twenty. Tell us the address and any house rules; we handle the rest.",
+      },
+      {
+        title: "Retirement & Milestone Dinners",
+        description:
+          "Marine and Navy families from Camp Pendleton celebrate the milestone at the house, with the show as the entertainment.",
+      },
+    ],
+    venues: [
+      {
+        title: "Hillside Ranch Properties",
+        description:
+          "Gravel drives, packed-dirt pads, and terraces with a view. We bring a mat, set the grill on the flattest spot, and the tables go where the shade and the view are.",
+      },
+      {
+        title: "Shadowridge & Tract-Home Patios",
+        description:
+          "Most patio covers sit below the 10 ft of clearance the grill needs, so the chef sets up just past the cover's edge and your guests stay under it.",
+      },
+      {
+        title: "Vacation Rentals",
+        description:
+          "Check the listing for outdoor-cooking and quiet-hour rules, send them to us, and the chef plans the layout around them. Cleanup is included, so the house is left as you found it.",
+      },
+    ],
+    logistics: [
+      "Vista is beyond our free 50-mile radius, so the quote carries one travel line at $1 per mile past that (about $36 to central Vista) and nothing else changes. Rural addresses in Bonsall and Buena Creek can be hard to find after dark; send a gate code or a landmark and we plan an earlier arrival.",
+      "Inland North County is warmer than the coast in summer, and a 6:30 or 7 pm start works well from June through September. We need a flat area about the size of a king-size bed and roughly 10 ft of overhead clearance; for gravel, dirt, or turf we bring a mat.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Vista?",
+        answer:
+          "A small one. Travel is free for the first 50 miles from our base and $1 per mile after that, so central Vista comes to about $36. The exact amount for your address shows as one line on your quote and nothing else changes.",
+      },
+      {
+        question: "We are staying at a vacation rental. Can you cook there?",
+        answer:
+          "Yes, as long as the listing allows outdoor cooking. Send us the address and the house rules, and the chef plans the layout around quiet hours and the rental's outdoor space. Cleanup is included.",
+      },
+      {
+        question: "Our property is gravel and dirt, not a patio. Does that work?",
+        answer:
+          "Yes. The grill needs a level spot about the size of a king-size bed; we bring a mat for gravel and dirt, and the chef sets up on the flattest area you have.",
+      },
+      {
+        question: "What does hibachi at home cost in Vista?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["oceanside", "san-diego", "temecula"],
+  },
+  {
+    slug: "simi-valley",
+    city: "Simi Valley",
+    county: "Ventura County",
+    metaTitle: "Hibachi at Home Simi Valley CA | Hibachi Catering from $59.90/Person",
+    metaDescription:
+      "Private hibachi chef in Simi Valley and Moorpark — Wood Ranch patios, Bridle Path horse property, graduations and retirement parties. $59.90/adult flat rate, setup & cleanup included.",
+    intro: [
+      "Simi Valley backyards come in two sizes: big and bigger. Bridle Path horse property has flat acreage, the older tracts have deep fenced yards with a poured patio, and Wood Ranch homes have covered patios and pool decks built for entertaining. A chef cooking in front of thirty people is about the most natural use of a Simi yard there is.",
+      "We cook throughout Simi Valley, Moorpark, Santa Susana Knolls, and the Chatsworth and Thousand Oaks borders. Flat rate $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum, setup and cleanup included. Travel is free for the first 50 miles and $1 per mile after that, so your quote shows one small, fixed travel line and nothing else changes.",
+    ],
+    neighborhoods: [
+      "Wood Ranch",
+      "Bridle Path",
+      "Big Sky",
+      "Texas Tract",
+      "Santa Susana Knolls",
+      "Sinaloa",
+      "Indian Hills",
+      "Moorpark",
+      "Simi Hills",
+      "Santa Susana",
+    ],
+    occasions: [
+      {
+        title: "Graduations",
+        description:
+          "Royal, Simi, and Santa Susana High families in June, with grandparents in from out of town and a yard that holds everyone.",
+      },
+      {
+        title: "Retirement Parties",
+        description:
+          "First-responder and city families celebrate the milestone at the house, with the neighbors invited and the show as the entertainment.",
+      },
+      {
+        title: "Family Reunions on Horse Property",
+        description:
+          "Bridle Path lots hold forty. Two chefs, two grills, and everyone eats at the same time.",
+      },
+      {
+        title: "Wood Ranch Milestone Birthdays",
+        description:
+          "Twenty-five guests on the pool deck, the fire show after sundown, and no private room to book.",
+      },
+    ],
+    venues: [
+      {
+        title: "Bridle Path & Horse Property",
+        description:
+          "Flat acreage with gravel or packed dirt near the house. We bring a mat, set the grill on the flattest spot, and the tables go wherever the shade is.",
+      },
+      {
+        title: "Wood Ranch Covered Patios",
+        description:
+          "Most covers sit below the 10 ft of clearance the grill needs, so the chef sets up just past the cover's edge and your guests stay under it. HOA quiet hours are easy to clear with an evening start.",
+      },
+      {
+        title: "Texas Tract & Older Ranch Houses",
+        description:
+          "Deep, fenced, level yards with a poured patio and a side gate that clears our grill cart. Twenty-five guests fit without touching the lawn.",
+      },
+    ],
+    logistics: [
+      "Simi is hot from June through September, so we recommend a 7 pm start; the show runs about 90 minutes and guests eat as it cools. Santa Ana winds in October are the other thing to plan around, and the chef places the grill so the breeze carries away from the table.",
+      "Simi Valley sits right at the edge of our free radius, so some addresses carry a small travel line at $1 per mile past 50; the quote shows the exact amount. We need a flat area about the size of a king-size bed on hardscape or packed ground; for gravel, dirt, or turf we bring a mat.",
+    ],
+    faqs: [
+      {
+        question: "Is there a travel fee to Simi Valley?",
+        answer:
+          "Travel is free for the first 50 miles from our base and $1 per mile after that. Simi Valley sits right at that edge, so some addresses carry a small travel line and some carry none; the quote shows the exact amount and nothing else changes.",
+      },
+      {
+        question: "Our yard is horse property with gravel and dirt. Can you cook there?",
+        answer:
+          "Yes. The grill needs a level spot about the size of a king-size bed; we bring a mat for gravel and dirt, and the chef sets up on the flattest area you have.",
+      },
+      {
+        question: "Can you handle 40 guests?",
+        answer:
+          "Yes. One chef serves up to 28 guests; past that we send a second chef and grill so everyone eats together. Give us the count and the quote reflects it.",
+      },
+      {
+        question: "What does hibachi at home cost in Simi Valley?",
+        answer:
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, 2 proteins per guest, garlic fried rice, vegetables, salad, the live show, setup, and cleanup included. Weekday Special pricing ($54.90/adult, Mon–Thu, any party size) applies here too.",
+      },
+    ],
+    nearby: ["thousand-oaks", "chatsworth", "woodland-hills"],
   },
 ]
 

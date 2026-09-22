@@ -50,6 +50,14 @@ export const cityTravel: Record<string, CityTravel> = {
   "san-pedro": { miles: 39.6, fee: 0 }, // San Pedro
   "lakewood": { miles: 22.3, fee: 0 }, // Lakewood
   "cerritos": { miles: 15.3, fee: 0 }, // Cerritos
+  "sherman-oaks": { miles: 36.6, fee: 0 }, // Sherman Oaks
+  "encino": { miles: 39.8, fee: 0 }, // Encino
+  "chatsworth": { miles: 49.8, fee: 0 }, // Chatsworth
+  "north-hollywood": { miles: 32.3, fee: 0 }, // North Hollywood
+  "buena-park": { miles: 13.8, fee: 0 }, // Buena Park
+  "fullerton": { miles: 15.1, fee: 0 }, // Fullerton
+  "vista": { miles: 85.5, fee: 36 }, // Vista
+  "simi-valley": { miles: 58.9, fee: 9 }, // Simi Valley
 }
 
 export function getCityTravel(slug: string): CityTravel | undefined {
