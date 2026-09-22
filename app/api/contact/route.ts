@@ -22,6 +22,24 @@ function resolvePathFromReferer(value: string | null): string | undefined {
   }
 }
 
+// Server-side relays (the party planner's notify-lead) carry no browser
+// cookie, so they send the utm set they captured on landing in the body.
+// The cookie still wins when both exist - it is the visit that reached us.
+const BODY_ATTRIBUTION_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "wbraid", "gbraid", "oppref"] as const
+function mergeBodyAttribution(
+  fromCookie: ReturnType<typeof readAttributionFromCookieHeader>,
+  raw: unknown,
+): ReturnType<typeof readAttributionFromCookieHeader> {
+  if (!raw || typeof raw !== "object") return fromCookie
+  const merged = { ...fromCookie } as Record<string, string | undefined>
+  for (const key of BODY_ATTRIBUTION_KEYS) {
+    if (merged[key]) continue
+    const value = (raw as Record<string, unknown>)[key]
+    if (typeof value === "string" && value.trim()) merged[key] = value.trim().slice(0, 200)
+  }
+  return merged as ReturnType<typeof readAttributionFromCookieHeader>
+}
+
 function normalizeOptionalDetail(value: string | undefined): string | undefined {
   if (!value) return undefined
   const trimmed = value.trim()
@@ -139,7 +157,7 @@ export async function POST(request: Request) {
           manualEntryId: asString(body.manualEntryId) ?? asString(body.manual_entry_id),
           externalTouchpointId: asString(body.externalTouchpointId) ?? asString(body.external_touchpoint_id),
           sourcePage: resolvePathFromReferer(request.headers.get("referer")),
-          attribution: readAttributionFromCookieHeader(request.headers.get("cookie")),
+          attribution: mergeBodyAttribution(readAttributionFromCookieHeader(request.headers.get("cookie")), body.attribution),
           rawPayload: body,
         })
       } catch (leadError) {

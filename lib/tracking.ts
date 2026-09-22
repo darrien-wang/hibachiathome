@@ -1,5 +1,7 @@
 "use client"
 
+import { ensureMetaPixel } from "@/components/meta-pixel"
+
 type TrackingEventName =
   | "page_view"
   | "quote_view"
@@ -366,6 +368,7 @@ export function trackEvent(name: TrackingEventName, params: TrackEventParams = {
   window.dataLayer.push(normalizedPayload)
   mirrorToClarity(name, params)
   mirrorToChatgptPixel(name, normalizedPayload)
+  mirrorToMetaPixel(name, normalizedPayload)
 }
 
 // ChatGPT Ads pixel: only the two events Ads Manager optimises on. A lead is
@@ -400,6 +403,35 @@ function mirrorToChatgptPixel(name: TrackingEventName, payload: DataLayerPayload
       oaiq("measure", "lead_created", { type: "customer_action", event_id: payload.event_id, source: name })
     } else if (name === "page_view") {
       oaiq("measure", "page_viewed", { type: "contents", contents: [{ id: payload.page_path, name: payload.page_title, content_type: "page" }] })
+    }
+  } catch {
+    // measurement must never break the page
+  }
+}
+
+// Meta Pixel: the standard events Ads Manager can optimise on. Lead is the
+// same hand-raise set the ChatGPT pixel uses (plus the quote text going out);
+// deposit_started / deposit_completed map to InitiateCheckout / Purchase with
+// the deposit as value. eventID is the transaction id GA4 dedupes on, so a
+// Conversions API feed can dedupe against the browser later. The stub + init
+// live in components/meta-pixel.tsx; without a pixel id this is a no-op.
+function mirrorToMetaPixel(name: TrackingEventName, payload: DataLayerPayload): void {
+  const fbq = ensureMetaPixel()
+  if (!fbq) return
+  try {
+    if (name === "page_view") {
+      fbq("track", "PageView")
+    } else if (name === "deposit_completed") {
+      fbq(
+        "track",
+        "Purchase",
+        { value: Number(payload.value ?? 0), currency: payload.currency ?? "USD", content_name: "Hibachi party deposit", content_type: "product" },
+        payload.transaction_id ? { eventID: payload.transaction_id } : undefined,
+      )
+    } else if (name === "deposit_started") {
+      fbq("track", "InitiateCheckout", { value: Number(payload.value ?? 0), currency: payload.currency ?? "USD" })
+    } else if (CHATGPT_LEAD_EVENTS.has(name) || (name as string) === "quote_sent") {
+      fbq("track", "Lead", { content_name: name }, payload.event_id ? { eventID: payload.event_id } : undefined)
     }
   } catch {
     // measurement must never break the page

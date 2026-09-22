@@ -9,6 +9,7 @@ import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { HideOnAdmin } from "@/components/hide-on-admin"
 import { ChatgptPixel } from "@/components/chatgpt-pixel"
+import { MetaPixel } from "@/components/meta-pixel"
 import LanguageSuggestBanner from "@/components/language-suggest-banner"
 import { JsonLd, localBusinessJsonLd, webSiteJsonLd } from "@/components/structured-data"
 import { INTERNAL_TRAFFIC_SNIPPET } from "@/lib/internal-traffic"
@@ -148,6 +149,7 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
           <HideOnAdmin>
             <TrackingBootstrap />
             <ChatgptPixel />
+            <MetaPixel />
           </HideOnAdmin>
         </Suspense>
         <HideOnAdmin>
