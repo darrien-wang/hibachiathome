@@ -15,5 +15,5 @@ export const MOBILE_APP = {
    * Empty until Firebase is set up for the project; then the credential is
    * created from the Firebase service-account JSON and its SID goes here.
    */
-  twilioPushCredentialSid: "",
+  twilioPushCredentialSid: "CR0cffc55d972a7abc0e0ca52f6ea6d27b",
 } as const
