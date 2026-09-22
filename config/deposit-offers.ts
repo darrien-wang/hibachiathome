@@ -3,7 +3,7 @@
 // The standard date-lock deposit is DEPOSIT_AMOUNT (config/pricing-rules). An
 // offer replaces it for customers who arrived from one of the listed paid
 // channels while the offer is live - the 2026-09 Meta video test runs on
-// "$9.90 holds your date". The server (lib/deposit-offer.ts, used by
+// "$1 holds your date". The server (lib/deposit-offer.ts, used by
 // /api/deposit/start) is the only thing that decides what Stripe charges;
 // everything on the client is display. Public pages never mention the
 // deposit at all, so the offer surfaces in the ad, the quote text, /quote's
@@ -27,12 +27,12 @@ export type DepositOffer = {
 
 export const DEPOSIT_OFFERS: DepositOffer[] = [
   {
-    code: "meta990",
-    amount: 9.9,
+    code: "meta1",
+    amount: 1,
     channels: ["meta_ads"],
     startsOn: "2026-09-21",
     endsOn: "2026-10-31",
-    label: "$9.90 holds your date",
+    label: "$1 holds your date",
     sourceLabel: "our Facebook / Instagram ad",
   },
 ]
