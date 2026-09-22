@@ -4,6 +4,7 @@ import { getCityTravel } from "@/config/city-travel"
 import { CATERING_CITIES } from "@/config/catering-cities"
 import { JsonLd } from "@/components/structured-data"
 import LocationsClient, { type LocationRegion } from "./LocationsClient"
+import LandingHero, { FIRST_MILES_FREE } from "@/components/city/landing-hero"
 
 export const metadata: Metadata = {
   title: "Hibachi at Home Service Areas | Southern California",
@@ -89,10 +90,21 @@ export default function LocationsPage() {
     ],
   }
 
+  // 2026-09-21: the Joshua Tree first screen on top (one h1 - the old page had
+  // a phone and a desktop copy), the city finder below it unchanged.
+  const totalCities = regions.reduce((n, r) => n + r.cities.length, 0)
   return (
     <>
       <JsonLd data={faqJsonLd} />
-      <LocationsClient regions={regions} catering={catering} />
+      <LandingHero
+        kicker="Service areas · all of Southern California"
+        title="Hibachi at Home Service Locations"
+        subhead="We serve all of Southern California. Our professional chefs bring authentic Japanese teppanyaki experiences directly to your location."
+        chips={[`${totalCities} cities`, "6 counties", "50 mi travel free"]}
+        imageAlt="Live hibachi fire show at a backyard party in Southern California"
+        estimator={{ citySlug: "socal", cityName: "Southern California", source: "locations_hub", travelNote: FIRST_MILES_FREE, cardLabel: "Your party" }}
+      />
+      <LocationsClient regions={regions} catering={catering} withHero />
     </>
   )
 }

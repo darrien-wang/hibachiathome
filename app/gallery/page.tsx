@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import LandingHero, { FIRST_MILES_FREE } from "@/components/city/landing-hero"
+import { LandingShell } from "@/components/city/landing-parts"
 
 type GalleryMedia = {
   id: string
@@ -160,22 +162,27 @@ export default function GalleryPage() {
     }))
   }
 
+  // 2026-09-21: the Joshua Tree first screen ("Photo Gallery" sitelinks land
+  // here); the h1, the intro and the whole media grid + lightbox are unchanged.
   return (
-    <div className="gallery-page-safe container mx-auto px-4 py-12">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4">Gallery</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            See real hibachi-at-home events, chef show moments, backyard parties, and fresh on-site cooking from Real
-            Hibachi service examples.
-          </p>
-        </div>
+    <LandingShell>
+      <LandingHero
+        kicker="Real parties · real chefs · SoCal"
+        title="Gallery"
+        subhead="See real hibachi-at-home events, chef show moments, backyard parties, and fresh on-site cooking from Real Hibachi service examples."
+        chips={["Backyard parties", "Chef show moments", "Fresh on-site cooking"]}
+        imageAlt="Live hibachi fire show at a night backyard party in Orange County"
+        estimator={{ citySlug: "socal", cityName: "Southern California", source: "gallery", travelNote: FIRST_MILES_FREE, cardLabel: "Your party" }}
+      />
+    <div className="gallery-page-safe mx-auto max-w-7xl px-5 pt-8 lg:px-8 lg:pt-16">
+      <div>
+        <p className="mb-5 text-[15px] leading-relaxed text-clay-700 lg:hidden">See real hibachi-at-home events, chef show moments, backyard parties, and fresh on-site cooking from Real Hibachi service examples.</p>
 
         <div className="mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {galleryMedia.map((media) => (
             <div
               key={media.id}
-              className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer border shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-300"
+              className="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-[22px] border border-ink/10 shadow-organic transition-all duration-300 hover:scale-[1.02] hover:shadow-organic-lg"
               onClick={() => !mediaLoadErrors[media.id] && openLightbox(media.id)}
               aria-label={media.alt}
               title={media.title}
@@ -262,5 +269,6 @@ export default function GalleryPage() {
         )}
       </div>
     </div>
+    </LandingShell>
   )
 }

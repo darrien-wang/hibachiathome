@@ -3,7 +3,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { occasionPages } from "@/config/occasion-pages"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
-import { smsHref } from "@/config/site"
+import LandingHero, { FIRST_MILES_FREE } from "@/components/city/landing-hero"
+import LandingDiffs from "@/components/city/landing-diffs"
+import LandingCtaButton from "@/components/city/landing-cta-button"
+import { LandingBody, LandingShell } from "@/components/city/landing-parts"
 
 const BASE_URL = "https://www.realhibachi.com"
 const URL = `${BASE_URL}/party`
@@ -67,29 +70,27 @@ export default function PartyHubPage() {
     areaServed: { "@type": "State", name: "Southern California" },
   }
 
-  const sms = smsHref("Hi Real Hibachi! I'm planning a party and would love a quote.")
+  // 2026-09-21: the Joshua Tree first screen - the card that asks for the
+  // phone first - above the same occasion grid. h1, intro, chips and every
+  // occasion card keep their text; the page's own "Get an Instant Quote" bar
+  // is gone because the card brings its own.
+  const intro = "Birthdays, pool parties, reunions, reveals, holidays — whatever brings your people together, we bring the chef, the fire, and the show."
 
   return (
-    <div className="bg-cream pb-28 text-ink lg:pb-16">
+    <LandingShell>
       <JsonLd data={[breadcrumbJsonLd, itemListJsonLd, serviceProviderJsonLd]} />
+      <LandingHero
+        kicker="Fire up your story."
+        title="A Reason to Gather Is All You Need"
+        subhead={intro}
+        chips={["500+ parties served", "Full refund up to 72h", "All of Southern California"]}
+        imageAlt="Guests gathered around a live hibachi fire show at a backyard party"
+        estimator={{ citySlug: "socal", cityName: "Southern California", source: "occasion_hub", travelNote: FIRST_MILES_FREE, cardLabel: "Your party" }}
+      />
+      <LandingBody>
+        <p className="text-[15px] leading-relaxed text-clay-700 lg:hidden">{intro}</p>
 
-      <div className="mx-auto max-w-7xl px-5 pt-[calc(var(--header-height,60px)+16px)] lg:px-8 lg:pt-[calc(var(--header-height,72px)+40px)]">
-        <div className="flex flex-col gap-2.5 lg:max-w-3xl lg:gap-3.5">
-          <span className="text-xs font-bold uppercase tracking-[0.12em] text-flame-700">Fire up your story.</span>
-          <h1 className="font-serif text-4xl font-extrabold leading-none lg:text-[56px]">A Reason to Gather Is All You Need</h1>
-          <p className="text-[15px] leading-relaxed text-clay-700 lg:text-lg">
-            Birthdays, pool parties, reunions, reveals, holidays — whatever brings your people together, we bring the chef, the fire, and the show.
-          </p>
-          <div className="flex flex-wrap gap-2 text-xs font-semibold text-clay-700 lg:text-[13px]">
-            {["500+ parties served", "Full refund up to 72h", "All of Southern California"].map((chip) => (
-              <span key={chip} className="rounded-full border border-ink/15 px-3 py-1.5">
-                {chip}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2.5 lg:mt-10 lg:grid-cols-4 lg:gap-4">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-4">
           {occasionPages.map((page, i) => (
             <Link
               key={page.slug}
@@ -115,22 +116,15 @@ export default function PartyHubPage() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col gap-2 rounded-[28px] bg-gold-100 p-[18px] text-gold-800 lg:mt-10 lg:flex-row lg:items-center lg:justify-between lg:p-6">
+        <div className="flex flex-col gap-2 rounded-[28px] bg-gold-100 p-[18px] text-gold-800 lg:flex-row lg:items-center lg:justify-between lg:p-6">
           <p className="text-base font-bold lg:text-lg">Celebrating something we haven&apos;t listed? We&apos;re still in.</p>
-          <Link href="/quote?source=occasion_hub" className="inline-flex h-12 items-center justify-center rounded-full bg-flame px-6 text-[15px] font-bold text-white hover:bg-flame-600">
+          <LandingCtaButton surface="occasion_hub" className="inline-flex h-12 items-center justify-center rounded-full bg-flame px-6 text-[15px] font-bold text-white hover:bg-flame-600">
             Get an Instant Quote
-          </Link>
+          </LandingCtaButton>
         </div>
-      </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 bg-[linear-gradient(180deg,rgba(247,239,226,0)_0%,#f7efe2_30%)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 lg:hidden">
-        <a href={sms} className="inline-flex h-[50px] items-center rounded-full border border-ink/15 bg-white px-[18px] text-sm font-semibold text-ink">
-          Text us
-        </a>
-        <Link href="/quote?source=occasion_hub" className="flex h-[50px] flex-1 items-center justify-center rounded-full bg-flame text-[15px] font-bold text-white shadow-organic-lg">
-          Get an Instant Quote
-        </Link>
-      </div>
-    </div>
+        <LandingDiffs distanceLine="Most SoCal addresses carry no travel fee" />
+      </LandingBody>
+    </LandingShell>
   )
 }

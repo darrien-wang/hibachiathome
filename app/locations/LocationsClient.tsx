@@ -33,7 +33,7 @@ const QUESTIONS = [
   },
 ]
 
-export default function LocationsClient({ regions, catering }: { regions: LocationRegion[]; catering: CateringMetro[] }) {
+export default function LocationsClient({ regions, catering, withHero = false }: { regions: LocationRegion[]; catering: CateringMetro[]; /** Page renders the Joshua Tree hero (h1 + card) above this. */ withHero?: boolean }) {
   const [q, setQ] = useState("")
   const [region, setRegion] = useState("all")
   const ql = q.trim().toLowerCase()
@@ -103,13 +103,17 @@ export default function LocationsClient({ regions, catering }: { regions: Locati
 
   return (
     <div className="bg-cream pb-28 text-ink lg:pb-[72px]">
-      <div className="mx-auto max-w-7xl px-5 pt-[calc(var(--header-height,60px)+16px)] lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-14 lg:px-8 lg:pt-[calc(var(--header-height,72px)+48px)]">
+      <div className={`mx-auto max-w-7xl px-5 lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-14 lg:px-8 ${withHero ? "pt-8 lg:pt-16" : "pt-[calc(var(--header-height,60px)+16px)] lg:pt-[calc(var(--header-height,72px)+48px)]"}`}>
         <aside className="hidden lg:block">
           <div className="sticky top-[calc(var(--header-height,72px)+24px)] flex flex-col gap-[18px]">
-            <h1 className="font-serif text-[44px] font-extrabold leading-none">Hibachi at Home Service Locations</h1>
-            <p className="text-[15px] leading-relaxed text-clay-700">
-              We serve all of Southern California. Our professional chefs bring authentic Japanese teppanyaki experiences directly to your location.
-            </p>
+            {withHero ? null : (
+              <>
+                <h1 className="font-serif text-[44px] font-extrabold leading-none">Hibachi at Home Service Locations</h1>
+                <p className="text-[15px] leading-relaxed text-clay-700">
+                  We serve all of Southern California. Our professional chefs bring authentic Japanese teppanyaki experiences directly to your location.
+                </p>
+              </>
+            )}
             {searchBox(true)}
             <div className="flex flex-col gap-1">
               {tabs.map((t) => (
@@ -131,11 +135,11 @@ export default function LocationsClient({ regions, catering }: { regions: Locati
 
         <div>
           <div className="flex flex-col gap-2.5 lg:hidden">
-            <h1 className="font-serif text-[34px] font-extrabold leading-[1.02]">Hibachi at Home Service Locations</h1>
+            {withHero ? null : <h1 className="font-serif text-[34px] font-extrabold leading-[1.02]">Hibachi at Home Service Locations</h1>}
             <p className="text-[15px] leading-relaxed text-clay-700">
               We serve all of Southern California. Our professional chefs bring authentic Japanese teppanyaki experiences directly to your location.
             </p>
-            <div className="flex flex-wrap gap-2 text-xs font-semibold text-clay-700">
+            <div className={`flex flex-wrap gap-2 text-xs font-semibold text-clay-700 ${withHero ? "hidden" : ""}`}>
               {[`${total} cities`, "6 counties", "50 mi travel free"].map((chip) => (
                 <span key={chip} className="rounded-full border border-ink/15 px-3 py-1.5">
                   {chip}
@@ -241,7 +245,8 @@ export default function LocationsClient({ regions, catering }: { regions: Locati
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 bg-[linear-gradient(180deg,rgba(247,239,226,0)_0%,#f7efe2_30%)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 lg:hidden">
+      {/* With the hero the card's own phone bar is the sticky CTA; two bars would stack. */}
+      <div className={`fixed inset-x-0 bottom-0 z-40 flex gap-2 bg-[linear-gradient(180deg,rgba(247,239,226,0)_0%,#f7efe2_30%)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 lg:hidden ${withHero ? "!hidden" : ""}`}>
         <a href={phone.voice.tel} onClick={() => trackEvent("phone_click", { contact_surface: "locations_sticky" })} className="inline-flex h-[50px] items-center rounded-full border border-ink/15 bg-white px-[18px] text-sm font-semibold text-ink">
           Call
         </a>
