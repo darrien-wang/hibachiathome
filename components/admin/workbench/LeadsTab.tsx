@@ -23,6 +23,7 @@ import {
 } from "./helpers"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { PlannerPill, type PlannerLive } from "./planner-live"
+import { RedditPanel } from "./RedditPanel"
 
 // 线索 · 客服. Won leads are orders now and live on the 订单 tab; 无效
 // (spam/tests) stays out of 全部 so the list is the work queue, not a log.
@@ -165,6 +166,8 @@ export function LeadsTab({
         />
       </div>
 
+
+      <RedditPanel adminKey={adminKey} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(([k, label]) => (
