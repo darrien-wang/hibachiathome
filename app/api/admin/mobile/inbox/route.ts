@@ -29,7 +29,7 @@ const PLANNER_LIVE_MS = 3 * 60_000
 
 type InboxEvent = {
   key: string
-  kind: "lead" | "sms" | "deposit" | "order_change"
+  kind: "lead" | "call" | "sms" | "deposit" | "order_change"
   title: string
   body: string
   url: string
@@ -98,15 +98,19 @@ export async function GET(request: NextRequest) {
     if (minutesSince(l.created_at, now) > MAX_EVENT_AGE_MIN) continue
     const name = (l.full_name ?? "").trim() || (phone ? prettyPhone(phone) : "新询盘")
     const bits = [l.guest_count ? `${l.guest_count} 人` : null, l.city_or_zip, SOURCE_LABELS[l.lead_source ?? ""] ?? null].filter(Boolean)
+    // A lead the voice line created from an inbound call already rang the
+    // owner's phone; a second ring two minutes later is noise, so it lands
+    // on the quiet channel as "call" and just asks for a follow-up.
+    const fromCall = /^inbound phone call/i.test(l.latest_message ?? "") || /call|phone_inbound/i.test(l.lead_source ?? "")
     events.push({
       key: `lead:${l.id}`,
-      kind: "lead",
-      title: `新询盘 · ${name}`,
-      body: bits.join(" · ") || (l.latest_message ?? "").slice(0, 60) || "还没有人回",
+      kind: fromCall ? "call" : "lead",
+      title: fromCall ? `来电待跟进 · ${name}` : `新询盘 · ${name}`,
+      body: bits.join(" · ") || (fromCall ? "打过来的电话，还没有记录跟进" : (l.latest_message ?? "").slice(0, 60) || "还没有人回"),
       url: `/admin?tab=leads&lead=${l.id}`,
       at: l.created_at,
       waitedMinutes: minutesSince(l.created_at, now),
-      ring: true,
+      ring: !fromCall,
     })
   }
 
