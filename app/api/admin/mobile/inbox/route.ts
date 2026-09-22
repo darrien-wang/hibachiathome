@@ -21,6 +21,8 @@ export const dynamic = "force-dynamic"
 const LEAD_LOOKBACK_MS = 24 * 3600_000
 const SMS_LOOKBACK_MS = 24 * 3600_000
 const SMS_GRACE_MS = 2 * 60_000
+/** Older than this is still counted, but the phone does not ring for it (no burst of stale alerts on install). */
+const MAX_EVENT_AGE_MIN = 180
 const DEPOSIT_LOOKBACK_MS = 2 * 3600_000
 const CHANGE_LOOKBACK_MS = 24 * 3600_000
 const PLANNER_LIVE_MS = 3 * 60_000
@@ -40,6 +42,21 @@ type InboxEvent = {
 const isTestNumber = (e164: string | null) => !e164 || /^\+1\d{3}555\d{4}$/.test(e164)
 const minutesSince = (iso: string, now: number) => Math.max(0, Math.round((now - Date.parse(iso)) / 60_000))
 const money = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// A customer text that only says thanks / ok / paid needs no answer, so it
+// must not ring a phone every 15 minutes. Anything with a question mark, an
+// action word, or real length is treated as needing a person.
+const ACTION_WORDS = /\b(cancel|cancell|change|reschedul|refund|move|update|remove|address|deposit|balance|pay|price|quote|cost|guest|people|person|sake|chef|arriv|late|earl|confirm|availab|menu|allerg|vegetarian|table|chair|park|invoice|receipt|call me|text me|tomorrow|tonight|today)\w*/i
+const QUESTION_WORDS = /^(when|how|what|which|where|who|can|could|would|do|does|is|are|will)\b/i
+const THANKS = /^(ok|okay|k|kk|got it|thanks?|thank you|thx|ty|perfect|great|awesome|sounds good|sounds great|cool|nice|yes|yep|yeah|sure|will do|no problem|np|paid|done|see you|looking forward|excited|amazing|wonderful|love it|you too|same to you|bye|good night|goodnight|have a)\b/i
+function courtesyOnly(body: string): boolean {
+  const t = body.toLowerCase().replace(/[^\p{L}\p{N}\s?]/gu, " ").replace(/\s+/g, " ").trim()
+  if (!t) return true
+  if (t.includes("?")) return false
+  if (ACTION_WORDS.test(t) || QUESTION_WORDS.test(t)) return false
+  if (t.split(" ").length > 12) return false
+  return THANKS.test(t)
+}
+
 const SOURCE_LABELS: Record<string, string> = {
   landing_inline: "落地页",
   landing_contact: "落地页",
@@ -72,10 +89,13 @@ export async function GET(request: NextRequest) {
     ? await supabase.from("lead_touchpoints").select("lead_id").in("lead_id", leadIds).eq("touchpoint_type", "agent_first_response")
     : { data: [] as Array<{ lead_id: string }> }
   const answered = new Set((responded ?? []).map((t) => t.lead_id))
+  let newLeadsTotal = 0
   for (const l of leadRows) {
     if (answered.has(l.id)) continue
     const phone = toE164(l.phone)
     if (isTestNumber(phone)) continue
+    newLeadsTotal += 1
+    if (minutesSince(l.created_at, now) > MAX_EVENT_AGE_MIN) continue
     const name = (l.full_name ?? "").trim() || (phone ? prettyPhone(phone) : "新询盘")
     const bits = [l.guest_count ? `${l.guest_count} 人` : null, l.city_or_zip, SOURCE_LABELS[l.lead_source ?? ""] ?? null].filter(Boolean)
     events.push({
@@ -100,10 +120,12 @@ export async function GET(request: NextRequest) {
     if (now - atMs > SMS_LOOKBACK_MS || now - atMs < SMS_GRACE_MS) continue
     if (isTestNumber(peer)) continue
     const body = (v.last.body ?? "").trim()
-    // Tapbacks and opt-outs are not questions.
+    // Tapbacks, opt-outs and plain thank-yous are not questions.
     if (/^(liked|loved|laughed at|emphasized|disliked|questioned)\s/i.test(body) || /^(stop|unsubscribe)$/i.test(body)) continue
+    if (courtesyOnly(body)) continue
     unanswered.push({ peer, at: v.lastInAt, body })
   }
+  const unrepliedTotal = unanswered.length
   if (unanswered.length) {
     // Name the customer when we know them: recent leads, matched by number.
     const { data: known } = await supabase
@@ -122,6 +144,7 @@ export async function GET(request: NextRequest) {
       const lead = byPhone.get(u.peer)
       const who = (lead?.full_name ?? "").trim() || prettyPhone(u.peer)
       const waited = minutesSince(u.at, now)
+      if (waited > MAX_EVENT_AGE_MIN) continue
       events.push({
         key: `sms:${u.peer}:${u.at}`,
         kind: "sms",
@@ -192,8 +215,8 @@ export async function GET(request: NextRequest) {
     serverTime: new Date(now).toISOString(),
     member: { name: actor.name ?? actor.alias, role: actor.role },
     counts: {
-      unreplied: events.filter((e) => e.kind === "sms").length,
-      newLeads: events.filter((e) => e.kind === "lead").length,
+      unreplied: unrepliedTotal,
+      newLeads: newLeadsTotal,
       changedOrders: changeRows.length,
       plannerLive,
     },
