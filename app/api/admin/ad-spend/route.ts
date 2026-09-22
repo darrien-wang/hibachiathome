@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { fetchGoogleCampaignDays, googleAdsCustomerId } from "@/lib/google-ads-rest"
+import { fetchMetaCampaignDays, metaAdAccountId, metaConfigured } from "@/lib/meta-ads-rest"
 import { PAID_CHANNELS, isPaidChannel } from "@/lib/channels"
 
 export const runtime = "nodejs"
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic"
 //   GET  ?from&to[&channel]          rows in the window
 //   POST {rows:[...]}                upsert manual / CSV / api rows (any channel)
 //   POST ?action=sync_google&days=N  pull campaign×day from the Google Ads API
+//   POST ?action=sync_meta&days=N    pull campaign×day from the Meta Marketing API
 // The workbench calls sync_google from the 看板. The ads-analytics repo pushes
 // the same campaign×day rows with source "api" through its service account
 // (`sync-spend.ts --google-sa`), which does not depend on the OAuth refresh
@@ -112,6 +114,48 @@ export async function POST(request: NextRequest) {
       }
       const cost = upserts.reduce((a, r) => a + r.cost_cents, 0)
       return NextResponse.json({ ok: true, channel: "google_ads", from, to, rows: upserts.length, costCents: cost })
+    } catch (error) {
+      return NextResponse.json({ ok: false, error: String(error) }, { status: 200 })
+    }
+  }
+
+  if (action === "sync_meta") {
+    // Meta reports in the ad account's time zone (Los Angeles), same as our
+    // PT day. clicks = link clicks, so CPC lines up with Google's; all-clicks
+    // rides in the note. platform_conversions = Meta's own "lead" count,
+    // reference only - the scorecard's leads come from our tables by utm.
+    const days = Math.min(400, Math.max(1, int(request.nextUrl.searchParams.get("days") ?? 14)))
+    const from = daysAgo(days)
+    const to = ptToday()
+    if (!metaConfigured()) return NextResponse.json({ ok: false, error: "META_ACCESS_TOKEN not set", channel: "meta_ads" }, { status: 200 })
+    try {
+      const rows = await fetchMetaCampaignDays(from, to)
+      const accountId = metaAdAccountId()
+      const now = new Date().toISOString()
+      const upserts = rows.map((r) => ({
+        channel: "meta_ads",
+        account_id: accountId,
+        campaign_id: r.campaignId,
+        campaign_name: r.campaignName,
+        ad_group_id: "",
+        ad_group_name: null,
+        date: r.date,
+        impressions: r.impressions,
+        clicks: r.linkClicks,
+        cost_cents: r.costCents,
+        platform_conversions: r.leads,
+        platform_conversion_value_cents: 0,
+        source: "api",
+        note: r.clicks !== r.linkClicks ? `all_clicks=${r.clicks}` : null,
+        created_by: `sync:${actor.alias}`,
+        updated_at: now,
+      }))
+      if (upserts.length) {
+        const { error } = await supabase.from("ad_spend_daily").upsert(upserts, { onConflict: "channel,account_id,campaign_id,ad_group_id,date" })
+        if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+      }
+      const cost = upserts.reduce((a, r) => a + r.cost_cents, 0)
+      return NextResponse.json({ ok: true, channel: "meta_ads", from, to, rows: upserts.length, costCents: cost })
     } catch (error) {
       return NextResponse.json({ ok: false, error: String(error) }, { status: 200 })
     }
