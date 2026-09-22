@@ -261,8 +261,8 @@ Real Hibachi · (213) 770-7788
 - **加菜**：第 3 个蛋白 +$10；升级 filet +$8 / scallops +$6 / lobster tail +$12；gyoza $15、edamame $10、spring rolls $15、noodles $5；炒饭 DIY 加料（虾/鸡）$10、加蛋 $1；饮料 $5/$12。炒饭和蔬菜**加量免费**（提前说）。
 - **Appreciation $50**：轮换致敬（现在 **教师 2026-09-01→10-15**；老兵 10-16→11-30；医护 12-01→01-15；消防/急救 01-16→02-28）。$599+、一单一次、只按职业、**只与 Weekday Special 叠加**，不与人数折扣叠。
 - **回头客** $60/每 10 人（隐形福利，客户提到"上次订过"才给）。
-- **20+ 免费前菜 1 份（三选一，同上表）**（发票系统仍自动应用，无到期日；与 Weekday Special 不叠，因为周中本来就送）。**桌椅 −$100** 是关单专用（closer-only），首条不提，只在最后一步犹豫时放。
-- Parties booked before 2026-09-22 keep the 3-item platter they were promised (Sergio 9/23, Joshua Tree 10/3, Eileen Heng 10/17, Aryan 10/27, Susan Bell 11/24, Jane Yusim 11/25, Christine Toy 12/15). New bookings get one appetizer of their choice.
+- **20+ 免费前菜 1 份（三选一，同上表）**（按活动日期 **10/31 前**有效；planner 自动加，员工工具在 Add Promotion 里手动加；与 Weekday Special 不叠，因为周中本来就送）。**桌椅 −$100** 是关单专用（closer-only），首条不提，只在最后一步犹豫时放。
+- **09-22 前订的单照旧送三拼**（用户 09-22 定新规则时的保护）：Sergio 9/23、Joshua Tree 10/3、Christine Toy 12/15 发票里已带三拼，系统按行上的标签自动保持，金额不变；Aryan 10/27 还没开发票，第一次打开时自动带三拼。Eileen 10/17、Susan Bell 11/24、Jane Yusim 11/25 如果开发票时有送前菜那一行，在那一行的下拉里选 **All 3 (booked before 9/22)**。之后的新单一律一份自选，客人在 planner 里点选，员工工具在同一个下拉里改。
 - **Weekday Special 黑名单**：Labor Day、感恩节周（11/23–29）、12/20–1/3、Memorial Day、7/3–5。这些日子按周末价。
 
 **公式**：`max( 成人×成人价 + 小孩×小孩价 − 人数折扣 , 599 ) + 路费`；桌椅/加菜/4% 另加；小费不进报价。

@@ -68,7 +68,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     `Weekday Special, Monday-Thursday: ${usd2(adult.weekdayPrice)} per adult, ${usd2(child.weekdayPrice)} per child, plus a free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}): one tray for the table to share, gyoza if the customer doesn't choose. Any party size, full menu.${blackouts.length ? ` Not available on major holidays: ${blackouts.join("; ")}.` : ""}`,
     `Party Size Discount, automatic on any day and on top of the Weekday Special (counts adults + kids 5-12): ${PARTY_SIZE_DISCOUNT_TIERS.map((t) => `${t.minGuests}-${t.maxGuests} guests ${usd(t.amount)} off`).join(", ")}. ${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
     ...(platterOn
-      ? [`Parties of ${LARGE_PARTY_PLATTER.minGuests}+ guests also get a free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}) through October 31, 2026.`]
+      ? [`Parties of ${LARGE_PARTY_PLATTER.minGuests}+ guests on any day get the same free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}) through October 31, 2026. It is one per party: a 20+ weekday party gets one, not two.`]
       : []),
     `Travel: first ${TRAVEL_FREE_RADIUS_MILES} driving miles free, then ${usd(TRAVEL_RATE_PER_MILE)} per mile. Most of Los Angeles and Orange County is inside the free radius.`,
     ...(isPromotionActive("call_out_fee_waived") ? ["No chef call-out fee right now (waived)."] : []),
