@@ -12,9 +12,11 @@ export const maxDuration = 60
 // Reddit 监听。
 //
 //   GET            跑一轮：抓目标版块新帖 → 分级 → 新命中写 reddit_mentions →
-//                  一档（直接问 hibachi/私厨）发一封提醒邮件。Vercel cron 每
-//                  20 分钟带 `Authorization: Bearer CRON_SECRET` 调；人也可以
-//                  用 x-admin-key 调，加 ?dry=1 只看不写。
+//                  一档（直接问 hibachi/私厨）发一封提醒邮件。由桌面定时任务
+//                  reddit-watch 每 20 分钟用 x-admin-key 调（Vercel 是 Hobby 版，
+//                  cron 只能一天一次，写进 vercel.json 会让整站部署被拒，
+//                  2026-09-22 踩过）；加 ?dry=1 只看不写。CRON_SECRET 分支留给
+//                  以后升级付费版再用。
 //   GET ?list=1    工作台面板读列表（?status=new|replied|skipped|all）
 //   PATCH          工作台标状态 { id, status, note? }
 //
