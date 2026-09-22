@@ -67,6 +67,6 @@ export const ORDER_SOP_STEPS: OrderSopStep[] = [
     title: "派对次日:晒图邀请",
     when: "邀评后接着发",
     build: ({ firstName }) =>
-      `Hi${firstName ? " " + firstName : ""}! Hope everyone loved the show 🔥 If you caught any fun photos or videos at the party, we'd love to see them - tag us @realhibachi on Instagram or just text them here. Our favorites get featured (with your OK, of course)!`,
+      `Hi${firstName ? " " + firstName : ""}! Hope everyone loved the show 🔥 If you caught any fun photos or videos at the party, we'd love to see them - tag us @realhibachi on Instagram or just text them here. Our favorites get featured (with your OK, of course). And if you're on Reddit, your city's sub always likes a good backyard party photo.`,
   },
 ]
