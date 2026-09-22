@@ -147,9 +147,11 @@ export function SoftphoneMobileDrawer() {
       <button
         onClick={() => setDrawerOpen(true)}
         style={{
-          position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 210,
-          height: 60, display: drawerOpen ? "none" : "flex", alignItems: "center", gap: 10,
-          padding: "0 16px", paddingBottom: "env(safe-area-inset-bottom)",
+          // Above the workbench's bottom tab bar when there is one (it sets the
+          // variable), and hidden inside the Android app, where calls are native.
+          position: "fixed", left: 0, right: 0, bottom: "var(--rh-mobile-nav, 0px)", zIndex: 210,
+          height: 60, display: drawerOpen || inApp ? "none" : "flex", alignItems: "center", gap: 10,
+          padding: "0 16px", paddingBottom: "var(--rh-mobile-nav-pad, env(safe-area-inset-bottom))",
           background: headerRed ? RED : INK, color: GROUND,
           border: 0, borderRadius: 0, cursor: "pointer", font: `800 16px ${FONT}`, textAlign: "left",
         }}

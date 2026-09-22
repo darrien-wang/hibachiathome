@@ -178,6 +178,20 @@ export default function Workbench() {
     [phone],
   )
   const phoneOn = phone.status === "ready" || phone.live.kind !== "none"
+
+  // The phone's collapsed bar and the tab bar both live at the bottom edge on
+  // phones; the bar reads these so it stacks above the tabs instead of over them
+  // (2026-09-21: the tabs were hidden under it, the boss saw only 线索).
+  useEffect(() => {
+    if (!isMobile) return
+    const root = document.documentElement
+    root.style.setProperty("--rh-mobile-nav", "calc(46px + env(safe-area-inset-bottom))")
+    root.style.setProperty("--rh-mobile-nav-pad", "0px")
+    return () => {
+      root.style.removeProperty("--rh-mobile-nav")
+      root.style.removeProperty("--rh-mobile-nav-pad")
+    }
+  }, [isMobile])
   const phoneLabel = phone.status === "connecting" ? "客服电话 · 连接中" : phoneOn ? "客服电话 · 已上线" : "客服电话 · 未上线"
   const togglePhone = () => {
     if (phoneOn) phone.goOffline()
@@ -253,7 +267,7 @@ export default function Workbench() {
       )}
 
       {/* Desktop keeps a right gutter so the softphone handle never sits on a table's last column. */}
-      <main style={{ flex: 1, minWidth: 0, padding: isMobile ? "16px 16px 88px" : "20px 52px 72px 24px" }}>
+      <main style={{ flex: 1, minWidth: 0, padding: isMobile ? `16px 16px ${phone.inApp ? 88 : 148}px` : "20px 52px 72px 24px" }}>
         {data.error ? <div className="notice danger" style={{ marginBottom: 12 }}>{data.error}</div> : null}
         {searching ? (
           <SearchResults q={q.trim()} hits={hits} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
@@ -276,7 +290,7 @@ export default function Workbench() {
       </main>
 
       {isMobile ? (
-        <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", borderTop: "2px solid var(--color-divider)", background: "var(--color-bg)", zIndex: 20 }}>
+        <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", borderTop: "2px solid var(--color-divider)", background: "var(--color-bg)", zIndex: 20, paddingBottom: "env(safe-area-inset-bottom)" }}>
           {tabs.map(([t, label]) => (
             <button key={t} type="button" className="wb-mtab" aria-current={tab === t && !searching ? "page" : undefined} onClick={() => go(t)}>
               {label}
