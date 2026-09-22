@@ -349,7 +349,7 @@ function DepositPaymentPageInner() {
     booking.estimate_high >= booking.estimate_low
 
   const standardDepositAmount = getDepositAmount(hasBookingEstimateRange ? booking?.estimate_high : totalAmount)
-  // Channel offers (the $1 date lock for the Meta test) come from the server,
+  // Channel offers (the $9.90 date lock for the Meta test) come from the server,
   // so the page prints exactly what /api/deposit/start will charge.
   const { offer: depositOffer } = useDepositOffer({ leadId: leadIdParam || undefined, offerCode: offerCodeParam || undefined })
   const depositAmount = depositOffer ? depositOffer.amount : standardDepositAmount

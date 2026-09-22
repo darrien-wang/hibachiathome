@@ -406,7 +406,7 @@ function resolveOrigin(request: NextRequest): string {
 }
 
 function resolveDepositAmount(payload: NormalizedDepositStartPayload, offer?: DepositOffer): number {
-  // A channel offer (config/deposit-offers, e.g. the $1 date lock for Meta
+  // A channel offer (config/deposit-offers, e.g. the $9.90 date lock for Meta
   // traffic) is decided server-side from attribution and the lead. Otherwise
   // the rule-based amount. The client's depositAmount is display only -
   // trusting it would invite tampering.

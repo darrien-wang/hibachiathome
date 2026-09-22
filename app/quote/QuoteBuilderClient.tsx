@@ -269,7 +269,7 @@ export default function QuoteBuilderClient() {
   // shown only after the visitor leaves a mobile number and an email. The
   // unlock is remembered on this device so a returning visitor is not asked twice.
   const [unlocked, setUnlocked] = useState(false)
-  // Channel deposit offer ($1 date lock for Meta traffic) - what the pay page will charge.
+  // Channel deposit offer ($9.90 date lock for Meta traffic) - what the pay page will charge.
   const { amount: depositAmount } = useDepositOffer()
   const [unlockBusy, setUnlockBusy] = useState(false)
   const [unlockErr, setUnlockErr] = useState<string | null>(null)
