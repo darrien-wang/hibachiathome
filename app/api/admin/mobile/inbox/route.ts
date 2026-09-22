@@ -148,16 +148,18 @@ export async function GET(request: NextRequest) {
       const lead = byPhone.get(u.peer)
       const who = (lead?.full_name ?? "").trim() || prettyPhone(u.peer)
       const waited = minutesSince(u.at, now)
-      if (waited > MAX_EVENT_AGE_MIN) continue
+      // Older ones are listed silently instead of dropped: a count of "1 待回"
+      // with nothing to tap on was the phone's own mystery (2026-09-22).
+      const hours = Math.floor(waited / 60)
       events.push({
         key: `sms:${u.peer}:${u.at}`,
         kind: "sms",
-        title: `${who} 等了 ${waited} 分钟`,
+        title: `${who} 等了 ${waited > MAX_EVENT_AGE_MIN ? `${hours} 小时` : `${waited} 分钟`}`,
         body: u.body.slice(0, 60) || "（图片或空消息）",
         url: lead ? `/admin?tab=leads&lead=${lead.id}` : "/admin?tab=leads&filter=unreplied",
         at: u.at,
         waitedMinutes: waited,
-        ring: true,
+        ring: waited <= MAX_EVENT_AGE_MIN,
       })
     }
   }
