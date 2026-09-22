@@ -10,7 +10,6 @@ import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
-import { useDepositOffer } from "@/lib/use-deposit-offer"
 import { readDepositMarker, writeDepositMarker, type DepositMarker } from "@/lib/deposit-marker"
 
 type BookingPreview = {
@@ -148,7 +147,6 @@ function DepositPaymentPageInner() {
   // Negotiated total, signed by staff; the server re-verifies it.
   const agreedTotalParam = searchParams.get("agreed_total")?.trim() || ""
   const agreedSigParam = searchParams.get("agreed_sig")?.trim() || ""
-  const offerCodeParam = searchParams.get("offer")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
   const eventTimeParam = searchParams.get("event_time") || ""
   const locationParam = searchParams.get("location") || ""
@@ -348,11 +346,7 @@ function DepositPaymentPageInner() {
     booking.estimate_low > 0 &&
     booking.estimate_high >= booking.estimate_low
 
-  const standardDepositAmount = getDepositAmount(hasBookingEstimateRange ? booking?.estimate_high : totalAmount)
-  // Channel offers (the $1 date lock for the Meta test) come from the server,
-  // so the page prints exactly what /api/deposit/start will charge.
-  const { offer: depositOffer } = useDepositOffer({ leadId: leadIdParam || undefined, offerCode: offerCodeParam || undefined })
-  const depositAmount = depositOffer ? depositOffer.amount : standardDepositAmount
+  const depositAmount = getDepositAmount(hasBookingEstimateRange ? booking?.estimate_high : totalAmount)
   // An owner-signed agreed total (the "协议总价" link) is what the customer was
   // quoted by text, and it is what the server locks in at payment. Until
   // 2026-09-18 this page still showed the standard rate, so a customer who
@@ -584,14 +578,7 @@ function DepositPaymentPageInner() {
         </div>
         <h1 className="font-serif text-[28px] font-extrabold leading-[1.1] text-ink sm:text-[34px]">Lock your date</h1>
         <p className="mt-2 text-base text-clay-700">
-          {depositOffer ? (
-            <>
-              Special from {depositOffer.sourceLabel}: a <span className="font-semibold text-ink">{depositLabel}</span> deposit
-              holds your chef instead of the usual ${depositOffer.standardAmount.toFixed(2)}. It comes off your final balance.
-            </>
-          ) : (
-            <>A {depositLabel} deposit holds your chef. It comes off your final balance.</>
-          )}
+          A {depositLabel} deposit holds your chef. It comes off your final balance.
         </p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-cream px-5 py-4 text-base text-ink">
