@@ -308,6 +308,26 @@ Real Hibachi · (213) 770-7788
 5. **让价的说法**：主动、干脆、带条件，不求人。"I'll match that - $54.90/adult for your Saturday, and you still get the show-up promise in writing. Want me to pencil it in?" 不说 "please"，不说 "we really want your business"，不让第二次。
 6. **记情报**：工作台 `add_note` 写 `[COMP] 竞品名 / 报价 / 包含项 / 客户最终决定`；汇报里单列"竞品情报"一行。用户据此决定要不要动价目表、广告或 `pricing-rules.ts`——**skill 里的数字只跟着价目表走，不因为一次让价改**。
 
+### 5.2 被截单后的挽留（用户 09-21 定：被别家报价截走的，可以试一次）
+
+**什么时候用**：客户已经说了不订，原因是别家报价更低或"带升级"（`[why]` 里出现 competitor / better quote / cheaper）。这是 §4.1 "被拒不挽留"的**唯一例外**，而且只试一次。客户说不订但原因是日期改了、人数没定、家里没同意的，**不用这套**，照 §4.1 走。
+
+**逻辑**（为什么这样写，别改成推销）
+1. 对方的"不"常常是别人替他做的决定（姐姐找的、朋友推荐的）。挽留不能让他显得在否定那个人，所以不争辩、不挽留，只给一条"锁定之前值得知道的事"，让他自己拿着信息换回来。
+2. 先讲差异，不讲价（§5.1 第 2 步）。只讲具体事实：当天早上买、不冷冻、真黄油。**不说"我们最好""你吃过就知道"**——形容词是自夸，事实让客户自己下结论。
+3. 主动说唯一的短处（海鲜是冷冻的）。这是整组话里最建立可信度的一句：肯说短处的人，说的长处才可信。
+4. 让他把对方报价和"升级项"发过来（§7.1 先问再让），同时先说清"我们食材贵，不一定能匹配，只是看看能不能做到"——把锚定住，免得他期待大砍价；这也是用户的原话意思。
+5. 他回了数再动：升级项多半是菲力/龙虾那类，先用**交换**（周中价、免桌椅、送拼盘）代替降价；带宽内（每人 ≤$5 或每单 ≤$100，取小）我直接定，超过问用户。匹配不了就照实说，留好印象，不第二次挽留。
+
+**话术（三条，分开发；他刚回过话就立刻发，隔太久就别发了）**
+1. "Appreciate you telling me — no hard feelings at all. One thing worth knowing before it's locked in: we're not the biggest outfit in SoCal, but it's the only place we cook, and it shows in the food. Beef and chicken are bought fresh the morning of your party, never frozen, and everything's cooked in real butter."
+2. "Seafood is the one exception — shrimp and salmon come in frozen, ours and everyone's, because that's the only way they travel safely. I'd rather say that than pretend otherwise."
+3. "If you're open to it, send me what they quoted and what the upgrades are, and I'll see whether I can get there for [his 59th / your party]. Fair warning: our food costs more, so I may not be able to match it — but I'd rather check than assume."
+
+比价还没定、客户正在比的（不是已拒绝），用同一套的前两条 + 第三条改成 "If someone quotes you lower, send me what they're offering and I'll see what I can do on my end. Our food costs more, so I can't always match, but I'll tell you straight either way."（09-20 Christine Toy 这样收到后第二天付了押金）。
+
+**记录**：`add_note` 写 `[compete]` 说明发了这套 + 对方报价/包含项（拿到后补 `[COMP]`）；线索状态留 lost，他回话再改回 qualified。**每次用了都要在汇报里单列，攒够 5 次看拉回率**，拉不回就把这节删掉。09-21 第一例：Santa Clarita 59 岁生日，11+2，我们 $688.70，被"姐姐找的更便宜还带升级"截走。
+
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
