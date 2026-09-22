@@ -195,11 +195,14 @@ export default function Workbench() {
     }
   }, [isMobile])
   const phoneLabel = phone.status === "connecting" ? "客服电话 · 连接中" : phoneOn ? "客服电话 · 已上线" : "客服电话 · 未上线"
+  // The line is on by default and a tap must never take it down (2026-09-22,
+  // 用户定): the chip only brings it up if it is not, and opens the panel.
+  // Inside the Android app the native side owns the line, so no chip at all.
   const togglePhone = () => {
-    if (phoneOn) phone.goOffline()
-    else phone.goOnline()
-    if (isMobile) phone.setDrawerOpen(true)
+    if (!phoneOn) void phone.goOnline()
+    phone.setDrawerOpen(true)
   }
+  const showPhoneChip = !phone.inApp
 
   if (!ready || data.authFailed) return <div className="wb" />
 
@@ -245,17 +248,21 @@ export default function Workbench() {
               </button>
             ) : null}
           </label>
-          <button type="button" className="wb-chip" aria-pressed={phoneOn ? "true" : "false"} onClick={togglePhone} style={{ height: 36, flex: "none" }} title={phone.message ?? undefined}>
-            {PhoneIcon} {phoneLabel}
-          </button>
+          {showPhoneChip ? (
+            <button type="button" className="wb-chip" aria-pressed={phoneOn ? "true" : "false"} onClick={togglePhone} style={{ height: 36, flex: "none" }} title={phone.message ?? undefined}>
+              {PhoneIcon} {phoneLabel}
+            </button>
+          ) : null}
         </header>
       ) : (
         <header style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 10px", borderBottom: "2px solid var(--color-divider)", background: "var(--color-bg)", position: "sticky", top: 0, zIndex: 20 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 16 }}>Real Hibachi · {searching ? "搜索" : TAB_TITLES[tab]}</div>
-            <button type="button" className="wb-chip" aria-pressed={phoneOn ? "true" : "false"} onClick={togglePhone} style={{ height: 32, padding: "0 10px", fontSize: 12 }}>
-              {phoneLabel}
-            </button>
+            {showPhoneChip ? (
+              <button type="button" className="wb-chip" aria-pressed={phoneOn ? "true" : "false"} onClick={togglePhone} style={{ height: 32, padding: "0 10px", fontSize: 12 }}>
+                {phoneLabel}
+              </button>
+            ) : null}
           </div>
           <label className="wb-search" style={{ height: 40 }}>
             {SearchIcon}
