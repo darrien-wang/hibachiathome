@@ -157,6 +157,21 @@ export function ChefDialog({
       fields: { display_name: profile.display_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas },
     }, "已保存")
   const saveDocs = () => post("docs", { action: "update_docs", id: chefId, fields: docs }, "已保存")
+  // Not through post(): the dialog has nothing to reload once the chef is gone.
+  const deleteChef = async () => {
+    if (!window.confirm(`删掉「${name}」？派单、文件、评价会一起删除，不可恢复。有结算记录的厨师删不了，只能停用。`)) return
+    setBusy("delete")
+    setMsg(null)
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "delete_chef", id: chefId } })
+      if (!r.ok) throw new Error(r.error ?? "失败")
+      await onChanged()
+      onClose()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "失败")
+      setBusy(null)
+    }
+  }
   const addPerf = () =>
     post("perf", { action: "add_perf", id: chefId, event_date: perfForm.date, customer_label: perfForm.customer, review: perfForm.review || null, late_minutes: Number(perfForm.late) || 0, comment: perfForm.comment, order_id: perfForm.orderId || undefined }, "已记录").then(() => setPerfForm({ ...perfForm, open: false, comment: "", late: "0", review: "" }))
   const settleAll = async () => {
@@ -400,9 +415,14 @@ export function ChefDialog({
               <textarea className="input" rows={2} value={profile.notes ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} />
             </Field>
             {owner ? (
-              <button type="button" className="btn btn-secondary" style={{ alignSelf: "flex-start" }} disabled={!!busy} onClick={() => void saveProfile()}>
-                {busy === "profile" ? "保存中…" : "保存修改"}
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button type="button" className="btn btn-secondary" disabled={!!busy} onClick={() => void saveProfile()}>
+                  {busy === "profile" ? "保存中…" : "保存修改"}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginLeft: "auto", color: "var(--color-accent-700)" }} disabled={!!busy} onClick={() => void deleteChef()}>
+                  {busy === "delete" ? "删除中…" : "删除厨师"}
+                </button>
+              </div>
             ) : null}
           </>
         ) : null}

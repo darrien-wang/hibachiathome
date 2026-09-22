@@ -215,7 +215,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -458,6 +458,28 @@ export async function POST(request: NextRequest) {
           .single()
         if (error) throw error
         return NextResponse.json({ ok: true, id: data.id })
+      }
+      case "delete_chef": {
+        // Removes the chef and everything that is only theirs (files, reviews,
+        // prep-sheet links, unsettled assignments). Payroll history must survive,
+        // so a chef with settled shifts or settlements is refused: 停用 instead.
+        if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
+        const { data: s } = await supabase.from("staff_members").select("id").eq("id", body.id).maybeSingle()
+        if (!s) return NextResponse.json({ error: "厨师不存在" }, { status: 404 })
+        const { count: settledShifts } = await supabase.from("order_staff_assignments").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id).not("settled_at", "is", null)
+        const { count: settlements } = await supabase.from("chef_settlements").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id)
+        if ((settledShifts ?? 0) > 0 || (settlements ?? 0) > 0) {
+          return NextResponse.json({ error: "这位厨师有结算记录，不能删除；把状态改成「停用」即可" }, { status: 409 })
+        }
+        const { data: files } = await supabase.from("chef_files").select("storage_path").eq("staff_member_id", s.id)
+        const paths = (files ?? []).map((f) => f.storage_path as string | null).filter((p): p is string => !!p)
+        if (paths.length) await supabase.storage.from(BUCKET).remove(paths)
+        await supabase.from("chef_sheet_links").delete().eq("staff_member_id", s.id)
+        await supabase.from("order_staff_assignments").delete().eq("staff_member_id", s.id)
+        // chef_files / chef_performance / chef_settlements / chef_feedback / staff_credentials cascade in the database.
+        const { error } = await supabase.from("staff_members").delete().eq("id", s.id)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
       }
       case "delete_file": {
         if (!isUuid(body.file_id)) return NextResponse.json({ error: "file_id required" }, { status: 400 })
