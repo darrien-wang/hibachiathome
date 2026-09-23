@@ -3,6 +3,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import {
   TABLECLOTHS,
+  clothFor,
   describeSetup,
   findTheme,
   findVariant,
@@ -77,8 +78,8 @@ export async function POST(request: NextRequest) {
     const variant = findVariant(theme, typeof body.variantId === "string" ? body.variantId : "")
     selection.themeId = theme.id
     selection.variantId = variant?.id
-    // 主题自带桌布颜色,以目录为准,别让客户端改。
-    selection.cloth = theme.cloth
+    // 桌布跟着主题/摆法走,以目录为准,别让客户端改。
+    selection.cloth = clothFor(theme, variant)
   }
 
   const supabase = getSupabaseAdmin()

@@ -7,6 +7,7 @@ import {
   OCCASIONS,
   TABLECLOTHS,
   TABLE_THEMES,
+  clothFor,
   findTheme,
   findVariant,
   type ClothId,
@@ -109,8 +110,8 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
   const theme = findTheme(themeId)
   const variant = theme?.variants[Math.min(variantIdx, theme.variants.length - 1)]
 
-  // 主题自带桌布颜色；只要桌椅时才是客户自己选。
-  const effectiveCloth: ClothId = isFull ? (theme?.cloth ?? "black") : cloth
+  // 桌布跟着摆法走（Gold Rim 白盘配白布、黑盘配黑布），只要桌椅时才是客户自己选。
+  const effectiveCloth: ClothId = isFull ? clothFor(theme, variant) : cloth
   const clothName = TABLECLOTHS.find((c) => c.id === effectiveCloth)?.name ?? effectiveCloth
 
   const selection: SetupSelection = useMemo(

@@ -18,6 +18,11 @@ export type ThemeVariant = {
   name: string
   /** 实拍照片；没有就只出色块 */
   photo?: { src: string; alt: string; position?: string }
+  /**
+   * 这个摆法配哪种桌布。不写就跟着主题走——只有同一套盘具有两种桌布摆法时
+   * 才需要（Gold Rim：白盘配白布、黑盘配黑布）。
+   */
+  cloth?: ClothId
   /** 色块回退：从外到内 = 托盘 / 盘子 / 餐具 */
   swatch: { charger: string; plate: string; accent: string }
   /** 装车清单上的中文，师傅看的 */
@@ -27,8 +32,8 @@ export type ThemeVariant = {
 export type TableTheme = {
   id: string
   name: string
-  /** 这套主题配哪种桌布——桌布颜色跟着主题走，不单独选 */
-  cloth: "black" | "white"
+  /** 默认桌布；变体可以覆盖（见 ThemeVariant.cloth）。客户不单独选。 */
+  cloth: ClothId
   desc: string
   /** "Great for ___" */
   fit: string
@@ -47,19 +52,30 @@ export const TABLE_THEMES: TableTheme[] = [
     id: "goldrim",
     name: "Classic Gold Rim",
     cloth: "black",
-    desc: "White gold-rim plates, gold cutlery, clear cups",
+    desc: "Gold-rim plates, gold cutlery, clear cups — in white or black",
     fit: "birthdays, anniversaries, bridal showers",
     variants: [
       {
-        id: "default",
-        name: "Classic Gold Rim",
+        id: "white-on-white",
+        name: "White on white",
+        cloth: "white",
         photo: {
-          src: "/gallery/real-hibachi-place-settings-hard-plastic-plates.jpg",
-          alt: "Place settings on black tablecloths: white hard-plastic plates with a gold rim, gold cutlery, clear cups and sunflowers",
-          position: "50% 65%",
+          src: "/gallery/real-hibachi-place-settings-gold-rim-white.jpg",
+          alt: "White gold-rim plates with gold cutlery and a rolled white napkin on a white tablecloth",
         },
         swatch: { charger: "#c9a227", plate: "#f8f6f1", accent: "#c9a227" },
         packLabel: "金边白盘 + 金餐具",
+      },
+      {
+        id: "black-on-black",
+        name: "Black on black",
+        cloth: "black",
+        photo: {
+          src: "/gallery/real-hibachi-place-settings-gold-rim-black.jpg",
+          alt: "Black gold-rim plates with gold cutlery and a rolled white napkin on a black tablecloth",
+        },
+        swatch: { charger: "#c9a227", plate: "#1b1a19", accent: "#c9a227" },
+        packLabel: "金边黑盘 + 金餐具",
       },
     ],
   },
@@ -135,6 +151,14 @@ export function findVariant(theme: TableTheme | undefined, id: string | null | u
   return theme.variants.find((v) => v.id === id) ?? theme.variants[0]
 }
 
+/**
+ * 这套摆法实际配哪种桌布。变体说了算，变体没说才用主题的默认值——页面、
+ * URL 解析、写库三处都走这里，免得各算各的。
+ */
+export function clothFor(theme: TableTheme | undefined, variant: ThemeVariant | undefined, fallback: ClothId = "black"): ClothId {
+  return variant?.cloth ?? theme?.cloth ?? fallback
+}
+
 /** 客户选的一整套，存进 leads/orders.setup_selection 的就是这个形状。 */
 export type SetupSelection = {
   /** "tables" = 只要桌椅桌布；"full" = 加盘具，才有主题 */
@@ -170,7 +194,7 @@ export function parseSetupParams(params: URLSearchParams): SetupSelection | null
   const variant = findVariant(theme, params.get("variant"))
   return {
     pkg,
-    cloth: theme.cloth, // 主题自带桌布,参数说了不算
+    cloth: clothFor(theme, variant), // 主题/摆法自带桌布,参数说了不算
     themeId: theme.id,
     variantId: variant?.id,
     guests,
