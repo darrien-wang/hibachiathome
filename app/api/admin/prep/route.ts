@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
   const pantry: Record<string, number> = {}
   for (const r of (pantryRows ?? []) as Array<{ item_key: string; qty: number }>) pantry[r.item_key] = Number(r.qty) || 0
   // 清单把四样蔬菜合成一行，所以库存也合起来比。
-  pantry.mixed_vege = VEG_IDS.reduce((n, k) => n + (pantry[k] ?? 0), 0)
+  pantry.mixed_vege = Math.round(VEG_IDS.reduce((n, k) => n + (pantry[k] ?? 0), 0) * 100) / 100
   const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
     {
