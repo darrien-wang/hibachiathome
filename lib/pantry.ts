@@ -34,6 +34,7 @@ export const STOCK_UNITS: Record<string, string> = {
   ginger_sauce: "tbsp",
   fried_rice_seasoning: "tbsp",
   ginger_dressing: "tbsp",
+  garlic: "oz",
 }
 
 export const STOCK_LABELS: Record<string, string> = {
@@ -63,6 +64,7 @@ export const STOCK_LABELS: Record<string, string> = {
   ginger_sauce: "Yum Yum 酱",
   fried_rice_seasoning: "炒饭调味",
   ginger_dressing: "姜汁沙拉酱",
+  garlic: "蒜蓉",
 }
 
 /** 备料清单把这四样合成一行"蔬菜合计"，所以库存也要合起来比。 */
@@ -78,4 +80,7 @@ export const PACK_NOTES = [
   "沙拉菜 1 份 = 1 oz（用户 09-22 定：11oz 袋 = 11 份，16oz 盒 = 16 份）",
   "虾 16/20 ≈ 18 只/lb；鸡蛋 36/盒",
   "西兰花 32oz 袋；胡萝卜 12oz 袋",
+  "黄油 1 条 = 4 oz = 8 tbsp（16oz 双包 = 32 tbsp）→ 记进 garlic_butter",
+  "Tai Pei 煎饺 46.5oz 袋 ≈ 40 个、蔬菜春卷 24.5oz 盒 ≈ 8 个、毛豆 12oz 袋 = 1 份（都按保守估，宁可显示不够也别显示够）",
+  "按价推重量：金额 ÷ 单价（如鸡胸 $2.57/lb、西冷 $11.94/lb）",
 ]
