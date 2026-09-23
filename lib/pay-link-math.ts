@@ -1,44 +1,51 @@
-// 客户自选小费时"到底刷多少"的唯一算法。
+// 客户在 /pay 上填一个总数，我们照那个数刷卡；超出尾款的部分全是师傅的小费。
 //
-// 发票底部那张 Chef Gratuity 表已经把这套规则印给客户看过了（lib/invoice-html.ts
-// 的 tipRows），这里必须一模一样，否则同一场派对会出现两个"20% 该付多少"。
+// 2026-09-23 改的口径（老板定）：师傅当天一般已经和客户当面谈好付多少，所以
+// 页面不再显示这一单欠多少、也不再给 20/25/30 档位——显示一个他已经知道的数
+// 反而是干扰。客户填总数，我们只负责把它拆开记账。
 //
-// 两种情况不一样，别混：
-//   现金发票：balanceDue 里没有卡费，所以刷卡时整笔（尾款+小费）都要 +4%。
-//   刷卡发票：balanceDue 里已经含了卡费，只有新加的小费要 +4%。
-// 这正是发票上 "TOTAL WITH CASH" 和 "VENMO / ZELLE / CARD (+4%)" 两列的差别。
+// 刷多少 = 客户填的数，一分不多。以前会在上面再加 4% 卡费，现在不加了：既然
+// 让客户填"总数"，收到的就必须正好是那个数，否则卡上金额和他跟师傅谈的对不上。
 
 export const CARD_FEE_RATE = 0.04
 
-const cents = (dollars: number) => Math.round(dollars * 100)
-const withCardFee = (c: number) => Math.round(c * (1 + CARD_FEE_RATE))
-
-export type PayMath = {
-  /** 尾款本身（发票口径，单位：分） */
-  balanceCents: number
-  /** 客户选的小费（分） */
-  tipCents: number
-  /** 这笔卡要刷的总额（分） */
+export type PaymentSplit = {
+  /** 实际要刷的金额（分）= 客户填的数 */
   chargeCents: number
-  /** 其中属于卡手续费的部分（分），给客户看一句"含 4%" */
-  cardFeeCents: number
+  /** 其中抵尾款的部分（分） */
+  towardBalanceCents: number
+  /** 其中归师傅的小费（分）= 超出尾款的部分 */
+  tipCents: number
 }
 
 /**
- * @param balanceDue  发票算出来的 balanceDue（美元）
- * @param tipDollars  客户选的小费（美元，0 = 不给）
- * @param invoiceIsCard 发票的 paymentMethod 是不是 card（true = balanceDue 已含卡费）
+ * @param amountDollars 客户填的总数（美元）
+ * @param balanceDueDollars 这单还欠多少（美元，服务端现查，客户看不到）
  */
-export function computeCharge(balanceDue: number, tipDollars: number, invoiceIsCard: boolean): PayMath {
-  const balanceCents = Math.max(0, cents(balanceDue))
-  const tipCents = Math.max(0, cents(tipDollars))
-  const chargeCents = invoiceIsCard ? balanceCents + withCardFee(tipCents) : withCardFee(balanceCents + tipCents)
+export function splitPayment(amountDollars: number, balanceDueDollars: number): PaymentSplit {
+  const chargeCents = Math.max(0, Math.round(amountDollars * 100))
+  const balanceCents = Math.max(0, Math.round(balanceDueDollars * 100))
+  const towardBalanceCents = Math.min(chargeCents, balanceCents)
   return {
-    balanceCents,
-    tipCents,
     chargeCents,
-    cardFeeCents: Math.max(0, chargeCents - balanceCents - tipCents),
+    towardBalanceCents,
+    tipCents: Math.max(0, chargeCents - towardBalanceCents),
   }
+}
+
+/**
+ * 快捷按钮（20/25/30%）往输入框里填的那个数：尾款 + 小费，**含 4% 卡费**。
+ * 老板 09-23 定：按钮是便利，算好含卡费的全额直接填进去；客户自己手打的数
+ * 我们照打的数刷，不再加。
+ *
+ * 加在哪一层照发票的规矩：现金发票的 balanceDue 不含卡费 → 整笔 ×1.04；
+ * 刷卡发票的已经含了 → 只有小费 ×1.04。这正是发票底部那两列的差别。
+ */
+export function quickFillCents(balanceDueDollars: number, tipDollars: number, invoiceIsCard: boolean): number {
+  const b = Math.max(0, Math.round(balanceDueDollars * 100))
+  const t = Math.max(0, Math.round(tipDollars * 100))
+  const fee = (c: number) => Math.round(c * (1 + CARD_FEE_RATE))
+  return invoiceIsCard ? b + fee(t) : fee(b + t)
 }
 
 export const dollars = (c: number) => (c / 100).toFixed(2)

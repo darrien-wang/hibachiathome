@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
-import { computeCharge } from "@/lib/pay-link-math"
 import { loadPayContext } from "@/lib/pay-balance"
+import { quickFillCents } from "@/lib/pay-link-math"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 // 客户打开 /pay?o=<订单 id> 时读的数据。
 //
-// 金额一个都不自己算：欠多少问发票系统、付没付问订单账本，两边都在
-// lib/pay-balance.ts 里。
+// 2026-09-23 起**不再回金额**：师傅当天已经和客户当面谈好付多少，页面只要一个
+// 输入框（老板定）。少回一个字段也顺带少一分风险——链接落到别人手里，看不到
+// 这场派对花了多少钱。
 //
-// 只回客户自己那场派对该知道的：名字、日期、欠多少、小费档位。不回地址、
-// 电话、邮箱、成本——订单 id 是能力凭证，但凭证泄漏也不该连带泄漏联系方式。
+// 只回：名字、日期、人数，以及这单是不是已经结清（结清了页面换个说法，不然
+// 客户会以为自己在重复付款）。
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
   const ctx = await loadPayContext(orderId)
   if (!ctx) {
     return NextResponse.json(
-      { ok: false, error: "We couldn't load your balance. Text us and we'll sort it." },
+      { ok: false, error: "We couldn't load your party. Text us and we'll sort it." },
       { status: 502 },
     )
   }
@@ -39,13 +40,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
   }
 
-  // 档位按钮（老板 09-23 定：照餐厅 POS 机那样给 20/25/30，大家习惯）。百分比
-  // 的基数用发票的 adjustedTotal——发票底部那张小费表印的就是这三个数，两处
-  // 必须一致，否则同一场派对会出现两个"20%"。
+  // 快捷按钮：点一下把"含 4% 的全额"填进输入框（老板 09-23 定）。百分比的基数
+  // 用发票的 adjustedTotal，和发票底部那张小费表印的是同一批数。页面不显示尾款
+  // 本身，只显示按下去会填多少。
   const tiers = ctx.gratuityOptions.map((o) => ({
     rate: o.rate,
-    tip: o.amount,
-    chargeCents: computeCharge(ctx.balanceDue, o.amount, ctx.invoiceIsCard).chargeCents,
+    fillCents: quickFillCents(ctx.balanceDue, o.amount, ctx.invoiceIsCard),
   }))
 
   return NextResponse.json({
@@ -54,10 +54,7 @@ export async function GET(request: NextRequest) {
     clientName: firstName(ctx.clientName),
     eventDate: ctx.eventDate,
     guests: ctx.guests,
-    balanceDue: ctx.balanceDue,
-    invoiceIsCard: ctx.invoiceIsCard,
     tiers,
-    noTipChargeCents: computeCharge(ctx.balanceDue, 0, ctx.invoiceIsCard).chargeCents,
   })
 }
 
