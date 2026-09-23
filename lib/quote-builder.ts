@@ -16,6 +16,7 @@ import {
   isWeekdayEligibleDate,
   weekdayBlackoutLabel,
 } from "@/config/pricing-rules"
+import { describeSetup, type SetupSelection } from "@/config/table-themes"
 
 export type QuoteAddOns = {
   steak: boolean
@@ -42,6 +43,12 @@ export type QuoteInput = {
   pricingTier: QuotePricingTier
   weekdaySaverProteins: WeekdaySaverProteins
   tablewareRental: boolean
+  /**
+   * What the visitor built on /rentals before coming here (theme, tablecloth,
+   * guest count). Carried so the lead says which plates to pack, not just
+   * "rental: yes" - nothing here changes the price.
+   */
+  setupSelection?: SetupSelection
   tent10x10: boolean
   budget?: number
   addOns: QuoteAddOns
@@ -315,6 +322,7 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Location: ${input.location || "TBD"}`,
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids 5-12 ${input.kids || 0}, Under 5 ${input.toddlers || 0})`,
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
+    input.setupSelection ? `Setup picked on /rentals: ${describeSetup(input.setupSelection)}` : null,
     result.partySizeDiscountApplied > 0 ? `Party size discount (${result.partySizeDiscountLabel}): -$${result.partySizeDiscountApplied}` : null,
     `Upgrades: ${formatAddOnSummary(input.addOns)}`,
     result.includesAppetizerPlatter ? `Included: ${WEEKDAY_PLATTER_LINE}` : null,

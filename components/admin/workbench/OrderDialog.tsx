@@ -32,6 +32,7 @@ import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
+import { describeSetup, findTheme, findVariant } from "@/config/table-themes"
 import { ORDER_SOP_STEPS } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
@@ -690,6 +691,10 @@ export function OrderDialog({
             ) : null}
           </div>
           <div>
+            <Kicker>桌面 Setup</Kicker>
+            <SetupPanel order={o} />
+          </div>
+          <div>
             <Kicker>派对照片（师傅端上传）</Kicker>
             <OrderPhotosPanel adminKey={adminKey} orderId={o.id} />
           </div>
@@ -727,5 +732,65 @@ export function OrderDialog({
         </div>
       ) : null}
     </Dialog>
+  )
+}
+
+// 客户在 /rentals 自己选的桌面主题（2026-09-23 上线）。选了就显示选了什么、
+// 装哪箱盘子；没选就给一条能直接发给他的链接——链接带 lead_id，他点开选完
+// 直接写回这张订单，不用我们手抄。
+function SetupPanel({ order }: { order: OrderRow }) {
+  const [copied, setCopied] = useState(false)
+  const sel = order.setup_selection ?? null
+  const leadId = typeof order.source_metadata?.lead_id === "string" ? order.source_metadata.lead_id : ""
+  const link = leadId ? `https://www.realhibachi.com/rentals?lead_id=${leadId}` : ""
+  const theme = sel?.pkg === "full" ? findTheme(sel.themeId) : undefined
+  const variant = findVariant(theme, sel?.variantId)
+  const copy = () => {
+    copyText(link)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (!sel) {
+    return (
+      <div style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 8, borderTop: "2px solid var(--color-divider)", paddingTop: 8 }}>
+        <span style={{ color: "var(--color-neutral-600)" }}>客户还没选桌面主题。</span>
+        {link ? (
+          <button type="button" className="btn btn-secondary btn-left" onClick={copy}>
+            {copied ? "已复制" : "复制“选主题”链接发给客户"}
+          </button>
+        ) : (
+          <span style={{ color: "var(--color-neutral-500)", fontSize: 12 }}>这张单没挂 lead_id，发不了链接，只能口头问。</span>
+        )}
+      </div>
+    )
+  }
+
+  const sw = variant?.swatch
+  return (
+    <div style={{ fontSize: 13, display: "flex", gap: 12, alignItems: "flex-start", borderTop: "2px solid var(--color-divider)", paddingTop: 8 }}>
+      <span style={{ width: 56, height: 56, flex: "none", borderRadius: 10, overflow: "hidden", background: "var(--color-surface)", display: "grid", placeItems: "center" }}>
+        {variant?.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 后台 56px 缩略图
+          <img src={variant.photo.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : sw ? (
+          <span style={{ width: "78%", aspectRatio: "1", borderRadius: "50%", background: sw.charger, display: "grid", placeItems: "center", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.12)" }}>
+            <span style={{ width: "74%", aspectRatio: "1", borderRadius: "50%", background: sw.plate, display: "grid", placeItems: "center" }}>
+              <span style={{ width: "28%", aspectRatio: "1", borderRadius: "50%", background: sw.accent }} />
+            </span>
+          </span>
+        ) : null}
+      </span>
+      <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+        <strong>{describeSetup(sel)}</strong>
+        {variant ? <span style={{ color: "var(--color-neutral-600)" }}>装车：{variant.packLabel}</span> : null}
+        {sel.chosenAt ? <span style={{ color: "var(--color-neutral-500)", fontSize: 12 }}>客户自己选的 · {stamp(sel.chosenAt)}</span> : null}
+        {link ? (
+          <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: "flex-start", paddingLeft: 0 }} onClick={copy}>
+            {copied ? "已复制" : "复制链接（客户可以改）"}
+          </button>
+        ) : null}
+      </span>
+    </div>
   )
 }

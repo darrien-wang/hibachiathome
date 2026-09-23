@@ -5,6 +5,8 @@
 // return them, the two status vocabularies, Pacific-time date math and the
 // "wall-clock stored as UTC" rule for order times (see eventParts).
 
+import type { SetupSelection } from "@/config/table-themes"
+
 export type LeadRow = {
   id: string
   created_at: string
@@ -84,6 +86,8 @@ export type OrderRow = {
   notes?: string | null
   /** The invoice as the professional tool saved it (detail only). */
   invoice_data?: Record<string, unknown> | null
+  /** What the customer picked on /rentals: package, tablecloth, table theme. */
+  setup_selection?: SetupSelection | null
 }
 
 /**

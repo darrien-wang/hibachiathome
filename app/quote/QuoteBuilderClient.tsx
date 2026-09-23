@@ -31,6 +31,7 @@ import {
   calcAdultEquivalents,
   isWeekdayEligibleDate,
 } from "@/config/pricing-rules"
+import { parseSetupParams } from "@/config/table-themes"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { getAdRefCode, getStoredGclid, trackEvent } from "@/lib/tracking"
 import { contactDeviceLabel, copyText, deviceCanOpenSms } from "@/lib/device-contact"
@@ -402,7 +403,12 @@ export default function QuoteBuilderClient() {
     const date = params.get("date") ?? ""
     const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
     const wantsWeekday = params.get("plan") === "weekday"
-    if (!Number.isFinite(adults) && !Number.isFinite(kids) && !dateOk && !wantsWeekday) return
+    // /rentals hands over the setup the visitor just built (theme, tablecloth,
+    // guest count). It never changes the price - full setup is $15/guest
+    // whichever theme they picked - it only rides along so the lead says which
+    // plates to pack.
+    const setupSelection = parseSetupParams(params)
+    if (!Number.isFinite(adults) && !Number.isFinite(kids) && !dateOk && !wantsWeekday && !setupSelection) return
     // The landing estimator shows the Weekday price before a date is picked;
     // without a date the tier below reverts to Standard and the number jumps.
     // Say why, once, instead of letting the price silently change.
@@ -415,6 +421,11 @@ export default function QuoteBuilderClient() {
       ...previous,
       ...(Number.isFinite(adults) && adults > 0 && adults <= 200 ? { adults } : {}),
       ...(Number.isFinite(kids) && kids >= 0 && kids <= 200 ? { kids } : {}),
+      // The rentals builder asks for one guest count, not a split - so it only
+      // seeds adults, and only when the link did not already say.
+      ...(setupSelection && !(Number.isFinite(adults) && adults > 0) ? { adults: setupSelection.guests } : {}),
+      ...(setupSelection ? { setupSelection } : {}),
+      ...(setupSelection?.pkg === "full" ? { tablewareRental: true } : {}),
       ...(dateOk ? { eventDate: date } : {}),
       ...(wantsWeekday ? { pricingTier: "weekday_saver" as const } : {}),
     }))

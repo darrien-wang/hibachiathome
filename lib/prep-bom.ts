@@ -10,6 +10,8 @@
 // 和 Walmart 生鲜（鸡胸盘、西冷盘、西葫芦按根、西兰花 32oz 袋、鸡蛋 36 盒、
 // Tai Pei 煎饺春卷、毛豆 12oz）。换算系数是估算，帮助下单，不是精确值。
 
+import { TABLECLOTHS, findTheme, findVariant, type SetupSelection } from "@/config/table-themes"
+
 export type PrepItem = {
   id: string
   label: string
@@ -18,6 +20,11 @@ export type PrepItem = {
   /** 换算成采购单位的提示，如 "≈ 7.9 lb" / "≈ 5 根"。 */
   alt?: string
   group: PrepGroup
+  /**
+   * 装车清单上的图：盘具按主题分箱，光写"餐具套装"师傅装不对箱。有实拍就给
+   * 路径，没有就给色块（从外到内 托盘/盘子/餐具），停车场看手机反而更好认。
+   */
+  art?: { photo?: string; swatch?: { charger: string; plate: string; accent: string } }
 }
 export type PrepGroup = "protein" | "produce" | "frozen" | "pantry" | "setup"
 
@@ -129,7 +136,13 @@ export type OrderPrep = {
 const r1 = (n: number) => Math.round(n * 10) / 10
 
 /** 一张订单 → 用料行。人数以发票为准，发票没有就用订单行上的人数兜底。 */
-export function orderPrep(inv: InvoiceLite | null | undefined, createdAt: string | null, fallbackAdults: number, fallbackKids: number): OrderPrep {
+export function orderPrep(
+  inv: InvoiceLite | null | undefined,
+  createdAt: string | null,
+  fallbackAdults: number,
+  fallbackKids: number,
+  setup?: SetupSelection | null,
+): OrderPrep {
   const data = inv ?? {}
   const adults = Number.isFinite(data.adultCount) && (data.adultCount as number) > 0 ? (data.adultCount as number) : fallbackAdults
   const kids = Number.isFinite(data.childCount) ? (data.childCount as number) : fallbackKids
@@ -244,10 +257,29 @@ export function orderPrep(inv: InvoiceLite | null | undefined, createdAt: string
   }
   if (tcPersons > 0) {
     const tables = Math.ceil(tcPersons / GUESTS_PER_TABLE)
-    items.push({ id: "tables", label: "桌子 + 桌布", qty: tables, unit: "张", group: "setup" })
+    const clothName = setup ? (TABLECLOTHS.find((c) => c.id === setup.cloth)?.name ?? "") : ""
+    items.push({
+      id: "tables",
+      label: clothName ? `桌子 + 桌布（${clothName === "Black" ? "黑" : "白"}）` : "桌子 + 桌布",
+      qty: tables,
+      unit: "张",
+      group: "setup",
+    })
     items.push({ id: "chairs", label: "椅子", qty: tcPersons, unit: "把", group: "setup" })
   }
-  if (utPersons > 0) items.push({ id: "utensils", label: "餐具套装", qty: utPersons, unit: "套", group: "setup" })
+  if (utPersons > 0) {
+    // 客户在 /rentals 选过主题就写具体哪箱，没选过还是笼统一行（存量订单不变）。
+    const theme = setup?.pkg === "full" ? findTheme(setup.themeId) : undefined
+    const variant = findVariant(theme, setup?.variantId)
+    items.push({
+      id: "utensils",
+      label: variant ? `餐具套装 · ${variant.packLabel}` : "餐具套装",
+      qty: utPersons,
+      unit: "套",
+      group: "setup",
+      ...(variant ? { art: { photo: variant.photo?.src, swatch: variant.swatch } } : {}),
+    })
+  }
 
   return { adults, kids, menuKnown, proteinServings, items }
 }
@@ -256,7 +288,9 @@ export function orderPrep(inv: InvoiceLite | null | undefined, createdAt: string
 export function aggregatePrep(all: PrepItem[]): PrepItem[] {
   const by = new Map<string, PrepItem>()
   for (const it of all) {
-    const key = `${it.id}|${it.unit}`
+    // 装车行按 label 分开：同一天两张单选了不同主题，盘具是两箱不同的东西，
+    // 合成一行会让师傅只装一箱。食材行照旧按 id 合并。
+    const key = it.group === "setup" ? `${it.id}|${it.unit}|${it.label}` : `${it.id}|${it.unit}`
     const cur = by.get(key)
     if (cur) cur.qty = r1(cur.qty + it.qty)
     else by.set(key, { ...it })

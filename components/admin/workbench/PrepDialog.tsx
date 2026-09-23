@@ -39,6 +39,31 @@ type PrepData = {
 
 const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "setup"]
 
+// 装车行的图（用户 2026-09-23 定：备料单除了文字还要图）。盘具按主题分箱，
+// 光写"餐具套装"装不对箱；有实拍就用实拍，没有就画色块——停车场里色块反而
+// 比照片好认。
+function PrepArt({ art }: { art: NonNullable<PrepItem["art"]> }) {
+  const box = {
+    width: 34, height: 34, flex: "none", borderRadius: 8, overflow: "hidden",
+    background: "var(--color-surface)", display: "grid", placeItems: "center",
+  } as const
+  if (art.photo) {
+    // eslint-disable-next-line @next/next/no-img-element -- 后台 34px 小图，不值当上 next/image
+    return <span style={box}><img src={art.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></span>
+  }
+  const sw = art.swatch
+  if (!sw) return null
+  return (
+    <span style={box}>
+      <span style={{ width: "78%", aspectRatio: "1", borderRadius: "50%", background: sw.charger, display: "grid", placeItems: "center", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.12)" }}>
+        <span style={{ width: "74%", aspectRatio: "1", borderRadius: "50%", background: sw.plate, display: "grid", placeItems: "center" }}>
+          <span style={{ width: "28%", aspectRatio: "1", borderRadius: "50%", background: sw.accent }} />
+        </span>
+      </span>
+    </span>
+  )
+}
+
 export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey: string; owner: boolean; onClose: () => void; onOpenOrder: (id: string) => void }) {
   const today = ptToday()
   const [date, setDate] = useState(addDays(today, 1))
@@ -171,7 +196,8 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
                   }
                   const short = have != null ? Math.max(0, Math.round((it.qty - have) * 10) / 10) : null
                   return (
-                    <div key={`${it.id}|${it.unit}`} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
+                    <div key={`${it.id}|${it.unit}|${it.label}`} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
+                      {it.art ? <PrepArt art={it.art} /> : null}
                       <span style={{ flex: 1, minWidth: 0 }}>{it.label}</span>
                       {have != null && have > 0 ? (
                         <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: short === 0 ? "var(--color-neutral-600)" : "var(--color-neutral-700)" }}>

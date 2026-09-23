@@ -3,6 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
+import type { SetupSelection } from "@/config/table-themes"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -26,6 +27,7 @@ type Row = {
   order_status: string | null
   created_at: string
   invoice_data: InvoiceLite | null
+  setup_selection: SetupSelection | null
 }
 
 export async function GET(request: NextRequest) {
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
   const to = new Date(lo.getTime() + 48 * 3600_000).toISOString()
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data")
+    .select("id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection")
     .gte("event_start", from)
     .lt("event_start", to)
     .order("event_start")
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
 
   const allItems: PrepItem[] = []
   const orders = rows.map((r) => {
-    const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0)
+    const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
     if (prep.menuKnown) allItems.push(...prep.items)
     else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
     const t = new Date(r.event_start as string)
