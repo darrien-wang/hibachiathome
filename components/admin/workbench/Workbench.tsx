@@ -284,7 +284,7 @@ export default function Workbench() {
         ) : tab === "board" && canBoard ? (
           <BoardTab adminKey={key} settings={data.settings} leads={data.leads} orders={data.orders} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onGoLeads={(s) => setParams({ tab: "leads", since: s })} onGoOrders={() => setParams({ tab: "orders", filter: "all" })} />
         ) : tab === "orders" ? (
-          <OrdersTab key={filter ?? "orders"} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} planner={data.planner} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
+          <OrdersTab key={filter ?? "orders"} adminKey={key} viewerRole={data.viewer?.role ?? null} orders={data.orders} pendingUpdates={data.pendingUpdates} assignments={data.assignments} planner={data.planner} isMobile={isMobile} initialFilter={filter} onOpenOrder={openOrder} />
         ) : tab === "planner" ? (
           <PlannerTab adminKey={key} live={data.planner} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
         ) : tab === "chefs" ? (

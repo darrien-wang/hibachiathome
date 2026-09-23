@@ -5,6 +5,7 @@ import { Chip, Tag } from "./ui"
 import { displayName, dowZh, eventParts, inDaysLabel, md, money, prettyPhone, ptToday, stageOf, STAGE_TAG_CLASS, type OrderRow, type Stage, type UpdateRequest } from "./helpers"
 import type { AssignmentMap } from "./chef-types"
 import { PlannerPill, type PlannerLive } from "./planner-live"
+import { PrepDialog } from "./PrepDialog"
 
 // 订单 · 售后. One row per order; "有修改" surfaces the ones the customer
 // changed in the planner and nobody has looked at yet.
@@ -36,6 +37,8 @@ export function changedOrderIds(pending: UpdateRequest[], orders: OrderRow[]): S
 }
 
 export function OrdersTab({
+  adminKey,
+  viewerRole,
   orders,
   pendingUpdates,
   assignments,
@@ -44,6 +47,8 @@ export function OrdersTab({
   initialFilter,
   onOpenOrder,
 }: {
+  adminKey: string
+  viewerRole: "owner" | "agent" | null
   orders: OrderRow[]
   pendingUpdates: UpdateRequest[]
   assignments: AssignmentMap
@@ -52,6 +57,7 @@ export function OrdersTab({
   initialFilter?: OrderFilter | null
   onOpenOrder: (id: string) => void
 }) {
+  const [prepOpen, setPrepOpen] = useState(false)
   const chefLine = (id: string) => {
     const team = assignments[id] ?? []
     return team.length ? { text: `师傅 ${team.map((a) => a.name).join(" + ")}`, color: "var(--color-neutral-600)" } : { text: "师傅 未派", color: "var(--color-accent-700)" }
@@ -109,6 +115,9 @@ export function OrdersTab({
             {label} <span style={{ opacity: 0.6 }}>{counts[k]}</span>
           </Chip>
         ))}
+        <button type="button" className="btn btn-secondary btn-sm" style={{ flex: "none" }} onClick={() => setPrepOpen(true)}>
+          备料采购
+        </button>
         <span style={{ marginLeft: "auto", display: "flex", gap: 0, alignItems: "center", flex: "none" }}>
           <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginRight: 8, whiteSpace: "nowrap" }}>排序</span>
           <Chip small active={sortKey === "event"} onClick={() => toggleSort("event")} title="点一下切换升降">
@@ -225,6 +234,7 @@ export function OrdersTab({
           })}
         </div>
       )}
+      {prepOpen ? <PrepDialog adminKey={adminKey} owner={viewerRole === "owner"} onClose={() => setPrepOpen(false)} onOpenOrder={(id) => { setPrepOpen(false); onOpenOrder(id) }} /> : null}
     </section>
   )
 }

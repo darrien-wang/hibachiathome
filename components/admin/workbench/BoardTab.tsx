@@ -487,6 +487,153 @@ export function BoardTab({
           </div>
         </div>
       </div>
+
+      <SupplyCostCard adminKey={adminKey} owner={viewerRole === "owner"} />
     </section>
+  )
+}
+
+// ---- 食材成本：采购流水 ÷ 已办场次人头 = 每人平均（用户 09-22 要的成本分摊） ----
+
+type SupplyStats = { from: string; to: string; spendCents: number; guests: number; perGuestCents: number | null; byCategory: Record<string, number> }
+type SupplyResp = {
+  ok: boolean
+  purchases: Array<{ id: string; purchased_on: string; channel: string; category: string; amount_cents: number; note: string | null }>
+  stats: { month: SupplyStats; prevMonth: SupplyStats; rolling30: SupplyStats }
+}
+const SUPPLY_CATS: Array<[string, string]> = [
+  ["fresh", "生鲜"],
+  ["frozen", "冻品"],
+  ["pantry", "仓库"],
+  ["sake", "清酒"],
+  ["other", "其他"],
+]
+const catLabel = (k: string) => SUPPLY_CATS.find(([c]) => c === k)?.[1] ?? k
+
+function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean }) {
+  const [d, setD] = useState<SupplyResp | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const today = ptToday()
+  const [form, setForm] = useState({ purchased_on: today, amount: "", channel: "walmart", category: "fresh", note: "" })
+
+  const load = useCallback(async () => {
+    try {
+      setD(await adminJson<SupplyResp>(adminKey, "/api/admin/supplies"))
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "读取失败")
+    }
+  }, [adminKey])
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const add = async () => {
+    const amount = Number(form.amount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setMsg("先填金额")
+      return
+    }
+    setBusy(true)
+    setMsg(null)
+    try {
+      await adminJson(adminKey, "/api/admin/supplies", { body: { action: "add", ...form, amount } })
+      setForm({ ...form, amount: "", note: "" })
+      await load()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "失败")
+    } finally {
+      setBusy(false)
+    }
+  }
+  const remove = async (id: string) => {
+    setBusy(true)
+    try {
+      await adminJson(adminKey, "/api/admin/supplies", { body: { action: "delete", id } })
+      await load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const line = (label: string, st: SupplyStats | undefined) =>
+    st ? (
+      <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
+        <span style={{ width: 88, flex: "none", color: "var(--color-neutral-600)", fontSize: 13 }}>{label}</span>
+        <strong style={{ fontVariantNumeric: "tabular-nums" }}>{st.perGuestCents != null ? `$${(st.perGuestCents / 100).toFixed(2)} /人` : "—"}</strong>
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          花 {money(st.spendCents)} · {st.guests} 人{Object.keys(st.byCategory).length ? ` · ${Object.entries(st.byCategory).map(([k, v]) => `${catLabel(k)} ${money(v)}`).join(" / ")}` : ""}
+        </span>
+      </div>
+    ) : null
+
+  const rows = d?.purchases ?? []
+  const shown = showAll ? rows : rows.slice(0, 5)
+  return (
+    <div className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <h3 style={{ margin: 0 }}>食材成本 · 每人平均</h3>
+        <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>采购流水 ÷ 已办场次人数；大宗（米/酱油/油/清酒）靠时间窗自然摊薄，师傅多拿少拿属正常波动，看 30 天线就行</span>
+      </div>
+      {msg ? <div className="notice">{msg}</div> : null}
+      {d ? (
+        <div>
+          {line("近 30 天", d.stats.rolling30)}
+          {line("本月", d.stats.month)}
+          {line("上月", d.stats.prevMonth)}
+        </div>
+      ) : (
+        <div className="empty">读取中…</div>
+      )}
+
+      {owner ? (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <input type="date" className="input" value={form.purchased_on} max={today} onChange={(e) => setForm({ ...form, purchased_on: e.target.value || today })} style={{ width: 140, minHeight: 34, padding: "4px 8px" }} />
+          <input className="input" placeholder="金额 $" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} onKeyDown={(e) => e.key === "Enter" && void add()} style={{ width: 90, minHeight: 34, padding: "4px 8px" }} />
+          {(["walmart", "instacart", "other"] as const).map((c, i) => (
+            <Chip key={c} small active={form.channel === c} onClick={() => setForm({ ...form, channel: c })} style={i > 0 ? { marginLeft: -1 } : undefined}>
+              {c === "walmart" ? "Walmart" : c === "instacart" ? "Instacart" : "其他"}
+            </Chip>
+          ))}
+          <span style={{ width: 4 }} />
+          {SUPPLY_CATS.map(([k, zh], i) => (
+            <Chip key={k} small active={form.category === k} onClick={() => setForm({ ...form, category: k })} style={i > 0 ? { marginLeft: -1 } : undefined}>
+              {zh}
+            </Chip>
+          ))}
+          <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => void add()}>
+            记一笔
+          </button>
+        </div>
+      ) : null}
+
+      {shown.length ? (
+        <div>
+          {shown.map((p) => (
+            <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "5px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13 }}>
+              <span style={{ width: 78, flex: "none", color: "var(--color-neutral-600)" }}>{md(p.purchased_on)}</span>
+              <strong style={{ width: 84, flex: "none", fontVariantNumeric: "tabular-nums" }}>{money(p.amount_cents)}</strong>
+              <span style={{ flex: 1, minWidth: 0 }} className="clamp1">
+                {p.channel === "walmart" ? "Walmart" : p.channel === "instacart" ? "Instacart" : p.channel} · {catLabel(p.category)}
+                {p.note ? ` · ${p.note}` : ""}
+              </span>
+              {owner ? (
+                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void remove(p.id)}>
+                  删
+                </button>
+              ) : null}
+            </div>
+          ))}
+          {rows.length > 5 ? (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAll(!showAll)}>
+              {showAll ? "收起" : `全部 ${rows.length} 笔（90 天）`}
+            </button>
+          ) : null}
+        </div>
+      ) : d ? (
+        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>还没有采购记录。每次 Walmart / Instacart 下完单，回来记一笔金额就够——分摊和每人成本这里自动算。</div>
+      ) : null}
+    </div>
   )
 }
