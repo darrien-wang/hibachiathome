@@ -262,7 +262,13 @@ export function aggregatePrep(all: PrepItem[]): PrepItem[] {
     else by.set(key, { ...it })
   }
   const out = [...by.values()]
-  for (const it of out) if (it.id !== "mixed_vege") it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
+  for (const it of out) {
+    if (it.id === "mixed_vege") {
+      const lowLb = Math.round((it.qty / 16) * 10) / 10
+      const buyLb = Math.ceil(((it.qty * 1.25 * BUFFER) / 16) * 2) / 2
+      it.alt = `每人 4–5oz：≈ ${lowLb} lb 起，买 ${buyLb} lb`
+    } else it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
+  }
   const order: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "setup"]
   out.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || b.qty - a.qty)
   return out
