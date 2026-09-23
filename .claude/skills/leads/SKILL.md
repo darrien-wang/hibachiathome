@@ -102,6 +102,11 @@ description: >-
 
 **① 拉线索。** 用户给截图/名字 → 先从工作台 API 拉全量字段（第 10 节命令）；同时看是否已有来往：Twilio 收件（`To=+12137707788`）、Gmail `support@` 线程、工作台 `?detail=<id>` 的 touchpoints。**发任何东西前先确认没人已经回过**（工作台 `first_response_at`、touchpoints 里的 `agent_first_response` / `agent_note`）。
 
+**读完整条短信对话再开口（2026-09-23，Big Bear 702 的教训）。** 线索那一行 `latest_message` 是落地页留下的快照，客户后来在短信里说的日期、人数、时间**不会**更新到那里——702 那位 9/21 就说了"8 adults 4 kids on Saturday 12/12 at 6pm"，我们当天报了价发了押金链接，两天后另一轮跟进看着"15 adults · date TBD"又问了她一次"你想约哪个周末"。客户不会说什么，但他心里知道你没在听。所以：
+- **发任何消息前先 `GET /api/admin/sms-thread?leadId=…&phone=…` 读完整对话**，别只看列表里那一行。
+- **客户一说出事实就当场回写**：姓名 → `update_fields.full_name`；人数 → `update_fields.guest_count`；日期、时间、地址、场合 → `add_note`，前缀 `[data]`（线索表没有日期字段，只能记在备注里）。下一个人看的就是这条。
+- 判据：**我问的这件事，他是不是已经告诉过我了？** 是 → 不要再问，直接用。
+
 **② 分型。** 见第 3 节，决定首条话术。
 
 **③ 算价。** 严格按第 5 节公式；人数 ≥ 31 不报总价。
