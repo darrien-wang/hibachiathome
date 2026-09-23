@@ -71,7 +71,7 @@ const MISC_PER_PERSON = [
 ]
 const MISC_PER_GROUP = [
   { id: "lime", label: "Lime 青柠", perNGuests: 10, unit: "pcs" },
-  { id: "eggs", label: "Eggs 鸡蛋（炒饭）", perNGuests: 3, unit: "个" }, // 2026-09-22 用户定：每 3 人 1 个（正本 pricing.ts 已同步）
+  { id: "eggs", label: "Eggs 鸡蛋（炒饭）", perNGuests: 1, unit: "个" }, // 2026-09-22 用户定：每人 1 个，只许多不许少（正本 pricing.ts 已同步）
 ]
 const GUESTS_PER_TABLE = 4
 
