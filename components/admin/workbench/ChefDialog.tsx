@@ -8,6 +8,7 @@ import { addDays, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helper
 import { FILE_KIND_LABELS, FILE_STATUS_LABELS, mondayOf, type AssetRow, type ChefDetail, type ChefFile, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
+import { assetRank } from "@/lib/staff-assets"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // 厨师弹窗 · 场次 / 资料·工价 / 评价·准时 / 证件·报税 / 结算 / 文件.
@@ -807,8 +808,9 @@ export function ChefDialog({
  * 工作台不放表单——用户 2026-09-22 定的，和采购录入一个路子。
  */
 function AssetsSection({ assets, sensitive }: { assets: AssetRow[]; sensitive: boolean }) {
-  const out = assets.filter((a) => !a.returned_on)
-  const back = assets.filter((a) => a.returned_on)
+  const byItem = (x: AssetRow, y: AssetRow) => (y.issued_on || "").localeCompare(x.issued_on || "") || assetRank(x.item_key) - assetRank(y.item_key)
+  const out = assets.filter((a) => !a.returned_on).sort(byItem)
+  const back = assets.filter((a) => a.returned_on).sort(byItem)
   const costCents = out.reduce((n, a) => n + (a.unit_cost_cents ?? 0) * a.qty, 0)
   return (
     <div>

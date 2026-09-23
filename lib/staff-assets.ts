@@ -27,6 +27,13 @@ export const ASSET_ITEMS: Record<string, AssetItem> = {
   cooler: { label: "保温箱", group: "gear" },
 }
 
+const ORDER = Object.keys(ASSET_ITEMS)
+/** 排序权重：目录里的按目录顺序，目录外的排最后。 */
+export const assetRank = (key: string) => {
+  const i = ORDER.indexOf(key)
+  return i < 0 ? ORDER.length : i
+}
+
 export const assetLabel = (key: string, fallback?: string) => ASSET_ITEMS[key]?.label ?? (fallback || key)
 export const assetGroup = (key: string): AssetGroup => ASSET_ITEMS[key]?.group ?? "gear"
 
