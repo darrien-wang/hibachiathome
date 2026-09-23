@@ -46,7 +46,7 @@ type OTab = "money" | "planner" | "sms" | "records"
 const OTABS: Array<[OTab, string]> = [
   ["money", "金额 · 收款"],
   ["planner", "Planner · 派单"],
-  ["sms", "短信"],
+  ["sms", "短信 · 邮件"],
   ["records", "记录"],
 ]
 
@@ -681,6 +681,10 @@ export function OrderDialog({
                 ))
               : null}
           </div>
+          <div>
+            <Kicker>桌面 Setup</Kicker>
+            <SetupPanel order={o} />
+          </div>
           {sheet ? (
             <div className="notice" style={{ fontSize: 12.5, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ flex: 1, minWidth: 0 }}>{sheet.text}</span>
@@ -694,12 +698,6 @@ export function OrderDialog({
 
       {curTab === "sms" ? (
         <div className="dialog-col" style={{ paddingTop: 0 }}>
-          <SmsThreadPanel adminKey={adminKey} phone={o.customer_phone} leadId={lead?.id ?? null} peerLabel={first || "客户"} insert={insert} quickReplies={smsChips} header={<div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)" }}>短信 · {settings.business.support_phone}{lead ? " · 记进线索时间线" : ""}</div>} />
-        </div>
-      ) : null}
-
-      {curTab === "records" ? (
-        <div className="dialog-col">
           <div>
             <Kicker>邮件 · {settings.business.support_email}</Kicker>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -735,10 +733,12 @@ export function OrderDialog({
               </div>
             ) : null}
           </div>
-          <div>
-            <Kicker>桌面 Setup</Kicker>
-            <SetupPanel order={o} />
-          </div>
+          <SmsThreadPanel adminKey={adminKey} phone={o.customer_phone} leadId={lead?.id ?? null} peerLabel={first || "客户"} insert={insert} quickReplies={smsChips} header={<div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)" }}>短信 · {settings.business.support_phone}{lead ? " · 记进线索时间线" : ""}</div>} />
+        </div>
+      ) : null}
+
+      {curTab === "records" ? (
+        <div className="dialog-col">
           <div>
             <Kicker>派对照片（师傅端上传）</Kicker>
             <OrderPhotosPanel adminKey={adminKey} orderId={o.id} />
