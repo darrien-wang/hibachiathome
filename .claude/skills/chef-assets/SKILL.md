@@ -55,8 +55,8 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
   "staff_member_id": "<uuid>",
   "issued_on": "2026-09-22",
   "items": [
-    { "item_key": "cap" },
-    { "item_key": "chef_coat", "size": "L" },
+    { "item_key": "cap", "size": "白" },
+    { "item_key": "chef_coat", "size": "XL" },
     { "item_key": "apron", "qty": 1 }
   ],
   "note": "第一套"
@@ -64,7 +64,8 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
 ```
 
 - `issued_on` 不填就是今天（PT）。**老板说"上次"/"前几天"的，先问哪天**，日期错了对不上账。
-- `qty` 默认 1；`size`、`unit_cost`（美元）、`note` 都可选。
+- `qty` 默认 1；`unit_cost`（美元）、`note` 可选。
+- **`size` 是"规格"，尺码和颜色都写这里**（厨师服 `XL`、鸭舌帽 `白`）——老板报了尺码/颜色就一定要记进去，下次补货照着买。
 - 去重键是 **(厨师, item_key, issued_on)**：同一天同一件重发只会更新那一行，不会记成领了两件。真的一天发两顶帽子就写 `qty: 2`。
 
 ## 3. 归还 / 报废
