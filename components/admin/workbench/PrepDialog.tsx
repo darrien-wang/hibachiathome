@@ -31,6 +31,8 @@ type PrepData = {
   orders: PrepOrder[]
   totals: PrepItem[]
   stock: StockRow[]
+  pantry: Record<string, number>
+  consumed: boolean
   warnings: string[]
 }
 
@@ -143,17 +145,27 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
             {groups.map((g) => (
               <div key={g.key}>
                 <Kicker style={{ marginBottom: 6 }}>{g.title}</Kicker>
-                {g.items.map((it) => (
-                  <div key={`${it.id}|${it.unit}`} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)", opacity: it.group === "pantry" ? 0.75 : 1 }}>
-                    <span style={{ flex: 1, minWidth: 0 }}>{it.label}</span>
-                    <strong style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                      {it.qty} {it.unit}
-                    </strong>
-                    {it.alt ? <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: "var(--color-accent-700)" }}>{it.alt}</span> : null}
-                  </div>
-                ))}
+                {g.items.map((it) => {
+                  const have = d.pantry?.[it.id]
+                  const short = have != null ? Math.max(0, Math.round((it.qty - have) * 10) / 10) : null
+                  return (
+                    <div key={`${it.id}|${it.unit}`} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)", opacity: it.group === "pantry" ? 0.75 : 1 }}>
+                      <span style={{ flex: 1, minWidth: 0 }}>{it.label}</span>
+                      {have != null && have > 0 ? (
+                        <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: short === 0 ? "var(--color-neutral-600)" : "var(--color-neutral-700)" }}>
+                          在库 {have}{short === 0 ? " · 够了" : ` · 还差 ${short}`}
+                        </span>
+                      ) : null}
+                      <strong style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                        {it.qty} {it.unit}
+                      </strong>
+                      {it.alt ? <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: "var(--color-accent-700)" }}>{it.alt}</span> : null}
+                    </div>
+                  )
+                })}
               </div>
             ))}
+            <ConsumeRow adminKey={adminKey} owner={owner} date={d.date} consumed={d.consumed} totals={d.totals} onDone={load} />
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", lineHeight: 1.6 }}>
               菜单没定的单只算了主食、蔬菜和蛋；冰箱里已有的自己扣。份量表改动要和发票系统同一天改（lib/prep-bom.ts 是镜像）。
             </div>
@@ -163,6 +175,37 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
         {d ? <StockSection adminKey={adminKey} owner={owner} stock={d.stock} need={d.totals.filter((t) => t.group === "setup")} onSaved={load} /> : null}
       </div>
     </Dialog>
+  )
+}
+
+// ---- 办完之后把当天用量从食材库存里扣掉（同一天只生效一次）----
+
+function ConsumeRow({ adminKey, owner, date, consumed, totals, onDone }: { adminKey: string; owner: boolean; date: string; consumed: boolean; totals: PrepItem[]; onDone: () => Promise<void> | void }) {
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  if (!owner) return null
+  const items = totals.filter((t) => t.group !== "setup" && t.id !== "mixed_vege").map((t) => ({ item_key: t.id, qty: t.qty }))
+  const run = async () => {
+    setBusy(true)
+    setMsg(null)
+    try {
+      const r = await adminJson<{ ok: boolean; applied: number }>(adminKey, "/api/admin/prep", { body: { action: "consume", date, items } })
+      setMsg(`已扣 ${r.applied} 项`)
+      await onDone()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "失败")
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+      <span style={{ flex: 1 }}>{consumed ? "这一天的用量已经从库存扣过了。" : "办完之后点一下，把这一天的用量从食材库存里扣掉。"}</span>
+      {msg ? <span>{msg}</span> : null}
+      <button type="button" className="btn btn-secondary btn-sm" disabled={busy || consumed} onClick={() => void run()}>
+        {busy ? "扣料中…" : consumed ? "已扣料" : "扣掉当天用量"}
+      </button>
+    </div>
   )
 }
 

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
+import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -80,6 +81,13 @@ export async function GET(request: NextRequest) {
   const unknown = orders.filter((o) => !o.menuKnown)
   // 装备库存（桌椅桌布餐具气罐）：跟需求放在一张清单里对着看。
   const { data: stock } = await supabase.from("equipment_stock").select("item_key, label, unit, qty, low_at, note, updated_at").order("item_key")
+  // 食材库存：收据入库进来的，备料时拿来和需求对着看（"还差多少"）。
+  const { data: pantryRows } = await supabase.from("pantry_stock").select("item_key, qty, unit, updated_at")
+  const pantry: Record<string, number> = {}
+  for (const r of (pantryRows ?? []) as Array<{ item_key: string; qty: number }>) pantry[r.item_key] = Number(r.qty) || 0
+  // 清单把四样蔬菜合成一行，所以库存也合起来比。
+  pantry.mixed_vege = VEG_IDS.reduce((n, k) => n + (pantry[k] ?? 0), 0)
+  const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
     {
       ok: true,
@@ -89,6 +97,9 @@ export async function GET(request: NextRequest) {
       orders,
       totals: aggregatePrep(allItems),
       stock: stock ?? [],
+      pantry,
+      pantryDetail: pantryRows ?? [],
+      consumed: (consumed ?? []).length > 0,
       warnings: unknown.map((o) => `${o.timeLabel} ${o.name}（${o.adults + o.kids} 人）菜单未定——蛋白质没算进合计，买前先把菜单问回来`),
     },
     { headers: { "cache-control": "no-store" } },
@@ -108,6 +119,52 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 })
   }
+  if (body.action === "consume") {
+    const date = typeof body.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : ""
+    if (!date) return NextResponse.json({ error: "date required" }, { status: 400 })
+    const items = Array.isArray(body.items) ? body.items : []
+    const ref = `consume:${date}`
+    let applied = 0
+    for (const raw of items.slice(0, 60)) {
+      const it = (raw ?? {}) as Record<string, unknown>
+      const key = typeof it.item_key === "string" ? it.item_key : ""
+      const qty = Number(it.qty)
+      if (!key || !Number.isFinite(qty) || qty <= 0) continue
+      const { error: moveErr } = await supabase
+        .from("stock_moves")
+        .insert({ item_key: key, delta: -qty, unit: stockUnit(key), reason: "consume", ref, note: `${date} 派对用料`, created_by: actor.alias })
+      if (moveErr) {
+        if (/duplicate key/i.test(moveErr.message)) continue
+        return NextResponse.json({ error: moveErr.message }, { status: 500 })
+      }
+      const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", key).maybeSingle()
+      // 允许扣成 0，但不记负数：师傅多拿少拿是正常波动，负库存只会误导。
+      const next = Math.max(0, Math.round(((Number(cur?.qty) || 0) - qty) * 100) / 100)
+      const patch = { label: stockLabel(key), unit: stockUnit(key), qty: next, updated_by: actor.alias, updated_at: new Date().toISOString() }
+      const { error: upErr } = cur
+        ? await supabase.from("pantry_stock").update(patch).eq("item_key", key)
+        : await supabase.from("pantry_stock").insert({ item_key: key, ...patch })
+      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
+      applied++
+    }
+    return NextResponse.json({ ok: true, applied })
+  }
+
+  if (body.action === "set_pantry") {
+    const key = typeof body.item_key === "string" ? body.item_key.trim().slice(0, 40) : ""
+    const qty = Number(body.qty)
+    if (!key || !Number.isFinite(qty) || qty < 0) return NextResponse.json({ error: "item_key / qty 不对" }, { status: 400 })
+    const rounded = Math.round(qty * 100) / 100
+    const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", key).maybeSingle()
+    const patch = { label: stockLabel(key), unit: stockUnit(key), qty: rounded, counted_at: new Date().toISOString(), updated_by: actor.alias, updated_at: new Date().toISOString() }
+    const { error } = cur
+      ? await supabase.from("pantry_stock").update(patch).eq("item_key", key)
+      : await supabase.from("pantry_stock").insert({ item_key: key, ...patch })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await supabase.from("stock_moves").insert({ item_key: key, delta: rounded - (Number(cur?.qty) || 0), unit: stockUnit(key), reason: "count", note: "盘点", created_by: actor.alias })
+    return NextResponse.json({ ok: true })
+  }
+
   if (body.action !== "set_stock") return NextResponse.json({ error: "unknown action" }, { status: 400 })
   const key = typeof body.item_key === "string" ? body.item_key.trim().slice(0, 40) : ""
   const qty = Math.round(Number(body.qty))
