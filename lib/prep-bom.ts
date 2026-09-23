@@ -262,7 +262,7 @@ export function aggregatePrep(all: PrepItem[]): PrepItem[] {
     else by.set(key, { ...it })
   }
   const out = [...by.values()]
-  for (const it of out) it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
+  for (const it of out) if (it.id !== "mixed_vege") it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
   const order: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "setup"]
   out.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || b.qty - a.qty)
   return out
