@@ -6,6 +6,7 @@ import { tell } from "./ask"
 import { Chip, Dialog, DialogHead, Kicker, Tag } from "./ui"
 import { addDays, dowZh, md, ptToday } from "./helpers"
 import { PREP_GROUP_TITLES, type PrepGroup, type PrepItem } from "@/lib/prep-bom"
+import { isRestockItem } from "@/lib/pantry"
 
 // 备料采购：明天有几场、每场吃什么、合计买什么（按 Walmart / Instacart 的
 // 采购单位换算，宁多勿少）。数据口径 = 发票系统同一套份量配比。
@@ -74,7 +75,17 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
     for (const w of d.warnings) lines.push(`⚠ ${w}`)
     for (const g of groups) {
       lines.push(``, `【${g.title}】`)
-      for (const it of g.items) lines.push(`- ${it.label}：${it.qty} ${it.unit}${it.alt ? `（${it.alt}）` : ""}`)
+      for (const it of g.items) {
+        if (isRestockItem(it.id)) {
+          const have = d.pantry?.[it.id]
+          lines.push(`- ${it.label}：${have ? `在库 ${have} ${it.unit}` : "在库未记"}（没有就补）`)
+          continue
+        }
+        const have = d.pantry?.[it.id]
+        const short = have != null && have > 0 ? Math.max(0, Math.round((it.qty - have) * 10) / 10) : null
+        const stockPart = have != null && have > 0 ? `，在库 ${have}${short === 0 ? "，够了" : `，还差 ${short}`}` : ""
+        lines.push(`- ${it.label}：${it.qty} ${it.unit}${it.alt ? `（${it.alt}）` : ""}${stockPart}`)
+      }
     }
     lines.push(``, `——按单——`)
     for (const o of d.orders) lines.push(`${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.city ? ` · ${o.city}` : ""}：${o.menuKnown ? o.proteinLine : "菜单未定"}${o.extrasLine ? ` · ${o.extrasLine}` : ""}`)
@@ -147,9 +158,20 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
                 <Kicker style={{ marginBottom: 6 }}>{g.title}</Kicker>
                 {g.items.map((it) => {
                   const have = d.pantry?.[it.id]
+                  // 补货型（调料、米、油、清酒…）：没有固定标准，只报在库，不算缺口。
+                  if (isRestockItem(it.id)) {
+                    return (
+                      <div key={`${it.id}|${it.unit}`} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)", opacity: 0.75 }}>
+                        <span style={{ flex: 1, minWidth: 0 }}>{it.label}</span>
+                        <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                          {have != null && have > 0 ? `在库 ${have} ${it.unit}` : "在库未记"}
+                        </span>
+                      </div>
+                    )
+                  }
                   const short = have != null ? Math.max(0, Math.round((it.qty - have) * 10) / 10) : null
                   return (
-                    <div key={`${it.id}|${it.unit}`} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)", opacity: it.group === "pantry" ? 0.75 : 1 }}>
+                    <div key={`${it.id}|${it.unit}`} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
                       <span style={{ flex: 1, minWidth: 0 }}>{it.label}</span>
                       {have != null && have > 0 ? (
                         <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: short === 0 ? "var(--color-neutral-600)" : "var(--color-neutral-700)" }}>
@@ -163,6 +185,9 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
                     </div>
                   )
                 })}
+                {g.key === "pantry" ? (
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>这些没有固定标准，看着快没了就补；等样本够了再按平均值备。</div>
+                ) : null}
               </div>
             ))}
             <ConsumeRow adminKey={adminKey} owner={owner} date={d.date} consumed={d.consumed} totals={d.totals} onDone={load} />

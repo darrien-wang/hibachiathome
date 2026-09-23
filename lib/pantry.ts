@@ -71,6 +71,26 @@ export const STOCK_LABELS: Record<string, string> = {
   teriyaki: "照烧汁",
 }
 
+/**
+ * 补货型：米、油、酱油、各种酱、蒜、清酒这些没有固定标准，用户 09-22 定的
+ * 口径是"没有就补"——前期不追求精确库存，等样本够了再按平均值备。所以它们
+ * 不参与"还差多少"的计算，清单里只显示在库量。
+ */
+export const RESTOCK_ITEMS = new Set([
+  "fried_rice",
+  "oil",
+  "soy_sauce",
+  "ginger_sauce",
+  "ginger_dressing",
+  "garlic_butter",
+  "fried_rice_seasoning",
+  "teriyaki",
+  "garlic",
+  "sake",
+  "lime",
+])
+export const isRestockItem = (key: string) => RESTOCK_ITEMS.has(key)
+
 /** 备料清单把这四样合成一行"蔬菜合计"，所以库存也要合起来比。 */
 export const VEG_IDS = ["zucchini", "broccoli", "onion", "carrots"] as const
 

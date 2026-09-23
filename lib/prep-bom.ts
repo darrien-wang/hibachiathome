@@ -25,7 +25,7 @@ export const PREP_GROUP_TITLES: Record<PrepGroup, string> = {
   protein: "蛋白质（按磅买）",
   produce: "生鲜·鸡蛋",
   frozen: "冻品·前菜·面",
-  pantry: "仓库耗材（看用量补货，不用每天买）",
+  pantry: "调料与大宗（没有就补，不按量算）",
   setup: "桌椅·餐具（装车）",
 }
 
