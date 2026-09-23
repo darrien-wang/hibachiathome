@@ -25,10 +25,17 @@ import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST, WHIT
 
 const usd = (n: number) => "$" + n.toLocaleString("en-US")
 
-const HERO_PHOTO = {
-  src: "/gallery/real-hibachi-tables-chairs-black-linen-backyard.jpg",
-  alt: "Folding tables in a U shape under black fitted tablecloths with black folding chairs, set up on a backyard patio beside the Real Hibachi grill",
-  position: "50% 50%",
+// 只要桌椅时的预览：选什么颜色就看什么颜色。选了白布却看到黑布，等于
+// 让客户为一个没见过的东西多付 $5。
+const SETUP_PHOTOS: Record<ClothId, { src: string; alt: string }> = {
+  black: {
+    src: "/gallery/real-hibachi-tables-chairs-black-linen-backyard.jpg",
+    alt: "Folding tables in a U shape under black fitted tablecloths with black folding chairs, set up on a backyard patio beside the Real Hibachi grill",
+  },
+  white: {
+    src: "/gallery/real-hibachi-tables-chairs-white-linen-backyard.jpg",
+    alt: "Folding tables in a U shape under white fitted tablecloths with black folding chairs, set up on a backyard patio beside the Real Hibachi grill",
+  },
 }
 
 /** 没有实拍时的盘具色块：从外到内 托盘 / 盘子 / 餐具。 */
@@ -371,13 +378,12 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
             <VariantArt v={variant} sizes="(min-width: 768px) 320px, 92vw" priority />
           ) : (
             <Image
-              src={HERO_PHOTO.src}
-              alt={HERO_PHOTO.alt}
+              src={SETUP_PHOTOS[effectiveCloth].src}
+              alt={SETUP_PHOTOS[effectiveCloth].alt}
               width={1448}
               height={1086}
               sizes="(min-width: 768px) 320px, 92vw"
               className="h-full w-full object-cover"
-              style={{ objectPosition: HERO_PHOTO.position }}
             />
           )}
         </div>
