@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email/send-email"
 
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
@@ -219,15 +219,6 @@ async function sendCustomerBookingConfirmationEmail(params: {
   pricingTierLabel: string
 }) {
   const from = customerMailFrom()
-  const resendApiKey = process.env.RESEND_API_KEY?.trim()
-
-  if (!resendApiKey) {
-    return {
-      attempted: false,
-      delivered: false,
-      skippedReason: "resend_not_configured",
-    }
-  }
 
   if (shouldSuppressExternalNotificationsForCustomer()) {
     console.log("[booking-request] Preview mode: customer confirmation email suppressed.", {
@@ -280,37 +271,27 @@ async function sendCustomerBookingConfirmationEmail(params: {
     </div>
   `
 
-  try {
-    const resend = new Resend(resendApiKey)
-    const { data, error } = await resend.emails.send({
-      from,
-      to: [params.customerEmail],
-      subject,
-      text,
-      html,
-      replyTo: customerMailbox(),
-    })
+  const result = await sendEmail({
+    from,
+    to: params.customerEmail,
+    subject,
+    text,
+    html,
+    replyTo: customerMailbox(),
+  })
 
-    if (error) {
-      return {
-        attempted: true,
-        delivered: false,
-        error: error.message || "customer_confirmation_send_failed",
-      }
-    }
+  if (!result.ok) {
+    return result.configured
+      ? { attempted: true, delivered: false, error: result.error }
+      : { attempted: false, delivered: false, skippedReason: "email_not_configured" }
+  }
 
-    return {
-      attempted: true,
-      delivered: true,
-      providerMessageId: data?.id,
-      mode: "sent" as const,
-    }
-  } catch (error) {
-    return {
-      attempted: true,
-      delivered: false,
-      error: error instanceof Error ? error.message : "customer_confirmation_send_failed",
-    }
+  return {
+    attempted: true,
+    delivered: true,
+    provider: result.provider,
+    providerMessageId: result.providerMessageId,
+    mode: "sent" as const,
   }
 }
 

@@ -1,4 +1,4 @@
-import { Resend } from "resend"
+import { sendEmail, type EmailProvider } from "@/lib/email/send-email"
 import { shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
 export type OpsEmailDeliveryResult = {
@@ -7,14 +7,29 @@ export type OpsEmailDeliveryResult = {
   skippedReason?: string
   error?: string
   providerMessageId?: string
+  provider?: EmailProvider
   mode?: "logged" | "sent"
 }
 
 type SendSupportNotificationEmailParams = {
   subject: string
   text?: string
-  html: string
+  /**
+   * 可选：内部告警多数只需要几行纯文本。不传就由 text 生成——把 html 设成
+   * 必填会让"收款没归属"那两条告警发不出去，而那正是钱落地找不到订单时唯一
+   * 会通知到人的东西（2026-09-23 上线前发现）。
+   */
+  html?: string
   replyTo?: string
+}
+
+/** 纯文本告警的兜底 HTML：转义后按行分段，保持可读。 */
+function htmlFromText(text: string): string {
+  const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  return esc
+    .split(/\r?\n/)
+    .map((line) => `<p style="margin:0 0 6px">${line || "&nbsp;"}</p>`)
+    .join("")
 }
 
 type SendCustomerEmailParams = {
@@ -86,42 +101,27 @@ export async function sendCustomerEmail(params: SendCustomerEmailParams): Promis
     return { attempted: false, delivered: false, skippedReason: "preview_mode_logged", mode: "logged" }
   }
 
-  const resendApiKey = asNonEmptyString(process.env.RESEND_API_KEY)
-  if (!resendApiKey) {
-    return { attempted: false, delivered: false, skippedReason: "resend_not_configured" }
+  const result = await sendEmail({
+    from: customerMailFrom(),
+    to,
+    subject: params.subject,
+    text: params.text,
+    html: params.html,
+    replyTo: customerMailbox(),
+  })
+
+  if (!result.ok) {
+    return result.configured
+      ? { attempted: true, delivered: false, error: result.error }
+      : { attempted: false, delivered: false, skippedReason: "email_not_configured" }
   }
 
-  try {
-    const resend = new Resend(resendApiKey)
-    const { data, error } = await resend.emails.send({
-      from: customerMailFrom(),
-      to: [to],
-      subject: params.subject,
-      text: params.text,
-      html: params.html,
-      reply_to: customerMailbox(),
-    })
-
-    if (error) {
-      return {
-        attempted: true,
-        delivered: false,
-        error: asNonEmptyString(error.message) ?? "customer_email_send_failed",
-      }
-    }
-
-    return {
-      attempted: true,
-      delivered: true,
-      providerMessageId: asNonEmptyString(data?.id),
-      mode: "sent",
-    }
-  } catch (error) {
-    return {
-      attempted: true,
-      delivered: false,
-      error: error instanceof Error ? error.message : "customer_email_send_failed",
-    }
+  return {
+    attempted: true,
+    delivered: true,
+    provider: result.provider,
+    providerMessageId: result.providerMessageId,
+    mode: "sent",
   }
 }
 
@@ -131,6 +131,7 @@ export async function sendSupportNotificationEmail(
   const from = asNonEmptyString(process.env.EMAIL_FROM) ?? DEFAULT_SUPPORT_FROM
   const to = asNonEmptyString(process.env.EMAIL_TO) ?? DEFAULT_SUPPORT_EMAIL
   const replyTo = asNonEmptyString(params.replyTo)
+  const html = params.html ?? htmlFromText(params.text ?? params.subject)
 
   if (shouldLogOnlyInDevelopment()) {
     console.log("[ops-email] Development mode: support notification would be sent.", {
@@ -164,45 +165,26 @@ export async function sendSupportNotificationEmail(
     }
   }
 
-  const resendApiKey = asNonEmptyString(process.env.RESEND_API_KEY)
-  if (!resendApiKey) {
-    return {
-      attempted: false,
-      delivered: false,
-      skippedReason: "resend_not_configured",
-    }
+  const result = await sendEmail({
+    from,
+    to,
+    subject: params.subject,
+    text: params.text,
+    html,
+    replyTo,
+  })
+
+  if (!result.ok) {
+    return result.configured
+      ? { attempted: true, delivered: false, error: result.error }
+      : { attempted: false, delivered: false, skippedReason: "email_not_configured" }
   }
 
-  try {
-    const resend = new Resend(resendApiKey)
-    const { data, error } = await resend.emails.send({
-      from,
-      to: [to],
-      subject: params.subject,
-      text: params.text,
-      html: params.html,
-      reply_to: replyTo,
-    })
-
-    if (error) {
-      return {
-        attempted: true,
-        delivered: false,
-        error: asNonEmptyString(error.message) ?? "ops_email_send_failed",
-      }
-    }
-
-    return {
-      attempted: true,
-      delivered: true,
-      providerMessageId: asNonEmptyString(data?.id),
-      mode: "sent",
-    }
-  } catch (error) {
-    return {
-      attempted: true,
-      delivered: false,
-      error: error instanceof Error ? error.message : "ops_email_send_failed",
-    }
+  return {
+    attempted: true,
+    delivered: true,
+    provider: result.provider,
+    providerMessageId: result.providerMessageId,
+    mode: "sent",
   }
 }

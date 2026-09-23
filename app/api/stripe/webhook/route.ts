@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email/send-email"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { resolveStripeWebhookSecret } from "@/lib/stripe-env"
@@ -41,6 +41,7 @@ type NotificationDeliveryResult = {
   skippedReason?: string
   error?: string
   providerMessageId?: string
+  provider?: string
 }
 
 type SmsProviderPreference = "auto" | "sendly" | "twilio"
@@ -317,15 +318,6 @@ async function sendDepositConfirmationEmail(params: {
   bookingId?: string
   selfServiceLink?: string
 }): Promise<NotificationDeliveryResult> {
-  const resendApiKey = asNonEmptyString(process.env.RESEND_API_KEY)
-  if (!resendApiKey) {
-    return {
-      attempted: false,
-      delivered: false,
-      skippedReason: "resend_not_configured",
-    }
-  }
-
   const recipientEmail = asNonEmptyString(params.recipientEmail)
   if (!recipientEmail || !isLikelyEmail(recipientEmail)) {
     return {
@@ -353,7 +345,6 @@ async function sendDepositConfirmationEmail(params: {
     }
   }
 
-  const resend = new Resend(resendApiKey)
   const subject = `Real Hibachi deposit confirmed for booking number ${bookingId}`
   const text = [
     "Thanks for your deposit payment with Real Hibachi.",
@@ -368,35 +359,26 @@ async function sendDepositConfirmationEmail(params: {
     "<p>Reply to this email if you need help.</p>",
   ].join("")
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: customerMailFrom(),
-      replyTo: customerMailbox(),
-      to: [recipientEmail],
-      subject,
-      text,
-      html,
-    })
+  const result = await sendEmail({
+    from: customerMailFrom(),
+    replyTo: customerMailbox(),
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  })
 
-    if (error) {
-      return {
-        attempted: true,
-        delivered: false,
-        error: asNonEmptyString(error.message) ?? "email_send_failed",
-      }
-    }
+  if (!result.ok) {
+    return result.configured
+      ? { attempted: true, delivered: false, error: result.error }
+      : { attempted: false, delivered: false, skippedReason: "email_not_configured" }
+  }
 
-    return {
-      attempted: true,
-      delivered: true,
-      providerMessageId: asNonEmptyString(data?.id),
-    }
-  } catch (error) {
-    return {
-      attempted: true,
-      delivered: false,
-      error: error instanceof Error ? error.message : "email_send_failed",
-    }
+  return {
+    attempted: true,
+    delivered: true,
+    provider: result.provider,
+    providerMessageId: result.providerMessageId,
   }
 }
 
@@ -808,6 +790,88 @@ async function handleCheckoutSessionCompleted(
   }
 }
 
+/**
+ * 把一笔退款落到订单账上。
+ *
+ * 2026-09-23 之前这件事根本没做：handleChargeRefunded 只更新 bookings（老的
+ * 押金流程），而尾款住在 orders/payments 里。结果是退了 $1,315.91 给客户，
+ * 账面还写着"已收"，订单实收虚高了整整一笔。
+ *
+ * 口径：payments 是流水账本，orders 上那几个合计列都从它重算——
+ *   实收 = Σ(金额 − 已退)，押金和尾款分开记
+ *   应收 = max(0, 报价 − 实收)
+ * 所以同一笔 webhook 重放多少次，算出来都一样（幂等）。
+ */
+async function applyRefundToOrder(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  paymentIntentId: string,
+  charge: Stripe.Charge,
+): Promise<{ applied: boolean; reason?: string; orderId?: string }> {
+  const refundedCents = typeof charge.amount_refunded === "number" ? charge.amount_refunded : 0
+  if (refundedCents <= 0) return { applied: false, reason: "no_refund_amount" }
+
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("id, order_id, amount_cents")
+    .eq("external_payment_id", paymentIntentId)
+    .maybeSingle()
+  if (!payment?.order_id) return { applied: false, reason: "no_payment_row" }
+
+  const paidCents = typeof payment.amount_cents === "number" ? payment.amount_cents : 0
+  const refunded = Math.min(refundedCents, paidCents)
+  await supabase
+    .from("payments")
+    .update({
+      refunded_amount_cents: refunded,
+      // status 只有 paid/failed/refunded 三个值，所以退一部分时保持 paid，
+      // 真实金额看 refunded_amount_cents。
+      status: refunded >= paidCents ? "refunded" : "paid",
+      refunded_at: new Date().toISOString(),
+    })
+    .eq("id", payment.id)
+
+  const { data: rows } = await supabase
+    .from("payments")
+    .select("type, status, amount_cents, refunded_amount_cents")
+    .eq("order_id", payment.order_id)
+
+  let deposit = 0
+  let nonDeposit = 0
+  let refundTotal = 0
+  for (const r of (rows ?? []) as Array<{ type: string | null; status: string | null; amount_cents: number | null; refunded_amount_cents: number | null }>) {
+    if (r.status === "failed") continue
+    const gross = r.amount_cents ?? 0
+    const back = r.refunded_amount_cents ?? 0
+    refundTotal += back
+    const net = Math.max(0, gross - back)
+    if (r.type === "deposit") deposit += net
+    else nonDeposit += net
+  }
+  const paidTotal = deposit + nonDeposit
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("quoted_total_cents")
+    .eq("id", payment.order_id)
+    .maybeSingle()
+  const quoted = typeof order?.quoted_total_cents === "number" ? order.quoted_total_cents : null
+
+  await supabase
+    .from("orders")
+    .update({
+      deposit_paid_total_cents: deposit,
+      non_deposit_paid_total_cents: nonDeposit,
+      amount_paid_total_cents: paidTotal,
+      refund_total_cents: refundTotal,
+      ...(quoted !== null ? { balance_due_cents: Math.max(0, quoted - paidTotal) } : {}),
+      // 押金退光了就不再是"已验押金"的单。
+      ...(deposit <= 0 ? { deposit_status: "refunded" } : {}),
+    })
+    .eq("id", payment.order_id)
+
+  return { applied: true, orderId: payment.order_id }
+}
+
 async function handleChargeRefunded(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   charge: Stripe.Charge,
@@ -825,6 +889,21 @@ async function handleChargeRefunded(
       bookingSnapshot: null,
       reason: "missing_payment_intent",
     }
+  }
+
+  // 尾款退款住在 orders/payments，下面那套 bookings 更新管不到它。
+  const orderRefund = await applyRefundToOrder(supabase, paymentIntentId, charge)
+  if (orderRefund.applied && orderRefund.orderId) {
+    await supabase.from("order_events").insert({
+      order_id: orderRefund.orderId,
+      actor: "system:stripe_webhook",
+      action: "refund_recorded",
+      metadata: {
+        payment_intent: paymentIntentId,
+        refunded_cents: charge.amount_refunded ?? 0,
+        charge_id: charge.id,
+      },
+    })
   }
 
   const bookingUpdate: Record<string, unknown> = {

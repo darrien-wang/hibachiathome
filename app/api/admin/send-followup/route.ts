@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email/send-email"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
@@ -49,18 +49,13 @@ export async function POST(request: NextRequest) {
   if (cc.length > MAX_CC) {
     return NextResponse.json({ error: `at most ${MAX_CC} cc addresses` }, { status: 400 })
   }
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: "email not configured" }, { status: 500 })
-  }
   try {
-    const resend = new Resend(apiKey)
     // Customer mail must come from, and reply into, the mailbox staff actually
     // watch. EMAIL_FROM is the ops notification identity (notify@) and is
     // deliberately not used here: a customer hitting Reply on it lands in an
     // unmonitored inbox, which loses the lead silently.
     const inbox = process.env.EMAIL_TO || "support@realhibachi.com"
-    const result = await resend.emails.send({
+    const result = await sendEmail({
       from: `Real Hibachi <${inbox}>`,
       to,
       ...(cc.length > 0 ? { cc } : {}),
@@ -68,7 +63,12 @@ export async function POST(request: NextRequest) {
       subject,
       text,
     })
-    if (result.error) throw new Error(result.error.message)
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.configured ? result.error : "email not configured" },
+        { status: 500 },
+      )
+    }
 
     // Reaching a lead from here is a real first response. Without this the
     // workbench still shows "未响应" after an agent has emailed, the response
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, id: result.data?.id ?? null, cc })
+    return NextResponse.json({ ok: true, id: result.providerMessageId ?? null, provider: result.provider, cc })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
