@@ -61,11 +61,16 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ ok: false, error: "We couldn't load your balance. Text us and we'll sort it." }, { status: 502 })
   }
-  if (!bal.found || typeof bal.balanceDue !== "number" || bal.balanceDue <= 0) {
+  if (!bal.found || typeof bal.balanceDue !== "number") {
+    return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
+  }
+  const balanceDue = Math.max(0, bal.balanceDue)
+  // 余额 0 + 没给小费 = 没什么可收的。余额 0 + 给了小费 = 事后补小费，放行。
+  if (balanceDue <= 0 && tip <= 0) {
     return NextResponse.json({ ok: false, error: "This party has nothing left to pay." }, { status: 409 })
   }
 
-  const math = computeCharge(bal.balanceDue, tip, bal.paymentMethod === "card")
+  const math = computeCharge(balanceDue, tip, bal.paymentMethod === "card")
 
   const supabase = getSupabaseAdmin()
   // 这张单的 source_ref 是 webhook 记账用的地址；没有就别铸链接，否则钱落地
@@ -91,11 +96,20 @@ export async function POST(request: NextRequest) {
             currency: "usd",
             unit_amount: math.chargeCents,
             product_data: {
-              name: name ? `Real Hibachi Balance — ${name}` : "Real Hibachi Balance Payment",
+              name:
+                math.balanceCents === 0
+                  ? name
+                    ? `Real Hibachi Chef Gratuity — ${name}`
+                    : "Real Hibachi Chef Gratuity"
+                  : name
+                    ? `Real Hibachi Balance — ${name}`
+                    : "Real Hibachi Balance Payment",
               description:
-                math.tipCents > 0
-                  ? `Balance $${dollars(math.balanceCents)} + chef gratuity $${dollars(math.tipCents)} + 4% card processing`
-                  : `Balance $${dollars(math.balanceCents)} + 4% card processing`,
+                math.balanceCents === 0
+                  ? `Chef gratuity $${dollars(math.tipCents)} + 4% card processing`
+                  : math.tipCents > 0
+                    ? `Balance $${dollars(math.balanceCents)} + chef gratuity $${dollars(math.tipCents)} + 4% card processing`
+                    : `Balance $${dollars(math.balanceCents)} + 4% card processing`,
             },
           },
         },
