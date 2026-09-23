@@ -48,8 +48,10 @@ export async function GET(request: NextRequest) {
     .order("event_start")
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // event_start 存的是墙上时间（按 UTC 写入），所以"哪一天"直接取 ISO 日期
+  // 位，时间也按 UTC 读，不做时区换算（换算会把 12:00 显示成 5:00 AM）。
   const rows = ((data ?? []) as Row[]).filter(
-    (r) => r.event_start && ptDay(new Date(r.event_start)) === date && !/cancel|void|refund/i.test(r.order_status ?? ""),
+    (r) => r.event_start && r.event_start.slice(0, 10) === date && !/cancel|void|refund/i.test(r.order_status ?? ""),
   )
 
   const allItems: PrepItem[] = []
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
       id: r.id,
       orderNo: r.order_no,
       name: (r.customer_name ?? "").trim() || "未留名",
-      timeLabel: t.toLocaleTimeString("en-US", { timeZone: PT, hour: "numeric", minute: "2-digit" }),
+      timeLabel: t.toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }),
       city: (r.event_address ?? "").split(",").slice(-3, -2).join("").trim() || null,
       adults: prep.adults,
       kids: prep.kids,

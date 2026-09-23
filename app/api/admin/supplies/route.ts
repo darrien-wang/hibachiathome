@@ -45,9 +45,10 @@ export async function GET(request: NextRequest) {
   if (error || oerr) return NextResponse.json({ error: (error ?? oerr)!.message }, { status: 500 })
 
   // 已经办完的场次才算人头（未来的派对还没吃掉食材）。
+  // event_start 是墙上时间存 UTC：日期直接取 ISO 前 10 位。
   const served = ((orderRows ?? []) as OrderLite[])
     .filter((o) => o.event_start && !/cancel|void|refund/i.test(o.order_status ?? ""))
-    .map((o) => ({ day: ptDay(new Date(o.event_start as string)), guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0) }))
+    .map((o) => ({ day: (o.event_start as string).slice(0, 10), guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0) }))
 
   const monthStart = `${today.slice(0, 8)}01`
   const prevMonthEnd = ptDay(new Date(Date.parse(`${monthStart}T12:00:00Z`) - 86400_000 * 1.5))
