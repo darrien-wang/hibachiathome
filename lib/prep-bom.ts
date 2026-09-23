@@ -53,13 +53,11 @@ const PROTEIN_LABELS: Record<string, string> = {
 }
 const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
 const SALAD = { adult: 1, child: 0.5 } // 份
-const VEGE_TOTAL_OZ = { adult: 4, child: 2 }
-const VEGE_MIX = [
-  { id: "zucchini", label: "Zucchini 西葫芦", ratio: 0.3 },
-  { id: "broccoli", label: "Broccoli 西兰花", ratio: 0.3 },
-  { id: "onion", label: "Onion 洋葱", ratio: 0.3 },
-  { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.1 },
-]
+// 蔬菜（2026-09-22 用户定）：不按固定配比，总量每人 4–5oz 左右即可，
+// 西葫芦/西兰花/洋葱/胡萝卜随意搭。低值 4oz 与厨师备料单一致，高值 5oz
+// 用来给"买多少"。
+const VEGE_OZ_LOW = { adult: 4, child: 2 }
+const VEGE_OZ_HIGH = { adult: 5, child: 2.5 }
 const NOODLE_PORTION = { adult: 4, child: 2 }
 const PORTION_POLICY = { gyozaPcs: 10, springRollPcs: 10, edamameFeeds: 3, diyRiceOz: 4 as number | null }
 const LEGACY_PORTION_POLICY = { gyozaPcs: 12, springRollPcs: 12, edamameFeeds: 2, diyRiceOz: null as number | null }
@@ -73,7 +71,7 @@ const MISC_PER_PERSON = [
 ]
 const MISC_PER_GROUP = [
   { id: "lime", label: "Lime 青柠", perNGuests: 10, unit: "pcs" },
-  { id: "eggs", label: "Eggs 鸡蛋（炒饭）", perNGuests: 2, unit: "个" },
+  { id: "eggs", label: "Eggs 鸡蛋（炒饭）", perNGuests: 3, unit: "个" }, // 2026-09-22 用户定：每 3 人 1 个（正本 pricing.ts 已同步）
 ]
 const GUESTS_PER_TABLE = 4
 
@@ -175,10 +173,19 @@ export function orderPrep(inv: InvoiceLite | null | undefined, createdAt: string
   if (rice > 0) items.push({ id: "fried_rice", label: "Fried Rice 熟饭", qty: rice, unit: "oz", alt: alt("fried_rice", rice, "oz"), group: "pantry" })
   const salad = r1(adults * SALAD.adult + kids * SALAD.child)
   if (salad > 0) items.push({ id: "salad", label: "Salad 沙拉菜", qty: salad, unit: "份", group: "produce" })
-  const vege = adults * VEGE_TOTAL_OZ.adult + kids * VEGE_TOTAL_OZ.child
-  for (const v of VEGE_MIX) {
-    const oz = r1(vege * v.ratio)
-    if (oz > 0) items.push({ id: v.id, label: v.label, qty: oz, unit: "oz", alt: alt(v.id, oz, "oz"), group: "produce" })
+  const vegeLow = adults * VEGE_OZ_LOW.adult + kids * VEGE_OZ_LOW.child
+  const vegeHigh = adults * VEGE_OZ_HIGH.adult + kids * VEGE_OZ_HIGH.child
+  if (vegeLow > 0) {
+    const lowLb = Math.round((vegeLow / 16) * 10) / 10
+    const buyLb = Math.ceil(((vegeHigh * BUFFER) / 16) * 2) / 2
+    items.push({
+      id: "mixed_vege",
+      label: "蔬菜合计（西葫芦/西兰花/洋葱/胡萝卜随意搭）",
+      qty: r1(vegeLow),
+      unit: "oz",
+      alt: `每人 4–5oz：≈ ${lowLb} lb 起，买 ${buyLb} lb`,
+      group: "produce",
+    })
   }
   for (const grp of MISC_PER_GROUP) {
     const qty = Math.ceil(total / grp.perNGuests)
