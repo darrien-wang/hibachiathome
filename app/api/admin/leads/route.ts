@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "100", 10) || 100, 300)
 
   const LIST_COLUMNS =
-    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at"
+    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at, hold_until, hold_set_at"
 
   // merged_into arrives with add-lead-merge-fields.sql. Until that migration is
   // applied the column does not exist, and filtering on it would 500 the whole
@@ -317,6 +317,8 @@ export async function PATCH(request: NextRequest) {
     status?: string
     fields?: Record<string, unknown>
     note?: string
+    /** set_hold：挂起几天，0 = 撤销。 */
+    days?: number
   }
   try {
     body = await request.json()
@@ -521,6 +523,32 @@ export async function PATCH(request: NextRequest) {
       .update({ status: "qualified", updated_at: new Date().toISOString() })
       .eq("id", leadId)
       .eq("status", "new")
+    return NextResponse.json({ ok: true })
+  }
+
+  // 球给客户（老板 2026-09-23 定）：他说了会回头找我们，这段时间我们不欠回复。
+  // 不是一个新状态——漏斗阶段照旧，只是"等谁"这一维翻过去。days=0 撤销。
+  if (body.action === "set_hold") {
+    const days = Number(body.days)
+    if (!Number.isFinite(days) || days < 0 || days > 60) {
+      return NextResponse.json({ error: "days must be 0-60" }, { status: 400 })
+    }
+    const now = new Date()
+    const clearing = days === 0
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        hold_until: clearing ? null : new Date(now.getTime() + days * 86400_000).toISOString(),
+        hold_set_at: clearing ? null : now.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq("id", leadId)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    await logEvent(supabase, leadId, NOTE_TYPE, actor, {
+      note: clearing ? "撤销「等客户回」" : `等客户回 · ${days} 天（客人说他会回头联系我们）`,
+    })
     return NextResponse.json({ ok: true })
   }
 

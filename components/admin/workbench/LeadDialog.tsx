@@ -5,6 +5,7 @@ import { adminJson } from "./api"
 import { Dialog, DialogHead, Kicker, PhoneIcon, Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
 import {
+  leadOnHold,
   copyText,
   displayName,
   EVENT_LABELS,
@@ -161,6 +162,7 @@ export function LeadDialog({
   )
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
   const unreplied = leadUnreplied(lead)
+  const onHold = leadOnHold(lead)
   const resp = firstRespText(lead.response_seconds, settings.targets.first_response_sla_minutes)
   const fname = firstName(lead.full_name)
 
@@ -418,6 +420,34 @@ export function LeadDialog({
               ))}
               {lead.status === "won" ? <Tag cls="tag-ink">已成单</Tag> : null}
             </div>
+          </div>
+
+          {/* 球在谁那边——和状态是两回事（老板 2026-09-23 定）。客人说"我回头
+              告诉你"的，挂起期间不算我们欠回复，也不进巡检提醒。客人在挂起之后
+              又说话，挂起自动失效。 */}
+          <div>
+            <Kicker>等客户回（不是我们没回）</Kicker>
+            {onHold ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: 13 }}>
+                <Tag cls="tag-ink">等客户回 · 到 {stamp(lead.hold_until!)}</Tag>
+                <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void patch({ action: "set_hold", days: 0 }, "hold")}>
+                  撤销
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                {[
+                  [2, "2 天"],
+                  [5, "5 天"],
+                  [14, "2 周"],
+                ].map(([d, label]) => (
+                  <button key={String(d)} type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void patch({ action: "set_hold", days: d }, "hold")}>
+                    {label}
+                  </button>
+                ))}
+                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>客人说他会回头找我们时点一下</span>
+              </div>
+            )}
           </div>
 
           {linked.length > 0 ? (

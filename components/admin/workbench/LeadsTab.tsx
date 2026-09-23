@@ -13,6 +13,7 @@ import {
   LEAD_TAG_CLASS,
   leadIsAds,
   leadKeyword,
+  leadOnHold,
   leadUnreplied,
   md,
   prettyPhone,
@@ -28,10 +29,12 @@ import { RedditPanel } from "./RedditPanel"
 // 线索 · 客服. Won leads are orders now and live on the 订单 tab; 无效
 // (spam/tests) stays out of 全部 so the list is the work queue, not a log.
 
-type Filter = "all" | "unreplied" | "new" | "qualified" | "lost" | "won" | "disqualified"
+type Filter = "all" | "unreplied" | "hold" | "new" | "qualified" | "lost" | "won" | "disqualified"
 const FILTERS: Array<[Filter, string]> = [
   ["all", "全部"],
   ["unreplied", "等回复"],
+  // 球在客户那边：他说了会回头找我们，不是我们没回（老板 2026-09-23 定）。
+  ["hold", "等客户"],
   ["new", "待联系"],
   ["qualified", "跟进中"],
   ["lost", "流失"],
@@ -90,6 +93,7 @@ export function LeadsTab({
   const matches = (l: LeadRow, f: Filter) => {
     if (f === "all") return l.status !== "won" && l.status !== "disqualified"
     if (f === "unreplied") return leadUnreplied(l)
+    if (f === "hold") return leadOnHold(l)
     return l.status === f
   }
   const counts = useMemo(() => Object.fromEntries(FILTERS.map(([k]) => [k, scoped.filter((l) => matches(l, k)).length])) as Record<Filter, number>, [scoped])
@@ -101,6 +105,7 @@ export function LeadsTab({
     [scoped, filter],
   )
   const unrepliedCount = leads.filter(leadUnreplied).length
+  const holdCount = leads.filter(leadOnHold).length
   const newCount = leads.filter((l) => l.status === "new").length
   const weekSunday = (() => {
     const t = ptDateOf(now)
@@ -150,6 +155,7 @@ export function LeadsTab({
         <Cell label="今日询盘" value={stats?.today_leads ?? "—"} />
         <Cell label="客人等回复" value={unrepliedCount} color={unrepliedCount > 0 ? "var(--color-accent)" : undefined} onClick={() => setFilter("unreplied")} />
         <Cell label="待联系" value={newCount} onClick={() => setFilter("new")} />
+        <Cell label="等客户回" value={holdCount} onClick={() => setFilter("hold")} />
         <Cell
           label={`7 天平均首响 · 目标 ≤ ${sla} 分`}
           value={

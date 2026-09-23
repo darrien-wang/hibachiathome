@@ -32,6 +32,10 @@ export type LeadRow = {
   first_response_at: string | null
   response_seconds: number | null
   last_inbound_at?: string | null
+  /** 球在客户那边直到这个时间；期间不算"客人在等回复"。 */
+  hold_until?: string | null
+  /** 挂起是什么时候设的——客户在这之后又说话，挂起自动失效。 */
+  hold_set_at?: string | null
   last_outbound_at?: string | null
   /** Who said the last thing, from the Twilio thread merged with the timeline. */
   last_speaker?: "customer" | "us" | "auto" | null
@@ -409,8 +413,27 @@ export function firstName(name: string | null | undefined): string {
   return isPlaceholderName(name) ? "" : (name ?? "").trim().split(/\s+/)[0]
 }
 /** Is the customer waiting on us? Only meaningful for open leads. */
+/**
+ * 球在客户那边——他说了"我回头告诉你"，我们不欠他回复（老板 2026-09-23 定）。
+ *
+ * 之所以不做成一个新状态：状态是漏斗阶段（待联系→跟进中→成单/流失），"等谁"
+ * 是另一个维度。一条线索可以既是跟进中、又在等客户；做成状态会把阶段冲掉。
+ *
+ * 客户在我们挂起之后又说话了，挂起自动失效——他回来了，球就回到我们这边。
+ */
+export function leadOnHold(l: LeadRow): boolean {
+  const until = l.hold_until ? Date.parse(l.hold_until) : NaN
+  if (!Number.isFinite(until) || until <= Date.now()) return false
+  const set = l.hold_set_at ? Date.parse(l.hold_set_at) : NaN
+  const inb = l.last_inbound_at ? Date.parse(l.last_inbound_at) : NaN
+  if (Number.isFinite(set) && Number.isFinite(inb) && inb > set) return false
+  return true
+}
+
 export function leadUnreplied(l: LeadRow): boolean {
   if (l.status === "won" || l.status === "lost" || l.status === "disqualified") return false
+  // 挂起期间不算"客人在等回复"——这正是老板要的：这些人不是我们没回，是他让我们等。
+  if (leadOnHold(l)) return false
   const inb = l.last_inbound_at ? Date.parse(l.last_inbound_at) : NaN
   const out = l.last_outbound_at ? Date.parse(l.last_outbound_at) : NaN
   if (!Number.isFinite(inb)) return l.response_seconds === null && l.status === "new"
