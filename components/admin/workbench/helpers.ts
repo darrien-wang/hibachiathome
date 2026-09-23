@@ -88,6 +88,9 @@ export type OrderRow = {
   invoice_data?: Record<string, unknown> | null
   /** What the customer picked on /rentals: package, tablecloth, table theme. */
   setup_selection?: SetupSelection | null
+  /** Chef gratuity the customer typed on /pay. Selected, not necessarily paid. */
+  chosen_gratuity_cents?: number | null
+  chosen_gratuity_at?: string | null
 }
 
 /**

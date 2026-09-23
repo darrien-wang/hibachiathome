@@ -273,6 +273,14 @@ export function OrderDialog({
     return d.url
   }
 
+  // 客户自付链接：一人一条，带订单 id。页面自己现查尾款，我们不往链接里写金额。
+  const [selfPayCopied, setSelfPayCopied] = useState(false)
+  const copySelfPay = () => {
+    copyText(`https://www.realhibachi.com/pay?o=${o.id}`)
+    setSelfPayCopied(true)
+    window.setTimeout(() => setSelfPayCopied(false), 2000)
+  }
+
   const genPayLink = () =>
     call("pay", async () => {
       const amount = Number(payAmount)
@@ -440,7 +448,23 @@ export function OrderDialog({
           </div>
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>
-              <Kicker>信用卡收款链接</Kicker>
+              <Kicker>客户自付（小费他自己填）</Kicker>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>
+                尾款金额固定、现查发票，客户只能决定给师傅多少小费。发这条，不用先问他打算给多少。
+              </div>
+              <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 8 }} onClick={copySelfPay}>
+                {selfPayCopied ? "已复制" : "复制自付链接"}
+              </button>
+              {typeof o.chosen_gratuity_cents === "number" ? (
+                <div style={{ fontSize: 12.5, color: "var(--color-accent-700)", marginTop: 6 }}>
+                  客户填了小费 ${(o.chosen_gratuity_cents / 100).toFixed(2)}
+                  {o.chosen_gratuity_at ? ` · ${stamp(o.chosen_gratuity_at)}` : ""}（填了不等于付了，对一下收款）
+                </div>
+              ) : null}
+            </div>
+            <div className="hr" style={{ margin: "4px 0" }} />
+            <div>
+              <Kicker>固定金额链接</Kicker>
               <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>金额默认尾款；付款人默认客人，别人付就换手机号。链接发出后记在这一单上。</div>
             </div>
             <Field label="金额 $">
