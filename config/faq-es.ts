@@ -18,7 +18,7 @@ Formas de pago:
 - Efectivo (preferido, sin comisión)
 - Tarjeta de crédito, Venmo o Zelle (4% de comisión)
 
-Si pagas con tarjeta, el pago debe liquidarse al menos 72 horas antes de tu evento.`,
+Elijas lo que elijas, el saldo se paga el día de tu fiesta.`,
   },
   {
     question: "¿Tienen descuentos para militares, enfermeras, maestros o socorristas?",

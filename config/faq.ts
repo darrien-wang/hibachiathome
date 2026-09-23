@@ -21,7 +21,7 @@ Payment options:
 - Cash (preferred, no fee)
 - Credit card, Venmo or Zelle (4% processing fee)
 
-If using credit card, payment must be settled at least 72 hours before your event.`,
+Whichever you pick, the balance is paid on the day of your party.`,
   },
   {
     question: "Do you offer military, nurse, teacher, or first-responder discounts?",
