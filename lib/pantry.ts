@@ -75,7 +75,7 @@ export const stockLabel = (key: string) => STOCK_LABELS[key] ?? key
 /** 采购包装 → 基准单位的常用换算，录收据时给我自己对照用。 */
 export const PACK_NOTES = [
   "1 lb = 16 oz；1 fl oz 酱料 ≈ 2 tbsp",
-  "沙拉菜 1 份 ≈ 2 oz（11oz 袋 ≈ 5.5 份，16oz 盒 ≈ 8 份）",
+  "沙拉菜 1 份 = 1 oz（用户 09-22 定：11oz 袋 = 11 份，16oz 盒 = 16 份）",
   "虾 16/20 ≈ 18 只/lb；鸡蛋 36/盒",
   "西兰花 32oz 袋；胡萝卜 12oz 袋",
 ]
