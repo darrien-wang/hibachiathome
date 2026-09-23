@@ -281,6 +281,24 @@ export function OrderDialog({
     window.setTimeout(() => setSelfPayCopied(false), 2000)
   }
 
+  // 只看不改：拿订单上存的发票数据现铸一个 30 分钟的 token 打开。发票会改，
+  // 所以每次现铸，看到的永远是当前这版；要看发给客户的那版用"已发送的发票"。
+  const viewInvoice = () =>
+    call("viewinv", async () => {
+      const w = window.open("", "_blank")
+      try {
+        const d = await adminJson<{ ok: boolean; url?: string; error?: string }>(adminKey, "/api/admin/invoice-preview", {
+          body: { orderId: o.id },
+        })
+        if (!d.ok || !d.url) throw new Error(d.error ?? "打不开发票")
+        if (w) w.location.href = d.url
+        else window.open(d.url, "_blank")
+      } catch (e) {
+        w?.close()
+        throw e
+      }
+    })
+
   const genPayLink = () =>
     call("pay", async () => {
       const amount = Number(payAmount)
@@ -439,6 +457,9 @@ export function OrderDialog({
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
                 发 / 改 Invoice（专业表单）
+              </button>
+              <button type="button" className="btn btn-secondary btn-left" disabled={busy === "viewinv"} onClick={() => void viewInvoice()}>
+                {busy === "viewinv" ? "打开中…" : "看当前 Invoice"}
               </button>
               <button type="button" className="btn btn-secondary btn-left" disabled={!lead} onClick={() => lead && onOpenLead(lead.id)} title={lead ? "打开线索期的对话和承诺" : "没找到对应线索"}>
                 线索期承诺 / 优惠
