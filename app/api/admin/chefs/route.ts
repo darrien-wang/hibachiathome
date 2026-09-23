@@ -2,13 +2,14 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, docState, taxMissing, type ChefRate } from "@/lib/chef-pay"
+import { assetLabel } from "@/lib/staff-assets"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 // 厨师 · 名单、派单、表现、文件、结算。
 //   GET                    -> { chefs: ChefSummary[], assignments: {orderId: [...]}, alertsCount }
-//   GET ?id=<staff uuid>   -> { chef, shifts, performance, files, settlements }
+//   GET ?id=<staff uuid>   -> { chef, shifts, performance, files, settlements, assets }
 //   GET ?file=<file uuid>  -> 302 to a signed URL (1 h) of the stored file
 //   POST { action, ... }   -> see ACTIONS below
 // Money is cents everywhere. Pay per shift = base + (share - head_from) × per_head,
@@ -148,15 +149,19 @@ export async function GET(request: NextRequest) {
       .filter((a) => a.staff_member_id === id && world.orderMap.has(a.order_id))
       .map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported))
       .sort((x, y) => (y.date || "").localeCompare(x.date || ""))
-    const [{ data: performance }, { data: files }, { data: settlements }] = await Promise.all([
+    const [{ data: performance }, { data: files }, { data: settlements }, { data: assetRows }] = await Promise.all([
       supabase.from("chef_performance").select("*").eq("staff_member_id", id).order("event_date", { ascending: false }).limit(300),
       supabase.from("chef_files").select("id, order_id, kind, title, content_type, bytes, amount_cents, status, approved_at, settled_at, note, uploaded_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(300),
       supabase.from("chef_settlements").select("*").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(60),
+      supabase.from("staff_assets").select("id, item_key, label, qty, size, issued_on, returned_on, condition, unit_cost_cents, note, created_by").eq("staff_member_id", id).order("issued_on", { ascending: false }).limit(200),
     ])
+    const assets = (assetRows ?? []).map((a) => ({ ...a, label: assetLabel(String(a.item_key), String(a.label ?? "")) }))
     if (!can(actor, "chef_sensitive")) {
-      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], today, sensitive: false })
+      // 工服在谁手上不是敏感信息，采购价才是。
+      const assetsSafe = assets.map((a) => ({ ...a, unit_cost_cents: null }))
+      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, today, sensitive: false })
     }
-    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], today, sensitive: true })
+    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, today, sensitive: true })
   }
 
   // List: everything the 名单 table and the nav badge need.
@@ -217,7 +222,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -359,6 +364,52 @@ export async function POST(request: NextRequest) {
         const { data: names } = want.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", want) : { data: [] }
         await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "chef_assigned", metadata: { staff_member_ids: want, names: (names ?? []).map((n) => n.display_name ?? n.full_name), cancelled: toCancel.length } })
         return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length })
+      }
+      case "issue_assets": {
+        // 领用登记：一次可以发一整套（帽子 + 厨师服 + 围裙）。同一个人、同一件、
+        // 同一天重发只会更新那一行，不会记成领了两件。
+        if (!isUuid(body.staff_member_id)) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 })
+        const issuedOn = dateOrNull(body.issued_on) ?? ptToday()
+        const raw = Array.isArray(body.items) ? body.items : []
+        const rows = raw.slice(0, 30).map((x) => {
+          const it = (x ?? {}) as Record<string, unknown>
+          const key = str(it.item_key, 40)
+          const qty = Math.max(1, int(it.qty, 1))
+          const cost = it.unit_cost === undefined || it.unit_cost === null ? null : Math.round(Number(it.unit_cost) * 100)
+          return {
+            staff_member_id: body.staff_member_id as string,
+            item_key: key,
+            label: assetLabel(key, str(it.label, 80)),
+            qty,
+            size: str(it.size, 20) || null,
+            issued_on: issuedOn,
+            unit_cost_cents: Number.isFinite(cost) && (cost as number) >= 0 ? cost : null,
+            note: str(it.note, 200) || str(body.note, 200) || null,
+            created_by: actor.alias,
+            updated_at: now,
+          }
+        })
+        const bad = rows.find((r) => !r.item_key || !r.label)
+        if (!rows.length || bad) return NextResponse.json({ error: "每件都要 item_key（目录外的再带一个 label）" }, { status: 400 })
+        const { data, error } = await supabase.from("staff_assets").upsert(rows, { onConflict: "staff_member_id,item_key,issued_on" }).select("id, item_key, label, qty")
+        if (error) throw error
+        return NextResponse.json({ ok: true, issued: data ?? [] })
+      }
+      case "return_asset": {
+        if (!isUuid(body.asset_id)) return NextResponse.json({ error: "asset_id required" }, { status: 400 })
+        const { error } = await supabase
+          .from("staff_assets")
+          .update({ returned_on: dateOrNull(body.returned_on) ?? ptToday(), condition: str(body.condition, 60) || null, note: str(body.note, 200) || undefined, updated_at: now })
+          .eq("id", body.asset_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
+      }
+      case "delete_asset": {
+        // 只在记错了的时候用——正常的"还回来了"走 return_asset，别把记录抹掉。
+        if (!isUuid(body.asset_id)) return NextResponse.json({ error: "asset_id required" }, { status: 400 })
+        const { error } = await supabase.from("staff_assets").delete().eq("id", body.asset_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
       }
       case "send_sheet": {
         // 发备料单：以前只能去发票工具点 Send to Chef，现在订单弹窗里直接发。

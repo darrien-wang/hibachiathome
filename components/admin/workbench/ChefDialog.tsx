@@ -5,7 +5,7 @@ import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, PhoneIcon, Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
 import { addDays, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
-import { FILE_KIND_LABELS, FILE_STATUS_LABELS, mondayOf, type ChefDetail, type ChefFile, type ShiftRow } from "./chef-types"
+import { FILE_KIND_LABELS, FILE_STATUS_LABELS, mondayOf, type AssetRow, type ChefDetail, type ChefFile, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
@@ -413,6 +413,7 @@ export function ChefDialog({
                 ) : null}
               </div>
             </div>
+            <AssetsSection assets={d.assets ?? []} sensitive={sensitive} />
             <Field label="备注">
               <textarea className="input" rows={2} value={profile.notes ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} />
             </Field>
@@ -798,5 +799,53 @@ export function ChefDialog({
         ) : null}
       </div>
     </Dialog>
+  )
+}
+
+/**
+ * 公司资产 · 只读。登记走 agent（"Blu 领走一套工服" 这样说一句就行），
+ * 工作台不放表单——用户 2026-09-22 定的，和采购录入一个路子。
+ */
+function AssetsSection({ assets, sensitive }: { assets: AssetRow[]; sensitive: boolean }) {
+  const out = assets.filter((a) => !a.returned_on)
+  const back = assets.filter((a) => a.returned_on)
+  const costCents = out.reduce((n, a) => n + (a.unit_cost_cents ?? 0) * a.qty, 0)
+  return (
+    <div>
+      <Kicker>公司资产（工服 · 装备）</Kicker>
+      {assets.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", paddingTop: 6 }}>还没登记。发了什么直接告诉 agent，它写进来。</div>
+      ) : (
+        <>
+          {out.map((a) => (
+            <div key={a.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                {a.label}
+                {a.qty > 1 ? <strong> ×{a.qty}</strong> : null}
+                {a.size ? <span style={{ color: "var(--color-neutral-600)" }}> · {a.size}</span> : null}
+                {a.note ? <span style={{ color: "var(--color-neutral-600)" }}> · {a.note}</span> : null}
+              </span>
+              <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: "var(--color-neutral-600)" }}>{md(a.issued_on)} 领</span>
+            </div>
+          ))}
+          {back.map((a) => (
+            <div key={a.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)", opacity: 0.55 }}>
+              <span style={{ flex: 1, minWidth: 0, textDecoration: "line-through" }}>
+                {a.label}
+                {a.qty > 1 ? ` ×${a.qty}` : ""}
+              </span>
+              <span style={{ whiteSpace: "nowrap", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                {md(a.returned_on!)} 已还{a.condition ? ` · ${a.condition}` : ""}
+              </span>
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>
+            在他手上 {out.reduce((n, a) => n + a.qty, 0)} 件
+            {sensitive && costCents > 0 ? ` · 采购成本合计 ${money(costCents)}` : ""}
+            {back.length ? ` · 已还 ${back.length} 项` : ""}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
