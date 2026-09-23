@@ -45,6 +45,10 @@ export async function GET(request: NextRequest) {
   // 本身，只显示按下去会填多少。
   const tiers = ctx.gratuityOptions.map((o) => ({
     rate: o.rate,
+    // 显示的是小费本身（老板 09-23 定）：百分比配小费金额才对得上，
+    // 写总额会让人以为"20% = $863"。
+    tipCents: Math.round(o.amount * 100),
+    // 点下去填进输入框的是含 4% 的全额。
     fillCents: quickFillCents(ctx.balanceDue, o.amount, ctx.invoiceIsCard),
   }))
 

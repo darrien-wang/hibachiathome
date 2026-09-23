@@ -17,7 +17,7 @@ type Summary = {
   clientName?: string
   eventDate?: string | null
   guests?: number | null
-  tiers?: Array<{ rate: number; fillCents: number }>
+  tiers?: Array<{ rate: number; tipCents: number; fillCents: number }>
 }
 
 const usd = (n: number) =>
@@ -166,7 +166,9 @@ export default function PayClient() {
             仍可以随手改。按钮是便利，不是选项——主体永远是那个输入框。 */}
         {(data.tiers?.length ?? 0) > 0 && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-clay-700">Or fill it in for me — balance plus tip, card fee included:</span>
+            <span className="text-[13px] text-clay-700">
+              Or pick a tip for your chef — we&apos;ll fill in the total, card fee included:
+            </span>
             <div className="grid grid-cols-3 gap-2">
               {data.tiers!.map((t) => (
                 <button
@@ -176,7 +178,7 @@ export default function PayClient() {
                   className="flex flex-col items-center gap-0.5 rounded-2xl border-2 border-transparent bg-cream px-2 py-2.5 transition-colors hover:bg-gold-100"
                 >
                   <span className="font-serif text-xl font-extrabold leading-none">{Math.round(t.rate * 100)}%</span>
-                  <span className="text-[12px] tabular-nums text-clay-700">{usd(t.fillCents / 100)}</span>
+                  <span className="text-[12px] tabular-nums text-clay-700">{usd(t.tipCents / 100)}</span>
                 </button>
               ))}
             </div>
