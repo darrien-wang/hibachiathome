@@ -32,11 +32,6 @@ export const metadata: Metadata = {
   },
 }
 
-// The comp's `.washed` treatment: photographs sit back into the warm ground
-// instead of on top of it. Softened from the system's own values because our
-// photos are dark linen at dusk and the full wash flattened them.
-const WASHED = "saturate(0.82) contrast(0.94) brightness(1.04)"
-
 const FAQS = [
   {
     q: "What's the difference between the two options?",
@@ -113,7 +108,7 @@ export default function RentalsPage() {
                 sizes="(min-width: 768px) 46vw, 92vw"
                 priority
                 className="h-full w-full object-cover"
-                style={{ objectPosition: "50% 50%", filter: WASHED }}
+                style={{ objectPosition: "50% 50%" }}
               />
             </figure>
           </section>

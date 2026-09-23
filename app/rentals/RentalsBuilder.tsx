@@ -30,9 +30,6 @@ const HERO_PHOTO = {
   position: "50% 50%",
 }
 
-// 09-11 弱网专项定的：照片washed 回底色里，不浮在上面。
-const WASHED = "saturate(0.82) contrast(0.94) brightness(1.04)"
-
 /** 没有实拍时的盘具色块：从外到内 托盘 / 盘子 / 餐具。 */
 function Swatch({ v, size = "lg" }: { v: ThemeVariant; size?: "sm" | "lg" }) {
   const big = size === "lg"
@@ -76,8 +73,6 @@ function VariantArt({ v, sizes, priority }: { v: ThemeVariant; sizes: string; pr
       sizes={sizes}
       priority={priority}
       className="h-full w-full object-cover"
-      // 盘具图不上 washed：客户就是在比颜色，褪色会让红蓝分不出来。生活照
-      // 才需要压回底色里。
       style={{ objectPosition: v.photo.position ?? "50% 50%" }}
     />
   )
@@ -374,7 +369,7 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
               height={1086}
               sizes="(min-width: 768px) 320px, 92vw"
               className="h-full w-full object-cover"
-              style={{ objectPosition: HERO_PHOTO.position, filter: WASHED }}
+              style={{ objectPosition: HERO_PHOTO.position }}
             />
           )}
         </div>
