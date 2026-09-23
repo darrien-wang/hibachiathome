@@ -15,6 +15,8 @@ export const runtime = "nodejs"
 // share = the chef's head count when several chefs work one party.
 
 const BUCKET = "party-photos"
+// 备料单的份量快照、令牌和 213 线短信都在发票工具那边，工作台只做代理。
+const INVOICE_APP_ORIGIN = "https://invoice.realhibachi.com"
 // What a viewer without the chef_sensitive perm (坐席) never receives: pay,
 // settlement, cash, documents, tax. Media files and reviews stay visible.
 const MEDIA_KINDS = new Set(["photo", "video", "other"])
@@ -348,7 +350,7 @@ export async function POST(request: NextRequest) {
           if (error) throw error
         }
         if (toAdd.length) {
-          const { error } = await supabase.from("order_staff_assignments").insert(toAdd.map((sid) => ({ order_id: body.order_id, staff_member_id: sid, assignment_role: "lead_chef", assignment_status: "confirmed", assignment_source: "workbench", requested_by_customer: false, notes: str(body.note, 300) || null })))
+          const { error } = await supabase.from("order_staff_assignments").insert(toAdd.map((sid) => ({ order_id: body.order_id, staff_member_id: sid, assignment_role: "lead_chef", assignment_status: "confirmed", assignment_source: "admin_manual", requested_by_customer: false, notes: str(body.note, 300) || null })))
           if (error) throw error
         }
         // Even split again for everyone still on the party.
@@ -357,6 +359,40 @@ export async function POST(request: NextRequest) {
         const { data: names } = want.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", want) : { data: [] }
         await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "chef_assigned", metadata: { staff_member_ids: want, names: (names ?? []).map((n) => n.display_name ?? n.full_name), cancelled: toCancel.length } })
         return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length })
+      }
+      case "send_sheet": {
+        // 发备料单：以前只能去发票工具点 Send to Chef，现在订单弹窗里直接发。
+        // 真正干活的还是发票工具（它才有发票快照、令牌和 213 线），这里只转发。
+        if (!can(actor, "sms")) return NextResponse.json({ error: "没有发短信的权限" }, { status: 403 })
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        if (!isUuid(body.staff_member_id)) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 })
+        const { data: ord } = await supabase.from("orders").select("order_no, invoice_data").eq("id", body.order_id).maybeSingle()
+        const orderNo = str((ord as { order_no?: string | null } | null)?.order_no, 30)
+        if (!orderNo) return NextResponse.json({ error: "这单还没有订单号" }, { status: 400 })
+        if (!(ord as { invoice_data?: unknown } | null)?.invoice_data) {
+          return NextResponse.json({ error: "这单还没在发票工具里存过发票，先保存一次发票再发备料单。" }, { status: 400 })
+        }
+        type SheetResp = { ok?: boolean; url?: string; expiresAt?: string; resent?: boolean; error?: string; staff?: { name?: string }; sms?: { delivered?: boolean; error?: string } }
+        let payload: SheetResp
+        try {
+          const res = await fetch(`${INVOICE_APP_ORIGIN}/api/chef-sheet/send`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            cache: "no-store",
+            body: JSON.stringify({
+              orderNo,
+              staffMemberId: body.staff_member_id,
+              note: str(body.note, 300) || undefined,
+              sendSms: body.send_sms !== false,
+              sentBy: `workbench:${actor.alias}`,
+            }),
+          })
+          payload = (await res.json().catch(() => ({}))) as SheetResp
+          if (!res.ok || !payload.ok) return NextResponse.json({ error: payload.error ?? `发票工具返回 ${res.status}` }, { status: 502 })
+        } catch (e) {
+          return NextResponse.json({ error: e instanceof Error ? e.message : "连不上发票工具" }, { status: 502 })
+        }
+        return NextResponse.json({ ok: true, url: payload.url, expiresAt: payload.expiresAt, resent: payload.resent, sms: payload.sms })
       }
       case "set_cash": {
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })

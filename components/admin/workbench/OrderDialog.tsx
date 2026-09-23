@@ -174,6 +174,7 @@ export function OrderDialog({
   const [emailTpl, setEmailTpl] = useState<EmailTemplate | null>(null)
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
   const [team, setTeam] = useState<string[] | null>(null)
+  const [sheet, setSheet] = useState<{ url: string; text: string } | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -205,6 +206,9 @@ export function OrderDialog({
   useEffect(() => {
     setTeam(assignments.map((a) => a.staffId))
   }, [assignments])
+  useEffect(() => {
+    setSheet(null)
+  }, [orderId])
 
   const lead = useMemo(() => (o ? leadForOrder(o, leads) : null), [o, leads])
   const now = Date.now()
@@ -316,6 +320,21 @@ export function OrderDialog({
       if (!d.ok) throw new Error(d.error ?? "派单失败")
       await Promise.all([load(), onChanged()])
       setMsg("派单已保存")
+    })
+
+  const sendSheet = (staffId: string, name: string) =>
+    call(`sheet:${staffId}`, async () => {
+      if (!(await askConfirm({ title: "发备料单", message: `把 ${ev ? `${md(ev.ymd)} ${ev.hm}` : "这场"} 的备料单短信发给 ${name}？链接在派对结束 6 小时后失效。`, okLabel: "发送" }))) return
+      const d = await adminJson<{ ok: boolean; url?: string; resent?: boolean; error?: string; sms?: { delivered?: boolean; error?: string } }>(adminKey, "/api/admin/chefs", {
+        body: { action: "send_sheet", order_id: o.id, staff_member_id: staffId },
+      })
+      if (!d.ok || !d.url) throw new Error(d.error ?? "发送失败")
+      const why = d.sms?.error === "staff_has_no_phone" ? "这位师傅没存手机号" : d.sms?.error === "sms_skipped" ? "没走短信" : d.sms?.error || "未知原因"
+      setSheet({
+        url: d.url,
+        text: d.sms?.delivered ? `已短信发给 ${name}${d.resent ? "（沿用原链接，内容已刷新）" : ""}` : `链接生成了，但短信没发出去（${why}）——自己把链接发给 ${name}。`,
+      })
+      await load()
     })
 
   const sendEmail = () =>
@@ -597,7 +616,25 @@ export function OrderDialog({
                   </button>
                 </div>
               ) : null}
-              <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单仍从发票工具的 Send to Chef 发。</div>
+              {assignments.length ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", borderTop: "1px solid var(--color-line)", paddingTop: 8 }}>
+                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>备料单</span>
+                  {assignments.map((a) => (
+                    <button key={a.assignmentId} type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void sendSheet(a.staffId, a.name)}>
+                      {busy === `sheet:${a.staffId}` ? "发送中…" : `发给 ${a.name}`}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {sheet ? (
+                <div className="notice" style={{ fontSize: 12.5, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>{sheet.text}</span>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(sheet.url)}>
+                    复制链接
+                  </button>
+                </div>
+              ) : null}
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单按发票里存的份量生成，改了发票要再发一次。</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
