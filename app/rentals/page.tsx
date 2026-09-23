@@ -2,7 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import type { Metadata } from "next"
 import { JsonLd } from "@/components/structured-data"
-import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST, WHITE_CLOTH_PER_GUEST } from "@/config/pricing-rules"
 import RentalsBuilder from "./RentalsBuilder"
 
 // What we actually rent, and nothing else. Until 2026-09-17 this page was a
@@ -39,7 +39,7 @@ const FAQS = [
   },
   {
     q: "Does picking a theme cost more?",
-    a: "No. Every theme is the same price. Picking one just tells us which plates to load.",
+    a: `The plates never do — every theme costs the same. The only thing that changes the price is white linen: white tablecloths are $${WHITE_CLOTH_PER_GUEST} more per guest than black, so a theme that comes on white costs that much more. The builder shows it on the line before you decide.`,
   },
   {
     q: "When do you set up and take it away?",

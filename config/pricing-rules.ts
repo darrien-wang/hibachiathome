@@ -133,6 +133,15 @@ export const TABLES_CHAIRS_PER_GUEST = 10
 export const UTENSILS_PER_GUEST = 5
 export const FULL_SETUP_PER_GUEST = TABLES_CHAIRS_PER_GUEST + UTENSILS_PER_GUEST // $15
 
+/**
+ * White tablecloths cost more than black (owner, 2026-09-23): they are a
+ * separate stock, and one party's red wine retires a cloth that black would
+ * have survived. Applies to any setup on white linen — which includes the
+ * table themes that come on white (see config/table-themes.ts), so picking
+ * one of those is the one case where a theme changes the price.
+ */
+export const WHITE_CLOTH_PER_GUEST = 5
+
 // ---------------------------------------------------------------
 // Weekday Special
 // ---------------------------------------------------------------

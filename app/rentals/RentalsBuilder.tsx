@@ -14,7 +14,7 @@ import {
   type SetupSelection,
   type ThemeVariant,
 } from "@/config/table-themes"
-import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST, WHITE_CLOTH_PER_GUEST } from "@/config/pricing-rules"
 
 // 设计稿 4a704199 "Rentals Page" 的配置器。稿子是用 Design 自己的 token 写
 // 的，这里照旧翻成站点自己的 Organic token（奶油底、flame 做选中态、gold 做
@@ -125,7 +125,11 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
     [pkg, effectiveCloth, isFull, theme?.id, variant?.id, guests],
   )
 
-  const total = (isFull ? FULL_SETUP_PER_GUEST : TABLES_CHAIRS_PER_GUEST) * guests
+  // 白桌布另算钱（老板 09-23 定）。白布的主题因此比黑布的贵 $5/人——这是
+  // 唯一一处"选主题影响价格",FAQ 里如实写了。
+  const whiteCloth = effectiveCloth === "white"
+  const perGuest = (isFull ? FULL_SETUP_PER_GUEST : TABLES_CHAIRS_PER_GUEST) + (whiteCloth ? WHITE_CLOTH_PER_GUEST : 0)
+  const total = perGuest * guests
 
   const quoteUrl = useMemo(() => {
     const q = new URLSearchParams({
@@ -254,6 +258,9 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
                       style={{ background: c.swatch }}
                     />
                     {c.name}
+                    {c.id === "white" && (
+                      <span className="text-[13px] font-normal text-clay-700">+${WHITE_CLOTH_PER_GUEST}/guest</span>
+                    )}
                   </button>
                 )
               })}
@@ -418,6 +425,14 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
                 Plates &amp; utensils · ${UTENSILS_PER_GUEST} × {guests}
               </span>
               <span>{usd(UTENSILS_PER_GUEST * guests)}</span>
+            </div>
+          )}
+          {whiteCloth && (
+            <div className="flex justify-between gap-3">
+              <span>
+                White tablecloths · ${WHITE_CLOTH_PER_GUEST} × {guests}
+              </span>
+              <span>{usd(WHITE_CLOTH_PER_GUEST * guests)}</span>
             </div>
           )}
           <div className="flex justify-between gap-3 pt-2 text-[17px] font-bold">
