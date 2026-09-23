@@ -388,9 +388,11 @@ export async function POST(request: NextRequest) {
             }),
           })
           payload = (await res.json().catch(() => ({}))) as SheetResp
-          if (!res.ok || !payload.ok) return NextResponse.json({ error: payload.error ?? `发票工具返回 ${res.status}` }, { status: 502 })
+          // 502/504 会被 Cloudflare 换成它自己的错误页，理由就丢了——
+          // 用 400 把发票工具的原话带回工作台。
+          if (!res.ok || !payload.ok) return NextResponse.json({ error: payload.error ?? `发票工具返回 ${res.status}` }, { status: 400 })
         } catch (e) {
-          return NextResponse.json({ error: e instanceof Error ? e.message : "连不上发票工具" }, { status: 502 })
+          return NextResponse.json({ error: e instanceof Error ? e.message : "连不上发票工具" }, { status: 400 })
         }
         return NextResponse.json({ ok: true, url: payload.url, expiresAt: payload.expiresAt, resent: payload.resent, sms: payload.sms })
       }
