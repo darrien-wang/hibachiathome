@@ -77,7 +77,7 @@ const GUESTS_PER_TABLE = 4
 
 // ---- 采购单位换算（估算）----------------------------------------------
 
-const OZ_PER = { zucchini: 8, onion: 10 } // 一根西葫芦 / 一个中洋葱的可用量
+const OZ_PER = { zucchini: 11, onion: 12 } // 09-22 用实际收据校准：8 根 = 5.7lb、2 个 = 1.6lb（向下取整，买的件数只多不少）
 const BAG_OZ = { broccoli: 32, carrots: 12 } // Walmart 袋装
 const SHRIMP_PER_LB = 18 // 16/20 规格取中
 const EGGS_PER_BOX = 36
