@@ -495,7 +495,7 @@ export function BoardTab({
 
 // ---- 食材成本：采购流水 ÷ 已办场次人头 = 每人平均（用户 09-22 要的成本分摊） ----
 
-type SupplyStats = { from: string; to: string; spendCents: number; guests: number; perGuestCents: number | null; byCategory: Record<string, number> }
+type SupplyStats = { from: string; to: string; spendCents: number; guests: number; perGuestCents: number | null; perGuestExBulkCents: number | null; bulkCents: number; byCategory: Record<string, number> }
 type SupplyResp = {
   ok: boolean
   purchases: Array<{ id: string; purchased_on: string; channel: string; category: string; amount_cents: number; note: string | null }>
@@ -561,9 +561,10 @@ function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean 
     st ? (
       <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
         <span style={{ width: 88, flex: "none", color: "var(--color-neutral-600)", fontSize: 13 }}>{label}</span>
-        <strong style={{ fontVariantNumeric: "tabular-nums" }}>{st.perGuestCents != null ? `$${(st.perGuestCents / 100).toFixed(2)} /人` : "—"}</strong>
+        <strong style={{ fontVariantNumeric: "tabular-nums" }}>{st.perGuestExBulkCents != null ? `$${(st.perGuestExBulkCents / 100).toFixed(2)} /人` : "—"}</strong>
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-          花 {money(st.spendCents)} · {st.guests} 人{Object.keys(st.byCategory).length ? ` · ${Object.entries(st.byCategory).map(([k, v]) => `${catLabel(k)} ${money(v)}`).join(" / ")}` : ""}
+          不含大宗 · 全口径 {st.perGuestCents != null ? `$${(st.perGuestCents / 100).toFixed(2)}` : "—"} · 花 {money(st.spendCents)}
+          {st.bulkCents ? `（其中大宗 ${money(st.bulkCents)}）` : ""} · {st.guests} 人
         </span>
       </div>
     ) : null
@@ -574,7 +575,7 @@ function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean 
     <div className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
         <h3 style={{ margin: 0 }}>食材成本 · 每人平均</h3>
-        <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>采购流水 ÷ 已办场次人数；大宗（米/酱油/油/清酒）靠时间窗自然摊薄，师傅多拿少拿属正常波动，看 30 天线就行</span>
+        <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>采购流水 ÷ 已办场次人数。主数字不含大宗（米/酱油/油/清酒——能用几个月，落在哪天纯属偶然）；师傅多拿少拿属正常波动，看 30 天线的趋势就行</span>
       </div>
       {msg ? <div className="notice">{msg}</div> : null}
       {d ? (

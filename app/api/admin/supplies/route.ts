@@ -31,7 +31,19 @@ function statsFor(purchases: Purchase[], orders: Array<{ day: string; guests: nu
   const byCategory: Record<string, number> = {}
   for (const p of spend) byCategory[p.category] = (byCategory[p.category] ?? 0) + p.amount_cents
   const guests = orders.filter((o) => o.day >= from && o.day <= to).reduce((n, o) => n + o.guests, 0)
-  return { from, to, spendCents: total, guests, perGuestCents: guests > 0 ? Math.round(total / guests) : null, byCategory }
+  // 米、油、酱油、清酒这类大宗能用好几个月，落在哪个月纯看哪天下单；
+  // 单独给一条"不含大宗"的每人成本，周与周之间才可比。
+  const bulkCents = (byCategory.pantry ?? 0) + (byCategory.sake ?? 0)
+  return {
+    from,
+    to,
+    spendCents: total,
+    guests,
+    perGuestCents: guests > 0 ? Math.round(total / guests) : null,
+    perGuestExBulkCents: guests > 0 ? Math.round((total - bulkCents) / guests) : null,
+    bulkCents,
+    byCategory,
+  }
 }
 
 export async function GET(request: NextRequest) {
