@@ -36,6 +36,7 @@ export const STOCK_UNITS: Record<string, string> = {
   ginger_dressing: "tbsp",
   garlic: "oz",
   sake: "L",
+  teriyaki: "tbsp",
 }
 
 export const STOCK_LABELS: Record<string, string> = {
@@ -67,6 +68,7 @@ export const STOCK_LABELS: Record<string, string> = {
   ginger_dressing: "姜汁沙拉酱",
   garlic: "蒜蓉",
   sake: "清酒",
+  teriyaki: "照烧汁",
 }
 
 /** 备料清单把这四样合成一行"蔬菜合计"，所以库存也要合起来比。 */
@@ -86,4 +88,7 @@ export const PACK_NOTES = [
   "Tai Pei 煎饺 46.5oz 袋 ≈ 40 个、蔬菜春卷 24.5oz 盒 ≈ 8 个、毛豆 12oz 袋 = 2 份（用户 09-22 定）（都按保守估，宁可显示不够也别显示够）",
   "按价推重量：金额 ÷ 单价（如鸡胸 $2.57/lb、西冷 $11.94/lb）",
   "清酒按升记：1 箱 = 18 L（09-22 进 3 箱 = 54 L，$55/箱 ≈ $3.06/L）",
+  "1 gal 酱汁 = 256 tbsp（酱油 5 gal = 1280、照烧 1 gal = 256）",
+  "大豆油 35 lb ≈ 4.6 gal ≈ 1170 tbsp（保守）",
+  "生米 → 熟饭：1 lb 生 ≈ 3 lb 熟（50 lb 袋 ≈ 2400 oz 熟饭 ≈ 300 份）",
 ]
