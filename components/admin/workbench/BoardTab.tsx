@@ -488,7 +488,7 @@ export function BoardTab({
         </div>
       </div>
 
-      <SupplyCostCard adminKey={adminKey} owner={viewerRole === "owner"} />
+      <SupplyCostCard adminKey={adminKey} />
     </section>
   )
 }
@@ -510,13 +510,12 @@ const SUPPLY_CATS: Array<[string, string]> = [
 ]
 const catLabel = (k: string) => SUPPLY_CATS.find(([c]) => c === k)?.[1] ?? k
 
-function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean }) {
+// 只展示。录入走 agent（把收据发给它，它解析成行项目并入库），所以这里没有
+// 输入框——用户 2026-09-22 定。
+function SupplyCostCard({ adminKey }: { adminKey: string }) {
   const [d, setD] = useState<SupplyResp | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
   const [showAll, setShowAll] = useState(false)
-  const today = ptToday()
-  const [form, setForm] = useState({ purchased_on: today, amount: "", channel: "walmart", category: "fresh", note: "" })
 
   const load = useCallback(async () => {
     try {
@@ -528,34 +527,6 @@ function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean 
   useEffect(() => {
     void load()
   }, [load])
-
-  const add = async () => {
-    const amount = Number(form.amount)
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setMsg("先填金额")
-      return
-    }
-    setBusy(true)
-    setMsg(null)
-    try {
-      await adminJson(adminKey, "/api/admin/supplies", { body: { action: "add", ...form, amount } })
-      setForm({ ...form, amount: "", note: "" })
-      await load()
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : "失败")
-    } finally {
-      setBusy(false)
-    }
-  }
-  const remove = async (id: string) => {
-    setBusy(true)
-    try {
-      await adminJson(adminKey, "/api/admin/supplies", { body: { action: "delete", id } })
-      await load()
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const line = (label: string, st: SupplyStats | undefined) =>
     st ? (
@@ -588,27 +559,6 @@ function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean 
         <div className="empty">读取中…</div>
       )}
 
-      {owner ? (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <input type="date" className="input" value={form.purchased_on} max={today} onChange={(e) => setForm({ ...form, purchased_on: e.target.value || today })} style={{ width: 140, minHeight: 34, padding: "4px 8px" }} />
-          <input className="input" placeholder="金额 $" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} onKeyDown={(e) => e.key === "Enter" && void add()} style={{ width: 90, minHeight: 34, padding: "4px 8px" }} />
-          {(["walmart", "instacart", "other"] as const).map((c, i) => (
-            <Chip key={c} small active={form.channel === c} onClick={() => setForm({ ...form, channel: c })} style={i > 0 ? { marginLeft: -1 } : undefined}>
-              {c === "walmart" ? "Walmart" : c === "instacart" ? "Instacart" : "其他"}
-            </Chip>
-          ))}
-          <span style={{ width: 4 }} />
-          {SUPPLY_CATS.map(([k, zh], i) => (
-            <Chip key={k} small active={form.category === k} onClick={() => setForm({ ...form, category: k })} style={i > 0 ? { marginLeft: -1 } : undefined}>
-              {zh}
-            </Chip>
-          ))}
-          <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => void add()}>
-            记一笔
-          </button>
-        </div>
-      ) : null}
-
       {shown.length ? (
         <div>
           {shown.map((p) => (
@@ -619,11 +569,6 @@ function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean 
                 {p.channel === "walmart" ? "Walmart" : p.channel === "instacart" ? "Instacart" : p.channel} · {catLabel(p.category)}
                 {p.note ? ` · ${p.note}` : ""}
               </span>
-              {owner ? (
-                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => void remove(p.id)}>
-                  删
-                </button>
-              ) : null}
             </div>
           ))}
           {rows.length > 5 ? (
@@ -633,7 +578,7 @@ function SupplyCostCard({ adminKey, owner }: { adminKey: string; owner: boolean 
           ) : null}
         </div>
       ) : d ? (
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>还没有采购记录。每次 Walmart / Instacart 下完单，回来记一笔金额就够——分摊和每人成本这里自动算。</div>
+        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>还没有采购记录。把收据（截图或文字）发给 agent，它会记成本并入库，这里自动出每人成本。</div>
       ) : null}
     </div>
   )
