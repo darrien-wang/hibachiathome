@@ -475,6 +475,12 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
 
         <span className="text-xs leading-relaxed text-clay-700">
           Rentals only come with a hibachi party. Set up before the chef starts, taken away after.
+          {/* Owner 2026-09-23: part of the setup is booked in from outside, so a
+              week's notice is what makes every theme available. Said plainly and
+              small - short-notice parties still get an answer, just not a promise. */}
+          {" "}
+          Some of the setup needs about a week&apos;s notice. If your party is sooner, send it anyway and
+          we&apos;ll tell you what we can have there.
         </span>
       </aside>
     </div>

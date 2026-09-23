@@ -45,6 +45,12 @@ const FAQS = [
     q: "When do you set up and take it away?",
     a: "Everything is set up before the chef starts and taken away after the party.",
   },
+  {
+    // Owner 2026-09-23: part of the setup comes in from outside, so a week is
+    // what guarantees every theme. Short notice still gets an answer.
+    q: "How far ahead do I need to decide on the setup?",
+    a: "About a week's notice makes every theme available, because part of the setup comes in for your date. If your party is sooner than that, add it to your quote anyway and we'll tell you what we can have there — the chef, the grill and the food are never the issue.",
+  },
   { q: "Do you bring chopsticks?", a: "Chopsticks are available on request at no extra charge." },
   {
     q: "Can I rent tables without booking a chef?",
