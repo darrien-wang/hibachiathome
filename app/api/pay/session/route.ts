@@ -3,6 +3,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { computeCharge, dollars } from "@/lib/pay-link-math"
+import { loadPayContext } from "@/lib/pay-balance"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -47,44 +48,32 @@ export async function POST(request: NextRequest) {
   }
   const tip = Math.min(MAX_TIP, Math.round(tipRaw * 100) / 100)
 
-  // 尾款只信发票系统。
-  let bal: { found?: boolean; balanceDue?: number; paymentMethod?: string; clientName?: string; eventDate?: string }
-  try {
-    const res = await fetch(INVOICE_BALANCE_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId }),
-      cache: "no-store",
-    })
-    bal = await res.json()
-    if (!res.ok) throw new Error("balance lookup failed")
-  } catch {
+  // 欠多少问发票、付没付问账本，都在 lib/pay-balance.ts。客户端传的金额一律
+  // 不认——他能决定的只有小费。
+  const ctx = await loadPayContext(orderId)
+  if (!ctx) {
     return NextResponse.json({ ok: false, error: "We couldn't load your balance. Text us and we'll sort it." }, { status: 502 })
   }
-  if (!bal.found || typeof bal.balanceDue !== "number") {
+  if (!ctx.found) {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
   }
-  const balanceDue = Math.max(0, bal.balanceDue)
-  // 余额 0 + 没给小费 = 没什么可收的。余额 0 + 给了小费 = 事后补小费，放行。
-  if (balanceDue <= 0 && tip <= 0) {
+  // 结清了还没给小费 = 没什么可收的。结清了又给了小费 = 事后补小费，放行。
+  if (ctx.balanceDue <= 0 && tip <= 0) {
     return NextResponse.json({ ok: false, error: "This party has nothing left to pay." }, { status: 409 })
   }
 
-  const math = computeCharge(balanceDue, tip, bal.paymentMethod === "card")
+  const math = computeCharge(ctx.balanceDue, tip, ctx.invoiceIsCard)
 
-  const supabase = getSupabaseAdmin()
   // 这张单的 source_ref 是 webhook 记账用的地址；没有就别铸链接，否则钱落地
   // 找不到归属（pay-link 路由踩过这个坑）。
-  const { data: order } = supabase
-    ? await supabase.from("orders").select("id, order_no, source_ref, customer_name").eq("id", orderId).maybeSingle()
-    : { data: null }
-  if (!order?.source_ref) {
+  const order = ctx.order
+  if (!order?.sourceRef) {
     return NextResponse.json({ ok: false, error: "We couldn't load your balance. Text us and we'll sort it." }, { status: 409 })
   }
 
   try {
     const stripe = getStripeServerClient()
-    const name = (order.customer_name ?? bal.clientName ?? "").trim().slice(0, 80)
+    const name = (order.customerName ?? ctx.clientName ?? "").trim().slice(0, 80)
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       success_url: "https://www.realhibachi.com/balance/success",
@@ -122,8 +111,8 @@ export async function POST(request: NextRequest) {
         note: math.tipCents > 0 ? `chef gratuity $${dollars(math.tipCents)} (customer chose)` : "no gratuity added",
         // webhook 靠这三个把钱记到订单上，形状和 /api/admin/pay-link 一致。
         order_id: order.id,
-        order_no: order.order_no ?? "",
-        order_source_ref: order.source_ref,
+        order_no: order.orderNo ?? "",
+        order_source_ref: order.sourceRef,
         order_match: "by_order_id",
         // 师傅结算要拆小费，总额拆不出来，所以单独带一份。
         chef_gratuity_cents: String(math.tipCents),
@@ -131,6 +120,7 @@ export async function POST(request: NextRequest) {
     })
     if (!session.url) throw new Error("no session url")
 
+    const supabase = getSupabaseAdmin()
     // 记下"客户选了多少"。webhook 只会记总额，这行是唯一能把小费拆出来的地方。
     if (supabase) {
       await supabase
