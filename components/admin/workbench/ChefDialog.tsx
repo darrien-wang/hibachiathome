@@ -5,7 +5,7 @@ import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, PhoneIcon, Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
 import { addDays, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
-import { FILE_KIND_LABELS, FILE_STATUS_LABELS, mondayOf, type AssetRow, type ChefDetail, type ChefFile, type ShiftRow } from "./chef-types"
+import { FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
 import { assetRank } from "@/lib/staff-assets"
@@ -63,8 +63,8 @@ export function ChefDialog({
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const today = ptToday()
-  const thisMonday = mondayOf(today)
-  const [week, setWeek] = useState(thisMonday)
+  const thisWeekStart = weekStartOf(today)
+  const [week, setWeek] = useState(thisWeekStart)
   const [settleView, setSettleView] = useState<"week" | "month">("week")
   const [fileFilter, setFileFilter] = useState<"all" | ChefFile["kind"]>("all")
   const [profile, setProfile] = useState<Record<string, string>>({})
@@ -118,17 +118,25 @@ export function ChefDialog({
   const monthDone = shifts.filter((s) => s.date < today && s.date.slice(0, 7) === today.slice(0, 7)).length
   const weekEnd = addDays(week, 6)
   const weekShifts = useMemo(() => shifts.filter((s) => s.date >= week && s.date <= weekEnd).sort((a, b) => a.date.localeCompare(b.date) || (a.eventStart ?? "").localeCompare(b.eventStart ?? "")), [shifts, week, weekEnd])
-  const weekTitle = week === thisMonday ? "本周" : week === addDays(thisMonday, -7) ? "上周" : week === addDays(thisMonday, 7) ? "下周" : `${md(week)} 那周`
+  const weekTitle = week === thisWeekStart ? "本周" : week === addDays(thisWeekStart, -7) ? "上周" : week === addDays(thisWeekStart, 7) ? "下周" : `${md(week)} 那周`
 
-  const done = useMemo(() => shifts.filter((s) => s.date <= today), [shifts, today])
-  const openRows = useMemo(() => done.filter((s) => !s.settledAt).sort((a, b) => a.date.localeCompare(b.date)), [done])
+  // 派对办完才知道尾款进谁口袋，所以"办完了"用的是真实结束时间，不是日历天。
+  const done = useMemo(() => shifts.filter((s) => s.partyOver), [shifts])
+  const byDate = (a: ShiftRow, b: ShiftRow) => a.date.localeCompare(b.date)
+  // 办完了、还没说尾款怎么收的：只欠一个动作，先不算钱。
+  const pendingMethod = useMemo(() => done.filter((s) => !s.settledAt && !s.method).sort(byDate), [done])
+  // 能结的：办完 + 确认过收款方式。
+  const openRows = useMemo(() => done.filter((s) => !s.settledAt && !!s.method).sort(byDate), [done])
+  // 还没办的场次：可以提前把工钱结掉（周六晚结账时师傅周日还有一台）。
+  const notYetHeld = useMemo(() => shifts.filter((s) => !s.partyOver && !s.settledAt && s.orderStatus !== "cancelled").sort(byDate), [shifts])
   const settledRecent = useMemo(() => done.filter((s) => s.settledAt && Date.now() - Date.parse(s.settledAt) < 60 * 86400000).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12), [done])
   const approvedReimb = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "approved")
   const pendingReceipts = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "pending")
-  const payTotal = openRows.reduce((a, s) => a + s.payCents, 0)
+  const payTotal = openRows.reduce((a, s) => a + (s.paySettledAt ? 0 : s.payCents), 0)
   const cashTotal = openRows.reduce((a, s) => a + s.cashCents, 0)
+  const tipTotal = openRows.reduce((a, s) => a + s.cardTipCents, 0)
   const reimbTotal = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-  const net = payTotal + reimbTotal - cashTotal
+  const net = payTotal + reimbTotal + tipTotal - cashTotal
   const perf = d?.performance ?? []
   const good = perf.filter((p) => p.review === "good").length
   const bad = perf.filter((p) => p.review === "bad").length
@@ -136,7 +144,7 @@ export function ChefDialog({
   const income = useMemo(() => {
     const g = new Map<string, { k: string; shifts: number; guests: number; pay: number; cash: number }>()
     for (const s of done) {
-      const k = settleView === "week" ? mondayOf(s.date) : s.date.slice(0, 7)
+      const k = settleView === "week" ? weekStartOf(s.date) : s.date.slice(0, 7)
       const row = g.get(k) ?? { k, shifts: 0, guests: 0, pay: 0, cash: 0 }
       row.shifts += 1
       row.guests += s.share
@@ -146,8 +154,8 @@ export function ChefDialog({
     }
     const rows = Array.from(g.values()).sort((a, b) => b.k.localeCompare(a.k)).slice(0, 12)
     const max = Math.max(1, ...rows.map((r) => r.pay))
-    return rows.map((r) => ({ ...r, label: settleView === "week" ? `${md(r.k)} – ${md(addDays(r.k, 6))}` : `${r.k.slice(0, 4)} 年 ${Number(r.k.slice(5))} 月`, sub: settleView === "week" ? (r.k === thisMonday ? "本周" : r.k === addDays(thisMonday, -7) ? "上周" : "") : r.k === today.slice(0, 7) ? "本月" : "", w: `${Math.round((100 * r.pay) / max)}%` }))
-  }, [done, settleView, thisMonday, today])
+    return rows.map((r) => ({ ...r, label: settleView === "week" ? `${md(r.k)} – ${md(addDays(r.k, 6))}` : `${r.k.slice(0, 4)} 年 ${Number(r.k.slice(5))} 月`, sub: settleView === "week" ? (r.k === thisWeekStart ? "本周" : r.k === addDays(thisWeekStart, -7) ? "上周" : "") : r.k === today.slice(0, 7) ? "本月" : "", w: `${Math.round((100 * r.pay) / max)}%` }))
+  }, [done, settleView, thisWeekStart, today])
   const ytdPay = done.filter((s) => s.date.slice(0, 4) === today.slice(0, 4)).reduce((a, s) => a + s.payCents, 0)
   const dstate = c ? docState(c, today) : null
   const files = (d?.files ?? []).filter((f) => fileFilter === "all" || f.kind === fileFilter)
@@ -185,10 +193,75 @@ export function ChefDialog({
   }
   const settleOne = (s: ShiftRow) => post(`settle:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "这一场已结")
   const unsettle = (s: ShiftRow) => post(`unsettle:${s.assignmentId}`, { action: "unsettle", assignment_id: s.assignmentId }, "已撤销")
-  const setCash = async (s: ShiftRow) => {
-    const raw = await askPrompt({ title: "现场代收", message: `${s.customer ?? ""} ${md(s.date)}：师傅现场代收了多少尾款（美元）？留空 = 用师傅端上报的数`, defaultValue: s.cashCents ? (s.cashCents / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
+  // 周六晚结账时师傅周日还有一台：工钱先付掉，代收和小费等派对办完再补。
+  const prepay = async (s: ShiftRow) => {
+    if (!(await askConfirm({ title: "提前结工钱", message: `${s.customer ?? ""} ${md(s.date)} 这场还没办。\n\n现在先把工钱 ${money(s.payCents)} 结给 ${name}；等派对办完、确认了尾款怎么收的，代收或小费再补一笔。`, okLabel: "结工钱" }))) return
+    await post(`prepay:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "工钱已提前结")
+  }
+
+  const setMethod = async (s: ShiftRow, m: SettleMethod) => {
+    if (m === "cash") {
+      const def = s.cashCents || s.balanceDueCents || 0
+      const raw = await askPrompt({ title: METHOD_LABELS.cash, message: `${s.customer ?? ""} ${md(s.date)}：师傅现场收了多少尾款（美元）？`, defaultValue: def ? (def / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
+      if (raw === null) return
+      await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: raw.trim() === "" ? 0 : Number(raw) }, "已记录")
+      return
+    }
+    if (m === "card") return cardFlow(s)
+    await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: m }, "已记录")
+  }
+
+  // 刷卡：先按 pi_ 去 Stripe 查真实到账（总额 / 手续费 / 净额），
+  // 小费 = 净额 − 应收尾款，算好了给老板确认，不用再去后台导表。
+  const cardFlow = async (s: ShiftRow) => {
+    setBusy(`m:${s.assignmentId}`)
+    setMsg(null)
+    let look: { found?: boolean; grossCents?: number; feeCents?: number; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; stripeError?: string | null; reason?: string } | null = null
+    try {
+      look = await adminJson(adminKey, "/api/admin/chefs", { body: { action: "card_lookup", assignment_id: s.assignmentId } })
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "查不到 Stripe")
+    } finally {
+      setBusy(null)
+    }
+    const lines = look?.found
+      ? [
+          `Stripe 实收 ${money(look.grossCents ?? 0)} − 手续费 ${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`,
+          `应收尾款 ${money(look.balanceRefCents ?? 0)}`,
+          look.stripeError ? `⚠ ${look.stripeError}` : "",
+        ].filter(Boolean).join("\n")
+      : look?.reason ?? "这单查不到 Stripe 付款，金额自己填。"
+    const raw = await askPrompt({
+      title: METHOD_LABELS.card,
+      message: `${s.customer ?? ""} ${md(s.date)}\n${lines}\n\n给师傅的小费（净额 − 应收尾款）：`,
+      defaultValue: ((look?.tipCents ?? 0) / 100).toFixed(2),
+      placeholder: "0.00",
+      inputMode: "decimal",
+      okLabel: "记录",
+    })
     if (raw === null) return
-    await post(`cash:${s.assignmentId}`, { action: "set_cash", assignment_id: s.assignmentId, cash_cents: raw.trim() === "" ? null : Math.round(Number(raw) * 100) })
+    await post(
+      `m:${s.assignmentId}`,
+      {
+        action: "set_settlement",
+        assignment_id: s.assignmentId,
+        method: "card",
+        card_gross: look?.found ? (look.grossCents ?? 0) / 100 : undefined,
+        card_fee: look?.found ? (look.feeCents ?? 0) / 100 : undefined,
+        card_tip: raw.trim() === "" ? 0 : Number(raw),
+        ref: look?.paymentId,
+      },
+      "已记录",
+    )
+  }
+
+  const clearMethod = (s: ShiftRow) => post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: null }, "已改回待确认")
+
+  // 客人当场塞给师傅的现金小费：师傅自己留着，不进净额，只是记一笔。
+  const setCashTip = async (s: ShiftRow) => {
+    const raw = await askPrompt({ title: "现场现金小费", message: `${s.customer ?? ""} ${md(s.date)}：客人当场给了师傅多少现金小费？这笔师傅自己留着，不进结算。`, defaultValue: s.cashTipCents ? (s.cashTipCents / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
+    if (raw === null) return
+    await post(`tip:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: s.method ?? "other", cash_collected: s.cashCents / 100, card_tip: s.cardTipCents / 100, card_gross: s.cardGrossCents ? s.cardGrossCents / 100 : undefined, card_fee: s.cardFeeCents ? s.cardFeeCents / 100 : undefined, cash_tip: raw.trim() === "" ? 0 : Number(raw), ref: s.settlementRef ?? undefined }, "已记录")
   }
   const upload = async (file: File) => {
     if (file.size > 8 * 1024 * 1024) {
@@ -225,7 +298,7 @@ export function ChefDialog({
       setMsg("没有电话")
       return
     }
-    const lines = openRows.map((s) => `${md(s.date)} ${s.customer ?? ""} ${s.share}p: pay $${(s.payCents / 100).toFixed(2)}${s.cashCents ? ` - collected $${(s.cashCents / 100).toFixed(2)}` : ""}`)
+    const lines = openRows.map((s) => `${md(s.date)} ${s.customer ?? ""} ${s.share}p: pay $${((s.paySettledAt ? 0 : s.payCents) / 100).toFixed(2)}${s.cardTipCents ? ` + tip $${(s.cardTipCents / 100).toFixed(2)}` : ""}${s.cashCents ? ` - collected $${(s.cashCents / 100).toFixed(2)}` : ""}${s.paySettledAt ? " (pay already sent)" : ""}`)
     const body = `Real Hibachi statement for ${name}:\n${lines.join("\n")}${reimbTotal ? `\nReimbursements: +$${(reimbTotal / 100).toFixed(2)}` : ""}\nNet: ${net >= 0 ? "we owe you" : "you owe us"} $${(Math.abs(net) / 100).toFixed(2)}. Reply if anything looks off.`
     if (!(await askConfirm({ title: "发对账单", message: `发给 ${prettyPhone(c.phone)}？\n\n${body}`, okLabel: "发送" }))) return
     setBusy("statement")
@@ -288,8 +361,8 @@ export function ChefDialog({
               <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
                 {weekTitle} <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}>{md(week)} – {md(weekEnd)}</span>
               </span>
-              {week !== thisMonday ? (
-                <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setWeek(thisMonday)}>
+              {week !== thisWeekStart ? (
+                <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setWeek(thisWeekStart)}>
                   回到本周
                 </button>
               ) : null}
@@ -599,33 +672,70 @@ export function ChefDialog({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <Kicker style={{ margin: 0 }}>本期结算 · {BILLING_LABELS[c.billing_cycle] ?? c.billing_cycle}</Kicker>
               <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                上次结清 {c.last_settled_at ? md(c.last_settled_at) : "—"} · 未结 {openRows.length} 场
+                上次结清 {c.last_settled_at ? md(c.last_settled_at) : "—"} · 可结 {openRows.length} 场
+                {pendingMethod.length ? <span style={{ color: "var(--color-accent-700)" }}> · 待确认收款 {pendingMethod.length} 场</span> : null}
               </span>
             </div>
+            {pendingMethod.length ? (
+              <div className="notice" style={{ borderColor: "var(--color-accent)", padding: "10px 12px" }}>
+                <Kicker style={{ margin: 0, color: "var(--color-accent-700)" }}>待确认收款 · {pendingMethod.length} 场</Kicker>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-700)", margin: "4px 0 8px" }}>派对办完了，但还不知道尾款是师傅收的现金还是客人刷的卡——先说清楚，才算得出这场欠谁。</div>
+                {pendingMethod.map((s) => (
+                  <div key={s.assignmentId} style={{ padding: "8px 0", borderTop: "1px solid var(--color-line)" }}>
+                    <div style={{ fontSize: 13 }}>
+                      <strong>{s.customer ?? "客户"}</strong> · {md(s.date)} {dowZh(s.date)} · {s.share} 人 · 工钱 {money(s.payCents)}
+                      {s.balanceDueCents ? <span style={{ color: "var(--color-neutral-600)" }}> · 应收尾款 {money(s.balanceDueCents)}</span> : null}
+                      {s.paySettledAt ? <Tag cls="tag-faint">工钱已提前结</Tag> : null}
+                    </div>
+                    {owner ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                        {(Object.keys(METHOD_LABELS) as SettleMethod[]).map((m) => (
+                          <button key={m} type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void setMethod(s, m)}>
+                            {busy === `m:${s.assignmentId}` ? "…" : METHOD_LABELS[m]}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
             <div style={{ fontSize: 13, borderTop: "2px solid var(--color-divider)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 10, padding: "6px 0", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-neutral-600)", borderBottom: "1px solid var(--color-line)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto auto", gap: 10, padding: "6px 0", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-neutral-600)", borderBottom: "1px solid var(--color-line)" }}>
                 <span>场次</span>
                 <span style={{ textAlign: "right" }}>工钱</span>
-                <span style={{ textAlign: "right" }}>代收尾款</span>
+                <span style={{ textAlign: "right" }}>代收</span>
+                <span style={{ textAlign: "right" }}>小费</span>
                 <span style={{ textAlign: "right" }}>净额</span>
                 <span />
               </div>
-              {openRows.length === 0 ? <div style={{ padding: "10px 0", color: "var(--color-neutral-600)" }}>没有未结的场次。</div> : null}
+              {openRows.length === 0 ? <div style={{ padding: "10px 0", color: "var(--color-neutral-600)" }}>没有可结的场次。</div> : null}
               {[...openRows, ...settledRecent].map((s) => {
-                const rowNet = s.payCents - s.cashCents
+                const rowNet = shiftNet(s)
                 return (
-                  <div key={s.assignmentId} style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", opacity: s.settledAt ? 0.45 : 1 }}>
+                  <div key={s.assignmentId} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto auto", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", opacity: s.settledAt ? 0.45 : 1 }}>
                     <div style={{ minWidth: 0 }}>
                       <div className="clamp1">{s.customer ?? "客户"}</div>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
                         {md(s.date)} {dowZh(s.date)} · {s.team.length > 1 ? `${s.share} / ${s.guests} 人 · 与 ${s.team.filter((t) => t.id !== chefId).map((t) => t.name).join("、")} 平分` : `${s.share} 人`}
+                        {s.method ? (
+                          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void clearMethod(s)} title="点一下改回待确认">
+                            · {METHOD_SHORT[s.method]}
+                          </button>
+                        ) : null}
+                        {s.cashTipCents ? <span title="客人当场给的现金小费，师傅自己留着"> · 现金小费 {money(s.cashTipCents)}</span> : null}
                         {s.settledAt ? ` · 已结 ${stamp(s.settledAt).split(",")[0]}` : ""}
                       </div>
                     </div>
-                    <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>{money(s.payCents)}</span>
-                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void setCash(s)} title={s.cashSource === "chef_sheet" ? "师傅端上报" : s.cashSource === "manual" ? "手动登记" : "没有代收 · 点击登记"}>
+                    <span style={{ textAlign: "right", whiteSpace: "nowrap", color: s.paySettledAt && !s.settledAt ? "var(--color-neutral-500)" : undefined }} title={s.paySettledAt && !s.settledAt ? "工钱已提前结过" : undefined}>
+                      {s.paySettledAt && !s.settledAt ? <s>{money(s.payCents)}</s> : money(s.payCents)}
+                    </span>
+                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void setMethod(s, "cash")} title="点击改代收金额">
                       {s.cashCents ? money(s.cashCents) : "—"}
-                      {s.cashSource === "chef_sheet" ? " ·师傅报" : ""}
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void (s.method === "card" ? cardFlow(s) : setCashTip(s))} title={s.method === "card" ? "点击重新核对卡上小费" : "点击记现场现金小费"}>
+                      {s.cardTipCents ? money(s.cardTipCents) : "—"}
                     </button>
                     <span style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: 600 }}>
                       <NetSpan n={rowNet} />
@@ -646,13 +756,14 @@ export function ChefDialog({
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 0 4px" }}>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                  工钱 {money(payTotal)} + 报销 {money(reimbTotal)} − 代收 {money(cashTotal)}
+                  工钱 {money(payTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}
                 </span>
                 <strong className="num" style={{ fontSize: 20, whiteSpace: "nowrap", color: net < 0 ? "var(--color-accent-700)" : undefined }}>
                   {net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清"}
                 </strong>
               </div>
             </div>
+
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {owner ? (
                 <button type="button" className="btn btn-primary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0)} onClick={() => void settleAll()}>
@@ -664,8 +775,32 @@ export function ChefDialog({
               </button>
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-              净额 = 工钱 + 报销 − 代收；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。可逐场结，也可一键结清；结过的工钱冻结，之后改工价不影响历史。
+              净额 = 工钱 + 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。
             </div>
+
+            {notYetHeld.length ? (
+              <div style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 10 }}>
+                <Kicker style={{ margin: 0 }}>还没办的场次（{notYetHeld.length}）</Kicker>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "4px 0 6px" }}>派对还没结束，不算进本期。周六结账时师傅明天还有一台的话，可以先把工钱结掉，代收和小费等办完再补。</div>
+                {notYetHeld.map((s) => (
+                  <div key={s.assignmentId} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="clamp1">{s.customer ?? "客户"}</div>
+                      <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+                        {md(s.date)} {dowZh(s.date)} · {s.share} 人 · 工钱 {money(s.payCents)}
+                      </div>
+                    </div>
+                    {s.paySettledAt ? (
+                      <Tag cls="tag-faint">工钱已结 {stamp(s.paySettledAt).split(",")[0]}</Tag>
+                    ) : owner ? (
+                      <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void prepay(s)}>
+                        {busy === `prepay:${s.assignmentId}` ? "结算中…" : "提前结工钱"}
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8, borderTop: "2px solid var(--color-divider)", paddingTop: 12 }}>
               <Kicker style={{ margin: 0 }}>

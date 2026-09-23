@@ -19,6 +19,29 @@ export type ShiftRow = {
   status: string
   orderStatus: string | null
   balanceDueCents: number | null
+  /** 派对办完了没（开席 + 时长 + 收拾）。没办完就不知道尾款怎么收，别算进结算。 */
+  partyOver: boolean
+  method: SettleMethod | null
+  cardGrossCents: number
+  cardFeeCents: number
+  /** Stripe 净额 − 应收尾款：客人刷卡时给师傅的小费，钱在我们手上。 */
+  cardTipCents: number
+  /** 客人当场塞给师傅的现金，师傅自己留着，不进净额。 */
+  cashTipCents: number
+  settlementRef: string | null
+  settlementNote: string | null
+  /** 工钱结过了没（可以提前于派对结）。settledAt 才代表这场彻底清了。 */
+  paySettledAt: string | null
+  paySettledCents: number
+}
+
+export type SettleMethod = "cash" | "card" | "prepaid" | "other"
+export const METHOD_LABELS: Record<SettleMethod, string> = { cash: "师傅代收现金", card: "客人刷卡", prepaid: "已付清 / 转账", other: "其它" }
+export const METHOD_SHORT: Record<SettleMethod, string> = { cash: "现金代收", card: "刷卡", prepaid: "已付清", other: "其它" }
+
+/** 这场还欠师傅多少：工钱（结过就不算）+ 卡上小费 − 他代收的现金。 */
+export function shiftNet(s: ShiftRow): number {
+  return (s.paySettledAt ? 0 : s.payCents) + s.cardTipCents - s.cashCents
 }
 
 export type ChefSummary = {
@@ -37,8 +60,11 @@ export type ChefSummary = {
   late: number
   perfCount: number
   openShifts: number
+  /** 办完了但还没说尾款怎么收的场次数——这些一分钱都还算不出来。 */
+  awaitingMethod: number
   openPayCents: number
   openCashCents: number
+  openTipCents: number
   pendingReceipts: number
   pendingReceiptCents: number
   doc: DocState
@@ -102,10 +128,12 @@ export type MediaItem = {
 export const FILE_KIND_LABELS: Record<ChefFile["kind"], string> = { receipt: "发票", photo: "照片", video: "视频", food_card: "Food Handler", id_doc: "证件", w9: "W-9", other: "其他" }
 export const FILE_STATUS_LABELS: Record<ChefFile["status"], string> = { none: "", pending: "待报销", approved: "已批准，待结算", paid: "已报销", rejected: "已拒" }
 
-/** Monday that starts the week containing ymd (chef weeks run Mon–Sun, like the comp). */
-export function mondayOf(ymd: string): string {
+/**
+ * Sunday that starts the week containing ymd. Chef weeks run Sun–Sat because
+ * the owner settles Saturday night, same window the ads and stats use.
+ */
+export function weekStartOf(ymd: string): string {
   const d = new Date(`${ymd}T00:00:00Z`)
-  const lead = (d.getUTCDay() + 6) % 7
-  d.setUTCDate(d.getUTCDate() - lead)
+  d.setUTCDate(d.getUTCDate() - d.getUTCDay())
   return d.toISOString().slice(0, 10)
 }

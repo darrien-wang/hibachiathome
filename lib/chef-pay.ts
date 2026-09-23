@@ -49,7 +49,7 @@ export function taxMissing(d: ChefDocs): boolean {
 }
 
 export const BILLING_LABELS: Record<string, string> = {
-  weekly: "每周一",
+  weekly: "每周六结（周日–周六）",
   biweekly: "每两周",
   semimonthly: "每月 1 / 15 日",
   monthly: "每月 1 日",

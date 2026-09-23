@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Chip, Dialog, DialogHead, Field } from "./ui"
 import { addDays, dowZh, md, money, prettyPhone, ptToday } from "./helpers"
-import { mondayOf, type ChefSummary, type MediaItem } from "./chef-types"
+import { weekStartOf, type ChefSummary, type MediaItem } from "./chef-types"
 import { BILLING_LABELS, rateLabel } from "@/lib/chef-pay"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
@@ -35,18 +35,18 @@ export function ChefsTab({
 }) {
   const [view, setView] = useState<"list" | "media">(initialView ?? "list")
   const today = ptToday()
-  const thisMonday = mondayOf(today)
-  const [week, setWeek] = useState(thisMonday)
+  const thisWeekStart = weekStartOf(today)
+  const [week, setWeek] = useState(thisWeekStart)
   const [showAdd, setShowAdd] = useState(false)
   const weekEnd = addDays(week, 6)
-  const weekTitle = week === thisMonday ? "本周" : week === addDays(thisMonday, -7) ? "上周" : week === addDays(thisMonday, 7) ? "下周" : `${md(week)} 那周`
+  const weekTitle = week === thisWeekStart ? "本周" : week === addDays(thisWeekStart, -7) ? "上周" : week === addDays(thisWeekStart, 7) ? "下周" : `${md(week)} 那周`
   const weekLabel = `${md(week)} – ${md(weekEnd)}`
 
   const rows = useMemo(
     () =>
       chefs.map((c) => {
         const ws = c.shifts.filter((s) => s.date >= week && s.date <= weekEnd && s.orderStatus !== "cancelled")
-        const net = c.openPayCents - c.openCashCents
+        const net = c.openPayCents + c.openTipCents - c.openCashCents
         return { c, weekCount: ws.length, weekGuests: ws.reduce((a, s) => a + s.share, 0), net }
       }),
     [chefs, week, weekEnd],
@@ -89,8 +89,8 @@ export function ChefsTab({
             <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
               {weekTitle} <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}>{weekLabel} · {weekTotal} 场</span>
             </span>
-            {week !== thisMonday ? (
-              <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setWeek(thisMonday)}>
+            {week !== thisWeekStart ? (
+              <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setWeek(thisWeekStart)}>
                 回到本周
               </button>
             ) : null}
@@ -185,7 +185,8 @@ export function ChefsTab({
                       <div style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{balanceLabel(net)}</div>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
                         {BILLING_LABELS[c.billing_cycle] ?? c.billing_cycle} · 上次 {c.last_settled_at ? md(c.last_settled_at) : "—"}
-                        {c.openShifts ? ` · 未结 ${c.openShifts} 场` : ""}
+                        {c.openShifts ? ` · 可结 ${c.openShifts} 场` : ""}
+                        {c.awaitingMethod ? <span style={{ color: "var(--color-accent-700)" }}> · 待确认收款 {c.awaitingMethod} 场</span> : null}
                       </div>
                     </td>
 ) : null}
