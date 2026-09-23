@@ -106,14 +106,14 @@ export default function RentalsPage() {
             </div>
             <figure className="m-0 aspect-[4/3] overflow-hidden rounded-[32px] bg-surface">
               <Image
-                src="/gallery/real-hibachi-table-setup-black-linen-place-settings.jpg"
-                alt="Tables in a U shape dressed in black linen with folding chairs, a gold runner and roses, ready before the party"
+                src="/gallery/real-hibachi-tables-chairs-black-linen-backyard.jpg"
+                alt="Folding tables in a U shape under black fitted tablecloths with black folding chairs, set up on a backyard patio beside the Real Hibachi grill"
                 width={1448}
                 height={1086}
                 sizes="(min-width: 768px) 46vw, 92vw"
                 priority
                 className="h-full w-full object-cover"
-                style={{ objectPosition: "50% 70%", filter: WASHED }}
+                style={{ objectPosition: "50% 50%", filter: WASHED }}
               />
             </figure>
           </section>

@@ -7,9 +7,10 @@
 // 镜像：v0-real-hibachi-invoice-generator/lib/table-themes.ts（师傅备料单在
 // 那个仓库）。改了这边记得同天改那边，和 prep-bom / pricing 一个规矩。
 //
-// 照片：设计稿里那几张是效果图，取不下来也不能当实拍用。所以 photo 是可选
-// 的——有实拍就放路径，没有就退回 swatch（同心圆色块）。师傅在停车场看手机
-// 时色块其实比照片更好认，所以这不是临时方案，是并行的两条路。
+// 照片：三套主题的摆台图 2026-09-23 由用户提供并上线（public/gallery/，四档
+// _opt WebP 已生成）。photo 仍是可选的——将来加新主题、照片还没拍时就退回
+// swatch（同心圆色块：托盘/盘子/餐具）。色块不是临时方案：师傅在停车场看手机
+// 认颜色比认照片快，所以两条路并行留着。
 
 export type ThemeVariant = {
   id: string
@@ -72,6 +73,10 @@ export const TABLE_THEMES: TableTheme[] = [
       {
         id: "default",
         name: "Blue & White",
+        photo: {
+          src: "/gallery/real-hibachi-place-settings-blue-white-porcelain.jpg",
+          alt: "Blue-and-white porcelain-style plates with silver cutlery and a rolled white napkin on a white tablecloth",
+        },
         // 托盘取青花的蓝：白盘压在白托上几乎看不见（09-23 手机实测）。
         swatch: { charger: "#2f5b96", plate: "#f8f9fb", accent: "#2f5b96" },
         packLabel: "青花盘 + 银餐具",
@@ -88,12 +93,20 @@ export const TABLE_THEMES: TableTheme[] = [
       {
         id: "red-on-black",
         name: "Red on black",
+        photo: {
+          src: "/gallery/real-hibachi-place-settings-red-plate-black-charger.jpg",
+          alt: "A red plate on a black gold-rim charger with gold cutlery and a white napkin on a black tablecloth",
+        },
         swatch: { charger: "#1b1a19", plate: "#b22222", accent: "#c9a227" },
         packLabel: "黑托红盘 + 金餐具",
       },
       {
         id: "black-on-red",
         name: "Black on red",
+        photo: {
+          src: "/gallery/real-hibachi-place-settings-black-plate-red-charger.jpg",
+          alt: "A black plate on a red gold-rim charger with gold cutlery and a white napkin on a black tablecloth",
+        },
         swatch: { charger: "#b22222", plate: "#1b1a19", accent: "#c9a227" },
         packLabel: "红托黑盘 + 金餐具",
       },

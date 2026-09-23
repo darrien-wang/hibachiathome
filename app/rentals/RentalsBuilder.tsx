@@ -25,9 +25,9 @@ import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST } fro
 const usd = (n: number) => "$" + n.toLocaleString("en-US")
 
 const HERO_PHOTO = {
-  src: "/gallery/real-hibachi-table-setup-black-linen-place-settings.jpg",
-  alt: "Tables in a U shape dressed in black linen with folding chairs, a gold runner and roses, ready before the party",
-  position: "50% 70%",
+  src: "/gallery/real-hibachi-tables-chairs-black-linen-backyard.jpg",
+  alt: "Folding tables in a U shape under black fitted tablecloths with black folding chairs, set up on a backyard patio beside the Real Hibachi grill",
+  position: "50% 50%",
 }
 
 // 09-11 弱网专项定的：照片washed 回底色里，不浮在上面。
@@ -76,7 +76,9 @@ function VariantArt({ v, sizes, priority }: { v: ThemeVariant; sizes: string; pr
       sizes={sizes}
       priority={priority}
       className="h-full w-full object-cover"
-      style={{ objectPosition: v.photo.position ?? "50% 50%", filter: WASHED }}
+      // 盘具图不上 washed：客户就是在比颜色，褪色会让红蓝分不出来。生活照
+      // 才需要压回底色里。
+      style={{ objectPosition: v.photo.position ?? "50% 50%" }}
     />
   )
 }
