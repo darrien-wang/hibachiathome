@@ -616,38 +616,33 @@ export function OrderDialog({
                   </button>
                 </div>
               ) : null}
-              {assignments.length ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", borderTop: "1px solid var(--color-line)", paddingTop: 8 }}>
-                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>备料单</span>
-                  {assignments.map((a) => (
-                    <button key={a.assignmentId} type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void sendSheet(a.staffId, a.name)}>
-                      {busy === `sheet:${a.staffId}` ? "发送中…" : `发给 ${a.name}`}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {sheet ? (
-                <div className="notice" style={{ fontSize: 12.5, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ flex: 1, minWidth: 0 }}>{sheet.text}</span>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(sheet.url)}>
-                    复制链接
-                  </button>
-                </div>
-              ) : null}
               <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单按发票里存的份量生成，改了发票要再发一次。</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
-              改日期 / 时段（专业表单）
-            </button>
-            <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
-              改人数 / 菜单
+              改日期 / 人数 / 菜单（专业表单）
             </button>
             <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => toSms(`Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`))}>
               {busy === "planner" ? "生成中…" : "给客人发 Planner 链接"}
             </button>
+            {/* 派单存下来之后才发得了备料单——没定人就没人可发。 */}
+            {!teamDirty
+              ? assignments.map((a) => (
+                  <button key={a.assignmentId} type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void sendSheet(a.staffId, a.name)}>
+                    {busy === `sheet:${a.staffId}` ? "发送中…" : `发备料单给 ${a.name}`}
+                  </button>
+                ))
+              : null}
           </div>
+          {sheet ? (
+            <div className="notice" style={{ fontSize: 12.5, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>{sheet.text}</span>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(sheet.url)}>
+                复制链接
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
