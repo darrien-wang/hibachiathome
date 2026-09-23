@@ -72,7 +72,8 @@ export const TABLE_THEMES: TableTheme[] = [
       {
         id: "default",
         name: "Blue & White",
-        swatch: { charger: "#f7f4ee", plate: "#f8f9fb", accent: "#2f5b96" },
+        // 托盘取青花的蓝：白盘压在白托上几乎看不见（09-23 手机实测）。
+        swatch: { charger: "#2f5b96", plate: "#f8f9fb", accent: "#2f5b96" },
         packLabel: "青花盘 + 银餐具",
       },
     ],
