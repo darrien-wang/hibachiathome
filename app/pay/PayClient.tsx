@@ -182,8 +182,13 @@ export default function PayClient() {
 
         <div className="flex flex-col gap-3">
           <span className="text-[15px] font-bold">Tip for your chef</span>
+          {/* 先说师傅为这场做了什么，再说钱全归他（老板 09-23 定）。这几项和发票
+              底部那句 Chef Gratuity 用同一套说法，都是我们真做的事。 */}
           <span className="text-[13px] leading-relaxed text-clay-700">
-            Optional — it goes straight to the chef who cooked for you.
+            Optional. Your chef brought the grill in, set up, cooked and performed at the table
+            {typeof data.guests === "number" && data.guests > 0 ? ` for all ${data.guests} guests` : ""}, and
+            cleaned up before leaving.{" "}
+            <span className="font-semibold text-ink">100% of anything you add goes to them</span> — we keep none of it.
           </span>
 
           {/* 餐厅 POS 机那种档位（老板 09-23 定）：一排大按钮，每个把百分比和
