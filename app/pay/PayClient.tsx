@@ -18,9 +18,12 @@ type Summary = {
   guests?: number | null
   balanceDue?: number
   invoiceIsCard?: boolean
-  twentyPercentTip?: number | null
+  tiers?: Array<{ rate: number; tip: number; chargeCents: number }>
   noTipChargeCents?: number
 }
+
+/** 选了哪一档。custom = 自己填，none = 不给。 */
+type TipMode = { kind: "tier"; rate: number } | { kind: "custom" } | { kind: "none" }
 
 const usd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })
@@ -47,6 +50,7 @@ export default function PayClient() {
   const [orderId, setOrderId] = useState<string | null>(null)
   const [data, setData] = useState<Summary | null>(null)
   const [tip, setTip] = useState("")
+  const [mode, setMode] = useState<TipMode | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -80,10 +84,15 @@ export default function PayClient() {
     }
   }, [orderId])
 
+  const tiers = data?.tiers ?? []
+
   const tipNumber = useMemo(() => {
+    if (!mode) return 0
+    if (mode.kind === "none") return 0
+    if (mode.kind === "tier") return tiers.find((t) => t.rate === mode.rate)?.tip ?? 0
     const n = Number.parseFloat(tip.replace(/[^0-9.]/g, ""))
     return Number.isFinite(n) && n > 0 ? n : 0
-  }, [tip])
+  }, [mode, tip, tiers])
 
   const total = useMemo(() => {
     if (!data?.ok || !data.balanceDue) return 0
@@ -134,28 +143,21 @@ export default function PayClient() {
     )
   }
 
-  if (data.settled) {
-    return (
-      <div className={shell}>
-        <h1 className="font-serif text-3xl font-extrabold leading-tight">
-          You&apos;re all paid up{data.clientName ? `, ${data.clientName}` : ""}.
-        </h1>
-        <p className="mt-4 text-[17px] leading-relaxed text-clay-700">
-          Nothing left on this party. If that doesn&apos;t look right, text us at 213-770-7788.
-        </p>
-      </div>
-    )
-  }
-
+  const settled = Boolean(data.settled)
   const dateLabel = prettyDate(data.eventDate)
+  // POS 机也要先点一下才能付。没选过档位就不放行——避免客人以为自己给了小费
+  // 结果按了个默认值，也避免我们替他决定。
+  const canPay = mode !== null && (settled ? tipNumber > 0 : true)
 
   return (
     <div className={shell}>
       <span className="inline-block rounded-full bg-gold-100 px-4 py-1.5 text-xs font-semibold tracking-wide text-gold-800">
-        Balance due
+        {settled ? "Paid in full" : "Balance due"}
       </span>
       <h1 className="mt-5 font-serif text-4xl font-extrabold leading-[1.08] tracking-tight">
-        {data.clientName ? `${data.clientName}, here's` : "Here's"} your balance
+        {settled
+          ? `Thank you${data.clientName ? `, ${data.clientName}` : ""}`
+          : `${data.clientName ? `${data.clientName}, here's` : "Here's"} your balance`}
       </h1>
       {dateLabel && (
         <p className="mt-3 text-[17px] text-clay-700">
@@ -164,40 +166,95 @@ export default function PayClient() {
       )}
 
       <div className="mt-8 flex flex-col gap-4 rounded-[28px] bg-surface p-6">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[17px]">Balance</span>
-          <span className="font-serif text-2xl font-extrabold tabular-nums">{usd(data.balanceDue ?? 0)}</span>
+        {settled ? (
+          <p className="m-0 text-[17px] leading-relaxed">
+            Your party is paid in full — nothing is owed. This page is only here if you&apos;d like to add
+            something for your chef.
+          </p>
+        ) : (
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[17px]">Balance</span>
+            <span className="font-serif text-2xl font-extrabold tabular-nums">{usd(data.balanceDue ?? 0)}</span>
+          </div>
+        )}
+
+        <div className="h-px bg-black/10" />
+
+        <div className="flex flex-col gap-3">
+          <span className="text-[15px] font-bold">Tip for your chef</span>
+          <span className="text-[13px] leading-relaxed text-clay-700">
+            Optional — it goes straight to the chef who cooked for you.
+          </span>
+
+          {/* 餐厅 POS 机那种档位（老板 09-23 定）：一排大按钮，每个把百分比和
+              金额都印出来，客人一眼就知道按下去是多少钱。 */}
+          <div className="grid grid-cols-3 gap-2">
+            {tiers.map((t) => {
+              const on = mode?.kind === "tier" && mode.rate === t.rate
+              return (
+                <button
+                  key={t.rate}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setMode({ kind: "tier", rate: t.rate })}
+                  className={`flex flex-col items-center gap-0.5 rounded-2xl border-2 px-2 py-3.5 transition-colors ${
+                    on ? "border-flame bg-flame-100" : "border-transparent bg-cream hover:bg-gold-100"
+                  }`}
+                >
+                  <span className="font-serif text-2xl font-extrabold leading-none">
+                    {Math.round(t.rate * 100)}%
+                  </span>
+                  <span className="text-[13px] tabular-nums text-clay-700">{usd(t.tip)}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              aria-pressed={mode?.kind === "custom"}
+              onClick={() => setMode({ kind: "custom" })}
+              className={`rounded-2xl border-2 px-3 py-2.5 text-[15px] font-semibold transition-colors ${
+                mode?.kind === "custom" ? "border-flame bg-flame-100" : "border-transparent bg-cream hover:bg-gold-100"
+              }`}
+            >
+              Custom
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode?.kind === "none"}
+              onClick={() => setMode({ kind: "none" })}
+              className={`rounded-2xl border-2 px-3 py-2.5 text-[15px] font-semibold transition-colors ${
+                mode?.kind === "none" ? "border-flame bg-flame-100" : "border-transparent bg-cream hover:bg-gold-100"
+              }`}
+            >
+              No tip
+            </button>
+          </div>
+
+          {mode?.kind === "custom" && (
+            <label className="mt-1 flex items-center gap-2 rounded-2xl bg-cream px-4 py-3">
+              <span className="text-xl font-bold text-clay-700">$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                autoFocus
+                placeholder="0"
+                value={tip}
+                onChange={(e) => setTip(e.target.value.replace(/[^0-9.]/g, "").slice(0, 7))}
+                className="w-full bg-transparent text-2xl font-bold tabular-nums outline-none"
+                aria-label="Tip amount in dollars"
+              />
+            </label>
+          )}
         </div>
 
         <div className="h-px bg-black/10" />
 
-        <label className="flex flex-col gap-2">
-          <span className="text-[15px] font-bold">Tip for your chef</span>
-          <span className="text-[13px] leading-relaxed text-clay-700">
-            Optional, and entirely yours to decide — it goes straight to the chef who cooked for you.
-            {typeof data.twentyPercentTip === "number" && data.twentyPercentTip > 0
-              ? ` For reference, 20% of your party is ${usd(data.twentyPercentTip)}.`
-              : ""}
-          </span>
-          <span className="mt-1 flex items-center gap-2 rounded-2xl bg-cream px-4 py-3">
-            <span className="text-xl font-bold text-clay-700">$</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0"
-              value={tip}
-              onChange={(e) => setTip(e.target.value.replace(/[^0-9.]/g, "").slice(0, 7))}
-              className="w-full bg-transparent text-2xl font-bold tabular-nums outline-none"
-              aria-label="Tip amount in dollars"
-            />
-          </span>
-        </label>
-
-        <div className="h-px bg-black/10" />
-
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[17px] font-bold">You&apos;ll be charged</span>
+          <span className="text-[17px] font-bold">{settled ? "Tip total" : "You'll be charged"}</span>
           <span className="font-serif text-3xl font-extrabold tabular-nums">{usd(total)}</span>
         </div>
         <span className="-mt-2 text-[13px] leading-relaxed text-clay-700">
@@ -207,10 +264,10 @@ export default function PayClient() {
         <button
           type="button"
           onClick={() => void pay()}
-          disabled={busy}
-          className="mt-1 rounded-full bg-flame px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-flame-800 disabled:opacity-70"
+          disabled={busy || !canPay}
+          className="mt-1 rounded-full bg-flame px-6 py-4 text-center text-[17px] font-semibold text-cream transition-colors hover:bg-flame-800 disabled:opacity-50"
         >
-          {busy ? "Opening secure checkout…" : `Pay ${usd(total)}`}
+          {busy ? "Opening secure checkout…" : canPay ? `Pay ${usd(total)}` : "Choose a tip above"}
         </button>
         {err && <span className="text-[13px] leading-snug text-flame-800">{err}</span>}
         <span className="text-center text-xs text-clay-700">Card payment handled by Stripe. We never see your card.</span>

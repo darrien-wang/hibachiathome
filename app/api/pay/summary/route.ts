@@ -61,25 +61,30 @@ export async function GET(request: NextRequest) {
   if (!data.found || typeof data.balanceDue !== "number") {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
   }
-  if (data.balanceDue <= 0) {
-    return NextResponse.json({ ok: true, settled: true, clientName: firstName(data.clientName) })
-  }
-
   const invoiceIsCard = data.paymentMethod === "card"
-  // 客户自己填金额（老板 09-23 定：不给档位）。只给一个参考数——20% 是多少，
-  // 省得他自己按计算器；这是一行字，不是按钮。
-  const twenty = data.gratuityOptions?.find((o) => Math.abs(o.rate - 0.2) < 0.001)?.amount ?? null
+  // 付清了不等于没事可做：派对办完才想起来给师傅小费是常事，所以余额 0 时
+  // 页面改成"只给小费"，而不是关门（老板 09-23 要给 Sergio 发这条时发现的）。
+  const settled = data.balanceDue <= 0
+  const balanceDue = Math.max(0, data.balanceDue)
+  // 档位按钮（老板 09-23 改定：照餐厅 POS 机那样给 20/25/30，大家习惯）。百分比
+  // 的基数用发票的 adjustedTotal——发票底部那张小费表印的就是这三个数，两处必须
+  // 一致，否则同一场派对会出现两个"20%"。
+  const tiers = (data.gratuityOptions ?? []).map((o) => ({
+    rate: o.rate,
+    tip: o.amount,
+    chargeCents: computeCharge(balanceDue, o.amount, invoiceIsCard).chargeCents,
+  }))
 
   return NextResponse.json({
     ok: true,
-    settled: false,
+    settled,
     clientName: firstName(data.clientName),
     eventDate: data.eventDate ?? null,
     guests: data.guests ?? null,
-    balanceDue: data.balanceDue,
+    balanceDue,
     invoiceIsCard,
-    twentyPercentTip: twenty,
-    noTipChargeCents: computeCharge(data.balanceDue, 0, invoiceIsCard).chargeCents,
+    tiers,
+    noTipChargeCents: computeCharge(balanceDue, 0, invoiceIsCard).chargeCents,
   })
 }
 
