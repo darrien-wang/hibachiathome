@@ -539,6 +539,9 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - **永远不主动提客户没问的多余事情**：发票、W-9、其他付款方式、可选加购、政策细节、"如果…也可以"之类的台阶。只答被问的，只推下一步。多给一个选项 = 多给一个不付款的理由（用户 09-15 定）。
 - **不打电话追单**：短信阶梯走完就停。客户几条短信都不回，打电话也不会有兴趣；换渠道不等于换结果。电话只用于客户自己打来 / 明确要求回电（用户 09-15 定，本人不喜欢打电话）。
 - **乞求式措辞一律不用**："Just checking in" / "Sorry to bother you" / "Please let me know" / "Whenever you get a chance" / "Are you still interested?" / "Any update?" / "I'd really appreciate it" / "Hope to hear from you" / "We'd love to have your business"。换成邀请句："Want me to pencil it in?" "Still holding Saturday for you - want it?"。道歉只在我们真的出错时说一次（系统没发价），**不为跟进道歉**。
+- **永远不把"我们那天没别的客人"说出口**（用户 2026-09-24 定）。客人问能不能改时间／加人／换日子，答案就是答案，**理由是我们的事**。我 09-24 回 Micah "Yes - you are our only party Friday, so there is room to push it"——他听到的是"这家没人订"，正好把 §1.1 的姿态反着做了一遍。同类禁句：`we don't have anything else that day`、`the calendar is wide open`、`you're our only party`、`we're free all weekend`、`nobody else booked that night`。
+  **正确说法：只给答案，要么给一个对他有用的理由**——"Later works. What time?"、"7:30 or 8 both work - which?"、"That date is yours, headcount can change up to the day before."
+  **判据**：这句话讲的是"他能得到什么"，还是"我们有多空"？后者一律删掉。注意这和 §7.1 不冲突——那条禁止编假档期，这条禁止**炫耀真空档**；档期开着就照开着答（§5.3），但不用"没人订"去解释。
 - 不猜客户名字；不编评分、单量、"500+ parties"。
 - 31+ 人不报固定总价。
 - 短信不提酒（30955）。
