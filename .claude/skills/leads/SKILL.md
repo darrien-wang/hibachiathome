@@ -276,9 +276,18 @@ Real Hibachi · (213) 770-7788
 
 | 步 | 何时 | 内容 |
 |---|---|---|
-| **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`）+ 要地址 / 门禁 |
+| **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`）+ 要地址 / 门禁。**发链接的同一条里必须写"也可以直接把名单发给我，我来填"**（见下） |
 | **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving 10–30 min before start (earlier for bigger parties) with the grill and fresh ingredients. Reply to confirm you're all set!" |
 | **w_review / w_ugc** | 派对次日 | 邀评 → 晒图 |
+
+**派对页是"省事的一种方式"，不是"你得自己弄"（用户 2026-09-23 定）。** 每次发 planner 链接，同一条消息里就给第二条路：
+```
+
+Here is your party page for everyone to pick their proteins: <link>
+Or just text me the list and I will fill it in for you - whichever is easier.
+```
+- **为什么**：链接发过去而不给别的选项，客户会理解成"这活儿归我了"。有人乐意自己点（还能拉家人一起玩），有人只想把名单甩过来——Diana 9/23 就是一条短信把 8 个人的菜、两盘前菜、地图定位一次发全，比在页面上点快得多。**我们要的是信息，不是他用哪个工具。**
+- **客户发来名单就当场录进发票**（`/api/self-service/orders/lookup` → 改 `guests` / `partyExtras` / `contactInfo` → `save-invoice`），然后回一条确认收到什么，别让他猜有没有录上。
 
 **发付款链接之前，先确认这是"他该用的那一条"**（用户 09-23 定，见铁律 4）：
 - **尾款要让客户自己决定小费** → 发 `https://www.realhibachi.com/pay?o=<订单 id>`。尾款金额固定、现查发票，小费他自己填一个数，页面实时显示要刷多少（含 4%）。他填的数会记进 `orders.chosen_gratuity_cents`，师傅结算要用。
