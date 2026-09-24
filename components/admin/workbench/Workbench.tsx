@@ -13,6 +13,7 @@ import { CalendarTab } from "./CalendarTab"
 import { SettingsTab } from "./SettingsTab"
 import { ChefsTab, type ChefTabKey } from "./ChefsTab"
 import { CustomersTab } from "./CustomersTab"
+import WarehouseTab from "./WarehouseTab"
 import { PlannerTab } from "./planner-live"
 import { ChefDialog } from "./ChefDialog"
 import { LeadDialog } from "./LeadDialog"
@@ -31,8 +32,8 @@ import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnrepl
 // out of that lead, ?since=YYYY-MM-DD scopes the lead list (from the board).
 // The old /admin/leads, /admin/orders, /admin/channels URLs redirect here.
 
-type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "customers" | "cal" | "settings"
-const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "厨师", customers: "客户", cal: "日历", settings: "设置" }
+type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "customers" | "warehouse" | "cal" | "settings"
+const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "厨师", customers: "客户", warehouse: "仓库", cal: "日历", settings: "设置" }
 const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files"])
 
 type SearchHit = {
@@ -219,6 +220,7 @@ export default function Workbench() {
     ["planner", <>Planner{data.planner.liveCount ? <span className="wb-live" title={`${data.planner.liveCount} 人正在操作 Planner`} /> : null}</>],
     ["chefs", <>厨师{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
     ["customers", "客户"],
+    ["warehouse", "仓库"],
     ["cal", "日历"],
     ["settings", "设置"],
   ]
@@ -291,6 +293,8 @@ export default function Workbench() {
           <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} sensitive={canChefMoney} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
         ) : tab === "customers" ? (
           <CustomersTab adminKey={key} leads={data.leads} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onCall={onCall} onOpenLead={openLead} />
+        ) : tab === "warehouse" ? (
+          <WarehouseTab adminKey={key} isMobile={isMobile} />
         ) : tab === "cal" ? (
           <CalendarTab orders={data.orders} settings={data.settings.calendar} isMobile={isMobile} onOpenOrder={openOrder} />
         ) : tab === "settings" ? (
