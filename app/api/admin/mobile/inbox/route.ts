@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
+import { courtesyOnly } from "@/lib/courtesy-text"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 
@@ -45,19 +46,8 @@ const isTestNumber = (e164: string | null) => !e164 || /^\+1\d{3}555\d{4}$/.test
 const minutesSince = (iso: string, now: number) => Math.max(0, Math.round((now - Date.parse(iso)) / 60_000))
 const money = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 // A customer text that only says thanks / ok / paid needs no answer, so it
-// must not ring a phone every 15 minutes. Anything with a question mark, an
-// action word, or real length is treated as needing a person.
-const ACTION_WORDS = /\b(cancel|cancell|change|reschedul|refund|move|update|remove|address|deposit|balance|pay|price|quote|cost|guest|people|person|sake|chef|arriv|late|earl|confirm|availab|menu|allerg|vegetarian|table|chair|park|invoice|receipt|call me|text me|tomorrow|tonight|today)\w*/i
-const QUESTION_WORDS = /^(when|how|what|which|where|who|can|could|would|do|does|is|are|will)\b/i
-const THANKS = /^(ok|okay|k|kk|got it|thanks?|thank you|thx|ty|perfect|great|awesome|sounds good|sounds great|cool|nice|yes|yep|yeah|sure|will do|no problem|np|paid|done|see you|looking forward|excited|amazing|wonderful|love it|you too|same to you|bye|good night|goodnight|have a)\b/i
-function courtesyOnly(body: string): boolean {
-  const t = body.toLowerCase().replace(/[^\p{L}\p{N}\s?]/gu, " ").replace(/\s+/g, " ").trim()
-  if (!t) return true
-  if (t.includes("?")) return false
-  if (ACTION_WORDS.test(t) || QUESTION_WORDS.test(t)) return false
-  if (t.split(" ").length > 12) return false
-  return THANKS.test(t)
-}
+// must not ring a phone every 15 minutes. The rule lives in
+// lib/courtesy-text.ts so the lead-watch sweep applies exactly the same one.
 
 const SOURCE_LABELS: Record<string, string> = {
   landing_inline: "落地页",
