@@ -4,6 +4,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { calcSimpleEstimate } from "@/config/pricing-rules"
 import { notAQuestion } from "@/lib/courtesy-text"
 import { escapeHtml } from "@/lib/escape-html"
+import { loadHolds } from "@/lib/lead-hold"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
@@ -216,32 +217,10 @@ export async function POST(request: NextRequest) {
   const [inbound, outbound] = await Promise.all([listTwilio(`To=${encodeURIComponent(ours)}`), listTwilio(`From=${encodeURIComponent(ours)}`)])
 
   // 挂起中的线索不提醒（老板 2026-09-23 定）：客人说了他会回头找我们，那条
-  // "Thanks, I'll get back to you" 不是在等我们回，一直提醒只是噪音。客人在
-  // 挂起之后又说话的，挂起视为失效——下面用 hold_set_at 比时间。
-  const holdUntilByDigits = new Map<string, { until: number; setAt: number }>()
-  {
-    const { data: held } = await supabase
-      .from("leads")
-      .select("normalized_phone, phone, hold_until, hold_set_at")
-      .not("hold_until", "is", null)
-      .gt("hold_until", new Date(now).toISOString())
-      // 结束了的线索不需要"等客户"这个概念。
-      .not("status", "in", "(won,lost,disqualified)")
-    for (const r of (held ?? []) as Array<{ normalized_phone: string | null; phone: string | null; hold_until: string; hold_set_at: string | null }>) {
-      const digits = String(r.normalized_phone ?? r.phone ?? "").replace(/\D/g, "").slice(-10)
-      if (!digits) continue
-      holdUntilByDigits.set(digits, {
-        until: Date.parse(r.hold_until),
-        setAt: r.hold_set_at ? Date.parse(r.hold_set_at) : 0,
-      })
-    }
-  }
-  const onHold = (phone: string, messageAt: number) => {
-    const h = holdUntilByDigits.get(phone.replace(/\D/g, "").slice(-10))
-    if (!h || !(h.until > now)) return false
-    // 客人在我们挂起之后又发来消息 = 他回来了，球回到我们这边。
-    return !(h.setAt && messageAt > h.setAt)
-  }
+  // "Thanks, I'll get back to you" 不是在等我们回，一直提醒只是噪音。规则和
+  // 手机收件箱共用一份，见 lib/lead-hold.ts。
+  const holds = await loadHolds(supabase, now)
+
   const lastOut = new Map<string, number>()
   for (const m of outbound) if (!lastOut.has(m.to)) lastOut.set(m.to, when(m))
   const humanSms: Array<Record<string, unknown>> = []
@@ -252,7 +231,7 @@ export async function POST(request: NextRequest) {
     const at = when(m)
     if (at < cutoff || isTestNumber(m.from)) continue
     if ((lastOut.get(m.from) ?? 0) >= at) continue
-    if (onHold(m.from, at)) continue
+    if (holds.onHold(m.from, at)) continue
     const body = (m.body ?? "").trim()
     // Tapbacks, opt-outs, a bare "cancel", and plain thank-yous are not
     // questions. Same rule the phone app rings on — see lib/courtesy-text.ts.

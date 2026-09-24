@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { courtesyOnly } from "@/lib/courtesy-text"
+import { loadHolds } from "@/lib/lead-hold"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 
@@ -66,6 +67,9 @@ export async function GET(request: NextRequest) {
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const now = Date.now()
   const events: InboxEvent[] = []
+  // 挂起中的客人不响手机：他说了他会回头找我们，这不是我们欠回复。
+  // 同一份规则巡检也在用（lib/lead-hold.ts）。
+  const holds = await loadHolds(supabase, now)
 
   // ---- new leads nobody answered ------------------------------------------
   const { data: leads } = await supabase
@@ -86,6 +90,7 @@ export async function GET(request: NextRequest) {
     if (answered.has(l.id)) continue
     const phone = toE164(l.phone)
     if (isTestNumber(phone)) continue
+    if (holds.onHold(l.phone, Date.parse(l.created_at))) continue
     newLeadsTotal += 1
     if (minutesSince(l.created_at, now) > MAX_EVENT_AGE_MIN) continue
     const name = (l.full_name ?? "").trim() || (phone ? prettyPhone(phone) : "新询盘")
@@ -115,6 +120,7 @@ export async function GET(request: NextRequest) {
     const atMs = Date.parse(v.lastInAt)
     if (now - atMs > SMS_LOOKBACK_MS || now - atMs < SMS_GRACE_MS) continue
     if (isTestNumber(peer)) continue
+    if (holds.onHold(peer, atMs)) continue
     const body = (v.last.body ?? "").trim()
     // Tapbacks, opt-outs and plain thank-yous are not questions. A bare
     // "cancel" is an opt-out too (2026-09-22, 用户定): the customer is saying
