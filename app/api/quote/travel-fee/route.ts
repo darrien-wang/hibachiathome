@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { getDrivingMiles, TravelDistanceError } from "@/lib/travel-distance"
+import { getDrivingMiles, TravelDistanceError, type DistanceResult } from "@/lib/travel-distance"
 import { homeBaseOrigin } from "@/config/home-base"
+import { coarserDestinations, MAX_PLAUSIBLE_MILES } from "@/lib/coarse-destination"
 import {
   calcTravelFee,
   TRAVEL_FREE_RADIUS_MILES,
@@ -22,22 +23,29 @@ const ORIGIN_ZIP = homeBaseOrigin()
 // Distance comes from OSRM by default — free and keyless, matching the
 // OpenStreetMap geocoder — and from Google Distance Matrix when
 // GOOGLE_MAPS_API_KEY is set. When neither can answer we say so instead of
-// inventing a number: the previous version derived "miles" from the arithmetic
+// inventing a number: an early version derived "miles" from the arithmetic
 // difference between zip codes, which quoted travel fees off a figure that was
 // not a distance at all.
-/**
- * Coarser version of an address, for when the exact house does not geocode.
- * "8050 Stargate, Yucca Valley, CA 92284" has no entry in the map data (a real
- * customer address, 2026-09-24) but the town does - and a town-level distance
- * out in the desert is far better than quoting $0 travel for a 107-mile drive.
- */
-function coarserDestination(destination: string): string | null {
-  const zip = destination.match(/\b\d{5}(?:-\d{4})?\b/)?.[0]
-  const cityState = destination.match(/([A-Za-z][A-Za-z .'-]{1,30}),\s*(?:CA|California)\b/i)?.[1]?.trim()
-  if (cityState && zip) return `${cityState}, CA ${zip}`
-  if (cityState) return `${cityState}, CA`
-  if (zip) return zip
-  return null
+
+/** Nothing this far away is a real party — it's a geocode that went wrong. */
+function implausible(miles: number): boolean {
+  return !Number.isFinite(miles) || miles > MAX_PLAUSIBLE_MILES
+}
+
+function quote(result: DistanceResult, origin: string, extra: Record<string, unknown> = {}) {
+  const fee = calcTravelFee(result.drivingMiles)
+  return NextResponse.json({
+    origin_zip: origin,
+    destination: result.destination.label,
+    distance_miles: result.drivingMiles,
+    chargeable_miles:
+      Math.round(Math.max(0, result.drivingMiles - TRAVEL_FREE_RADIUS_MILES) * 10) / 10,
+    travel_fee_range: { low: fee, high: fee },
+    free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
+    rate_per_mile: TRAVEL_RATE_PER_MILE,
+    source: result.provider,
+    ...extra,
+  })
 }
 
 export async function GET(request: Request) {
@@ -62,59 +70,47 @@ export async function GET(request: Request) {
     )
   }
 
+  let code: TravelDistanceError["code"] = "provider_unavailable"
+
   try {
     const result = await getDrivingMiles(origin, destination)
-    const fee = calcTravelFee(result.drivingMiles)
+    if (!implausible(result.drivingMiles)) return quote(result, origin)
+    // The address geocoded, but to the wrong side of the country.
+    code = "destination_not_found"
+  } catch (error) {
+    code = error instanceof TravelDistanceError ? error.code : "provider_unavailable"
+  }
 
-    return NextResponse.json({
+  // The exact house may not exist in the map data. Try the town, then the zip,
+  // before giving up — an approximate distance beats a $0 fee on a 107-mile
+  // drive. Anything still implausible is dropped rather than quoted.
+  for (const candidate of coarserDestinations(destination)) {
+    try {
+      const result = await getDrivingMiles(origin, candidate)
+      if (implausible(result.drivingMiles)) continue
+      return quote(result, origin, {
+        requested_destination: destination,
+        source: `${result.provider}_city_fallback`,
+        approximate: true,
+      })
+    } catch {
+      // try the next, coarser candidate
+    }
+  }
+
+  // No usable route at all: quote $0 travel and let the team confirm, rather
+  // than showing a guessed fee the invoice would then contradict.
+  return NextResponse.json(
+    {
       origin_zip: origin,
-      destination: result.destination.label,
-      distance_miles: result.drivingMiles,
-      chargeable_miles: Math.round(Math.max(0, result.drivingMiles - TRAVEL_FREE_RADIUS_MILES) * 10) / 10,
-      travel_fee_range: { low: fee, high: fee },
+      destination,
+      distance_miles: null,
+      travel_fee_range: { low: 0, high: 0 },
       free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
       rate_per_mile: TRAVEL_RATE_PER_MILE,
-      source: result.provider,
-    })
-  } catch (error) {
-    // The exact house may not exist in the map data. Try the town before
-    // giving up - an approximate distance beats a $0 fee on a 107-mile drive.
-    const coarser = coarserDestination(destination)
-    if (coarser && coarser.toLowerCase() !== destination.toLowerCase()) {
-      try {
-        const result = await getDrivingMiles(origin, coarser)
-        const fee = calcTravelFee(result.drivingMiles)
-        return NextResponse.json({
-          origin_zip: origin,
-          destination: result.destination.label,
-          requested_destination: destination,
-          distance_miles: result.drivingMiles,
-          chargeable_miles: Math.round(Math.max(0, result.drivingMiles - TRAVEL_FREE_RADIUS_MILES) * 10) / 10,
-          travel_fee_range: { low: fee, high: fee },
-          free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
-          rate_per_mile: TRAVEL_RATE_PER_MILE,
-          source: `${result.provider}_city_fallback`,
-          approximate: true,
-        })
-      } catch {
-        // fall through to the unavailable response below
-      }
-    }
-    // No usable route at all: quote $0 travel and let the team confirm, rather
-    // than showing a guessed fee the invoice would then contradict.
-    const code = error instanceof TravelDistanceError ? error.code : "provider_unavailable"
-    return NextResponse.json(
-      {
-        origin_zip: origin,
-        destination,
-        distance_miles: null,
-        travel_fee_range: { low: 0, high: 0 },
-        free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
-        rate_per_mile: TRAVEL_RATE_PER_MILE,
-        source: "unavailable",
-        code,
-      },
-      { status: 200 },
-    )
-  }
+      source: "unavailable",
+      code,
+    },
+    { status: 200 },
+  )
 }
