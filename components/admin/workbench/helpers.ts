@@ -422,6 +422,8 @@ export function firstName(name: string | null | undefined): string {
  * 客户在我们挂起之后又说话了，挂起自动失效——他回来了，球就回到我们这边。
  */
 export function leadOnHold(l: LeadRow): boolean {
+  // 成单/流失/无效的线索谈不上"等客户"——这事已经结束了，不该再占一格。
+  if (l.status === "won" || l.status === "lost" || l.status === "disqualified") return false
   const until = l.hold_until ? Date.parse(l.hold_until) : NaN
   if (!Number.isFinite(until) || until <= Date.now()) return false
   const set = l.hold_set_at ? Date.parse(l.hold_set_at) : NaN

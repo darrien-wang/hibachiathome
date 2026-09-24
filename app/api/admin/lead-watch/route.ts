@@ -224,6 +224,8 @@ export async function POST(request: NextRequest) {
       .select("normalized_phone, phone, hold_until, hold_set_at")
       .not("hold_until", "is", null)
       .gt("hold_until", new Date(now).toISOString())
+      // 结束了的线索不需要"等客户"这个概念。
+      .not("status", "in", "(won,lost,disqualified)")
     for (const r of (held ?? []) as Array<{ normalized_phone: string | null; phone: string | null; hold_until: string; hold_set_at: string | null }>) {
       const digits = String(r.normalized_phone ?? r.phone ?? "").replace(/\D/g, "").slice(-10)
       if (!digits) continue
