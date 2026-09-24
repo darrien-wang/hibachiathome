@@ -406,7 +406,16 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
                           <span style={{ fontSize: 12, color: MUTED }}>{v.sub}</span>
                         </span>
                       </button>
-                      {v.isCons ? <PackGrid packs={v.packs} cell={40} showCrossed={showCrossed} onTap={(i) => tap(v.id, i)} /> : <RetControls v={v} />}
+                      {v.isCons ? (
+                        <PackGrid packs={v.packs} cell={40} showCrossed={showCrossed} onTap={(i) => tap(v.id, i)} />
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                          <RetControls v={v} />
+                          <div title={v.outNote} style={{ flex: 1, minWidth: 110, height: 12, border: `2px solid ${INK}`, position: "relative" }}>
+                            <div style={{ position: "absolute", inset: 0, width: `${v.item.total_qty ? (v.inStock / v.item.total_qty) * 100 : 0}%`, background: INK }} />
+                          </div>
+                        </div>
+                      )}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
                         <Big value={v.big} unit={v.bigUnit} color={v.numColor} />
                         <Tag cls={v.tagCls}>{v.tag}</Tag>

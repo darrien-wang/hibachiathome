@@ -42,8 +42,14 @@ type MoveIn = { item_key: string; holder_key: string; holder_kind: string; holde
 
 const str = (v: unknown, max = 120) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const HOLDER_KINDS = new Set(["chef", "event", "misc"])
-// 1 -> "1"，1.5 -> "1 个半"，0.5 -> "半"
-const fmtHalf = (n: number) => (Number.isInteger(n) ? String(n) : n < 1 ? "半" : `${Math.floor(n)} 个半`)
+// 数量 + 量词一起写，不然会出现"划掉 1 个半 盒"这种句子。
+// 1 盒 -> "1 盒"，1.5 盒 -> "1 盒半"，0.5 盒 -> "半盒"
+const qty = (n: number, unit: string) => {
+  const whole = Math.floor(n)
+  const half = n - whole >= 0.5
+  if (!whole) return `半${unit}`
+  return `${whole} ${unit}${half ? "半" : ""}`
+}
 
 export async function GET(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -302,7 +308,7 @@ export async function POST(request: NextRequest) {
         used += cur - next
         want -= cur - next
       }
-      if (used > 0) logs.push({ item_key: key, body: `划掉 ${fmtHalf(used)} ${item.unit}` })
+      if (used > 0) logs.push({ item_key: key, body: `划掉 ${qty(used, item.unit)}` })
       // 库里不够就如实说少了多少，别偷偷记成用完了——那正是"以为还有"的来源。
       results.push({ item_key: key, used, short: want > 0 ? Math.round(want * 2) / 2 : undefined })
     }
