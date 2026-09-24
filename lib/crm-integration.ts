@@ -493,8 +493,14 @@ export function buildDepositPaidEventEnvelope(params: {
     typeof params.session.created === "number" ? params.session.created * 1000 : Date.now(),
   ).toISOString()
 
+  // Stripe asks the cardholder for their name at checkout; before 2026-09-23
+  // we threw it away and filed paying customers as "Guest" (a Friday party
+  // with a paid deposit still had no name two days out).
   const customerName =
-    asString(params.booking?.full_name) ?? asString(params.session.metadata?.customer_name) ?? "Website Customer"
+    asString(params.booking?.full_name) ??
+    asString(params.session.metadata?.customer_name) ??
+    asString(params.session.customer_details?.name) ??
+    "Website Customer"
 
   const eventStart = buildEventStartIso({
     eventDate: params.booking?.event_date ?? params.session.metadata?.event_date ?? null,
