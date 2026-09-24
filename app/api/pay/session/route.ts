@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
     const onlyTip = split.towardBalanceCents === 0
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Card only - no Link. See app/api/deposit/start/route.ts for why.
+      payment_method_types: ["card"],
       success_url: "https://www.realhibachi.com/balance/success",
       cancel_url: "https://www.realhibachi.com/pay?o=" + orderId,
       line_items: [

@@ -794,6 +794,13 @@ async function createCheckoutSession(
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    // Card only, which switches off Stripe's dynamic payment methods and with
+    // them Link (owner 2026-09-24). Link cost us two customers in two days: a
+    // Temecula customer needed five tries to pay $19.90, and Caleb got a
+    // "payment declined, a backup will be charged in 24 hours" email for a
+    // deposit he had already paid. Apple Pay and Google Pay ride on "card",
+    // so the wallets our iPhone customers actually use are unaffected.
+    payment_method_types: ["card"],
     customer_email: isLikelyEmail(payload.customerEmail) ? payload.customerEmail : undefined,
     // SMS is our primary channel; collecting the phone at checkout lets the
     // webhook backfill quote-flow bookings that started with no contact info.

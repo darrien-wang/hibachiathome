@@ -15,6 +15,7 @@ import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
 import { isChatgptCapiConfigured, sendChatgptDepositConversion } from "@/lib/chatgpt-ads-capi"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail, type OpsEmailDeliveryResult, customerMailFrom, customerMailbox } from "@/lib/ops-notifications"
+import { handlePaymentFailure, isPaymentFailureEvent } from "@/lib/payment-failure"
 import { getRuntimeEnvironmentTag, isPreBranchDeployment, shouldSuppressExternalNotifications } from "@/lib/runtime-env"
 
 export const runtime = "nodejs"
@@ -1649,7 +1650,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    default:
+    default: {
+      // Declines used to fall in here and vanish. They now land on the lead's
+      // timeline and in somebody's inbox - see lib/payment-failure.ts.
+      if (isPaymentFailureEvent(event.type)) {
+        const failure = await handlePaymentFailure(supabase, event)
+        return NextResponse.json({ received: true, eventType: event.type, ...failure }, { status: 200 })
+      }
       return NextResponse.json({ received: true, eventType: event.type, ignored: true }, { status: 200 })
+    }
   }
 }

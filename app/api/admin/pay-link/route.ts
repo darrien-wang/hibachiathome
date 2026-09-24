@@ -140,6 +140,8 @@ export async function POST(request: NextRequest) {
     const stripe = getStripeServerClient()
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Card only - no Link. See app/api/deposit/start/route.ts for why.
+      payment_method_types: ["card"],
       // A balance payment is not a deposit: the deposit success page fires
       // deposit tracking and speaks deposit language.
       success_url: "https://www.realhibachi.com/balance/success",
