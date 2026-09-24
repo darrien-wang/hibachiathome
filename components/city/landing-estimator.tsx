@@ -189,7 +189,7 @@ export default function LandingEstimator({
   const minApplied = est.minApplied
   const sizeOff = est.partySizeDiscountApplied
   const total = est.total
-  const discountCode = sizeOff > 0 ? partySizeDiscountCode(adults + kids) : null
+  const discountCode = sizeOff > 0 ? partySizeDiscountCode({ adults, kids }) : null
   // Before the contact is given the sticky bar teases a bracket, same rule as
   // every other estimator on the site (D-0913-06).
   const rangeLabel = formatDisplayRange(displayRangeForEstimate(est))

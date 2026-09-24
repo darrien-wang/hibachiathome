@@ -172,10 +172,10 @@ export function setupPerGuest(): number {
 
 // ---------------------------------------------------------------
 // Party Size Discount — every party, any day, on top of the Weekday
-// Special. Automatic by paid headcount (adults + kids 5–12, under-5s don't
-// count); 31+ guests get a custom quote. The $599 minimum still applies
-// after the discount, same as the invoice system. Mirrors the invoice
-// repo's PARTY_SIZE_DISCOUNT_TIERS (kept in sync by hand, 2026-09-13).
+// Special. Automatic by paid headcount; 31+ guests get a custom quote. The
+// $599 minimum still applies after the discount, same as the invoice system.
+// Mirrors the invoice repo's PARTY_SIZE_DISCOUNT_TIERS and paidGuestCount()
+// (kept in sync by hand, 2026-09-13; headcount rule 2026-09-24).
 // ---------------------------------------------------------------
 export const PARTY_SIZE_DISCOUNT_TIERS = [
   { minGuests: 10, maxGuests: 14, amount: 30 },
@@ -184,14 +184,38 @@ export const PARTY_SIZE_DISCOUNT_TIERS = [
 ] as const
 export const PARTY_SIZE_CUSTOM_FROM = 31
 
-export function partySizeDiscount(paidGuests: number): number {
-  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => paidGuests >= t.minGuests && paidGuests <= t.maxGuests)
+/** 收半价的小孩，在阶梯里算半个成人。 */
+export const KID_TIER_WEIGHT = 0.5
+
+export type TierHeads = { adults: number; kids: number }
+
+/**
+ * 阶梯数的是"掏钱的人头"（老板 2026-09-24 定）：
+ *   - 3–4 岁那种不收钱的小孩**不进这个数**。站上本来也没地方填他们——输入框只有
+ *     "Kids 5–12"，under 5 从来不是一个数字，所以这一条在官网侧本来就成立。
+ *   - **收半价的小孩算半个成人**。阶梯是按这一单的分量给的，半价的人头按整个算
+ *     等于白送一档。
+ *
+ * 往下取整：14 个成人 + 1 个小孩 = 14.5 → 14，落在 10–14 档。不取整会掉进档与档
+ * 之间的缝里（14.5 既不 ≤14 也不 ≥15），一分折扣都拿不到。
+ *
+ * 参数收成一个对象是故意的：以前这几个函数收一个 number，调用处各自写
+ * `adults + kids`，改规则时漏掉一处编译器也不会吭声。
+ */
+export function tierHeadcount(heads: TierHeads): number {
+  return Math.floor(Math.max(0, heads.adults) + Math.max(0, heads.kids) * KID_TIER_WEIGHT)
+}
+
+export function partySizeDiscount(heads: TierHeads): number {
+  const count = tierHeadcount(heads)
+  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
   return tier ? tier.amount : 0
 }
 
 /** One-line label for the tier a party earns, e.g. "15–24 guests · $60 off". */
-export function partySizeDiscountLabel(paidGuests: number): string | null {
-  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => paidGuests >= t.minGuests && paidGuests <= t.maxGuests)
+export function partySizeDiscountLabel(heads: TierHeads): string | null {
+  const count = tierHeadcount(heads)
+  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
   return tier ? `${tier.minGuests}–${tier.maxGuests} guests · $${tier.amount} off` : null
 }
 
@@ -216,7 +240,7 @@ export function calcSimpleEstimate(args: { adults: number; kids: number; weekday
   const adults = Math.max(0, Math.floor(args.adults))
   const kids = Math.max(0, Math.floor(args.kids))
   const subtotal = roundCurrency(adults * getTierPrice("adult", args.weekdaySpecial) + kids * getTierPrice("child", args.weekdaySpecial))
-  const partySize = partySizeDiscount(adults + kids)
+  const partySize = partySizeDiscount({ adults, kids })
   const afterDiscount = Math.max(0, subtotal - partySize)
   const base = Math.max(afterDiscount, MINIMUM_SPEND)
   const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotal - base))
@@ -393,7 +417,7 @@ export function formatDisplayRange(r: DisplayRange): string {
 }
 
 /** The code we text for a tier, e.g. PARTY60. Informational: the invoice applies the tier by headcount. */
-export function partySizeDiscountCode(paidGuests: number): string | null {
-  const amount = partySizeDiscount(paidGuests)
+export function partySizeDiscountCode(heads: TierHeads): string | null {
+  const amount = partySizeDiscount(heads)
   return amount > 0 ? `PARTY${amount}` : null
 }

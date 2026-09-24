@@ -803,10 +803,20 @@ export function OrderDialog({
               ))}
             </div>
           </div>
-          {o.internal_notes || o.customer_notes || o.notes ? (
+          {/* 两种备注分开摆（老板 2026-09-24 定）：orders.notes 会原样印在客户发票的
+              NOTES 框里，internal_notes 不会。以前三种混在一个"备注"标题下，看不出
+              哪一条客户会看到，于是"7 PM 是他 9/22 短信里定的、地址待定"这种过程记录
+              跟着发票发了出去。 */}
+          {o.notes || o.customer_notes ? (
             <div>
-              <Kicker>备注</Kicker>
-              <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{[o.customer_notes, o.internal_notes, o.notes].filter(Boolean).join("\n\n")}</div>
+              <Kicker>备注 · 客户在发票上看得到</Kicker>
+              <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{[o.customer_notes, o.notes].filter(Boolean).join("\n\n")}</div>
+            </div>
+          ) : null}
+          {o.internal_notes ? (
+            <div>
+              <Kicker>内部备注 · 客户看不到</Kicker>
+              <div style={{ fontSize: 13, whiteSpace: "pre-wrap", color: "var(--color-neutral-700)" }}>{o.internal_notes}</div>
             </div>
           ) : null}
           {viewerRole === "owner" ? (

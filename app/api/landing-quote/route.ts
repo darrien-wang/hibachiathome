@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   const subtotal = est.subtotal
   const total = est.total
   const planLabel = weekday ? "Weekday Special (Mon–Thu)" : "Standard (any day)"
-  const discountCode = est.partySizeDiscountApplied > 0 ? partySizeDiscountCode(adults + kids) : null
+  const discountCode = est.partySizeDiscountApplied > 0 ? partySizeDiscountCode({ adults, kids }) : null
   const discountLine = discountCode
     ? `Your code ${discountCode} (-$${est.partySizeDiscountApplied} party size discount) is already in that price and applies automatically when you book.`
     : null

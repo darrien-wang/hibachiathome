@@ -241,7 +241,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
 
   // Party Size Discount: every party, any day, stacks with the Weekday
   // Special. Taken off before the $599 floor, exactly as the invoice bills it.
-  const partySizeDiscount = rulesPartySizeDiscount(adults + kids)
+  const partySizeDiscount = rulesPartySizeDiscount({ adults, kids })
   const floorLow = Math.max(subtotalRange.low - partySizeDiscount, MINIMUM_SPEND)
   const floorHigh = Math.max(subtotalRange.high - partySizeDiscount, MINIMUM_SPEND)
   const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotalRange.low - floorLow))
@@ -280,7 +280,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     tablewareFee,
     partySizeDiscount,
     partySizeDiscountApplied,
-    partySizeDiscountLabel: partySizeDiscountApplied > 0 ? partySizeDiscountLabel(adults + kids) : null,
+    partySizeDiscountLabel: partySizeDiscountApplied > 0 ? partySizeDiscountLabel({ adults, kids }) : null,
     addOnTotalRange,
     loyaltyDiscount,
     totalRange,

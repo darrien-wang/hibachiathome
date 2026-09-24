@@ -66,7 +66,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     `Standard rate, any day: ${usd2(adult.price)} per adult (13+), ${usd2(child.price)} per child (5-12), kids under 5 eat free.`,
     `Event minimum: ${usd(MINIMUM_SPEND)} (the food total after discounts, before travel and tip).`,
     `Weekday Special, Monday-Thursday: ${usd2(adult.weekdayPrice)} per adult, ${usd2(child.weekdayPrice)} per child, plus a free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}): one tray for the table to share, gyoza if the customer doesn't choose. Any party size, full menu.${blackouts.length ? ` Not available on major holidays: ${blackouts.join("; ")}.` : ""}`,
-    `Party Size Discount, automatic on any day and on top of the Weekday Special (counts adults + kids 5-12): ${PARTY_SIZE_DISCOUNT_TIERS.map((t) => `${t.minGuests}-${t.maxGuests} guests ${usd(t.amount)} off`).join(", ")}. ${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
+    `Party Size Discount, automatic on any day and on top of the Weekday Special (counts paying heads: each adult 1, each child 5-12 counts as half, under-5s do not count): ${PARTY_SIZE_DISCOUNT_TIERS.map((t) => `${t.minGuests}-${t.maxGuests} guests ${usd(t.amount)} off`).join(", ")}. ${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
     ...(platterOn
       ? [`Parties of ${LARGE_PARTY_PLATTER.minGuests}+ guests on any day get the same free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}) through October 31, 2026. It is one per party: a 20+ weekday party gets one, not two.`]
       : []),
