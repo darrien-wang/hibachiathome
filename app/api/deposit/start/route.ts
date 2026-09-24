@@ -5,6 +5,7 @@ import type Stripe from "stripe"
 import { getDepositAmount } from "@/config/deposit"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
+import { recordCheckoutStart } from "@/lib/checkout-struggle"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName } from "@/lib/leads"
@@ -752,6 +753,19 @@ async function sendOpsLeadNotification(params: {
       skippedReason: result.skippedReason,
     })
   }
+
+  // Write the attempt to the lead timeline, and shout when the same person
+  // keeps landing back here - someone stuck on Stripe is invisible to us
+  // otherwise. Both checkout entry points come through this function.
+  await recordCheckoutStart({
+    leadId: params.payload.leadId,
+    sessionId: params.sessionId,
+    customerName: params.payload.customerName,
+    customerEmail: params.payload.customerEmail,
+    eventDate: params.payload.eventDate,
+    location: params.payload.location,
+    checkoutUrl: params.checkoutUrl,
+  })
 
   return result
 }
