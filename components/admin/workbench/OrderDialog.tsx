@@ -176,6 +176,9 @@ export function OrderDialog({
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
   const [team, setTeam] = useState<string[] | null>(null)
   const [sheet, setSheet] = useState<{ url: string; text: string } | null>(null)
+  // An address the customer texted, offered when the order still has none.
+  const [addrHint, setAddrHint] = useState<{ address: string; via: string } | null>(null)
+  const [addrBusy, setAddrBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -189,6 +192,14 @@ export function OrderDialog({
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    let alive = true
+    adminJson<{ suggestion: { address: string; via: string } | null }>(adminKey, `/api/admin/order-address?orderId=${encodeURIComponent(orderId)}`)
+      .then((d) => { if (alive) setAddrHint(d.suggestion ?? null) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [adminKey, orderId, detail?.order?.event_address])
 
   const o = detail?.order ?? orders.find((x) => x.id === orderId) ?? null
   const openReqs = (detail?.updateRequests ?? []).filter((r) => OPEN_REQUEST.has(r.status))
@@ -411,6 +422,35 @@ export function OrderDialog({
           <>
             {o.event_address ?? "地址未填"} · 大人 {o.guest_adult_count ?? 0} / 小孩 {o.guest_child_count ?? 0}
           </>,
+          ...(addrHint
+            ? [
+                <span key="addr-hint" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
+                  <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
+                    客人{addrHint.via === "map_pin" ? "发了定位" : "短信里给了地址"}：{addrHint.address}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={addrBusy}
+                    onClick={async () => {
+                      setAddrBusy(true)
+                      try {
+                        await adminJson(adminKey, "/api/admin/order-address", { body: { orderId, address: addrHint.address } })
+                        setAddrHint(null)
+                        await load()
+                        setMsg("地址已填进订单")
+                      } catch (e) {
+                        setMsg(e instanceof Error ? e.message : "填写失败")
+                      } finally {
+                        setAddrBusy(false)
+                      }
+                    }}
+                  >
+                    用这个地址
+                  </button>
+                </span>,
+              ]
+            : []),
           <span style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 12, alignItems: "center" }}>
             <PlannerPill s={live} project={clarityProject} />
             <span style={{ fontWeight: 600, color: pstate.accent ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{pstate.text}</span>

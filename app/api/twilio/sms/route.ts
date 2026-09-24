@@ -6,6 +6,7 @@ import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/li
 import { fetchSmsThread, prettyPhone, renderThreadForEmail } from "@/lib/sms-thread"
 import { forwardMmsToInbox } from "@/lib/mms-forward"
 import { classifySmsKeyword, OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
+import { addressFromMessage, looksLikeStreetAddress } from "@/lib/address-detect"
 
 export const dynamic = "force-dynamic"
 
@@ -97,6 +98,31 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[twilio-sms] lead upsert failed", error)
     // Still 200 so Twilio does not retry-storm; message is in Twilio logs.
+  }
+
+  // The address usually arrives in chat - typed out or as a map pin - and it
+  // used to live only in the thread while the order still said TBD. Park it on
+  // the lead and the timeline; the order drawer offers it with one tap.
+  if (leadId && mediaCount === 0) {
+    try {
+      const found = await addressFromMessage(body)
+      if (found) {
+        await supabase.from("lead_touchpoints").insert({
+          lead_id: leadId,
+          touchpoint_type: "address_detected",
+          touchpoint_source: "twilio",
+          raw_payload_json: { address: found.address, via: found.via, link: found.link ?? null, message_sid: messageSid },
+        })
+        const { data: current } = await supabase.from("leads").select("city_or_zip").eq("id", leadId).maybeSingle()
+        // A city name or a zip is worth replacing with the street line; an
+        // address already on file is not touched.
+        if (!looksLikeStreetAddress(current?.city_or_zip)) {
+          await supabase.from("leads").update({ city_or_zip: found.address }).eq("id", leadId)
+        }
+      }
+    } catch (error) {
+      console.error("[twilio-sms] address detection failed", error)
+    }
   }
 
   // After the upsert, so a number whose first text is STOP is blocked too.
