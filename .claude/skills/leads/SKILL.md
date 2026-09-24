@@ -280,6 +280,10 @@ Real Hibachi · (213) 770-7788
 | **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving 10–30 min before start (earlier for bigger parties) with the grill and fresh ingredients. Reply to confirm you're all set!" |
 | **w_review / w_ugc** | 派对次日 | 邀评 → 晒图 |
 
+**发票备注是印给客户看的，内部话写到别处（用户 2026-09-23 指出）。** `invoiceData.contactInfo.specialNotes` 会原样印在客户那张发票上（`lib/invoice-html.ts`），所以那里只写**客户看了有用、看了舒服**的东西：菜单、几点到、加量免费、场地安排。
+- **不写**：里程数和路费怎么算的、"当初报了 $62 就压着不动"、"她问了我们说可以"、任何让价的内部理由、任何我们自己的口径讨论。客户看到这些只会开始算我们的账。
+- **内部的写 `orders.internal_notes`**（工作台订单抽屉里能看到，客户看不到），或者写线索备注。两边都要写时，客户那版说结论，内部那版说原因。
+
 **派对页是"省事的一种方式"，不是"你得自己弄"（用户 2026-09-23 定）。** 每次发 planner 链接，同一条消息里就给第二条路：
 ```
 
