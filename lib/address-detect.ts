@@ -7,13 +7,22 @@
 const STREET_SUFFIX =
   "(?:st|street|ave|avenue|rd|road|dr|drive|blvd|boulevard|ln|lane|way|ct|court|cir|circle|pl|place|ter|terrace|trl|trail|pkwy|parkway|hwy|highway|loop|path|run|row|walk)"
 
-/** "1610 Elmsford Ave La Habra Ca 90631", with or without the city/state/zip. */
-const STREET_RE = new RegExp(
-  String.raw`\b\d{1,6}\s+[A-Za-z0-9.''-]+(?:\s+[A-Za-z0-9.''-]+){0,4}\s+${STREET_SUFFIX}\b` +
-    String.raw`(?:\s*(?:#|apt\.?|unit|ste\.?)\s*[A-Za-z0-9-]+)?` +
-    String.raw`(?:\s*,?\s*[A-Za-z][A-Za-z .'-]{1,24})?` +
-    String.raw`(?:\s*,?\s*(?:CA|California))?` +
-    String.raw`(?:\s*,?\s*\d{5}(?:-\d{4})?)?`,
+const WORDS = String.raw`[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,4}`
+const TAIL =
+  String.raw`(?:\s*(?:#|apt\.?|unit|ste\.?)\s*[A-Za-z0-9-]+)?` +
+  String.raw`(?:\s*,?\s*[A-Za-z][A-Za-z .'-]{1,24})?` +
+  String.raw`(?:\s*,?\s*(?:CA|California))?` +
+  String.raw`(?:\s*,?\s*\d{5}(?:-\d{4})?)?`
+
+// Two shapes, because plenty of real addresses carry no street suffix at all:
+// "8050 Stargate, Yucca Valley, CA 92284" is a desert address a customer sent
+// on 2026-09-24 and the suffix-only pattern walked straight past it.
+//   A. number + words + a street type      "1610 Elmsford Ave La Habra Ca 90631"
+//   B. number + words + city + CA + zip    "8050 Stargate, Yucca Valley, CA 92284"
+// B demands the city and zip precisely because it has no street type to lean on.
+const WITH_SUFFIX = new RegExp(String.raw`\b\d{1,6}\s+${WORDS}\s+${STREET_SUFFIX}\b` + TAIL, "i")
+const WITH_CITY_STATE_ZIP = new RegExp(
+  String.raw`\b\d{1,6}\s+${WORDS}\s*,\s*[A-Za-z][A-Za-z .'-]{1,24}\s*,?\s*(?:CA|California)\s*,?\s*\d{5}(?:-\d{4})?`,
   "i",
 )
 
@@ -25,7 +34,8 @@ function tidy(value: string): string {
 
 /** A street address written in the message itself, or null. */
 export function extractStreetAddress(text: string): string | null {
-  const match = (text ?? "").match(STREET_RE)
+  const body = text ?? ""
+  const match = body.match(WITH_SUFFIX) ?? body.match(WITH_CITY_STATE_ZIP)
   if (!match) return null
   const found = tidy(match[0])
   // "2 proteins per guest" style false positives are short and suffix-less.
@@ -64,7 +74,9 @@ export async function resolveMapLink(url: string): Promise<string | null> {
 }
 
 /** What an inbound message tells us about where the party is. */
-export async function addressFromMessage(text: string): Promise<{ address: string; via: "text" | "map_pin"; link?: string } | null> {
+export async function addressFromMessage(
+  text: string,
+): Promise<{ address: string; via: "text" | "map_pin"; link?: string } | null> {
   const written = extractStreetAddress(text)
   if (written) return { address: written, via: "text" }
   const link = extractMapLink(text)
@@ -77,5 +89,7 @@ export async function addressFromMessage(text: string): Promise<{ address: strin
 export function looksLikeStreetAddress(value: string | null | undefined): boolean {
   const v = (value ?? "").trim()
   if (!v || /^tbd$/i.test(v)) return false
-  return /^\d/.test(v) && new RegExp(STREET_SUFFIX, "i").test(v)
+  if (!/^\d/.test(v)) return false
+  // Either it names a street type, or it carries a city and a zip.
+  return new RegExp(STREET_SUFFIX, "i").test(v) || /\d{5}(?:-\d{4})?\s*$/.test(v)
 }
