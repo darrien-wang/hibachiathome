@@ -79,7 +79,7 @@ Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and 
   {
     question: "Can you handle gluten-free guests?",
     answer:
-      "Absolutely. We've served many gluten-free diners. Just bring your preferred gluten-free soy and teriyaki sauces, and we'll prepare their meal on a separate station.",
+      "Absolutely. We've served many gluten-free diners. Tell us when you book and your chef brings gluten-free soy and teriyaki and cooks that guest's plate on a separate station — no extra charge. We do need the heads-up in advance, since our standard sauces are not gluten free.",
   },
   {
     question: "What about vegetarians or vegans?",

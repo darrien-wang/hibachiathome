@@ -76,7 +76,7 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
   {
     question: "¿Pueden atender a invitados sin gluten?",
     answer:
-      "Claro que sí. Hemos servido a muchos comensales sin gluten. Solo trae tus salsas de soya y teriyaki sin gluten preferidas, y prepararemos su comida en una estación aparte.",
+      "Claro que sí. Hemos servido a muchos comensales sin gluten. Avísanos al reservar y tu chef lleva salsa de soya y teriyaki sin gluten, y prepara ese plato en una estación aparte, sin costo extra. Necesitamos que nos avises con anticipación, porque nuestras salsas normales sí llevan gluten.",
   },
   {
     question: "¿Y los vegetarianos o veganos?",

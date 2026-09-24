@@ -525,7 +525,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you accommodate dietary restrictions for a mixed group?",
         answer:
-          "Yes, with advance notice — vegetarian, vegan and gluten-free guests are served at the same per-person rate. Two things to know. Our standard soy sauce is not gluten free, so a coeliac or gluten-free guest should have their own gluten-free soy and teriyaki on hand and we will cook their portion with it. And we cannot promise a nut- or sesame-free table: our sauces and the gyoza are commercial products, some carry allergen advisories, and both sauces contain egg. Tell us the allergy when you book and we will check the labels in use for your date and tell you straight whether we can serve that guest safely.",
+          "Yes, with advance notice — vegetarian, vegan and gluten-free guests are served at the same per-person rate. Two things to know. Our standard soy sauce is not gluten free, so tell us in advance and your chef brings gluten-free soy and teriyaki and cooks that guest's portion with them, at no extra charge. And we cannot promise a nut- or sesame-free table: our sauces and the gyoza are commercial products, some carry allergen advisories, and both sauces contain egg. Tell us the allergy when you book and we will check the labels in use for your date and tell you straight whether we can serve that guest safely.",
       },
       {
         question: "What does hibachi at home cost in Beverly Hills?",
@@ -2076,7 +2076,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you handle mixed dietary needs for a faculty or team dinner?",
         answer:
-          "Yes, with advance notice — vegetarian, vegan and gluten-free guests are served at the same per-person rate. Two things to know. Our standard soy sauce is not gluten free, so a coeliac or gluten-free guest should have their own gluten-free soy and teriyaki on hand and we will cook their portion with it. And we cannot promise a nut- or sesame-free table: our sauces and the gyoza are commercial products, some carry allergen advisories, and both sauces contain egg. Tell us the allergy when you book and we will check the labels in use for your date and tell you straight whether we can serve that guest safely.",
+          "Yes, with advance notice — vegetarian, vegan and gluten-free guests are served at the same per-person rate. Two things to know. Our standard soy sauce is not gluten free, so tell us in advance and your chef brings gluten-free soy and teriyaki and cooks that guest's portion with them, at no extra charge. And we cannot promise a nut- or sesame-free table: our sauces and the gyoza are commercial products, some carry allergen advisories, and both sauces contain egg. Tell us the allergy when you book and we will check the labels in use for your date and tell you straight whether we can serve that guest safely.",
       },
       {
         question: "What does hibachi at home cost in Pasadena?",
@@ -2621,7 +2621,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Can you accommodate a mixed group with dietary needs?",
         answer:
-          "Yes, with advance notice — vegetarian, vegan and gluten-free guests are served at the same per-person rate. Two things to know. Our standard soy sauce is not gluten free, so a coeliac or gluten-free guest should have their own gluten-free soy and teriyaki on hand and we will cook their portion with it. And we cannot promise a nut- or sesame-free table: our sauces and the gyoza are commercial products, some carry allergen advisories, and both sauces contain egg. Tell us the allergy when you book and we will check the labels in use for your date and tell you straight whether we can serve that guest safely.",
+          "Yes, with advance notice — vegetarian, vegan and gluten-free guests are served at the same per-person rate. Two things to know. Our standard soy sauce is not gluten free, so tell us in advance and your chef brings gluten-free soy and teriyaki and cooks that guest's portion with them, at no extra charge. And we cannot promise a nut- or sesame-free table: our sauces and the gyoza are commercial products, some carry allergen advisories, and both sauces contain egg. Tell us the allergy when you book and we will check the labels in use for your date and tell you straight whether we can serve that guest safely.",
       },
       {
         question: "What does hibachi at home cost in Torrance?",
