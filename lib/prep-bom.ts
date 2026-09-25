@@ -73,7 +73,8 @@ const MISC_PER_PERSON = [
   { id: "oil", label: "Cooking Oil 油", amount: 1, unit: "tbsp" },
   { id: "garlic_butter", label: "Garlic Butter 蒜香黄油", amount: 1, unit: "tbsp" }, // 2026-09-24 用户定：每人 0.5 oz = 1 tbsp（正本 pricing.ts 已同步）
   { id: "soy_sauce", label: "Soy Sauce 酱油", amount: 1, unit: "tbsp" },
-  { id: "ginger_sauce", label: "Yum Yum Sauce", amount: 1.5, unit: "tbsp" },
+  { id: "ginger_sauce", label: "Yum Yum Sauce", amount: 4, unit: "tbsp" }, // 2026-09-24 用户定：每人 2 oz（16oz 瓶 = 8 人，正本已同步）
+  { id: "ginger_dressing", label: "Ginger Dressing 姜汁沙拉酱", amount: 2, unit: "tbsp" }, // 2026-09-24 补：每人 1 oz（16oz 瓶 = 16 人）
   { id: "fried_rice_seasoning", label: "炒饭调味", amount: 0.5, unit: "tbsp" },
 ]
 const MISC_PER_GROUP = [
@@ -106,6 +107,9 @@ function alt(id: string, qty: number, unit: string): string | undefined {
     return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / bag))} 袋（${bag}oz 装）`
   }
   // 毛豆：1 份 = 1 袋（12oz，用户 09-24 定）——客户点几份就带几袋
+  // 酱料按瓶（用户 09-24 定）：16 oz/瓶；Yum Yum 每人 2 oz = 8 人/瓶，姜汁酱每人 1 oz = 16 人/瓶
+  if (id === "ginger_sauce") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 32))} 瓶（16oz/瓶 ≈ 8 人）`
+  if (id === "ginger_dressing") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 32))} 瓶（16oz/瓶 ≈ 16 人）`
   // 带子（用户 09-24 定）：每人 4 个 = 4 oz，即 1 个 ≈ 1 oz
   if (id === "scallops") return `≈ ${Math.ceil(qty)} 个（每人 4 个，1 个 ≈ 1 oz）`
   // 黄油按根带（用户 09-24 定）：1 根 = 8 oz = 16 tbsp 是最小携带单位，1 盒 = 2 根
