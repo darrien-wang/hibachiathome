@@ -71,6 +71,7 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
 - 煎饺 46.5oz ≈ 40 个、春卷 24.5oz ≈ 8 个、黄油 16oz 双包 = 32 tbsp
 - 虾 16/20：1 袋 = 43 只（09-24 实数）；鸡蛋 36/盒；清酒 1 箱 = 18 L
 - 三文鱼 Marketside 2lb 真空袋 = **5 块**（只能整袋买，入库 1 袋 = 32 oz，09-24 定）
+- 平均盒重（没小票单价时用，09-24 定）：鸡胸盘 ≈**4.5 lb/盒**；西冷 Top Sirloin Family Pack ≈**1.6 lb/盒**，经验 1 盒 ≈ 4 个选牛排的客人（盒数 = 人数 ÷ 4）
 - 生米 1 lb ≈ 3 lb 熟饭（50 lb 袋 ≈ 2400 oz）
 - 大豆油 35 lb ≈ 1170 tbsp
 
