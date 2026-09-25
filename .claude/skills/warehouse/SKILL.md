@@ -70,6 +70,8 @@ curl -s -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/warehouse?
 - 每行要么给 `item_key`，要么给 `match`（小票原文，服务端按别名解析）。
 - 返回 `results[]`，逐行说 added / skipped 和原因。**认不出的行会原样返回，不会猜一个最像的入库**——看到 `认不出这是什么` 就用 `add_alias` 教一次，然后重发（`source_ref` 不变，已入的行会自动跳过）。
 
+**替换品 / 称重商品还要填包装大小**（2026-09-25 加）：`warehouse_packs.covers`（这一包能顶多少份量表需求，BOM 单位）+ `size_note`（人看的规格，如 "1.7 lb Family Pack"）。不填就回退到目录的标准包装量——但同一个 item 同时有 3.5 lb 大盘和 0.6 lb 小盘时，不填 = 系统以为都一样大，师傅拿货也分不出。
+
 教别名：
 
 ```json

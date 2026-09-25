@@ -102,6 +102,9 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
   **分类决定它算不算"大宗"**：`pantry` 和 `sake` 会从"不含大宗每人成本"里剔除，因为能用好几个月。
 - `order_ref` **必带**：同一张收据重发只会更新成本，不会重复进货（`stockIn` 返回空就是已经入过了）。
 - 只有带 `item_key` + `stock_qty` 的行才进库存；`label`/`amount` 只是存档。
+- 按重计价 / 被替换的行再加三个可选字段（2026-09-25 定）：
+  - `unit_price`（如 11.94）+ `weight`（lb）—— 实重靠 `金额 ÷ 单价` 倒推，写进字段才能程序复核；只塞进 `label` 字符串里等于没记。
+  - `substituted_for`（原本下单的东西）—— Walmart 一单能换 15 件（订 Family Pack 来 Grass-Fed 单块），不记就没人知道为什么每人成本突然变了。
 
 改金额、改日期、补行项目 → **用同一个 order_ref 再发一次**，不要新建。
 
