@@ -129,7 +129,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   if (id === "steak") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil(qty / 18))} 盒（Family Pack ≈1.6lb/盒 ≈ 4 人）`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
   if (id === "salmon") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_BAG_OZ))} 袋（Marketside 2lb 真空袋 = 5 块）`
-  if (id === "shrimp") return `≈ ${r1(qty / SHRIMP_PER_LB)} lb，买 ${halfLbUp(qty / SHRIMP_PER_LB)} lb`
+  if (id === "shrimp") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / 43))} 袋（1 袋 = 43 只，09-24 实数）`
   if (id === "eggs") return `带 ${Math.ceil(qty * BUFFER) + 1} 个（combo 装 2 盒一提 = 36 个，要 ${Math.max(1, Math.ceil((qty * BUFFER + 1) / EGGS_PER_BOX))} 提）`
   if (unit === "oz" && qty >= 16) return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp(qty / 16)} lb`
   return undefined
