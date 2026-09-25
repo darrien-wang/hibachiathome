@@ -106,6 +106,8 @@ function alt(id: string, qty: number, unit: string): string | undefined {
     return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / bag))} 袋（${bag}oz 装）`
   }
   // 毛豆：1 份 = 1 袋（12oz，用户 09-24 定）——客户点几份就带几袋
+  // 带子（用户 09-24 定）：每人 4 个 = 4 oz，即 1 个 ≈ 1 oz
+  if (id === "scallops") return `≈ ${Math.ceil(qty)} 个（每人 4 个，1 个 ≈ 1 oz）`
   // 黄油按根带（用户 09-24 定）：1 根 = 8 oz = 16 tbsp 是最小携带单位，1 盒 = 2 根
   if (id === "garlic_butter") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 16))} 根（8oz/根，1 盒 = 2 根）`
   // 龙虾尾盒装 2 只/盒（用户 09-24 定），每只 ≈ 1 个选龙虾的客人（6 oz）
