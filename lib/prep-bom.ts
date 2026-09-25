@@ -120,6 +120,8 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   if (id === "garlic_butter") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 16))} 根（8oz/根，1 盒 = 2 根）`
   // 龙虾尾盒装 2 只/盒（用户 09-24 定），每只 ≈ 1 个选龙虾的客人（6 oz）
   if (id === "lobster_tail") return `≈ ${Math.ceil(qty / 6)} 只，买 ${Math.max(1, Math.ceil(Math.ceil((qty * BUFFER) / 6) / 2))} 盒（1 盒 = 2 只）`
+  // 菲力盒装 ≈0.6 lb/盒 ≈ 2 人份（用户 09-24 定）
+  if (id === "filet_mignon") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 9.6))} 盒（≈0.6lb/盒 ≈ 2 人）`
   // 鸡胸盘平均 4.5 lb/盒（用户 09-24 定），入库按小票实重，买按盒
   if (id === "chicken") return `≈ ${Math.round((qty / 16) * 10) / 10} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 72))} 盒（鸡胸盘 ≈4.5lb/盒）`
   // 西冷按盒（用户 09-24 定）：Family Pack 平均 1.6 lb/盒，经验 1 盒 ≈ 4 个选牛排的客人
