@@ -3,6 +3,7 @@ import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
+import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const dynamic = "force-dynamic"
@@ -43,7 +44,23 @@ export async function GET(request: NextRequest) {
   const unique = Array.from(new Set(phones))
   if (unique.length === 0) return NextResponse.json({ error: "no phone for this lead" }, { status: 400 })
   const messages = await fetchSmsThreads(unique, 80)
-  return NextResponse.json({ ok: true, phones: unique, messages })
+  // Opening the conversation heals its timeline: anything sent outside the
+  // workbench (the app, a script, an agent calling Twilio directly) is copied
+  // into lead_touchpoints here, keyed by SID so it only happens once. The
+  // thread is already in hand, so this adds no Twilio calls. See
+  // lib/sms-reconcile.ts.
+  let synced = 0
+  if (leadId && /^[0-9a-f-]{36}$/i.test(leadId) && messages.length > 0) {
+    const supabase = createServerSupabaseClient()
+    if (supabase) {
+      try {
+        synced = (await reconcileThread(supabase, leadId, messages)).inserted
+      } catch (err) {
+        console.error("[sms-thread] reconcile failed", err)
+      }
+    }
+  }
+  return NextResponse.json({ ok: true, phones: unique, messages, synced })
 }
 
 /**
