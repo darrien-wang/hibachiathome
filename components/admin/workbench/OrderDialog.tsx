@@ -42,10 +42,11 @@ import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 // update-request confirm/complete, chef assignment) and the SMS line.
 
 const OPEN_REQUEST = new Set(["received", "confirmed_in_progress"])
-type OTab = "money" | "planner" | "sms" | "records"
+type OTab = "money" | "planner" | "prep" | "sms" | "records"
 const OTABS: Array<[OTab, string]> = [
   ["money", "金额 · 收款"],
   ["planner", "Planner · 派单"],
+  ["prep", "备料单"],
   ["sms", "短信 · 邮件"],
   ["records", "记录"],
 ]
@@ -223,6 +224,10 @@ export function OrderDialog({
   }, [orderId])
 
   const lead = useMemo(() => (o ? leadForOrder(o, leads) : null), [o, leads])
+  // 客户自付链接：一人一条，带订单 id。页面自己现查尾款，我们不往链接里写金额。
+  // 这个 useState 必须待在下面那个 `if (!o) return` 之前：订单列表还没加载完就
+  // 用链接直接打开抽屉时，两次渲染的 hook 数量会对不上，整页白屏。
+  const [selfPayCopied, setSelfPayCopied] = useState(false)
   const now = Date.now()
 
   if (!o) {
@@ -284,8 +289,6 @@ export function OrderDialog({
     return d.url
   }
 
-  // 客户自付链接：一人一条，带订单 id。页面自己现查尾款，我们不往链接里写金额。
-  const [selfPayCopied, setSelfPayCopied] = useState(false)
   const copySelfPay = () => {
     copyText(`https://www.realhibachi.com/pay?o=${o.id}`)
     setSelfPayCopied(true)
@@ -736,6 +739,8 @@ export function OrderDialog({
         </div>
       ) : null}
 
+      {curTab === "prep" ? <PrepSheet adminKey={adminKey} orderId={o.id} /> : null}
+
       {curTab === "sms" ? (
         <div className="dialog-col" style={{ paddingTop: 0 }}>
           <div>
@@ -886,6 +891,92 @@ function SetupPanel({ order }: { order: OrderRow }) {
           </button>
         ) : null}
       </span>
+    </div>
+  )
+}
+
+
+/* ---------- 备料单：这一单师傅要带的量 ---------- */
+
+type SheetRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string }
+type SheetResp = {
+  orders: Array<{ name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean; proteinLine: string; extrasLine: string }>
+  totals: SheetRow[]
+  guestTotal: number
+  warnings: string[]
+}
+const SHEET_GROUPS: Array<[string, string]> = [
+  ["protein", "蛋白质"],
+  ["produce", "生鲜 · 鸡蛋"],
+  ["frozen", "冻品 · 前菜 · 面"],
+  ["pantry", "调料"],
+  ["setup", "桌椅 · 餐具（装车）"],
+]
+
+function PrepSheet({ adminKey, orderId }: { adminKey: string; orderId: string }) {
+  const [d, setD] = useState<SheetResp | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let dead = false
+    void (async () => {
+      try {
+        const r = await adminJson<SheetResp>(adminKey, `/api/admin/prep?orders=${orderId}`)
+        if (!dead) setD(r)
+      } catch (e) {
+        if (!dead) setErr(e instanceof Error ? e.message : "读取失败")
+      }
+    })()
+    return () => {
+      dead = true
+    }
+  }, [adminKey, orderId])
+
+  if (err) return <div className="dialog-col" style={{ paddingTop: 0 }}><div className="notice danger">{err}</div></div>
+  if (!d) return <div className="dialog-col" style={{ paddingTop: 0 }}><div className="empty">读取中…</div></div>
+
+  const o = d.orders[0]
+  const groups = SHEET_GROUPS.map(([key, title]) => ({ key, title, rows: d.totals.filter((t) => t.group === key) })).filter((g) => g.rows.length)
+  const asText = [
+    o ? `${o.name} · ${o.timeLabel} · ${o.adults + o.kids} 人` : "",
+    ...groups.flatMap((g) => [`【${g.title}】`, ...g.rows.map((r) => `${r.label} ${Math.round(r.qty * 10) / 10}${r.unit}${r.alt ? `（${r.alt}）` : ""}`)]),
+  ]
+    .filter(Boolean)
+    .join("\n")
+
+  return (
+    <div className="dialog-col" style={{ paddingTop: 0 }}>
+      {d.warnings.map((w, i) => (
+        <div key={i} className="notice danger">{w}</div>
+      ))}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        <Kicker>这一单要带的量 · {d.guestTotal} 人</Kicker>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { void copyText(asText); setCopied(true) }}>
+          {copied ? "已复制" : "复制给师傅"}
+        </button>
+      </div>
+      {o?.proteinLine ? <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>{o.proteinLine}{o.extrasLine ? ` · ${o.extrasLine}` : ""}</div> : null}
+
+      {groups.map((g) => (
+        <div key={g.key}>
+          <h6 style={{ margin: "10px 0 4px" }}>{g.title}</h6>
+          {g.rows.map((r) => (
+            <div key={r.id + r.label} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 12, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-divider)" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{r.label}</div>
+                {r.alt ? <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>{r.alt}</div> : null}
+              </div>
+              <div className="num" style={{ fontSize: 15, whiteSpace: "nowrap" }}>
+                {Math.round(r.qty * 10) / 10} {r.unit}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 8 }}>
+        份量表算的净需求，没加余量——采购留的富余在"仓库 · 备货"里。
+      </div>
     </div>
   )
 }
