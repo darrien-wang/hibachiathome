@@ -36,7 +36,7 @@ type ItemRow = {
   aliases: string[]
 }
 
-type PackRow = { item_key: string; idx: number; value: number; source_label: string | null }
+type PackRow = { item_key: string; idx: number; value: number; source_label: string | null; covers: number | null; size_note: string | null }
 type HoldRow = { item_key: string; holder_key: string; holder_kind: string; holder_name: string; qty: number; size_note: string | null }
 type MoveIn = { item_key: string; holder_key: string; holder_kind: string; holder_name: string; delta: number; size_note?: string | null }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
   const [itemsRes, packsRes, holdRes, logRes, purchRes, chefRes, orderRes] = await Promise.all([
     supabase.from("warehouse_items").select("*").eq("active", true).order("sort_order"),
-    supabase.from("warehouse_packs").select("item_key, idx, value, source_label").order("idx"),
+    supabase.from("warehouse_packs").select("item_key, idx, value, source_label, covers, size_note").order("idx"),
     supabase.from("warehouse_holdings").select("*").gt("qty", 0),
     supabase.from("warehouse_log").select("id, item_key, body, via, quote, created_at, batch_id, undo_payload").order("created_at", { ascending: false }).limit(60),
     supabase.from("supply_purchases").select("id, purchased_on, channel, amount_cents, tip_cents, note, lines").order("purchased_on", { ascending: false }).limit(12),
@@ -259,15 +259,20 @@ export async function POST(request: NextRequest) {
       }
       const { data: last } = await supabase.from("warehouse_packs").select("idx").eq("item_key", key).order("idx", { ascending: false }).limit(1).maybeSingle()
       const start = (last?.idx ?? 0) + 1
+      // 替换品 / 称重商品：这一包多大跟目录的标准包装不一样，按小票实重记下来，
+      // 不然同一个 item 里 3.5 lb 的大盘和 0.6 lb 的小盘在系统里长得一模一样。
+      const coversRaw = Number(o.covers)
+      const covers = Number.isFinite(coversRaw) && coversRaw > 0 ? Math.round(coversRaw * 100) / 100 : null
+      const sizeNote = str(o.size_note, 60) || null
       const { error } = await supabase.from("warehouse_packs").insert(
-        Array.from({ length: count }, (_, i) => ({ item_key: key, idx: start + i, value: 1, source_ref: sourceRef, source_label: sourceLabel })),
+        Array.from({ length: count }, (_, i) => ({ item_key: key, idx: start + i, value: 1, source_ref: sourceRef, source_label: sourceLabel, covers, size_note: sizeNote })),
       )
       if (error) {
         results.push({ input, item_key: key, added: 0, skipped: error.message })
         continue
       }
       results.push({ input, item_key: key, added: count })
-      logs.push({ item_key: key, body: `入库 +${count} ${item.unit}${sourceLabel ? ` · ${sourceLabel}` : ""}` })
+      logs.push({ item_key: key, body: `入库 +${count} ${item.unit}${sizeNote ? `（${sizeNote}）` : ""}${sourceLabel ? ` · ${sourceLabel}` : ""}` })
       undoKeys.push(key)
     }
     if (logs.length) await writeLog(logs, { kind: "stock_in", source_ref: sourceRef, item_keys: undoKeys })

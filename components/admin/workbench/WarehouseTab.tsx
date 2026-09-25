@@ -32,7 +32,7 @@ type Item = {
   image_url: string | null
   counted_at: string | null
 }
-type Pack = { item_key: string; idx: number; value: number; source_label: string | null }
+type Pack = { item_key: string; idx: number; value: number; source_label: string | null; covers?: number | null; size_note?: string | null }
 type Hold = { item_key: string; holder_key: string; holder_kind: "chef" | "event" | "misc"; holder_name: string; qty: number; size_note: string | null }
 type LogRow = { id: string; item_key: string; body: string; via: string; quote: string | null; created_at: string; batch_id: string | null }
 type Record_ = { id: string; date: string; channel: string; store: string; meta: string; lines: Array<{ item_key: string; n: number; raw: string }> }
@@ -94,7 +94,7 @@ function PackGrid({ packs, cell, onTap, showCrossed }: { packs: Pack[]; cell: nu
         <button
           key={p.idx}
           type="button"
-          title={`第 ${p.idx} 包 · ${p.value === 1 ? "整包" : p.value === 0.5 ? "剩半包" : "已划掉"}${p.source_label ? ` · ${p.source_label}` : ""}`}
+          title={`第 ${p.idx} 包 · ${p.value === 1 ? "整包" : p.value === 0.5 ? "剩半包" : "已划掉"}${p.size_note ? ` · ${p.size_note}` : ""}${p.source_label ? ` · ${p.source_label}` : ""}`}
           onClick={() => onTap(p.idx)}
           style={{ width: cell, height: cell, border: `2px solid ${p.value === 0 ? "var(--color-divider)" : INK}`, position: "relative", overflow: "hidden", cursor: "pointer", flex: "none", background: "var(--color-bg)", padding: 0 }}
         >
@@ -833,7 +833,7 @@ function DetailDialog({
                 <PackGrid packs={[p]} cell={44} showCrossed onTap={() => onTap(p.idx)} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>第 {p.idx} {v.item.unit} · {p.value === 1 ? "整包" : p.value === 0.5 ? "剩半包" : "已划掉"}</div>
-                  <div style={{ fontSize: 11.5, color: MUTED }}>{p.source_label ?? "期初库存"}</div>
+                  <div style={{ fontSize: 11.5, color: MUTED }}>{[p.size_note, p.source_label ?? "期初库存"].filter(Boolean).join(" · ")}</div>
                 </div>
               </div>
             ))
