@@ -692,6 +692,10 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d 
 - 送桌椅/餐具这类让利不用单独配：照常加进发票，差额行自动抵掉，总价仍是协议价。
 - **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData}` 存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
 - 正式发票邮件：`POST https://invoice.realhibachi.com/api/invoice/email {invoiceData, orderNo}`。
+- **发发票之前，先看 NOTES 框会印什么**（用户 2026-09-25 定）。`contactInfo.specialNotes` 会**原样印在客户发票上**（PDF、邮件、存档副本），而同一个字段也是我们和 `orders.notes` 互相同步的草稿本——押金自动建单会往里写 `Auto-generated booking for deposit checkout | deposit_source=workbench`，agent 会话会往里写 `[why]` `[callback]` 和中文过程记录。
+  - **代码已经兜底**（invoice `lib/customer-notes.ts`，09-25 上线）：存发票、写 `orders.notes`、以及**打印那一刻**都会过滤掉打标签的过程记录、系统话、中文内部记录、`lead_id/utm_*` 这类字段和 /admin 链接；拿不准的一律**保留**（宁可多印一句怪话，也不能丢掉"不要香菜"）。
+  - **`/api/invoice/email` 会拦你**：NOTES 里有内部内容时返回 **409 `notes_need_review`**，并列出「会印给客户的行」和「会被丢掉的行 + 原因」。看完两份清单再决定：要么把备注改干净，要么带 `notesReviewed: true` 发过滤后的版本。发送成功的响应里有 `notesPrinted`，不用打开 PDF 就知道客户读到了什么。
+  - **过程记录写 `orders.internal_notes`，永远不要写 `orders.notes`**（用户 09-24 定）。厨师单不受影响——师傅是自己人，内部备注照常给他看。
 - 人数变了，差额行是固定金额不会自动重算——改人数后要手动调这一行。
 
 **短链（发给客户的链接一律先缩短）**
