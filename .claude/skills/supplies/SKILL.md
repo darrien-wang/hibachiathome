@@ -70,6 +70,7 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
 - 沙拉菜 1 份 = **1 oz**；毛豆 12oz 袋 = **2 份**（都是老板定的）
 - 煎饺 46.5oz ≈ 40 个、春卷 24.5oz ≈ 8 个、黄油 16oz 双包 = 32 tbsp
 - 虾 16/20：1 袋 = 43 只（09-24 实数）；鸡蛋 36/盒；清酒 1 箱 = 18 L
+- 三文鱼 Marketside 2lb 真空袋 = **5 块**（只能整袋买，入库 1 袋 = 32 oz，09-24 定）
 - 生米 1 lb ≈ 3 lb 熟饭（50 lb 袋 ≈ 2400 oz）
 - 大豆油 35 lb ≈ 1170 tbsp
 
@@ -95,7 +96,7 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
 }
 ```
 
-- `channel`：`walmart` / `instacart` / `other`
+- `channel`：`walmart` / `instacart` / `other`。**用户 09-24 定：不去 Costco；RD 走 Instacart 下单，channel 记 `instacart`，note 写 Restaurant Depot**
 - `category`：`fresh` 生鲜 · `frozen` 冻品 · `pantry` 仓库大宗 · `sake` 清酒 · `other`
   **分类决定它算不算"大宗"**：`pantry` 和 `sake` 会从"不含大宗每人成本"里剔除，因为能用好几个月。
 - `order_ref` **必带**：同一张收据重发只会更新成本，不会重复进货（`stockIn` 返回空就是已经入过了）。

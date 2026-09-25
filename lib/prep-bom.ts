@@ -86,6 +86,8 @@ const GUESTS_PER_TABLE = 4
 
 const OZ_PER = { zucchini: 11, onion: 12 } // 09-22 用实际收据校准：8 根 = 5.7lb、2 个 = 1.6lb（向下取整，买的件数只多不少）
 const BAG_OZ = { broccoli: 32, carrots: 12 } // Walmart 袋装
+// 三文鱼只能整袋买：Marketside 2 lb 真空袋 = 5 块（≈6.4oz/块，用户 09-24 定）
+const SALMON_BAG_OZ = 32
 const SHRIMP_PER_LB = 18 // 16/20 规格取中
 const EGGS_PER_BOX = 36
 
@@ -103,6 +105,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
     const bag = BAG_OZ[id as keyof typeof BAG_OZ]
     return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / bag))} 袋（${bag}oz 装）`
   }
+  if (id === "salmon") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_BAG_OZ))} 袋（Marketside 2lb 真空袋 = 5 块）`
   if (id === "shrimp") return `≈ ${r1(qty / SHRIMP_PER_LB)} lb，买 ${halfLbUp(qty / SHRIMP_PER_LB)} lb`
   if (id === "eggs") return `带 ${Math.ceil(qty * BUFFER) + 1} 个（36/盒${qty * BUFFER + 1 > EGGS_PER_BOX ? `，要 ${Math.ceil((qty * BUFFER + 1) / EGGS_PER_BOX)} 盒` : ""}）`
   if (unit === "oz" && qty >= 16) return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp(qty / 16)} lb`
