@@ -106,6 +106,9 @@ function alt(id: string, qty: number, unit: string): string | undefined {
     return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / bag))} 袋（${bag}oz 装）`
   }
   // 毛豆：1 份 = 1 袋（12oz，用户 09-24 定）——客户点几份就带几袋
+  // 西冷按盒（用户 09-24 定）：Family Pack 平均 1.6 lb/盒，经验 1 盒 ≈ 4 个选牛排的客人
+  // （每人 6.4 oz，比份量表 4.5 oz 多四成——宁多勿少已含在规则里，不另乘 BUFFER）
+  if (id === "steak") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil(qty / 18))} 盒（Family Pack ≈1.6lb/盒 ≈ 4 人）`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
   if (id === "salmon") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_BAG_OZ))} 袋（Marketside 2lb 真空袋 = 5 块）`
   if (id === "shrimp") return `≈ ${r1(qty / SHRIMP_PER_LB)} lb，买 ${halfLbUp(qty / SHRIMP_PER_LB)} lb`
