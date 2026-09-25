@@ -67,7 +67,7 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
 **换算表**在 `lib/pantry.ts` 的 `PACK_NOTES`，改了那里这里也要跟着改。要点：
 
 - 1 lb = 16 oz；酱料 1 fl oz ≈ 2 tbsp；1 gal = 256 tbsp
-- 沙拉菜 1 份 = **1 oz**；毛豆 12oz 袋 = **2 份**（都是老板定的）
+- 沙拉菜 1 份 = **1 oz**；毛豆 12oz 袋 = **1 份**（09-24 改：份=袋，客户点几份带几袋；沙拉仍是老板定的）
 - 煎饺 46.5oz ≈ 40 个、春卷 24.5oz ≈ 8 个、黄油 16oz 双包 = 32 tbsp
 - 虾 16/20：1 袋 = 43 只（09-24 实数）；鸡蛋 36/盒；清酒 1 箱 = 18 L
 - 三文鱼 Marketside 2lb 真空袋 = **5 块**（只能整袋买，入库 1 袋 = 32 oz，09-24 定）
