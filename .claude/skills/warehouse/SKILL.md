@@ -70,6 +70,14 @@ curl -s -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/warehouse?
 - 每行要么给 `item_key`，要么给 `match`（小票原文，服务端按别名解析）。
 - 返回 `results[]`，逐行说 added / skipped 和原因。**认不出的行会原样返回，不会猜一个最像的入库**——看到 `认不出这是什么` 就用 `add_alias` 教一次，然后重发（`source_ref` 不变，已入的行会自动跳过）。
 
+**老板说"买了"≠东西到了**（2026-09-25 踩过：RD 09-24 下的单第二天还在车上，系统里却躺着 2 袋带子 1 袋沙拉 1 箱 pasta）。**Instacart / 网购单一律先下 `"arrived": false`**，到货当天再调：
+
+```json
+{ "action": "mark_arrived", "source_ref": "rd:2026-09-24" }
+```
+
+在途的包不算在库、不进备料账，页面上画成虚线格子并标"在途 N 包"——看得见它在路上，就不会重复买一遍。**线下小票（当场拿走）不用加这个标志**。
+
 **替换品 / 称重商品还要填包装大小**（2026-09-25 加）：`warehouse_packs.covers`（这一包能顶多少份量表需求，BOM 单位）+ `size_note`（人看的规格，如 "1.7 lb Family Pack"）。不填就回退到目录的标准包装量——但同一个 item 同时有 3.5 lb 大盘和 0.6 lb 小盘时，不填 = 系统以为都一样大，师傅拿货也分不出。
 
 教别名：

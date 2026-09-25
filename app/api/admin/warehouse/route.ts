@@ -36,7 +36,7 @@ type ItemRow = {
   aliases: string[]
 }
 
-type PackRow = { item_key: string; idx: number; value: number; source_label: string | null; covers: number | null; size_note: string | null }
+type PackRow = { item_key: string; idx: number; value: number; source_label: string | null; covers: number | null; size_note: string | null; arrived_at: string | null }
 type HoldRow = { item_key: string; holder_key: string; holder_kind: string; holder_name: string; qty: number; size_note: string | null }
 type MoveIn = { item_key: string; holder_key: string; holder_kind: string; holder_name: string; delta: number; size_note?: string | null }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
   const [itemsRes, packsRes, holdRes, logRes, purchRes, chefRes, orderRes] = await Promise.all([
     supabase.from("warehouse_items").select("*").eq("active", true).order("sort_order"),
-    supabase.from("warehouse_packs").select("item_key, idx, value, source_label, covers, size_note").order("idx"),
+    supabase.from("warehouse_packs").select("item_key, idx, value, source_label, covers, size_note, arrived_at").order("idx"),
     supabase.from("warehouse_holdings").select("*").gt("qty", 0),
     supabase.from("warehouse_log").select("id, item_key, body, via, quote, created_at, batch_id, undo_payload").order("created_at", { ascending: false }).limit(60),
     supabase.from("supply_purchases").select("id, purchased_on, channel, amount_cents, tip_cents, note, lines").order("purchased_on", { ascending: false }).limit(12),
@@ -121,10 +121,12 @@ export async function GET(request: NextRequest) {
       today,
       items: items.map((it) => {
         const mine = packs[it.item_key] ?? []
-        const remain = mine.reduce((a, p) => a + Number(p.value), 0)
+        // 在途的不算在库——已下单未送到的东西，冰箱里没有。
+        const remain = mine.filter((p) => p.arrived_at).reduce((a, p) => a + Number(p.value), 0)
+        const inTransit = mine.filter((p) => !p.arrived_at).reduce((a, p) => a + Number(p.value), 0)
         const out = (holdings[it.item_key] ?? []).reduce((a, h) => a + h.qty, 0)
         return it.kind === "cons"
-          ? { item_key: it.item_key, name: it.name, kind: "cons", unit: it.unit, pack_label: it.pack_label, remain, min: it.min_qty, par: it.par_qty, need: remain < it.min_qty, buy: it.buy_channel, aliases: it.aliases }
+          ? { item_key: it.item_key, name: it.name, kind: "cons", unit: it.unit, pack_label: it.pack_label, remain, in_transit: inTransit, min: it.min_qty, par: it.par_qty, need: remain < it.min_qty, buy: it.buy_channel, aliases: it.aliases }
           : { item_key: it.item_key, name: it.name, kind: "ret", unit: it.unit, total: it.total_qty, out, in_stock: it.total_qty - out, holders: (holdings[it.item_key] ?? []).map((h) => ({ key: h.holder_key, name: h.holder_name, qty: h.qty })), aliases: it.aliases }
       }),
       chefs,
@@ -261,18 +263,20 @@ export async function POST(request: NextRequest) {
       const start = (last?.idx ?? 0) + 1
       // 替换品 / 称重商品：这一包多大跟目录的标准包装不一样，按小票实重记下来，
       // 不然同一个 item 里 3.5 lb 的大盘和 0.6 lb 的小盘在系统里长得一模一样。
+      // arrived:false = 已下单还没送到。别让"买了"冒充"到了"。
+      const arrivedAt = o.arrived === false ? null : new Date().toISOString()
       const coversRaw = Number(o.covers)
       const covers = Number.isFinite(coversRaw) && coversRaw > 0 ? Math.round(coversRaw * 100) / 100 : null
       const sizeNote = str(o.size_note, 60) || null
       const { error } = await supabase.from("warehouse_packs").insert(
-        Array.from({ length: count }, (_, i) => ({ item_key: key, idx: start + i, value: 1, source_ref: sourceRef, source_label: sourceLabel, covers, size_note: sizeNote })),
+        Array.from({ length: count }, (_, i) => ({ item_key: key, idx: start + i, value: 1, source_ref: sourceRef, source_label: sourceLabel, covers, size_note: sizeNote, arrived_at: arrivedAt })),
       )
       if (error) {
         results.push({ input, item_key: key, added: 0, skipped: error.message })
         continue
       }
       results.push({ input, item_key: key, added: count })
-      logs.push({ item_key: key, body: `入库 +${count} ${item.unit}${sizeNote ? `（${sizeNote}）` : ""}${sourceLabel ? ` · ${sourceLabel}` : ""}` })
+      logs.push({ item_key: key, body: `${arrivedAt ? "入库" : "在途"} +${count} ${item.unit}${sizeNote ? `（${sizeNote}）` : ""}${sourceLabel ? ` · ${sourceLabel}` : ""}` })
       undoKeys.push(key)
     }
     if (logs.length) await writeLog(logs, { kind: "stock_in", source_ref: sourceRef, item_keys: undoKeys })
@@ -319,6 +323,25 @@ export async function POST(request: NextRequest) {
     }
     if (logs.length) await writeLog(logs, { kind: "consume", packs: undoPacks })
     return NextResponse.json({ ok: true, batch_id: batchId, results, toast: logs.length ? `划掉 ${logs.length} 项` : "没有可划的库存" })
+  }
+
+  // 到货了：把一整批在途的包盖上时间，它们这才算进在库。
+  if (action === "mark_arrived") {
+    const sourceRef = str(body.source_ref, 80)
+    if (!sourceRef) return NextResponse.json({ error: "source_ref 必填" }, { status: 400 })
+    const { data: pending } = await supabase
+      .from("warehouse_packs").select("item_key").eq("source_ref", sourceRef).is("arrived_at", null)
+    if (!pending?.length) return NextResponse.json({ error: "这批没有在途的包" }, { status: 409 })
+    const { error } = await supabase
+      .from("warehouse_packs").update({ arrived_at: new Date().toISOString() }).eq("source_ref", sourceRef).is("arrived_at", null)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    const byItem = new Map<string, number>()
+    for (const r of pending) byItem.set(r.item_key, (byItem.get(r.item_key) ?? 0) + 1)
+    await writeLog(
+      [...byItem].map(([k, n]) => ({ item_key: k, body: `到货 ${n} 包 · ${sourceRef}` })),
+      { kind: "arrived", source_ref: sourceRef },
+    )
+    return NextResponse.json({ ok: true, batch_id: batchId, arrived: pending.length, toast: `${sourceRef} 到货 ${pending.length} 包` })
   }
 
   // 点一下格子：整包 → 剩半 → 划掉 → 整包。整只买的东西（龙虾尾）没有半只。
@@ -493,6 +516,8 @@ export async function POST(request: NextRequest) {
           )
         }
       }
+    } else if (undo.kind === "arrived") {
+      await supabase.from("warehouse_packs").update({ arrived_at: null }).eq("source_ref", String(undo.source_ref))
     } else if (undo.kind === "stock_in") {
       for (const k of (undo.item_keys ?? []) as string[]) {
         await supabase.from("warehouse_packs").delete().eq("item_key", k).eq("source_ref", String(undo.source_ref))

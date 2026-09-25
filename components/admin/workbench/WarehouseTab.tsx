@@ -32,7 +32,7 @@ type Item = {
   image_url: string | null
   counted_at: string | null
 }
-type Pack = { item_key: string; idx: number; value: number; source_label: string | null; covers?: number | null; size_note?: string | null }
+type Pack = { item_key: string; idx: number; value: number; source_label: string | null; covers?: number | null; size_note?: string | null; arrived_at?: string | null }
 type Hold = { item_key: string; holder_key: string; holder_kind: "chef" | "event" | "misc"; holder_name: string; qty: number; size_note: string | null }
 type LogRow = { id: string; item_key: string; body: string; via: string; quote: string | null; created_at: string; batch_id: string | null }
 type Record_ = { id: string; date: string; channel: string; store: string; meta: string; lines: Array<{ item_key: string; n: number; raw: string }> }
@@ -94,9 +94,9 @@ function PackGrid({ packs, cell, onTap, showCrossed }: { packs: Pack[]; cell: nu
         <button
           key={p.idx}
           type="button"
-          title={`第 ${p.idx} 包 · ${p.value === 1 ? "整包" : p.value === 0.5 ? "剩半包" : "已划掉"}${p.size_note ? ` · ${p.size_note}` : ""}${p.source_label ? ` · ${p.source_label}` : ""}`}
+          title={`第 ${p.idx} 包 · ${p.arrived_at === null ? "在途（还没送到）" : p.value === 1 ? "整包" : p.value === 0.5 ? "剩半包" : "已划掉"}${p.size_note ? ` · ${p.size_note}` : ""}${p.source_label ? ` · ${p.source_label}` : ""}`}
           onClick={() => onTap(p.idx)}
-          style={{ width: cell, height: cell, border: `2px solid ${p.value === 0 ? "var(--color-divider)" : INK}`, position: "relative", overflow: "hidden", cursor: "pointer", flex: "none", background: "var(--color-bg)", padding: 0 }}
+          style={{ width: cell, height: cell, border: `2px ${p.arrived_at === null ? "dashed" : "solid"} ${p.value === 0 ? "var(--color-divider)" : INK}`, position: "relative", overflow: "hidden", cursor: "pointer", flex: "none", background: "var(--color-bg)", padding: 0, opacity: p.arrived_at === null ? 0.45 : 1 }}
         >
           <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: p.value === 1 ? "100%" : p.value === 0.5 ? "50%" : "0%", background: INK }} />
           {p.value === 0 ? <span style={{ position: "absolute", left: "-30%", top: "calc(50% - 1px)", width: "160%", height: 2, background: "var(--color-accent)", transform: "rotate(-45deg)" }} /> : null}
@@ -122,6 +122,9 @@ function Legend() {
           <span style={{ position: "absolute", left: "-30%", top: "calc(50% - 1px)", width: "160%", height: 2, background: "var(--color-accent)", transform: "rotate(-45deg)", display: "block" }} />
         </span>
         已划掉
+      </span>
+      <span style={row}>
+        <span style={{ ...box, border: "2px dashed var(--color-text)", opacity: 0.45 }} />在途
       </span>
       <span style={{ whiteSpace: "nowrap" }}>点格子：整包 → 半包 → 划掉</span>
     </div>
@@ -161,12 +164,17 @@ type Vm = {
   cellBg: string
   ratio: number
   outNote: string
+  /** 已下单还没送到的包数。不算在库，但页面要显示，免得重复买。 */
+  inTransit: number
 }
 
 function buildVm(item: Item, packs: Pack[], hold: Hold[]): Vm {
   const base = { item, id: item.item_key, name: item.name, catLabel: CAT_LABELS[item.category] ?? item.category }
   if (item.kind === "cons") {
-    const remain = packs.reduce((a, p) => a + Number(p.value), 0)
+    // 在途的不算在库：已下单没送到的东西，冰箱里没有。但要看得见它在路上，
+    // 不然会重复买一遍（2026-09-25 RD 那单差点这样）。
+    const remain = packs.filter((p) => p.arrived_at !== null).reduce((a, p) => a + Number(p.value), 0)
+    const inTransit = packs.filter((p) => p.arrived_at === null).reduce((a, p) => a + Number(p.value), 0)
     const need = remain < item.min_qty
     const zero = remain === 0
     return {
@@ -188,6 +196,7 @@ function buildVm(item: Item, packs: Pack[], hold: Hold[]): Vm {
       cellBg: need ? "var(--color-accent-100)" : "var(--color-bg)",
       ratio: item.min_qty > 0 ? remain / item.min_qty : remain > 0 ? 99 : 0,
       outNote: "",
+      inTransit,
     }
   }
   const out = hold.reduce((a, h) => a + h.qty, 0)
@@ -212,6 +221,7 @@ function buildVm(item: Item, packs: Pack[], hold: Hold[]): Vm {
     cellBg: "var(--color-bg)",
     ratio: 99,
     outNote: out ? hold.map((h) => `${h.holder_name} ${h.qty}`).join(" · ") : "全部在库",
+    inTransit: 0,
   }
 }
 
@@ -421,6 +431,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
                         <Big value={v.big} unit={v.bigUnit} color={v.numColor} />
                         <Tag cls={v.tagCls}>{v.tag}</Tag>
+                        {v.inTransit > 0 ? <Tag cls="tag-outline">在途 {fmt(v.inTransit)} {v.bigUnit}</Tag> : null}
                       </div>
                     </div>
                   ))}
