@@ -64,7 +64,7 @@ export const STOCK_LABELS: Record<string, string> = {
   garlic_butter: "黄油",
   soy_sauce: "酱油",
   ginger_sauce: "Yum Yum 酱",
-  fried_rice_seasoning: "炒饭调味",
+  fried_rice_seasoning: "炒饭料（冻青豆胡萝卜）",
   ginger_dressing: "姜汁沙拉酱",
   garlic: "蒜蓉",
   sake: "清酒",
@@ -109,6 +109,6 @@ export const PACK_NOTES = [
   "按价推重量：金额 ÷ 单价（如鸡胸 $2.57/lb、西冷 $11.94/lb）；鸡胸盘平均 4.5 lb/盒（用户 09-24 定，没小票时用）；西冷按盒买（Walmart Top Sirloin Family Pack，**平均 1.6 lb/盒**，4-6 块，老板经验 1 盒 ≈ 4 人；盒数 = 选牛排人数 ÷ 4），入库仍按小票实重记 oz",
   "清酒按升记：1 箱 = 18 L（09-18 进 3 箱 = 54 L，$55/箱 ≈ $3.06/L）",
   "1 gal 酱汁 = 256 tbsp（酱油 5 gal = 1280、照烧 1 gal = 256）；Yum Yum 16oz 瓶 = 32 tbsp = 8 人份（每人 2 oz）；姜汁酱 16oz 瓶 = 32 tbsp = 16 人份（每人 1 oz，09-24 定）",
-  "大豆油 35 lb ≈ 4.6 gal ≈ 1170 tbsp（保守）；炒饭调味 RD 12 oz 包 ≈ 30 人份（入库记 15 tbsp，09-24 定）",
+  "大豆油 35 lb ≈ 4.6 gal ≈ 1170 tbsp（保守）；炒饭料 = 冻青豆胡萝卜，RD 12 oz 包 ≈ 30 人份（入库 1 包 = 24 tbsp，09-24 定）；炒饭还配洋葱碎——洋葱双用途（蔬菜盘+炒饭），能储存，多买不怕消耗不掉",
   "生米 → 熟饭：1 lb 生 ≈ 3 lb 熟（50 lb 袋 ≈ 2400 oz 熟饭 ≈ 300 份）",
 ]
