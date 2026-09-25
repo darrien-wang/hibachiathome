@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askPrompt } from "./ask"
+import { PREP_GROUP_TITLES, type PrepGroup } from "@/lib/prep-bom"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -944,9 +945,9 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
 
   const groups = (() => {
     if (!resp) return null
-    type Line = { row: PlanRow; have: number; short: number }
+    type Line = { row: PlanRow; have: number; wanted: number; short: number }
     const buy: Record<string, Line[]> = {}
-    const enough: Line[] = []
+    const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
     for (const row of resp.totals) {
       if (row.group === "setup") {
@@ -954,17 +955,22 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
         continue
       }
       const have = Math.round((resp.pantry[row.id] ?? 0) * 10) / 10
-      const wanted = NO_BUFFER.has(row.id) ? row.qty : row.qty * PREP_BUFFER
+      const wanted = Math.round((NO_BUFFER.has(row.id) ? row.qty : row.qty * PREP_BUFFER) * 10) / 10
       const short = Math.round(Math.max(0, wanted - have) * 10) / 10
-      const line = { row, have, short }
+      const line = { row, have, wanted, short }
+      // 全量核对表要看到每一样东西，不管够不够 —— 老板要的就是能发现"账上说够、
+      // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
+      ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
       if (short > 0) {
         const store = resp.stores[row.id]?.channel ?? "Walmart"
         ;(buy[store] = buy[store] ?? []).push(line)
-      } else enough.push(line)
+      }
     }
     const order = ["Walmart", "Restaurant Depot", "Instacart", "Amazon"]
     const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
-    return { buy, storeKeys, enough, setup }
+    const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry"]
+    const groupKeys = GROUP_ORDER.filter((g) => byGroup[g]?.length)
+    return { buy, storeKeys, byGroup, groupKeys, setup }
   })()
 
   return (
@@ -1033,10 +1039,28 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             </section>
           ) : null}
 
-          {groups.enough.length ? (
-            <div style={{ fontSize: 12.5, color: MUTED }}>
-              够了不用买：{groups.enough.map((l) => l.row.label.split(" ")[0]).join("、")}
-            </div>
+          {groups.groupKeys.length ? (
+            <section>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 8 }}>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>需求 vs 在库（核对用）</div>
+                <div style={{ fontSize: 12.5, color: MUTED }}>数字不对就去"库存"页签点格子改</div>
+              </div>
+              {groups.groupKeys.map((g) => (
+                <div key={g} style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: "0.04em", marginBottom: 4 }}>{PREP_GROUP_TITLES[g]}</div>
+                  {groups.byGroup[g].map(({ row, have, wanted, short }) => (
+                    <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) auto auto auto", gap: 14, alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{row.label}</div>
+                      <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>要 {Math.round(row.qty * 10) / 10} {row.unit}</div>
+                      <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>在库 {have} {row.unit}</div>
+                      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 14, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
+                        {short > 0 ? `补 ${short}` : `富余 ${Math.round((have - wanted) * 10) / 10}`} {row.unit}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </section>
           ) : null}
         </div>
       ) : null}
