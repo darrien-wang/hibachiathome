@@ -132,6 +132,16 @@ export async function POST(request: NextRequest) {
         .from("leads")
         .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `${OPT_OUT_REASON_PREFIX}: texted ${keyword.keyword}` })
         .eq("normalized_phone", digits)
+      // 老板 2026-09-25："stop 的就不要回了，直接标记成流失"。以前只拉黑、状态
+      // 不动，于是退订的人还挂在"跟进中"里，每次盘线索都要人工认一遍。已成单的
+      // 不碰：派对照办，只是不再发短信。
+      if (supabase) {
+        await supabase
+          .from("leads")
+          .update({ status: "lost", updated_at: new Date().toISOString() })
+          .eq("normalized_phone", digits)
+          .in("status", ["new", "qualified"])
+      }
     } catch (error) {
       console.error("[twilio-sms] opt-out block failed", error)
     }

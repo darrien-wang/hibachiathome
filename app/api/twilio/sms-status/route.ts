@@ -69,6 +69,16 @@ export async function POST(request: NextRequest) {
         .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `${errorCode} ${describe(errorCode)}` })
         .eq("phone", to)
         .is("sms_blocked_at", null)
+      // 老板 2026-09-25："stop 的就不要回了，直接标记成流失"。号码打不通和客人
+      // 主动退订是同一个结局——我们不会再发，它就不该继续占着"跟进中"。已成单的
+      // 不动（派对还在，只是短信到不了）。
+      if (supabase) {
+        await supabase
+          .from("leads")
+          .update({ status: "lost", updated_at: new Date().toISOString() })
+          .eq("phone", to)
+          .in("status", ["new", "qualified"])
+      }
     }
 
     if (lead) {
