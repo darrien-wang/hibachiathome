@@ -319,6 +319,55 @@ export function orderPrep(
 }
 
 /** 多张订单的用料行 → 按品项合计（同 id 同单位相加）。 */
+/**
+ * 采购单位：一个购买单位能顶多少份量表需求（单位跟着 BOM 行走：oz / pcs / 份 / tbsp / 个）。
+ *
+ * 用来把"还差 70.3 tbsp"翻译成"买 3 盒"——老板 2026-09-25 定的口径：采购单只说
+ * 瓶/盒/袋，跟师傅说的是同一种话，差几毫升是师傅现场的事。
+ *
+ * 注意 per 记的是"这一个包装能覆盖多少需求"，不是它的物理净重。三文鱼一袋 5 块、
+ * 一人一块，所以 per = 5 × 4oz = 20oz，而不是整袋 32oz；牛排一盒管 4 个人，
+ * per = 4 × 4.5oz = 18oz，盒子本身 1.6lb 里多出来的就是老板留的余量。
+ *
+ * 也正因为 per 已经含余量、买又只能整包取整，planner 不再另乘 1.1 缓冲——
+ * 两层叠加会无缘无故多买一个单位。
+ */
+export const BUY_UNITS: Record<string, { per: number; noun: string; desc: string }> = {
+  // 蛋白
+  steak: { per: 18, noun: "盒", desc: "Family Pack ≈1.6lb，1 盒 ≈ 4 人" },
+  chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
+  filet_mignon: { per: 9.6, noun: "盒", desc: "≈0.6lb，1 盒 ≈ 2 人" },
+  salmon: { per: 20, noun: "袋", desc: "Marketside 2lb 袋 = 5 块，一人一块" },
+  lobster_tail: { per: 12, noun: "盒", desc: "1 盒 = 2 只" },
+  scallops: { per: 80, noun: "袋", desc: "RD 5lb 袋 ≈ 20 人份" },
+  shrimp: { per: 43, noun: "袋", desc: "1 袋 = 43 只" },
+  tofu: { per: 15, noun: "盒", desc: "16oz 盒 ≈ 3 人份" },
+  // 生鲜
+  mixed_vege: { per: 16, noun: "lb", desc: "西葫芦/西兰花/洋葱/胡萝卜随意配" },
+  zucchini: { per: 11, noun: "根", desc: "" },
+  broccoli: { per: 32, noun: "袋", desc: "32oz 袋" },
+  onion: { per: 12, noun: "个", desc: "炒饭也用，能囤" },
+  carrots: { per: 12, noun: "袋", desc: "12oz 袋" },
+  eggs: { per: 36, noun: "提", desc: "combo 2 盒一提 = 36 个" },
+  salad: { per: 48, noun: "袋", desc: "RD 3lb 袋 = 48 份" },
+  lime: { per: 1, noun: "个", desc: "每场 1 个，配海鲜" },
+  // 冻品 · 前菜 · 面
+  gyoza: { per: 40, noun: "袋", desc: "46.5oz 袋 ≈ 40 个" },
+  spring_rolls: { per: 8, noun: "盒", desc: "24.5oz 盒 ≈ 8 个" },
+  edamame: { per: 1, noun: "袋", desc: "1 袋 = 1 份，喂 3 人" },
+  noodles: { per: 160, noun: "箱", desc: "RD pasta 10lb/箱" },
+  // 调料与大宗
+  fried_rice: { per: 2400, noun: "袋", desc: "50lb 生米 ≈ 2400oz 熟饭" },
+  ginger_sauce: { per: 32, noun: "瓶", desc: "16oz/瓶 ≈ 8 人" },
+  ginger_dressing: { per: 32, noun: "瓶", desc: "16oz/瓶 ≈ 16 人" },
+  garlic_butter: { per: 32, noun: "盒", desc: "1 盒 = 2 根 × 8oz" },
+  fried_rice_seasoning: { per: 24, noun: "包", desc: "12oz 包 ≈ 30 人" },
+  soy_sauce: { per: 1280, noun: "桶", desc: "5gal 桶" },
+  teriyaki: { per: 256, noun: "桶", desc: "1gal 桶" },
+  oil: { per: 1170, noun: "桶", desc: "35lb 桶" },
+  sake: { per: 18, noun: "箱", desc: "1 箱 = 18L" },
+}
+
 export function aggregatePrep(all: PrepItem[]): PrepItem[] {
   const by = new Map<string, PrepItem>()
   for (const it of all) {

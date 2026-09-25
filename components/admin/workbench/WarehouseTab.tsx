@@ -902,7 +902,8 @@ function DetailDialog({
 
 /* ---------- 备货：勾订单，算"要补什么、去哪买" ---------- */
 
-type PlanRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string }
+type BuyPack = { per: number; noun: string; desc: string }
+type PlanRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string; pack?: BuyPack | null }
 type PlanResp = {
   orders: Array<{ id: string; dateLabel: string; orderNo: string; name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean }>
   totals: PlanRow[]
@@ -912,9 +913,11 @@ type PlanResp = {
   guestTotal: number
 }
 
-// 固定份数的东西不加 1.1 缓冲：毛豆是客户点几份带几袋，青柠是每场一个。
-const NO_BUFFER = new Set(["edamame", "lime"])
-const PREP_BUFFER = 1.1
+// 采购只能整包买，向上取整本身就是"宁多勿少"——所以这里不再额外乘缓冲系数。
+// （而且像牛排"一盒管 4 人"这种规则，余量早就写在 BUY_UNITS 的 per 里了，
+// 两层叠加会无缘无故多买一整盒。用户 2026-09-25 定。）
+const buyCount = (short: number, pack: BuyPack | null | undefined) =>
+  pack && pack.per > 0 ? Math.max(1, Math.ceil(short / pack.per)) : null
 
 function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] }) {
   const [sel, setSel] = useState<Set<string>>(() => new Set(events.map((e) => e.key.replace(/^order:/, ""))))
@@ -945,7 +948,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
 
   const groups = (() => {
     if (!resp) return null
-    type Line = { row: PlanRow; have: number; wanted: number; short: number }
+    type Line = { row: PlanRow; have: number; short: number; buy: number | null }
     const buy: Record<string, Line[]> = {}
     const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
@@ -955,9 +958,8 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
         continue
       }
       const have = Math.round((resp.pantry[row.id] ?? 0) * 10) / 10
-      const wanted = Math.round((NO_BUFFER.has(row.id) ? row.qty : row.qty * PREP_BUFFER) * 10) / 10
-      const short = Math.round(Math.max(0, wanted - have) * 10) / 10
-      const line = { row, have, wanted, short }
+      const short = Math.round(Math.max(0, row.qty - have) * 10) / 10
+      const line = { row, have, short, buy: buyCount(short, row.pack) }
       // 全量核对表要看到每一样东西，不管够不够 —— 老板要的就是能发现"账上说够、
       // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
       ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
@@ -977,7 +979,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     <div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24 }}>备货</div>
-        <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>勾上要备的订单，一键算出"要补什么、还差多少、去哪买"。需求按份量表 ×1.1 宁多勿少（毛豆/青柠按固定份数）。</div>
+        <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>勾上要备的订单，一键算出"买什么、买几瓶、去哪买"。差多少一律往上取整到整瓶整盒——最小采购单位就是一瓶，剩多少是师傅现场的事。</div>
       </div>
 
       {events.length === 0 ? <div style={{ color: MUTED, fontSize: 13 }}>未来 10 天没有订单。</div> : null}
@@ -1013,15 +1015,18 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>{store}</div>
                 <div style={{ fontSize: 12.5, color: MUTED }}>{groups.buy[store].length} 项</div>
               </div>
-              {groups.buy[store].map(({ row, have, short }) => (
-                <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) auto auto auto", gap: 14, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
+              {groups.buy[store].map(({ row, have, short, buy }) => (
+                <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) auto", gap: 14, alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
-                    {row.alt ? <div style={{ fontSize: 12, color: "var(--color-accent-700)", fontWeight: 600 }}>{row.alt}</div> : null}
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
+                      要 {Math.round(row.qty * 10) / 10} {row.unit} · 在库 {have} {row.unit}
+                      {row.pack?.desc ? ` · ${row.pack.desc}` : ""}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>要 {Math.round(row.qty * 10) / 10} {row.unit}</div>
-                  <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>在库 {have}</div>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 17, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>补 {short} {row.unit}</div>
+                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
+                    {buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${row.pack!.noun}`}
+                  </div>
                 </div>
               ))}
             </section>
@@ -1048,13 +1053,13 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
               {groups.groupKeys.map((g) => (
                 <div key={g} style={{ marginTop: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: "0.04em", marginBottom: 4 }}>{PREP_GROUP_TITLES[g]}</div>
-                  {groups.byGroup[g].map(({ row, have, wanted, short }) => (
+                  {groups.byGroup[g].map(({ row, have, short, buy }) => (
                     <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) auto auto auto", gap: 14, alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{row.label}</div>
                       <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>要 {Math.round(row.qty * 10) / 10} {row.unit}</div>
                       <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>在库 {have} {row.unit}</div>
                       <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 14, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
-                        {short > 0 ? `补 ${short}` : `富余 ${Math.round((have - wanted) * 10) / 10}`} {row.unit}
+                        {short > 0 ? (buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${row.pack!.noun}`) : "够"}
                       </div>
                     </div>
                   ))}

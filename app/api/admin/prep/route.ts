@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { aggregatePrep, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
+import { aggregatePrep, BUY_UNITS, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import type { SetupSelection } from "@/config/table-themes"
 
@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
       orderCount: orders.length,
       guestTotal: orders.reduce((n, o) => n + o.adults + o.kids, 0),
       orders,
-      totals: aggregatePrep(allItems),
+      // pack = 这一行的采购单位，页面用它把缺口翻成"买几瓶/几盒"。
+      totals: aggregatePrep(allItems).map((i) => ({ ...i, pack: BUY_UNITS[i.id] ?? null })),
       stock: stock ?? [],
       pantry,
       pantryDetail: pantryRows ?? [],
