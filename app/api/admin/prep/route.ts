@@ -39,22 +39,31 @@ export async function GET(request: NextRequest) {
   const qd = request.nextUrl.searchParams.get("date") ?? ""
   const date = /^\d{4}-\d{2}-\d{2}$/.test(qd) ? qd : ptDay(new Date(Date.now() + 24 * 3600_000))
 
-  // PT 的一天在 UTC 上最多横跨 [date-1, date+2)，先宽取再按 PT 日精确过滤。
-  const lo = new Date(`${date}T00:00:00Z`)
-  const from = new Date(lo.getTime() - 24 * 3600_000).toISOString()
-  const to = new Date(lo.getTime() + 48 * 3600_000).toISOString()
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection")
-    .gte("event_start", from)
-    .lt("event_start", to)
-    .order("event_start")
+  // 备货模式（仓库页签"备货"）：?orders=<uuid,...> 时按勾选的订单集合算，可以跨天。
+  const orderIds = (request.nextUrl.searchParams.get("orders") ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter((x) => /^[0-9a-f-]{36}$/i.test(x))
+    .slice(0, 40)
+  const byOrders = orderIds.length > 0
+
+  const sel = "id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection"
+  const query = byOrders
+    ? supabase.from("orders").select(sel).in("id", orderIds).order("event_start")
+    : (() => {
+        // PT 的一天在 UTC 上最多横跨 [date-1, date+2)，先宽取再按 PT 日精确过滤。
+        const lo = new Date(`${date}T00:00:00Z`)
+        const from = new Date(lo.getTime() - 24 * 3600_000).toISOString()
+        const to = new Date(lo.getTime() + 48 * 3600_000).toISOString()
+        return supabase.from("orders").select(sel).gte("event_start", from).lt("event_start", to).order("event_start")
+      })()
+  const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // event_start 存的是墙上时间（按 UTC 写入），所以"哪一天"直接取 ISO 日期
   // 位，时间也按 UTC 读，不做时区换算（换算会把 12:00 显示成 5:00 AM）。
   const rows = ((data ?? []) as Row[]).filter(
-    (r) => r.event_start && r.event_start.slice(0, 10) === date && !/cancel|void|refund/i.test(r.order_status ?? ""),
+    (r) => r.event_start && (byOrders || r.event_start.slice(0, 10) === date) && !/cancel|void|refund/i.test(r.order_status ?? ""),
   )
 
   const allItems: PrepItem[] = []
@@ -65,6 +74,7 @@ export async function GET(request: NextRequest) {
     const t = new Date(r.event_start as string)
     return {
       id: r.id,
+      dateLabel: (r.event_start ?? "").slice(5, 10),
       orderNo: r.order_no,
       name: (r.customer_name ?? "").trim() || "未留名",
       timeLabel: t.toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }),
@@ -89,11 +99,22 @@ export async function GET(request: NextRequest) {
   for (const r of (pantryRows ?? []) as Array<{ item_key: string; qty: number }>) pantry[r.item_key] = Number(r.qty) || 0
   // 清单把四样蔬菜合成一行，所以库存也合起来比。
   pantry.mixed_vege = Math.round(VEG_IDS.reduce((n, k) => n + (pantry[k] ?? 0), 0) * 100) / 100
+  // 补货去哪买：仓库品项上有 buy_channel，用 pantry_key 对回 BOM 的 id。
+  const { data: whItems } = await supabase.from("warehouse_items").select("item_key, pantry_key, buy_channel, pack_label")
+  const stores: Record<string, { channel: string | null; pack: string | null }> = {}
+  for (const w of (whItems ?? []) as Array<{ item_key: string; pantry_key: string | null; buy_channel: string | null; pack_label: string | null }>) {
+    const k = w.pantry_key || w.item_key
+    if (k && !(k in stores)) stores[k] = { channel: w.buy_channel, pack: w.pack_label }
+  }
+  stores.mixed_vege = { channel: "Walmart", pack: null }
+
   const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
     {
       ok: true,
-      date,
+      date: byOrders ? null : date,
+      byOrders,
+      stores,
       orderCount: orders.length,
       guestTotal: orders.reduce((n, o) => n + o.adults + o.kids, 0),
       orders,

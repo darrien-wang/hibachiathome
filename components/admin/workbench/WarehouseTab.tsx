@@ -64,7 +64,7 @@ const INK = "var(--color-text)"
 const MUTED = "var(--color-neutral-700)"
 const fmt = (n: number) => String(Math.round(n * 10) / 10)
 
-type Tab = "stock" | "in" | "out" | "chef" | "re"
+type Tab = "stock" | "prep" | "in" | "out" | "chef" | "re"
 type Layout = "A" | "B" | "C"
 
 /* ---------- 小件 ---------- */
@@ -294,6 +294,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
   const tabs: Array<[Tab, string, string]> = [
     ["stock", "库存", ""],
+    ["prep", "备货", ""],
     ["in", "入库记录", ""],
     ["out", "出库 · 归还", outCount ? String(outCount) : ""],
     ["chef", "厨师", ""],
@@ -521,6 +522,8 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
           ) : null}
         </>
       ) : null}
+
+      {tab === "prep" ? <PrepPlanner adminKey={adminKey} events={d.events} /> : null}
 
       {tab === "in" ? (
         <>
@@ -892,5 +895,151 @@ function DetailDialog({
         ))}
       </div>
     </Dialog>
+  )
+}
+
+
+/* ---------- 备货：勾订单，算"要补什么、去哪买" ---------- */
+
+type PlanRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string }
+type PlanResp = {
+  orders: Array<{ id: string; dateLabel: string; orderNo: string; name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean }>
+  totals: PlanRow[]
+  pantry: Record<string, number>
+  stores: Record<string, { channel: string | null; pack: string | null }>
+  warnings: string[]
+  guestTotal: number
+}
+
+// 固定份数的东西不加 1.1 缓冲：毛豆是客户点几份带几袋，青柠是每场一个。
+const NO_BUFFER = new Set(["edamame", "lime"])
+const PREP_BUFFER = 1.1
+
+function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] }) {
+  const [sel, setSel] = useState<Set<string>>(() => new Set(events.map((e) => e.key.replace(/^order:/, ""))))
+  const [resp, setResp] = useState<PlanResp | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  const toggle = (id: string) =>
+    setSel((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const run = async () => {
+    if (busy || sel.size === 0) return
+    setBusy(true)
+    setErr(null)
+    try {
+      setResp(await adminJson<PlanResp>(adminKey, `/api/admin/prep?orders=${Array.from(sel).join(",")}`))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "计算失败")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const groups = (() => {
+    if (!resp) return null
+    type Line = { row: PlanRow; have: number; short: number }
+    const buy: Record<string, Line[]> = {}
+    const enough: Line[] = []
+    const setup: PlanRow[] = []
+    for (const row of resp.totals) {
+      if (row.group === "setup") {
+        setup.push(row)
+        continue
+      }
+      const have = Math.round((resp.pantry[row.id] ?? 0) * 10) / 10
+      const wanted = NO_BUFFER.has(row.id) ? row.qty : row.qty * PREP_BUFFER
+      const short = Math.round(Math.max(0, wanted - have) * 10) / 10
+      const line = { row, have, short }
+      if (short > 0) {
+        const store = resp.stores[row.id]?.channel ?? "Walmart"
+        ;(buy[store] = buy[store] ?? []).push(line)
+      } else enough.push(line)
+    }
+    const order = ["Walmart", "Restaurant Depot", "Instacart", "Amazon"]
+    const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
+    return { buy, storeKeys, enough, setup }
+  })()
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24 }}>备货</div>
+        <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>勾上要备的订单，一键算出"要补什么、还差多少、去哪买"。需求按份量表 ×1.1 宁多勿少（毛豆/青柠按固定份数）。</div>
+      </div>
+
+      {events.length === 0 ? <div style={{ color: MUTED, fontSize: 13 }}>未来 10 天没有订单。</div> : null}
+      <div style={{ display: "flex", flexDirection: "column", border: events.length ? `2px solid ${INK}` : "none", marginBottom: 12 }}>
+        {events.map((e) => {
+          const id = e.key.replace(/^order:/, "")
+          return (
+            <label key={e.key} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 14px", borderBottom: "1px solid var(--color-divider)", cursor: "pointer", fontSize: 14 }}>
+              <input type="checkbox" checked={sel.has(id)} onChange={() => toggle(id)} />
+              <span style={{ fontWeight: 600 }}>{e.name}</span>
+            </label>
+          )
+        })}
+      </div>
+      <button type="button" className="btn btn-primary" disabled={busy || sel.size === 0} onClick={() => void run()}>
+        {busy ? "算着…" : `算这 ${sel.size} 单的缺口`}
+      </button>
+      {err ? <div className="notice danger" style={{ marginTop: 10 }}>{err}</div> : null}
+
+      {resp && groups ? (
+        <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 24 }}>
+          {resp.warnings.map((w, i) => (
+            <div key={i} className="notice danger">{w}</div>
+          ))}
+          <div style={{ fontSize: 13, color: MUTED }}>
+            共 {resp.orders.length} 单 · {resp.guestTotal} 人：{resp.orders.map((o) => `${o.dateLabel} ${o.name}（${o.adults + o.kids}）`).join(" · ")}
+          </div>
+
+          {groups.storeKeys.length === 0 ? <div className="notice">都够，不用买。</div> : null}
+          {groups.storeKeys.map((store) => (
+            <section key={store}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 8 }}>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>{store}</div>
+                <div style={{ fontSize: 12.5, color: MUTED }}>{groups.buy[store].length} 项</div>
+              </div>
+              {groups.buy[store].map(({ row, have, short }) => (
+                <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) auto auto auto", gap: 14, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
+                    {row.alt ? <div style={{ fontSize: 12, color: "var(--color-accent-700)", fontWeight: 600 }}>{row.alt}</div> : null}
+                  </div>
+                  <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>要 {Math.round(row.qty * 10) / 10} {row.unit}</div>
+                  <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>在库 {have}</div>
+                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 17, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>补 {short} {row.unit}</div>
+                </div>
+              ))}
+            </section>
+          ))}
+
+          {groups.setup.length ? (
+            <section>
+              <div style={{ borderBottom: `2px solid ${INK}`, paddingBottom: 8, fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>装车（周转品，对照库存页签）</div>
+              {groups.setup.map((r) => (
+                <div key={r.id + r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 14 }}>
+                  <span style={{ fontWeight: 600 }}>{r.label}</span>
+                  <span>{Math.round(r.qty * 10) / 10} {r.unit}</span>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          {groups.enough.length ? (
+            <div style={{ fontSize: 12.5, color: MUTED }}>
+              够了不用买：{groups.enough.map((l) => l.row.label.split(" ")[0]).join("、")}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   )
 }
