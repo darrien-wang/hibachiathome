@@ -107,6 +107,8 @@ function alt(id: string, qty: number, unit: string): string | undefined {
     return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / bag))} 袋（${bag}oz 装）`
   }
   // 毛豆：1 份 = 1 袋（12oz，用户 09-24 定）——客户点几份就带几袋
+  // 豆腐 16 oz 盒 ≈ 3 人份（用户 09-24 定，和每人 5 oz 的份量表咀合）
+  if (id === "tofu") return `≈ ${Math.ceil(qty / 5)} 人份，买 ${Math.max(1, Math.ceil(qty / 15))} 盒（16oz/盒 ≈ 3 人）`
   // 炒饭料 = 冻青豆胡萝卜，12 oz 包 ≈ 30 人（用户 09-24 定）
   if (id === "fried_rice_seasoning") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 24))} 包（12oz/包 ≈ 30 人）`
   // 酱料按瓶（用户 09-24 定）：16 oz/瓶；Yum Yum 每人 2 oz = 8 人/瓶，姜汁酱每人 1 oz = 16 人/瓶
