@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { askConfirm, tell } from "./workbench/ask"
+import { isTapback } from "@/lib/courtesy-text"
 
 // ============================================================
 // The SMS conversation with one customer, anywhere in the admin.
@@ -240,9 +241,16 @@ export function SmsThreadPanel({
         )}
         {(messages ?? []).map((m) => {
           const mine = m.direction === "outbound"
+          // A tapback is a gesture, not a message: it is the only inbound we
+          // never answer, so it is labelled instead of sitting there looking
+          // like an open question (owner 2026-09-25).
+          const tapback = !mine && isTapback(m.body)
           return (
             <div key={m.sid} className={mine ? "wb-bubble-us" : "wb-bubble-them"}>
               <div>{m.body}</div>
+              {tapback && (
+                <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.6, marginTop: 2 }}>点赞 · 无需回复</div>
+              )}
               {m.media > 0 && Array.from({ length: m.media }).map((_, i) => <Attachment key={`${m.sid}-${i}`} adminKey={adminKey} sid={m.sid} index={i} />)}
               <div className="wb-bubble-meta" style={{ textAlign: mine ? "right" : "left" }}>
                 {mine ? "我们 · 213" : label} · {stamp(m.at)}

@@ -61,10 +61,25 @@ export function courtesyOnly(body: string): boolean {
   return words.every((w) => COURTESY.has(w) || FILLER.has(w))
 }
 
+/**
+ * An iMessage reaction ("Liked ...", "Loved ...", "Emphasized ..."), or a bare
+ * thumbs-up. Owner 2026-09-25: this is the ONLY inbound that gets no reply at
+ * all - it is a gesture, not a message, and answering one reads as strange.
+ * Everything else, including a plain "thanks!", gets a one-line courtesy close
+ * so the customer's text is never the last word in the thread (leads skill
+ * 1.04). So courtesyOnly() means "do not ring the phone", NOT "do not answer".
+ */
+export function isTapback(body: string): boolean {
+  const b = (body ?? "").trim()
+  if (/^(liked|loved|laughed at|emphasized|disliked|questioned)\s/i.test(b)) return true
+  // a bare thumbs-up, with or without a skin tone / variation selector
+  return /^\u{1F44D}[\u{1F3FB}-\u{1F3FF}]?\u{FE0F}?[\s.!]*$/u.test(b)
+}
+
 /** Tapbacks ("Liked …"), STOP, and a bare "cancel" are not questions either. */
 export function notAQuestion(body: string): boolean {
   const b = (body ?? "").trim()
-  if (/^(liked|loved|laughed at|emphasized|disliked|questioned)\s/i.test(b)) return true
+  if (isTapback(b)) return true
   if (/^(stop|unsubscribe)$/i.test(b)) return true
   // A bare "cancel" is an opt-out (2026-09-22, 用户定): nobody replies to it.
   if (/^(please\s+)?cancel(l?ed)?(\s+(it|this|that|please|the party|my party))?[.!\s]*$/i.test(b)) return true
