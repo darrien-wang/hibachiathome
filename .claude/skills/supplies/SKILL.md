@@ -69,7 +69,7 @@ KEY=$(grep '^ADMIN_DASH_KEY=' "D:/desktop/RealHibachi/realhibachi-marketing/.env
 - 1 lb = 16 oz；酱料 1 fl oz ≈ 2 tbsp；1 gal = 256 tbsp
 - 沙拉菜 1 份 = **1 oz**；毛豆 12oz 袋 = **2 份**（都是老板定的）
 - 煎饺 46.5oz ≈ 40 个、春卷 24.5oz ≈ 8 个、黄油 16oz 双包 = 32 tbsp
-- 虾 16/20 ≈ 18 只/lb；鸡蛋 36/盒；清酒 1 箱 = 18 L
+- 虾 16/20：1 袋 = 43 只（09-24 实数）；鸡蛋 36/盒；清酒 1 箱 = 18 L
 - 生米 1 lb ≈ 3 lb 熟饭（50 lb 袋 ≈ 2400 oz）
 - 大豆油 35 lb ≈ 1170 tbsp
 
