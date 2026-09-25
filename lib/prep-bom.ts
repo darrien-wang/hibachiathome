@@ -71,13 +71,13 @@ const LEGACY_PORTION_POLICY = { gyozaPcs: 12, springRollPcs: 12, edamameFeeds: 2
 const PORTION_POLICY_CUTOFF_MS = Date.parse("2026-09-02T00:00:00Z")
 const MISC_PER_PERSON = [
   { id: "oil", label: "Cooking Oil 油", amount: 1, unit: "tbsp" },
-  { id: "garlic_butter", label: "Garlic Butter 蒜香黄油", amount: 0.5, unit: "tbsp" },
+  { id: "garlic_butter", label: "Garlic Butter 蒜香黄油", amount: 1, unit: "tbsp" }, // 2026-09-24 用户定：每人 0.5 oz = 1 tbsp（正本 pricing.ts 已同步）
   { id: "soy_sauce", label: "Soy Sauce 酱油", amount: 1, unit: "tbsp" },
   { id: "ginger_sauce", label: "Yum Yum Sauce", amount: 1.5, unit: "tbsp" },
   { id: "fried_rice_seasoning", label: "炒饭调味", amount: 0.5, unit: "tbsp" },
 ]
 const MISC_PER_GROUP = [
-  { id: "lime", label: "Lime 青柠", perNGuests: 10, unit: "pcs" },
+  { id: "lime", label: "Lime 青柠", perNGuests: 10, unit: "pcs" }, // 2026-09-24 用户定：改按场算（下方特判），每场 1 个配海鲜；perNGuests 已不用
   { id: "eggs", label: "Eggs 鸡蛋（炒饭）", perNGuests: 1, unit: "个" }, // 2026-09-22 用户定：每人 1 个，只许多不许少（正本 pricing.ts 已同步）
 ]
 const GUESTS_PER_TABLE = 4
@@ -106,6 +106,8 @@ function alt(id: string, qty: number, unit: string): string | undefined {
     return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / bag))} 袋（${bag}oz 装）`
   }
   // 毛豆：1 份 = 1 袋（12oz，用户 09-24 定）——客户点几份就带几袋
+  // 黄油按根带（用户 09-24 定）：1 根 = 8 oz = 16 tbsp 是最小携带单位，1 盒 = 2 根
+  if (id === "garlic_butter") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 16))} 根（8oz/根，1 盒 = 2 根）`
   // 龙虾尾盒装 2 只/盒（用户 09-24 定），每只 ≈ 1 个选龙虾的客人（6 oz）
   if (id === "lobster_tail") return `≈ ${Math.ceil(qty / 6)} 只，买 ${Math.max(1, Math.ceil(Math.ceil((qty * BUFFER) / 6) / 2))} 盒（1 盒 = 2 只）`
   // 鸡胸盘平均 4.5 lb/盒（用户 09-24 定），入库按小票实重，买按盒
@@ -212,7 +214,15 @@ export function orderPrep(
       group: "produce",
     })
   }
+  // 青柠按场算（2026-09-24 用户定）：一场 1 个配海鲜，没海鲜不带；
+  // 菜单未定的场按有算（宁多勿少，一个青柠而已）。
+  const LIME_SEAFOOD = new Set(["shrimp", "salmon", "scallops", "lobster_tail"])
   for (const grp of MISC_PER_GROUP) {
+    if (grp.id === "lime") {
+      const hasSeafood = items.some((i) => i.group === "protein" && LIME_SEAFOOD.has(i.id))
+      if (hasSeafood || !menuKnown) items.push({ id: "lime", label: grp.label, qty: 1, unit: grp.unit, group: "produce" })
+      continue
+    }
     const qty = Math.ceil(total / grp.perNGuests)
     if (qty > 0) items.push({ id: grp.id, label: grp.label, qty, unit: grp.unit, alt: alt(grp.id, qty, grp.unit), group: "produce" })
   }
