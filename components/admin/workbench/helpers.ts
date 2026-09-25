@@ -36,6 +36,8 @@ export type LeadRow = {
   hold_until?: string | null
   /** 挂起是什么时候设的——客户在这之后又说话，挂起自动失效。 */
   hold_set_at?: string | null
+  /** 「不用回」水位线：这一刻之前的消息都不需要回复（老板 2026-09-24）。 */
+  acked_until?: string | null
   last_outbound_at?: string | null
   /** Who said the last thing, from the Twilio thread merged with the timeline. */
   last_speaker?: "customer" | "us" | "auto" | null
@@ -437,6 +439,10 @@ export function leadUnreplied(l: LeadRow): boolean {
   if (l.status === "won" || l.status === "lost" || l.status === "disqualified") return false
   // 挂起期间不算"客人在等回复"——这正是老板要的：这些人不是我们没回，是他让我们等。
   if (leadOnHold(l)) return false
+  // 标过「不用回」的：这一刻之前的消息都处理完了，之后再来新消息才重新算。
+  const acked = l.acked_until ? Date.parse(l.acked_until) : NaN
+  const lastIn = l.last_inbound_at ? Date.parse(l.last_inbound_at) : NaN
+  if (Number.isFinite(acked) && Number.isFinite(lastIn) && lastIn <= acked) return false
   const inb = l.last_inbound_at ? Date.parse(l.last_inbound_at) : NaN
   const out = l.last_outbound_at ? Date.parse(l.last_outbound_at) : NaN
   if (!Number.isFinite(inb)) return l.response_seconds === null && l.status === "new"

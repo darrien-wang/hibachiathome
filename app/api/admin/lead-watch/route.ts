@@ -2,9 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 
 import { calcSimpleEstimate } from "@/config/pricing-rules"
-import { notAQuestion } from "@/lib/courtesy-text"
 import { escapeHtml } from "@/lib/escape-html"
-import { loadHolds } from "@/lib/lead-hold"
+import { loadQuiet } from "@/lib/lead-hold"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
@@ -219,7 +218,7 @@ export async function POST(request: NextRequest) {
   // 挂起中的线索不提醒（老板 2026-09-23 定）：客人说了他会回头找我们，那条
   // "Thanks, I'll get back to you" 不是在等我们回，一直提醒只是噪音。规则和
   // 手机收件箱共用一份，见 lib/lead-hold.ts。
-  const holds = await loadHolds(supabase, now)
+  const quiet = await loadQuiet(supabase, now)
 
   const lastOut = new Map<string, number>()
   for (const m of outbound) if (!lastOut.has(m.to)) lastOut.set(m.to, when(m))
@@ -231,11 +230,10 @@ export async function POST(request: NextRequest) {
     const at = when(m)
     if (at < cutoff || isTestNumber(m.from)) continue
     if ((lastOut.get(m.from) ?? 0) >= at) continue
-    if (holds.onHold(m.from, at)) continue
     const body = (m.body ?? "").trim()
-    // Tapbacks, opt-outs, a bare "cancel", and plain thank-yous are not
-    // questions. Same rule the phone app rings on — see lib/courtesy-text.ts.
-    if (notAQuestion(body)) continue
+    // 挂起中、老板标过「不用回」、或者这条本来就不是问题 —— 一条规则，见
+    // lib/lead-hold.ts loadQuiet（老板 2026-09-24：免得一直提醒）。
+    if (quiet.quiet(m.from, at, body)) continue
     humanSms.push({ kind: "sms", sid: m.sid, from: m.from, minutesWaiting: Math.round((now - at) / 60_000), body: body.slice(0, 400) })
   }
 

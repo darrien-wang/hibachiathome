@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { notAQuestion } from "@/lib/courtesy-text"
 
 // 「球在客人那边」——和线索状态是两回事（老板 2026-09-23 定）。客人说了他会回头
 // 告诉我们，那条 "I'll get back to you" 不是在等我们回；挂起期间不算我们欠回复，
@@ -61,6 +62,54 @@ export async function loadHolds(supabase: SupabaseClient, now = Date.now()): Pro
       if (!h || !(h.until > now)) return false
       if (messageAt && h.setAt && messageAt > h.setAt) return false
       return true
+    },
+  }
+}
+
+// ============================================================
+// 「这条不用回」——2026-09-24 老板定（原话："这种可回可不回的帮我标记一下，免得
+// 一直提醒"）。起因：Natalie 发来 "Perfect. Thank you so much. That is very
+// helpful!"，手机每隔几分钟报一次"等了 63 分钟"。
+//
+// 和挂起是两件事：挂起 = 球在客人那边、到某天为止；这个 = **这一刻之前的消息都
+// 处理完了**，之后再来新消息照样响。所以它是一条水位线（leads.acked_until），
+// 不是一个状态。
+// ============================================================
+
+export type QuietLookup = {
+  /** 挂起中、或者这条消息已经被标成"不用回"。 */
+  quiet(phone: string | null | undefined, messageAt?: number, body?: string | null): boolean
+}
+
+/**
+ * 提醒侧唯一入口：挂起 + 「不用回」水位线 + 点赞回执，一次查库全带上。
+ * 查不到就按"要回"走——宁可多提醒一次，也不要静默吞掉客人的问题。
+ */
+export async function loadQuiet(supabase: SupabaseClient, now = Date.now()): Promise<QuietLookup> {
+  const [holds, ackRes] = await Promise.all([
+    loadHolds(supabase, now),
+    supabase
+      .from("leads")
+      .select("normalized_phone, phone, acked_until")
+      .not("acked_until", "is", null)
+      .not("status", "in", CLOSED_DEAD),
+  ])
+
+  const ackByPhone = new Map<string, number>()
+  for (const r of (ackRes.data ?? []) as Array<{ normalized_phone: string | null; phone: string | null; acked_until: string }>) {
+    const d = digits10(r.normalized_phone ?? r.phone)
+    const at = Date.parse(r.acked_until)
+    if (!d || !Number.isFinite(at)) continue
+    // 同号多条线索：以标得最晚的那条为准。
+    if ((ackByPhone.get(d) ?? 0) < at) ackByPhone.set(d, at)
+  }
+
+  return {
+    quiet(phone, messageAt, body) {
+      if (body !== undefined && notAQuestion(String(body ?? ''))) return true
+      if (holds.onHold(phone, messageAt)) return true
+      const acked = ackByPhone.get(digits10(phone))
+      return Boolean(acked && messageAt && messageAt <= acked)
     },
   }
 }

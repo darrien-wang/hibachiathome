@@ -35,6 +35,11 @@ const FILLER = new Set([
   "you", "u", "your", "i", "im", "we", "my", "me", "us", "too", "very",
   "much", "really", "all", "then", "again", "hi", "hello", "hey", "yo",
   "guys", "man", "dear", "bling", "again!", "on", "in", "at", "with", "soon",
+  // 2026-09-24: "Perfect. Thank you so much. That is very helpful!" rang the
+  // owner's phone every few minutes. Copulas and "helpful" carry nothing on
+  // their own; anything with real content still trips ACTION_WORDS first.
+  "is", "was", "were", "be", "been", "helpful", "help", "helps", "helped",
+  "everything", "great!", "ok!",
 ])
 
 /**

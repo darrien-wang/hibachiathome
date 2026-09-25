@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "100", 10) || 100, 300)
 
   const LIST_COLUMNS =
-    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at, hold_until, hold_set_at"
+    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at, hold_until, hold_set_at, acked_until"
 
   // merged_into arrives with add-lead-merge-fields.sql. Until that migration is
   // applied the column does not exist, and filtering on it would 500 the whole
@@ -319,6 +319,8 @@ export async function PATCH(request: NextRequest) {
     note?: string
     /** set_hold：挂起几天，0 = 撤销。 */
     days?: number
+    /** ack_replies：true = 撤销「不用回」。 */
+    clear?: boolean
   }
   try {
     body = await request.json()
@@ -550,6 +552,24 @@ export async function PATCH(request: NextRequest) {
       note: clearing ? "撤销「等客户回」" : `等客户回 · ${days} 天（客人说他会回头联系我们）`,
     })
     return NextResponse.json({ ok: true })
+  }
+
+  // 「这条不用回」——老板 2026-09-24 定（Natalie 的一句道谢每隔几分钟响一次）。
+  // 水位线：这一刻之前的消息都算处理完了，客人再发新的照样响。撤销传 clear:true。
+  if (body.action === "ack_replies") {
+    const clearing = body.clear === true
+    const now = new Date()
+    const { error } = await supabase
+      .from("leads")
+      .update({ acked_until: clearing ? null : now.toISOString(), updated_at: now.toISOString() })
+      .eq("id", leadId)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    await logEvent(supabase, leadId, NOTE_TYPE, actor, {
+      note: clearing ? "撤销「不用回」" : "标记「不用回」：到此为止的消息都不需要回复（新消息会重新提醒）",
+    })
+    return NextResponse.json({ ok: true, ackedUntil: clearing ? null : now.toISOString() })
   }
 
   if (body.action === "set_status") {

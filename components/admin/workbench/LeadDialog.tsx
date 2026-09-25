@@ -163,6 +163,8 @@ export function LeadDialog({
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
   const unreplied = leadUnreplied(lead)
   const onHold = leadOnHold(lead)
+  const acked = Boolean(lead.acked_until && Date.parse(lead.acked_until) > 0 &&
+    (!lead.last_inbound_at || Date.parse(lead.last_inbound_at) <= Date.parse(lead.acked_until)))
   const resp = firstRespText(lead.response_seconds, settings.targets.first_response_sla_minutes)
   const fname = firstName(lead.full_name)
 
@@ -448,6 +450,25 @@ export function LeadDialog({
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>客人说他会回头找我们时点一下</span>
               </div>
             )}
+            {/* 「不用回」：一句道谢、一个赞，不是在等我们答复（老板 2026-09-24：
+                免得一直提醒）。和挂起不同——它只管这一刻之前，新消息照样响。 */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginTop: 6 }}>
+              {acked ? (
+                <>
+                  <Tag cls="tag-ink">不用回 · {stamp(lead.acked_until!)} 之前</Tag>
+                  <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void patch({ action: "ack_replies", clear: true }, "ack")}>
+                    撤销
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void patch({ action: "ack_replies" }, "ack")}>
+                    不用回
+                  </button>
+                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>道谢、点赞这种，标了就不再提醒</span>
+                </>
+              )}
+            </div>
           </div>
 
           {linked.length > 0 ? (
