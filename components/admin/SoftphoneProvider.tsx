@@ -70,6 +70,14 @@ export function useSoftphone(): SoftphoneContextValue {
 // who switched the phone off on purpose.
 const OFFLINE_KEY = "rh_phone_offline"
 
+// Twilio 的令牌只活 1 小时，而 SDK 的"快到期了"提醒是个前台定时器——电脑睡眠
+// 或者标签页被浏览器降频，它就不会响，醒来时线已经死了（2026-09-24：电脑上报
+// AccessTokenExpired 20104，电话只好响到手机上）。所以三重保险：提前很多续期、
+// 标签页醒过来再补一次、真过期了当成要修的事而不是一条红字。
+const TOKEN_REFRESH_MS = 5 * 60 * 1000
+const TOKEN_STALE_MS = 40 * 60 * 1000
+const TOKEN_ERROR_CODES = new Set([20101, 20104, 31204])
+
 // Inside the Android shell the native Twilio SDK owns the 213 line: it rings
 // over Firebase and answers in its own screen. The browser softphone must stay
 // off there, or both would ring and fight over the microphone.
@@ -146,6 +154,10 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   >(null)
 
   const deviceRef = useRef<Device | null>(null)
+  // 当前令牌是什么时候拿的：标签页醒来时用它判断要不要续，免得每次切标签都去打接口。
+  const tokenAtRef = useRef(0)
+  // 事件回调闭包里拿到的是创建那一刻的函数，所以续期走 ref，永远调最新那个。
+  const renewRef = useRef<() => Promise<boolean>>(async () => false)
   const captionHandles = useRef<CaptionHandle[]>([])
   // clearCall runs from SDK callbacks that closed over an older render, so the
   // details of the call that just ended have to be read from refs.
@@ -239,6 +251,50 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     [clearCall]
   )
 
+  /** 拿张新令牌塞给当前 device；掉线了顺手重新注册。 */
+  const renewToken = useCallback(async () => {
+    const device = deviceRef.current
+    if (!device) return false
+    const state = (device as unknown as { state?: string }).state
+    if (state === "destroyed") return false
+    try {
+      const fresh = await fetchToken(adminKey)
+      device.updateToken(fresh.token)
+      tokenAtRef.current = Date.now()
+      if (state === "unregistered") await device.register()
+      setStatus("ready")
+      setMessage("")
+      return true
+    } catch {
+      setStatus("error")
+      setMessage("令牌续期失败，请重新上线")
+      return false
+    }
+  }, [adminKey, fetchToken])
+
+  useEffect(() => {
+    renewRef.current = renewToken
+  }, [renewToken])
+
+  // 电脑睡醒 / 断网重连 / 标签页切回来：令牌够老就补一张。不设这个的话，
+  // 上面那个到期提醒在睡眠期间根本不会触发。
+  useEffect(() => {
+    const wake = () => {
+      if (document.visibilityState !== "visible") return
+      if (!deviceRef.current) return
+      if (Date.now() - tokenAtRef.current < TOKEN_STALE_MS) return
+      void renewRef.current()
+    }
+    document.addEventListener("visibilitychange", wake)
+    window.addEventListener("focus", wake)
+    window.addEventListener("online", wake)
+    return () => {
+      document.removeEventListener("visibilitychange", wake)
+      window.removeEventListener("focus", wake)
+      window.removeEventListener("online", wake)
+    }
+  }, [])
+
   const goOnline = useCallback(async (opts?: { probeMic?: boolean }) => {
     if (deviceRef.current || inAndroidApp()) return
     setStatus("connecting")
@@ -262,18 +318,28 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       const { token, identity: id, canDialOut: dialOutAllowed } = await fetchToken(adminKey)
       const { Device: TwilioDevice } = await import("@twilio/voice-sdk")
 
+      tokenAtRef.current = Date.now()
       const device = new TwilioDevice(token, {
         codecPreferences: ["opus", "pcmu"] as never,
         logLevel: "error",
-      })
+        // 默认只提前十几秒喊，一次卡顿就错过。提前 5 分钟，留足余量。
+        tokenRefreshMs: TOKEN_REFRESH_MS,
+      } as never)
 
       device.on("registered", () => {
         setStatus("ready")
         setMessage("")
       })
-      device.on("error", (e: { message?: string }) =>
+      device.on("error", (e: { code?: number; message?: string }) => {
+        // 20104 AccessTokenExpired / 20101 无效令牌：这类是能自己救回来的，
+        // 印一条红字然后把线晾在那儿才是真问题。
+        if (TOKEN_ERROR_CODES.has(e?.code ?? 0) || /AccessToken/i.test(e?.message ?? "")) {
+          setMessage("令牌过期，正在续期…")
+          void renewRef.current()
+          return
+        }
         setMessage(`设备错误：${e?.message ?? "未知错误"}`)
-      )
+      })
       device.on("incoming", (call: Call) => {
         const from = call.parameters.From ?? ""
         wireCall(call, from, "in")
@@ -284,14 +350,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
         // closed panel, whatever page you happen to be working on.
         setDrawerOpen(true)
       })
-      // Tokens live 1h; refresh before expiry so a long shift does not drop.
-      device.on("tokenWillExpire", async () => {
-        try {
-          const fresh = await fetchToken(adminKey)
-          device.updateToken(fresh.token)
-        } catch {
-          setMessage("令牌续期失败，请重新上线")
-        }
+      device.on("tokenWillExpire", () => {
+        void renewRef.current()
       })
 
       await device.register()
