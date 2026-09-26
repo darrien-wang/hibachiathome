@@ -107,7 +107,8 @@ export default function PayClient() {
     }
   }, [orderId, amountNumber, payerName, payerPhone])
 
-  const shell = "mx-auto w-full max-w-[520px] px-5 py-12 sm:py-16"
+  // 顶部要避开 60px 的固定导航，否则上面那个小标签会被盖掉一截。
+  const shell = "mx-auto w-full max-w-[520px] px-5 pb-12 pt-20 sm:pb-16 sm:pt-24"
 
   if (!data) {
     return (
