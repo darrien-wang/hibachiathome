@@ -121,6 +121,13 @@ export function SmsThreadPanel({
   header?: React.ReactNode
 }) {
   const [messages, setMessages] = useState<SmsMessage[] | null>(null)
+  // Twilio's Messages list is eventually consistent: a text it has just
+  // accepted is usually missing from a list query for a few seconds, so
+  // reloading straight after a send showed the thread without the line we
+  // had just sent and the owner had to hit 刷新 (2026-09-26). The POST
+  // returns the real SID, which is proof enough to draw the bubble now; the
+  // next load that contains that SID takes over.
+  const [pending, setPending] = useState<SmsMessage[]>([])
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
@@ -145,7 +152,10 @@ export function SmsThreadPanel({
         setMessages([])
         return
       }
-      setMessages(Array.isArray(data.messages) ? data.messages : [])
+      const fresh: SmsMessage[] = Array.isArray(data.messages) ? data.messages : []
+      setMessages(fresh)
+      const landed = new Set(fresh.map((m) => m.sid))
+      setPending((p) => p.filter((m) => !landed.has(m.sid)))
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed")
       setMessages([])
@@ -154,15 +164,20 @@ export function SmsThreadPanel({
 
   useEffect(() => {
     setMessages(null)
+    setPending([])
     setDraft("")
     void load()
   }, [load])
+
+  // Reloads queued after a send, cancelled if the drawer closes first.
+  const timers = useRef<number[]>([])
+  useEffect(() => () => timers.current.forEach((id) => window.clearTimeout(id)), [])
 
   // Keep the newest message in view.
   useEffect(() => {
     const el = boxRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages])
+  }, [messages, pending])
 
   useEffect(() => {
     if (!insert || !insert.text) return
@@ -193,7 +208,14 @@ export function SmsThreadPanel({
         return
       }
       setDraft("")
+      if (typeof data.sid === "string" && data.sid) {
+        const at = new Date().toISOString()
+        setPending((p) => [...p, { sid: data.sid, direction: "outbound", body, at, status: String(data.status ?? "queued"), media: 0, peer: phone }])
+      }
+      // Now, then again once Twilio has had time to index it - the second
+      // pass is what turns "queued" into the real delivery status.
       await load()
+      timers.current.push(window.setTimeout(() => void load(), 4000), window.setTimeout(() => void load(), 12000))
       onSent?.(body)
     } finally {
       setSending(false)
@@ -216,6 +238,8 @@ export function SmsThreadPanel({
     [fillTemplate],
   )
 
+  const landed = new Set((messages ?? []).map((m) => m.sid))
+  const shown = messages === null ? null : [...messages, ...pending.filter((m) => !landed.has(m.sid))]
   const label = peerLabel && peerLabel.trim() ? peerLabel.trim() : "客户"
   const canSend = !!phone && !sending && !!draft.trim()
 
@@ -235,11 +259,11 @@ export function SmsThreadPanel({
           maxHeight: compact ? 300 : 400,
         }}
       >
-        {messages === null && <p className="empty">读取短信中…</p>}
-        {messages !== null && messages.length === 0 && (
+        {shown === null && <p className="empty">读取短信中…</p>}
+        {shown !== null && shown.length === 0 && (
           <p className="empty">{error ? `读不到短信：${error}` : phone ? "还没有短信往来" : "没有手机号"}</p>
         )}
-        {(messages ?? []).map((m) => {
+        {(shown ?? []).map((m) => {
           const mine = m.direction === "outbound"
           // A tapback is a gesture, not a message: it is the only inbound we
           // never answer, so it is labelled instead of sitting there looking
