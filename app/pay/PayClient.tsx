@@ -12,6 +12,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 type Summary = {
   ok: boolean
+  /** 没有订单号的通用收款链接 */
+  openLink?: boolean
   settled?: boolean
   error?: string
   clientName?: string
@@ -37,6 +39,9 @@ export default function PayClient() {
   const [amount, setAmount] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // 通用链接（不带 ?o=）用的两个字段，见下面 openLink 分支。
+  const [payerName, setPayerName] = useState("")
+  const [payerPhone, setPayerPhone] = useState("")
 
   // useSearchParams 会把整页推成 CSR（仓库里踩过），一律读 window.location。
   useEffect(() => {
@@ -50,7 +55,9 @@ export default function PayClient() {
   useEffect(() => {
     if (orderId === null) return
     if (!orderId) {
-      setData({ ok: false, error: "That link looks incomplete. Text us and we'll send a new one." })
+      // 老板 2026-09-25：要一条不用每次重新生成的收款链接。没有订单号就是
+      // 通用模式——客人自己填名字、手机和金额，后台按手机号去认订单。
+      setData({ ok: true, openLink: true })
       return
     }
     let cancelled = false
@@ -74,14 +81,22 @@ export default function PayClient() {
   }, [amount])
 
   const pay = useCallback(async () => {
-    if (!orderId || amountNumber <= 0) return
+    if (amountNumber <= 0) return
+    if (!orderId && (!payerName.trim() || payerPhone.replace(/\D/g, "").length < 10)) {
+      setErr("Add your name and mobile number so we can match the payment to your party.")
+      return
+    }
     setBusy(true)
     setErr(null)
     try {
       const r = await fetch("/api/pay/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ o: orderId, amount: amountNumber }),
+        body: JSON.stringify(
+          orderId
+            ? { o: orderId, amount: amountNumber }
+            : { amount: amountNumber, name: payerName.trim(), phone: payerPhone.trim() },
+        ),
       })
       const j = (await r.json()) as { ok?: boolean; url?: string; error?: string }
       if (!r.ok || !j.ok || !j.url) throw new Error(j.error || "We couldn't start the payment.")
@@ -90,7 +105,7 @@ export default function PayClient() {
       setErr(e instanceof Error ? e.message : "We couldn't start the payment.")
       setBusy(false)
     }
-  }, [orderId, amountNumber])
+  }, [orderId, amountNumber, payerName, payerPhone])
 
   const shell = "mx-auto w-full max-w-[520px] px-5 py-12 sm:py-16"
 
@@ -98,6 +113,71 @@ export default function PayClient() {
     return (
       <div className={shell}>
         <div className="h-40 animate-pulse rounded-[28px] bg-surface" />
+      </div>
+    )
+  }
+
+  if (data.openLink) {
+    const field =
+      "mt-1 w-full rounded-2xl border-2 border-line bg-white px-4 py-3 text-[17px] outline-none focus:border-flame"
+    return (
+      <div className={shell}>
+        <span className="inline-block rounded-full bg-gold-100 px-4 py-1.5 text-xs font-semibold tracking-wide text-gold-800">
+          Pay Real Hibachi
+        </span>
+        <h1 className="mt-5 font-serif text-4xl font-extrabold leading-[1.08] tracking-tight">Pay by card</h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-clay-700">
+          Enter the amount you agreed with us and pay right here. Card payments are secured by Stripe.
+        </p>
+
+        <label className="mt-7 block text-[15px] font-semibold text-ink">
+          Your name
+          <input
+            className={field}
+            value={payerName}
+            onChange={(e) => setPayerName(e.target.value)}
+            placeholder="First and last name"
+            autoComplete="name"
+          />
+        </label>
+        <label className="mt-4 block text-[15px] font-semibold text-ink">
+          Mobile number
+          <input
+            className={field}
+            value={payerPhone}
+            onChange={(e) => setPayerPhone(e.target.value)}
+            placeholder="(213) 555-0123"
+            inputMode="tel"
+            autoComplete="tel"
+          />
+        </label>
+        <label className="mt-4 block text-[15px] font-semibold text-ink">
+          Amount
+          <input
+            className={field}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="$0.00"
+            inputMode="decimal"
+          />
+        </label>
+
+        {err ? <p className="mt-4 text-[15px] font-semibold text-flame-800">{err}</p> : null}
+
+        <button
+          type="button"
+          onClick={() => void pay()}
+          disabled={busy || amountNumber <= 0}
+          className="mt-7 w-full rounded-full bg-flame px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60"
+        >
+          {busy ? "Opening secure checkout…" : amountNumber > 0 ? `Pay ${usd(amountNumber)}` : "Enter an amount"}
+        </button>
+        <p className="mt-5 text-[14px] leading-relaxed text-clay-700">
+          Paying for a party we already have on the books? Your name and number are all we need to match it up.
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-clay-700">
+          Questions about the amount? Text 213-770-7788.
+        </p>
       </div>
     )
   }
