@@ -791,7 +791,7 @@ export function ChefDialog({
                         <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `桌椅 ${s.tableHeads} 人 × $4，点击改成不带` : "点击改成带桌椅"}>
                           · 桌椅 {s.hasTables ? money(s.tablesCents) : "无"}
                         </button>
-                        <span title={s.miles == null ? "发票里没有里程，路费按 $0" : `${s.miles} mi：超 50 mi 的场 $50 起步 + 超出 × $1/mi`}>
+                        <span title={s.miles == null ? "发票里没有里程，路费按 $0" : `基地到客户家 ${s.miles} mi：超过 50 mi 的场整程 × $1/mi，50 及以内 $0`}>
                           · 路费 {s.travelCents ? money(s.travelCents) : s.miles == null ? "?" : "$0"}
                         </span>
                       </div>
@@ -886,7 +886,7 @@ export function ChefDialog({
               </div>
             ) : null}
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-              净额 = 人头费（大人整头 · 收费小孩半头 · 免费幼儿不算）+ 桌椅 $4/人 + 路费（超 50 mi 的场：$50 + 超出 × $1）+ 好评（无图 $2 · 带图 $3）+ 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。
+              净额 = 人头费（大人整头 · 收费小孩半头 · 免费幼儿不算）+ 桌椅 $4/人 + 路费（超 50 mi 的场：整程 × $1/mi）+ 好评（无图 $2 · 带图 $3）+ 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。
             </div>
 
             {notYetHeld.length ? (
