@@ -113,7 +113,11 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     lead_min_guests: 8,
   },
   sms_brakes: {
-    followup_cap: 6,
+    // Was 6 until the 2026-09-27 audit: after our third unanswered text the
+    // reply rate fell to 15%, and every "Last note from me" got zero replies.
+    // Three total (the instant quote, one personal first message, one
+    // follow-up with a real reason) - then the lead is held, not chased.
+    followup_cap: 3,
     daily_cap: 2,
     spacing_hours: 3,
     reply_window_minutes: 15,

@@ -76,6 +76,21 @@ function isAutomatedText(body: string): boolean {
   return body.trimStart().startsWith("Real Hibachi:")
 }
 
+// Context lint (2026-09-27 audit). ASKS_FOR_DATE is how our follow-ups ask for
+// a date; MENTIONS_A_DATE is how customers write one ("november 29th",
+// "Saturday 12/12 at 6pm", "the 13th Tuesday", "Dec 26-30", "Sunday 2/21").
+const ASKS_FOR_DATE =
+  /\b(which|what)\s+(weekend|date|dates|day|night|evening)\b|\bwhich\s+(saturday|sunday|friday)\b|\bdid\s+(you|the\s+group|it|the\s+birthday|the\s+date)\s+(land|settle)\s+on\b|\bwhen\s+(is|are)\s+(it|you|the\s+party)\b/i
+const MENTIONS_A_DATE =
+  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(st|nd|rd|th)?\b|\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b|\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\.?,?\s+(the\s+)?\d{1,2}(st|nd|rd|th)?\b|\bthe\s+\d{1,2}(st|nd|rd|th)\b/i
+
+// Sweep brake (2026-09-27 audit): 9 batch sends in 15 days, 55 texts to people
+// who had never replied, 10 answers - and the batch that asked three customers
+// for a date they had already given. Six unprompted texts inside ten minutes
+// is a sweep, not a conversation.
+const SWEEP_WINDOW_MS = 10 * 60_000
+const SWEEP_CAP = 6
+
 // Answering is not pestering. A customer who asks three things in one text
 // gets three short answers, and the follow-up caps must not count them as
 // three unprompted messages (2026-09-20: a Temecula lead asked about
@@ -98,6 +113,54 @@ export async function POST(request: NextRequest) {
   if (!phone) return NextResponse.json({ error: "invalid phone" }, { status: 400 })
   if (!body) return NextResponse.json({ error: "empty message" }, { status: 400 })
   if (body.length > 1200) return NextResponse.json({ error: "message too long" }, { status: 400 })
+  const leadIdParam = typeof payload.leadId === "string" && /^[0-9a-f-]{36}$/i.test(payload.leadId) ? payload.leadId : null
+
+  // The conversation, read once from Twilio (the source of truth, whoever sent
+  // what): the context lint and the brakes below both work from it.
+  const thread = payload.force ? [] : await fetchSmsThread(phone, 100)
+  // Set when this send counts as an unprompted follow-up (not an answer); it
+  // rides on the touchpoint so the sweep brake can count only those.
+  let unprompted = false
+
+  // ---- Context lint (2026-09-27 audit) --------------------------------------
+  // On 09-23 one batch asked three customers "which weekend are you looking
+  // at?" after each of them had already texted us their date. The thread was
+  // right there; nobody read it. So the server reads it: a text that asks for
+  // the date is refused when the customer has already given one - in a text,
+  // or on the lead (event_hint) - and the refusal quotes what they said.
+  // force:true overrides, for the rare "is it still the 13th?" re-confirm.
+  if (!payload.force && ASKS_FOR_DATE.test(body)) {
+    const said = thread.find((m) => m.direction === "inbound" && MENTIONS_A_DATE.test(m.body))
+    let hint: string | null = null
+    if (!said) {
+      const supabase = createServerSupabaseClient()
+      if (supabase) {
+        const base = supabase.from("leads").select("event_hint")
+        const { data } = leadIdParam
+          ? await base.eq("id", leadIdParam).maybeSingle()
+          : await base
+              .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
+              .is("merged_into", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+        hint = (data as { event_hint: string | null } | null)?.event_hint ?? null
+      }
+    }
+    if (said || hint) {
+      return NextResponse.json(
+        {
+          error: said
+            ? `客人已经说过日期了（${said.at.slice(0, 10)}："${said.body.slice(0, 120)}"），这条却在问日期——先读完对话，接着他说的往下谈`
+            : `线索上已经有日期（${hint}），这条却在问日期——先读完对话，接着他说的往下谈`,
+          brake: "asked_known_date",
+          said: said ? { at: said.at, body: said.body.slice(0, 200) } : null,
+          event_hint: hint,
+        },
+        { status: 409 },
+      )
+    }
+  }
 
   // ---- Brakes (owner, 2026-09-19) ------------------------------------------
   // Replies are never braked: when the customer spoke last, answer at once.
@@ -151,7 +214,6 @@ export async function POST(request: NextRequest) {
       const FOLLOWUP_CAP = brakes.followup_cap
       const REPLY_WINDOW_MS = brakes.reply_window_minutes * 60_000
       const REPLY_BURST_CAP = brakes.reply_burst_cap
-      const thread = await fetchSmsThread(phone, 100)
       const last = thread[thread.length - 1]
       const customerSpokeLast = last?.direction === "inbound"
       const now = Date.now()
@@ -179,9 +241,13 @@ export async function POST(request: NextRequest) {
         // the instant quote had gone out 110 minutes earlier). Automated
         // texts still count toward the daily and lifetime caps above.
         const lastPersonalOut = [...outbound].reverse().find((m) => !isAutomatedText(m.body))
+        unprompted = true
         if (!everReplied && outbound.length >= FOLLOWUP_CAP) {
           return NextResponse.json(
-            { error: `已发 ${outbound.length} 条、对方从没回过，到上限 ${FOLLOWUP_CAP} 条，停发`, brake: "cap" },
+            {
+              error: `已发 ${outbound.length} 条、对方从没回过，到上限 ${FOLLOWUP_CAP} 条，停发。挂起等他；派对 7 天内且有新信息才 force 一条（先给老板看）`,
+              brake: "cap",
+            },
             { status: 409 },
           )
         }
@@ -191,6 +257,24 @@ export async function POST(request: NextRequest) {
         if (lastPersonalOut && now - new Date(lastPersonalOut.at).getTime() < brakes.spacing_hours * 3600_000) {
           return NextResponse.json({ error: `距上一条主动消息不到 ${brakes.spacing_hours} 小时`, brake: "spacing" }, { status: 409 })
         }
+        if (supabase) {
+          const { count } = await supabase
+            .from("lead_touchpoints")
+            .select("id", { count: "exact", head: true })
+            .eq("touchpoint_type", "sms_outbound")
+            .eq("touchpoint_source", "workbench")
+            .eq("raw_payload_json->>unprompted", "true")
+            .gte("occurred_at", new Date(now - SWEEP_WINDOW_MS).toISOString())
+          if ((count ?? 0) >= SWEEP_CAP) {
+            return NextResponse.json(
+              {
+                error: `${SWEEP_WINDOW_MS / 60_000} 分钟内已经主动发出 ${count} 条跟进——这是群发。一次只处理一个人，读完他的对话再写`,
+                brake: "sweep",
+              },
+              { status: 409 },
+            )
+          }
+        }
       }
     }
   }
@@ -198,7 +282,7 @@ export async function POST(request: NextRequest) {
   const sent = await sendSms(phone, body)
   if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 502 })
 
-  const leadId = typeof payload.leadId === "string" && /^[0-9a-f-]{36}$/i.test(payload.leadId) ? payload.leadId : null
+  const leadId = leadIdParam
   if (leadId) {
     const supabase = createServerSupabaseClient()
     if (supabase) {
@@ -209,7 +293,7 @@ export async function POST(request: NextRequest) {
         touchpoint_type: "sms_outbound",
         touchpoint_source: "workbench",
         external_touchpoint_id: sent.sid,
-        raw_payload_json: { to: phone, body, status: sent.status, actor: "workbench" },
+        raw_payload_json: { to: phone, body, status: sent.status, actor: "workbench", unprompted },
         occurred_at: now,
       })
       await supabase

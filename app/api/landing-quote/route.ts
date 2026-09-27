@@ -6,7 +6,12 @@ import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
-import { DEPOSIT_AMOUNT, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode } from "@/config/pricing-rules"
+import { DEPOSIT_AMOUNT, FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode } from "@/config/pricing-rules"
+
+// Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
+// most-asked question in 15 days of texts, and competitors bundle them, so a
+// quote that stays silent reads as "included" until the day of the party.
+const RENTALS_LINE = `Tables, chairs & linens $${TABLES_CHAIRS_PER_GUEST}/guest, plates & silverware $${FULL_SETUP_PER_GUEST - TABLES_CHAIRS_PER_GUEST} - or use your own.`
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -224,6 +229,10 @@ export async function POST(request: NextRequest) {
         ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
         : "No travel fee for your area.",
     `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
+    // The single most-asked question in the 09-13..09-27 audit (10+ threads),
+    // and the one that cost a corporate customer his plates on the day: say it
+    // before they have to ask. Numbers come from config/pricing-rules.
+    RENTALS_LINE,
     "Reply here with questions - a real person answers. Reply STOP to opt out.",
   ]
     .filter((line): line is string => Boolean(line))
@@ -245,6 +254,7 @@ export async function POST(request: NextRequest) {
       `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
       "",
       "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup and cleanup.",
+      RENTALS_LINE,
       "Questions? Reply to this email or text (213) 770-7788.",
     ]
     await sendCustomerEmail({

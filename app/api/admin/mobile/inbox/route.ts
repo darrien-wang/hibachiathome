@@ -39,7 +39,15 @@ type InboxEvent = {
   at: string
   waitedMinutes: number
   ring: boolean
+  /**
+   * Unanswered 15+ minutes (2026-09-27 audit: p90 reply time was 103 min, and
+   * the 17:00-19:00 dinner-planning hour was our slowest). The app nags louder
+   * for these; lead-watch re-notifies them every 10 minutes instead of two hours.
+   */
+  urgent?: boolean
 }
+
+const URGENT_MIN = 15
 
 // The 555 exchange is never assigned to real subscribers; our own tests use it.
 const isTestNumber = (e164: string | null) => !e164 || /^\+1\d{3}555\d{4}$/.test(e164)
@@ -107,6 +115,7 @@ export async function GET(request: NextRequest) {
       at: l.created_at,
       waitedMinutes: minutesSince(l.created_at, now),
       ring: !fromCall,
+      urgent: minutesSince(l.created_at, now) >= URGENT_MIN,
     })
   }
 
@@ -156,6 +165,7 @@ export async function GET(request: NextRequest) {
         at: u.at,
         waitedMinutes: waited,
         ring: waited <= MAX_EVENT_AGE_MIN,
+        urgent: waited >= URGENT_MIN,
       })
     }
   }

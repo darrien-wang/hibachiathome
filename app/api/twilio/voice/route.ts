@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
   const callSid = params.CallSid ?? ""
 
   // Log the inbound call as a lead touchpoint so it shows up on the workbench.
-  if (from && callSid && from !== "Anonymous") {
-    const supabase = createServerSupabaseClient()
+  const supabase = createServerSupabaseClient()
+  if (supabase && from && callSid && from !== "Anonymous") {
     try {
       await upsertLeadFromContact(supabase, {
         name: from,
@@ -85,9 +85,12 @@ export async function POST(request: NextRequest) {
   const recording = recordingAttributes()
   const notice = recording ? `<Say>${escapeXml(RECORDING_NOTICE)}</Say>` : ""
 
+  // When the legs finish, /api/twilio/voice-status decides what the caller
+  // hears: nothing if someone answered, and if nobody did it texts them right
+  // away and says so (2026-09-27 audit: 4 of 8 missed calls got no text).
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
   return twiml(
     notice +
-      `<Dial timeout="25" answerOnBridge="true"${recording}>${legs}</Dial>` +
-      "<Say>Sorry we missed you. Please text us at this number with your event date and city, and we will reply within minutes.</Say>"
+      `<Dial timeout="25" answerOnBridge="true" action="${escapeXml(`${base}/api/twilio/voice-status`)}" method="POST"${recording}>${legs}</Dial>`
   )
 }

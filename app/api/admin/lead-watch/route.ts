@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 
-import { calcSimpleEstimate } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, calcSimpleEstimate } from "@/config/pricing-rules"
 import { escapeHtml } from "@/lib/escape-html"
 import { loadQuiet } from "@/lib/lead-hold"
+import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
@@ -32,6 +33,15 @@ export const maxDuration = 60
 // (5 min / 120 min / on) are what was hard-coded here until 2026-09-21.
 const MAX_LEAD_AGE_HOURS = 24
 const SMS_LOOKBACK_HOURS = 24
+// Missed-call backstop window: long enough to cover a sweep that was late,
+// short enough that a text still reads as "we saw you call".
+const MISSED_CALL_LOOKBACK_MS = 60 * 60_000
+// Give the <Dial action> handler (app/api/twilio/voice-status) first go.
+const MISSED_CALL_GRACE_MS = 2 * 60_000
+// A customer text unanswered this long is re-notified every 10 minutes instead
+// of every renotify_minutes (2026-09-27 audit: p90 reply time was 103 min).
+const URGENT_AFTER_MIN = 15
+const URGENT_RENOTIFY_MS = 10 * 60_000
 
 async function isAuthorized(request: NextRequest): Promise<boolean> {
   return (await resolveAdminActor(request)) !== null
@@ -83,6 +93,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
     `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
     travel > 0 ? `- Travel${city ? ` to ${city}` : ""}: about $${travel}` : `- ${city || "Your area"}: no travel fee`,
     "- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.",
+    `- Tables, chairs & linens are $${TABLES_CHAIRS_PER_GUEST} a guest if you need them, plates & silverware $${FULL_SETUP_PER_GUEST - TABLES_CHAIRS_PER_GUEST} - or use your own.`,
     "",
     "What date are you thinking?",
     "",
@@ -109,6 +120,32 @@ async function listTwilio(query: string): Promise<TwilioMessage[]> {
 }
 
 const when = (m: TwilioMessage) => new Date(m.date_sent ?? m.date_created).getTime()
+
+type TwilioCall = {
+  sid: string
+  from: string
+  to: string
+  direction: string | null
+  status: string
+  duration: string | null
+  start_time: string | null
+  date_created: string
+}
+
+/** Calls into the 213 line since yesterday, newest first (one page is plenty). */
+async function listTwilioCalls(ours: string): Promise<TwilioCall[]> {
+  const sid = process.env.TWILIO_ACCOUNT_SID
+  const token = process.env.TWILIO_AUTH_TOKEN
+  if (!sid || !token) return []
+  const day = new Date(Date.now() - 86400_000).toISOString().slice(0, 10)
+  const res = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json?To=${encodeURIComponent(ours)}&StartTime%3E=${day}&PageSize=50`,
+    { headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}` }, cache: "no-store" },
+  )
+  if (!res.ok) return []
+  const data = (await res.json().catch(() => ({}))) as { calls?: TwilioCall[] }
+  return data.calls ?? []
+}
 
 export async function POST(request: NextRequest) {
   if (!(await isAuthorized(request))) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
@@ -237,19 +274,95 @@ export async function POST(request: NextRequest) {
     humanSms.push({ kind: "sms", sid: m.sid, from: m.from, minutesWaiting: Math.round((now - at) / 60_000), body: body.slice(0, 400) })
   }
 
-  // ---- report each open item once (again after two hours) ---------------
-  const candidates = [...humanLeads.map((h) => ({ key: `lead:${h.leadId}`, item: h })), ...humanSms.map((h) => ({ key: `sms:${h.sid}`, item: h }))]
-  let needsHuman = candidates.map((c) => c.item)
+  // ---- missed calls nobody texted back (2026-09-27 audit) -----------------
+  // The <Dial action> handler texts a caller nobody picked up for, but a caller
+  // who hangs up while we are still ringing never reaches it - Twilio's call
+  // log does. 4 of the 8 missed calls in the audit window got nothing from us,
+  // and 5 of the 18 bookings started with a phone call. Same text and the same
+  // CallSid key as the handler (lib/missed-call.ts), so nobody is texted twice.
+  const missedCallTexts: Array<Record<string, unknown>> = []
+  for (const c of await listTwilioCalls(ours)) {
+    if (!(c.direction ?? "").startsWith("inbound")) continue
+    const from = toE164(c.from)
+    const startedAt = new Date(c.start_time ?? c.date_created).getTime()
+    if (!from || isTestNumber(from) || Number.isNaN(startedAt)) continue
+    if (now - startedAt > MISSED_CALL_LOOKBACK_MS || now - startedAt < MISSED_CALL_GRACE_MS) continue
+    if (c.status === "completed" && (Number(c.duration) || 0) >= 20) continue
+    // Anyone (the handler, a person, the app) already texted after the call.
+    if ((lastOut.get(from) ?? 0) >= startedAt) continue
+    const digits = from.replace(/\D/g, "").slice(-10)
+    const { data: leadRow } = await supabase
+      .from("leads")
+      .select("id, sms_blocked_at")
+      .eq("normalized_phone", digits)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const lead = leadRow as { id: string; sms_blocked_at: string | null } | null
+    if (lead?.sms_blocked_at) continue
+    if (lead) {
+      const { data: done } = await supabase
+        .from("lead_touchpoints")
+        .select("id")
+        .eq("lead_id", lead.id)
+        .eq("external_touchpoint_id", missedCallTouchpointId(c.sid))
+        .limit(1)
+      if (done && done.length > 0) continue
+    }
+    if (dryRun) {
+      missedCallTexts.push({ from, callSid: c.sid, callStatus: c.status, dryRun: true })
+      continue
+    }
+    const sms = await sendSms(from, MISSED_CALL_TEXT)
+    if (lead) {
+      const at = new Date().toISOString()
+      await supabase.from("lead_touchpoints").insert({
+        lead_id: lead.id,
+        touchpoint_type: "sms_outbound",
+        touchpoint_source: "missed_call",
+        external_touchpoint_id: missedCallTouchpointId(c.sid),
+        raw_payload_json: {
+          to: from,
+          body: MISSED_CALL_TEXT,
+          status: sms.ok ? sms.status : `failed: ${sms.error}`,
+          call_sid: c.sid,
+          call_status: c.status,
+          call_seconds: Number(c.duration) || 0,
+          sid: sms.ok ? sms.sid : null,
+          auto: true,
+          via: "lead_watch",
+        },
+        occurred_at: at,
+      })
+      await supabase
+        .from("leads")
+        .update({ latest_message: `我方 ${at.slice(0, 10)} 未接来电已自动短信：${MISSED_CALL_TEXT}`.slice(0, 500), last_seen_at: at, updated_at: at })
+        .eq("id", lead.id)
+    }
+    missedCallTexts.push({ from, callSid: c.sid, callStatus: c.status, sms: sms.ok ? "sent" : sms.error })
+  }
+
+  // ---- report each open item once (again after two hours; urgent ones every 10 min)
+  const candidates = [
+    ...humanLeads.map((h) => ({ key: `lead:${h.leadId}`, item: h, urgent: false })),
+    ...humanSms.map((h) => ({ key: `sms:${h.sid}`, item: h, urgent: Number(h.minutesWaiting) >= URGENT_AFTER_MIN })),
+  ]
+  let needsHuman = candidates.map((c) => ({ ...c.item, urgent: c.urgent }))
   if (candidates.length > 0) {
     const { data: already } = await supabase
       .from("lead_watch_notified")
       .select("key, notified_at")
       .in("key", candidates.map((c) => c.key))
-    const recent = new Set(
-      (already ?? []).filter((r) => now - new Date(r.notified_at).getTime() < watch.renotify_minutes * 60_000).map((r) => r.key),
-    )
-    const fresh = candidates.filter((c) => !recent.has(c.key))
-    needsHuman = fresh.map((c) => c.item)
+    const notifiedAt = new Map((already ?? []).map((r) => [r.key as string, new Date(r.notified_at).getTime()]))
+    // A customer question that has sat 15+ minutes is the one thing on this
+    // list that costs money by the minute, so it keeps coming back until
+    // someone answers it; everything else waits renotify_minutes as before.
+    const fresh = candidates.filter((c) => {
+      const last = notifiedAt.get(c.key)
+      if (last === undefined) return true
+      return now - last >= (c.urgent ? URGENT_RENOTIFY_MS : watch.renotify_minutes * 60_000)
+    })
+    needsHuman = fresh.map((c) => ({ ...c.item, urgent: c.urgent }))
     if (!dryRun && fresh.length > 0) {
       await supabase
         .from("lead_watch_notified")
@@ -257,5 +370,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, needsHuman, stillOpen: candidates.length })
+  return NextResponse.json({ ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, needsHuman, stillOpen: candidates.length })
 }
