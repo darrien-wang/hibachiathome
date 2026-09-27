@@ -64,8 +64,12 @@ export const BILLING_LABELS: Record<string, string> = {
 export const KID_HEAD_FACTOR = 0.5
 /** 派对带桌椅时付给师傅：$4 × 带桌椅的人头（大人小孩全算）。 */
 export const TABLE_CHAIR_PER_HEAD_CENTS = 400
-/** 路费：超出 50 mi 的部分 × $1/mi，客户那头免不免都照给；50 及以内 $0。 */
+/**
+ * 路费（2026-09-28 用户定）：50 mi 及以内 $0；一旦超过 50 mi，
+ * = $50 基本补助 + 超出部分 × $1/mi。客户那头免不免都照给。
+ */
 export const TRAVEL_FREE_MILES = 50
+export const TRAVEL_BASE_CENTS = 5000
 export const TRAVEL_PER_MILE_CENTS = 100
 
 export type HeadCounts = { adults: number; kids: number; littles: number }
@@ -87,7 +91,8 @@ export function tableChairCents(tableHeads: number): number {
 
 export function travelCompCents(distanceMiles: number | null | undefined): number {
   if (distanceMiles == null || !Number.isFinite(distanceMiles)) return 0
-  return Math.round(Math.max(0, distanceMiles - TRAVEL_FREE_MILES) * TRAVEL_PER_MILE_CENTS)
+  if (distanceMiles <= TRAVEL_FREE_MILES) return 0
+  return TRAVEL_BASE_CENTS + Math.round((distanceMiles - TRAVEL_FREE_MILES) * TRAVEL_PER_MILE_CENTS)
 }
 
 /** 好评奖励：客人扫码留的 Google/Yelp 评价，无图 $2/条、带图 $3/条。 */

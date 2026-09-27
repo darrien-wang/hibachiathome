@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
-import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
+import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
@@ -763,7 +763,7 @@ export async function POST(request: NextRequest) {
           period: { start: dates[0] ?? today, end: dates[dates.length - 1] ?? today },
           generatedAt: now,
           rate: rate ? { baseCents: rate.base_pay_cents, headFrom: rate.head_from, perHeadCents: rate.per_head_cents } : null,
-          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
+          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelBaseCents: TRAVEL_BASE_CENTS, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
           parties: picked
             .sort((x, y) => (x.date || "").localeCompare(y.date || ""))
             .map((x) => ({
