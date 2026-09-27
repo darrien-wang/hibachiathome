@@ -9,10 +9,17 @@ import { notAQuestion } from "@/lib/courtesy-text"
 // 服务端（巡检 + 手机收件箱）走这里。以前巡检自己抄了一份、手机压根不知道有挂起
 // 这回事，于是同一条消息桌面安静、手机每隔几分钟报一次"等了 63 分钟"。
 //
-// **已成单的客人算在内**：成单之后他照样发短信，"菜单我收齐了再告诉你"正是要挂
-// 起的那种（Micah Hamilton，2026-09-24，状态 won）。真正谈不上"等谁"的是丢掉的
-// 线索。
-const CLOSED_DEAD = "(lost,disqualified)"
+// **状态一律不看**（2026-09-27 修）。以前这里排掉了 lost / disqualified，理由是
+// "丢掉的线索谈不上等谁"——可响铃那一侧（手机收件箱 / 巡检）是**按号码**扫 Twilio
+// 的，压根不看状态。于是标成流失的线索变成唯一一种**关不掉**的：挂起不认、不用回
+// 也不认，手机每 10 分钟报一次。760-442-9280 就是这么响了一下午。
+//
+// 放开是安全的：挂起和「不用回」都是**水位线**，客人在那之后再说话就自动失效
+// （onHold 的 messageAt > setAt、quiet 的 messageAt > acked）。所以被我们写死的
+// 人如果回头又来订，照样响。
+//
+// **已成单的客人同样算在内**：成单之后他照样发短信，"菜单我收齐了再告诉你"正是要
+// 挂起的那种（Micah Hamilton，2026-09-24，状态 won）。
 
 type HoldRow = {
   normalized_phone: string | null
@@ -41,7 +48,6 @@ export async function loadHolds(supabase: SupabaseClient, now = Date.now()): Pro
     .select("normalized_phone, phone, hold_until, hold_set_at")
     .not("hold_until", "is", null)
     .gt("hold_until", new Date(now).toISOString())
-    .not("status", "in", CLOSED_DEAD)
   if (error || !data) return NO_HOLDS
 
   const byPhone = new Map<string, { until: number; setAt: number }>()
@@ -91,8 +97,7 @@ export async function loadQuiet(supabase: SupabaseClient, now = Date.now()): Pro
     supabase
       .from("leads")
       .select("normalized_phone, phone, acked_until")
-      .not("acked_until", "is", null)
-      .not("status", "in", CLOSED_DEAD),
+      .not("acked_until", "is", null),
   ])
 
   const ackByPhone = new Map<string, number>()

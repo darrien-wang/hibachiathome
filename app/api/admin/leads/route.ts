@@ -577,9 +577,14 @@ export async function PATCH(request: NextRequest) {
     if (!ALLOWED_STATUSES.includes(status as (typeof ALLOWED_STATUSES)[number])) {
       return NextResponse.json({ error: "invalid status" }, { status: 400 })
     }
+    // 标成流失 / 无效 = 「这条我处理完了」。以前还要再点一次「不用回」手机才安静，
+    // 老板 2026-09-27 标了流失、手机照响（760-442-9280）。把水位线一起推到现在：
+    // 已经看过的消息不再提醒，客人回头再发新的照样响。
+    const closing = status === "lost" || status === "disqualified"
+    const nowIso = new Date().toISOString()
     const { error } = await supabase
       .from("leads")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ status, updated_at: nowIso, ...(closing ? { acked_until: nowIso } : {}) })
       .eq("id", leadId)
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
