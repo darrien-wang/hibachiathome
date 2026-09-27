@@ -310,12 +310,6 @@ export function ChefDialog({
     await post("del_review", { action: "delete_review", review_id: id })
   }
 
-  // 客人当场塞给师傅的现金小费：师傅自己留着，不进净额，只是记一笔。
-  const setCashTip = async (s: ShiftRow) => {
-    const raw = await askPrompt({ title: "现场现金小费", message: `${s.customer ?? ""} ${md(s.date)}：客人当场给了师傅多少现金小费？这笔师傅自己留着，不进结算。`, defaultValue: s.cashTipCents ? (s.cashTipCents / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
-    if (raw === null) return
-    await post(`tip:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: s.method ?? "other", cash_collected: s.cashCents / 100, card_tip: s.cardTipCents / 100, card_gross: s.cardGrossCents ? s.cardGrossCents / 100 : undefined, card_fee: s.cardFeeCents ? s.cardFeeCents / 100 : undefined, cash_tip: raw.trim() === "" ? 0 : Number(raw), ref: s.settlementRef ?? undefined }, "已记录")
-  }
   const upload = async (file: File) => {
     if (file.size > 8 * 1024 * 1024) {
       setMsg("文件太大（8 MB 以内）")
@@ -801,9 +795,15 @@ export function ChefDialog({
                     <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void promptCash(s)} title="点击改代收金额">
                       {s.cashCents ? money(s.cashCents) : "—"}
                     </button>
-                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void (s.method === "card" ? cardFlow(s) : setCashTip(s))} title={s.method === "card" ? "点击重新核对卡上小费" : "点击记现场现金小费"}>
-                      {s.cardTipCents ? money(s.cardTipCents) : "—"}
-                    </button>
+                    {s.method === "card" ? (
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void cardFlow(s)} title="点击重新核对卡上小费">
+                        {s.cardTipCents ? money(s.cardTipCents) : "—"}
+                      </button>
+                    ) : (
+                      <span style={{ textAlign: "right", color: "var(--color-neutral-500)" }} title="现金给的小费师傅自己收着，我们不记（2026-09-28 定）">
+                        {s.cardTipCents ? money(s.cardTipCents) : "—"}
+                      </span>
+                    )}
                     <span style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: 600 }}>
                       <NetSpan n={rowNet} />
                     </span>
