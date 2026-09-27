@@ -477,7 +477,7 @@ export function LeadDialog({
                   <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void patch({ action: "ack_replies" }, "ack")}>
                     不用回
                   </button>
-                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>道谢、点赞，或者你决定这条就不回了；标了手机和巡检都不再提醒，客人再发新消息照样响</span>
+                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>道谢、点赞、聊完了的收尾这种——这条我处理完了；标了手机和巡检都不再提醒，客人再发新消息照样响</span>
                 </>
               )}
             </div>
