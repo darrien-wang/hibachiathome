@@ -13,6 +13,13 @@ export type ShiftRow = {
   share: number
   team: Array<{ id: string; name: string }>
   payCents: number
+  /** 桌椅 $4/人、路费(超50mi×$1)——结算明细的另外两条腿（好评是 chef 级逐条记录）。 */
+  tablesCents: number
+  travelCents: number
+  counts: { adults: number; kids: number; littles: number }
+  tableHeads: number
+  hasTables: boolean
+  miles: number | null
   cashCents: number
   cashSource: "manual" | "chef_sheet" | "none"
   settledAt: string | null
@@ -39,9 +46,9 @@ export type SettleMethod = "cash" | "card" | "prepaid" | "other"
 export const METHOD_LABELS: Record<SettleMethod, string> = { cash: "师傅代收现金", card: "客人刷卡", prepaid: "已付清 / 转账", other: "其它" }
 export const METHOD_SHORT: Record<SettleMethod, string> = { cash: "现金代收", card: "刷卡", prepaid: "已付清", other: "其它" }
 
-/** 这场还欠师傅多少：工钱（结过就不算）+ 卡上小费 − 他代收的现金。 */
+/** 这场还欠师傅多少：人头费（结过不算）+ 桌椅 + 路费 + 卡上小费 − 代收现金。 */
 export function shiftNet(s: ShiftRow): number {
-  return (s.paySettledAt ? 0 : s.payCents) + s.cardTipCents - s.cashCents
+  return (s.paySettledAt ? 0 : s.payCents) + s.tablesCents + s.travelCents + s.cardTipCents - s.cashCents
 }
 
 export type ChefSummary = {
@@ -105,10 +112,12 @@ export type ChefRecord = {
 
 export type PerfRow = { id: string; order_id: string | null; event_date: string; customer_label: string | null; review: "good" | "bad" | null; comment: string | null; late_minutes: number; source: string; created_at: string }
 export type ChefFile = { id: string; order_id: string | null; kind: "receipt" | "photo" | "video" | "food_card" | "id_doc" | "w9" | "other"; title: string | null; content_type: string | null; bytes: number | null; amount_cents: number | null; status: "none" | "pending" | "approved" | "paid" | "rejected"; approved_at: string | null; settled_at: string | null; note: string | null; uploaded_by: string | null; created_at: string }
-export type Settlement = { id: string; period_start: string | null; period_end: string | null; shifts: number; pay_cents: number; reimb_cents: number; cash_cents: number; net_cents: number; method: string | null; note: string | null; created_by: string | null; created_at: string }
+export type Settlement = { id: string; period_start: string | null; period_end: string | null; shifts: number; pay_cents: number; reimb_cents: number; cash_cents: number; tip_cents?: number | null; tables_cents?: number | null; travel_cents?: number | null; review_cents?: number | null; token?: string | null; net_cents: number; method: string | null; note: string | null; created_by: string | null; created_at: string }
 /** 公司发出去的东西（工服 / 刀具 / 装备）。returned_on 为空 = 还在他手上。 */
 export type AssetRow = { id: string; item_key: string; label: string; qty: number; size: string | null; issued_on: string; returned_on: string | null; condition: string | null; unit_cost_cents: number | null; note: string | null; created_by: string | null }
-export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; today: string; sensitive?: boolean }
+/** 客人在 Google/Yelp 留的好评（搜师傅名字搜到的），一条一档：无图 $2、带图 $3。 */
+export type ReviewBonus = { id: string; platform: "google" | "yelp" | "other"; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; cents: number; settlement_id: string | null; settled_at: string | null; created_at: string }
+export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; reviews?: ReviewBonus[]; today: string; sensitive?: boolean }
 
 export type MediaItem = {
   id: string

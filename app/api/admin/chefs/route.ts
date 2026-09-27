@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
-import { chefPayCents, docState, taxMissing, type ChefRate } from "@/lib/chef-pay"
+import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
+import { randomBytes } from "node:crypto"
 import { assetLabel } from "@/lib/staff-assets"
 import { getStripeServerClient } from "@/lib/stripe-server"
 
@@ -28,11 +29,11 @@ function publicStaff(s: Staff): Staff {
   for (const k of SENSITIVE_STAFF_FIELDS) delete out[k]
   return out
 }
-const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, payCents: 0, cashCents: 0, cardTipCents: 0, cardGrossCents: 0, cardFeeCents: 0, cashTipCents: 0, paySettledCents: 0, cashSource: "none", settledAt: null })
+const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, payCents: 0, cashCents: 0, cardTipCents: 0, cardGrossCents: 0, cardFeeCents: 0, cashTipCents: 0, paySettledCents: 0, tablesCents: 0, travelCents: 0, reviewCents: 0, cashSource: "none", settledAt: null })
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
 const STAFF_COLUMNS =
   "id, full_name, display_name, staff_type, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
-const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes"
+const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data"
 
 type Staff = Record<string, unknown> & { id: string }
 type Assignment = {
@@ -55,6 +56,13 @@ type Assignment = {
   settlement_note: string | null
   pay_settled_at: string | null
   pay_settled_cents: number | null
+  tables_cents: number | null
+  travel_cents: number | null
+  comp_breakdown: Record<string, unknown> | null
+  has_tables_override: boolean | null
+  review_plain_count: number
+  review_photo_count: number
+  review_cents: number | null
 }
 type SettleMethod = "cash" | "card" | "prepaid" | "other"
 const SETTLE_METHODS = new Set<SettleMethod>(["cash", "card", "prepaid", "other"])
@@ -71,6 +79,7 @@ type OrderLite = {
   order_status: string | null
   balance_due_cents: number | null
   quoted_total_cents: number | null
+  invoice_data?: Record<string, unknown> | null
 }
 
 const ptToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
@@ -101,7 +110,7 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
     supabase.from("staff_members").select(STAFF_COLUMNS).neq("status", "deleted").order("display_name", { ascending: true }),
     supabase
       .from("order_staff_assignments")
-      .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents")
+      .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents, tables_cents, travel_cents, comp_breakdown, has_tables_override, review_plain_count, review_photo_count, review_cents")
       .in("assignment_status", ACTIVE_ASSIGNMENT)
       .limit(2000),
     supabase.from("chef_sheet_links").select("order_id, staff_member_id, assignment_id, cash_collected_cents, tip_reported_cents, collected_at").not("collected_at", "is", null).limit(2000),
@@ -119,6 +128,43 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
   return { staff: (staff ?? []) as Staff[], assignments: (assignments ?? []) as Assignment[], orderMap, cashReported }
 }
 
+/**
+ * 一场派对的计钱要素，全部来自发票（和发票工具同一套判定）：
+ *   大人/收费小孩/免费小孩 —— detailed 按 guests 行数；免费小孩以 under5 促销
+ *   行为准（它才是"这个孩子没收钱"的账面记录），quick 模式同理。
+ *   桌椅人头 —— detailed 数勾了 tablesChairs 的客人；quick 看 partyWideAddons。
+ *   里程 —— 发票 travelFee.distanceMiles（客户免不免路费不影响给师傅补）。
+ */
+function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; miles: number | null } {
+  const inv = (o.invoice_data ?? {}) as Record<string, unknown>
+  const guests = Array.isArray(inv.guests) ? (inv.guests as Array<Record<string, unknown>>) : []
+  const promos = Array.isArray(inv.promotions) ? (inv.promotions as Array<Record<string, unknown>>) : []
+  const under5 = promos.find((p) => /^little kids/i.test(String(p.label ?? "")))
+  const under5N = under5 ? Number(String(under5.label ?? "").match(/×(\d+)/)?.[1] ?? 1) : 0
+
+  let adults: number
+  let kids: number
+  let littles: number
+  let tableHeads: number
+  if (inv.mode === "detailed" && guests.length) {
+    adults = guests.filter((g) => g.isChild !== true).length
+    const flagged = guests.filter((g) => g.isChild === true && g.isLittle === true).length
+    littles = Math.max(flagged, under5N)
+    kids = Math.max(0, guests.filter((g) => g.isChild === true).length - littles)
+    tableHeads = guests.filter((g) => g.tablesChairs === true).length
+  } else {
+    adults = Number(inv.adultCount ?? o.guest_adult_count ?? 0) || 0
+    const child = Number(inv.childCount ?? o.guest_child_count ?? 0) || 0
+    littles = Math.min(child, under5N)
+    kids = Math.max(0, child - littles)
+    const pwa = Array.isArray(inv.partyWideAddons) ? (inv.partyWideAddons as unknown[]) : []
+    tableHeads = pwa.includes("tables_chairs") ? adults + child : 0
+  }
+  const tf = (inv.travelFee ?? null) as Record<string, unknown> | null
+  const miles = tf && Number.isFinite(Number(tf.distanceMiles)) ? Number(tf.distanceMiles) : null
+  return { counts: { adults, kids, littles }, tableHeads, miles }
+}
+
 /** One chef's shift on one order, with the pay/cash/settlement the ledger needs. */
 function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map<string, Staff>, cashReported: Map<string, number>, nowWall = ptNowWall()) {
   const s = staffById.get(a.staff_member_id)
@@ -126,7 +172,14 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const guests = guestsOf(o)
   const n = Math.max(1, team.length)
   const share = a.guest_share ?? Math.round(guests / n)
-  const pay = a.pay_cents ?? (s ? chefPayCents(rateOf(s), share) : 0)
+  // 明细三件套。多位师傅同场：人头和桌椅按份平分，路费每人全额（各开各的车）。
+  const comp = partyComp(o)
+  const hasTables = a.has_tables_override ?? comp.tableHeads > 0
+  const tableHeads = hasTables ? (comp.tableHeads > 0 ? comp.tableHeads : guests) : 0
+  const heads = payableHeads(comp.counts) / n
+  const pay = a.pay_cents ?? (s ? chefPayCentsFrac(rateOf(s), heads) : 0)
+  const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads) / n)
+  const travel = a.travel_cents ?? travelCompCents(comp.miles)
   const cash = a.cash_collected_cents ?? cashReported.get(`${o.id}|${a.staff_member_id}`) ?? 0
   return {
     assignmentId: a.id,
@@ -140,6 +193,12 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     share,
     team: team.map((t) => ({ id: t.staff_member_id, name: staffById.get(t.staff_member_id) ? nameOf(staffById.get(t.staff_member_id)!) : "?" })),
     payCents: pay,
+    tablesCents: tables,
+    travelCents: travel,
+    counts: comp.counts,
+    tableHeads,
+    hasTables,
+    miles: comp.miles,
     cashCents: cash,
     cashSource: a.cash_collected_cents != null ? "manual" : cashReported.has(`${o.id}|${a.staff_member_id}`) ? "chef_sheet" : "none",
     // 派对办完之前不知道尾款怎么收，所以这场先不进结算。
@@ -192,19 +251,20 @@ export async function GET(request: NextRequest) {
       .filter((a) => a.staff_member_id === id && world.orderMap.has(a.order_id))
       .map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported))
       .sort((x, y) => (y.date || "").localeCompare(x.date || ""))
-    const [{ data: performance }, { data: files }, { data: settlements }, { data: assetRows }] = await Promise.all([
+    const [{ data: performance }, { data: files }, { data: settlements }, { data: assetRows }, { data: reviewRows }] = await Promise.all([
       supabase.from("chef_performance").select("*").eq("staff_member_id", id).order("event_date", { ascending: false }).limit(300),
       supabase.from("chef_files").select("id, order_id, kind, title, content_type, bytes, amount_cents, status, approved_at, settled_at, note, uploaded_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(300),
-      supabase.from("chef_settlements").select("*").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(60),
+      supabase.from("chef_settlements").select("id, period_start, period_end, shifts, pay_cents, reimb_cents, cash_cents, tip_cents, tables_cents, travel_cents, review_cents, token, net_cents, method, note, created_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(60),
       supabase.from("staff_assets").select("id, item_key, label, qty, size, issued_on, returned_on, condition, unit_cost_cents, note, created_by").eq("staff_member_id", id).order("issued_on", { ascending: false }).limit(200),
+      supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, cents, settlement_id, settled_at, created_at").eq("staff_member_id", id).order("review_date", { ascending: false }).limit(120),
     ])
     const assets = (assetRows ?? []).map((a) => ({ ...a, label: assetLabel(String(a.item_key), String(a.label ?? "")) }))
     if (!can(actor, "chef_sensitive")) {
       // 工服在谁手上不是敏感信息，采购价才是。
       const assetsSafe = assets.map((a) => ({ ...a, unit_cost_cents: null }))
-      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, today, sensitive: false })
+      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, reviews: [], today, sensitive: false })
     }
-    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, today, sensitive: true })
+    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, reviews: reviewRows ?? [], today, sensitive: true })
   }
 
   // List: everything the 名单 table and the nav badge need.
@@ -271,7 +331,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -560,6 +620,45 @@ export async function POST(request: NextRequest) {
           stripeError,
         })
       }
+      case "add_review": {
+        // 每周搜师傅名字（Google/Yelp）搜到的好评，一条一条记：无图 $2、带图 $3。
+        // 金额录入时冻结，以后调价不改老账。
+        if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
+        const platform = ["google", "yelp", "other"].includes(String(body.platform)) ? String(body.platform) : "google"
+        const hasPhoto = body.has_photo === true
+        const { data: rev, error } = await supabase
+          .from("chef_review_bonuses")
+          .insert({
+            staff_member_id: body.id,
+            platform,
+            review_date: dateOrNull(body.review_date) ?? ptToday(),
+            reviewer: str(body.reviewer, 80) || null,
+            has_photo: hasPhoto,
+            excerpt: str(body.excerpt, 300) || null,
+            order_id: isUuid(body.order_id) ? body.order_id : null,
+            cents: hasPhoto ? REVIEW_PHOTO_CENTS : REVIEW_PLAIN_CENTS,
+            created_by: actor.alias,
+          })
+          .select("id, cents")
+          .single()
+        if (error) throw error
+        return NextResponse.json({ ok: true, id: rev.id, cents: rev.cents })
+      }
+      case "delete_review": {
+        // 只删还没结算的；结过的已经在对账单里，不能抹。
+        if (!isUuid(body.review_id)) return NextResponse.json({ error: "review_id required" }, { status: 400 })
+        const { error } = await supabase.from("chef_review_bonuses").delete().eq("id", body.review_id).is("settlement_id", null)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
+      }
+      case "set_tables": {
+        // 发票没写但实际带了桌椅（或反过来）：手动扳一下，null = 回到按发票判。
+        if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
+        const v = body.has_tables === null ? null : body.has_tables === true
+        const { error } = await supabase.from("order_staff_assignments").update({ has_tables_override: v, updated_at: now }).eq("id", body.assignment_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
+      }
       case "set_settlement": {
         // 这场的尾款怎么收的。填了才进本期结算。
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
@@ -621,17 +720,64 @@ export async function POST(request: NextRequest) {
         const early = picked.filter((x) => !(x.partyOver && x.method))
         const { data: approved } = await supabase.from("chef_files").select("id, amount_cents").eq("staff_member_id", body.id).eq("kind", "receipt").eq("status", "approved")
         const reimb = only ? [] : approved ?? []
-        // 工钱：这一轮真正要付的（提前结过的不再付）
+        // 好评奖励：没结过的逐条扫进来（逐场结不动它，周结才清）。
+        const { data: pendingReviews } = only
+          ? { data: [] as Array<{ id: string; platform: string; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; cents: number }> }
+          : await supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, cents").eq("staff_member_id", body.id).is("settlement_id", null).order("review_date")
+        const reviewRows2 = pendingReviews ?? []
+        // 工钱：这一轮真正要付的（提前结过的不再付）。桌椅和路费跟着"这场
+        // 真办完了"走：提前结只付人头费，桌椅路费等收尾那笔一起清。
         const payOf = (x: (typeof picked)[number]) => (x.paySettledAt ? 0 : x.payCents)
         const pay = picked.reduce((a, x) => a + payOf(x), 0)
+        const tables = ready.reduce((a, x) => a + x.tablesCents, 0)
+        const travel = ready.reduce((a, x) => a + x.travelCents, 0)
+        const review = reviewRows2.reduce((a, r) => a + (r.cents ?? 0), 0)
         const cash = ready.reduce((a, x) => a + x.cashCents, 0)
         const tip = ready.reduce((a, x) => a + x.cardTipCents, 0)
         const reimbCents = reimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
         if (!picked.length && !reimb.length) {
           return NextResponse.json({ error: "没有可结的：派对要办完、并且确认过尾款怎么收的；要提前结工钱就单独点那一场。" }, { status: 400 })
         }
-        const net = pay + reimbCents + tip - cash
+        const net = pay + tables + travel + review + reimbCents + tip - cash
         const dates = picked.map((x) => x.date).filter(Boolean).sort()
+        const rate = rateOf(chef)
+        // 对账单快照：师傅链接里看到的每一行，都是此刻算好存死的。
+        const token = randomBytes(16).toString("base64url")
+        const lines = {
+          v: 1,
+          chef: nameOf(chef),
+          period: { start: dates[0] ?? today, end: dates[dates.length - 1] ?? today },
+          generatedAt: now,
+          rate: rate ? { baseCents: rate.base_pay_cents, headFrom: rate.head_from, perHeadCents: rate.per_head_cents } : null,
+          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
+          parties: picked
+            .sort((x, y) => (x.date || "").localeCompare(y.date || ""))
+            .map((x) => ({
+              date: x.date,
+              orderNo: x.orderNo,
+              customer: (x.customer ?? "").trim().split(/\s+/)[0] || "Guest",
+              city: (x.address ?? "").split(",").slice(-3, -2).join("").trim() || null,
+              counts: x.counts,
+              teamSize: x.team.length,
+              method: x.method,
+              prepaidOnly: !(x.partyOver && x.method),
+              payPrepaid: !!x.paySettledAt,
+              miles: x.miles,
+              tableHeads: x.tableHeads,
+              payCents: payOf(x),
+              tablesCents: x.partyOver && x.method ? x.tablesCents : 0,
+              travelCents: x.partyOver && x.method ? x.travelCents : 0,
+              cardTipCents: x.partyOver && x.method ? x.cardTipCents : 0,
+              cardGrossCents: x.cardGrossCents,
+              cardFeeCents: x.cardFeeCents,
+              cashCents: x.partyOver && x.method ? x.cashCents : 0,
+              cashTipCents: x.cashTipCents,
+              subtotalCents: payOf(x) + (x.partyOver && x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents : 0),
+            })),
+          reviews: reviewRows2.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, cents: r.cents })),
+          reimb: { count: reimb.length, cents: reimbCents },
+          totals: { payCents: pay, tablesCents: tables, travelCents: travel, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, netCents: net },
+        }
         const { data: settlement, error } = await supabase
           .from("chef_settlements")
           .insert({
@@ -643,6 +789,11 @@ export async function POST(request: NextRequest) {
             reimb_cents: reimbCents,
             cash_cents: cash,
             tip_cents: tip,
+            tables_cents: tables,
+            travel_cents: travel,
+            review_cents: review,
+            lines,
+            token,
             net_cents: net,
             method: str(body.method, 30) || null,
             note: [str(body.note, 400), early.length ? `其中 ${early.length} 场只结了工钱（提前）` : ""].filter(Boolean).join(" · ") || null,
@@ -655,7 +806,18 @@ export async function POST(request: NextRequest) {
         for (const x of ready) {
           await supabase
             .from("order_staff_assignments")
-            .update({ settled_at: now, settlement_id: settlement.id, pay_cents: x.payCents, guest_share: x.share, pay_settled_at: x.paySettledAt ?? now, pay_settled_cents: x.paySettledAt ? x.paySettledCents : x.payCents, updated_at: now })
+            .update({
+              settled_at: now,
+              settlement_id: settlement.id,
+              pay_cents: x.payCents,
+              guest_share: x.share,
+              tables_cents: x.tablesCents,
+              travel_cents: x.travelCents,
+              comp_breakdown: { counts: x.counts, tableHeads: x.tableHeads, miles: x.miles },
+              pay_settled_at: x.paySettledAt ?? now,
+              pay_settled_cents: x.paySettledAt ? x.paySettledCents : x.payCents,
+              updated_at: now,
+            })
             .eq("id", x.assignmentId)
         }
         // 只结工钱的场：这场还没清，等派对办完确认收款方式再补差额。
@@ -669,13 +831,35 @@ export async function POST(request: NextRequest) {
           const { error: e2 } = await supabase.from("chef_files").update({ status: "paid", settled_at: now, settlement_id: settlement.id }).in("id", reimb.map((f) => f.id))
           if (e2) throw e2
         }
+        if (reviewRows2.length) {
+          const { error: e3 } = await supabase.from("chef_review_bonuses").update({ settlement_id: settlement.id, settled_at: now }).in("id", reviewRows2.map((r) => r.id))
+          if (e3) throw e3
+        }
         await supabase.from("staff_members").update({ last_settled_at: today, updated_at: now }).eq("id", body.id)
-        return NextResponse.json({ ok: true, settlementId: settlement.id, shifts: picked.length, prepaidOnly: early.length, payCents: pay, reimbCents, cashCents: cash, tipCents: tip, netCents: net })
+        return NextResponse.json({
+          ok: true,
+          settlementId: settlement.id,
+          token,
+          statementUrl: `https://invoice.realhibachi.com/chef/statement/${token}`,
+          shifts: picked.length,
+          prepaidOnly: early.length,
+          payCents: pay,
+          tablesCents: tables,
+          travelCents: travel,
+          reviewCents: review,
+          reimbCents,
+          cashCents: cash,
+          tipCents: tip,
+          netCents: net,
+        })
       }
       case "unsettle": {
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
-        // 撤销要把工钱也放回未结，否则这场会变成"永远白干"。
-        const { error } = await supabase.from("order_staff_assignments").update({ settled_at: null, settlement_id: null, pay_settled_at: null, pay_settled_cents: null, updated_at: now }).eq("id", body.assignment_id)
+        // 撤销要把冻结的钱全放回现算，否则这场会带着旧数字再结一次。
+        const { error } = await supabase
+          .from("order_staff_assignments")
+          .update({ settled_at: null, settlement_id: null, pay_settled_at: null, pay_settled_cents: null, pay_cents: null, tables_cents: null, travel_cents: null, comp_breakdown: null, updated_at: now })
+          .eq("id", body.assignment_id)
         if (error) throw error
         return NextResponse.json({ ok: true })
       }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, PhoneIcon, Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
-import { addDays, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
+import { addDays, copyText, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
 import { FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
@@ -67,6 +67,7 @@ export function ChefDialog({
   const [week, setWeek] = useState(thisWeekStart)
   const [settleView, setSettleView] = useState<"week" | "month">("week")
   const [fileFilter, setFileFilter] = useState<"all" | ChefFile["kind"]>("all")
+  const [statement, setStatement] = useState<{ url: string; net: number } | null>(null)
   const [profile, setProfile] = useState<Record<string, string>>({})
   const [docs, setDocs] = useState<Record<string, string>>({})
   const [skills, setSkills] = useState<string[]>([])
@@ -133,10 +134,14 @@ export function ChefDialog({
   const approvedReimb = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "approved")
   const pendingReceipts = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "pending")
   const payTotal = openRows.reduce((a, s) => a + (s.paySettledAt ? 0 : s.payCents), 0)
+  const tablesTotal = openRows.reduce((a, s) => a + s.tablesCents, 0)
+  const travelTotal = openRows.reduce((a, s) => a + s.travelCents, 0)
+  const pendingReviews = (d?.reviews ?? []).filter((r) => !r.settlement_id)
+  const reviewTotal = pendingReviews.reduce((a, r) => a + r.cents, 0)
   const cashTotal = openRows.reduce((a, s) => a + s.cashCents, 0)
   const tipTotal = openRows.reduce((a, s) => a + s.cardTipCents, 0)
   const reimbTotal = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-  const net = payTotal + reimbTotal + tipTotal - cashTotal
+  const net = payTotal + tablesTotal + travelTotal + reviewTotal + reimbTotal + tipTotal - cashTotal
   const perf = d?.performance ?? []
   const good = perf.filter((p) => p.review === "good").length
   const bad = perf.filter((p) => p.review === "bad").length
@@ -189,9 +194,13 @@ export function ChefDialog({
     const what = net > 0 ? `付给 ${name} ${money(net)}` : net < 0 ? `向 ${name} 收 ${money(-net)}` : "标记已结清"
     const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销。`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
     if (method === null) return
-    await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
+    const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
+    if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
   }
-  const settleOne = (s: ShiftRow) => post(`settle:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "这一场已结")
+  const settleOne = async (s: ShiftRow) => {
+    const r = await post(`settle:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "这一场已结")
+    if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
+  }
   const unsettle = (s: ShiftRow) => post(`unsettle:${s.assignmentId}`, { action: "unsettle", assignment_id: s.assignmentId }, "已撤销")
   // 周六晚结账时师傅周日还有一台：工钱先付掉，代收和小费等派对办完再补。
   const prepay = async (s: ShiftRow) => {
@@ -257,6 +266,31 @@ export function ChefDialog({
 
   const clearMethod = (s: ShiftRow) => post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: null }, "已改回待确认")
 
+  // 发票没写但实际带了桌椅（或反过来）：手动扳一下。
+  const toggleTables = async (s: ShiftRow) => {
+    const to = !s.hasTables
+    if (!(await askConfirm({ title: "桌椅", message: `${s.customer ?? ""} ${md(s.date)}：改成${to ? `带桌椅（$4 × ${s.tableHeads || s.guests} 人）` : "不带桌椅（这一行记 $0）"}？`, okLabel: "确定" }))) return
+    await post(`tables:${s.assignmentId}`, { action: "set_tables", assignment_id: s.assignmentId, has_tables: to })
+  }
+
+  // 每周在 Google/Yelp 搜师傅名字搜到的好评，一条一条记进来。
+  const addReview = async () => {
+    const platform = await askPrompt({ title: "记一条好评", message: `搜 "${name}" 搜到的这条在哪个平台？填 google / yelp`, defaultValue: "google", okLabel: "下一步" })
+    if (platform === null) return
+    const reviewer = await askPrompt({ title: "评价人", message: "评价人显示的名字（照抄，方便对账）", placeholder: "如 Maria H.", okLabel: "下一步" })
+    if (reviewer === null) return
+    const date = await askPrompt({ title: "评价日期", message: "评价显示的日期（YYYY-MM-DD，不确定就用今天）", defaultValue: today, okLabel: "下一步" })
+    if (date === null) return
+    const photoAns = await askPrompt({ title: "带图吗？", message: "带图 $3，无图 $2。带图填 y，无图填 n", defaultValue: "n", okLabel: "记录" })
+    if (photoAns === null) return
+    const hasPhoto = /^(y|yes|是|带)/i.test(photoAns.trim())
+    await post("add_review", { action: "add_review", id: chefId, platform: platform.trim().toLowerCase() === "yelp" ? "yelp" : platform.trim().toLowerCase() === "other" ? "other" : "google", reviewer, review_date: date.trim(), has_photo: hasPhoto }, "好评已记")
+  }
+  const deleteReview = async (id: string) => {
+    if (!(await askConfirm({ title: "删掉这条好评", message: "只删还没结算的记录。", okLabel: "删除", danger: true }))) return
+    await post("del_review", { action: "delete_review", review_id: id })
+  }
+
   // 客人当场塞给师傅的现金小费：师傅自己留着，不进净额，只是记一笔。
   const setCashTip = async (s: ShiftRow) => {
     const raw = await askPrompt({ title: "现场现金小费", message: `${s.customer ?? ""} ${md(s.date)}：客人当场给了师傅多少现金小费？这笔师傅自己留着，不进结算。`, defaultValue: s.cashTipCents ? (s.cashTipCents / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
@@ -293,13 +327,14 @@ export function ChefDialog({
       setMsg(e instanceof Error ? e.message : "打不开")
     }
   }
-  const sendStatement = async () => {
+  // 结清之后把明细页链接发给师傅：他打开能看到每一场每一条怎么算的。
+  const sendStatement = async (url: string, netCents: number) => {
     if (!c?.phone) {
       setMsg("没有电话")
       return
     }
-    const lines = openRows.map((s) => `${md(s.date)} ${s.customer ?? ""} ${s.share}p: pay $${((s.paySettledAt ? 0 : s.payCents) / 100).toFixed(2)}${s.cardTipCents ? ` + tip $${(s.cardTipCents / 100).toFixed(2)}` : ""}${s.cashCents ? ` - collected $${(s.cashCents / 100).toFixed(2)}` : ""}${s.paySettledAt ? " (pay already sent)" : ""}`)
-    const body = `Real Hibachi statement for ${name}:\n${lines.join("\n")}${reimbTotal ? `\nReimbursements: +$${(reimbTotal / 100).toFixed(2)}` : ""}\nNet: ${net >= 0 ? "we owe you" : "you owe us"} $${(Math.abs(net) / 100).toFixed(2)}. Reply if anything looks off.`
+    const who = netCents >= 0 ? `we pay you $${(netCents / 100).toFixed(2)}` : `please hand in $${(-netCents / 100).toFixed(2)}`
+    const body = `Real Hibachi weekly statement for ${name} - every party itemized: ${url}\nNet: ${who}. Reply if anything looks off.`
     if (!(await askConfirm({ title: "发对账单", message: `发给 ${prettyPhone(c.phone)}？\n\n${body}`, okLabel: "发送" }))) return
     setBusy("statement")
     try {
@@ -727,9 +762,20 @@ export function ChefDialog({
                         {s.cashTipCents ? <span title="客人当场给的现金小费，师傅自己留着"> · 现金小费 {money(s.cashTipCents)}</span> : null}
                         {s.settledAt ? ` · 已结 ${stamp(s.settledAt).split(",")[0]}` : ""}
                       </div>
+                      <div style={{ fontSize: 11, color: "var(--color-neutral-600)", display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
+                        <span title="人头费：大人整头，收费小孩半头，免费小孩不算">
+                          {s.counts.adults}大{s.counts.kids ? `+${s.counts.kids}小×½` : ""}{s.counts.littles ? `+${s.counts.littles}免` : ""}
+                        </span>
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `桌椅 ${s.tableHeads} 人 × $4，点击改成不带` : "点击改成带桌椅"}>
+                          · 桌椅 {s.hasTables ? money(s.tablesCents) : "无"}
+                        </button>
+                        <span title={s.miles == null ? "发票里没有里程，路费按 $0" : `${s.miles} mi − 50 免费里程`}>
+                          · 路费 {s.travelCents ? money(s.travelCents) : s.miles == null ? "?" : "$0"}
+                        </span>
+                      </div>
                     </div>
-                    <span style={{ textAlign: "right", whiteSpace: "nowrap", color: s.paySettledAt && !s.settledAt ? "var(--color-neutral-500)" : undefined }} title={s.paySettledAt && !s.settledAt ? "工钱已提前结过" : undefined}>
-                      {s.paySettledAt && !s.settledAt ? <s>{money(s.payCents)}</s> : money(s.payCents)}
+                    <span style={{ textAlign: "right", whiteSpace: "nowrap", color: s.paySettledAt && !s.settledAt ? "var(--color-neutral-500)" : undefined }} title={`人头费 ${money(s.payCents)} + 桌椅 ${money(s.tablesCents)} + 路费 ${money(s.travelCents)}${s.paySettledAt && !s.settledAt ? "；人头费已提前结过" : ""}`}>
+                      {s.paySettledAt && !s.settledAt ? <s>{money(s.payCents)}</s> : money(s.payCents + s.tablesCents + s.travelCents)}
                     </span>
                     <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void setMethod(s, "cash")} title="点击改代收金额">
                       {s.cashCents ? money(s.cashCents) : "—"}
@@ -750,13 +796,42 @@ export function ChefDialog({
                   </div>
                 )
               })}
+              <div style={{ padding: "7px 0", borderBottom: "1px solid var(--color-line)", color: "var(--color-neutral-700)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>
+                    + 好评奖励（{pendingReviews.length} 条）
+                    {owner ? (
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 6px", fontSize: 11 }} disabled={!!busy} onClick={() => void addReview()}>
+                        记一条
+                      </button>
+                    ) : null}
+                  </span>
+                  <span>{money(reviewTotal)}</span>
+                </div>
+                {pendingReviews.map((r) => (
+                  <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, padding: "2px 0 0 12px" }}>
+                    <span className="clamp1">
+                      {r.platform === "yelp" ? "Yelp" : r.platform === "google" ? "Google" : "其它"} · {md(r.review_date)} · {r.reviewer ?? "匿名"}
+                      {r.has_photo ? " · 带图" : ""}
+                    </span>
+                    <span style={{ whiteSpace: "nowrap" }}>
+                      +{money(r.cents)}
+                      {owner ? (
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void deleteReview(r.id)}>
+                          删
+                        </button>
+                      ) : null}
+                    </span>
+                  </div>
+                ))}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--color-line)", color: "var(--color-neutral-700)" }}>
                 <span>+ 已批报销（{approvedReimb.length} 张）</span>
                 <span>{money(reimbTotal)}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 0 4px" }}>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                  工钱 {money(payTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}
+                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 好评 {money(reviewTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}
                 </span>
                 <strong className="num" style={{ fontSize: 20, whiteSpace: "nowrap", color: net < 0 ? "var(--color-accent-700)" : undefined }}>
                   {net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清"}
@@ -770,12 +845,20 @@ export function ChefDialog({
                   {busy === "settle" ? "结算中…" : net > 0 ? `付给厨师 ${money(net)} 并结清` : net < 0 ? `收到 ${money(-net)} 并结清` : "标记本期已结清"}
                 </button>
               ) : null}
-              <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || openRows.length === 0} onClick={() => void sendStatement()}>
-                发对账单给厨师
-              </button>
             </div>
+            {statement ? (
+              <div className="notice" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5 }}>
+                <span style={{ flex: 1, minWidth: 0 }}>对账单已生成（{statement.net >= 0 ? `付给师傅 ${money(statement.net)}` : `师傅交回 ${money(-statement.net)}`}）</span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(statement.url)}>
+                  复制链接
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void sendStatement(statement.url, statement.net)}>
+                  {busy === "statement" ? "发送中…" : "短信发给师傅"}
+                </button>
+              </div>
+            ) : null}
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-              净额 = 工钱 + 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。
+              净额 = 人头费（大人整头 · 收费小孩半头 · 免费幼儿不算）+ 桌椅 $4/人 + 路费（超 50 mi × $1）+ 好评（无图 $2 · 带图 $3）+ 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。
             </div>
 
             {notYetHeld.length ? (
@@ -854,6 +937,16 @@ export function ChefDialog({
                       </span>
                       <span style={{ whiteSpace: "nowrap" }}>
                         <NetSpan n={s.net_cents} />
+                        {s.token ? (
+                          <>
+                            <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} onClick={() => window.open(`https://invoice.realhibachi.com/chef/statement/${s.token}`, "_blank", "noopener")}>
+                              对账单
+                            </button>
+                            <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void sendStatement(`https://invoice.realhibachi.com/chef/statement/${s.token}`, s.net_cents)}>
+                              发短信
+                            </button>
+                          </>
+                        ) : null}
                       </span>
                     </div>
                   ))}

@@ -55,3 +55,44 @@ export const BILLING_LABELS: Record<string, string> = {
   monthly: "每月 1 日",
   per_event: "每场结",
 }
+
+// ---------------------------------------------------------------------------
+// 结算明细（2026-09-27 用户定）：一场的钱 = 人头费 + 桌椅 + 路费。
+// 规则改这里，工作台和对账单都跟着走；已结的场用冻结值，历史不动。
+
+/** 小孩（收费的，5-12 岁）按半个人头给师傅；免费小孩（3-4 岁 $0）不算。 */
+export const KID_HEAD_FACTOR = 0.5
+/** 派对带桌椅时付给师傅：$4 × 带桌椅的人头（大人小孩全算）。 */
+export const TABLE_CHAIR_PER_HEAD_CENTS = 400
+/** 路费：超出 50 mi 的部分 × $1/mi，客户那头免不免都照给；50 及以内 $0。 */
+export const TRAVEL_FREE_MILES = 50
+export const TRAVEL_PER_MILE_CENTS = 100
+
+export type HeadCounts = { adults: number; kids: number; littles: number }
+
+/** 计钱的人头：大人整头、收费小孩半头、免费小孩 0。 */
+export function payableHeads(c: HeadCounts): number {
+  return Math.max(0, c.adults) + KID_HEAD_FACTOR * Math.max(0, c.kids)
+}
+
+/** 人头费，允许半个人头（13大+1小 = 13.5 头）。底价 = head_from 个头的钱。 */
+export function chefPayCentsFrac(rate: ChefRate, heads: number): number {
+  const extra = Math.max(0, heads - rate.head_from)
+  return Math.round(Math.max(0, rate.base_pay_cents) + extra * Math.max(0, rate.per_head_cents))
+}
+
+export function tableChairCents(tableHeads: number): number {
+  return Math.max(0, Math.round(tableHeads)) * TABLE_CHAIR_PER_HEAD_CENTS
+}
+
+export function travelCompCents(distanceMiles: number | null | undefined): number {
+  if (distanceMiles == null || !Number.isFinite(distanceMiles)) return 0
+  return Math.round(Math.max(0, distanceMiles - TRAVEL_FREE_MILES) * TRAVEL_PER_MILE_CENTS)
+}
+
+/** 好评奖励：客人扫码留的 Google/Yelp 评价，无图 $2/条、带图 $3/条。 */
+export const REVIEW_PLAIN_CENTS = 200
+export const REVIEW_PHOTO_CENTS = 300
+export function reviewBonusCents(plain: number, photo: number): number {
+  return Math.max(0, Math.round(plain)) * REVIEW_PLAIN_CENTS + Math.max(0, Math.round(photo)) * REVIEW_PHOTO_CENTS
+}
