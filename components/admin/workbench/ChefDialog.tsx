@@ -210,10 +210,19 @@ export function ChefDialog({
 
   const setMethod = async (s: ShiftRow, m: SettleMethod) => {
     if (m === "cash") {
-      const def = s.cashCents || s.balanceDueCents || 0
-      const raw = await askPrompt({ title: METHOD_LABELS.cash, message: `${s.customer ?? ""} ${md(s.date)}：师傅现场收了多少尾款（美元）？`, defaultValue: def ? (def / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
-      if (raw === null) return
-      const r = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: raw.trim() === "" ? 0 : Number(raw) }, "已记录")
+      // 师傅代收的就是尾款，不用问金额（2026-09-28 用户定）。尾款未知才手输；
+      // 事后要改数点"代收"那一格。
+      const due = s.balanceDueCents ?? 0
+      let cash: number
+      if (due > 0) {
+        if (!(await askConfirm({ title: METHOD_LABELS.cash, message: `${s.customer ?? ""} ${md(s.date)}：代收 = 应收尾款 $${(due / 100).toFixed(2)}，记录？订单会同步登记为已收。`, okLabel: "记录" }))) return
+        cash = due / 100
+      } else {
+        const raw = await askPrompt({ title: METHOD_LABELS.cash, message: `${s.customer ?? ""} ${md(s.date)}：这单没有挂着的尾款，师傅实际收了多少（美元）？`, defaultValue: s.cashCents ? (s.cashCents / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
+        if (raw === null) return
+        cash = raw.trim() === "" ? 0 : Number(raw)
+      }
+      const r = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: cash }, "已记录")
       if (r?.orderSync) setMsg(String(r.orderSync))
       return
     }
@@ -267,6 +276,14 @@ export function ChefDialog({
   }
 
   const clearMethod = (s: ShiftRow) => post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: null }, "已改回待确认")
+
+  // 修正代收金额（极少用：师傅少收/多收了）。正常路径是一键"师傅代收现金"。
+  const promptCash = async (s: ShiftRow) => {
+    const raw = await askPrompt({ title: "改代收金额", message: `${s.customer ?? ""} ${md(s.date)}：师傅实际收了多少（美元）？`, defaultValue: s.cashCents ? (s.cashCents / 100).toFixed(2) : (s.balanceDueCents ? (s.balanceDueCents / 100).toFixed(2) : ""), placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
+    if (raw === null) return
+    const r = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: raw.trim() === "" ? 0 : Number(raw) }, "已记录")
+    if (r?.orderSync) setMsg(String(r.orderSync))
+  }
 
   // 发票没写但实际带了桌椅（或反过来）：手动扳一下。
   const toggleTables = async (s: ShiftRow) => {
@@ -781,7 +798,7 @@ export function ChefDialog({
                     <span style={{ textAlign: "right", whiteSpace: "nowrap", color: s.paySettledAt && !s.settledAt ? "var(--color-neutral-500)" : undefined }} title={`人头费 ${money(s.payCents)} + 桌椅 ${money(s.tablesCents)} + 路费 ${money(s.travelCents)}${s.paySettledAt && !s.settledAt ? "；人头费已提前结过" : ""}`}>
                       {s.paySettledAt && !s.settledAt ? <s>{money(s.payCents)}</s> : money(s.payCents + s.tablesCents + s.travelCents)}
                     </span>
-                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void setMethod(s, "cash")} title="点击改代收金额">
+                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void promptCash(s)} title="点击改代收金额">
                       {s.cashCents ? money(s.cashCents) : "—"}
                     </button>
                     <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void (s.method === "card" ? cardFlow(s) : setCashTip(s))} title={s.method === "card" ? "点击重新核对卡上小费" : "点击记现场现金小费"}>
