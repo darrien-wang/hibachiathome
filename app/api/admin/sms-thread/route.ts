@@ -78,10 +78,11 @@ function isAutomatedText(body: string): boolean {
 }
 
 // Context lint (2026-09-27 audit). ASKS_FOR_DATE is how our follow-ups ask for
-// a date; MENTIONS_A_DATE is how customers write one ("november 29th",
+// a date - including the f_one wording the owner approved on 09-27 ("Did a
+// weekend win yet?"), which asks for one without using the word "which"; MENTIONS_A_DATE is how customers write one ("november 29th",
 // "Saturday 12/12 at 6pm", "the 13th Tuesday", "Dec 26-30", "Sunday 2/21").
 const ASKS_FOR_DATE =
-  /\b(which|what)\s+(weekend|date|dates|day|night|evening)\b|\bwhich\s+(saturday|sunday|friday)\b|\bdid\s+(you|the\s+group|it|the\s+birthday|the\s+date)\s+(land|settle)\s+on\b|\bwhen\s+(is|are)\s+(it|you|the\s+party)\b/i
+  /\b(which|what)\s+(weekend|date|dates|day|night|evening)\b|\bwhich\s+(saturday|sunday|friday)\b|\bdid\s+(you|the\s+group|it|the\s+birthday|the\s+date)\s+(land|settle)\s+on\b|\bwhen\s+(is|are)\s+(it|you|the\s+party)\b|\bdid\s+(a|any)\s+(weekend|date|day|night)\s+(win|land|stick)\b/i
 const MENTIONS_A_DATE =
   /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(st|nd|rd|th)?\b|\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b|\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\.?,?\s+(the\s+)?\d{1,2}(st|nd|rd|th)?\b|\bthe\s+\d{1,2}(st|nd|rd|th)\b/i
 

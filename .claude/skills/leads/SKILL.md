@@ -293,10 +293,34 @@ Real Hibachi · (213) 770-7788
 |---|---|---|---|---|
 | 1 | **报价 / T0** | 第 0 天，≤5 分钟 | 认领 + 价 + 一问 | 第 3 节；自动报价已发就不重复 |
 | 2 | **首条人工** | 自动报价后几分钟内（越快越好：Kylie 4 分钟接上、16 分钟付押金） | 一个替他着想的具体细节 + 一个好答的问题 | 不重复价格、不带链接、≤200 字符、**一条为限**。首选问场合；有日期的接着日期说 |
-| 3 | **f_one** | 第 2 天 | **一个真理由**（周六傍晚档最先满、周中价、他自己提过的事）+ 一个好答的问题 | 不带链接（他手上已有）。**先写上下文卡**（§2 ①）：卡上有的不问、我们说过的不重复。没日期的这条问 "which weekend are you looking at?"；**有日期的不许再问日期**（系统 409 `asked_known_date`） |
+| 3 | **f_one** | 第 2 天 | **一个真理由**（周六傍晚档最先满、周中价、他自己提过的事）+ 一个好答的问题 | 不带链接（他手上已有）。**先写上下文卡**（§2 ①）：卡上有的不问、我们说过的不重复。没日期的这条问 "which weekend are you looking at?"；**有日期的不许再问日期**（系统 409 `asked_known_date`）。**开头先给客人台阶**（句式见本节下方） |
 | — | **f_planner** | 只在客户提过"和朋友对时间/人数" | 递工具帮他组局 | 先 `POST /api/admin/planner-link`；占一条名额 |
 | 停 | **挂起** | 第 3 条之后 | — | `set_hold` 2 周 → `dormant`，**不再主动发**，他一开口立即接。"Last note from me" 停用 |
 | 例外 | **f_deadline** | 派对 7 天内**且**有新信息 | 真截止（他重算了报价 / 打过电话 / 档期真要放） | 先给用户看再 `force` 一条，一条为限；后半句固定："If something's in the way — the date, the headcount, the budget — tell me and I'll see what I can do." |
+
+**f_one 的句式：先给客人台阶，再问他的派对（用户 09-27 收进话术库）**
+
+老板转了一条他自己收到的外联话术，说"挺好的"：
+
+> Hey, I understand you might be busy since I haven't heard back from you in a while, so touching base again. Any updates?
+
+**收它的哪一层**：它**先替客人找好了理由**（"你大概是忙"）。客人不用解释自己为什么没回，回起来没有心理负担——这是我们原来的阶梯缺的一味，原来那几条都是直接给理由、直接问事。
+
+**照抄不了的两处**（§1.1 姿态红线，2026-09-14 用户定）：`touching base` 和 `haven't heard back from you` 把**我们的等待**摆到客人面前，那是乞求的姿态；问句也落在我们的报价上，不在他的派对上。所以改两处：**给客人的台阶留着、我们的等待删掉；问句从"我们的事"挪到"他的事"。**
+
+| 照抄（不发） | 我们的版本 |
+|---|---|
+| I haven't heard back from you in a while, so touching base again | figured you've got a lot going on |
+| Any updates? | Has [date] settled, or is it still moving? |
+
+可直接用的三句（≤200 字符、不带链接、不重复价格）：
+- `Hi [name] - figured you've got a lot going on. Has [date] settled, or is it still moving?`（有日期，但**不是**再问一次日期——问的是"定了没"，不触 409 `asked_known_date`）
+- `Hi [name] - figured the group's still comparing calendars. Did a weekend win yet?`（没日期）
+- `Hi [name] - totally understand if the timing shifted. Is the party still on for [month]?`（日期看着要黄）
+
+**不因为它多发一条**：这是第 3 条（f_one）的措辞，不是新增一步。总量 3 条封顶不变（09-27 审计：第 3 条回复率 15%，`followup_cap=3` 照旧拒发第 4 条）。台阶句改善的是**这一条的回复率**，不是给多发一条的理由。
+
+**台阶不等于套话**：`no rush on my end`、`take your time`、`whenever you get a chance` 不算台阶，它们不带信息，是 135 行禁掉的那一类。台阶要**替客人说出他真实的处境**（在忙、在和人对时间、日程可能变了），那句本身就是信息。
 
 **截止只挂在真会发生的事上（三选一，按顺序）**
 1. **派对在 6 周内**：用客户自己的时钟。"If invites are going out this week, lock it now so the date on the invite is real." / 3 周内的周末："Saturday's [12] days out — lock it now and I'll assign your chef and start the shopping list."
