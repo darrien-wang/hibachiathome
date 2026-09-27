@@ -477,8 +477,8 @@ function MediaLibrary({ adminKey, isMobile }: { adminKey: string; isMobile: bool
                   title={`${m.chef} · ${m.event}${m.phase ? ` · ${m.phase === "setup" ? "开始" : "结束"}` : ""} · 双击放大`}
                   style={{ position: "relative", aspectRatio: "4 / 3", background: "var(--color-neutral-300)", padding: 0, outline: `3px solid ${picked ? "var(--color-accent)" : "transparent"}`, outlineOffset: -3, display: "flex", alignItems: "flex-end", overflow: "hidden" }}
                 >
-                  {m.url && m.type === "photo" ? <img src={m.url} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.08)" }} /> : null}
-                  {m.url && m.type === "video" ? <video src={m.url} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.08)" }} /> : null}
+                  {m.url && m.type === "photo" ? <img src={m.url} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+                  {m.url && m.type === "video" ? <video src={m.url} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
                   {m.type === "video" ? <span style={{ position: "absolute", top: 6, left: 6, background: "var(--color-text)", color: "var(--color-bg)", fontSize: 10, padding: "2px 6px", fontWeight: 600 }}>▶ 视频</span> : null}
                   {picked ? <span style={{ position: "absolute", top: 6, right: 6, background: "var(--color-accent)", color: "var(--color-bg)", fontSize: 11, width: 20, height: 20, display: "grid", placeItems: "center", fontWeight: 800 }}>✓</span> : null}
                   {showSaved ? (
