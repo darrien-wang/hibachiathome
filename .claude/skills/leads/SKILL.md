@@ -695,6 +695,36 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 ## 10. 渠道操作手册（命令；密钥从 `.env.local` 读，不要打印到对话里）
 
+### 10.0 先用 `desk`，不要现写脚本（2026-09-27 起）
+
+一条线索的所有动作都在 `scripts/desk/desk.py` 里，它只调下面那些接口、不含任何规则；Cloudflare UA、Windows 控制台编码、非 ASCII 正文、409 刹车的坐标都在 `scripts/desk/_api.py` 里修好了。**处理线索时禁止再写临时 curl / urllib 脚本**；缺什么子命令就加到 desk 里再用（这是响应提速方案的 Phase 0，见 `docs/响应速度架构-2026-09-27.md`）。
+
+```bash
+cd D:/desktop/RealHibachi/realhibachi-marketing
+python scripts/desk/desk.py next                       # 收件箱：每个待办一张完整卡（线索 + hold/[callback]/[occasion] 标签 + 自动报价/引擎价 + 全对话 + 刹车预演）
+python scripts/desk/desk.py card   <手机|leadId>       # 同上，单条
+python scripts/desk/desk.py thread <手机|leadId>       # 只看对话（Twilio 为准，旧→新，tapback 已标）
+python scripts/desk/desk.py search <姓名|手机|邮箱|单号>
+python scripts/desk/desk.py price  --adults 24 --kids 0 --date 2026-10-13 --zip 90802 [--alt-date 2026-10-17]   # 引擎价，禁止手算
+python scripts/desk/desk.py travel "<地址或 zip>"
+python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt [--force]   # 走 sms-thread，进时间线；非 ASCII 一律 --body-file
+python scripts/desk/desk.py note   <leadId> --body-file note.txt                     # [SOP:..] [callback] [occasion] [why] [data]
+python scripts/desk/desk.py hold   <leadId> <天数>        # 等客户回；0 撤销（先回那一句，再挂起，§1.04）
+python scripts/desk/desk.py status <leadId> won|lost|disqualified|qualified|new
+python scripts/desk/desk.py contacted <leadId>          # 首响标记（幂等）
+python scripts/desk/desk.py ack    <leadId> [--clear]    # 「不用回」水位线：只用于 tapback
+python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip="Long Beach"
+python scripts/desk/desk.py link deposit --lead <id> --adults 24 --kids 0 --city "Long Beach" --date 2026-10-13 --email <e>   # 预填押金页 → 短链
+python scripts/desk/desk.py link planner --email <e> --phone <p> [--booked] --lead <id>
+python scripts/desk/desk.py link short  <长链> --lead <id>
+```
+
+`send` 遇 409 会把刹车名和原因打出来（`daily` / `spacing` / `asked_known_date` / `sweep` / `followup_cap`），**默认就是对的**，`--force` 只用于客人正在等我们答复（§4.4）。同一个客人可能同时被另一个会话在处理（老板常开两个窗口）：`card` 里看到几分钟内已有我方新发的人工短信，就不要再发。
+
+desk 还没包的（邮件、巡检、协议总价、发票）用下面的 curl；包进去之后删这里的对应段。
+
+### 10.1 原始接口（desk 就是调这些）
+
 ```bash
 # 读密钥（PowerShell/Bash 皆可，用 grep 取值）
 cd D:/desktop/RealHibachi/realhibachi-marketing
@@ -777,7 +807,7 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d 
 # 押金 / planner / Stripe pay-link 都先过这个；30 天有效，过期或不存在的码跳官网首页
 curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d '{"url":"<长链接>","leadId":"<id>"}' https://www.realhibachi.com/api/admin/short-link   # → {ok, shortUrl: https://www.realhibachi.com/d/xxxxxx, expiresAt}
 ```
-只接受 realhibachi.com 各子域和 checkout.stripe.com 的 https 链接。落地页自动报价短信已内置短链。**站点 API 一律用 curl 调**（Python urllib 的默认 UA 会被防火墙 403）。
+只接受 realhibachi.com 各子域和 checkout.stripe.com 的 https 链接。落地页自动报价短信已内置短链。**站点 API 走 desk；直接调就用 curl 或带浏览器 UA**（Python urllib 的默认 UA 会被 Cloudflare 403/1010，`_api.py` 已处理）。
 
 **链接**
 ```bash
