@@ -36,6 +36,10 @@ const LIST_COLUMNS = [
   "source_metadata",
   "created_at",
   "updated_at",
+  "invoice_revision",
+  "invoice_confirmed_at",
+  "invoice_confirmed_revision",
+  "invoice_confirmed_by",
 ].join(",")
 
 type FinishedOrderShape = {

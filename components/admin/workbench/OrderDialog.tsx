@@ -13,6 +13,9 @@ import {
   firstName,
   inDaysLabel,
   invoiceTravelFee,
+  confirmState,
+  CONFIRM_LABEL,
+  CONFIRM_TAG_CLS,
   leadForOrder,
   md,
   money,
@@ -411,6 +414,9 @@ export function OrderDialog({
         tags={
           <>
             <Tag cls={STAGE_TAG_CLASS[stage]}>{stage}</Tag>
+            <span title={o.invoice_confirmed_at ? `${o.invoice_confirmed_by === "customer" ? "客户自己点的" : `手动标记（${o.invoice_confirmed_by ?? ""}）`} · ${stamp(o.invoice_confirmed_at)}${confirmState(o) === "stale" ? " · 之后发票又改过，要重发确认链接" : ""}` : "客户还没确认过这版发票"}>
+              <Tag cls={CONFIRM_TAG_CLS[confirmState(o)]}>{CONFIRM_LABEL[confirmState(o)]}</Tag>
+            </span>
             {openReqs.length > 0 ? <Tag cls="tag-outline">客人改了 {openReqs.length} 项</Tag> : null}
             <span className="mono" style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
               {o.order_no}
@@ -715,6 +721,34 @@ export function OrderDialog({
             <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => toSms(`Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`))}>
               {busy === "planner" ? "生成中…" : "给客人发 Planner 链接"}
             </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-left"
+              onClick={() =>
+                toSms(
+                  `${settings.business.brand}: quick 30-second check for your ${ev ? md(ev.ymd) : ""} party - date, address, guest count and menu all on one page. Tap confirm if it's exactly right: https://www.realhibachi.com/confirm?o=${o.id}`,
+                )
+              }
+            >
+              {confirmState(o) === "stale" ? "重发确认链接（发票改过）" : "发确认链接"}
+            </button>
+            {confirmState(o) !== "confirmed" && viewerRole === "owner" ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-left"
+                disabled={!!busy}
+                onClick={() =>
+                  void call("mark_confirm", async () => {
+                    if (!(await askConfirm({ title: "标记客户已确认", message: "客户在短信/电话里说这版没问题？记下经手时间，发票再改会自动打回未确认。", okLabel: "标记" }))) return
+                    const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/orders/confirm-invoice", { body: { orderId: o.id } })
+                    if (!d.ok) throw new Error(d.error ?? "失败")
+                    await Promise.all([load(), onChanged()])
+                  })
+                }
+              >
+                {busy === "mark_confirm" ? "标记中…" : "标记客户已确认"}
+              </button>
+            ) : null}
             {/* 派单存下来之后才发得了备料单——没定人就没人可发。 */}
             {!teamDirty
               ? assignments.map((a) => (

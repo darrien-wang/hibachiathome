@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { Chip, Tag } from "./ui"
-import { displayName, dowZh, eventParts, inDaysLabel, md, money, prettyPhone, ptToday, stageOf, STAGE_TAG_CLASS, type OrderRow, type Stage, type UpdateRequest } from "./helpers"
+import { confirmState, CONFIRM_LABEL, CONFIRM_TAG_CLS, displayName, dowZh, eventParts, inDaysLabel, md, money, prettyPhone, ptToday, stageOf, STAGE_TAG_CLASS, type OrderRow, type Stage, type UpdateRequest } from "./helpers"
 import type { AssignmentMap } from "./chef-types"
 import { PlannerPill, type PlannerLive } from "./planner-live"
 import { PrepDialog } from "./PrepDialog"
@@ -182,6 +182,7 @@ export function OrdersTab({
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <Tag cls={STAGE_TAG_CLASS[r.stage]}>{r.stage}</Tag>
+                    <Tag cls={CONFIRM_TAG_CLS[confirmState(r.o)]} style={{ marginLeft: 4 }}>{CONFIRM_LABEL[confirmState(r.o)]}</Tag>
                     {r.changed ? (
                       <Tag cls="tag-outline" style={{ marginLeft: 4 }}>
                         Planner 改了
@@ -212,6 +213,7 @@ export function OrdersTab({
                   <span style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
                     <PlannerPill s={liveOf(r.o.id)} project={planner.clarityProject} compact />
                     <Tag cls={STAGE_TAG_CLASS[r.stage]}>{r.stage}</Tag>
+                    <Tag cls={CONFIRM_TAG_CLS[confirmState(r.o)]}>{CONFIRM_LABEL[confirmState(r.o)]}</Tag>
                     {r.changed ? <Tag cls="tag-outline">Planner 改了</Tag> : null}
                   </span>
                 </div>

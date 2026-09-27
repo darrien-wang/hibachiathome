@@ -87,6 +87,11 @@ export type OrderRow = {
   source_metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string | null
+  /** 发票版本：invoice_data 每改一次 +1（DB 触发器）。确认版本对得上才算"已确认"。 */
+  invoice_revision?: number | null
+  invoice_confirmed_at?: string | null
+  invoice_confirmed_revision?: number | null
+  invoice_confirmed_by?: string | null
   internal_notes?: string | null
   customer_notes?: string | null
   notes?: string | null
@@ -364,6 +369,18 @@ export function relativeTime(iso: string | null | undefined, now = Date.now()): 
  * event_start is wall-clock time stored as UTC across the whole pipeline
  * (invoice app + webhook builder), so read the UTC fields verbatim.
  */
+/**
+ * 客户对这版发票的确认状态。stale = 确认过、但发票之后又改了（版本号
+ * 对不上），要重新发确认链接——这是"每次都担心订单没搞对"的解药。
+ */
+export type ConfirmState = "confirmed" | "stale" | "pending"
+export function confirmState(o: OrderRow): ConfirmState {
+  if (!o.invoice_confirmed_at) return "pending"
+  return (o.invoice_confirmed_revision ?? 0) === (o.invoice_revision ?? 1) ? "confirmed" : "stale"
+}
+export const CONFIRM_LABEL: Record<ConfirmState, string> = { confirmed: "客已确认 ✓", stale: "改后未确认", pending: "客未确认" }
+export const CONFIRM_TAG_CLS: Record<ConfirmState, string> = { confirmed: "tag-ink", stale: "tag-accent", pending: "tag-faint" }
+
 export function eventParts(iso: string | null | undefined): { ymd: string; hm: string; hour: number; minute: number; ms: number } | null {
   if (!iso) return null
   const ms = Date.parse(iso)
