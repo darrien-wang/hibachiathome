@@ -161,7 +161,8 @@ function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; mile
     tableHeads = pwa.includes("tables_chairs") ? adults + child : 0
   }
   const tf = (inv.travelFee ?? null) as Record<string, unknown> | null
-  const miles = tf && Number.isFinite(Number(tf.distanceMiles)) ? Number(tf.distanceMiles) : null
+  // distanceMiles 没填就是没填（null 别折成 0）：路费显示 "?" 提醒补里程，而不是假装 $0。
+  const miles = tf && tf.distanceMiles != null && Number.isFinite(Number(tf.distanceMiles)) ? Number(tf.distanceMiles) : null
   return { counts: { adults, kids, littles }, tableHeads, miles }
 }
 
