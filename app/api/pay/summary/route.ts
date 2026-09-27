@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { loadPayContext } from "@/lib/pay-balance"
-import { quickFillCents } from "@/lib/pay-link-math"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -40,24 +39,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
   }
 
-  // 快捷按钮：点一下把"尾款 + 小费"填进输入框——不加 4%、页面也不提手续费
-  // （2026-09-28 用户定：别让客人觉得莫名其妙被多收）。百分比基数用发票的
-  // adjustedTotal，和发票底部那张小费表印的是同一批数。
-  const tiers = ctx.gratuityOptions.map((o) => ({
-    rate: o.rate,
-    // 显示的是小费本身（老板 09-23 定）：百分比配小费金额才对得上，
-    // 写总额会让人以为"20% = $863"。
-    tipCents: Math.round(o.amount * 100),
-    fillCents: quickFillCents(ctx.balanceDue, o.amount),
-  }))
-
+  // 2026-09-28 用户定：快捷小费按钮整个去掉，页面只留一个输入框。
   return NextResponse.json({
     ok: true,
     settled: ctx.settled,
     clientName: firstName(ctx.clientName),
     eventDate: ctx.eventDate,
     guests: ctx.guests,
-    tiers,
   })
 }
 
