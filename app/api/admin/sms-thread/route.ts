@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
+import { loadLeadEventHint } from "@/lib/lead-event-hint"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
@@ -135,16 +136,21 @@ export async function POST(request: NextRequest) {
     if (!said) {
       const supabase = createServerSupabaseClient()
       if (supabase) {
-        const base = supabase.from("leads").select("event_hint")
-        const { data } = leadIdParam
-          ? await base.eq("id", leadIdParam).maybeSingle()
-          : await base
-              .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
-              .is("merged_into", null)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle()
-        hint = (data as { event_hint: string | null } | null)?.event_hint ?? null
+        // leads has no date column; the date lives on the timeline (form
+        // payloads, the auto quote, "[data]" notes) - lib/lead-event-hint.ts.
+        let leadId = leadIdParam
+        if (!leadId) {
+          const { data } = await supabase
+            .from("leads")
+            .select("id")
+            .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
+            .is("merged_into", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          leadId = (data as { id: string } | null)?.id ?? null
+        }
+        if (leadId) hint = (await loadLeadEventHint(supabase, leadId))?.date ?? null
       }
     }
     if (said || hint) {
