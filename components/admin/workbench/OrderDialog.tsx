@@ -304,7 +304,7 @@ export function OrderDialog({
   // 客服动作 = 复制话术+链接，粘出去就能发（2026-09-28 用户定：不放解释文字，
   // 放一条现成的对客短信）。
   const selfPayUrl = `https://www.realhibachi.com/pay?o=${o.id}`
-  const selfPaySms = `${settings.business.brand}: here's the secure link to settle the balance for your party - just enter the total you agreed with your chef, anything above the balance goes to them as their tip, 100%: ${selfPayUrl}`
+  const selfPaySms = `${settings.business.brand}: here's the secure link to settle the balance for your party - enter the total you agreed with your chef, plus a 4% card processing fee. Anything above the balance goes to your chef as their tip, 100%: ${selfPayUrl}`
   const copySelfPay = (withScript: boolean) => {
     copyText(withScript ? selfPaySms : selfPayUrl)
     setSelfPayCopied(true)

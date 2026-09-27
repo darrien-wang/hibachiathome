@@ -226,6 +226,11 @@ export default function PayClient() {
               ? "Your party is paid in full — anything you enter here goes to your chef."
               : "Enter the total you agreed with your chef."}
           </span>
+          {/* 2026-09-28 用户定：提示卡支付要多付 4% 处理费——只提示，金额仍然
+              是客人填多少刷多少，我们不代加。 */}
+          <span className="text-[12px] leading-relaxed text-clay-700/80">
+            Card payments carry an extra 4% processing fee — please add it to your total.
+          </span>
         </div>
 
         <label className="flex items-center gap-2 rounded-2xl bg-cream px-5 py-4">
