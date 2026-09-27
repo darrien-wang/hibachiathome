@@ -257,7 +257,7 @@ export async function GET(request: NextRequest) {
       supabase.from("chef_files").select("id, order_id, kind, title, content_type, bytes, amount_cents, status, approved_at, settled_at, note, uploaded_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(300),
       supabase.from("chef_settlements").select("id, period_start, period_end, shifts, pay_cents, reimb_cents, cash_cents, tip_cents, tables_cents, travel_cents, review_cents, token, net_cents, method, note, created_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(60),
       supabase.from("staff_assets").select("id, item_key, label, qty, size, issued_on, returned_on, condition, unit_cost_cents, note, created_by").eq("staff_member_id", id).order("issued_on", { ascending: false }).limit(200),
-      supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, cents, settlement_id, settled_at, created_at").eq("staff_member_id", id).order("review_date", { ascending: false }).limit(120),
+      supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, url, review_id, cents, settlement_id, settled_at, created_at").eq("staff_member_id", id).order("review_date", { ascending: false }).limit(120),
     ])
     const assets = (assetRows ?? []).map((a) => ({ ...a, label: assetLabel(String(a.item_key), String(a.label ?? "")) }))
     if (!can(actor, "chef_sensitive")) {
@@ -332,7 +332,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -623,6 +623,7 @@ export async function POST(request: NextRequest) {
             reviewer: str(body.reviewer, 80) || null,
             has_photo: hasPhoto,
             excerpt: str(body.excerpt, 300) || null,
+            url: str(body.url, 500) || null,
             order_id: isUuid(body.order_id) ? body.order_id : null,
             cents: hasPhoto ? REVIEW_PHOTO_CENTS : REVIEW_PLAIN_CENTS,
             created_by: actor.alias,
@@ -635,6 +636,8 @@ export async function POST(request: NextRequest) {
       case "delete_review": {
         // 只删还没结算的；结过的已经在对账单里，不能抹。
         if (!isUuid(body.review_id)) return NextResponse.json({ error: "review_id required" }, { status: 400 })
+        // 好评主档若挂着这条奖励，一并解开（那条评价回到“可再记”状态）。
+        await supabase.from("business_reviews").update({ bonus_id: null, staff_member_id: null }).eq("bonus_id", body.review_id)
         const { error } = await supabase.from("chef_review_bonuses").delete().eq("id", body.review_id).is("settlement_id", null)
         if (error) throw error
         return NextResponse.json({ ok: true })
@@ -738,11 +741,9 @@ export async function POST(request: NextRequest) {
         const early = picked.filter((x) => !x.method)
         const { data: approved } = await supabase.from("chef_files").select("id, amount_cents").eq("staff_member_id", body.id).eq("kind", "receipt").eq("status", "approved")
         const reimb = only ? [] : approved ?? []
-        // 好评奖励：没结过的逐条扫进来（逐场结不动它，周结才清）。
-        const { data: pendingReviews } = only
-          ? { data: [] as Array<{ id: string; platform: string; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; cents: number }> }
-          : await supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, cents").eq("staff_member_id", body.id).is("settlement_id", null).order("review_date")
-        const reviewRows2 = pendingReviews ?? []
+        // 好评奖励 2026-09-28 起每月单独结（settle_reviews 出自己的对账单），
+        // 周结不再掺好评——这里恒为空，字段留着只为对账单快照结构不变。
+        const reviewRows2: Array<{ id: string; platform: string; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url?: string | null; cents: number }> = []
         // 工钱：这一轮真正要付的（提前结过的不再付）。桌椅和路费跟着"这场
         // 真办完了"走：提前结只付人头费，桌椅路费等收尾那笔一起清。
         const payOf = (x: (typeof picked)[number]) => (x.paySettledAt ? 0 : x.payCents)
@@ -792,7 +793,7 @@ export async function POST(request: NextRequest) {
               cashTipCents: x.cashTipCents,
               subtotalCents: payOf(x) + (x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents : 0),
             })),
-          reviews: reviewRows2.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, cents: r.cents })),
+          reviews: reviewRows2.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, url: r.url ?? null, cents: r.cents })),
           reimb: { count: reimb.length, cents: reimbCents },
           totals: { payCents: pay, tablesCents: tables, travelCents: travel, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, netCents: net },
         }
@@ -871,7 +872,74 @@ export async function POST(request: NextRequest) {
           netCents: net,
         })
       }
+      case "settle_reviews": {
+        // 好评奖励每月一结（2026-09-28 用户定）：把没结过的逐条扫成一张
+        // 独立对账单，不掺工钱和代收。月底点一次；每条都带原文链接可查。
+        if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
+        const { data: chefRow } = await supabase.from("staff_members").select("id, full_name, display_name").eq("id", body.id).maybeSingle()
+        if (!chefRow) return NextResponse.json({ error: "not found" }, { status: 404 })
+        const { data: pending } = await supabase
+          .from("chef_review_bonuses")
+          .select("id, platform, review_date, reviewer, has_photo, excerpt, url, cents")
+          .eq("staff_member_id", body.id)
+          .is("settlement_id", null)
+          .order("review_date")
+        const revs = pending ?? []
+        if (!revs.length) return NextResponse.json({ error: "没有待结的好评——先在好评页签把提到他的评价记上。" }, { status: 400 })
+        const total = revs.reduce((a, r) => a + (r.cents ?? 0), 0)
+        const token = randomBytes(16).toString("base64url")
+        const lines = {
+          v: 1,
+          kind: "reviews",
+          chef: nameOf(chefRow as Staff),
+          period: { start: revs[0].review_date, end: revs[revs.length - 1].review_date },
+          generatedAt: now,
+          rate: null,
+          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelBaseCents: TRAVEL_BASE_CENTS, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
+          parties: [],
+          reviews: revs.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, url: r.url ?? null, cents: r.cents })),
+          reimb: { count: 0, cents: 0 },
+          totals: { payCents: 0, tablesCents: 0, travelCents: 0, reviewCents: total, tipCents: 0, cashCents: 0, reimbCents: 0, netCents: total },
+        }
+        const { data: settlement, error } = await supabase
+          .from("chef_settlements")
+          .insert({
+            staff_member_id: body.id,
+            period_start: revs[0].review_date,
+            period_end: revs[revs.length - 1].review_date,
+            shifts: 0,
+            pay_cents: 0,
+            reimb_cents: 0,
+            cash_cents: 0,
+            tip_cents: 0,
+            tables_cents: 0,
+            travel_cents: 0,
+            review_cents: total,
+            lines,
+            token,
+            net_cents: total,
+            method: str(body.method, 30) || null,
+            note: `好评奖励月结 · ${revs.length} 条`,
+            created_by: actor.alias,
+          })
+          .select("id")
+          .single()
+        if (error) throw error
+        await supabase.from("chef_review_bonuses").update({ settlement_id: settlement.id, settled_at: now }).in("id", revs.map((r) => r.id))
+        return NextResponse.json({ ok: true, settlementId: settlement.id, token, statementUrl: `https://invoice.realhibachi.com/chef/statement/${token}`, count: revs.length, reviewCents: total, netCents: total })
+      }
       case "unsettle": {
+        // 撤一张“好评月结”对账单：没有场次挂着的结算走这条——好评回到
+        // 待结（回好评页签可改可重记），链接作废。
+        if (!body.assignment_id && isUuid(body.settlement_id)) {
+          const sid = body.settlement_id as string
+          const { count } = await supabase.from("order_staff_assignments").select("id", { count: "exact", head: true }).eq("settlement_id", sid)
+          if ((count ?? 0) > 0) return NextResponse.json({ error: "这张对账单挂着场次，请到对应场次上点撤销。" }, { status: 400 })
+          await supabase.from("chef_settlements").update({ token: null, note: "已撤销（链接已作废）" }).eq("id", sid)
+          await supabase.from("chef_review_bonuses").update({ settlement_id: null, settled_at: null }).eq("settlement_id", sid)
+          await supabase.from("chef_files").update({ status: "approved", settled_at: null, settlement_id: null }).eq("settlement_id", sid).eq("status", "paid")
+          return NextResponse.json({ ok: true })
+        }
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
         const { data: cur } = await supabase.from("order_staff_assignments").select("settlement_id").eq("id", body.assignment_id).maybeSingle()
         const sid = (cur?.settlement_id as string | null) ?? null

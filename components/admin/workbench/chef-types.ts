@@ -116,7 +116,7 @@ export type Settlement = { id: string; period_start: string | null; period_end: 
 /** 公司发出去的东西（工服 / 刀具 / 装备）。returned_on 为空 = 还在他手上。 */
 export type AssetRow = { id: string; item_key: string; label: string; qty: number; size: string | null; issued_on: string; returned_on: string | null; condition: string | null; unit_cost_cents: number | null; note: string | null; created_by: string | null }
 /** 客人在 Google/Yelp 留的好评（搜师傅名字搜到的），一条一档：无图 $2、带图 $3。 */
-export type ReviewBonus = { id: string; platform: "google" | "yelp" | "other"; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; cents: number; settlement_id: string | null; settled_at: string | null; created_at: string }
+export type ReviewBonus = { id: string; platform: "google" | "yelp" | "other"; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url: string | null; review_id?: string | null; cents: number; settlement_id: string | null; settled_at: string | null; created_at: string }
 export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; reviews?: ReviewBonus[]; today: string; sensitive?: boolean }
 
 export type MediaItem = {

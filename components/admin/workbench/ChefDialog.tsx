@@ -67,7 +67,7 @@ export function ChefDialog({
   const [week, setWeek] = useState(thisWeekStart)
   const [settleView, setSettleView] = useState<"week" | "month">("week")
   const [fileFilter, setFileFilter] = useState<"all" | ChefFile["kind"]>("all")
-  const [statement, setStatement] = useState<{ url: string; net: number } | null>(null)
+  const [statement, setStatement] = useState<{ url: string; net: number; kind?: "reviews" } | null>(null)
   const [profile, setProfile] = useState<Record<string, string>>({})
   const [docs, setDocs] = useState<Record<string, string>>({})
   const [skills, setSkills] = useState<string[]>([])
@@ -142,7 +142,8 @@ export function ChefDialog({
   const cashTotal = openRows.reduce((a, s) => a + s.cashCents, 0)
   const tipTotal = openRows.reduce((a, s) => a + s.cardTipCents, 0)
   const reimbTotal = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-  const net = payTotal + tablesTotal + travelTotal + reviewTotal + reimbTotal + tipTotal - cashTotal
+  // 好评不进周结（2026-09-28 起每月单独出单，见下方好评卡）。
+  const net = payTotal + tablesTotal + travelTotal + reimbTotal + tipTotal - cashTotal
   const perf = d?.performance ?? []
   const good = perf.filter((p) => p.review === "good").length
   const bad = perf.filter((p) => p.review === "bad").length
@@ -197,6 +198,17 @@ export function ChefDialog({
     if (method === null) return
     const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
+  }
+  // 好评奖励每月一结：单独出一张对账单，不掺周结的工钱代收。
+  const settleReviews = async () => {
+    if (!pendingReviews.length) return
+    if (!(await askConfirm({ title: "结好评奖励", message: `把 ${pendingReviews.length} 条待结好评（${money(reviewTotal)}）单独出一张对账单，付给 ${name}？好评每月结一次，每条都带原文链接。`, okLabel: "出对账单" }))) return
+    const r = await post("settle_reviews", { action: "settle_reviews", id: chefId }, "好评已结")
+    if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0), kind: "reviews" })
+  }
+  const unsettleReviewStatement = async (sid: string) => {
+    if (!(await askConfirm({ title: "撤销好评对账单", message: "链接作废，这批好评回到待结（可改可重记）。", okLabel: "撤销", danger: true }))) return
+    await post("unsettle_rev", { action: "unsettle", settlement_id: sid }, "已撤销——好评回到待结")
   }
   const settleOne = async (s: ShiftRow) => {
     // 单场结不互抵（刷卡场我们给他、现金场他给我们会各出一张单）。周六晚
@@ -320,10 +332,12 @@ export function ChefDialog({
     if (reviewer === null) return
     const date = await askPrompt({ title: "评价日期", message: "评价显示的日期（YYYY-MM-DD，不确定就用今天）", defaultValue: today, okLabel: "下一步" })
     if (date === null) return
-    const photoAns = await askPrompt({ title: "带图吗？", message: "带图 $3，无图 $2。带图填 y，无图填 n", defaultValue: "n", okLabel: "记录" })
+    const photoAns = await askPrompt({ title: "带图吗？", message: "带图 $3，无图 $2。带图填 y，无图填 n", defaultValue: "n", okLabel: "下一步" })
     if (photoAns === null) return
     const hasPhoto = /^(y|yes|是|带)/i.test(photoAns.trim())
-    await post("add_review", { action: "add_review", id: chefId, platform: platform.trim().toLowerCase() === "yelp" ? "yelp" : platform.trim().toLowerCase() === "other" ? "other" : "google", reviewer, review_date: date.trim(), has_photo: hasPhoto }, "好评已记")
+    const url = await askPrompt({ title: "评价链接", message: "这条评价的链接（对账单里能点开看原文；没有可留空）", placeholder: "https://…", defaultValue: "", okLabel: "记录" })
+    if (url === null) return
+    await post("add_review", { action: "add_review", id: chefId, platform: platform.trim().toLowerCase() === "yelp" ? "yelp" : platform.trim().toLowerCase() === "other" ? "other" : "google", reviewer, review_date: date.trim(), has_photo: hasPhoto, url: url.trim() || undefined }, "好评已记")
   }
   const deleteReview = async (id: string) => {
     if (!(await askConfirm({ title: "删掉这条好评", message: "只删还没结算的记录。", okLabel: "删除", danger: true }))) return
@@ -361,14 +375,18 @@ export function ChefDialog({
     }
   }
   // 结清之后把明细页链接发给师傅：他打开能看到每一场每一条怎么算的。
-  const sendStatement = async (url: string, netCents: number) => {
+  const sendStatement = async (url: string, netCents: number, kind?: "reviews") => {
     if (!c?.phone) {
       setMsg("没有电话")
       return
     }
     // 师傅的对账单短信用中文（2026-09-28 用户定），页面本身也默认中文。
     const who = netCents >= 0 ? `公司付你 $${(netCents / 100).toFixed(2)}` : `请交回公司 $${(-netCents / 100).toFixed(2)}`
-    const body = `Real Hibachi ${name} 本周对账单，每一场每一笔都列在里面：${url}
+    const body =
+      kind === "reviews"
+        ? `Real Hibachi ${name} 好评奖励对账单，提到你的每条评价都列在里面（点开有原文链接）：${url}
+合计：${who}。哪一条对不上直接回这条短信。`
+        : `Real Hibachi ${name} 本周对账单，每一场每一笔都列在里面：${url}
 合计：${who}。哪一行对不上直接回这条短信。`
     if (!(await askConfirm({ title: "发对账单", message: `发给 ${prettyPhone(c.phone)}？\n\n${body}`, okLabel: "发送" }))) return
     setBusy("statement")
@@ -837,42 +855,13 @@ export function ChefDialog({
                   </div>
                 )
               })}
-              <div style={{ padding: "7px 0", borderBottom: "1px solid var(--color-line)", color: "var(--color-neutral-700)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>
-                    + 好评奖励（{pendingReviews.length} 条）
-                    {owner ? (
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 6px", fontSize: 11 }} disabled={!!busy} onClick={() => void addReview()}>
-                        记一条
-                      </button>
-                    ) : null}
-                  </span>
-                  <span>{money(reviewTotal)}</span>
-                </div>
-                {pendingReviews.map((r) => (
-                  <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, padding: "2px 0 0 12px" }}>
-                    <span className="clamp1">
-                      {r.platform === "yelp" ? "Yelp" : r.platform === "google" ? "Google" : "其它"} · {md(r.review_date)} · {r.reviewer ?? "匿名"}
-                      {r.has_photo ? " · 带图" : ""}
-                    </span>
-                    <span style={{ whiteSpace: "nowrap" }}>
-                      +{money(r.cents)}
-                      {owner ? (
-                        <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void deleteReview(r.id)}>
-                          删
-                        </button>
-                      ) : null}
-                    </span>
-                  </div>
-                ))}
-              </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--color-line)", color: "var(--color-neutral-700)" }}>
                 <span>+ 已批报销（{approvedReimb.length} 张）</span>
                 <span>{money(reimbTotal)}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 0 4px" }}>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 好评 {money(reviewTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}
+                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}
                 </span>
                 <strong className="num" style={{ fontSize: 20, whiteSpace: "nowrap", color: net < 0 ? "var(--color-accent-700)" : undefined }}>
                   {net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清"}
@@ -887,7 +876,7 @@ export function ChefDialog({
                 </button>
               ) : null}
             </div>
-            {statement ? (
+            {statement && statement.kind !== "reviews" ? (
               <div className="notice" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5 }}>
                 <span style={{ flex: 1, minWidth: 0 }}>对账单已生成（{statement.net >= 0 ? `付给师傅 ${money(statement.net)}` : `师傅交回 ${money(-statement.net)}`}）</span>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(statement.url)}>
@@ -899,7 +888,59 @@ export function ChefDialog({
               </div>
             ) : null}
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-              净额 = 人头费（大人整头 · 收费小孩半头 · 免费幼儿不算）+ 桌椅 $4/人 + 路费（超 50 mi 的场：整程 × $1/mi）+ 好评（无图 $2 · 带图 $3）+ 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。
+              净额 = 人头费（大人整头 · 收费小孩半头 · 免费幼儿不算）+ 桌椅 $4/人 + 路费（超 50 mi 的场：整程 × $1/mi）+ 报销 + 卡上小费 − 师傅代收的现金；正数我们欠他，<span style={{ color: "var(--color-accent-700)" }}>负数他欠我们</span>。客人当场给的现金小费师傅自己留着，不进净额。结过的工钱冻结，之后改工价不影响历史。好评奖励不走周结——在「好评」页签逐条记，下面每月一键出单。
+            </div>
+
+            <div style={{ border: "1px solid var(--color-line)", padding: "10px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span className="kicker" style={{ margin: 0 }}>好评奖励 · 每月一结</span>
+                <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {owner ? (
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void addReview()}>
+                      手动记一条
+                    </button>
+                  ) : null}
+                  {owner ? (
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy || pendingReviews.length === 0} onClick={() => void settleReviews()}>
+                      {busy === "settle_reviews" ? "结算中…" : `结好评 ${money(reviewTotal)}`}
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "6px 0 4px" }}>提到他名字的评价在「好评」页签一键记过来（无图 $2 · 带图 $3，一条只算一次），攒到月底出一张独立对账单。</div>
+              {pendingReviews.length === 0 ? <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>本期还没有待结的好评。</div> : null}
+              {pendingReviews.map((r) => (
+                <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, padding: "3px 0" }}>
+                  <span className="clamp1">
+                    {r.platform === "yelp" ? "Yelp" : r.platform === "google" ? "Google" : "其它"} · {md(r.review_date)} · {r.reviewer ?? "匿名"}
+                    {r.has_photo ? " · 带图" : ""}
+                    {r.url ? (
+                      <a href={r.url} target="_blank" rel="noreferrer" style={{ marginLeft: 6, textDecorationLine: "underline" }}>
+                        查看原文
+                      </a>
+                    ) : null}
+                  </span>
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    +{money(r.cents)}
+                    {owner ? (
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void deleteReview(r.id)}>
+                        删
+                      </button>
+                    ) : null}
+                  </span>
+                </div>
+              ))}
+              {statement?.kind === "reviews" ? (
+                <div className="notice" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5, marginTop: 6 }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>好评对账单已生成（付给师傅 {money(statement.net)}）</span>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(statement.url)}>
+                    复制链接
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void sendStatement(statement.url, statement.net, "reviews")}>
+                    {busy === "statement" ? "发送中…" : "短信发给师傅"}
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {notYetHeld.length ? (
@@ -974,7 +1015,7 @@ export function ChefDialog({
                   {d.settlements.map((s) => (
                     <div key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--color-line)" }}>
                       <span>
-                        {stamp(s.created_at)} · {s.shifts} 场{s.period_start ? ` · ${md(s.period_start)}–${s.period_end ? md(s.period_end) : ""}` : ""} · {s.method ?? "—"}
+                        {stamp(s.created_at)} · {s.shifts === 0 && (s.review_cents ?? 0) > 0 ? "好评月结" : `${s.shifts} 场`}{s.period_start ? ` · ${md(s.period_start)}–${s.period_end ? md(s.period_end) : ""}` : ""} · {s.method ?? "—"}
                       </span>
                       <span style={{ whiteSpace: "nowrap" }}>
                         <NetSpan n={s.net_cents} />
@@ -983,9 +1024,14 @@ export function ChefDialog({
                             <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} onClick={() => window.open(`https://invoice.realhibachi.com/chef/statement/${s.token}`, "_blank", "noopener")}>
                               对账单
                             </button>
-                            <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void sendStatement(`https://invoice.realhibachi.com/chef/statement/${s.token}`, s.net_cents)}>
+                            <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void sendStatement(`https://invoice.realhibachi.com/chef/statement/${s.token}`, s.net_cents, s.shifts === 0 && (s.review_cents ?? 0) > 0 ? "reviews" : undefined)}>
                               发短信
                             </button>
+                            {owner && s.shifts === 0 && (s.review_cents ?? 0) > 0 ? (
+                              <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!!busy} onClick={() => void unsettleReviewStatement(s.id)}>
+                                撤销
+                              </button>
+                            ) : null}
                           </>
                         ) : null}
                       </span>
