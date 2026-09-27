@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
-import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
+import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { assetLabel } from "@/lib/staff-assets"
-import { getStripeServerClient } from "@/lib/stripe-server"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -589,25 +588,12 @@ export async function POST(request: NextRequest) {
         const others = rows.filter((r) => r.id !== card.id).reduce((n, r) => n + (r.amount_cents ?? 0), 0)
         const fromTotal = Math.max(0, (ord?.quoted_total_cents ?? 0) - others)
         const balanceRefCents = balanceNow > 0 ? balanceNow : fromTotal
-        let grossCents = card.amount_cents ?? 0
-        let feeCents = 0
-        let netCents = grossCents
-        let stripeError: string | null = null
-        try {
-          const stripe = getStripeServerClient()
-          const pi = await stripe.paymentIntents.retrieve(card.external_payment_id, { expand: ["latest_charge.balance_transaction"] })
-          const charge = pi.latest_charge
-          const bt = charge && typeof charge !== "string" ? charge.balance_transaction : null
-          if (bt && typeof bt !== "string") {
-            grossCents = bt.amount
-            feeCents = bt.fee
-            netCents = bt.net
-          } else {
-            stripeError = "Stripe 没返回 balance transaction，手续费自己填。"
-          }
-        } catch (e) {
-          stripeError = e instanceof Error ? e.message : "Stripe 查不到"
-        }
+        // 手续费一律按 4% 计（2026-09-28 用户定）：不查 Stripe 实扣，
+        // 和发票上收客人的 Card Processing Fee 用同一个数。gross 就是
+        // payments 里记的实刷金额，所以这里连 Stripe API 都不用碰。
+        const grossCents = card.amount_cents ?? 0
+        const feeCents = Math.round(grossCents * CARD_FEE_RATE)
+        const netCents = grossCents - feeCents
         return NextResponse.json({
           ok: true,
           found: true,
@@ -617,8 +603,8 @@ export async function POST(request: NextRequest) {
           feeCents,
           netCents,
           balanceRefCents,
+          feeRatePct: CARD_FEE_RATE * 100,
           tipCents: Math.max(0, netCents - balanceRefCents),
-          stripeError,
         })
       }
       case "add_review": {

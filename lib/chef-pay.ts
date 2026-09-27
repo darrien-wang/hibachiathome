@@ -96,3 +96,9 @@ export const REVIEW_PHOTO_CENTS = 300
 export function reviewBonusCents(plain: number, photo: number): number {
   return Math.max(0, Math.round(plain)) * REVIEW_PLAIN_CENTS + Math.max(0, Math.round(photo)) * REVIEW_PHOTO_CENTS
 }
+
+/**
+ * 结算口径的刷卡手续费：一律按 4% 算，不看 Stripe 实扣（2026-09-28 用户定）。
+ * 和发票上收客人的 Card Processing Fee 是同一个数——全链条只有一个 4%。
+ */
+export const CARD_FEE_RATE = 0.04
