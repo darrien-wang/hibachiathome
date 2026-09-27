@@ -209,10 +209,26 @@ export function ChefDialog({
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
   }
   const unsettle = (s: ShiftRow) => post(`unsettle:${s.assignmentId}`, { action: "unsettle", assignment_id: s.assignmentId }, "已撤销")
-  // 周六晚结账时师傅周日还有一台：工钱先付掉，代收和小费等派对办完再补。
-  const prepay = async (s: ShiftRow) => {
-    if (!(await askConfirm({ title: "提前结工钱", message: `${s.customer ?? ""} ${md(s.date)} 这场还没办。\n\n现在先把工钱 ${money(s.payCents)} 结给 ${name}；等派对办完、确认了尾款怎么收的，代收或小费再补一笔。`, okLabel: "结工钱" }))) return
-    await post(`prepay:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "工钱已提前结")
+  // 周六晚结账时师傅明天还有一台：提前结算 = 按"师傅代收现金"把整场
+  // 结进本期（工钱+桌椅+路费 − 代收尾款），2026-09-28 用户定。办完如果
+  // 实际是刷卡，回来撤销这场重记。
+  const settleAhead = async (s: ShiftRow) => {
+    const due = s.balanceDueCents ?? 0
+    let cash: number
+    if (due > 0) {
+      const comp = s.payCents + s.tablesCents + s.travelCents
+      const line = comp - due >= 0 ? `付师傅 ${money(comp - due)}` : `师傅交回 ${money(due - comp)}`
+      if (!(await askConfirm({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)} 还没办，按"师傅代收现金"提前结：工钱等 ${money(comp)} − 代收尾款 ${money(due)} = ${line}。订单同步登记为已收；办完若实际是刷卡，回来撤销这场重记。`, okLabel: "提前结算" }))) return
+      cash = due / 100
+    } else {
+      const raw = await askPrompt({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)}：这单没有挂着的尾款。师傅将代收多少（美元）？`, placeholder: "0.00", inputMode: "decimal", okLabel: "下一步" })
+      if (raw === null) return
+      cash = Number(raw) || 0
+    }
+    const r1 = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: cash })
+    if (!r1) return
+    const r2 = await post(`prepay:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "已提前结算")
+    if (r2?.statementUrl) setStatement({ url: String(r2.statementUrl), net: Number(r2.netCents ?? 0) })
   }
 
   const setMethod = async (s: ShiftRow, m: SettleMethod) => {
@@ -892,7 +908,7 @@ export function ChefDialog({
             {notYetHeld.length ? (
               <div style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 10 }}>
                 <Kicker style={{ margin: 0 }}>还没办的场次（{notYetHeld.length}）</Kicker>
-                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "4px 0 6px" }}>派对还没结束，不算进本期。周六结账时师傅明天还有一台的话，可以先把工钱结掉，代收和小费等办完再补。</div>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "4px 0 6px" }}>派对还没结束，不自动进本期。周六结账时明天还有一台的话，点“提前结算”——按师傅代收现金整场结进来，办完若实际刷卡再撤销重记。</div>
                 {notYetHeld.map((s) => (
                   <div key={s.assignmentId} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -904,8 +920,8 @@ export function ChefDialog({
                     {s.paySettledAt ? (
                       <Tag cls="tag-faint">工钱已结 {stamp(s.paySettledAt).split(",")[0]}</Tag>
                     ) : owner ? (
-                      <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void prepay(s)}>
-                        {busy === `prepay:${s.assignmentId}` ? "结算中…" : "提前结工钱"}
+                      <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void settleAhead(s)}>
+                        {busy === `prepay:${s.assignmentId}` || busy === `m:${s.assignmentId}` ? "结算中…" : "提前结算"}
                       </button>
                     ) : null}
                   </div>

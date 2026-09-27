@@ -730,8 +730,10 @@ export async function POST(request: NextRequest) {
         // 一键结清：只收已经办完并确认过收款方式的，外加之前提前结过工钱、
         // 现在终于确认了的那些。
         const picked = only ? mine.filter((x) => only.has(x.assignmentId)) : mine.filter((x) => x.partyOver && x.method)
-        const ready = picked.filter((x) => x.partyOver && !!x.method)
-        const early = picked.filter((x) => !(x.partyOver && x.method))
+        // 有收款方式的就全结——包括还没办的场（提前结算=按师傅代收现金处理，
+        // 2026-09-28 用户定）。没有方式的才退回"只结工钱"。
+        const ready = picked.filter((x) => !!x.method)
+        const early = picked.filter((x) => !x.method)
         const { data: approved } = await supabase.from("chef_files").select("id, amount_cents").eq("staff_member_id", body.id).eq("kind", "receipt").eq("status", "approved")
         const reimb = only ? [] : approved ?? []
         // 好评奖励：没结过的逐条扫进来（逐场结不动它，周结才清）。
@@ -750,7 +752,7 @@ export async function POST(request: NextRequest) {
         const tip = ready.reduce((a, x) => a + x.cardTipCents, 0)
         const reimbCents = reimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
         if (!picked.length && !reimb.length) {
-          return NextResponse.json({ error: "没有可结的：派对要办完、并且确认过尾款怎么收的；要提前结工钱就单独点那一场。" }, { status: 400 })
+          return NextResponse.json({ error: "没有可结的：先确认每场尾款怎么收的（还没办的场用\"提前结算\"，按师傅代收现金处理）。" }, { status: 400 })
         }
         const net = pay + tables + travel + review + reimbCents + tip - cash
         const dates = picked.map((x) => x.date).filter(Boolean).sort()
@@ -774,19 +776,19 @@ export async function POST(request: NextRequest) {
               counts: x.counts,
               teamSize: x.team.length,
               method: x.method,
-              prepaidOnly: !(x.partyOver && x.method),
+              prepaidOnly: !x.method,
               payPrepaid: !!x.paySettledAt,
               miles: x.miles,
               tableHeads: x.tableHeads,
               payCents: payOf(x),
-              tablesCents: x.partyOver && x.method ? x.tablesCents : 0,
-              travelCents: x.partyOver && x.method ? x.travelCents : 0,
-              cardTipCents: x.partyOver && x.method ? x.cardTipCents : 0,
+              tablesCents: x.method ? x.tablesCents : 0,
+              travelCents: x.method ? x.travelCents : 0,
+              cardTipCents: x.method ? x.cardTipCents : 0,
               cardGrossCents: x.cardGrossCents,
               cardFeeCents: x.cardFeeCents,
-              cashCents: x.partyOver && x.method ? x.cashCents : 0,
+              cashCents: x.method ? x.cashCents : 0,
               cashTipCents: x.cashTipCents,
-              subtotalCents: payOf(x) + (x.partyOver && x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents : 0),
+              subtotalCents: payOf(x) + (x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents : 0),
             })),
           reviews: reviewRows2.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, cents: r.cents })),
           reimb: { count: reimb.length, cents: reimbCents },
