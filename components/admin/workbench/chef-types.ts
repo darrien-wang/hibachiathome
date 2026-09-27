@@ -138,11 +138,12 @@ export const FILE_KIND_LABELS: Record<ChefFile["kind"], string> = { receipt: "�
 export const FILE_STATUS_LABELS: Record<ChefFile["status"], string> = { none: "", pending: "待报销", approved: "已批准，待结算", paid: "已报销", rejected: "已拒" }
 
 /**
- * Sunday that starts the week containing ymd. Chef weeks run Sun–Sat because
- * the owner settles Saturday night, same window the ads and stats use.
+ * Monday that starts the week containing ymd. Chef weeks run Mon–Sun
+ * (2026-09-28 用户定：周日是结算周期的最后一天)——周六晚结账，周日那台用
+ * "提前结算"按代收现金并进来一起结。
  */
 export function weekStartOf(ymd: string): string {
   const d = new Date(`${ymd}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() - d.getUTCDay())
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
   return d.toISOString().slice(0, 10)
 }

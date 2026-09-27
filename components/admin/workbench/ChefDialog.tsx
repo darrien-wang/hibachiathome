@@ -126,11 +126,12 @@ export function ChefDialog({
   const byDate = (a: ShiftRow, b: ShiftRow) => a.date.localeCompare(b.date)
   // 办完了、还没说尾款怎么收的：只欠一个动作，先不算钱。
   const pendingMethod = useMemo(() => done.filter((s) => !s.settledAt && !s.method).sort(byDate), [done])
-  // 能结的：办完 + 确认过收款方式。
-  const openRows = useMemo(() => done.filter((s) => !s.settledAt && !!s.method).sort(byDate), [done])
-  // 还没办的场次：可以提前把工钱结掉（周六晚结账时师傅周日还有一台）。
-  const notYetHeld = useMemo(() => shifts.filter((s) => !s.partyOver && !s.settledAt && s.orderStatus !== "cancelled").sort(byDate), [shifts])
-  const settledRecent = useMemo(() => done.filter((s) => s.settledAt && Date.now() - Date.parse(s.settledAt) < 60 * 86400000).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12), [done])
+  // 能结的：确认过收款方式的都算——包括"提前结算"标成代收现金的明天那场
+  // （周日并进周六一起结，2026-09-28 用户定）。
+  const openRows = useMemo(() => shifts.filter((s) => !s.settledAt && !!s.method && s.orderStatus !== "cancelled").sort(byDate), [shifts])
+  // 还没办、也还没提前确认的场。
+  const notYetHeld = useMemo(() => shifts.filter((s) => !s.partyOver && !s.settledAt && !s.method && s.orderStatus !== "cancelled").sort(byDate), [shifts])
+  const settledRecent = useMemo(() => shifts.filter((s) => s.settledAt && Date.now() - Date.parse(s.settledAt) < 60 * 86400000).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12), [shifts])
   const approvedReimb = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "approved")
   const pendingReceipts = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "pending")
   const payTotal = openRows.reduce((a, s) => a + (s.paySettledAt ? 0 : s.payCents), 0)
@@ -216,19 +217,15 @@ export function ChefDialog({
     const due = s.balanceDueCents ?? 0
     let cash: number
     if (due > 0) {
-      const comp = s.payCents + s.tablesCents + s.travelCents
-      const line = comp - due >= 0 ? `付师傅 ${money(comp - due)}` : `师傅交回 ${money(due - comp)}`
-      if (!(await askConfirm({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)} 还没办，按"师傅代收现金"提前结：工钱等 ${money(comp)} − 代收尾款 ${money(due)} = ${line}。订单同步登记为已收；办完若实际是刷卡，回来撤销这场重记。`, okLabel: "提前结算" }))) return
+      if (!(await askConfirm({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)} 还没办，按“师傅代收现金 ${money(due)}”确认，并入本期和其它场一起结清互抵。订单同步登记为已收；办完若实际是刷卡，点行里的方式改回。`, okLabel: "并入本期" }))) return
       cash = due / 100
     } else {
-      const raw = await askPrompt({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)}：这单没有挂着的尾款。师傅将代收多少（美元）？`, placeholder: "0.00", inputMode: "decimal", okLabel: "下一步" })
+      const raw = await askPrompt({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)}：这单没有挂着的尾款。师傅将代收多少（美元）？`, placeholder: "0.00", inputMode: "decimal", okLabel: "确认" })
       if (raw === null) return
       cash = Number(raw) || 0
     }
-    const r1 = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: cash })
-    if (!r1) return
-    const r2 = await post(`prepay:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "已提前结算")
-    if (r2?.statementUrl) setStatement({ url: String(r2.statementUrl), net: Number(r2.netCents ?? 0) })
+    const r = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: cash }, "已并入本期——用下面“付给厨师并结清”一起出对账单")
+    if (r?.orderSync) setMsg(`已并入本期 · ${String(r.orderSync)}`)
   }
 
   const setMethod = async (s: ShiftRow, m: SettleMethod) => {
@@ -908,7 +905,7 @@ export function ChefDialog({
             {notYetHeld.length ? (
               <div style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 10 }}>
                 <Kicker style={{ margin: 0 }}>还没办的场次（{notYetHeld.length}）</Kicker>
-                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "4px 0 6px" }}>派对还没结束，不自动进本期。周六结账时明天还有一台的话，点“提前结算”——按师傅代收现金整场结进来，办完若实际刷卡再撤销重记。</div>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "4px 0 6px" }}>还没办也还没确认的场。周六结账时明天还有一台的话，点“提前结算”按代收现金并入本期，和其它场一起结清互抵。</div>
                 {notYetHeld.map((s) => (
                   <div key={s.assignmentId} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--color-line)", fontSize: 13 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>

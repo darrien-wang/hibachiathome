@@ -729,7 +729,9 @@ export async function POST(request: NextRequest) {
         // 逐场结：老板点哪场结哪场（包括提前结一场还没办的）。
         // 一键结清：只收已经办完并确认过收款方式的，外加之前提前结过工钱、
         // 现在终于确认了的那些。
-        const picked = only ? mine.filter((x) => only.has(x.assignmentId)) : mine.filter((x) => x.partyOver && x.method)
+        // 一键结清收两种：办完且确认了方式的，以及"提前结算"确认过代收的
+        // 未办场（周日并进周六，2026-09-28 用户定）。
+        const picked = only ? mine.filter((x) => only.has(x.assignmentId)) : mine.filter((x) => !!x.method)
         // 有收款方式的就全结——包括还没办的场（提前结算=按师傅代收现金处理，
         // 2026-09-28 用户定）。没有方式的才退回"只结工钱"。
         const ready = picked.filter((x) => !!x.method)
