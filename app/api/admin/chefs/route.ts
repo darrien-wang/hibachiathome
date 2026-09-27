@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
+import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 
 export const dynamic = "force-dynamic"
@@ -678,7 +679,33 @@ export async function POST(request: NextRequest) {
         if (nums.cashTip !== null) patch.cash_tip_cents = Math.max(0, nums.cashTip)
         const { error } = await supabase.from("order_staff_assignments").update(patch).eq("id", body.assignment_id)
         if (error) throw error
-        return NextResponse.json({ ok: true })
+        // 订单侧同步（2026-09-28 用户定：手动"登记尾款已收"卡已删，这里是唯一入口）：
+        //   cash    -> 师傅代收里抵尾款的部分记成 cash 已收（超出部分是小费，不进订单）
+        //   prepaid -> 老板说钱早到了（Zelle/转账），把还挂着的尾款记成已收
+        //   card    -> /pay 的 webhook 自己会记，这里不动
+        let orderSync: string | null = null
+        if (method === "cash" || method === "prepaid") {
+          const { data: asn2 } = await supabase.from("order_staff_assignments").select("order_id").eq("id", body.assignment_id).maybeSingle()
+          const { data: ord2 } = asn2
+            ? await supabase.from("orders").select("id, balance_due_cents").eq("id", asn2.order_id).maybeSingle()
+            : { data: null }
+          const due = ord2?.balance_due_cents ?? 0
+          if (ord2 && due > 0) {
+            const amountCents = method === "cash" ? Math.min(Math.round(nums.cash ?? 0), due) : due
+            if (amountCents > 0) {
+              const r = await registerFinalPayment(supabase, {
+                orderId: ord2.id as string,
+                amountCents,
+                channel: method === "cash" ? "cash" : "other",
+                operator: actor.alias,
+                entrySurface: "chef_settlement",
+                note: method === "cash" ? "chef collected at the party" : "prepaid/transfer per settlement",
+              })
+              orderSync = r.ok ? `订单已同步登记已收 $${(amountCents / 100).toFixed(2)}` : `订单登记没成：${r.error}`
+            }
+          }
+        }
+        return NextResponse.json({ ok: true, orderSync })
       }
       case "settle": {
         // 一次结账。每场分两种：

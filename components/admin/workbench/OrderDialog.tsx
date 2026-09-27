@@ -171,11 +171,7 @@ export function OrderDialog({
   const [insert, setInsert] = useState<{ text: string; nonce: number } | null>(null)
   const [payAmount, setPayAmount] = useState("")
   const [payPhone, setPayPhone] = useState("")
-  const [payFinal, setPayFinal] = useState(false)
   const [payUrl, setPayUrl] = useState<string | null>(null)
-  const [finalAmount, setFinalAmount] = useState("")
-  const [finalChannel, setFinalChannel] = useState<"cash" | "venmo" | "zelle" | "stripe" | "other">("zelle")
-  const [finalRef, setFinalRef] = useState("")
   const [emailTpl, setEmailTpl] = useState<EmailTemplate | null>(null)
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
   const [team, setTeam] = useState<string[] | null>(null)
@@ -211,7 +207,6 @@ export function OrderDialog({
     if (!o) return
     setPayAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
     setPayPhone(o.customer_phone ?? "")
-    setFinalAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [o?.id, o?.balance_due_cents])
   // Land on 派单/Planner when the customer changed something (comp: orderTab = changed ? 'planner' : 'money').
@@ -292,8 +287,12 @@ export function OrderDialog({
     return d.url
   }
 
-  const copySelfPay = () => {
-    copyText(`https://www.realhibachi.com/pay?o=${o.id}`)
+  // 客服动作 = 复制话术+链接，粘出去就能发（2026-09-28 用户定：不放解释文字，
+  // 放一条现成的对客短信）。
+  const selfPayUrl = `https://www.realhibachi.com/pay?o=${o.id}`
+  const selfPaySms = `${settings.business.brand}: here's the secure link to settle the balance for your party - just enter the total you agreed with your chef, anything above the balance goes to them as their tip, 100%: ${selfPayUrl}`
+  const copySelfPay = (withScript: boolean) => {
+    copyText(withScript ? selfPaySms : selfPayUrl)
     setSelfPayCopied(true)
     window.setTimeout(() => setSelfPayCopied(false), 2000)
   }
@@ -321,31 +320,18 @@ export function OrderDialog({
       const amount = Number(payAmount)
       if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
       const d = await adminJson<{ ok: boolean; url?: string; total?: number; error?: string }>(adminKey, "/api/admin/pay-link", {
-        body: { orderId: o.id, amount, amountIsFinal: payFinal, customerName: o.customer_name ?? undefined, phone: payPhone || undefined, note: `workbench ${o.order_no ?? ""}` },
+        body: { orderId: o.id, amount, customerName: o.customer_name ?? undefined, phone: payPhone || undefined, note: `workbench ${o.order_no ?? ""}` },
       })
       if (!d.ok || !d.url) throw new Error(d.error ?? "链接生成失败")
       setPayUrl(d.url)
       const to = payPhone.trim()
       const total = Number(d.total ?? amount)
-      const body = `${settings.business.brand}: here's the card link for your ${ev ? md(ev.ymd) : ""} party balance, $${total.toFixed(2)}${payFinal ? "" : " (includes the 4% card fee)"}: ${d.url}`
+      const body = `${settings.business.brand}: here's the card link for your ${ev ? md(ev.ymd) : ""} party balance, $${total.toFixed(2)}: ${d.url}`
       if (to && (await askConfirm({ title: "发付款链接", message: `发到 ${prettyPhone(to)}？\n\n${body}`, okLabel: "发送" }))) {
         await sendSms(to, body)
         await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to, subject: `pay link $${total.toFixed(2)} via SMS`, operator: operatorName() } }).catch(() => null)
       } else copyText(d.url)
       await load()
-    })
-
-  const confirmFinal = () =>
-    call("final", async () => {
-      const amount = Number(finalAmount)
-      if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
-      if (finalChannel === "stripe" && !/^(pi|ch|py|cs)_[A-Za-z0-9_]{8,}$/.test(finalRef.trim())) throw new Error("Stripe 收款要填 pi_/ch_/cs_ 开头的 ID")
-      if (!(await askConfirm({ title: "登记尾款", message: `登记尾款 $${amount.toFixed(2)}（${finalChannel}）？发票系统会同步为已收。`, okLabel: "登记" }))) return
-      const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/orders/final-payment-confirm", {
-        body: { orderId: o.id, amount, channel: finalChannel, paymentRef: finalChannel === "stripe" ? finalRef.trim() : undefined, proofUrl: finalChannel !== "stripe" && finalRef.trim() ? finalRef.trim() : undefined, operator: operatorName() },
-      })
-      if (!d.ok) throw new Error(d.error ?? "登记失败")
-      await Promise.all([load(), onChanged()])
     })
 
   const requestAction = (r: UpdateRequest, action: "confirm" | "complete") =>
@@ -519,12 +505,17 @@ export function OrderDialog({
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>
               <Kicker>客户自付（小费他自己填）</Kicker>
-              <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>
-                尾款金额固定、现查发票，客户只能决定给师傅多少小费。发这条，不用先问他打算给多少。
+              <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", background: "var(--color-neutral-100)", padding: "8px 10px", marginTop: 6, lineHeight: 1.5, userSelect: "text" }}>
+                {selfPaySms}
               </div>
-              <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 8 }} onClick={copySelfPay}>
-                {selfPayCopied ? "已复制" : "复制自付链接"}
-              </button>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => copySelfPay(true)}>
+                  {selfPayCopied ? "已复制" : "复制话术+链接"}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => copySelfPay(false)}>
+                  只复制链接
+                </button>
+              </div>
               {typeof o.chosen_gratuity_cents === "number" ? (
                 <div style={{ fontSize: 12.5, color: "var(--color-accent-700)", marginTop: 6 }}>
                   客户填了小费 ${(o.chosen_gratuity_cents / 100).toFixed(2)}
@@ -544,9 +535,7 @@ export function OrderDialog({
               <input className="input" value={payPhone} onChange={(e) => setPayPhone(e.target.value)} />
             </Field>
             {payOther ? <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>与客人电话不同 · 将发给新号码</div> : null}
-            <label className="check">
-              <input type="checkbox" checked={payFinal} onChange={(e) => setPayFinal(e.target.checked)} /> 金额已含卡费（不再 +4%）
-            </label>
+            
             <button type="button" className="btn btn-primary btn-block" style={{ margin: 0 }} disabled={!!busy || !payAmount} onClick={() => void genPayLink()}>
               {busy === "pay" ? "生成中…" : "生成并发送链接"}
             </button>
@@ -561,29 +550,8 @@ export function OrderDialog({
               </div>
             ) : null}
             <div className="hr" style={{ margin: "4px 0" }} />
-            <div>
-              <Kicker>现金 / Venmo / Zelle / Stripe 已收，登记</Kicker>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <Field label="金额 $">
-                  <input className="input" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} />
-                </Field>
-                <Field label="方式">
-                  <select className="input" value={finalChannel} onChange={(e) => setFinalChannel(e.target.value as typeof finalChannel)}>
-                    <option value="zelle">Zelle</option>
-                    <option value="venmo">Venmo</option>
-                    <option value="cash">现金</option>
-                    <option value="stripe">Stripe</option>
-                    <option value="other">其他</option>
-                  </select>
-                </Field>
-              </div>
-              <Field label={finalChannel === "stripe" ? "Stripe 付款 ID（pi_… / ch_…）" : "凭证链接（可选）"} style={{ marginTop: 8 }}>
-                <input className="input" value={finalRef} onChange={(e) => setFinalRef(e.target.value)} />
-              </Field>
-              <button type="button" className="btn btn-secondary btn-block" disabled={!!busy || !finalAmount} onClick={() => void confirmFinal()}>
-                {busy === "final" ? "登记中…" : "登记尾款已收"}
-              </button>
-              {assignments.length ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>师傅现场代收的尾款在厨师 → 结算里登记，才能从他的工钱里扣。</div> : null}
+            <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+              尾款怎么收的（师傅代收现金 / 刷卡 / 已付清）去 <strong>厨师 → 结算</strong> 或本单 <strong>Planner · 派单</strong> 里确认——确认那一下会自动把订单登记成已收，师傅那份也同时进结算，不用在这里再录一遍。
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", borderTop: "1px solid var(--color-line)", paddingTop: 10 }}>
               <div className="kicker" style={{ marginBottom: 4 }}>已收</div>

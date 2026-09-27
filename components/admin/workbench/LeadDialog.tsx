@@ -247,22 +247,18 @@ export function LeadDialog({
     try {
       const q = await adminJson<Record<string, unknown>>(adminKey, "/api/admin/pay-link", { body: { action: "quote", phone: lead.phone || undefined, email: lead.email || undefined } })
       let amount: number
-      let amountIsFinal = false
       if (q.ok && q.found && Number(q.balanceDue) > 0) {
         const bal = Number(q.balanceDue)
-        const card = q.paymentMethod === "credit_card"
-        amountIsFinal = card
-        const total = card ? bal : Math.round(bal * 1.04 * 100) / 100
-        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n发票尾款 $${bal.toFixed(2)}${card ? "（已含卡费）" : " → 刷卡 +4% = $" + total.toFixed(2)}\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
+        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n发票尾款 $${bal.toFixed(2)}，链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
         amount = bal
       } else {
-        const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接会自动 +4% 卡费）：", defaultValue: est.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
+        const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接就收这个数）：", defaultValue: est.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
         if (!raw) return
         amount = Number(raw)
         if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
       }
       const d = await adminJson<{ ok: boolean; url?: string; total?: number; error?: string }>(adminKey, "/api/admin/pay-link", {
-        body: { phone: lead.phone || undefined, email: lead.email || undefined, amount, amountIsFinal, customerName: isPlaceholderName(lead.full_name) ? undefined : lead.full_name, note: "workbench lead" },
+        body: { phone: lead.phone || undefined, email: lead.email || undefined, amount, customerName: isPlaceholderName(lead.full_name) ? undefined : lead.full_name, note: "workbench lead" },
       })
       if (!d.ok || !d.url) throw new Error(d.error ?? "链接生成失败")
       let link = d.url

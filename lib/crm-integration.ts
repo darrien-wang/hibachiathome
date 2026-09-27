@@ -144,7 +144,7 @@ export type CrmBalancePaidEventEnvelope = {
   }
   metadata: {
     payment_kind: "final_balance"
-    entry_surface: "orders_workbench" | "stripe_webhook"
+    entry_surface: "orders_workbench" | "stripe_webhook" | "chef_settlement"
     manual_entry?: boolean
     channel?: string
     operator?: string

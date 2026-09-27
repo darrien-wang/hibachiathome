@@ -1,8 +1,7 @@
-import { randomUUID } from "node:crypto"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { buildBalancePaidEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-integration"
+import { registerFinalPayment } from "@/lib/final-payment"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -79,66 +78,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
   }
 
-  const { data: order, error: readError } = await supabase
-    .from("orders")
-    .select("id, order_no, source_ref, customer_name, customer_email, customer_phone, event_start, event_address")
-    .eq("id", orderId)
-    .maybeSingle()
-  if (readError) return NextResponse.json({ error: readError.message }, { status: 500 })
-  if (!order) return NextResponse.json({ error: "order not found" }, { status: 404 })
-  if (!order.source_ref) {
-    return NextResponse.json({ error: "order has no source_ref; cannot address it through the integration channel" }, { status: 422 })
-  }
-
-  const amountCents = Math.round(amount * 100)
-  const nowIso = new Date().toISOString()
-  // Deterministic id: a double submit upserts the same payment row. A Stripe
-  // entry is identified by the payment itself, so entering it here and having
-  // the webhook book it later resolve to one row rather than two.
-  const isStripe = channel === "stripe"
-  const externalPaymentId = isStripe
-    ? paymentRef!
-    : `manual_final_${channel}_${order.order_no}_${amountCents}`.slice(0, 80)
-
-  const built = buildBalancePaidEventEnvelope({
-    eventId: `evt_manual_final_${randomUUID()}`,
-    order: { ...order, source_ref: String(order.source_ref) },
-    amountCents,
-    externalPaymentId,
-    provider: isStripe ? "stripe" : "other",
-    paidAt: nowIso,
-    transactionRef: isStripe ? paymentRef : `manual:${channel}`,
-    metadata: {
-      payment_kind: "final_balance",
-      entry_surface: "orders_workbench",
-      manual_entry: true,
-      channel,
-      operator,
-      proof_url: proofUrl,
-    },
+  const r = await registerFinalPayment(supabase, {
+    orderId,
+    amountCents: Math.round(amount * 100),
+    channel,
+    operator,
+    paymentRef,
+    proofUrl,
+    entrySurface: "orders_workbench",
   })
-  if (!built.ok) {
-    return NextResponse.json({ error: built.detail }, { status: 422 })
-  }
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status })
+  return NextResponse.json({ ok: true, orderNo: r.orderNo })
 
-  const delivery = await sendCrmEventEnvelope({ envelope: built.envelope })
-  if (!delivery.attempted || !delivery.delivered) {
-    const detail = delivery.attempted ? delivery.error ?? `http_${delivery.status}` : delivery.detail ?? delivery.reason
-    return NextResponse.json({ ok: false, error: `CRM ingest failed: ${detail}` }, { status: 502 })
-  }
-
-  await supabase.from("order_events").insert({
-    order_id: orderId,
-    actor: `admin:${operator}`,
-    action: "final_payment_confirmed",
-    metadata: {
-      channel,
-      amount_cents: amountCents,
-      proof_url: proofUrl ?? null,
-      external_payment_id: externalPaymentId,
-      stripe_payment_ref: paymentRef ?? null,
-    },
-  })
-
-  return NextResponse.json({ ok: true, orderNo: order.order_no })
 }

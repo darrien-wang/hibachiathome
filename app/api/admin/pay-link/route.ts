@@ -16,7 +16,7 @@ const INVOICE_BALANCE_API = "https://invoice.realhibachi.com/api/self-service/or
 //                                                truth), so texted links can
 //                                                never drift from the invoice.
 //   (default)       { amount, base?, ... }    -> mint a Stripe Checkout link.
-//                                                amountIsFinal=true charges the
+//                                                (金额从不加 4%，09-28 起)
 //                                                exact amount (invoice already
 //                                                includes the card fee);
 //                                                otherwise 4% is added here.
@@ -123,10 +123,9 @@ export async function POST(request: NextRequest) {
   if (!Number.isFinite(amount) || amount < 1 || amount > 20000) {
     return NextResponse.json({ error: "amount must be between 1 and 20000" }, { status: 400 })
   }
-  const amountIsFinal = body.amountIsFinal === true
-  const total = amountIsFinal
-    ? Math.round(amount * 100) / 100
-    : Math.round(amount * (1 + CARD_FEE_RATE) * 100) / 100
+  // 2026-09-28 用户定：收款链接不加 4%——填多少刷多少，和 /pay 一个口径。
+  // amountIsFinal 参数保留但不再改变金额（老调用不炸）。
+  const total = Math.round(amount * 100) / 100
   const name = String(body.customerName ?? "").trim().slice(0, 80)
   const note = String(body.note ?? "").trim().slice(0, 200)
 
@@ -154,9 +153,7 @@ export async function POST(request: NextRequest) {
             unit_amount: Math.round(total * 100),
             product_data: {
               name: name ? `Real Hibachi Balance — ${name}` : "Real Hibachi Balance Payment",
-              description: amountIsFinal
-                ? note || "Balance per your invoice (all fees included)"
-                : `Balance $${amount.toFixed(2)} + 4% card processing${note ? ` · ${note}` : ""}`,
+              description: note || "Balance per your invoice",
             },
           },
         },
@@ -164,7 +161,6 @@ export async function POST(request: NextRequest) {
       metadata: {
         flow: "balance_payment",
         base_amount: amount.toFixed(2),
-        amount_is_final: String(amountIsFinal),
         customer_name: name || "unknown",
         note: note || "",
         // The webhook reads these three. order_source_ref is the one that
@@ -181,7 +177,6 @@ export async function POST(request: NextRequest) {
       url: session.url,
       total,
       base: amount,
-      amountIsFinal,
       // Surfaced so staff can see, before sending the link, whether paying it
       // will settle the order on its own or land as an unattributed payment.
       linkedOrderNo: linked.order?.order_no ?? null,

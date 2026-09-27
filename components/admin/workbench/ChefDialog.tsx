@@ -213,11 +213,13 @@ export function ChefDialog({
       const def = s.cashCents || s.balanceDueCents || 0
       const raw = await askPrompt({ title: METHOD_LABELS.cash, message: `${s.customer ?? ""} ${md(s.date)}：师傅现场收了多少尾款（美元）？`, defaultValue: def ? (def / 100).toFixed(2) : "", placeholder: "0.00", inputMode: "decimal", okLabel: "记录" })
       if (raw === null) return
-      await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: raw.trim() === "" ? 0 : Number(raw) }, "已记录")
+      const r = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: "cash", cash_collected: raw.trim() === "" ? 0 : Number(raw) }, "已记录")
+      if (r?.orderSync) setMsg(String(r.orderSync))
       return
     }
     if (m === "card") return cardFlow(s)
-    await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: m }, "已记录")
+    const r = await post(`m:${s.assignmentId}`, { action: "set_settlement", assignment_id: s.assignmentId, method: m }, "已记录")
+    if (r?.orderSync) setMsg(String(r.orderSync))
   }
 
   // 刷卡：先按 pi_ 去 Stripe 查真实到账（总额 / 手续费 / 净额），
