@@ -869,12 +869,25 @@ export async function POST(request: NextRequest) {
       }
       case "unsettle": {
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
+        const { data: cur } = await supabase.from("order_staff_assignments").select("settlement_id").eq("id", body.assignment_id).maybeSingle()
+        const sid = (cur?.settlement_id as string | null) ?? null
         // 撤销要把冻结的钱全放回现算，否则这场会带着旧数字再结一次。
         const { error } = await supabase
           .from("order_staff_assignments")
           .update({ settled_at: null, settlement_id: null, pay_settled_at: null, pay_settled_cents: null, pay_cents: null, tables_cents: null, travel_cents: null, comp_breakdown: null, updated_at: now })
           .eq("id", body.assignment_id)
         if (error) throw error
+        if (sid) {
+          // 那张对账单已经不再成立：链接作废（历史行保留做审计）。
+          await supabase.from("chef_settlements").update({ token: null, note: "已撤销（链接已作废）" }).eq("id", sid)
+          // 这单结算若已没有别的场，把跟着它结掉的好评和报销放回待结，
+          // 否则那些钱会永远消失。
+          const { count } = await supabase.from("order_staff_assignments").select("id", { count: "exact", head: true }).eq("settlement_id", sid)
+          if ((count ?? 0) === 0) {
+            await supabase.from("chef_review_bonuses").update({ settlement_id: null, settled_at: null }).eq("settlement_id", sid)
+            await supabase.from("chef_files").update({ status: "approved", settled_at: null, settlement_id: null }).eq("settlement_id", sid).eq("status", "paid")
+          }
+        }
         return NextResponse.json({ ok: true })
       }
       case "approve_receipt":

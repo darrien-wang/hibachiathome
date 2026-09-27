@@ -198,6 +198,13 @@ export function ChefDialog({
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
   }
   const settleOne = async (s: ShiftRow) => {
+    // 单场结不互抵（刷卡场我们给他、现金场他给我们会各出一张单）。周六晚
+    // 正常收账用底下"付给厨师并结清"，全周一个数（2026-09-28 用户强调）。
+    const n = shiftNet(s)
+    const what = n > 0 ? `付给师傅 ${money(n)}` : n < 0 ? `师傅交回 ${money(-n)}` : "两清"
+    if (!(await askConfirm({ title: "只结这一场？", message: `单独结 ${s.customer ?? ""} ${md(s.date)}：${what}。
+
+注意：单场结不和其它场互抵——整周互抵一个数请用下面的"付给厨师并结清"。`, okLabel: "只结这一场" }))) return
     const r = await post(`settle:${s.assignmentId}`, { action: "settle", id: chefId, assignment_ids: [s.assignmentId] }, "这一场已结")
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
   }
