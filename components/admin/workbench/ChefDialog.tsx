@@ -333,8 +333,10 @@ export function ChefDialog({
       setMsg("没有电话")
       return
     }
-    const who = netCents >= 0 ? `we pay you $${(netCents / 100).toFixed(2)}` : `please hand in $${(-netCents / 100).toFixed(2)}`
-    const body = `Real Hibachi weekly statement for ${name} - every party itemized: ${url}\nNet: ${who}. Reply if anything looks off.`
+    // 师傅的对账单短信用中文（2026-09-28 用户定），页面本身也默认中文。
+    const who = netCents >= 0 ? `公司付你 $${(netCents / 100).toFixed(2)}` : `请交回公司 $${(-netCents / 100).toFixed(2)}`
+    const body = `Real Hibachi ${name} 本周对账单，每一场每一笔都列在里面：${url}
+合计：${who}。哪一行对不上直接回这条短信。`
     if (!(await askConfirm({ title: "发对账单", message: `发给 ${prettyPhone(c.phone)}？\n\n${body}`, okLabel: "发送" }))) return
     setBusy("statement")
     try {
