@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
-import { askConfirm } from "./ask"
+import { askConfirm, tell } from "./ask"
 import {
   copyText,
   digits10,
@@ -265,6 +265,20 @@ export function OrderDialog({
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "操作失败")
       return null
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // 「这条不回了」：把水位线推到现在，手机和巡检都不再提醒这一刻之前的消息。
+  // 唯一实现在 /api/admin/leads（lib/lead-hold.ts 读它），这里只是第二个入口。
+  const ackReplies = async () => {
+    if (!lead || busy) return
+    setBusy("ack")
+    try {
+      await adminJson(adminKey, "/api/admin/leads", { method: "PATCH", body: { leadId: lead.id, action: "ack_replies" } })
+    } catch (e) {
+      void tell({ title: "没标上", message: e instanceof Error ? e.message : "操作失败" })
     } finally {
       setBusy(null)
     }
@@ -780,7 +794,26 @@ export function OrderDialog({
               </div>
             ) : null}
           </div>
-          <SmsThreadPanel adminKey={adminKey} phone={o.customer_phone} leadId={lead?.id ?? null} peerLabel={first || "客户"} insert={insert} quickReplies={smsChips} header={<div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)" }}>短信 · {settings.business.support_phone}{lead ? " · 记进线索时间线" : ""}</div>} />
+          <SmsThreadPanel
+            adminKey={adminKey}
+            phone={o.customer_phone}
+            leadId={lead?.id ?? null}
+            peerLabel={first || "客户"}
+            insert={insert}
+            quickReplies={smsChips}
+            header={
+              <div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <span>短信 · {settings.business.support_phone}{lead ? " · 记进线索时间线" : ""}</span>
+                {/* 成单的客人照样会发短信，手机照样会提醒，所以同一颗开关也得在
+                    这里（老板 2026-09-27）。没有线索行就没有水位线可写。 */}
+                {lead ? (
+                  <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} title="到此为止：手机和巡检都不再提醒这条。客人再发新消息照样响。" onClick={() => void ackReplies()}>
+                    {busy === "ack" ? "…" : "不用回"}
+                  </button>
+                ) : null}
+              </div>
+            }
+          />
         </div>
       ) : null}
 

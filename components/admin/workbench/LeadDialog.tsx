@@ -389,10 +389,26 @@ export function LeadDialog({
             insert={insert}
             onSent={onSent}
             header={
-              <div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)", display: "flex", justifyContent: "space-between" }}>
+              <div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <span>短信对话 · {settings.business.support_phone}</span>
-                <span style={{ color: unreplied ? "var(--color-accent-700)" : "var(--color-neutral-600)", textTransform: "none", letterSpacing: 0, fontWeight: 600 }}>
-                  {unreplied ? "客人在等回复" : lead.last_outbound_at ? "已回复" : "还没联系"}
+                {/* 报警在哪，关掉它的开关就在哪（老板 2026-09-27）。右栏那颗
+                    「不用回」一直都在，但决定"这条我不回了"的那一秒，人看的是
+                    这行红字，不是右栏。同一个动作，同一条水位线。 */}
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {unreplied ? (
+                    <button
+                      type="button"
+                      className="wb-chip wb-chip-sm"
+                      disabled={!!busy}
+                      title="到此为止：手机和巡检都不再提醒这条。客人再发新消息照样响。"
+                      onClick={() => void patch({ action: "ack_replies" }, "ack")}
+                    >
+                      {busy === "ack" ? "…" : "不用回"}
+                    </button>
+                  ) : null}
+                  <span style={{ color: unreplied ? "var(--color-accent-700)" : "var(--color-neutral-600)", textTransform: "none", letterSpacing: 0, fontWeight: 600 }}>
+                    {unreplied ? "客人在等回复" : acked ? "已标不用回" : lead.last_outbound_at ? "已回复" : "还没联系"}
+                  </span>
                 </span>
               </div>
             }
@@ -461,7 +477,7 @@ export function LeadDialog({
                   <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void patch({ action: "ack_replies" }, "ack")}>
                     不用回
                   </button>
-                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>道谢、点赞这种，标了就不再提醒</span>
+                  <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>道谢、点赞，或者你决定这条就不回了；标了手机和巡检都不再提醒，客人再发新消息照样响</span>
                 </>
               )}
             </div>
