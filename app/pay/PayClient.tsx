@@ -243,12 +243,13 @@ export default function PayClient() {
           />
         </label>
 
-        {/* 快捷填数（老板 09-23 定）：点一下把含 4% 的全额填进上面的框，客户
-            仍可以随手改。按钮是便利，不是选项——主体永远是那个输入框。 */}
+        {/* 快捷填数：点一下把 尾款+小费 填进上面的框（不加 4%，页面也不提
+            手续费——2026-09-28 用户定），客户仍可随手改。按钮是便利，不是
+            选项——主体永远是那个输入框。 */}
         {(data.tiers?.length ?? 0) > 0 && (
           <div className="flex flex-col gap-1.5">
             <span className="text-[13px] text-clay-700">
-              Or pick a tip for your chef — we&apos;ll fill in the total, card fee included:
+              Or pick a tip for your chef — we&apos;ll fill in the total for you:
             </span>
             <div className="grid grid-cols-3 gap-2">
               {data.tiers!.map((t) => (

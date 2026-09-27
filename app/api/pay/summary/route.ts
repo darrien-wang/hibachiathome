@@ -40,16 +40,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
   }
 
-  // 快捷按钮：点一下把"含 4% 的全额"填进输入框（老板 09-23 定）。百分比的基数
-  // 用发票的 adjustedTotal，和发票底部那张小费表印的是同一批数。页面不显示尾款
-  // 本身，只显示按下去会填多少。
+  // 快捷按钮：点一下把"尾款 + 小费"填进输入框——不加 4%、页面也不提手续费
+  // （2026-09-28 用户定：别让客人觉得莫名其妙被多收）。百分比基数用发票的
+  // adjustedTotal，和发票底部那张小费表印的是同一批数。
   const tiers = ctx.gratuityOptions.map((o) => ({
     rate: o.rate,
     // 显示的是小费本身（老板 09-23 定）：百分比配小费金额才对得上，
     // 写总额会让人以为"20% = $863"。
     tipCents: Math.round(o.amount * 100),
-    // 点下去填进输入框的是含 4% 的全额。
-    fillCents: quickFillCents(ctx.balanceDue, o.amount, ctx.invoiceIsCard),
+    fillCents: quickFillCents(ctx.balanceDue, o.amount),
   }))
 
   return NextResponse.json({

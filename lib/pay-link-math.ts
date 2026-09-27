@@ -41,11 +41,12 @@ export function splitPayment(amountDollars: number, balanceDueDollars: number): 
  * 加在哪一层照发票的规矩：现金发票的 balanceDue 不含卡费 → 整笔 ×1.04；
  * 刷卡发票的已经含了 → 只有小费 ×1.04。这正是发票底部那两列的差别。
  */
-export function quickFillCents(balanceDueDollars: number, tipDollars: number, invoiceIsCard: boolean): number {
+export function quickFillCents(balanceDueDollars: number, tipDollars: number): number {
+  // 2026-09-28 用户定：/pay 不提 4%、也不替客人加——填进框的就是 尾款 + 小费，
+  // 刷多少是多少。刷卡的成本在结算侧按 4% 从小费里扣（chef-pay CARD_FEE_RATE）。
   const b = Math.max(0, Math.round(balanceDueDollars * 100))
   const t = Math.max(0, Math.round(tipDollars * 100))
-  const fee = (c: number) => Math.round(c * (1 + CARD_FEE_RATE))
-  return invoiceIsCard ? b + fee(t) : fee(b + t)
+  return b + t
 }
 
 export const dollars = (c: number) => (c / 100).toFixed(2)
