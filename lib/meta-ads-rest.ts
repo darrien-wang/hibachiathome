@@ -86,6 +86,25 @@ export type MetaAccountStatus = {
   amountSpent?: string
   /** Set when even this read was refused - then the token or app is the blocker, not the account. */
   error?: string
+  /**
+   * Does the token work at all, outside of ads? A live token here with a
+   * refused ad read means the app lost Marketing API access; a dead token
+   * here means it simply needs reissuing. Different first click either way.
+   */
+  token?: { alive: boolean; who?: string; error?: string }
+}
+
+async function probeToken(token: string): Promise<{ alive: boolean; who?: string; error?: string }> {
+  try {
+    const res = await fetch(`${GRAPH}/me?fields=id,name&access_token=${encodeURIComponent(token)}`, { cache: "no-store" })
+    const json = (await res.json().catch(() => null)) as { id?: string; name?: string; error?: MetaError } | null
+    if (!res.ok || !json || json.error) {
+      return { alive: false, error: json?.error ? describeMetaError(json.error) : `HTTP ${res.status}` }
+    }
+    return { alive: true, who: json.name ? `${json.name} (${json.id ?? "?"})` : json.id }
+  } catch (error) {
+    return { alive: false, error: String(error) }
+  }
 }
 
 /**
@@ -105,7 +124,11 @@ export async function fetchMetaAccountStatus(): Promise<MetaAccountStatus> {
     | { name?: string; account_status?: number; disable_reason?: number; currency?: string; amount_spent?: string; error?: MetaError }
     | null
   if (!res.ok || !json || json.error) {
-    return { ok: false, error: json?.error ? describeMetaError(json.error) : `Meta API HTTP ${res.status}` }
+    return {
+      ok: false,
+      error: json?.error ? describeMetaError(json.error) : `Meta API HTTP ${res.status}`,
+      token: await probeToken(token),
+    }
   }
   return {
     ok: true,
