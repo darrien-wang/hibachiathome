@@ -19,11 +19,15 @@ export const runtime = "nodejs"
 // 防重是硬规矩：(platform, external_key) 唯一 => 同一条评价只存一行；
 // 一行最多挂一个 bonus_id => 同一条评价只算一次钱。
 //
-// 平台侧现实（写死在这里免得以后疑惑）：
-// - Google 旧版 Place Details 带 reviews_sort=newest 一次给最新 5 条，
-//   需要 GOOGLE_PLACES_API_KEY（GCP 开 Places API + 计费）。没配就跳过。
+// 平台侧现实（2026-09-28 实测）：
+// - Google 走 Places API (New)（GOOGLE_PLACES_API_KEY，real-hibachi 项目，
+//   key 限定 Places 两个 API）：一次给"最相关"5 条（非最新），但带精确
+//   publishTime 和每条的 googleMapsUri。旧版 API 对这个 Place ID 报
+//   NOT_FOUND（id 过期），别再试。
 // - Yelp Fusion /reviews 一次只给 3 条节选，需要 YELP_API_KEY（免费申请）。
-// - 都没配时"刷新"仍可用：agent 打开页面人肉拉全量，走 import 兜底。
+// - API 只是增量哨兵：全量仍靠 agent 打开页面拉取走 import。
+// - API 行和 agent 行的 external_key 体系不同，靠 fuzzyFilter 按
+//   评价人+正文前缀（或 ±3 天）合并，否则同一条会两行。
 
 const GOOGLE_PLACE_ID = "ChIJkxNMr8pbkkARqHR_D2YBK6E"
 const GOOGLE_ALL_REVIEWS_URL = `https://search.google.com/local/reviews?placeid=${GOOGLE_PLACE_ID}`
@@ -54,6 +58,37 @@ type ReviewInsert = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
+
+// 跨 id 体系防重：agent 导入用 Maps DOM 的 data-review-id，API 刷新用
+// 自己的 review id——同一条评价两种 key。exact key 交给 upsertRows；这里
+// 把"key 不同但明显是同一条"的丢掉：同平台同评价人 + 正文前 25 字相同
+//（Google 一个账号只能评一次，重名双评是不同账号、正文必不同），没正文
+// 的按 评价人+日期±3 天。不做跨 key 回填，宁可少动已有行。
+async function fuzzyFilter(supabase: SB, rows: ReviewInsert[]) {
+  if (!rows.length) return { keep: rows, merged: 0 }
+  const { data: existing } = await supabase.from("business_reviews").select("platform, external_key, reviewer, review_date, body").limit(1000)
+  const all = (existing ?? []) as Array<{ platform: string; external_key: string; reviewer: string | null; review_date: string | null; body: string | null }>
+  const exact = new Set(all.map((e) => `${e.platform}|${e.external_key}`))
+  const norm = (v: string | null | undefined) => (v ?? "").toLowerCase().replace(/\s+/g, " ").trim()
+  const sigs = new Set(all.filter((e) => e.body).map((e) => `${e.platform}|${norm(e.reviewer)}|${norm(e.body).slice(0, 25)}`))
+  const near = (a: string | null, b: string | null) => !!a && !!b && Math.abs(Date.parse(a) - Date.parse(b)) <= 3 * 86400000
+  const keep: ReviewInsert[] = []
+  let merged = 0
+  for (const r of rows) {
+    if (exact.has(`${r.platform}|${r.external_key}`)) {
+      keep.push(r) // 同 key：upsertRows 负责 bump/enrich
+      continue
+    }
+    const dupBody = r.body ? sigs.has(`${r.platform}|${norm(r.reviewer)}|${norm(r.body).slice(0, 25)}`) : false
+    const dupBare = !r.body && all.some((e) => e.platform === r.platform && norm(e.reviewer) === norm(r.reviewer) && norm(r.reviewer) !== "" && near(e.review_date, r.review_date))
+    if (dupBody || dupBare) {
+      merged += 1
+      continue
+    }
+    keep.push(r)
+  }
+  return { keep, merged }
+}
 
 // 入库：同 (platform, external_key) 只存一行。enrich=true（agent 导入）时
 // 已存在的行也用新数据补全（agent 看的是原页面，比 API 节选更准）；
@@ -144,29 +179,35 @@ export async function POST(request: NextRequest) {
         const out: Record<string, unknown> = {}
         const gKey = process.env.GOOGLE_PLACES_API_KEY
         if (!gKey) {
-          out.google = { ok: false, reason: "没配 GOOGLE_PLACES_API_KEY（要 GCP 开 Places API + 计费）；先由 agent 人工拉取导入" }
+          out.google = { ok: false, reason: "没配 GOOGLE_PLACES_API_KEY；先由 agent 人工拉取导入" }
         } else {
           try {
-            const r = await fetch(
-              `https://maps.googleapis.com/maps/api/place/details/json?place_id=${GOOGLE_PLACE_ID}&fields=reviews,rating,user_ratings_total&reviews_sort=newest&key=${gKey}`,
-              { cache: "no-store" },
-            )
-            const j = (await r.json()) as { status?: string; error_message?: string; result?: { rating?: number; user_ratings_total?: number; reviews?: Array<{ author_name?: string; rating?: number; text?: string; time?: number; author_url?: string }> } }
-            if (j.status !== "OK") throw new Error(`${j.status ?? "ERR"}${j.error_message ? `: ${j.error_message}` : ""}`)
-            const rows: ReviewInsert[] = (j.result?.reviews ?? []).map((v) => ({
+            const r = await fetch(`https://places.googleapis.com/v1/places/${GOOGLE_PLACE_ID}`, {
+              headers: { "X-Goog-Api-Key": gKey, "X-Goog-FieldMask": "rating,userRatingCount,reviews" },
+              cache: "no-store",
+            })
+            const j = (await r.json()) as {
+              error?: { status?: string; message?: string }
+              rating?: number
+              userRatingCount?: number
+              reviews?: Array<{ name?: string; publishTime?: string; rating?: number; googleMapsUri?: string; text?: { text?: string }; originalText?: { text?: string }; authorAttribution?: { displayName?: string } }>
+            }
+            if (j.error) throw new Error(`${j.error.status ?? "ERR"}: ${j.error.message ?? ""}`.slice(0, 200))
+            const rows: ReviewInsert[] = (j.reviews ?? []).map((v) => ({
               platform: "google",
-              external_key: `g_${v.time ?? 0}_${hash10(v.author_name ?? "")}`,
-              reviewer: str(v.author_name, 120) || null,
+              // name = places/<pid>/reviews/<rid>；取尾段做 key
+              external_key: `g2_${(v.name ?? "").split("/").pop() ?? hash10(`${v.authorAttribution?.displayName}|${v.publishTime}`)}`.slice(0, 120),
+              reviewer: str(v.authorAttribution?.displayName, 120) || null,
               rating: Number.isFinite(v.rating) ? Number(v.rating) : null,
-              review_date: v.time ? new Date(v.time * 1000).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }) : null,
-              body: str(v.text, 4000) || null,
-              // API 不给单条评价的链接，先指到全部评价页，agent 补录时会换成分享链接
-              url: GOOGLE_ALL_REVIEWS_URL,
+              review_date: v.publishTime ? new Date(v.publishTime).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }) : null,
+              body: str(v.text?.text ?? v.originalText?.text, 4000) || null,
+              url: str(v.googleMapsUri, 500) || GOOGLE_ALL_REVIEWS_URL,
               has_photo: false,
               photo_count: 0,
               raw: v,
             }))
-            out.google = { ok: true, ...(await upsertRows(supabase, rows, "api", actor.alias, false)), rating: j.result?.rating, total: j.result?.user_ratings_total, note: "API 一次最多给最新 5 条，带图与单条链接靠人工补" }
+            const { keep, merged } = await fuzzyFilter(supabase, rows)
+            out.google = { ok: true, ...(await upsertRows(supabase, keep, "api", actor.alias, false)), merged, rating: j.rating, total: j.userRatingCount, note: "Places API (New)：最相关 5 条（非最新），带图靠人工标；总数对不上就让 agent 全量拉一遍" }
           } catch (e) {
             out.google = { ok: false, reason: e instanceof Error ? e.message : "拉取失败" }
           }
@@ -191,7 +232,8 @@ export async function POST(request: NextRequest) {
               photo_count: 0,
               raw: v,
             }))
-            out.yelp = { ok: true, ...(await upsertRows(supabase, rows, "api", actor.alias, false)), note: "Fusion API 一次只给最新 3 条节选，全量靠人工补" }
+            const { keep, merged } = await fuzzyFilter(supabase, rows)
+            out.yelp = { ok: true, ...(await upsertRows(supabase, keep, "api", actor.alias, false)), merged, note: "Fusion API 一次只给最新 3 条节选，全量靠人工补" }
           } catch (e) {
             out.yelp = { ok: false, reason: e instanceof Error ? e.message : "拉取失败" }
           }
@@ -224,8 +266,9 @@ export async function POST(request: NextRequest) {
             raw: null,
           })
         }
-        const res = await upsertRows(supabase, rows, str(body.source, 20) || "agent", actor.alias, true)
-        return NextResponse.json({ ok: true, ...res })
+        const { keep, merged } = await fuzzyFilter(supabase, rows)
+        const res = await upsertRows(supabase, keep, str(body.source, 20) || "agent", actor.alias, true)
+        return NextResponse.json({ ok: true, ...res, merged })
       }
       case "link_chef": {
         // 这条评价记给某师傅（$2/$3 进他的月结账本）。一条只许记一次。
