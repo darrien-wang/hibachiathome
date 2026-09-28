@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic"
 const LEAD_COLUMNS =
   "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, merged_into"
 const ORDER_COLUMNS =
-  "id, order_no, customer_name, customer_phone, customer_email, event_start, event_address, guest_adult_count, guest_child_count, order_status, deposit_status, details_status, quoted_total_cents, balance_due_cents, created_at"
+  "id, order_no, customer_name, customer_phone, customer_email, event_start, event_address, guest_adult_count, guest_child_count, order_status, deposit_status, details_status, quoted_total_cents, balance_due_cents, source_metadata, created_at"
 const TAG = /\[(callback|occasion|why|data|SOP:[^\]]+)\]/i
 const AUTO_QUOTE = /price is \$([\d,.]+) for (.+?) \((.+?)\)\./
 const ORIGIN_ZIP = homeBaseOrigin()

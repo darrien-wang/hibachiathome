@@ -61,6 +61,13 @@ function asContactPhone(value: unknown): string | undefined {
   return text
 }
 
+// "TBD" is what the deposit page sends for "Not sure yet"; older links sent
+// nothing. Either way the party has a date but no start time yet.
+function isTimeUnknown(value: unknown): boolean {
+  const v = asNonEmptyString(value)
+  return !v || /^(tbd|n\/a|none)$/i.test(v)
+}
+
 function asNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined
@@ -143,7 +150,7 @@ function extractCrmOrderIdFromResponseBody(value: unknown): string | undefined {
 // 线索标 won——两个工作台从此靠外键互跳,不再靠联系方式模糊拼。
 async function linkLeadToOrder(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
-  params: { leadId: string; orderId: string; orderNo?: string },
+  params: { leadId: string; orderId: string; orderNo?: string; eventTimeUnknown?: boolean },
 ): Promise<void> {
   try {
     const { data: existing } = await supabase
@@ -156,6 +163,10 @@ async function linkLeadToOrder(
       lead_id: params.leadId,
       lead_link_method: "deposit_metadata",
       lead_linked_at: new Date().toISOString(),
+      // "Not sure yet" on the deposit page: event_start carries a default
+      // clock time, so the order itself must say the time is still open
+      // (workbench badge, desk card, the confirmation text's follow-up).
+      ...(params.eventTimeUnknown ? { event_time_tbd: true } : {}),
     }
     await supabase.from("orders").update({ source_metadata: mergedMetadata }).eq("id", params.orderId)
     await supabase.from("order_events").insert({
@@ -387,7 +398,10 @@ async function sendDepositConfirmationSms(params: {
   recipientPhone?: string
   bookingId?: string
   selfServiceLink?: string
+  /** The date is locked but the customer picked "Not sure yet" for the start time: ask for it in the same text. */
+  timeUnknown?: boolean
 }): Promise<NotificationDeliveryResult> {
+  const timeUnknown = Boolean(params.timeUnknown)
   const recipientPhone = normalizeSmsPhone(params.recipientPhone)
   if (!recipientPhone) {
     return {
@@ -417,18 +431,18 @@ async function sendDepositConfirmationSms(params: {
 
   const preference = getSmsProviderPreference()
   if (preference === "sendly") {
-    return sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink })
+    return sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
   }
   if (preference === "twilio") {
-    return sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink })
+    return sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
   }
 
-  const sendly = await sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink })
+  const sendly = await sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
   if (sendly.delivered || sendly.attempted) {
     return sendly
   }
 
-  const twilio = await sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink })
+  const twilio = await sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
   if (twilio.delivered || twilio.attempted) {
     return twilio
   }
@@ -448,10 +462,13 @@ function getSmsProviderPreference(): SmsProviderPreference {
   return "auto"
 }
 
+const TIME_FOLLOW_UP = " Reply with your start time and we'll add it."
+
 async function sendDepositConfirmationSmsViaSendly(params: {
   recipientPhone: string
   bookingId: string
   selfServiceLink: string
+  timeUnknown?: boolean
 }): Promise<NotificationDeliveryResult> {
   const apiKey = asNonEmptyString(process.env.SENDLY_API_KEY)
   const endpoint = asNonEmptyString(process.env.SENDLY_API_URL) ?? "https://sendly.live/api/v1/messages"
@@ -473,7 +490,7 @@ async function sendDepositConfirmationSmsViaSendly(params: {
       },
       body: JSON.stringify({
         to: params.recipientPhone,
-        text: `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}`,
+        text: `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
       }),
       cache: "no-store",
     })
@@ -508,6 +525,7 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   recipientPhone: string
   bookingId: string
   selfServiceLink: string
+  timeUnknown?: boolean
 }): Promise<NotificationDeliveryResult> {
   const accountSid = asNonEmptyString(process.env.TWILIO_ACCOUNT_SID)
   const authToken = asNonEmptyString(process.env.TWILIO_AUTH_TOKEN)
@@ -529,7 +547,7 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
   const body = new URLSearchParams({
     To: params.recipientPhone,
-    Body: `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.`,
+    Body: `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
   })
   if (messagingServiceSid) {
     body.set("MessagingServiceSid", messagingServiceSid)
@@ -1003,6 +1021,7 @@ async function sendCustomerDepositNotifications(params: {
           recipientPhone: customerPhone,
           bookingId,
           selfServiceLink,
+          timeUnknown: isTimeUnknown(params.bookingSnapshot?.event_time ?? params.session.metadata?.event_time),
         }),
       ])
 
@@ -1409,7 +1428,12 @@ export async function POST(request: NextRequest) {
               const leadId = asNonEmptyString(session.metadata?.lead_id)
               const crmOrderId = extractCrmOrderIdFromResponseBody(deliveryResult.record.response_body)
               if (leadId && crmOrderId) {
-                await linkLeadToOrder(supabase, { leadId, orderId: crmOrderId, orderNo: crmAssignedOrderNo })
+                await linkLeadToOrder(supabase, {
+                  leadId,
+                  orderId: crmOrderId,
+                  orderNo: crmAssignedOrderNo,
+                  eventTimeUnknown: isTimeUnknown(session.metadata?.event_time),
+                })
               }
             }
             if (!deliveryResult.delivered) {

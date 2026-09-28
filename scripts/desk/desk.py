@@ -122,8 +122,10 @@ def render_card(c: dict) -> None:
     for o in c.get("orders") or []:
         when = (o.get("event_start") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
         bal = o.get("balance_due_cents")
+        meta = o.get("source_metadata") or {}
         print(f"   订单 {o.get('order_no') or o.get('id')}  {o.get('order_status') or ''}/{o.get('deposit_status') or ''}/{o.get('details_status') or ''}"
-              f"  {when or '未定'}  {o.get('event_address') or '-'}  {o.get('guest_adult_count') or '?'}大{o.get('guest_child_count') or 0}小"
+              f"  {when or '未定'}{'（时间待定）' if isinstance(meta, dict) and meta.get('event_time_tbd') else ''}  {o.get('event_address') or '-'}"
+              f"  {o.get('guest_adult_count') or '?'}大{o.get('guest_child_count') or 0}小"
               f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}")
     thread = c.get("thread") or []
     print(f"   对话 ({len(thread)}):")

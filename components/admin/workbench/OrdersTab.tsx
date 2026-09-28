@@ -105,7 +105,14 @@ export function OrdersTab({
   const arrow = (key: "event" | "created") => (sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "")
 
   const plannerLine = (r: (typeof rowsAll)[number]) =>
-    r.changed ? { text: "客人改了，未核对", color: "var(--color-accent-700)" } : r.o.details_status !== "complete" ? { text: "Planner 未填", color: "var(--color-accent-700)" } : { text: "细节已填", color: "var(--color-neutral-600)" }
+    r.changed
+      ? { text: "客人改了，未核对", color: "var(--color-accent-700)" }
+      : // "Not sure yet" on the deposit page: the clock time on the row is a default, not the customer's.
+        (r.o.source_metadata as Record<string, unknown> | null)?.event_time_tbd
+        ? { text: "缺开场时间 · 客人还没定", color: "var(--color-accent-700)" }
+        : r.o.details_status !== "complete"
+          ? { text: "Planner 未填", color: "var(--color-accent-700)" }
+          : { text: "细节已填", color: "var(--color-neutral-600)" }
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>

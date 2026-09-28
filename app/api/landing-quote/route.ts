@@ -6,7 +6,7 @@ import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
-import { DEPOSIT_AMOUNT, FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode } from "@/config/pricing-rules"
+import { DEPOSIT_AMOUNT, FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
 // most-asked question in 15 days of texts, and competitors bundle them, so a
@@ -128,8 +128,12 @@ export async function POST(request: NextRequest) {
   const total = est.total
   const planLabel = weekday ? "Weekday Special (Mon–Thu)" : "Standard (any day)"
   const discountCode = est.partySizeDiscountApplied > 0 ? partySizeDiscountCode({ adults, kids }) : null
+  // "15–24 guests · $60 off" -> "15–24 guests". Said as a headcount tier, not
+  // a "code": a customer whose second quote showed a different code called
+  // to ask why it kept changing (2026-09-27).
+  const tierRange = (partySizeDiscountLabel({ adults, kids }) ?? "").split(" · ")[0] || null
   const discountLine = discountCode
-    ? `Your code ${discountCode} (-$${est.partySizeDiscountApplied} party size discount) is already in that price and applies automatically when you book.`
+    ? `Includes the $${est.partySizeDiscountApplied} party-size discount${tierRange ? ` (${tierRange})` : ""}.`
     : null
 
   const attribution = readAttributionFromCookieHeader(request.headers.get("cookie"))
@@ -192,6 +196,51 @@ export async function POST(request: NextRequest) {
     if (partyError) console.error("[landing-quote] party refresh failed", { leadId, error: partyError.message })
   }
 
+  // A second quote for the same lead within half an hour is almost always the
+  // same party with a changed headcount or city. Esme (2026-09-27) got two
+  // full quotes five minutes apart - $838.50 "code PARTY60", then $870.60
+  // "code PARTY30" - and called to ask why the price kept changing. The
+  // second text now says what changed and why, instead of starting over.
+  let previous: { guests: number; city: string; total: number; travelFee: number; discount: number } | null = null
+  if (!contactOnly && supabase && leadId) {
+    const { data: prior } = await supabase
+      .from("lead_touchpoints")
+      .select("raw_payload_json, created_at")
+      .eq("lead_id", leadId)
+      .eq("touchpoint_type", "landing_quote_text")
+      .gte("created_at", new Date(Date.now() - 30 * 60_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(2)
+    // [0] is the touchpoint this call just wrote; [1] is the quote before it.
+    const p = ((prior ?? [])[1]?.raw_payload_json ?? null) as Record<string, unknown> | null
+    const c = (p?.computed ?? null) as Record<string, unknown> | null
+    if (p && c && typeof c.total === "number") {
+      previous = {
+        guests: (Number(p.adults) || 0) + (Number(p.kids) || 0),
+        city: String(p.cityName ?? ""),
+        total: c.total,
+        travelFee: Number(c.travelFee) || 0,
+        discount: Number(c.discount) || 0,
+      }
+    }
+  }
+  const updated =
+    previous !== null &&
+    (previous.guests !== adults + kids || previous.city !== cityName || Math.round(previous.total) !== Math.round(total))
+  const whyLines: string[] = []
+  if (updated && previous) {
+    if (previous.discount !== est.partySizeDiscountApplied) {
+      whyLines.push(
+        est.partySizeDiscountApplied > 0
+          ? `The party-size discount is $${est.partySizeDiscountApplied} at ${tierRange ?? `${adults + kids} guests`} (it was $${previous.discount} for ${previous.guests}).`
+          : `Under 10 guests there is no party-size discount (it was $${previous.discount} for ${previous.guests}).`,
+      )
+    }
+    if (previous.travelFee !== travelFee) {
+      whyLines.push(travelFee ? `This one includes ~$${travelFee} travel to ${cityName}.` : `No travel fee for ${cityName}.`)
+    }
+  }
+
   // Step 1 stops here: the lead exists, nothing has been sent. If the visitor
   // never reaches step 2 the daily unanswered-leads report still lists them.
   if (contactOnly) return NextResponse.json({ ok: true, stage: "contact", leadId })
@@ -220,21 +269,33 @@ export async function POST(request: NextRequest) {
   // to the long one if the shortener is unavailable - the quote must still go.
   const depositUrl = (await createShortLink(longDepositUrl, { leadId, createdBy: "landing-quote" }))?.shortUrl ?? longDepositUrl
 
-  const smsBody = [
-    `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
-    discountLine,
-    travelFee
-      ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).`
-      : body.travelPending
-        ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
-        : "No travel fee for your area.",
-    `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
-    // The single most-asked question in the 09-13..09-27 audit (10+ threads),
-    // and the one that cost a corporate customer his plates on the day: say it
-    // before they have to ask. Numbers come from config/pricing-rules.
-    RENTALS_LINE,
-    "Reply here with questions - a real person answers. Reply STOP to opt out.",
-  ]
+  const travelLine = travelFee
+    ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).`
+    : body.travelPending
+      ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
+      : "No travel fee for your area."
+  const smsBody = (
+    updated
+      ? [
+          `Real Hibachi: updated for ${guestsLine} in ${cityName}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+          ...whyLines,
+          // The travel line is only repeated when it did not just get explained.
+          previous && previous.travelFee !== travelFee ? null : travelLine,
+          `Same deposit link locks your date: ${depositUrl}`,
+          "Reply here with questions - a real person answers. Reply STOP to opt out.",
+        ]
+      : [
+          `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+          discountLine,
+          travelLine,
+          `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
+          // The single most-asked question in the 09-13..09-27 audit (10+ threads),
+          // and the one that cost a corporate customer his plates on the day: say it
+          // before they have to ask. Numbers come from config/pricing-rules.
+          RENTALS_LINE,
+          "Reply here with questions - a real person answers. Reply STOP to opt out.",
+        ]
+  )
     .filter((line): line is string => Boolean(line))
     .join(" ")
   const sms = await sendSms(phoneE164, smsBody)

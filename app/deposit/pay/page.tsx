@@ -6,6 +6,7 @@ import Link from "next/link"
 import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
 import { getDepositAmount } from "@/config/deposit"
+import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate } from "@/lib/date-display"
@@ -68,6 +69,28 @@ function formatClockTime(value: string | undefined): string {
 // before they decide whether to put money down.
 const CHIPS = ["Pick proteins later", "Headcount stays flexible", "1.5–2 hr show", "Allergies handled free"] as const
 const QUESTION_SMS = "Hi Real Hibachi! Quick question about my booking deposit."
+
+// A texted quote's location is often the page's default region, not a place.
+const isPlaceholderLocation = (value: string) => {
+  const v = value.trim()
+  return !v || /^(southern california|socal|tbd|california)$/i.test(v)
+}
+const TIME_OPTIONS: ReadonlyArray<readonly [string, string]> = [
+  ["", "Pick a start time"],
+  ["17:00", "5:00 PM"],
+  ["17:30", "5:30 PM"],
+  ["18:00", "6:00 PM"],
+  ["18:30", "6:30 PM"],
+  ["19:00", "7:00 PM"],
+  ["19:30", "7:30 PM"],
+  ["20:00", "8:00 PM"],
+  ["TBD", "Not sure yet"],
+]
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+/** Tomorrow on the Pacific clock, the earliest date a deposit can lock. */
+function tomorrowPT(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date(Date.now() + 86_400_000))
+}
 
 
 function normalizeExternalBookingId(input: string | null): string {
@@ -155,6 +178,74 @@ function DepositPaymentPageInner() {
   const tentParam = parseBoolean(searchParams.get("tent_10x10"))
   const estimateLowParam = parseNumber(searchParams.get("estimate_low"))
   const estimateHighParam = parseNumber(searchParams.get("estimate_high"))
+
+  // ---- Details the link did not carry (2026-09-27) --------------------------
+  // A texted quote often has no date ("Date TBD"), a placeholder city, or a
+  // headcount the customer has since changed, and this page could not take
+  // any of it. Esme paid while asking on the phone whether $19.90 with
+  // "Date TBD" would hold *her* date; the server then filed the party under
+  // today's date, which put a Mon-Thu discount on a Friday party. Prefilled
+  // links now ask for what is missing, right above the button. Agreed-total
+  // links stay read-only: the signed price belongs to the party as quoted.
+  const detailsEditable = isPrefillSource && !agreedTotalParam
+  // The lead's newest texted quote, when it differs from this link (a
+  // customer who asked twice holds two links with two prices - Esme had a
+  // 15-guest one and a 14-guest one and asked which was "real"). Whichever
+  // link she opens, the page starts from what she told us last.
+  const [latest, setLatest] = useState<{ adults: number; kids: number; location: string; date: string; total: number } | null>(null)
+  const base = useMemo(
+    () => ({
+      adults: latest?.adults ?? adultsParam ?? 0,
+      kids: latest?.kids ?? kidsParam ?? 0,
+      date: latest?.date || eventDateParam,
+      location: latest?.location || locationParam,
+      estimate: latest?.total ?? estimateHighParam,
+    }),
+    [latest, adultsParam, kidsParam, eventDateParam, locationParam, estimateHighParam],
+  )
+  const needsDate = detailsEditable && !ISO_DATE.test(base.date)
+  const needsTime = detailsEditable && !eventTimeParam
+  const needsLocation = detailsEditable && isPlaceholderLocation(base.location)
+  const [dateInput, setDateInput] = useState("")
+  const [timeInput, setTimeInput] = useState("")
+  const [locationInput, setLocationInput] = useState("")
+  const [adultsInput, setAdultsInput] = useState<number>(adultsParam ?? 0)
+  const [kidsInput, setKidsInput] = useState<number>(kidsParam ?? 0)
+  const effectiveDate = needsDate ? dateInput : base.date
+  const effectiveTime = needsTime ? timeInput : eventTimeParam
+  const effectiveLocation = needsLocation ? locationInput.trim() : base.location
+  const guestsChanged = detailsEditable && (adultsInput !== base.adults || kidsInput !== base.kids)
+  const dateChanged = needsDate && ISO_DATE.test(dateInput)
+  const detailsMissing =
+    (needsDate && !ISO_DATE.test(dateInput)) || (needsTime && !timeInput) || (needsLocation && !locationInput.trim())
+  // Re-price with the engine the quote used, so the number moves the way the
+  // text explained it. The link's estimate may include travel; that part is
+  // recovered by pricing the link's own party and taking the difference, so a
+  // headcount or date change moves only the food and the tier discount.
+  // (A dateless link priced at the Mon-Thu rate cannot be told apart from a
+  // standard one, so its travel part reads as zero; the page still says travel
+  // is confirmed from the address.)
+  const repriced = useMemo(() => {
+    if (!detailsEditable || (!guestsChanged && !dateChanged)) return null
+    if (typeof base.estimate !== "number" || base.estimate <= 0) return null
+    const baseWeekday = ISO_DATE.test(base.date)
+      ? checkWeekdayEligibility(base.date, { adult: base.adults, child: base.kids, toddler: 0 }).isEligible
+      : false
+    const baseFood = calcSimpleEstimate({ adults: base.adults, kids: base.kids, weekdaySpecial: baseWeekday, travelFee: 0 }).total
+    // The link carries a rounded estimate ($838.50 travels as 839); under
+    // $1.50 of difference is that rounding, not a travel fee.
+    const rawTravel = base.estimate - baseFood
+    const travelPart = rawTravel >= 1.5 ? Math.round(rawTravel) : 0
+    const weekday = ISO_DATE.test(effectiveDate)
+      ? checkWeekdayEligibility(effectiveDate, { adult: adultsInput, child: kidsInput, toddler: 0 }).isEligible
+      : baseWeekday
+    const est = calcSimpleEstimate({ adults: adultsInput, kids: kidsInput, weekdaySpecial: weekday, travelFee: travelPart })
+    return { total: est.total, weekday, travelPart }
+  }, [detailsEditable, guestsChanged, dateChanged, base, effectiveDate, adultsInput, kidsInput])
+  const tierLabel = detailsEditable ? partySizeDiscountLabel({ adults: adultsInput, kids: kidsInput }) : null
+  // The estimate shown and sent: the newest quote's own number until the
+  // customer changes something here, then the engine's.
+  const shownEstimate = repriced ? Math.round(repriced.total) : latest ? Math.round(latest.total) : null
 
   const contextBooking: BookingPreview = useMemo(
     () => ({
@@ -300,9 +391,32 @@ function DepositPaymentPageInner() {
         if (eventDateParam) q.set("event_date", eventDateParam)
         const res = await fetch(`/api/deposit/status?${q.toString()}`, { cache: "no-store" })
         const data = (await res.json().catch(() => null)) as
-          | { locked?: boolean; order_no?: string; event_date?: string; event_time?: string; manage_url?: string }
+          | {
+              locked?: boolean
+              order_no?: string
+              event_date?: string
+              event_time?: string
+              manage_url?: string
+              latest_quote?: { adults: number; kids: number; location: string; date: string; total: number }
+            }
           | null
         if (cancelled) return
+        // A texted-quote link opens on the lead's newest quote when that
+        // differs from the link itself (two links, two headcounts).
+        const lq = data?.latest_quote
+        if (lq && source === "quote" && typeof lq.total === "number") {
+          const differs =
+            lq.adults !== (adultsParam ?? 0) ||
+            lq.kids !== (kidsParam ?? 0) ||
+            (Boolean(lq.location) && lq.location !== locationParam) ||
+            (Boolean(lq.date) && lq.date !== eventDateParam) ||
+            Math.round(lq.total) !== Math.round(estimateHighParam ?? 0)
+          if (differs) {
+            setLatest(lq)
+            setAdultsInput(lq.adults)
+            setKidsInput(lq.kids)
+          }
+        }
         if (data?.locked) {
           const info: DepositMarker = {
             orderNo: data.order_no ?? marker?.orderNo ?? null,
@@ -336,7 +450,7 @@ function DepositPaymentPageInner() {
       window.removeEventListener("pageshow", onShow)
       document.removeEventListener("visibilitychange", onVisible)
     }
-  }, [anotherParam, leadIdParam, customerEmailParam, eventDateParam])
+  }, [anotherParam, leadIdParam, customerEmailParam, eventDateParam, source, adultsParam, kidsParam, locationParam, estimateHighParam])
 
   const totalAmount = useMemo(() => (booking ? calculateTotalAmount(booking) : 0), [booking])
   const hasBookingEstimateRange =
@@ -377,6 +491,15 @@ function DepositPaymentPageInner() {
       return
     }
 
+    if (detailsMissing) {
+      setCheckoutError(
+        needsDate && !ISO_DATE.test(dateInput)
+          ? "Pick your party date first - that is the date the deposit locks."
+          : "Fill in the details above first.",
+      )
+      return
+    }
+
     setCheckoutStarting(true)
     setCheckoutError(null)
 
@@ -395,14 +518,16 @@ function DepositPaymentPageInner() {
           source: source || "deposit_pay",
           customerName: booking.full_name,
           customerEmail: booking.email,
-          eventDate: booking.event_date,
-          eventTime: booking.event_time,
-          location: booking.location,
-          adults: booking.guest_adults,
-          kids: booking.guest_kids,
+          // Prefilled links send what the customer entered here; "TBD" never
+          // travels as a date any more (the server refuses a missing date).
+          eventDate: detailsEditable ? effectiveDate || undefined : booking.event_date,
+          eventTime: detailsEditable ? effectiveTime || undefined : booking.event_time,
+          location: detailsEditable ? effectiveLocation || undefined : booking.location,
+          adults: detailsEditable ? adultsInput : booking.guest_adults,
+          kids: detailsEditable ? kidsInput : booking.guest_kids,
           tent10x10: booking.tent_10x10,
-          estimateLow: booking.estimate_low,
-          estimateHigh: booking.estimate_high,
+          estimateLow: shownEstimate ?? booking.estimate_low,
+          estimateHigh: shownEstimate ?? booking.estimate_high,
           totalAmount,
           depositAmount,
           currency: "USD",
@@ -563,16 +688,21 @@ function DepositPaymentPageInner() {
     )
   }
 
-  const dateLine = `${formatUiDate(booking.event_date, "Date TBD")} · ${formatClockTime(booking.event_time)}`
-  const guestsLine =
-    (booking.guest_kids ?? 0) > 0
-      ? `${booking.guest_adults ?? 0} adults, ${booking.guest_kids} kids`
-      : `${booking.guest_adults ?? 0} guests`
+  const shownDate = detailsEditable ? effectiveDate : booking.event_date
+  const shownTime = detailsEditable ? effectiveTime : booking.event_time
+  const shownLocation = detailsEditable ? effectiveLocation : booking.location
+  const shownAdults = detailsEditable ? adultsInput : booking.guest_adults ?? 0
+  const shownKids = detailsEditable ? kidsInput : booking.guest_kids ?? 0
+  const dateLine = `${formatUiDate(shownDate || undefined, "Date TBD")} · ${formatClockTime(shownTime || undefined)}`
+  const guestsLine = shownKids > 0 ? `${shownAdults} adults, ${shownKids} kids` : `${shownAdults} guests`
+  const step = (setter: (n: number) => void, value: number, delta: number, min: number) => () => setter(Math.max(min, value + delta))
   const depositLabel = `$${depositAmount.toFixed(2)}`
 
   return (
     <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
       <div className="mx-auto w-full max-w-[560px] rounded-[32px] bg-surface px-6 pb-7 pt-10 text-center shadow-organic-lg sm:px-9">
+        {/* Who this page belongs to: the first thing Esme asked on the phone was "is this the real Hibachi site?" */}
+        <p className="mb-4 text-[13px] font-semibold uppercase tracking-[0.08em] text-clay-600">Real Hibachi · {phone.sms.dashed}</p>
         <div className="mx-auto mb-[18px] grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
           <Lock className="h-7 w-7" strokeWidth={2.5} aria-hidden="true" />
         </div>
@@ -583,17 +713,95 @@ function DepositPaymentPageInner() {
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-cream px-5 py-4 text-base text-ink">
           <span className="font-semibold">{dateLine}</span>
-          {booking.location ? (
+          {shownLocation ? (
             <>
               <span className="text-clay-600" aria-hidden="true">·</span>
-              <span>{booking.location}</span>
+              <span>{shownLocation}</span>
             </>
           ) : null}
           <span className="text-clay-600" aria-hidden="true">·</span>
           <span>{guestsLine}</span>
           <span className="text-clay-600" aria-hidden="true">·</span>
-          <span className="font-serif text-xl font-extrabold text-flame-700">{totalEstimateText}</span>
+          <span className="font-serif text-xl font-extrabold text-flame-700">
+            {shownEstimate !== null ? formatRange(shownEstimate, shownEstimate) : totalEstimateText}
+          </span>
         </div>
+        {latest ? (
+          <p className="mt-2 text-[13px] text-clay-600">Using your latest details from our text thread.</p>
+        ) : null}
+
+        {detailsEditable ? (
+          <div className="mt-5 rounded-[28px] bg-cream px-5 py-4 text-left">
+            {needsDate || needsTime ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {needsDate ? (
+                  <label className="block text-sm font-semibold text-ink">
+                    Party date
+                    <input
+                      type="date"
+                      min={tomorrowPT()}
+                      value={dateInput}
+                      onChange={(e) => setDateInput(e.target.value)}
+                      className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-base font-normal text-ink"
+                      required
+                    />
+                    <span className="mt-1 block text-xs font-normal text-clay-600">This is the date the deposit locks.</span>
+                  </label>
+                ) : null}
+                {needsTime ? (
+                  <label className="block text-sm font-semibold text-ink">
+                    Start time
+                    <select
+                      value={timeInput}
+                      onChange={(e) => setTimeInput(e.target.value)}
+                      className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-base font-normal text-ink"
+                      required
+                    >
+                      {TIME_OPTIONS.map(([value, label]) => (
+                        <option key={value || "none"} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
+            {needsLocation ? (
+              <label className="mt-3 block text-sm font-semibold text-ink">
+                Party address or city
+                <input
+                  type="text"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  placeholder="Street address, or just the city for now"
+                  autoComplete="street-address"
+                  className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-base font-normal text-ink"
+                  required
+                />
+                <span className="mt-1 block text-xs font-normal text-clay-600">Travel is confirmed from the address - the first 50 miles are free.</span>
+              </label>
+            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Adults</span>
+                <button type="button" onClick={step(setAdultsInput, adultsInput, -1, 1)} aria-label="Fewer adults" className="grid h-8 w-8 place-items-center rounded-full bg-white text-lg leading-none shadow-sm">−</button>
+                <span className="w-6 text-center font-semibold tabular-nums">{adultsInput}</span>
+                <button type="button" onClick={step(setAdultsInput, adultsInput, 1, 1)} aria-label="More adults" className="grid h-8 w-8 place-items-center rounded-full bg-white text-lg leading-none shadow-sm">+</button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Kids 5–12</span>
+                <button type="button" onClick={step(setKidsInput, kidsInput, -1, 0)} aria-label="Fewer kids" className="grid h-8 w-8 place-items-center rounded-full bg-white text-lg leading-none shadow-sm">−</button>
+                <span className="w-6 text-center font-semibold tabular-nums">{kidsInput}</span>
+                <button type="button" onClick={step(setKidsInput, kidsInput, 1, 0)} aria-label="More kids" className="grid h-8 w-8 place-items-center rounded-full bg-white text-lg leading-none shadow-sm">+</button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-clay-600">
+              {tierLabel ? `Party-size discount included: ${tierLabel}.` : "Parties of 10+ get a party-size discount."} Headcount can still change until the day before.
+              {repriced?.weekday ? " Mon–Thu rate applied." : null}
+            </p>
+          </div>
+        ) : null}
         {agreedTotal ? (
           <p className="mt-2 text-[13px] text-clay-600">
             Your agreed price from our text thread. Anything you tick below is already included — ticking it just makes sure it's on the order.
@@ -622,16 +830,18 @@ function DepositPaymentPageInner() {
         <button
           type="button"
           onClick={handleDepositCtaClick}
-          disabled={checkoutStarting}
-          className="mt-[26px] flex h-14 w-full items-center justify-center gap-2 rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700 disabled:cursor-wait disabled:opacity-80"
+          disabled={checkoutStarting || detailsMissing}
+          className="mt-[26px] flex h-14 w-full items-center justify-center gap-2 rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {checkoutStarting ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
               Opening secure checkout…
             </>
+          ) : detailsMissing ? (
+            needsDate && !ISO_DATE.test(dateInput) ? "Pick your date to continue" : "Fill in the details to continue"
           ) : (
-            `Pay ${depositLabel} deposit · lock the date`
+            `Pay ${depositLabel} deposit · lock ${ISO_DATE.test(effectiveDate) ? formatUiDate(effectiveDate, "the date") : "the date"}`
           )}
         </button>
         <p className="mt-3 text-sm text-clay-700">

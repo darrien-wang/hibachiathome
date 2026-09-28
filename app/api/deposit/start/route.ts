@@ -339,6 +339,18 @@ async function withLeadName(payload: NormalizedDepositStartPayload): Promise<Nor
   }
 }
 
+// The placeholder-booking flow (every prefilled link: quote texts, workbench
+// links, the quote page) has nothing but the payload to date the party by. A
+// real booking row (UUID id) carries its own date and is left alone.
+function missingDateProblem(payload: NormalizedDepositStartPayload): string | null {
+  if (isLikelyUuid(payload.bookingId ?? "")) return null
+  const date = payload.eventDate ?? ""
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Pick your party date first - that is the date the deposit locks."
+  const todayLA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())
+  if (date < todayLA) return "That date has already passed - pick the party date."
+  return null
+}
+
 // A party already locked with a deposit does not get a second checkout - a
 // restored Safari tab with a live pay button was one tap from a double
 // charge (2026-09-20, RH-20260921-4337). The "another party" door
@@ -854,6 +866,14 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await withLeadName(buildNormalizedPayload((rawPayload ?? {}) as DepositStartPayload))
+  // A prefilled link without a date used to be filed under today's date
+  // (2026-09-27: Esme's Friday party landed on a Monday, with a Mon-Thu
+  // discount on the invoice). The page asks for the date now; a client that
+  // still sends none is told so instead of getting a made-up booking.
+  const dateProblem = missingDateProblem(payload)
+  if (dateProblem) {
+    return NextResponse.json({ success: false, error: dateProblem }, { status: 400, headers: { "Cache-Control": "no-store" } })
+  }
   const locked = await alreadyLocked(payload)
   if (locked) {
     return NextResponse.json(
@@ -900,6 +920,11 @@ export async function GET(request: NextRequest) {
   }
 
   const payload = await withLeadName(parseGetPayload(request))
+  if (missingDateProblem(payload)) {
+    // Direct links without a date land on the deposit page, which asks for it.
+    const q = new URLSearchParams(request.nextUrl.searchParams)
+    return NextResponse.redirect(`${resolveOrigin(request)}/deposit/pay?${q.toString()}`, 302)
+  }
   if (await alreadyLocked(payload)) {
     // Direct links land on the deposit page, which shows the locked state.
     const q = new URLSearchParams(request.nextUrl.searchParams)
