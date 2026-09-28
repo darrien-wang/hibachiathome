@@ -31,3 +31,7 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 /.cache/
+
+# desk: downloaded call recordings and their transcripts (customer conversations)
+scripts/desk/cache/
+scripts/desk/__pycache__/
