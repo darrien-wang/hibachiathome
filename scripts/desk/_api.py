@@ -21,7 +21,11 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]  # realhibachi-marketing/
 ENV_FILE = ROOT / ".env.local"
-SITE = "https://www.realhibachi.com"
+import os
+
+# DESK_SITE=http://localhost:3000 points the site calls at a dev server (the
+# invoice app is always the live one - there is no local copy of it here).
+SITE = os.environ.get("DESK_SITE", "https://www.realhibachi.com").rstrip("/")
 INVOICE = "https://invoice.realhibachi.com"
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
 

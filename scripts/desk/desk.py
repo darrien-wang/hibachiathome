@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """desk - the sales desk in one command, so no session ever rewrites the tooling.
 
-  python scripts/desk/desk.py next                         what is waiting, one full card each
-  python scripts/desk/desk.py card   <phone|leadId>        lead + hold + tags + thread + engine price
+  python scripts/desk/desk.py next                         what is waiting, one full card each (one call)
+  python scripts/desk/desk.py card   <phone|leadId>        the same card for one customer
   python scripts/desk/desk.py thread <phone|leadId>        the Twilio conversation, oldest first
   python scripts/desk/desk.py search <text>                name / phone / email / order no
   python scripts/desk/desk.py price  --adults 24 [--kids 0] [--date 2026-10-13] [--zip 90802] [--alt-date ...]
@@ -18,23 +18,31 @@
                                    [--date 2026-10-13] [--time 18:00] [--email e] [--name n] [--est 1258]
   python scripts/desk/desk.py link planner --email e --phone p [--booked] [--lead <id>]
   python scripts/desk/desk.py link short <url> [--lead <id>]
+  python scripts/desk/desk.py order find <text>            orders on a name / phone / email / order no
+  python scripts/desk/desk.py order show <orderNo|orderId> the stored invoice: contact, guests, extras, notes, totals
+  python scripts/desk/desk.py order set  <orderNo> [--date 2026-10-13] [--time 18:30] [--address ...]
+                                   [--name ...] [--email ...] [--phone ...] [--notes-file f]   re-price, then save
+  python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
+  python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
 
-Every write goes through the workbench APIs, so it lands in the lead timeline
-and passes the same brakes as the workbench UI. Rules live in the leads skill;
+Every write goes through the workbench / invoice APIs, so it lands in the
+timeline and passes the same brakes as the UI. Rules live in the leads skill;
 this file only fetches, prints and posts.
 """
 from __future__ import annotations
 
 import argparse
+import copy
+import json
+import pathlib
 import re
 import sys
 import urllib.parse
 
-from _api import ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post  # noqa: F401
+from _api import ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
 
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned)\s", re.I)
 THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
-TAG = re.compile(r"\[(callback|occasion|why|data|SOP:[^\]]+)\]", re.I)
 
 
 def is_tapback(body: str) -> bool:
@@ -42,39 +50,135 @@ def is_tapback(body: str) -> bool:
     return bool(TAPBACK.match(b) or THUMB.match(b))
 
 
-# ---------------------------------------------------------------- fetchers --
-def lead_rows() -> list[dict]:
-    return site_get("/api/admin/leads", {"limit": 300}).get("leads") or []
+def money(v) -> str:
+    try:
+        return f"${float(v):,.2f}"
+    except (TypeError, ValueError):
+        return "?"
 
 
-def find_lead(ident: str, rows: list[dict] | None = None) -> dict | None:
-    """By id, or the newest un-merged lead on that phone."""
-    rows = rows if rows is not None else lead_rows()
-    if is_uuid(ident):
-        return next((r for r in rows if r.get("id") == ident), None)
-    phone = e164(ident)
-    hits = [r for r in rows if (r.get("phone") or "") == phone]
-    if hits:
-        return sorted(hits, key=lambda r: r.get("created_at") or "", reverse=True)[0]
-    # older than the newest 300: fall back to search
-    for c in site_get("/api/admin/search", {"q": phone}).get("customers") or []:
-        if c.get("leads"):
-            return c["leads"][0]
-    return None
+# ---------------------------------------------------------------- renderers --
+def fmt_msg(m: dict) -> str:
+    who = "客" if m.get("direction") == "inbound" else "我"
+    body = (m.get("body") or "").replace("\n", " ").strip()
+    tag = "  [tapback·不用回]" if m.get("tapback") or (m.get("direction") == "inbound" and is_tapback(body)) else ""
+    return f"   {who} {pt(m.get('at'))}  {body}{tag}"
 
 
-def thread_for(phone: str | None, lead_id: str | None) -> list[dict]:
-    params = {}
-    if phone:
-        params["phone"] = phone
-    if lead_id:
-        params["leadId"] = lead_id  # also heals the timeline (sms-reconcile)
-    msgs = site_get("/api/admin/sms-thread", params).get("messages") or []
-    return sorted(msgs, key=lambda m: m.get("at") or "")
+def brake_line(stats: dict) -> str:
+    """What sms-thread will do with the NEXT text: replies are never braked;
+    unprompted follow-ups count toward daily 2 / spacing 3h / cap 3."""
+    if not stats or not stats.get("lastAt"):
+        return "首条：无对话，走 T0"
+    if stats.get("lastSpeaker") == "customer":
+        return "客人最后说话 → 回复不受刹车限制"
+    run = stats.get("unansweredRun", 0)
+    return f"我方已连发 {run} 条无回复 → 下一条是主动跟进（daily 2 / spacing 3h / 总量封顶 3；24h 内人工已发 {stats.get('ourLast24h', 0)}）"
 
 
-def events_for(lead_id: str) -> list[dict]:
-    return site_get("/api/admin/leads", {"detail": lead_id}).get("events") or []
+def render_card(c: dict) -> None:
+    lead = c.get("lead") or {}
+    phone = c.get("phone") or lead.get("phone") or "-"
+    stats = c.get("stats") or {}
+    print("━" * 78)
+    head = f"{lead.get('full_name') or '-'} · {phone} · {lead.get('email') or '-'}"
+    if c.get("kinds"):
+        head += f"   [{' '.join(c['kinds'])}]"
+    if c.get("waitedMinutes") is not None:
+        head += f" 等了 {c['waitedMinutes']} 分钟" + (" ⚠️" if c.get("urgent") else "")
+    print(head)
+    if lead:
+        print(f"   {lead.get('city_or_zip') or '-'} · {lead.get('guest_count') or '?'} 人 · {lead.get('status')}"
+              f" · 来源 {lead.get('lead_source') or '-'}/{lead.get('utm_campaign') or '-'}"
+              f"{(' · 词 ' + lead['utm_term']) if lead.get('utm_term') else ''} · 建 {pt(lead.get('created_at'))}")
+        hint = lead.get("event_hint") or {}
+        flags = []
+        if stats.get("onHold"):
+            flags.append(f"hold→{pt(lead.get('hold_until'))}")
+        if lead.get("sms_blocked_at"):
+            flags.append("短信打不通(30003/30006)")
+        if stats.get("quiet"):
+            flags.append("不响铃(致谢/挂起/已标不用回)")
+        print(f"   日期线索: {hint.get('date') or '-'} | 首响: {pt(lead.get('first_response_at'))} | {' | '.join(flags) or '无挂起'} | id {lead.get('id')}")
+    quoted = c.get("quoted")
+    price = c.get("price")
+    if quoted:
+        print(f"   自动报价 {pt(quoted.get('at'))}: ${quoted.get('total')} · {quoted.get('guests')} · {quoted.get('plan')}")
+    elif price and price.get("customQuote"):
+        print(f"   价: {price.get('adults')} 人属大单（31+），走 §5.0 成交包")
+    elif price and price.get("options"):
+        opts = " / ".join(f"{money(o['total'])} {o['plan']}" for o in price["options"])
+        print(f"   引擎价 {price.get('adults')} 大人{(' ' + price['date']) if price.get('date') else ''}: {opts}"
+              f"{'' if price.get('travelKnown') else '  (路费未算: 线索无 zip → desk price --zip)'}")
+    elif lead:
+        print("   价: 人数未知")
+    for t in (c.get("tags") or [])[:6]:
+        print(f"   ⋯ {pt(t.get('at'))} {t.get('note', '')[:160]}")
+    for at in c.get("calls") or []:
+        print(f"   ☎ 来电 {pt(at)}")
+    for o in c.get("orders") or []:
+        when = (o.get("event_start") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
+        bal = o.get("balance_due_cents")
+        print(f"   订单 {o.get('order_no') or o.get('id')}  {o.get('order_status') or ''}/{o.get('deposit_status') or ''}/{o.get('details_status') or ''}"
+              f"  {when or '未定'}  {o.get('event_address') or '-'}  {o.get('guest_adult_count') or '?'}大{o.get('guest_child_count') or 0}小"
+              f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}")
+    thread = c.get("thread") or []
+    print(f"   对话 ({len(thread)}):")
+    for m in thread[-14:]:
+        print(fmt_msg(m))
+    print("   刹车: " + brake_line(stats))
+
+
+# ---------------------------------------------------------------- commands --
+def cmd_next(a):
+    data = site_get("/api/admin/desk")
+    counts = data.get("counts") or {}
+    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 新线索 {counts.get('newLeads', 0)}"
+          f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
+    cards = data.get("cards") or []
+    if not cards:
+        print("没有等着我们的事。")
+        return
+    for c in cards:
+        render_card(c)
+    if a.json:
+        print(dump(data))
+
+
+def cmd_card(a):
+    params = {"lead": a.ident} if is_uuid(a.ident) else {"phone": e164(a.ident)}
+    data = site_get("/api/admin/desk", params)
+    for c in data.get("cards") or []:
+        render_card(c)
+    if a.json:
+        print(dump(data))
+
+
+def cmd_thread(a):
+    params = {"leadId": a.ident} if is_uuid(a.ident) else {"phone": e164(a.ident)}
+    d = site_get("/api/admin/sms-thread", params)
+    msgs = sorted(d.get("messages") or [], key=lambda m: m.get("at") or "")
+    print(f"{', '.join(d.get('phones') or [])} · {len(msgs)} 条")
+    for m in msgs:
+        print(fmt_msg(m))
+
+
+def _search(text: str) -> list[dict]:
+    return site_get("/api/admin/search", {"q": text}).get("customers") or []
+
+
+def cmd_search(a):
+    for c in _search(a.text):
+        print("━" * 78)
+        print(f"{c.get('name') or '-'} · {c.get('phone') or '-'} · {c.get('email') or '-'} · 最近 {pt(c.get('lastActivity'))}")
+        for l in c.get("leads") or []:
+            print(f"   线索 {l['id']}  {l.get('status')}  {l.get('city_or_zip') or '-'}  {l.get('guest_count') or '?'} 人  建 {pt(l.get('created_at'))}")
+        for o in c.get("orders") or []:
+            when = (o.get("event_start") or "")[:16].replace("T", " ")
+            bal = o.get("balance_due_cents")
+            print(f"   订单 {o.get('order_no') or o.get('id')}  {o.get('order_status') or ''}/{o.get('deposit_status') or ''}"
+                  f"  {when or '-'}  {o.get('event_address') or '-'}"
+                  f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}  id {o.get('id')}")
 
 
 def price_for(adults: int, kids: int, date: str | None, zipcode: str | None) -> dict | None:
@@ -87,167 +191,6 @@ def price_for(adults: int, kids: int, date: str | None, zipcode: str | None) -> 
         return site_get("/api/agent/price", params, admin=False)
     except ApiError:
         return None
-
-
-# ---------------------------------------------------------------- renderers --
-def fmt_msg(m: dict) -> str:
-    who = "客" if m.get("direction") == "inbound" else "我"
-    body = (m.get("body") or "").replace("\n", " ").strip()
-    tag = "  [tapback·不用回]" if m.get("direction") == "inbound" and is_tapback(body) else ""
-    return f"   {who} {pt(m.get('at'))}  {body}{tag}"
-
-
-def brake_preview(msgs: list[dict]) -> str:
-    """What sms-thread will do with the NEXT text: replies are never braked;
-    unprompted follow-ups count toward daily 2 / spacing 3h / cap 3."""
-    if not msgs:
-        return "首条：无对话，走 T0"
-    last = msgs[-1]
-    if last.get("direction") == "inbound":
-        return "客人最后说话 → 回复不受刹车限制"
-    run = 0
-    for m in reversed(msgs):
-        if m.get("direction") == "inbound":
-            break
-        run += 1
-    return f"我方已连发 {run} 条无回复 → 下一条是主动跟进（daily 2 / spacing 3h / 总量封顶 3）"
-
-
-def tags_from(events: list[dict]) -> list[str]:
-    out = []
-    for ev in events:
-        if ev.get("touchpoint_type") not in ("agent_note", "agent_first_response"):
-            continue
-        payload = ev.get("raw_payload_json") or {}
-        note = payload.get("note") if isinstance(payload, dict) else None
-        if not note:
-            continue
-        if TAG.search(note):
-            out.append(f"{pt(ev.get('occurred_at'))} {note[:160]}")
-    return out
-
-
-AUTO_QUOTE = re.compile(r"price is \$([\d,.]+) for (.+?) \((.+?)\)\.")
-
-
-def quoted_line(msgs: list[dict]) -> str | None:
-    """The instant quote already priced this party with the date the customer
-    typed; repeat that rather than re-pricing without the date."""
-    for m in reversed(msgs):
-        if m.get("direction") != "outbound":
-            continue
-        hit = AUTO_QUOTE.search(m.get("body") or "")
-        if hit:
-            return f"自动报价 {pt(m.get('at'))}: ${hit.group(1)} · {hit.group(2)} · {hit.group(3)}"
-    return None
-
-
-def price_line(row: dict, date_hint: str | None) -> str:
-    guests = row.get("guest_count")
-    if not guests:
-        return "价: 人数未知"
-    zipcode = row.get("city_or_zip") or ""
-    zipcode = zipcode if re.fullmatch(r"\d{5}", zipcode) else None
-    p = price_for(int(guests), 0, date_hint, zipcode)
-    if not p or not p.get("ok"):
-        return f"价: 引擎未算（{guests} 人；需要 zip{'' if date_hint else ' 和日期'}）→ desk price --adults {guests} --zip <zip>"
-    pr = p["price"]
-    return (f"价: {guests} 大人{(' ' + date_hint) if date_hint else ''} → ${pr['total']:,.2f}"
-            f" ({pr['plan']}, 路费 ${pr['travelFee']:,.0f}{', zip ' + zipcode if zipcode else ', 按城市'})")
-
-
-def render_card(row: dict, *, waited: str | None = None, with_thread: bool = True) -> None:
-    phone = row.get("phone")
-    lead_id = row.get("id")
-    name = row.get("full_name") or "-"
-    print("━" * 78)
-    print(f"{name} · {phone or '-'} · {row.get('email') or '-'}")
-    print(f"   {row.get('city_or_zip') or '-'} · {row.get('guest_count') or '?'} 人 · {row.get('status')}"
-          f" · 来源 {row.get('lead_source') or '-'}/{row.get('utm_campaign') or '-'} · 建 {pt(row.get('created_at'))}"
-          + (f" · 等了 {waited}" if waited else ""))
-    hint = row.get("event_hint") or {}
-    date_hint = hint.get("date") if isinstance(hint, dict) else None
-    hold = row.get("hold_until")
-    print(f"   日期线索: {date_hint or '-'} | hold: {pt(hold) if hold else '-'} | 首响: {pt(row.get('first_response_at'))}"
-          f" | id {lead_id}")
-    msgs = thread_for(phone, lead_id) if (with_thread and phone) else []
-    print("   " + (quoted_line(msgs) or price_line(row, date_hint)))
-    if lead_id:
-        tags = tags_from(events_for(lead_id))
-        for t in tags[:6]:
-            print(f"   ⋯ {t}")
-    if with_thread and phone:
-        print(f"   对话 ({len(msgs)}):")
-        for m in msgs[-14:]:
-            print(fmt_msg(m))
-        print("   刹车: " + brake_preview(msgs))
-
-
-# ---------------------------------------------------------------- commands --
-def cmd_next(a):
-    data = site_get("/api/admin/mobile/inbox")
-    counts = data.get("counts") or {}
-    events = data.get("events") or []
-    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 新线索 {counts.get('newLeads', 0)}"
-          f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)}")
-    if not events:
-        print("没有等着我们的事。")
-        return
-    rows = lead_rows()
-    seen = set()
-    for ev in events:
-        url = ev.get("url") or ""
-        lead_id = urllib.parse.parse_qs(urllib.parse.urlparse(url).query).get("lead", [None])[0]
-        key = ev.get("key") or ""
-        phone = key.split(":")[1] if key.startswith("sms:") else None
-        row = find_lead(lead_id, rows) if lead_id else (find_lead(phone, rows) if phone else None)
-        ident = (row or {}).get("id") or phone or key
-        if ident in seen:
-            continue
-        seen.add(ident)
-        waited = f"{ev.get('waitedMinutes')} 分钟" if ev.get("waitedMinutes") is not None else None
-        if row:
-            render_card(row, waited=waited)
-        else:
-            print("━" * 78)
-            print(f"{ev.get('title')} · {ev.get('body')} · 等了 {waited} · {url}")
-
-
-def cmd_card(a):
-    row = find_lead(a.ident)
-    if not row:
-        raise SystemExit(f"no lead for {a.ident}")
-    render_card(row, with_thread=not a.no_thread)
-
-
-def cmd_thread(a):
-    if is_uuid(a.ident):
-        row = find_lead(a.ident)
-        phone, lead_id = (row or {}).get("phone"), a.ident
-    else:
-        phone, lead_id = e164(a.ident), None
-        row = find_lead(phone)
-        lead_id = (row or {}).get("id")
-    msgs = thread_for(phone, lead_id)
-    print(f"{phone} · {len(msgs)} 条")
-    for m in msgs:
-        print(fmt_msg(m))
-    print("刹车: " + brake_preview(msgs))
-
-
-def cmd_search(a):
-    for c in site_get("/api/admin/search", {"q": a.text}).get("customers") or []:
-        print("━" * 78)
-        print(f"{c.get('name') or '-'} · {c.get('phone') or '-'} · {c.get('email') or '-'} · 最近 {pt(c.get('lastActivity'))}")
-        for l in c.get("leads") or []:
-            print(f"   线索 {l['id']}  {l.get('status')}  {l.get('city_or_zip') or '-'}  {l.get('guest_count') or '?'} 人  建 {pt(l.get('created_at'))}")
-        for o in c.get("orders") or []:
-            bal = o.get("balance_due_cents")
-            # event_start is the party's wall-clock time stored as if UTC - print it raw, never convert
-            when = (o.get("event_start") or "")[:16].replace("T", " ")
-            print(f"   订单 {o.get('order_no') or o.get('id')}  {o.get('order_status') or ''}/{o.get('deposit_status') or ''}"
-                  f"  {when or '-'}  {o.get('event_address') or '-'}"
-                  f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}")
 
 
 def cmd_price(a):
@@ -320,8 +263,8 @@ def cmd_ack(a):
 def cmd_fields(a):
     fields = {}
     for kv in a.pairs:
-        k, _, v = kv.partition("=")
-        if not k or not _:
+        k, sep, v = kv.partition("=")
+        if not k or not sep:
             raise SystemExit(f"expected key=value, got {kv!r}")
         fields[k] = int(v) if re.fullmatch(r"-?\d+", v) else v
     _patch({"action": "update_fields", "leadId": a.lead, "fields": fields})
@@ -349,7 +292,7 @@ def cmd_link(a):
     est = a.est
     if est is None:
         p = price_for(a.adults, a.kids, a.date, a.zip)
-        est = round(p["price"]["total"]) if p and p.get("ok") else None
+        est = round(p["price"]["total"]) if p and p.get("ok") and p.get("price") else None
     q = {"source": "workbench", "location": a.city, "adults": str(a.adults), "kids": str(a.kids)}
     if est is not None:
         q["estimate_low"] = q["estimate_high"] = str(est)
@@ -372,13 +315,158 @@ def cmd_link(a):
         print("   " + long_url)
 
 
+# ---------------------------------------------------------------- orders ----
+# The invoice app owns the party's details (guests, extras, notes, time). The
+# proven path (wk_invoices.py, 09-25): lookup by the customer's contact ->
+# prefill (the canonical InvoiceData) -> change -> /api/invoice to price ->
+# save-invoice with the order id. Lookup returns the newest order for that
+# contact, so the order number is checked before anything is saved.
+
+def _order_row(ident: str) -> dict:
+    """The marketing order row (id, order_no, contact) for an order no / id."""
+    for c in _search(ident):
+        for o in c.get("orders") or []:
+            if o.get("order_no") == ident or o.get("id") == ident:
+                o.setdefault("customer_email", c.get("email"))
+                o.setdefault("customer_phone", c.get("phone"))
+                return o
+    raise SystemExit(f"no order matches {ident!r}")
+
+
+def _lookup(order: dict) -> tuple[dict, dict]:
+    """(invoice order, prefill) for the marketing order row, verified by number."""
+    look = invoice_post("/api/self-service/orders/lookup", {"email": order.get("customer_email") or "", "phone": order.get("customer_phone") or ""})
+    if not look.get("found"):
+        raise SystemExit(f"invoice lookup found nothing for {order.get('order_no')}: {look.get('message')}")
+    inv_order = look["order"]
+    if inv_order.get("orderNo") != order.get("order_no"):
+        raise SystemExit(f"lookup returned {inv_order.get('orderNo')} (newest for this contact), not {order.get('order_no')} - not touching it")
+    return inv_order, look["prefill"]
+
+
+def _totals(data: dict) -> dict:
+    return invoice_post("/api/invoice", data)["invoice"]
+
+
+def _print_totals(inv: dict) -> None:
+    print(f"   base {money(inv.get('baseCost'))} | promos -{money(inv.get('promotionsTotal'))} | extras {money(inv.get('partyExtrasCost'))}"
+          f" | travel {money(inv.get('travelFee'))} | TOTAL {money(inv.get('finalTotal'))} | deposit {money(inv.get('deposit'))} | BALANCE {money(inv.get('balanceDue'))}")
+
+
+def _print_invoice(order_no: str, data: dict) -> None:
+    c = data.get("contactInfo") or {}
+    print(f"{order_no} · {c.get('clientName') or '-'} · {c.get('phone') or '-'} · {c.get('email') or '-'}")
+    print(f"   {c.get('eventDate') or '日期未定'} {c.get('eventTime') or ''} · {c.get('eventAddress') or '地址未定'}")
+    print(f"   {data.get('adultCount')} 大 {data.get('childCount')} 小 · mode {data.get('mode')} · pay {data.get('paymentMethod')} · deposit {money(data.get('depositAmount'))}")
+    for g in data.get("guests") or []:
+        bits = [", ".join(g.get("proteins") or []) or "(no proteins)"]
+        if g.get("noodles"): bits.append("noodles")
+        if g.get("tablesChairs"): bits.append("table+chair")
+        if g.get("utensils"): bits.append("utensils")
+        if g.get("foodAllergy"): bits.append(f"ALLERGY: {g['foodAllergy']}")
+        if g.get("note"): bits.append(g["note"])
+        print(f"     {'小' if g.get('isChild') else '大'} {g.get('name') or '-'}: {' · '.join(bits)}")
+    for x in data.get("partyExtras") or []:
+        print(f"   + extra {x}")
+    for p in data.get("promotions") or []:
+        print(f"   - promo {p.get('label') or p.get('id') or p}: {money(p.get('amount'))}")
+    if data.get("customDeal"):
+        print(f"   custom deal: {json.dumps(data['customDeal'], ensure_ascii=False)[:200]}")
+    notes = (c.get("specialNotes") or "").strip()
+    print(f"   NOTES(客户会看到): {notes or '(空)'}")
+
+
+def cmd_order(a):
+    if a.op == "find":
+        for c in _search(a.ident):
+            for o in c.get("orders") or []:
+                when = (o.get("event_start") or "")[:16].replace("T", " ")
+                print(f"{o.get('order_no')}  {c.get('name') or '-'} · {c.get('phone') or '-'} · {c.get('email') or '-'}"
+                      f"  {o.get('order_status') or ''}/{o.get('deposit_status') or ''}  {when or '-'}  {o.get('event_address') or '-'}  id {o.get('id')}")
+        return
+    order = _order_row(a.ident)
+    order_no = order.get("order_no")
+    if a.op == "show":
+        # The invoice app's prefill is the canonical InvoiceData (it builds
+        # guest rows from the counts when the menu is not in yet); the
+        # marketing row adds what the customer never sees.
+        try:
+            _, data = _lookup(order)
+        except SystemExit as why:
+            print(f"   (lookup: {why}; showing the stored invoice_data instead)")
+            data = None
+        detail = site_get("/api/admin/orders", {"id": order["id"]})
+        row = detail.get("order") if isinstance(detail.get("order"), dict) else {}
+        if not data:
+            data = row.get("invoice_data") or {}
+        _print_invoice(order_no, data)
+        if row.get("internal_notes"):
+            print(f"   内部备注(客户看不到): {str(row['internal_notes'])[:300]}")
+        try:
+            _print_totals(_totals(data))
+        except ApiError as e:
+            print(f"   totals: 引擎拒绝 {e.payload}")
+        if a.json:
+            print(dump(detail))
+        return
+    inv_order, prefill = _lookup(order)
+    if a.op == "preview":
+        _print_invoice(order_no, prefill)
+        _print_totals(_totals(prefill))
+        return
+    if a.op == "set":
+        data = copy.deepcopy(prefill)
+        c = data.setdefault("contactInfo", {})
+        changes = []
+        for key, val in (("eventDate", a.date), ("eventTime", a.time), ("eventAddress", a.address), ("clientName", a.name), ("email", a.email), ("phone", a.phone)):
+            if val is not None:
+                changes.append(f"{key}: {c.get(key)!r} -> {val!r}")
+                c[key] = val
+        if a.notes_file:
+            new_notes = pathlib.Path(a.notes_file).read_bytes().decode("utf-8").strip()
+            changes.append(f"specialNotes: {c.get('specialNotes')!r} -> {new_notes!r}")
+            c["specialNotes"] = new_notes
+        if not changes:
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file")
+        if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
+            raise SystemExit("--date must be YYYY-MM-DD")
+        if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
+            raise SystemExit("--time must be HH:MM (24h)")
+        for ch in changes:
+            print("   " + ch)
+        inv = _totals(data)  # price it before saving; never save a number we have not seen
+        _print_totals(inv)
+        res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data})
+        print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
+        return
+    if a.op == "email":
+        _print_invoice(order_no, prefill)
+        _print_totals(_totals(prefill))
+        payload = {"invoiceData": prefill, "orderNo": order_no}
+        if a.notes_reviewed:
+            payload["notesReviewed"] = True
+        try:
+            res = invoice_post("/api/invoice/email", payload, timeout=180)
+        except ApiError as e:
+            if e.status == 409 and isinstance(e.payload, dict) and e.payload.get("error") == "notes_need_review":
+                print("HOLD  notes_need_review - 发票 NOTES 里有内部内容。会印给客户的行 / 会被丢掉的行：")
+                print(dump({k: v for k, v in e.payload.items() if k != "error"})[:2000])
+                print("      看完再决定：改干净备注（order set --notes-file），或 --notes-reviewed 发过滤后的版本。")
+                sys.exit(3)
+            raise
+        print(f"OK    emailed {res.get('email')}  pdf={res.get('pdfAttached')}  archive={res.get('archiveId')}")
+        if res.get("notesPrinted") is not None:
+            print(f"      notes printed: {res.get('notesPrinted')}")
+        return
+
+
 # ---------------------------------------------------------------- argparse --
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="desk", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sp = ap.add_subparsers(dest="cmd", required=True)
 
-    sp.add_parser("next").set_defaults(fn=cmd_next)
-    p = sp.add_parser("card"); p.add_argument("ident"); p.add_argument("--no-thread", action="store_true"); p.set_defaults(fn=cmd_card)
+    p = sp.add_parser("next"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_next)
+    p = sp.add_parser("card"); p.add_argument("ident"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_card)
     p = sp.add_parser("thread"); p.add_argument("ident"); p.set_defaults(fn=cmd_thread)
     p = sp.add_parser("search"); p.add_argument("text"); p.set_defaults(fn=cmd_search)
     p = sp.add_parser("price"); p.add_argument("--adults", type=int, required=True); p.add_argument("--kids", type=int, default=0)
@@ -397,12 +485,15 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--email"); p.add_argument("--name"); p.add_argument("--phone")
     p.add_argument("--zip"); p.add_argument("--est", type=int); p.add_argument("--booked", action="store_true"); p.add_argument("--verbose", action="store_true")
     p.set_defaults(fn=cmd_link)
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email"]); p.add_argument("ident")
+    p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
+    p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_order)
 
     a = ap.parse_args(argv)
-    for key in ("lead",):
-        v = getattr(a, key, None)
-        if v and not is_uuid(v):
-            raise SystemExit(f"--lead must be a lead id (uuid), got {v!r}")
+    v = getattr(a, "lead", None)
+    if v and not is_uuid(v):
+        raise SystemExit(f"--lead must be a lead id (uuid), got {v!r}")
     a.fn(a)
 
 

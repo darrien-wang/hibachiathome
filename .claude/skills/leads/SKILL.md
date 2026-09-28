@@ -53,6 +53,7 @@ description: >-
 - 判据在 `lib/courtesy-text.ts`：`isTapback()` = 不用回；`courtesyOnly()` = **不响铃但要回一句**。别把"不响铃"读成"不用回"——这是 09-25 之前的老口径，已作废。
 - **`hold`（等客户回）同样不等于"不用回"**（用户 2026-09-27 重申："不能让客户的话我们要始终回他。他可以不回我们"）。客人说"我明天下午确认"是**两件事**：①他给了我们一个回话时间 → 挂起、别催（§4.4）；②他刚说了一句话 → 我们照样要回一句客气的收尾。**挂起是提醒机制，不是沉默许可。**这两件事的顺序是：先回那一句，再挂起。
 - **这是一条单向规则**：客人可以不回我们，我们不能不回客人。所以"该不该回"永远不用判断——只判断"回什么"。
+- **客气收尾不等“发”**（用户 2026-09-27 定）：这一句没有判断、没有让步，直接发，发完在汇报里带一行。只要它真的只是收尾：一旦要顺带推进一步（链接、日期、价），就不再是收尾，回到“聊”类等“发”。
 - 为什么：对话停在客户那句上，等于我们没接住。一句客气话的成本是零，留下的印象是"这家一直在"。
 - 09-27 的反例（我做错的）：Long Beach 562-528-6250 说 "Ok thank you! I will find out by tomorrow afternoon. Much appreciate it. Have a great night."，我只挂起 + 记 `[callback]` 就收工，一个字没回。老板当场纠正。正解是先回 "Thank you - enjoy your night as well. Tuesday the 13th stays penciled in for you."，然后再挂起。
 
@@ -212,6 +213,8 @@ description: >-
 
 **问候语按发信那一刻的钟点写（老板 2026-09-25 指出）**：上午才说 "Morning"，下午 "Afternoon"，天黑了就 "Evening"，拿不准就不写问候语直接 "It's Bling —"。§4.2 阶梯里 f_morning 那条模板写着 "Morning, it's Bling" 是因为那一步本来就排在上午；**换个时间发就要换称呼**。客人全在太平洋时区，和我们同一个钟，所以看自己的表即可（时区规则见 §4.2：不按对方时区挑时间，但要按真实时间说话）。
 ### 3.1 首条模板（英文，直接可发）
+
+**这些模板是用户逐句批过的，按模板填空就发，不等“发”**（用户 2026-09-27 定，首响提速最大的一项）。填空以外的改动（换了问句、加了事实、顺着他的话写）就不是模板，按“聊”类先给草稿。发完在汇报里带一行。
 
 **A · 断在留资（周末档 + 周中档，用 15 大人默认；如 latest_message 里有人数就用真实人数）**
 ```
@@ -418,7 +421,7 @@ Real Hibachi · (213) 770-7788
 
 | 我不问直接做 | 起草等用户说"发" | 永远不做 |
 |---|---|---|
-| 报价/T0、f_morning、f_deadline、f_last、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；**带宽内的一次小赢**（事后报告）；标 dormant | 超带宽的让价、协议总价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、编"快满了"、给打不通的号码发短信 |
+| 报价/T0、f_morning、f_deadline、f_last、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；**§3.1 首条模板原样发、§1.04 客气收尾**（用户 2026-09-27 定：不等“发”，发完报一句）；**带宽内的一次小赢**（事后报告）；标 dormant | 超带宽的让价、协议总价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、编"快满了"、给打不通的号码发短信 |
 
 汇报：只在有事时给用户一条："发了 N 条，M 件要你定，新押金 K 单。"
 
@@ -443,7 +446,7 @@ Here is your party page for everyone to pick their proteins: <link>
 Or just text me the list and I will fill it in for you - whichever is easier.
 ```
 - **为什么**：链接发过去而不给别的选项，客户会理解成"这活儿归我了"。有人乐意自己点（还能拉家人一起玩），有人只想把名单甩过来——Diana 9/23 就是一条短信把 8 个人的菜、两盘前菜、地图定位一次发全，比在页面上点快得多。**我们要的是信息，不是他用哪个工具。**
-- **客户发来名单就当场录进发票**（`/api/self-service/orders/lookup` → 改 `guests` / `partyExtras` / `contactInfo` → `save-invoice`），然后回一条确认收到什么，别让他猜有没有录上。
+- **客户发来名单就当场录进发票**（`/api/self-service/orders/lookup` → 改 `guests` / `partyExtras` / `contactInfo` → `save-invoice`），然后回一条确认收到什么，别让他猜有没有录上。开场时间/日期/地址/联系人这几项直接 `desk order set <单号> --time 18:30`（它会先算价再存，并同步 planner）；看当前存了什么 `desk order show <单号>`。
 
 **发付款链接之前，先确认这是"他该用的那一条"**（用户 09-23 定，见铁律 4）：
 - **尾款要让客户自己决定小费** → 发 `https://www.realhibachi.com/pay?o=<订单 id>`。尾款金额固定、现查发票，小费他自己填一个数，页面实时显示要刷多少（含 4%）。他填的数会记进 `orders.chosen_gratuity_cents`，师傅结算要用。
@@ -717,7 +720,14 @@ python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip="Long Bea
 python scripts/desk/desk.py link deposit --lead <id> --adults 24 --kids 0 --city "Long Beach" --date 2026-10-13 --email <e>   # 预填押金页 → 短链
 python scripts/desk/desk.py link planner --email <e> --phone <p> [--booked] --lead <id>
 python scripts/desk/desk.py link short  <长链> --lead <id>
+python scripts/desk/desk.py order find <姓名|手机|邮箱|单号>
+python scripts/desk/desk.py order show <单号>                # 发票内容：联系人、时间地址、逐人菜单、加购、NOTES(客户看得到)、内部备注、总价
+python scripts/desk/desk.py order set  <单号> --time 18:30 [--date] [--address] [--name] [--email] [--phone] [--notes-file f]   # 先算价再存，同步 planner
+python scripts/desk/desk.py order preview <单号>             # 只算不存
+python scripts/desk/desk.py order email <单号> [--notes-reviewed]   # 客户发票邮件(+PDF+存档)；NOTES 有内部内容会先拦下来给你看
 ```
+
+`next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址和 NOTES；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。
 
 `send` 遇 409 会把刹车名和原因打出来（`daily` / `spacing` / `asked_known_date` / `sweep` / `followup_cap`），**默认就是对的**，`--force` 只用于客人正在等我们答复（§4.4）。同一个客人可能同时被另一个会话在处理（老板常开两个窗口）：`card` 里看到几分钟内已有我方新发的人工短信，就不要再发。
 
