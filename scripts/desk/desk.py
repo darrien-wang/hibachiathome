@@ -455,8 +455,19 @@ def cmd_order(a):
             new_notes = pathlib.Path(a.notes_file).read_bytes().decode("utf-8").strip()
             changes.append(f"specialNotes: {c.get('specialNotes')!r} -> {new_notes!r}")
             c["specialNotes"] = new_notes
+        if a.travel_miles is not None:
+            # The invoice charges travel from distanceMiles (first 50 free, $1/mi,
+            # same rule as the site); a deposit-created order starts with none,
+            # so an address without this line would be invoiced at $0 travel.
+            tf = data.setdefault("travelFee", {})
+            changes.append(f"travelFee.distanceMiles: {tf.get('distanceMiles')!r} -> {a.travel_miles!r}")
+            tf["distanceMiles"] = float(a.travel_miles)
+            tf.setdefault("ratePerMile", 1)
+            tf.setdefault("freeRadiusMiles", 50)
+            tf.setdefault("manualOverride", None)
+            tf.setdefault("homeZipcode", tf.get("homeZipcode") or "")
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -569,6 +580,7 @@ def main(argv=None):
     p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email"]); p.add_argument("ident")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
+    p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
     p.set_defaults(fn=cmd_order)
 
     a = ap.parse_args(argv)
