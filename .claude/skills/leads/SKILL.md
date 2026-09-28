@@ -359,7 +359,7 @@ Real Hibachi · (213) 770-7788
    - ③ 现金折扣，带宽内（**每人 ≤$5 或每单 ≤$100，取小**）
    - ④ **桌椅放最后**：桌椅成本 $4/人（付师傅），不比现金折扣便宜
 3. **带宽内我直接定、当场发，事后在汇报里告诉用户**——为成交抢速度；超带宽、低于 $49.90/人、破 $599 底线 → 一句话问用户。
-4. **锁进签名链接 + 明确有效期**（协议总价，§10）："Good through Sunday — here's the link with that price locked in: <link>"
+4. **锁进签名链接 + 明确有效期**（**锁政策不锁总价**，用 `custom-deal`，§10）："Good through Sunday — here's the link with that price locked in: <link>"
 5. **只让一次**。§5.1 的"三步递减"**只用于客户拿竞品报价来比**的情况。
 6. 说法主动干脆带条件，不求人（§1.1、§9）。
 
@@ -421,7 +421,7 @@ Real Hibachi · (213) 770-7788
 
 | 我不问直接做 | 起草等用户说"发" | 永远不做 |
 |---|---|---|
-| 报价/T0、f_morning、f_deadline、f_last、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；**§3.1 首条模板原样发、§1.04 客气收尾**（用户 2026-09-27 定：不等“发”，发完报一句）；**带宽内的一次小赢**（事后报告）；标 dormant | 超带宽的让价、协议总价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、编"快满了"、给打不通的号码发短信 |
+| 报价/T0、f_morning、f_deadline、f_last、押金提醒、成交后 w_planner；接话里的事实类回答（时间、地址、政策口径、路费）；**§3.1 首条模板原样发、§1.04 客气收尾**（用户 2026-09-27 定：不等“发”，发完报一句）；**带宽内的一次小赢**（事后报告）；标 dormant | 超带宽的让价、投诉 / 负面、31 人以上、竞品比价、客户要求改政策、标 lost | 冷发、酒字、猜名字、打电话追单、同一个理由发第二次、编"快满了"、给打不通的号码发短信 |
 
 汇报：只在有事时给用户一条："发了 N 条，M 件要你定，新押金 K 单。"
 
@@ -799,22 +799,28 @@ curl -s -X POST -H "x-admin-key: $KEY" "https://www.realhibachi.com/api/admin/le
 - **手动处理线索前先看一眼它有没有已经被自动首响**（工作台备注 `[SOP:first_response] AUTO`），别重复发。
 - 只在桌面 app 开着时运行；app 关着期间的线索要等下次打开才补跑。
 
-**协议总价（特殊报价：企业价、大单价、谈下来的价）**
+**特殊报价：锁政策，不锁总价**（用户 2026-09-28 定）
+
+让价一律用 `custom-deal` 写成**规则**（减多少 / 每人什么价 / 送哪些加购），**不要再用 `agreed-total` 把总价冻死**。原因就写在旧文档里：协议总价是一个固定金额，**人数一变它不重算**，得人工去改那一行；规则会跟着人数、日期、加购自动重算。
+
 ```bash
-# 1) 给这条线索的协议总价签名（客户改链接里的数没用，验签不过就按标准价）
-curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json"   -d '{"leadId":"<id>","agreedTotal":1285.20}' https://www.realhibachi.com/api/admin/agreed-total   # → {ok, sig, query}
-# 2) 把返回的 query 接到押金长链后面（它会同时把 estimate_low/high 钉在协议价），再去缩短
+# 签一条规则（至少给一个：flatOff / adultRate / childRate / freeExtraIds）
+curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
+  -d '{"leadId":"<id>","flatOff":60,"note":"Returning customer"}' \
+  https://www.realhibachi.com/api/admin/custom-deal   # → {ok, deal, query}
+# 把返回的 query 接到押金长链后面，再缩短（estimate_low/high 自己填折后的数，那只是页面显示）
 ```
-客户付押金后，订单、客户选菜页、发票都按协议价开张：系统照常算标准价和自动促销，再自动加一行 `Special rate (agreed total $X)` 抵掉差额。**不填 = 常规单，行为不变。** 2026-09-20 起工作台线索抽屉不再有协议总价输入框和话术/阶梯按钮（用户定“以 agent 优先”）：首响、跟进阶梯、促销/让步/西语话术、邮件跟进、提醒全由本 skill 执行；抽屉只留状态、备注、短信对话、操作历史和信用卡收款链接。
-- 协议总价 = 发票最终总价（含税、含路费，不含小费和 4% 手续费）。
-- 送桌椅/餐具这类让利不用单独配：照常加进发票，差额行自动抵掉，总价仍是协议价。
+
+`agreed-total` 接口还在（存量链接不会坏），但**新的让价不再用它**。
+客户付押金后，订单、客户选菜页、发票都带着这条规则开张，每次改动重新算一遍。**不填 = 常规单，行为不变。** 2026-09-20 起工作台线索抽屉不再有协议总价输入框和话术/阶梯按钮（用户定“以 agent 优先”）：首响、跟进阶梯、促销/让步/西语话术、邮件跟进、提醒全由本 skill 执行；抽屉只留状态、备注、短信对话、操作历史和信用卡收款链接。
+- 送桌椅/餐具这类让利用 `freeExtraIds` 写成规则，不要拿总价去抵。
 - **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData}` 存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
 - 正式发票邮件：`POST https://invoice.realhibachi.com/api/invoice/email {invoiceData, orderNo}`。
 - **发发票之前，先看 NOTES 框会印什么**（用户 2026-09-25 定）。`contactInfo.specialNotes` 会**原样印在客户发票上**（PDF、邮件、存档副本），而同一个字段也是我们和 `orders.notes` 互相同步的草稿本——押金自动建单会往里写 `Auto-generated booking for deposit checkout | deposit_source=workbench`，agent 会话会往里写 `[why]` `[callback]` 和中文过程记录。
   - **代码已经兜底**（invoice `lib/customer-notes.ts`，09-25 上线）：存发票、写 `orders.notes`、以及**打印那一刻**都会过滤掉打标签的过程记录、系统话、中文内部记录、`lead_id/utm_*` 这类字段和 /admin 链接；拿不准的一律**保留**（宁可多印一句怪话，也不能丢掉"不要香菜"）。
   - **`/api/invoice/email` 会拦你**：NOTES 里有内部内容时返回 **409 `notes_need_review`**，并列出「会印给客户的行」和「会被丢掉的行 + 原因」。看完两份清单再决定：要么把备注改干净，要么带 `notesReviewed: true` 发过滤后的版本。发送成功的响应里有 `notesPrinted`，不用打开 PDF 就知道客户读到了什么。
   - **过程记录写 `orders.internal_notes`，永远不要写 `orders.notes`**（用户 09-24 定）。厨师单不受影响——师傅是自己人，内部备注照常给他看。
-- 人数变了，差额行是固定金额不会自动重算——改人数后要手动调这一行。
+- （已作废）旧的协议总价单子：人数变了差额行不会重算，要手动改。**这正是 09-28 换成 `custom-deal` 的原因。**
 
 **短链（发给客户的链接一律先缩短）**
 ```bash
