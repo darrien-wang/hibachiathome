@@ -212,7 +212,9 @@ def cmd_travel(a):
 
 
 def cmd_send(a):
-    body = read_text_arg(a.body, a.body_file)
+    # argparse cannot take a positional after `--lead <id>`, so the body may
+    # also come as --body / --body-file (the file is the safe path on Windows).
+    body = read_text_arg(a.body_opt or a.body, a.body_file)
     payload = {"phone": e164(a.phone), "body": body}
     if a.lead:
         payload["leadId"] = a.lead
@@ -473,7 +475,7 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--alt-date"); p.add_argument("--zip"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_price)
     p = sp.add_parser("travel"); p.add_argument("destination"); p.set_defaults(fn=cmd_travel)
     p = sp.add_parser("send"); p.add_argument("phone"); p.add_argument("body", nargs="?"); p.add_argument("--lead")
-    p.add_argument("--body-file"); p.add_argument("--force", action="store_true"); p.set_defaults(fn=cmd_send)
+    p.add_argument("--body", dest="body_opt"); p.add_argument("--body-file"); p.add_argument("--force", action="store_true"); p.set_defaults(fn=cmd_send)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
@@ -494,7 +496,13 @@ def main(argv=None):
     v = getattr(a, "lead", None)
     if v and not is_uuid(v):
         raise SystemExit(f"--lead must be a lead id (uuid), got {v!r}")
-    a.fn(a)
+    try:
+        a.fn(a)
+    except ApiError as e:
+        # One readable line instead of a traceback: the status says whether the
+        # endpoint is missing (404 = not deployed yet), refused (401/403) or braked (409).
+        detail = e.payload if isinstance(e.payload, str) else json.dumps(e.payload, ensure_ascii=False)
+        raise SystemExit(f"HTTP {e.status} from the site: {detail[:400]}")
 
 
 if __name__ == "__main__":
