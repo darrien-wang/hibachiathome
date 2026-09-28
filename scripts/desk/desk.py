@@ -24,6 +24,9 @@
                                    [--name ...] [--email ...] [--phone ...] [--notes-file f]   re-price, then save
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
+  python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
+  python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
+                                   local faster-whisper, customer/us on separate channels; --note files it on the lead
 
 Every write goes through the workbench / invoice APIs, so it lands in the
 timeline and passes the same brakes as the UI. Rules live in the leads skill;
@@ -215,6 +218,28 @@ def cmd_send(a):
     # argparse cannot take a positional after `--lead <id>`, so the body may
     # also come as --body / --body-file (the file is the safe path on Windows).
     body = read_text_arg(a.body_opt or a.body, a.body_file)
+    if a.media:
+        # A picture: Twilio directly (the workbench endpoint is text-only), so
+        # the brakes and the context lint do not run - use it for REPLIES, a
+        # customer who spoke last, never for an unprompted follow-up. The
+        # timeline is healed right after by opening the thread.
+        from _api import signed_sales_media_url, twilio_send, upload_sales_media
+        import datetime
+        src = pathlib.Path(a.media)
+        dest = f"sent/{datetime.date.today().isoformat()}/{re.sub(r'[^A-Za-z0-9._-]', '_', src.name)}"
+        ctype = "image/png" if src.suffix.lower() == ".png" else "image/jpeg"
+        upload_sales_media(str(src), dest, ctype)
+        url = signed_sales_media_url(dest)
+        try:
+            out = twilio_send(e164(a.phone), body, url)
+        except ApiError as e:
+            print(f"FAIL  {e164(a.phone)} {e.status}\n      {e.payload}")
+            sys.exit(2)
+        print(f"OK    {e164(a.phone)}  {out.get('sid', '')}  {out.get('status', '')}  +1 media ({src.name})")
+        print(f"      {body}")
+        if a.lead:
+            site_get("/api/admin/sms-thread", {"leadId": a.lead})  # reconcile into the timeline
+        return
     payload = {"phone": e164(a.phone), "body": body}
     if a.lead:
         payload["leadId"] = a.lead
@@ -511,7 +536,8 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--alt-date"); p.add_argument("--zip"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_price)
     p = sp.add_parser("travel"); p.add_argument("destination"); p.set_defaults(fn=cmd_travel)
     p = sp.add_parser("send"); p.add_argument("phone"); p.add_argument("body", nargs="?"); p.add_argument("--lead")
-    p.add_argument("--body", dest="body_opt"); p.add_argument("--body-file"); p.add_argument("--force", action="store_true"); p.set_defaults(fn=cmd_send)
+    p.add_argument("--body", dest="body_opt"); p.add_argument("--body-file"); p.add_argument("--force", action="store_true")
+    p.add_argument("--media", help="a local jpg/png to attach (MMS via Twilio; replies only)"); p.set_defaults(fn=cmd_send)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
@@ -523,6 +549,21 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--email"); p.add_argument("--name"); p.add_argument("--phone")
     p.add_argument("--zip"); p.add_argument("--est", type=int); p.add_argument("--booked", action="store_true"); p.add_argument("--verbose", action="store_true")
     p.set_defaults(fn=cmd_link)
+    # Calls: recordings on the lead, transcribed locally with the speakers
+    # known (scripts/desk/calls.py). Imported lazily - faster-whisper is slow to load.
+    def _calls(a):
+        import calls
+        calls.cmd_calls(a)
+
+    def _transcribe(a):
+        import calls
+        calls.cmd_transcribe(a)
+
+    p = sp.add_parser("calls"); p.add_argument("ident"); p.set_defaults(fn=_calls)
+    p = sp.add_parser("transcribe"); p.add_argument("ident"); p.add_argument("--last", type=int, default=1); p.add_argument("--sid")
+    p.add_argument("--model", default="small", choices=["base", "small", "medium"]); p.add_argument("--note", action="store_true")
+    p.add_argument("--swap", action="store_true", help="flip who is 客/我 if the channels came the other way round")
+    p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email"]); p.add_argument("ident")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")

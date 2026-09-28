@@ -137,3 +137,82 @@ def pt(iso: str | None) -> str:
     if t.tzinfo is None:
         t = t.replace(tzinfo=timezone.utc)
     return t.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%m-%d %H:%M")
+
+
+# ---------------------------------------------------------------- media ----
+# The workbench send endpoint is text-only. A photo goes out as an MMS through
+# Twilio directly, which needs the picture at an https URL Twilio can fetch:
+# it is uploaded to the private `sales-media` bucket and handed over as a
+# one-hour signed link. Twilio-sent messages reach the lead timeline through
+# the thread reconcile (lib/sms-reconcile.ts), which desk triggers right after.
+
+SALES_MEDIA_BUCKET = "sales-media"
+
+
+def _supabase(method: str, path: str, data: bytes | None, content_type: str):
+    base = env("NEXT_PUBLIC_SUPABASE_URL").rstrip("/")
+    key = env("SUPABASE_SERVICE_ROLE_KEY")
+    req = urllib.request.Request(base + path, data=data, method=method,
+                                 headers={"apikey": key, "authorization": f"Bearer {key}", "content-type": content_type, "user-agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            raw = r.read()
+    except urllib.error.HTTPError as e:
+        raw = e.read()
+        try:
+            body = json.loads(raw.decode("utf-8", "replace"))
+        except ValueError:
+            body = raw.decode("utf-8", "replace")[:500]
+        raise ApiError(e.code, body) from None
+    try:
+        return json.loads(raw.decode("utf-8")) if raw else {}
+    except ValueError:
+        return raw.decode("utf-8", "replace")
+
+
+def upload_sales_media(local: str, dest: str, content_type: str = "image/jpeg") -> str:
+    """Put a local file in the sales-media bucket (created on first use); returns the object path."""
+    try:
+        _supabase("POST", "/storage/v1/bucket", json.dumps({"id": SALES_MEDIA_BUCKET, "name": SALES_MEDIA_BUCKET, "public": False}).encode(), "application/json")
+    except ApiError as e:
+        if e.status not in (400, 409):  # already exists
+            raise
+    data = pathlib.Path(local).read_bytes()
+    _supabase("POST", f"/storage/v1/object/{SALES_MEDIA_BUCKET}/{dest}?upsert=true", data, content_type)
+    return dest
+
+
+def signed_sales_media_url(dest: str, ttl_seconds: int = 3600) -> str:
+    out = _supabase("POST", f"/storage/v1/object/sign/{SALES_MEDIA_BUCKET}/{dest}", json.dumps({"expiresIn": ttl_seconds}).encode(), "application/json")
+    signed = out.get("signedURL") if isinstance(out, dict) else None
+    if not signed:
+        raise SystemExit(f"could not sign {dest}: {out}")
+    return env("NEXT_PUBLIC_SUPABASE_URL").rstrip("/") + "/storage/v1" + signed
+
+
+def twilio_send(to: str, body: str, media_url: str | None = None) -> dict:
+    """Send from the 213 line through the messaging service, with the site's status callback."""
+    sid = env("TWILIO_ACCOUNT_SID")
+    token = env("TWILIO_AUTH_TOKEN")
+    form = {
+        "To": to,
+        "MessagingServiceSid": env("TWILIO_MESSAGING_SERVICE_SID"),
+        "Body": body,
+        "StatusCallback": "https://www.realhibachi.com/api/twilio/sms-status",
+    }
+    if media_url:
+        form["MediaUrl"] = media_url
+    import base64
+    auth = base64.b64encode(f"{sid}:{token}".encode()).decode()
+    req = urllib.request.Request(f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json",
+                                 data=urllib.parse.urlencode(form).encode("utf-8"), method="POST",
+                                 headers={"authorization": f"Basic {auth}", "content-type": "application/x-www-form-urlencoded", "user-agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", "replace")
+        try:
+            raise ApiError(e.code, json.loads(raw)) from None
+        except ValueError:
+            raise ApiError(e.code, raw[:500]) from None
