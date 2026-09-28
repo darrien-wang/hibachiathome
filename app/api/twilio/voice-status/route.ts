@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { isValidTwilioSignature } from "@/lib/twilio-signature"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
+import { escapeXml } from "@/lib/twilio-identity"
+import { recordingAttributes } from "@/lib/twilio-recording"
 
 export const dynamic = "force-dynamic"
 
@@ -31,8 +33,11 @@ export async function POST(request: NextRequest) {
   const params: Record<string, string> = {}
   for (const [k, v] of form.entries()) if (typeof v === "string") params[k] = v
 
+  // Twilio signs the exact URL it was handed, query string included, so
+  // ?stage=app has to be part of what we verify.
   const signature = request.headers.get("x-twilio-signature") ?? ""
-  const publicUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"}/api/twilio/voice-status`
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
+  const publicUrl = `${base}/api/twilio/voice-status${request.nextUrl.search}`
   if (!isValidTwilioSignature(publicUrl, params, signature)) {
     return NextResponse.json({ error: "invalid signature" }, { status: 403 })
   }
@@ -41,6 +46,23 @@ export async function POST(request: NextRequest) {
   const duration = Number(params.DialCallDuration ?? 0) || 0
   const answered = status === "completed" && duration >= ANSWERED_SECONDS
   if (answered) return twiml("")
+
+  // Stage one was the app and it went unanswered: try the backup phone before
+  // treating this as a missed call (owner 2026-09-27). `completed` with a
+  // short duration is someone rejecting the call in the app - that is still a
+  // "nobody got it", so it falls through to the backup too.
+  //
+  // This second <Dial> posts back here WITHOUT ?stage=app, so an unanswered
+  // backup lands in the missed-call text below. There is no third stage and
+  // no way to loop.
+  const forwardTo = process.env.TWILIO_FORWARD_TO
+  if (request.nextUrl.searchParams.get("stage") === "app" && forwardTo) {
+    // The recording notice already played to the caller before stage one, so
+    // it covers this leg too - do not play it twice.
+    return twiml(
+      `<Dial timeout="25" answerOnBridge="true" action="${escapeXml(`${base}/api/twilio/voice-status`)}" method="POST"${recordingAttributes()}><Number>${escapeXml(forwardTo)}</Number></Dial>`,
+    )
+  }
 
   const from = toE164(params.From)
   const callSid = params.CallSid ?? ""

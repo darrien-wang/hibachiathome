@@ -2,7 +2,7 @@ import crypto from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
-import { escapeXml, ringIdentities } from "@/lib/twilio-identity"
+import { APP_RING_SECONDS, escapeXml, ringIdentities } from "@/lib/twilio-identity"
 import { RECORDING_NOTICE, recordingAttributes } from "@/lib/twilio-recording"
 
 export const dynamic = "force-dynamic"
@@ -70,12 +70,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Ring every browser softphone and the backup phone at the same time; whoever
-  // picks up first gets the call, so nothing is missed when nobody is at a desk.
-  // Caller keeps the caller's own number as caller ID; 25s ring then voicemail prompt.
-  const legs =
-    clients.map((id) => `<Client>${escapeXml(id)}</Client>`).join("") +
-    (forwardTo ? `<Number>${escapeXml(forwardTo)}</Number>` : "")
+  // Two stages, not one ring (owner 2026-09-27). Stage one rings every
+  // softphone for APP_RING_SECONDS; if nobody picks up,
+  // /api/twilio/voice-status?stage=app dials the backup phone. The caller
+  // keeps their own number as caller ID throughout.
+  //
+  // With no softphone identity registered there is nothing to ring first, so
+  // the backup number IS stage one - a <Dial> with no nouns is invalid TwiML.
+  const appStage = clients.length > 0
+  const legs = appStage
+    ? clients.map((id) => `<Client>${escapeXml(id)}</Client>`).join("")
+    : `<Number>${escapeXml(forwardTo ?? "")}</Number>`
 
   // California is a two-party consent state (Penal Code 632): every party must
   // be told before the call is recorded. The notice plays to the caller BEFORE
@@ -89,8 +94,9 @@ export async function POST(request: NextRequest) {
   // hears: nothing if someone answered, and if nobody did it texts them right
   // away and says so (2026-09-27 audit: 4 of 8 missed calls got no text).
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
+  const action = `${base}/api/twilio/voice-status${appStage ? "?stage=app" : ""}`
   return twiml(
     notice +
-      `<Dial timeout="25" answerOnBridge="true" action="${escapeXml(`${base}/api/twilio/voice-status`)}" method="POST"${recording}>${legs}</Dial>`
+      `<Dial timeout="${appStage ? APP_RING_SECONDS : 25}" answerOnBridge="true" action="${escapeXml(action)}" method="POST"${recording}>${legs}</Dial>`
   )
 }

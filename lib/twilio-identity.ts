@@ -1,5 +1,15 @@
 // Shared helpers for routing calls between Twilio and the browser softphone.
 
+/**
+ * How long the app / browser softphone rings before the backup phone is tried
+ * (owner 2026-09-27: "先响 app，20 秒没接就打转移号").
+ *
+ * Both used to ring at once, which meant the carrier leg almost always won and
+ * the app was decoration. Ringing the app alone first is what makes "answer in
+ * the app" the default instead of an option.
+ */
+export const APP_RING_SECONDS = 20
+
 // Twilio client identities travel through TwiML attributes and URLs, so keep
 // them to a conservative charset.
 export function identityForAlias(alias: string): string {
