@@ -434,6 +434,31 @@ def cmd_order(a):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
             raise SystemExit("--time must be HH:MM (24h)")
+        # Promotions are stored as data, so a date change can leave a Weekday
+        # Special on a Friday (Esme, 09-27: the deposit link seeded a Monday
+        # placeholder date). The site's rule decides (holidays included);
+        # dropping the promo also drops the free appetizer it bundled.
+        if a.date:
+            p = price_for(int(data.get("adultCount") or 0), int(data.get("childCount") or 0), a.date, None)
+            applies = bool(p and p.get("ok") and str(p.get("weekdaySpecial", "")).startswith("applies"))
+            promos = data.get("promotions") or []
+            weekday = [x for x in promos if str(x.get("id", "")).startswith("official_weekday")]
+            if weekday and not applies:
+                for x in weekday:
+                    m = re.search(r"FREE appetizer:\s*([A-Za-z ]+)", x.get("label") or "")
+                    if m:
+                        app_id = m.group(1).strip().lower().replace(" ", "_")
+                        extras = data.get("partyExtras") or []
+                        for ex in extras:
+                            if ex.get("id") == app_id and int(ex.get("qty") or 0) > 0:
+                                ex["qty"] = int(ex["qty"]) - 1
+                                changes.append(f"partyExtras: {app_id} qty -1 (was the weekday promo's free appetizer)")
+                                break
+                        data["partyExtras"] = [ex for ex in extras if int(ex.get("qty") or 0) > 0]
+                data["promotions"] = [x for x in promos if x not in weekday]
+                changes.append(f"promotions: removed {[x['id'] for x in weekday]} - {a.date} is not a weekday-special date")
+            elif applies and not weekday:
+                print(f"   ⚠ {a.date} qualifies for the Weekday Special but the invoice has no official_weekday promo - add it in the invoice tool")
         # The deposit webhook seeds the customer-visible NOTES with a process
         # string; replacing or clearing it here is always right (it is
         # filtered at print time anyway, 09-25).
