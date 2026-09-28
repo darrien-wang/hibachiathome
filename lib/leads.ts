@@ -11,6 +11,8 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  /** Meta's click id, the fbclid equivalent of gclid. */
+  fbclid?: string
   oppref?: string
   /** Page the capturing visit started on (rh_landing cookie). */
   landing_page?: string
@@ -206,6 +208,7 @@ function normalizeAttribution(value: AttributionFields | undefined): Attribution
     gclid: asNonEmptyString(value.gclid),
     wbraid: asNonEmptyString(value.wbraid),
     gbraid: asNonEmptyString(value.gbraid),
+    fbclid: asNonEmptyString(value.fbclid),
     oppref: asNonEmptyString(value.oppref),
     landing_page: normalizeLandingPage(value.landing_page),
   }
@@ -382,6 +385,7 @@ export async function upsertLeadFromContact(
       gclid: withFallback(current.gclid, input.attribution.gclid),
       wbraid: withFallback(current.wbraid, input.attribution.wbraid),
       gbraid: withFallback(current.gbraid, input.attribution.gbraid),
+      fbclid: withFallback(current.fbclid, input.attribution.fbclid),
       oppref: withFallback(current.oppref, input.attribution.oppref),
       landing_page: withFallback(current.landing_page, input.attribution.landing_page),
       external_call_id: withFallback(current.external_call_id, input.externalCallId),
@@ -436,6 +440,7 @@ export async function upsertLeadFromContact(
     gclid: input.attribution.gclid,
     wbraid: input.attribution.wbraid,
     gbraid: input.attribution.gbraid,
+    fbclid: input.attribution.fbclid,
     oppref: input.attribution.oppref,
     landing_page: input.attribution.landing_page,
     external_call_id: input.externalCallId,
@@ -500,6 +505,7 @@ export function readAttributionFromCookieHeader(cookieHeader: string | null): At
       gclid: asNonEmptyString(parsed.gclid),
       wbraid: asNonEmptyString(parsed.wbraid),
       gbraid: asNonEmptyString(parsed.gbraid),
+      fbclid: asNonEmptyString(parsed.fbclid),
       oppref: asNonEmptyString(parsed.oppref),
     })
   } catch {

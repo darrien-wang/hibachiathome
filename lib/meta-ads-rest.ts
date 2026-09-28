@@ -21,6 +21,102 @@ export function metaConfigured(): boolean {
   return Boolean(process.env.META_ACCESS_TOKEN?.trim())
 }
 
+type MetaError = {
+  message?: string
+  code?: number
+  error_subcode?: number
+  type?: string
+  error_user_title?: string
+  error_user_msg?: string
+  fbtrace_id?: string
+}
+
+/**
+ * Meta answers half a dozen different problems with the same "(#200) API
+ * access blocked", and the old message threw away everything that told them
+ * apart (2026-09-28: three days of no spend data and no way to say whether
+ * the account, the token or the app was the blocker). Keep the subcode and
+ * the user-facing text - those are what name the actual cause.
+ */
+function describeMetaError(e: MetaError): string {
+  const bits = [
+    `Meta API: ${e.message ?? "unknown error"}`,
+    `code ${e.code ?? "?"}${e.error_subcode ? `/${e.error_subcode}` : ""}`,
+    e.type,
+    e.error_user_title,
+    e.error_user_msg,
+    e.fbtrace_id ? `trace ${e.fbtrace_id}` : undefined,
+  ].filter(Boolean)
+  return bits.join(" · ")
+}
+
+/** Ad-account status codes, so a blocked sync says why in plain words. */
+const ACCOUNT_STATUS: Record<number, string> = {
+  1: "ACTIVE",
+  2: "DISABLED",
+  3: "UNSETTLED - unpaid balance",
+  7: "PENDING_RISK_REVIEW",
+  8: "PENDING_SETTLEMENT",
+  9: "IN_GRACE_PERIOD",
+  100: "PENDING_CLOSURE",
+  101: "CLOSED",
+  201: "ANY_ACTIVE",
+  202: "ANY_CLOSED",
+}
+const DISABLE_REASON: Record<number, string> = {
+  0: "none",
+  1: "ADS_INTEGRITY_POLICY",
+  2: "ADS_IP_REVIEW",
+  3: "RISK_PAYMENT",
+  4: "GRAY_ACCOUNT_SHUT_DOWN",
+  5: "ADS_AFC_REVIEW",
+  6: "BUSINESS_INTEGRITY_RATIONALE",
+  7: "PERMANENT_CLOSE",
+  8: "UNUSED_RESELLER_ACCOUNT",
+  9: "UNUSED_ACCOUNT",
+}
+
+export type MetaAccountStatus = {
+  ok: boolean
+  /** Set when the account itself answered. */
+  name?: string
+  accountStatus?: string
+  disableReason?: string
+  currency?: string
+  amountSpent?: string
+  /** Set when even this read was refused - then the token or app is the blocker, not the account. */
+  error?: string
+}
+
+/**
+ * One cheap read that separates "the ad account is restricted" from "our token
+ * or app lost Marketing API access" - the two are indistinguishable from the
+ * insights call alone, and they need completely different fixes.
+ */
+export async function fetchMetaAccountStatus(): Promise<MetaAccountStatus> {
+  const token = process.env.META_ACCESS_TOKEN?.trim()
+  if (!token) return { ok: false, error: "META_ACCESS_TOKEN not set" }
+  const params = new URLSearchParams({
+    fields: "name,account_status,disable_reason,currency,amount_spent",
+    access_token: token,
+  })
+  const res = await fetch(`${GRAPH}/act_${metaAdAccountId()}?${params.toString()}`, { cache: "no-store" })
+  const json = (await res.json().catch(() => null)) as
+    | { name?: string; account_status?: number; disable_reason?: number; currency?: string; amount_spent?: string; error?: MetaError }
+    | null
+  if (!res.ok || !json || json.error) {
+    return { ok: false, error: json?.error ? describeMetaError(json.error) : `Meta API HTTP ${res.status}` }
+  }
+  return {
+    ok: true,
+    name: json.name,
+    accountStatus: `${json.account_status ?? "?"} ${ACCOUNT_STATUS[json.account_status ?? -1] ?? ""}`.trim(),
+    disableReason: `${json.disable_reason ?? "?"} ${DISABLE_REASON[json.disable_reason ?? -1] ?? ""}`.trim(),
+    currency: json.currency,
+    amountSpent: json.amount_spent,
+  }
+}
+
 export type MetaCampaignDay = {
   campaignId: string
   campaignName: string
@@ -63,9 +159,9 @@ export async function fetchMetaCampaignDays(from: string, to: string): Promise<M
   const out: MetaCampaignDay[] = []
   for (let page = 0; url && page < 20; page++) {
     const res = await fetch(url, { cache: "no-store" })
-    const json = (await res.json().catch(() => null)) as { data?: InsightRow[]; paging?: { next?: string }; error?: { message?: string; code?: number } } | null
+    const json = (await res.json().catch(() => null)) as { data?: InsightRow[]; paging?: { next?: string }; error?: MetaError } | null
     if (!res.ok || !json || json.error) {
-      throw new Error(json?.error?.message ? `Meta API: ${json.error.message} (code ${json.error.code ?? "?"})` : `Meta API HTTP ${res.status}`)
+      throw new Error(json?.error ? describeMetaError(json.error) : `Meta API HTTP ${res.status}`)
     }
     for (const r of json.data ?? []) {
       if (!r.campaign_id || !r.date_start) continue

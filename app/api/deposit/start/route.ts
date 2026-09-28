@@ -50,6 +50,7 @@ type DepositStartPayload = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  fbclid?: string
   oppref?: string
   /** "Booking another party" door: skip the already-paid check. */
   another?: boolean | string
@@ -89,6 +90,7 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  fbclid?: string
   oppref?: string
 }
 
@@ -106,6 +108,7 @@ const ATTRIBUTION_KEYS: Array<keyof AttributionFields> = [
   "gclid",
   "wbraid",
   "gbraid",
+  "fbclid",
   "oppref",
 ]
 
@@ -180,6 +183,7 @@ function normalizeAttributionInput(value: Partial<AttributionFields> | undefined
     utm_term: normalizeAttributionValue(value.utm_term),
     utm_content: normalizeAttributionValue(value.utm_content),
     gclid: normalizeAttributionValue(value.gclid),
+    fbclid: normalizeAttributionValue(value.fbclid),
     wbraid: normalizeAttributionValue(value.wbraid),
     gbraid: normalizeAttributionValue(value.gbraid),
     oppref: normalizeAttributionValue(value.oppref),
@@ -194,6 +198,7 @@ function parseAttributionFromSearchParams(params: URLSearchParams): AttributionF
     utm_term: params.get("utm_term") ?? undefined,
     utm_content: params.get("utm_content") ?? undefined,
     gclid: params.get("gclid") ?? undefined,
+    fbclid: params.get("fbclid") ?? undefined,
     wbraid: params.get("wbraid") ?? undefined,
     gbraid: params.get("gbraid") ?? undefined,
     oppref: params.get("oppref") ?? undefined,
@@ -217,6 +222,7 @@ function parseAttributionFromCookieHeader(cookieHeader: string | null): Attribut
       utm_term: parsed.utm_term as string | undefined,
       utm_content: parsed.utm_content as string | undefined,
       gclid: parsed.gclid as string | undefined,
+      fbclid: parsed.fbclid as string | undefined,
       wbraid: parsed.wbraid as string | undefined,
       gbraid: parsed.gbraid as string | undefined,
       oppref: parsed.oppref as string | undefined,
@@ -314,6 +320,7 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
       utm_term: payload.utm_term,
       utm_content: payload.utm_content,
       gclid: payload.gclid,
+      fbclid: payload.fbclid,
       wbraid: payload.wbraid,
       gbraid: payload.gbraid,
       oppref: payload.oppref,
@@ -399,6 +406,7 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
     utm_term: params.get("utm_term") ?? undefined,
     utm_content: params.get("utm_content") ?? undefined,
     gclid: params.get("gclid") ?? undefined,
+    fbclid: params.get("fbclid") ?? undefined,
     wbraid: params.get("wbraid") ?? undefined,
     gbraid: params.get("gbraid") ?? undefined,
     oppref: params.get("oppref") ?? undefined,
@@ -485,6 +493,7 @@ function buildMetadata(
     utm_term: metadataField(attribution.utm_term),
     utm_content: metadataField(attribution.utm_content),
     gclid: metadataField(attribution.gclid),
+    fbclid: metadataField(attribution.fbclid),
     wbraid: metadataField(attribution.wbraid),
     gbraid: metadataField(attribution.gbraid),
     oppref: metadataField(attribution.oppref),

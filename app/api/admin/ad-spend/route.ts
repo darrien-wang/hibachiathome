@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { fetchGoogleCampaignDays, googleAdsCustomerId } from "@/lib/google-ads-rest"
-import { fetchMetaCampaignDays, metaAdAccountId, metaConfigured } from "@/lib/meta-ads-rest"
+import { fetchMetaAccountStatus, fetchMetaCampaignDays, metaAdAccountId, metaConfigured } from "@/lib/meta-ads-rest"
 import { PAID_CHANNELS, isPaidChannel } from "@/lib/channels"
 
 export const runtime = "nodejs"
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic"
 //   POST {rows:[...]}                upsert manual / CSV / api rows (any channel)
 //   POST ?action=sync_google&days=N  pull campaign×day from the Google Ads API
 //   POST ?action=sync_meta&days=N    pull campaign×day from the Meta Marketing API
+//   POST ?action=meta_status         is the ad account restricted, or is it our token? (read-only)
 // The workbench calls sync_google from the 看板. The ads-analytics repo pushes
 // the same campaign×day rows with source "api" through its service account
 // (`sync-spend.ts --google-sa`), which does not depend on the OAuth refresh
@@ -117,6 +118,14 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       return NextResponse.json({ ok: false, error: String(error) }, { status: 200 })
     }
+  }
+
+  // Is the ad account restricted, or did our token lose Marketing API access?
+  // The insights call cannot tell them apart - both come back as "(#200) API
+  // access blocked" - and they need different fixes (pay the balance vs.
+  // reissue the System User token). Read-only.
+  if (action === "meta_status") {
+    return NextResponse.json({ channel: "meta_ads", account_id: metaAdAccountId(), ...(await fetchMetaAccountStatus()) }, { status: 200 })
   }
 
   if (action === "sync_meta") {

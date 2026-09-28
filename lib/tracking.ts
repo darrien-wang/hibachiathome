@@ -48,6 +48,8 @@ type AttributionFields = {
   gclid?: string
   wbraid?: string
   gbraid?: string
+  /** Meta's click id, the fbclid equivalent of gclid. */
+  fbclid?: string
   oppref?: string
 }
 
@@ -86,6 +88,9 @@ const ATTRIBUTION_KEYS = [
   "gclid",
   "wbraid",
   "gbraid",
+  // Meta's click id: the only way to tell a fresh ad click from a visitor
+  // coming back on this 90-day cookie (2026-09-28).
+  "fbclid",
   "oppref",
 ] as const
 
