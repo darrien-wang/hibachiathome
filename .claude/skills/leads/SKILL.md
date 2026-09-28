@@ -711,6 +711,7 @@ python scripts/desk/desk.py search <姓名|手机|邮箱|单号>
 python scripts/desk/desk.py price  --adults 24 --kids 0 --date 2026-10-13 --zip 90802 [--alt-date 2026-10-17]   # 引擎价，禁止手算
 python scripts/desk/desk.py travel "<地址或 zip>"
 python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt [--force]   # 走 sms-thread，进时间线；非 ASCII 一律 --body-file
+python scripts/desk/desk.py send   <手机> --lead <id> --body "..." --media photo.jpg   # 发图（MMS）：走 Twilio 直发不过刹车，**只用于回复**；图传 sales-media 桶签名 1 小时；发完自动补进时间线
 python scripts/desk/desk.py note   <leadId> --body-file note.txt                     # [SOP:..] [callback] [occasion] [why] [data]
 python scripts/desk/desk.py hold   <leadId> <天数>        # 等客户回；0 撤销（先回那一句，再挂起，§1.04）
 python scripts/desk/desk.py status <leadId> won|lost|disqualified|qualified|new
