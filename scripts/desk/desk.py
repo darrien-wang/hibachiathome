@@ -434,10 +434,21 @@ def cmd_order(a):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
             raise SystemExit("--time must be HH:MM (24h)")
+        # The deposit webhook seeds the customer-visible NOTES with a process
+        # string; replacing or clearing it here is always right (it is
+        # filtered at print time anyway, 09-25).
+        if (c.get("specialNotes") or "").startswith("Auto-generated booking") and not a.notes_file:
+            changes.append("specialNotes: dropped the auto-generated placeholder")
+            c["specialNotes"] = ""
         for ch in changes:
             print("   " + ch)
-        inv = _totals(data)  # price it before saving; never save a number we have not seen
-        _print_totals(inv)
+        # Price it before saving when the engine can: a party whose menu is not
+        # in yet has no guest rows, and /api/invoice refuses detailed mode
+        # without them, while save-invoice (lib/invoice-validate.ts) accepts it.
+        try:
+            _print_totals(_totals(data))
+        except ApiError as e:
+            print(f"   totals: 引擎暂时算不了（{(e.payload.get('errors') if isinstance(e.payload, dict) else e.payload)}）- 菜单录进来后再看")
         res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data})
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
         return
