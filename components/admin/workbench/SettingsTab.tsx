@@ -157,6 +157,7 @@ export function SettingsTab({
   const t = draft.targets
   const s = draft.sms_brakes
   const w = draft.lead_watch
+  const nf = draft.notifications
   const c = draft.calendar
 
   return (
@@ -203,6 +204,20 @@ export function SettingsTab({
           {numField("两条主动消息间隔", s.spacing_hours, (n) => set("sms_brakes", { spacing_hours: n }), { suffix: "小时", step: 0.5 })}
           {numField("回复窗口", s.reply_window_minutes, (n) => set("sms_brakes", { reply_window_minutes: n }), { suffix: "分钟内算回答", min: 1 })}
           {numField("窗口内最多回", s.reply_burst_cap, (n) => set("sms_brakes", { reply_burst_cap: n }), { suffix: "条", min: 1 })}
+        </div>
+      </Section>
+
+      <Section title="提醒" hint="客人来短信，app 会响；邮箱那份是 app 出问题时的后路。" section="notifications" meta={meta} canEdit={canEdit} dirty={dirty("notifications")} busy={busy === "notifications"} onSave={() => void save("notifications")} onReset={() => void save("notifications", true)}>
+        <div style={grid}>
+          <label className="check">
+            <input type="checkbox" checked={nf.sms_to_email} disabled={!canEdit} onChange={(e) => set("notifications", { sms_to_email: e.target.checked })} /> 客人来短信抄送邮箱
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={nf.mms_to_email} disabled={!canEdit} onChange={(e) => set("notifications", { mms_to_email: e.target.checked })} /> 彩信的图片 / 视频转发邮箱
+          </label>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+          图片视频建议留着：运营商转码过的视频浏览器放不了，邮箱是唯一打得开的地方。
         </div>
       </Section>
 

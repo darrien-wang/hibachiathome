@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { fetchSmsThread, prettyPhone, renderThreadForEmail } from "@/lib/sms-thread"
+import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { forwardMmsToInbox } from "@/lib/mms-forward"
 import { classifySmsKeyword, OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { addressFromMessage, looksLikeStreetAddress } from "@/lib/address-detect"
@@ -147,61 +148,68 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // An inbound text has no landing page behind it, so nothing surfaces it
-  // unless someone happens to have the workbench open. Mail it to the ops
-  // inbox, which does reach a phone.
+  // The mailbox used to be the only thing that surfaced an inbound text -
+  // nothing else did unless someone had the workbench open on a laptop. The
+  // phone app rings for them now, so the copy is off by default and lives in
+  // 设置 → 提醒 (owner 2026-09-28). Attachments keep their own switch: a
+  // carrier-transcoded clip does not play in a browser, and the mailbox is
+  // the only place it opens.
   try {
+    const notify = (await getWorkbenchSettings()).notifications
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
     const pretty = prettyPhone(from)
-    const safeFrom = escapeHtml(from)
-    const safeBody = escapeHtml(body.trim() || "(no text)")
-    // One subject per number, on purpose: Gmail groups identical subjects
-    // into a single conversation, so the inbox reads as a chat instead of
-    // eight unrelated rows that all start "SMS from +1951…" (owner, 2026-09-11).
     const who = leadName ? `${leadName} · ${pretty}` : pretty
-    const subject = `SMS · ${who}`
-    // The thread from Twilio, so the alert carries what came before it. Best
-    // effort: if Twilio is slow or down the alert still goes out.
-    const thread = await fetchSmsThread(from, 12).catch(() => [])
-    const earlier = thread.filter((m) => m.sid !== messageSid)
-    const rendered = earlier.length
-      ? renderThreadForEmail(earlier, { peerLabel: leadName || pretty, context: 8 })
-      : null
     const workbenchUrl = leadId ? `${baseUrl}/admin/leads?lead=${leadId}` : `${baseUrl}/admin/leads`
-    const alert = await sendSupportNotificationEmail({
-      subject,
-      text: [
-        `${who} wrote:`,
-        "",
-        body.trim() || "(no text)",
-        "",
-        ...(rendered ? ["Earlier in this conversation:", rendered.text, ""] : []),
-        `Reply from the 213 line: ${workbenchUrl}`,
-        `Call back: ${from}`,
-      ].join("\n"),
-      html: [
-        `<p style="margin:0 0 6px;font-size:13px;color:#6b7280">${escapeHtml(who)} wrote</p>`,
-        `<div style="white-space:pre-wrap;border-left:3px solid #f59e0b;background:#fff7ed;padding:10px 12px;margin:0 0 18px;font-size:17px;border-radius:0 8px 8px 0">${safeBody}</div>`,
-        `<p style="margin:0 0 18px"><a href="${workbenchUrl}" style="display:inline-block;background:#c2410c;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">Reply from the 213 line</a>` +
-          ` <a href="tel:${safeFrom}" style="display:inline-block;margin-left:8px;color:#c2410c;text-decoration:none;font-weight:600">Call back</a></p>`,
-        ...(rendered
-          ? [
-              `<p style="margin:0 0 6px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em">Earlier in this conversation</p>`,
-              rendered.html,
-            ]
-          : []),
-      ].join(""),
-    })
-    if (!isOpsEmailEffectivelyHandled(alert)) {
-      console.error("[twilio-sms] alert email not delivered", {
-        error: alert.error,
-        skippedReason: alert.skippedReason,
+
+    if (notify.sms_to_email) {
+      const safeFrom = escapeHtml(from)
+      const safeBody = escapeHtml(body.trim() || "(no text)")
+      // One subject per number, on purpose: Gmail groups identical subjects
+      // into a single conversation, so the inbox reads as a chat instead of
+      // eight unrelated rows that all start "SMS from +1951…" (owner, 2026-09-11).
+      const subject = `SMS · ${who}`
+      // The thread from Twilio, so the alert carries what came before it. Best
+      // effort: if Twilio is slow or down the alert still goes out.
+      const thread = await fetchSmsThread(from, 12).catch(() => [])
+      const earlier = thread.filter((m) => m.sid !== messageSid)
+      const rendered = earlier.length
+        ? renderThreadForEmail(earlier, { peerLabel: leadName || pretty, context: 8 })
+        : null
+      const alert = await sendSupportNotificationEmail({
+        subject,
+        text: [
+          `${who} wrote:`,
+          "",
+          body.trim() || "(no text)",
+          "",
+          ...(rendered ? ["Earlier in this conversation:", rendered.text, ""] : []),
+          `Reply from the 213 line: ${workbenchUrl}`,
+          `Call back: ${from}`,
+        ].join("\n"),
+        html: [
+          `<p style="margin:0 0 6px;font-size:13px;color:#6b7280">${escapeHtml(who)} wrote</p>`,
+          `<div style="white-space:pre-wrap;border-left:3px solid #f59e0b;background:#fff7ed;padding:10px 12px;margin:0 0 18px;font-size:17px;border-radius:0 8px 8px 0">${safeBody}</div>`,
+          `<p style="margin:0 0 18px"><a href="${workbenchUrl}" style="display:inline-block;background:#c2410c;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">Reply from the 213 line</a>` +
+            ` <a href="tel:${safeFrom}" style="display:inline-block;margin-left:8px;color:#c2410c;text-decoration:none;font-weight:600">Call back</a></p>`,
+          ...(rendered
+            ? [
+                `<p style="margin:0 0 6px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em">Earlier in this conversation</p>`,
+                rendered.html,
+              ]
+            : []),
+        ].join(""),
       })
+      if (!isOpsEmailEffectivelyHandled(alert)) {
+        console.error("[twilio-sms] alert email not delivered", {
+          error: alert.error,
+          skippedReason: alert.skippedReason,
+        })
+      }
     }
     // Pictures and video: the alert above can only describe them, and a
     // carrier-transcoded clip will not play in a browser at all. Mail the
     // files so they open on the phone. Best effort.
-    if (mediaCount > 0) {
+    if (mediaCount > 0 && notify.mms_to_email) {
       const forwarded = await forwardMmsToInbox({
         messageSid,
         fromLabel: who,

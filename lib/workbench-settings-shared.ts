@@ -66,6 +66,24 @@ export type WorkbenchSettings = {
     day_end_hour: number
     evening_from_hour: number
   }
+  notifications: {
+    /**
+     * Copy every inbound customer text to the ops mailbox.
+     *
+     * It existed because nothing surfaced a text unless someone had the
+     * workbench open on a laptop. The phone app rings for them now, so the
+     * owner turned it off (2026-09-28). Turn it back on here if the app ever
+     * goes quiet - the 2026-09-14 gap (six leads, five unanswered) is what
+     * this belt was for.
+     */
+    sms_to_email: boolean
+    /**
+     * Pictures and video are a separate switch on purpose: a
+     * carrier-transcoded 3GPP clip will not play in any browser, so the
+     * mailbox is the only place that attachment opens at all.
+     */
+    mms_to_email: boolean
+  }
   chefs: {
     /** Defaults for a newly added chef (cents / head count). */
     default_base_pay_cents: number
@@ -83,6 +101,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "targets",
   "sms_brakes",
   "lead_watch",
+  "notifications",
   "quick_replies",
   "calendar",
   "chefs",
@@ -128,6 +147,10 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     auto_first_response: true,
     grace_minutes: 5,
     renotify_minutes: 120,
+  },
+  notifications: {
+    sms_to_email: false,
+    mms_to_email: true,
   },
   // Texts the owner sends often. Prices here must match config/pricing-rules;
   // the settings tab shows the live values next to the list as a reminder.
@@ -247,6 +270,14 @@ export function sanitizeSection<K extends SettingsSection>(section: K, raw: unkn
         auto_first_response: bool(r.auto_first_response, d.lead_watch.auto_first_response),
         grace_minutes: num(r.grace_minutes, d.lead_watch.grace_minutes, 0, 120),
         renotify_minutes: num(r.renotify_minutes, d.lead_watch.renotify_minutes, 10, 1440),
+      }
+      return out as WorkbenchSettings[K]
+    }
+    case "notifications": {
+      const r = isObj(raw) ? raw : {}
+      const out: WorkbenchSettings["notifications"] = {
+        sms_to_email: bool(r.sms_to_email, d.notifications.sms_to_email),
+        mms_to_email: bool(r.mms_to_email, d.notifications.mms_to_email),
       }
       return out as WorkbenchSettings[K]
     }
