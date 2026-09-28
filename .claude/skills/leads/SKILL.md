@@ -726,6 +726,8 @@ python scripts/desk/desk.py order show <单号>                # 发票内容：
 python scripts/desk/desk.py order set  <单号> --time 18:30 [--date] [--address] [--name] [--email] [--phone] [--notes-file f]   # 先算价再存，同步 planner
 python scripts/desk/desk.py order preview <单号>             # 只算不存
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]   # 客户发票邮件(+PDF+存档)；NOTES 有内部内容会先拦下来给你看
+python scripts/desk/desk.py calls <手机|leadId>                # 这个客人的来电录音（时间、时长）
+python scripts/desk/desk.py transcribe <手机|leadId> --last 2 [--model small|medium] [--note]   # 本机转录，客/我分声道；--note 挂到线索时间线（客人打过电话先转一遍再回短信，电话里说过的不要再问）
 ```
 
 `next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址和 NOTES；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。
