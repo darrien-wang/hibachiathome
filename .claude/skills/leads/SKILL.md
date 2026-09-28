@@ -565,6 +565,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
+  - **报分量必须同时说“每人选 2 种”**（用户 2026-09-28 抓到）。把几种蛋白并排列出来——“5 oz chicken, 4.5 oz steak, 5 jumbo shrimp a person”——客人会读成**三样都给**，当天才发现只有两样。正确写法：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo, salmon 4 oz.`判据：句子里出现两个以上蛋白，就必须有“picks 2 / choose 2”这个词。（首例：Judy Fridman 09-28，已发出去没更正，下一次开口时自然带入。）
 - **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
 - **厨师到达**：开席前 10–30 分钟（人多提前多），卸货、铺防水防油垫、架铁板、接丙烷，不用插座不用电。
 - **改人数**（用户 09-19 认定）：押金锁日期不锁人数，**派对前一天都能改**，总价跟着人数走，$599 最低消费不变；72 小时外取消 / 改期押金全退。
