@@ -203,6 +203,30 @@ export function OrderDialog({
 
   const o = detail?.order ?? orders.find((x) => x.id === orderId) ?? null
   const openReqs = (detail?.updateRequests ?? []).filter((r) => OPEN_REQUEST.has(r.status))
+  // One card, not one per edit (owner 2026-09-28). A customer who opens the
+  // planner twice leaves two rows, and confirming each one notifies the chef
+  // twice and texts the customer twice about "the new amount". What staff need
+  // is the net change since we last confirmed anything: oldest `from`, newest
+  // `to`, and fields that ended up where they started are dropped entirely -
+  // Daria's notes went out and came back, which is not a change to act on.
+  const mergedReq = useMemo(() => {
+    const ordered = [...openReqs].sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")))
+    const byField = new Map<string, { field: string; from: string; to: string }>()
+    for (const r of ordered) {
+      for (const c of renderChanges(r.change_summary)) {
+        const prev = byField.get(c.field)
+        byField.set(c.field, prev ? { ...prev, to: c.to } : c)
+      }
+    }
+    return {
+      count: ordered.length,
+      latestAt: ordered.length ? ordered[ordered.length - 1].created_at : null,
+      anyUnreviewed: ordered.some((r) => r.status === "received"),
+      changes: [...byField.values()].filter((c) => c.from !== c.to),
+      messages: ordered.filter((r) => r.customer_message).map((r) => ({ id: r.id, at: r.created_at, text: r.customer_message as string })),
+      all: ordered,
+    }
+  }, [openReqs])
   useEffect(() => {
     if (!o) return
     setPayAmount(o.balance_due_cents && o.balance_due_cents > 0 ? (o.balance_due_cents / 100).toFixed(2) : "")
@@ -348,11 +372,17 @@ export function OrderDialog({
       await load()
     })
 
-  const requestAction = (r: UpdateRequest, action: "confirm" | "complete") =>
-    call(`${action}:${r.id}`, async () => {
-      if (action === "complete" && !(await askConfirm({ title: "完成改单", message: "标记为已更新并通知师傅？发票系统会给客人发确认。", okLabel: "标记并通知" }))) return
-      const d = await adminJson<{ ok?: boolean; error?: string }>(adminKey, "/api/admin/orders/update-request-action", { body: { requestId: r.id, action, operator: operatorName() } })
-      if (d.ok === false) throw new Error(d.error ?? "失败")
+  // Acts on every open request at once, so the chef is notified once and the
+  // customer is texted once however many times they edited (owner 2026-09-28).
+  const requestAction = (rs: UpdateRequest[], action: "confirm" | "complete") =>
+    call(`${action}:${rs.map((r) => r.id).join(",")}`, async () => {
+      const targets = action === "confirm" ? rs.filter((r) => r.status === "received") : rs
+      if (targets.length === 0) return
+      if (action === "complete" && !(await askConfirm({ title: "完成改单", message: `标记为已更新并通知师傅？${targets.length > 1 ? `${targets.length} 条改动一起处理，` : ""}发票系统会给客人发确认。`, okLabel: "标记并通知" }))) return
+      for (const r of targets) {
+        const d = await adminJson<{ ok?: boolean; error?: string }>(adminKey, "/api/admin/orders/update-request-action", { body: { requestId: r.id, action, operator: operatorName() } })
+        if (d.ok === false) throw new Error(d.error ?? "失败")
+      }
       await Promise.all([load(), onChanged()])
     })
 
@@ -588,14 +618,20 @@ export function OrderDialog({
 
       {curTab === "planner" ? (
         <div className="dialog-col">
-          {openReqs.map((r) => (
-            <div key={r.id} className="notice notice-accent" style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px" }}>
+          {mergedReq.count > 0 ? (
+            <div className="notice notice-accent" style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                <h6 style={{ margin: 0, color: "var(--color-accent)" }}>客人在 Planner 改了 · {stamp(r.created_at)}</h6>
-                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{r.status === "received" ? "未核对" : "已核对，待通知师傅"}</span>
+                <h6 style={{ margin: 0, color: "var(--color-accent)" }}>
+                  客人在 Planner 改了 · {stamp(mergedReq.latestAt)}
+                  {mergedReq.count > 1 ? <span style={{ fontWeight: 400 }}> · {mergedReq.count} 次改动合并</span> : null}
+                </h6>
+                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{mergedReq.anyUnreviewed ? "未核对" : "已核对，待通知师傅"}</span>
               </div>
               <div style={{ fontSize: 13 }}>
-                {renderChanges(r.change_summary).map((c, i) => (
+                {mergedReq.changes.length === 0 ? (
+                  <div style={{ color: "var(--color-neutral-600)", padding: "5px 0" }}>改来改去又改回去了，实际没有变化</div>
+                ) : null}
+                {mergedReq.changes.map((c, i) => (
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "88px 1fr", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--color-line)" }}>
                     <span style={{ color: "var(--color-neutral-600)" }}>{c.field}</span>
                     <span>
@@ -608,15 +644,19 @@ export function OrderDialog({
                     </span>
                   </div>
                 ))}
-                {r.customer_message ? <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>客人留言：{r.customer_message}</div> : null}
+                {mergedReq.messages.map((m) => (
+                  <div key={m.id} style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                    客人留言{mergedReq.messages.length > 1 ? `（${stamp(m.at)}）` : ""}：{m.text}
+                  </div>
+                ))}
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {r.status === "received" ? (
-                  <button type="button" className="btn btn-primary btn-left" disabled={!!busy} onClick={() => void requestAction(r, "confirm")}>
+                {mergedReq.anyUnreviewed ? (
+                  <button type="button" className="btn btn-primary btn-left" disabled={!!busy} onClick={() => void requestAction(mergedReq.all, "confirm")}>
                     已核对
                   </button>
                 ) : null}
-                <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void requestAction(r, "complete")}>
+                <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void requestAction(mergedReq.all, "complete")}>
                   已更新 · 通知师傅
                 </button>
                 <button type="button" className="btn btn-secondary btn-left" onClick={() => toSms(`${settings.business.brand}: got your update for the ${ev ? md(ev.ymd) : ""} party - I've updated the invoice, you'll get the new copy by email. Anything else, just text here.`)}>
@@ -624,7 +664,7 @@ export function OrderDialog({
                 </button>
               </div>
             </div>
-          ))}
+          ) : null}
           <div>
             <Kicker>Planner 当前</Kicker>
             <div style={{ fontSize: 13, display: "grid", gridTemplateColumns: "72px 1fr", gap: 8, borderTop: "2px solid var(--color-divider)", paddingTop: 8 }}>
