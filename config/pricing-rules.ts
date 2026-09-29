@@ -226,11 +226,16 @@ export function partySizeDiscount(heads: TierHeads): number {
   return tier ? tier.amount : 0
 }
 
-/** One-line label for the tier a party earns, e.g. "15–24 guests · $60 off". */
+/**
+ * One-line label for the tier a party earns, e.g. "15–24 adults · $60 off".
+ * Stated in adults on purpose (owner 2026-09-29): the count is adults plus half
+ * of each paying child, so "adults" can only under-promise, while "guests" made
+ * a 20-person party read its $30 line as a shortchange.
+ */
 export function partySizeDiscountLabel(heads: TierHeads): string | null {
   const count = tierHeadcount(heads)
   const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
-  return tier ? `${tier.minGuests}–${tier.maxGuests} guests · $${tier.amount} off` : null
+  return tier ? `${tier.minGuests}–${tier.maxGuests} adults · $${tier.amount} off` : null
 }
 
 export type SimpleEstimate = {

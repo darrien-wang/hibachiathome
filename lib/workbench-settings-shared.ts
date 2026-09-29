@@ -183,7 +183,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     {
       id: "discounts",
       label: "优惠说明",
-      body: "Party-size discount: $30 off for 10-14 guests, $60 off for 15-24, $90 off for 25-30. Mon-Thu parties also get a free appetizer of your choice (gyoza, edamame or spring rolls).",
+      body: "Party-size discount: $30 off for 10-14 adults, $60 off for 15-24, $90 off for 25-30. Mon-Thu parties also get a free appetizer of your choice (gyoza, edamame or spring rolls).",
     },
   ],
   calendar: {

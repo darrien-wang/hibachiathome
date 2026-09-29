@@ -28,9 +28,11 @@ export type OccasionPage = {
   video: OccasionVideo
   reviews: { name: string; text: string }[]
   faqs: { question: string; answer: string }[]
+  /** Estimator starting headcount; defaults to 10 adults + 2 kids. */
+  estimatorDefaults?: { adults: number; kids: number }
 }
 
-export const OCCASION_PAGES_LAST_UPDATED = "2026-08-31T00:00:00.000Z"
+export const OCCASION_PAGES_LAST_UPDATED = "2026-09-17T00:00:00.000Z"
 
 const SPACE_FAQ = {
   question: "How much space do we need?",
@@ -733,7 +735,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       "Office parties, launch dinners, team celebrations: a private hibachi chef brings dinner and a live show to your office patio or venue. Southern California, from $59.90/person.",
     intro: [
       "Another catered tray of sandwiches isn't a team event — it's lunch with an agenda. A hibachi chef cooking live, with fire and games, gives a team something to react to together, which is the entire point of gathering people who usually only share a Slack channel.",
-      "Weekday events are our sweet spot: Monday–Thursday bookings get the $54.90/person Weekday Special with a free appetizer of your choice, and daytime slots are usually easy to get.",
+      "Weekday events are our sweet spot: Monday–Thursday bookings get the $54.90/person Weekday Special with a free appetizer of your choice (gyoza, edamame or spring rolls), and daytime slots are usually easy to get.",
     ],
     moments: [
       {
@@ -792,6 +794,99 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
           "Monday–Thursday events get the Weekday Special at any party size: $54.90/person instead of $59.90, plus a free appetizer of your choice (gyoza, edamame or spring rolls). Same food, same show — corporate events are exactly what that rate is for.",
       },
       PRICE_FAQ,
+    ],
+  },
+  // Written for the buyer who actually booked us (2026-09: a collision shop
+  // manager, 28 people, weekday, found us through ChatGPT) — a site-based crew
+  // with a lot or yard, not an office tower. His first question was whether we
+  // could do it at his facility, so feasibility leads and the show comes second.
+  // TODO after the first workplace events: swap in on-site photos and a
+  // verbatim review from a workplace client (with permission). Never invent one.
+  {
+    slug: "employee-appreciation-lunch",
+    occasion: "Team Lunch",
+    headline: "Employee Appreciation Lunch",
+    subline: "Cooked in your lot. Nobody leaves the shop.",
+    estimatorDefaults: { adults: 20, kids: 0 },
+    metaTitle: "Employee Appreciation Lunch Ideas | Hibachi Chef Cooks at Your Workplace",
+    metaDescription:
+      "An employee appreciation lunch your crew will actually remember: a hibachi chef cooks live in your parking lot or yard. Body shops, dealerships, warehouses, schools — crews of 10 and up across Southern California. Weekdays from $54.90/person.",
+    intro: [
+      "Pizza says thanks for about eleven minutes. Taking the whole crew out to a restaurant says it better, but it costs you half a shift and a carpool. This is the third option: a hibachi chef sets up in your lot, cooks steak, chicken and shrimp to order with a live fire show, and everyone is back on the floor when lunch is over.",
+      "We bring the grill, the propane, the food and the cleanup. You point at a flat spot outdoors. Monday–Thursday is the Weekday Special: $54.90/person instead of $59.90, with a free appetizer of your choice (gyoza, edamame or spring rolls), and daytime slots are usually open.",
+    ],
+    moments: [
+      {
+        title: "Nobody clocks out to drive anywhere",
+        description:
+          "The chef comes to your site, so a team lunch fits inside a lunch break. Tell us how long the crew has and we'll plan the cook around it — larger teams get more chefs or staggered seatings.",
+      },
+      {
+        title: "The boss gets called up",
+        description:
+          "Egg toss, shrimp catch, the squeeze-bottle challenge. The manager who booked it usually goes first, and the crew doesn't let them forget it.",
+      },
+      {
+        title: "A quote you can forward upstairs",
+        description:
+          "Itemized, with your company name on it and every line showing — food, travel if any, card fee. Nothing gets added after you approve it.",
+      },
+    ],
+    photos: [
+      {
+        src: "/gallery/real-hibachi-party-los-angeles-chef-grill-setup-03.jpg",
+        alt: "Hibachi chef lighting a daytime flame show beside plated salads for a large group",
+      },
+      {
+        src: "/gallery/real-hibachi-party-los-angeles-group-dinner-09.jpg",
+        alt: "Long tables set for a large group hibachi meal",
+      },
+      {
+        src: "/gallery/real-hibachi-party-los-angeles-chef-guest-game-17.jpg",
+        alt: "Hibachi chef playing a game with a laughing guest",
+      },
+    ],
+    video: {
+      src: "/videos/hibachi-show.mp4",
+      poster: "/videos/posters/hibachi-show.jpg",
+      alt: "Live hibachi chef show",
+    },
+    reviews: [
+      {
+        name: "Karen Wertheimer",
+        text: "Just had a wonderful dinner prepared by Blue. He was engaging and entertaining. I would recommend this for any occasion.",
+      },
+      {
+        name: "David Armstrong",
+        text: "Chef Bling curated a brilliant display of culinary mastery and phenomenal vibes to create an forgettable evening for the bros and I. 2 thumbs up.",
+      },
+    ],
+    faqs: [
+      {
+        question: "We're a shop / warehouse / dealership. Can you really do this at our facility?",
+        answer:
+          "Almost always, yes. The grill needs a flat outdoor spot about 6x8 ft with roughly 10 ft of open air above it — a corner of the parking lot, the yard, or the apron just outside an open bay door all work. We bring the grill and the propane, no power hookup needed, and a protective tarp goes under the station so your lot looks the way we found it. The cooking stays outdoors; your crew can eat wherever you like, including inside in the break room. Text us a photo of the spot and we'll confirm it before you book.",
+      },
+      {
+        question: "How does it fit into a lunch break?",
+        answer:
+          "Your chef arrives about 10 minutes before the start time and is cooking moments later. Tell us how many people and how long they have, and we'll plan around it: more chefs for larger crews, or staggered seatings so the floor is never empty. You make one booking; we work out the chef count.",
+      },
+      {
+        question: "How do payment and paperwork work for a company?",
+        answer:
+          "You get an itemized quote with your company name on it. A company card is fine — cards carry a 4% processing fee and settle at least 72 hours before the event; cash on the day has no fee. If accounting needs a W-9, just ask. We handle headcount changes gracefully, and cancelling or rescheduling is free with 72 hours' notice.",
+      },
+      {
+        question: "What does it cost for a team?",
+        answer:
+          "Monday–Thursday is $54.90 per person with a free appetizer of your choice (gyoza, edamame or spring rolls); Friday–Sunday is $59.90, and so are Thanksgiving week and December 20 – January 3. There's a $599 event minimum, and a Party Size Discount comes off automatically: $30 for 10–14 adults, $60 for 15–24, $90 for 25–30. A 28-person weekday lunch comes to about $1,450; gratuity is separate and up to you (20–25% is customary). Over 30 people, we quote it for you directly. Need seating? Tables, chairs and tablecloths are $10 per person. Every guest picks 2 proteins, with fried rice, vegetables and salad — extra rice and vegetables are free if you tell us ahead.",
+      },
+      {
+        question: "What about dietary needs on a big crew?",
+        answer:
+          "Each person picks their own 2 proteins — chicken, steak, shrimp, salmon, or tofu — cooked to order in front of them. Vegetarian and vegan plates are the same per-person rate. For gluten-free guests, bring your preferred gluten-free soy and teriyaki and we prepare their meal on a separate station. We can't promise a nut-free or sesame-free table, so tell us about any allergy when you book and we'll check the labels for your date and tell you honestly what we can serve safely.",
+      },
     ],
   },
   {
