@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
+import { askPrompt, tell } from "./ask"
 
 // 一天几场摆到地图上（老板 2026-09-29）。五场挤在 17:00–20:30，能不能让一个师傅连做
 // 两场，靠的不是名单而是"它们离多远、顺不顺路"。
@@ -20,6 +21,8 @@ type Stop = {
   guests: number
   lat: number | null
   lng: number | null
+  /** 只精确到城市/邮编——图钉不是门口。 */
+  approx?: boolean
 }
 type Hop = { minutes: number; miles: number } | null
 type Resp = {
@@ -44,6 +47,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   const [d, setD] = useState<Resp | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +59,30 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   useEffect(() => {
     void load()
   }, [load])
+
+  // OSM 在沙漠区缺街道，那偏偏是我们最赚钱的一块。与其等它补数据，不如让老板从
+  // Google 地图右键抄一个 Plus Code 贴进来——那玩意儿本身就是坐标。
+  const pin = useCallback(
+    async (address: string) => {
+      const v = await askPrompt({
+        title: "手工定位",
+        message: "在 Google 地图上右键那个点，复制 Plus Code 贴进来（长这样 4G4J+24 Yucca Valley）。经纬度也行。",
+        placeholder: "4G4J+24 Yucca Valley, California",
+      })
+      if (!v) return
+      setBusy(true)
+      try {
+        await adminJson(adminKey, "/api/admin/day-map", { body: { address, value: v } })
+        await load()
+      } catch (e) {
+        void tell({ title: "定位不了", message: e instanceof Error ? e.message : "认不出来" })
+      } finally {
+        setBusy(false)
+      }
+    },
+    [adminKey, load],
+  )
+
 
   const placed = useMemo(() => (d?.stops ?? []).filter((s) => s.lat !== null && s.lng !== null) as Array<Stop & { lat: number; lng: number }>, [d])
 
@@ -204,6 +232,11 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                   打给客人
                 </a>
               ) : null}
+              {cur.approx ? (
+                <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => void pin(cur.address)}>
+                  这只是大概位置 · 手工定位
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -225,7 +258,27 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                   <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
                     {s.name} · {s.guests} 人
                     {idx < 0 ? <span style={{ color: "var(--color-accent-700)" }}> · 地址定位不到</span> : null}
+                    {idx >= 0 && s.approx ? <span style={{ color: "var(--color-neutral-600)" }}> · 只到城市</span> : null}
                   </span>
+                  {idx < 0 || s.approx ? (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="wb-chip wb-chip-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void pin(s.address)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.stopPropagation()
+                          void pin(s.address)
+                        }
+                      }}
+                    >
+                      定位
+                    </span>
+                  ) : null}
                   {i > 0 && idx > 0 && d.hops?.[idx - 1] ? (
                     <span style={{ fontSize: 12, color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>
                       上一场开过来 {d.hops[idx - 1]!.minutes} 分
