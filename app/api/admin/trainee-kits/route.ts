@@ -205,6 +205,22 @@ export async function POST(request: NextRequest) {
     if (body.note !== undefined) patch.note = str(body.note, 200) || null
     // 选定哪个候选。传空串 = 取消选择（页面上再点一次"已选"）。
     if (body.chosen_url !== undefined) patch.chosen_url = str(body.chosen_url, 400) || null
+    // 候选整组替换。逐字段清洗一遍：这些值会被当成链接渲染出去，不能原样落库。
+    if (Array.isArray(body.candidates)) {
+      patch.candidates = (body.candidates as unknown[]).slice(0, 8).map((raw) => {
+        const c = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>
+        const url = str(c.url, 400)
+        return {
+          title: str(c.title, 120),
+          // 只认 http(s)：javascript: 这种进了 href 就是一个点击执行的洞。
+          url: /^https?:\/\//i.test(url) ? url : undefined,
+          price: cents(c.price) ?? undefined,
+          ship: cents(c.ship) ?? undefined,
+          store: str(c.store, 40) || undefined,
+          note: str(c.note, 200) || undefined,
+        }
+      }).filter((c) => c.title)
+    }
     if (body.buy_note !== undefined) patch.buy_note = str(body.buy_note, 300) || null
     // 删掉一行是置 active=false：以前配的套装是按当时的清单买的，把行真删了，
     // 回头看"当初这套里有什么"就对不上了。

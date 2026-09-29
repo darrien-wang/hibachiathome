@@ -1144,6 +1144,7 @@ function TraineeKits({ adminKey }: { adminKey: string }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [view, setView] = useState<"buy" | "ledger">("buy")
+  const [editing, setEditing] = useState<KitItem | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -1223,14 +1224,31 @@ function TraineeKits({ adminKey }: { adminKey: string }) {
             return (
               <div key={it.id} style={{ padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontWeight: 700, fontSize: 15, padding: 0, textAlign: "left" }}
+                    onClick={() => setEditing(it)}
+                    title="点开改名字、数量、在哪买，以及粘一个商品进来"
+                  >
                     {it.label}
-                    {it.qty > 1 ? <span style={{ color: MUTED, fontWeight: 600 }}> ×{it.qty}</span> : null}
+                    <span style={{ color: MUTED, fontWeight: 600 }}> ×{it.qty}</span>
                     {it.item_key ? <Tag cls="tag-faint">仓库有</Tag> : null}
                     {it.buy_channel ? <Tag cls="tag-outline">{it.buy_channel}</Tag> : null}
-                  </div>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 16, whiteSpace: "nowrap" }}>
-                    {cheapest ? money(landed(cheapest)) : <span style={{ color: MUTED, fontSize: 13, fontWeight: 600 }}>还没找</span>}
+                    <span style={{ color: MUTED, fontWeight: 600, fontSize: 12 }}> 改</span>
+                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* 数量在行上直接加减：配套装时常要临时改「这个拿两个」，
+                        为一个数字开弹窗太重。 */}
+                    <span style={{ display: "flex", gap: 2 }}>
+                      <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy || it.qty <= 1} title="少一个"
+                        onClick={() => void act({ action: "set_item", id: it.id, qty: it.qty - 1 }, `qty:${it.id}`)}>−</button>
+                      <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} title="多一个"
+                        onClick={() => void act({ action: "set_item", id: it.id, qty: it.qty + 1 }, `qty:${it.id}`)}>+</button>
+                    </span>
+                    <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 16, whiteSpace: "nowrap" }}>
+                      {cheapest ? money(landed(cheapest)) : <span style={{ color: MUTED, fontSize: 13, fontWeight: 600 }}>还没找</span>}
+                    </div>
                   </div>
                 </div>
 
@@ -1294,7 +1312,145 @@ function TraineeKits({ adminKey }: { adminKey: string }) {
       ) : (
         <KitLedger d={d} busy={busy} act={act} />
       )}
+
+      {editing ? (
+        <KitItemDialog
+          item={editing}
+          busy={!!busy}
+          onClose={() => setEditing(null)}
+          onSave={async (patch) => {
+            await act({ action: "set_item", id: editing.id, ...patch }, `edit:${editing.id}`)
+            setEditing(null)
+          }}
+        />
+      ) : null}
     </div>
+  )
+}
+
+/* 一项的编辑弹窗：改清单那一行，以及往里粘商品。
+   粘商品是这里的主要动作——老板在 Walmart 找到东西，回来把标题、价格、链接填进去，
+   下次配套装就不用再找一遍。 */
+function KitItemDialog({
+  item,
+  busy,
+  onClose,
+  onSave,
+}: {
+  item: KitItem
+  busy: boolean
+  onClose: () => void
+  onSave: (patch: Record<string, unknown>) => Promise<void>
+}) {
+  const [label, setLabel] = useState(item.label)
+  const [qty, setQty] = useState(String(item.qty))
+  const [unit, setUnit] = useState(item.unit)
+  const [channel, setChannel] = useState(item.buy_channel ?? "")
+  const [buyNote, setBuyNote] = useState(item.buy_note ?? "")
+  const [note, setNote] = useState(item.note ?? "")
+  const [cands, setCands] = useState<Candidate[]>(item.candidates ?? [])
+
+  // 价格在界面上按「元」填，存的时候换成分——库里一律用分，别让浮点数进数据库。
+  const dollars = (c?: number) => (c === undefined || c === null ? "" : (c / 100).toFixed(2))
+  const toCents = (v: string) => {
+    const n = Number(v)
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : undefined
+  }
+  const patchCand = (i: number, k: keyof Candidate, v: string) =>
+    setCands((prev) =>
+      prev.map((c, j) =>
+        j !== i ? c : { ...c, [k]: k === "price" || k === "ship" ? toCents(v) : v || undefined },
+      ),
+    )
+
+  const field = (labelText: string, node: React.ReactNode) => (
+    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span className="kicker">{labelText}</span>
+      {node}
+    </label>
+  )
+
+  return (
+    <Dialog onClose={onClose} width={680}>
+      <DialogHead title={item.label} lines={[item.item_key ? `仓库目录里对应 ${item.item_key}` : "仓库目录里没有这一项"]} onClose={onClose} />
+      <div className="dialog-col" style={{ gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
+          {field("名称", <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} />)}
+          {field(
+            "数量",
+            <div style={{ display: "flex", gap: 4 }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setQty((q) => String(Math.max(1, (Number(q) || 1) - 1)))}>
+                −
+              </button>
+              <input className="input" inputMode="decimal" style={{ width: 56, textAlign: "center" }} value={qty} onChange={(e) => setQty(e.target.value)} />
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setQty((q) => String((Number(q) || 0) + 1))}>
+                +
+              </button>
+            </div>,
+          )}
+          {field("单位", <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} />)}
+          {field("在哪买", <input className="input" value={channel} onChange={(e) => setChannel(e.target.value)} placeholder="Walmart / Amazon / Restaurant Depot…" />)}
+        </div>
+        {field(
+          "采购备注（怎么买、要注意什么）",
+          <textarea className="input" rows={2} value={buyNote} onChange={(e) => setBuyNote(e.target.value)} placeholder="例：Restaurant Depot 的走 Instacart 下单；易燃品不能快递只能门店拿" />,
+        )}
+        {field("备注", <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />)}
+
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 6, marginBottom: 8 }}>
+            <span className="kicker">候选商品</span>
+            <button type="button" className="wb-chip wb-chip-sm" onClick={() => setCands((p) => [...p, { title: "" }])}>
+              + 加一个
+            </button>
+          </div>
+          {cands.length === 0 ? <div style={{ fontSize: 13, color: MUTED }}>还没有。找到东西就点「+ 加一个」把标题、价格、链接粘进来。</div> : null}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {cands.map((c, i) => (
+              <div key={i} style={{ border: "1px solid var(--color-divider)", padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="input" style={{ flex: 1 }} value={c.title ?? ""} onChange={(e) => patchCand(i, "title", e.target.value)} placeholder="商品标题" />
+                  <button type="button" className="wb-chip wb-chip-sm" onClick={() => setCands((p) => p.filter((_, j) => j !== i))}>
+                    删
+                  </button>
+                </div>
+                <input className="input" value={c.url ?? ""} onChange={(e) => patchCand(i, "url", e.target.value)} placeholder="商品链接（从浏览器地址栏粘过来）" />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 8 }}>
+                  <input className="input" inputMode="decimal" value={dollars(c.price)} onChange={(e) => patchCand(i, "price", e.target.value)} placeholder="标价 $" />
+                  <input className="input" inputMode="decimal" value={dollars(c.ship)} onChange={(e) => patchCand(i, "ship", e.target.value)} placeholder="运费 $（免运留空）" />
+                  <input className="input" value={c.store ?? ""} onChange={(e) => patchCand(i, "store", e.target.value)} placeholder="哪家店" />
+                </div>
+                <input className="input" value={c.note ?? ""} onChange={(e) => patchCand(i, "note", e.target.value)} placeholder="备注（尺寸、够不够用、为什么选它）" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={() =>
+              void onSave({
+                label,
+                qty: Number(qty) > 0 ? Number(qty) : 1,
+                unit,
+                buy_channel: channel,
+                buy_note: buyNote,
+                note,
+                candidates: cands.filter((c) => (c.title ?? "").trim()),
+              })
+            }
+          >
+            {busy ? "存着…" : "保存"}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            取消
+          </button>
+        </div>
+      </div>
+    </Dialog>
   )
 }
 
