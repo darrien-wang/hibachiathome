@@ -8,6 +8,7 @@
   python scripts/desk/desk.py price  --adults 24 [--kids 0] [--date 2026-10-13] [--zip 90802] [--alt-date ...]
   python scripts/desk/desk.py travel <destination>
   python scripts/desk/desk.py send   <phone> [body] --lead <id> [--body-file f] [--force]
+  python scripts/desk/desk.py email  <to> --subject s [--body-file f] [--lead id] [--cc a b]   from support@, logged on the lead
   python scripts/desk/desk.py note   <leadId> [note] [--body-file f]
   python scripts/desk/desk.py hold   <leadId> <days>       0 clears
   python scripts/desk/desk.py status <leadId> <new|qualified|won|lost|disqualified>
@@ -263,6 +264,23 @@ def cmd_send(a):
         sys.exit(2)
     print(f"OK    {payload['phone']}  {out.get('sid', '')}  {out.get('status', '')}")
     print(f"      {body}")
+
+
+def cmd_email(a):
+    """A customer email from support@, logged on the lead when --lead is given.
+    For what a text cannot carry: carriers filter alcohol words on business
+    texting, so the drinks answer goes by email (2026-09-29)."""
+    text = read_text_arg(a.body, a.body_file)
+    if not text.strip():
+        raise SystemExit("empty email - pass the text or --body-file")
+    payload = {"to": a.to, "subject": a.subject, "text": text}
+    if a.lead:
+        payload["leadId"] = a.lead
+    if a.cc:
+        payload["cc"] = a.cc
+    res = site_post("/api/admin/send-followup", payload)
+    print(f"OK    emailed {a.to}  {dump(res)[:200]}")
+    print("      " + a.subject)
 
 
 def _patch(payload: dict):
@@ -611,6 +629,8 @@ def main(argv=None):
     p.add_argument("--model", default="small", choices=["base", "small", "medium"]); p.add_argument("--note", action="store_true")
     p.add_argument("--swap", action="store_true", help="flip who is 客/我 if the channels came the other way round")
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
+    p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
+    p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*"); p.set_defaults(fn=cmd_email)
     p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email"]); p.add_argument("ident")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
