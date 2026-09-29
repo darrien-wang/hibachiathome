@@ -3,6 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
+import { committedByItem, reserveForOrders, settleDueReservations } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
 
 export const dynamic = "force-dynamic"
@@ -66,11 +67,23 @@ export async function GET(request: NextRequest) {
     (r) => r.event_start && (byOrders || r.event_start.slice(0, 10) === date) && !/cancel|void|refund/i.test(r.order_status ?? ""),
   )
 
+  // 进门先把办完的派对结掉：占用变消耗，库存自动扣，不用人工划（老板 2026-09-29）。
+  // 放在这里而不是定时任务——定时任务卡死过三天没人发现。
+  await settleDueReservations(supabase).catch((e) => console.error("[prep] settle failed", e))
+
   const allItems: PrepItem[] = []
+  // 每单各自的用量，用来写占用（合计那份是按品项汇总的，回不到单）。
+  const perOrder: Array<{ orderId: string; items: Array<{ id: string; qty: number; unit: string }> }> = []
   const orders = rows.map((r) => {
     const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
+    const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
     if (prep.menuKnown) allItems.push(...prep.items)
     else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
+    perOrder.push({
+      orderId: r.id,
+      // 装车的桌椅是周转品，不是吃掉的东西，不进占用。
+      items: aggregatePrep(mine).filter((i) => i.group !== "setup").map((i) => ({ id: i.id, qty: i.qty, unit: i.unit })),
+    })
     const t = new Date(r.event_start as string)
     return {
       id: r.id,
@@ -94,7 +107,7 @@ export async function GET(request: NextRequest) {
   // 装备库存（桌椅桌布餐具气罐）：跟需求放在一张清单里对着看。
   const { data: stock } = await supabase.from("equipment_stock").select("item_key, label, unit, qty, low_at, note, updated_at").order("item_key")
   // 食材库存：收据入库进来的，备料时拿来和需求对着看（"还差多少"）。
-  const { data: pantryRows } = await supabase.from("pantry_stock").select("item_key, qty, unit, updated_at")
+  const { data: pantryRows } = await supabase.from("pantry_stock").select("item_key, qty, unit, updated_at, counted_at")
   const pantry: Record<string, number> = {}
   for (const r of (pantryRows ?? []) as Array<{ item_key: string; qty: number }>) pantry[r.item_key] = Number(r.qty) || 0
   // 清单把四样蔬菜合成一行，所以库存也合起来比。
@@ -107,6 +120,14 @@ export async function GET(request: NextRequest) {
     if (k && !(k in stores)) stores[k] = { channel: w.buy_channel, pack: w.pack_label }
   }
   stores.mixed_vege = { channel: "Walmart", pack: null }
+
+  // 勾了单来算缺口 = 这几单的料被占住了。幂等，随便重算。
+  if (byOrders && perOrder.length > 0) {
+    await reserveForOrders(supabase, perOrder).catch((e) => console.error("[prep] reserve failed", e))
+  }
+  // 别的单还占着多少——可用 = 在库 − 这个。不含正在算的这几单，否则自己扣自己。
+  const committed = await committedByItem(supabase, rows.map((r) => r.id)).catch(() => ({} as Record<string, number>))
+  committed.mixed_vege = Math.round(VEG_IDS.reduce((n, k) => n + (committed[k] ?? 0), 0) * 100) / 100
 
   const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
@@ -122,6 +143,8 @@ export async function GET(request: NextRequest) {
       totals: aggregatePrep(allItems).map((i) => ({ ...i, pack: BUY_UNITS[i.id] ?? null })),
       stock: stock ?? [],
       pantry,
+      // 别的单占着的量：页面上「可用 = 在库 − 占用」，缺口按可用算。
+      committed,
       pantryDetail: pantryRows ?? [],
       consumed: (consumed ?? []).length > 0,
       warnings: unknown.map((o) => `${o.timeLabel} ${o.name}（${o.adults + o.kids} 人）菜单未定——蛋白质没算进合计，买前先把菜单问回来`),

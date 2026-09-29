@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
-import { askPrompt } from "./ask"
-import { PREP_GROUP_TITLES, type PrepGroup } from "@/lib/prep-bom"
+import { askPrompt, tell } from "./ask"
+import type { PrepGroup } from "@/lib/prep-bom"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -287,7 +287,15 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
   if (!d) return <div style={{ color: MUTED, fontSize: 13 }}>{err ?? "读取中…"}</div>
 
-  const tap = (key: string, idx: number) => void post({ action: "tap_pack", item_key: key, idx })
+  // 消耗品的格子改成只读（老板 2026-09-29 定）。数量在「备货 → 对货」里改：
+  // 库存不再是一本要天天记的账，而是每次备货时顺手记下的一次观察。
+  // 周转品那边（桌椅、工服借还）不受影响——那是另一件事，还得手动记。
+  const tap = (_key: string, _idx: number) => {
+    void tell({
+      title: "库存改到备货里了",
+      message: "勾上要备的订单 →「对货」那一段点一下实际还有几瓶。只问这几单用得到的东西，够的不用管。",
+    })
+  }
   const move = (moves: Array<Partial<Hold> & { delta: number }>) =>
     void post({ action: "move", moves: moves.map((m) => ({ item_key: m.item_key, holder_key: m.holder_key, holder_kind: m.holder_kind, holder_name: m.holder_name, delta: m.delta, size_note: m.size_note })) })
 
@@ -304,8 +312,8 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
     .join("\n\n")
 
   const tabs: Array<[Tab, string, string]> = [
-    ["stock", "库存", ""],
     ["prep", "备货", ""],
+    ["stock", "库存 · 只读", ""],
     ["in", "入库记录", ""],
     ["out", "出库 · 归还", outCount ? String(outCount) : ""],
     ["chef", "厨师", ""],
@@ -922,10 +930,16 @@ type PlanResp = {
   orders: Array<{ id: string; dateLabel: string; orderNo: string; name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean }>
   totals: PlanRow[]
   pantry: Record<string, number>
+  /** 别的单还占着的量。可用 = 在库 − 这个（老板 2026-09-29）。 */
+  committed: Record<string, number>
+  pantryDetail: Array<{ item_key: string; qty: number; counted_at: string | null }>
   stores: Record<string, { channel: string | null; pack: string | null }>
   warnings: string[]
   guestTotal: number
 }
+
+// 多久没盘就该再看一眼。生鲜一周内进出好几轮，超过这个数的"在库"不值得信。
+const STALE_DAYS = 7
 
 // 采购只能整包买，向上取整本身就是"宁多勿少"——所以这里不再额外乘缓冲系数。
 // （而且像牛排"一盒管 4 人"这种规则，余量早就写在 BUY_UNITS 的 per 里了，
@@ -960,20 +974,46 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     }
   }
 
+  // 改在库：就地写 pantry_stock，然后重算。对货和买什么在同一屏，改完立刻看到结果。
+  const setHave = useCallback(
+    async (itemKey: string, qty: number) => {
+      setBusy(true)
+      try {
+        await adminJson(adminKey, "/api/admin/prep", { body: { action: "set_pantry", item_key: itemKey, qty } })
+        await run()
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "没存上")
+      } finally {
+        setBusy(false)
+      }
+    },
+    [adminKey, run],
+  )
+
   const groups = (() => {
     if (!resp) return null
-    type Line = { row: PlanRow; have: number; short: number; buy: number | null }
+    type Line = { row: PlanRow; have: number; committed: number; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean }
     const buy: Record<string, Line[]> = {}
     const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
+    const countedAt = new Map(resp.pantryDetail?.map((r) => [r.item_key, r.counted_at]) ?? [])
+    const staleBefore = Date.now() - STALE_DAYS * 86400_000
     for (const row of resp.totals) {
       if (row.group === "setup") {
         setup.push(row)
         continue
       }
       const have = Math.round((resp.pantry[row.id] ?? 0) * 10) / 10
-      const short = Math.round(Math.max(0, row.qty - have) * 10) / 10
-      const line = { row, have, short, buy: buyCount(short, row.pack) }
+      // 别的单占着的先扣掉：冰箱里那 2 瓶已经许给周五那单了，这单不能再当它是自己的。
+      const committed = Math.round((resp.committed?.[row.id] ?? 0) * 10) / 10
+      const avail = Math.round(Math.max(0, have - committed) * 10) / 10
+      const short = Math.round(Math.max(0, row.qty - avail) * 10) / 10
+      const c = countedAt.get(row.id)
+      const stale = !c || Date.parse(c) < staleBefore
+      // 要不要麻烦你走一趟冰箱：不够的必须看，太久没盘的也该看一眼。
+      // 够、而且最近盘过的，默认信它——这正是"我不在乎有什么"。
+      const ask = short > 0 || stale
+      const line = { row, have, committed, avail, short, buy: buyCount(short, row.pack), stale, ask }
       // 全量核对表要看到每一样东西，不管够不够 —— 老板要的就是能发现"账上说够、
       // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
       ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
@@ -985,8 +1025,8 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     const order = ["Walmart", "Restaurant Depot", "Instacart", "Amazon"]
     const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
     const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry"]
-    const groupKeys = GROUP_ORDER.filter((g) => byGroup[g]?.length)
-    return { buy, storeKeys, byGroup, groupKeys, setup }
+    const all = GROUP_ORDER.flatMap((g) => byGroup[g] ?? [])
+    return { buy, storeKeys, setup, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
   })()
 
   return (
@@ -1058,28 +1098,31 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             </section>
           ) : null}
 
-          {groups.groupKeys.length ? (
+          {/* 对货：只问需要问的。够、而且最近盘过的默认信它——老板 2026-09-29 定的口径是
+              "我不在乎有什么，我在乎缺什么"，所以别拿 30 行东西占你的屏幕。 */}
+          {groups.ask.length > 0 ? (
             <section>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 8 }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>需求 vs 在库（核对用）</div>
-                <div style={{ fontSize: 12.5, color: MUTED }}>数字不对就去"库存"页签点格子改</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>去看一眼（{groups.ask.length} 项）</div>
+                <div style={{ fontSize: 12.5, color: MUTED }}>点一下实际还有几瓶，下面的"要买"立刻重算</div>
               </div>
-              {groups.groupKeys.map((g) => (
-                <div key={g} style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: "0.04em", marginBottom: 4 }}>{PREP_GROUP_TITLES[g]}</div>
-                  {groups.byGroup[g].map(({ row, have, short, buy }) => (
-                    <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) auto auto auto", gap: 14, alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                      <div style={{ fontSize: 14, fontWeight: 600 }}>{row.label}</div>
-                      <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>要 {Math.round(row.qty * 10) / 10} {row.unit}</div>
-                      <div style={{ fontSize: 13, color: MUTED, whiteSpace: "nowrap" }}>在库 {have} {row.unit}</div>
-                      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 14, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
-                        {short > 0 ? (buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${row.pack!.noun}`) : "够"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              {groups.ask.map((l) => (
+                <CountRow key={l.row.id} line={l} busy={busy} onSet={(qty) => void setHave(l.row.id, qty)} />
               ))}
             </section>
+          ) : null}
+
+          {groups.trusted.length > 0 ? (
+            <details>
+              <summary style={{ cursor: "pointer", fontSize: 13, color: MUTED }}>
+                这 {groups.trusted.length} 项按上次盘的够用，不用去看 · 展开核对
+              </summary>
+              <div style={{ marginTop: 8 }}>
+                {groups.trusted.map((l) => (
+                  <CountRow key={l.row.id} line={l} busy={busy} onSet={(qty) => void setHave(l.row.id, qty)} />
+                ))}
+              </div>
+            </details>
           ) : null}
         </div>
       ) : null}
@@ -1572,6 +1615,90 @@ function KitLedger({
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+
+/* 对货的一行：按「瓶/袋/盒」点，不按 oz 填。
+   站在冰箱前你能数出"还有 2 瓶"，数不出"还有 32 tbsp"——换算让系统做。 */
+function CountRow({
+  line,
+  busy,
+  onSet,
+}: {
+  line: { row: PlanRow; have: number; committed: number; avail: number; short: number; buy: number | null; stale: boolean }
+  busy: boolean
+  onSet: (qty: number) => void
+}) {
+  const { row, have, committed, avail, short, buy, stale } = line
+  const per = row.pack?.per ?? 0
+  const noun = row.pack?.noun ?? ""
+  const havePacks = per > 0 ? Math.round((have / per) * 2) / 2 : null
+  const choices = per > 0 ? [0, 0.5, 1, 2, 3, 4] : []
+
+  return (
+    <div style={{ padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>
+          {row.label}
+          {stale ? <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}> · 有阵子没盘了</span> : null}
+        </div>
+        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
+          {short > 0 ? (buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${noun}`) : "够"}
+        </div>
+      </div>
+      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
+        要 {Math.round(row.qty * 10) / 10} {row.unit}
+        {per > 0 ? `（≈${Math.round((row.qty / per) * 10) / 10} ${noun}）` : ""} · 在库 {havePacks === null ? `${have} ${row.unit}` : `${havePacks} ${noun}`}
+        {committed > 0 ? ` · 别的单占了 ${per > 0 ? `${Math.round((committed / per) * 10) / 10} ${noun}` : `${committed} ${row.unit}`}，可用 ${per > 0 ? Math.round((avail / per) * 10) / 10 : avail}` : ""}
+      </div>
+      {per > 0 ? (
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+          {choices.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className="wb-chip wb-chip-sm"
+              aria-pressed={havePacks === n}
+              disabled={busy}
+              onClick={() => onSet(Math.round(n * per * 100) / 100)}
+            >
+              {n === 0 ? "没了" : n === 0.5 ? "半" + noun : `${n} ${noun}`}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="wb-chip wb-chip-sm"
+            disabled={busy}
+            onClick={async () => {
+              const v = await askPrompt({ title: row.label, message: `实际还有几${noun}？`, placeholder: "例如 6", inputMode: "decimal" })
+              if (v === null) return
+              const n = Number(v)
+              if (!Number.isFinite(n) || n < 0) return
+              onSet(Math.round(n * per * 100) / 100)
+            }}
+          >
+            更多…
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="wb-chip wb-chip-sm"
+          disabled={busy}
+          style={{ marginTop: 6 }}
+          onClick={async () => {
+            const v = await askPrompt({ title: row.label, message: `实际还有多少 ${row.unit}？`, placeholder: "例如 20", inputMode: "decimal" })
+            if (v === null) return
+            const n = Number(v)
+            if (!Number.isFinite(n) || n < 0) return
+            onSet(Math.round(n * 100) / 100)
+          }}
+        >
+          改在库（{have} {row.unit}）
+        </button>
+      )}
     </div>
   )
 }
