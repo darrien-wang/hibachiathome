@@ -300,7 +300,7 @@ export default function Workbench() {
         ) : tab === "warehouse" ? (
           <WarehouseTab adminKey={key} isMobile={isMobile} />
         ) : tab === "cal" ? (
-          <CalendarTab orders={data.orders} settings={data.settings.calendar} isMobile={isMobile} onOpenOrder={openOrder} />
+          <CalendarTab adminKey={key} orders={data.orders} settings={data.settings.calendar} isMobile={isMobile} onOpenOrder={openOrder} />
         ) : tab === "settings" ? (
           <SettingsTab adminKey={key} settings={data.settings} meta={data.settingsMeta} code={data.code} viewerRole={data.viewer?.role ?? null} viewer={data.viewer} onSaved={data.applySettings} onLogout={() => void logout()} />
         ) : (

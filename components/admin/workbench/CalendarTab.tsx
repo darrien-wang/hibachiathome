@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { Chip } from "./ui"
+import { DayMap } from "./DayMap"
 import { addDays, dowZh, eventParts, firstName, md, parseYmd, ptToday, stageOf, type OrderRow } from "./helpers"
 import { holidayOn, upcomingHolidays } from "./holidays"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
@@ -14,8 +15,10 @@ type Ev = { id: string; time: string; hour: number; minute: number; name: string
 
 const DOW_MON = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
-export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { orders: OrderRow[]; settings: WorkbenchSettings["calendar"]; isMobile: boolean; onOpenOrder: (id: string) => void }) {
+export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder }: { adminKey: string; orders: OrderRow[]; settings: WorkbenchSettings["calendar"]; isMobile: boolean; onOpenOrder: (id: string) => void }) {
   const today = ptToday()
+  // 点「N 场」看这一天几场之间的位置和车程（老板 2026-09-29）。
+  const [mapDate, setMapDate] = useState<string | null>(null)
   const [view, setView] = useState<"month" | "week">("month")
   const [cursor, setCursor] = useState(today)
   const now = Date.now()
@@ -132,7 +135,20 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 4 }}>
                   <span style={{ fontWeight: c.isToday || c.holiday ? 800 : 400, fontSize: 13, whiteSpace: "nowrap", color: c.isToday ? "var(--color-accent)" : c.holiday ? "var(--color-accent-700)" : c.d < today ? "var(--color-neutral-600)" : "var(--color-text)" }}>{c.day}</span>
-                  {c.events.length ? <span style={{ fontSize: 11, color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{c.events.length} 场</span> : null}
+                  {c.events.length ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      title="摆到地图上看看这几场离多远"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setMapDate(c.d)
+                      }}
+                      style={{ fontSize: 11, color: "var(--color-neutral-600)", whiteSpace: "nowrap", padding: "0 3px", minHeight: 0, textDecoration: "underline dotted" }}
+                    >
+                      {c.events.length} 场
+                    </button>
+                  ) : null}
                 </div>
                 {c.holiday ? <div className="clamp1" style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{c.holiday}</div> : null}
                 {c.events.map((e) => (
@@ -256,6 +272,8 @@ export function CalendarTab({ orders, settings, isMobile, onOpenOrder }: { order
           ))}
         </div>
       )}
+
+      {mapDate ? <DayMap adminKey={adminKey} date={mapDate} onClose={() => setMapDate(null)} onOpenOrder={(id) => { setMapDate(null); onOpenOrder(id) }} /> : null}
     </section>
   )
 }
