@@ -487,7 +487,7 @@ Here is your party page for everyone to pick their proteins: <link>
 Or just text me the list and I will fill it in for you - whichever is easier.
 ```
 - **为什么**：链接发过去而不给别的选项，客户会理解成"这活儿归我了"。有人乐意自己点（还能拉家人一起玩），有人只想把名单甩过来——Diana 9/23 就是一条短信把 8 个人的菜、两盘前菜、地图定位一次发全，比在页面上点快得多。**我们要的是信息，不是他用哪个工具。**
-- **planner 里交上来的菜单照单全收**（用户 2026-09-29："默认就默认"）：哪怕看起来像没改过的默认值（名字是 Guest 1–N、全员同一个组合），也不去追问客人是不是真心这么选。Nolan（Indio 12 人全员鸡+牛）就是这样。
+- **planner 里交上来的菜单照单全收**（用户 2026-09-29："默认就默认"）：哪怕看起来像没改过的默认值（名字是 Guest 1–N、全员同一个组合），也不去追问客人是不是真心这么选。**为什么**：有些客人就是图省事，主人一个人替全场定了（用户原话）——追问等于让他再干一遍他特意省掉的活。Nolan（Indio 12 人全员鸡+牛）就是这样。
 - **客户发来名单就当场录进发票**（`/api/self-service/orders/lookup` → 改 `guests` / `partyExtras` / `contactInfo` → `save-invoice`），然后回一条确认收到什么，别让他猜有没有录上。开场时间/日期/地址/联系人这几项直接 `desk order set <单号> --time 18:30`（它会先算价再存，并同步 planner）；看当前存了什么 `desk order show <单号>`。
 
 **发付款链接之前，先确认这是"他该用的那一条"**（用户 09-23 定，见铁律 4）：
