@@ -376,6 +376,7 @@ Real Hibachi · (213) 770-7788
    - ② 免费前菜 / 致敬计划（已有政策内的）
    - ③ 现金折扣，带宽内（**每人 ≤$5 或每单 ≤$100，取小**）
    - ④ **桌椅放最后**：桌椅成本 $4/人（付师傅），不比现金折扣便宜
+     - **例外（用户 2026-09-29 定）：客人在订之前自己问桌椅，桌椅就是这次的那一个让步，排第一个用，不等他说"贵"。**问桌椅本身就是在说预算，只是没说出口——等到他开口讲价，人早就走了。话术和边界见 §8「桌椅包不包（订之前问）」。
 3. **带宽内我直接定、当场发，事后在汇报里告诉用户**——为成交抢速度；超带宽、低于 $49.90/人、破 $599 底线 → 一句话问用户。
    - **周中例外（用户 2026-09-29 定）：周一到周四的派对，最低消费可以让到 $500。** 用户原话："都可以，但是作为一个谈判的弹性底线，不要直接写在网站上。"所以它是**谈判底线，不是公开价**——网站、自动报价、广告、引擎都还是 $599，**不主动报**，只在客人说了预算卡住之后、作为那"一个小赢"给出去，并且挂一个条件（今天锁日期）。"弹性"的意思是 $500 是地板不是新标价：客人报 $550 就按 $550 谈，不要自动让到底。低于 $500 照旧问用户。成交走协议总价的签名链接（§10），因为引擎算出来仍是 $599。**周五到周日不适用。**起因：LA 生日单 312-217-4907，周一 10/5，6 大 5 小，食物本身 $466.65 被 $599 顶上去，她说 "I'm trying to work in a budget"。
 4. **锁进签名链接 + 明确有效期**（**锁政策不锁总价**，用 `custom-deal`，§10）："Good through Sunday — here's the link with that price locked in: <link>"
@@ -699,6 +700,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | **X 日期有空吗** | 一律按开着回（"open on our end"）。用户 09-18 定：档期都有、兼职厨师充足，容量不是瓶颈；只有 <3 天的临时单或订单表里当天已经明显堆满时才问用户 |
 | **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说 |
 | **含税吗 / 有没有隐藏费用** | "Tax-included. The only extras are gratuity (20-25%, all to the chefs) and a 4% processing fee if you pay online by card or Venmo - cash has no fee." |
+| **桌椅包不包（订之前问）** | **把桌椅当成那一个让步，挂锁日期的条件**（用户 2026-09-29 定）："We do - they're normally $10 a guest, but lock the date today and I'll include them." 还没日期就说 "Pick your date and lock it, and I'll include them."；他说自家有桌椅 → "Then there's nothing extra at all."。**边界**：只送桌椅椅布（$10 那一档），餐具 $5 照常报；用了这个就不再给别的让步（§4.3 只让一次）；31 人以上仍问用户；**押金付了之后才问的照常收费**（那是 §7.1 的"蚕食"）。成交用 `custom-deal` 的 `freeExtraIds: ["tables_chairs"]` 锁进链接（§10），不要拿总价去抵。**例外里的例外**：客人卡在 $599 最低消费、自己提出"我只有几个人还要补最低消费，能不能打折"——她多付的那截正好装得下整套，用户 09-29 选了连餐具一起送（Andrea，Palm Springs 8 人，食物 $439.20 被顶到 $599，桌椅+餐具 $120 全送）。**依据**：9 月订前问过桌椅、听到"另收 $10/位"的 7 位客人里，3 位当场再没回话（Joshua Tree 949-697、Temecula 720-244、LA 231-383），Melissa（Aliso Viejo 10 人 $599）没问我们、比完去了别家，原话 "it came down to them not charging for tables and set up. You were my second choice."；桌椅现金成本约 $4/位，10 人单为多收 $100 丢了约 $350 毛利。 |
 | **餐具/盘子包含吗** | "Plates, napkins and silverware are $5/guest if we bring them, or use your own - either works. Chopsticks if you want them, no charge."（桌椅 $10/人另算；**筷子默认不带、要就给、不加钱，用户 09-20 定**） |
 | **能在室内做吗** | "All cooking is outdoors — patio, balcony, deck, or under a canopy. Seating can be inside." |
 | **当天要准备什么 / 要不要插座** | 这类问题是担心，答案要是一个轻松具体的场景（用户 09-19 定），拆两条："Here's the day: your chef arrives 10–30 min before start (earlier for bigger parties), lays a waterproof mat, sets the grill and hooks up the propane — no outlet, no power needed." "Tables, chairs & dishes: if you booked them, we set them and you just host — when the chef's ready, bring everyone over. If you're using your own, have them set before we arrive. Anything specific you want — a birthday plate, a seating idea — tell me and if we can do it, we will." |
@@ -728,7 +730,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - 不在公开页面 / 公开评论提押金；私聊可以。
 - **谈判红线（§7.1）**：姿态可以演（不急、请示后厨、后厨当黑脸），**事实不能编**（假档期、假竞争客户、假到期）；不白给让步——每一次让步都要换回报。
 - 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 送前菜（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
-- 不说桌椅周中免费（09-14 已撤）。
+- 不说桌椅周中免费（09-14 已撤）。和 §8「订前问桌椅就让」不冲突：那是对话里挂条件的一次让步，不是公开的免费政策——不上网站、不进自动报价、客人没问不主动提。
 - 不承诺室内烹饪、不承诺无坚果、不接自带蛋白。
 - 不淡化小费。
 - 213 线**只回不发**：不给没留过号码的人发短信；**不群发**（09-27 起系统 10 分钟 6 条刹车；一次只处理一个人，读完对话再写）。
