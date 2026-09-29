@@ -22,6 +22,7 @@
   python scripts/desk/desk.py order show <orderNo|orderId> the stored invoice: contact, guests, extras, notes, totals
   python scripts/desk/desk.py order set  <orderNo> [--date 2026-10-13] [--time 18:30] [--address ...]
                                    [--name ...] [--email ...] [--phone ...] [--notes-file f]   re-price, then save
+                                   [--proteins chicken=10 steak=10 shrimp=10]   totals texted by the customer
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
@@ -46,6 +47,10 @@ from _api import ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg,
 
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned)\s", re.I)
 THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
+
+
+# Protein ids the invoice engine knows (v0 invoice repo, lib/pricing.ts).
+PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"}
 
 
 def is_tapback(body: str) -> bool:
@@ -466,8 +471,37 @@ def cmd_order(a):
             tf.setdefault("freeRadiusMiles", 50)
             tf.setdefault("manualOverride", None)
             tf.setdefault("homeZipcode", tf.get("homeZipcode") or "")
+        if a.proteins:
+            # A customer who texts "chicken, steak and shrimp for 15" has given
+            # totals, not a pick per guest - that is what quick mode is for.
+            # Servings past two per guest are billed as extras by the engine,
+            # so the count here is the menu, not the chef's safety margin.
+            has_picks = any((g.get("proteins") or g.get("protein1") or g.get("protein2")) for g in (data.get("guests") or []))
+            if has_picks and data.get("mode") != "quick":
+                raise SystemExit("this order already has per-guest picks - change those in the planner / invoice tool, not with --proteins")
+            items = [q for q in (data.get("quickCountItems") or []) if q.get("category") != "protein"]
+            before = [f"{q.get('itemId')}={q.get('qty')}" for q in (data.get("quickCountItems") or []) if q.get("category") == "protein"]
+            adult_servings = 0
+            for pair in a.proteins:
+                m = re.fullmatch(r"([a-z_]+)=(\d+)(?:/(\d+))?", pair)
+                if not m or m.group(1) not in PROTEIN_IDS:
+                    raise SystemExit(f"--proteins {pair!r}: use id=N with id in {sorted(PROTEIN_IDS)}")
+                item = {"itemId": m.group(1), "category": "protein", "qty": int(m.group(2))}
+                if m.group(3):
+                    item["childQty"] = int(m.group(3))
+                adult_servings += item["qty"]
+                items.append(item)
+            changes.append(f"proteins: {before or 'none'} -> {a.proteins}")
+            if data.get("mode") != "quick":
+                changes.append(f"mode: {data.get('mode')!r} -> 'quick'")
+                data["mode"] = "quick"
+                data["guests"] = []
+            data["quickCountItems"] = items
+            expected = 2 * int(data.get("adultCount") or 0)
+            if adult_servings != expected:
+                print(f"   ! {adult_servings} adult servings for {data.get('adultCount')} adults - two each would be {expected}; extras are billed")
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -581,6 +615,8 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
+    p.add_argument("--proteins", nargs="+", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
+                   "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode.")
     p.set_defaults(fn=cmd_order)
 
     a = ap.parse_args(argv)

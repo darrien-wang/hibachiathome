@@ -766,13 +766,14 @@ python scripts/desk/desk.py link short  <长链> --lead <id>
 python scripts/desk/desk.py order find <姓名|手机|邮箱|单号>
 python scripts/desk/desk.py order show <单号>                # 发票内容：联系人、时间地址、逐人菜单、加购、NOTES(客户看得到)、内部备注、总价
 python scripts/desk/desk.py order set  <单号> --time 18:30 [--date] [--address] [--name] [--email] [--phone] [--notes-file f]   # 先算价再存，同步 planner
+python scripts/desk/desk.py order set  <单号> --proteins chicken=10 steak=10 shrimp=10   # 客人只给了总数/只说要哪几样：记成快速模式的份数
 python scripts/desk/desk.py order preview <单号>             # 只算不存
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]   # 客户发票邮件(+PDF+存档)；NOTES 有内部内容会先拦下来给你看
 python scripts/desk/desk.py calls <手机|leadId>                # 这个客人的来电录音（时间、时长）
 python scripts/desk/desk.py transcribe <手机|leadId> --last 2 [--model small|medium] [--note]   # 本机转录，客/我分声道；--note 挂到线索时间线（客人打过电话先转一遍再回短信，电话里说过的不要再问）
 ```
 
-`next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址和 NOTES；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。
+`next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址和 NOTES；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。**客人不逐人点、只说"鸡牛虾都要，15 个人你们备够"**（Nasim，2026-09-29）：用 `--proteins` 记总份数，**份数 = 人数 × 2**，平均分到他点名的几样上（15 人三样 = 10/10/10）。超过每人两份的部分引擎会按加购收钱，所以**发票上的数是菜单，不是师傅的备货余量**——余量写进线索备注提醒多备，不要加进发票。已经有逐人菜单的订单 `--proteins` 会拒绝，免得把客人自己填的冲掉。
 
 `send` 遇 409 会把刹车名和原因打出来（`daily` / `spacing` / `asked_known_date` / `sweep` / `followup_cap`），**默认就是对的**，`--force` 只用于客人正在等我们答复（§4.4）。同一个客人可能同时被另一个会话在处理（老板常开两个窗口）：`card` 里看到几分钟内已有我方新发的人工短信，就不要再发。
 
