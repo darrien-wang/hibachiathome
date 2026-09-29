@@ -488,7 +488,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - 客户问"是不是全包/all-in"的标准答法：`$X/head is tax-included (food, chefs, show). Gratuity isn't included - 20-25% is customary, and 100% of it goes to the chefs. Cash has no fee; if you pay online by card or Venmo there's a 4% processing fee.`
 - **Kosher**：能做的是**买 kosher 认证的肉，不加价**（用户 09-24 定）。**天花板就到这里**——铁板、餐具、流程没有拉比监督，不是全程 kosher。**客人不问就不提这个边界**（§1.05）。用户 09-24 的经验：**没有人那么严格**——问 kosher 的客人要的是肉，实际没人追问监督或证书，别自己脑补出这个场景再去解释。真被问到就如实说我们只做到肉是认证的。首例：Shiran Ross 818-331-2940，LA 90020，16 大 3 小，$988.10。
 - **桌椅**：$10/人（含**黑**桌布）；**餐具/摆台** $5/人；全套 $15/人；**白桌布 +$5/人**（所以落在白布上的主题贵这 $5）；**提前期：整套主题要提前约一周**（用户 09-23："周六可以加桌椅 但是需要看是什么"——桌椅本身短通知没问题，盘具主题看当时库存，答客人一律"告诉我你要哪种，我今天给你确认能到什么"，别直接承诺某个主题）；筷子免费（客人要就带）；桌椅只随派对租，不单租；**每天同价**（09-14 起周中不再免桌椅——`faq.ts` 第 34 行仍写着 "free on Mon–Thu"，已是旧口径，别照着说）。
-- **加菜**：第 3 个蛋白 +$10；升级 filet +$8 / scallops +$6 / lobster tail +$12；gyoza $15、edamame $10、spring rolls $15、noodles $5；炒饭 DIY 加料（虾/鸡）$10、加蛋 $1；饮料 $5/$12。炒饭和蔬菜**加量免费**（提前说）。
+- **加菜**：第 3 个蛋白 +$10；升级 **ribeye +$5**（用户 2026-09-28 定）/ filet +$8 / scallops +$6 / lobster tail +$12；gyoza $15、edamame $10、spring rolls $15、noodles $5；炒饭 DIY 加料（虾/鸡）$10、加蛋 $1；饮料 $5/$12。炒饭和蔬菜**加量免费**（提前说）。
 - **Appreciation $50**：轮换致敬（现在 **教师 2026-09-01→10-15**；老兵 10-16→11-30；医护 12-01→01-15；消防/急救 01-16→02-28）。$599+、一单一次、只按职业、**只与 Weekday Special 叠加**，不与人数折扣叠。
 - **回头客** $60/每 10 人（隐形福利，客户提到"上次订过"才给）。
 - **20+ 免费前菜 1 份（三选一，同上表）**（按活动日期 **10/31 前**有效；planner 自动加，员工工具在 Add Promotion 里手动加；与 Weekday Special 不叠，因为周中本来就送）。**桌椅 −$100** 是关单专用（closer-only），首条不提，只在最后一步犹豫时放。
@@ -579,6 +579,8 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
+  - **常规牛排是 top sirloin，不冷冻、提前一天买**（用户 2026-09-28 口述）。客人问肉好不好就说这两件事，别用形容词。想再上一档：**ribeye +$5/人**，filet +$8。“再好的牛肉冷冻过都不好了”只讲我们自己怎么做，**不写成普世真理**（客人抬杠就尴尬）；也不要说成“我们什么都不冻”——虾是 16/20 冻袋买的。
+  - ⚠️ **ribeye 还没进系统**：planner 和发票的 `PREMIUM_PROTEINS`（发票仓库 lib/pricing.ts）只有 scallops/filet/lobster，备料单 `lib/prep-bom.ts` 也没有它的份量。现在只能在对话里报价，要上清单/自助页得两个仓库同天改（还差一个份量 oz）。
   - **报分量必须同时说“每人选 2 种”**（用户 2026-09-28 抓到）。把几种蛋白并排列出来——“5 oz chicken, 4.5 oz steak, 5 jumbo shrimp a person”——客人会读成**三样都给**，当天才发现只有两样。正确写法：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo, salmon 4 oz.`判据：句子里出现两个以上蛋白，就必须有“picks 2 / choose 2”这个词。（首例：Judy Fridman 09-28，已发出去没更正，下一次开口时自然带入。）
 - **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
 - **厨师到达**：开席前 10–30 分钟（人多提前多），卸货、铺防水防油垫、架铁板、接丙烷，不用插座不用电。
