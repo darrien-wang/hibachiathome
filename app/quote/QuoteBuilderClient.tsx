@@ -703,12 +703,14 @@ export default function QuoteBuilderClient() {
   // Large-party appetizer promo: shown as a line under the guest buttons, not a
   // toast. On phones the toast landed right on top of the +/- buttons while
   // people were still tapping them (2026-09-14 rage clicks, owner hit it too).
-  const platterGuestsShort = Math.max(0, 20 - result.guestCount)
+  // Paying heads, not bodies (owner 2026-09-28): free under-5s never counted
+  // toward the 20, and half-price kids count half. guestCount includes both.
+  const platterGuestsShort = Math.max(0, 20 - result.paidHeadcount)
   const platterHint = result.includesAppetizerPlatter
     ? null
-    : result.guestCount >= 20
-      ? "Free appetizer of your choice included: gyoza, edamame or spring rolls (parties of 20+)"
-      : result.guestCount >= 15
+    : result.paidHeadcount >= 20
+      ? "Free appetizer of your choice included: gyoza, edamame or spring rolls (parties of 20+ adults)"
+      : result.paidHeadcount >= 15
         ? `${platterGuestsShort} more guest${platterGuestsShort === 1 ? "" : "s"} = free appetizer (your pick)`
         : null
 
@@ -2181,12 +2183,12 @@ export default function QuoteBuilderClient() {
                       <span className="font-semibold">−${result.loyaltyDiscount.toFixed(0)}</span>
                     </div>
                   ) : null}
-                  {result.includesAppetizerPlatter || result.guestCount >= 20 ? (
+                  {result.includesAppetizerPlatter || result.paidHeadcount >= 20 ? (
                     <div className="flex items-start gap-1.5 py-2.5 text-[13px] font-semibold text-gold-800">
                       <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       {result.includesAppetizerPlatter
                         ? "Free appetizer of your choice (gyoza, edamame or spring rolls) — included with the Weekday Special"
-                        : "Free appetizer of your choice (gyoza, edamame or spring rolls) — parties of 20+, through Oct 31"}
+                        : "Free appetizer of your choice (gyoza, edamame or spring rolls) — parties of 20+ adults, through Oct 31"}
                     </div>
                   ) : null}
                 </div>

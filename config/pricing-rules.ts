@@ -206,6 +206,20 @@ export function tierHeadcount(heads: TierHeads): number {
   return Math.floor(Math.max(0, heads.adults) + Math.max(0, heads.kids) * KID_TIER_WEIGHT)
 }
 
+/**
+ * The large-party free appetizer starts here, counted in the same paying heads
+ * as the tiers: adults 1, half-price kids 0.5, free little ones 0 (owner
+ * 2026-09-28). It used to be judged on bodies in the room, so 16 adults +
+ * 4 kids + 2 toddlers read as 22 and earned an appetizer the owner never meant
+ * to give. Public copy says "20+ adults" - simpler, and never promises more
+ * than this grants.
+ */
+export const LARGE_PARTY_APPETIZER_MIN = 20
+
+export function earnsLargePartyAppetizer(heads: TierHeads): boolean {
+  return tierHeadcount(heads) >= LARGE_PARTY_APPETIZER_MIN
+}
+
 export function partySizeDiscount(heads: TierHeads): number {
   const count = tierHeadcount(heads)
   const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)

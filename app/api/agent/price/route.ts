@@ -12,6 +12,7 @@ import {
   calcSimpleEstimate,
   calcTravelFee,
   checkWeekdayEligibility,
+  earnsLargePartyAppetizer,
   weekdayBlackoutLabel,
 } from "@/config/pricing-rules"
 
@@ -92,7 +93,10 @@ export async function GET(request: Request) {
 
   const quote = (weekday: boolean) => {
     const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee: travel.fee })
-    const platter = weekday || paidGuests + under5 >= 20
+    // Paying heads only (owner 2026-09-28): adults 1, half-price kids 0.5,
+    // free under-5s 0. This line used to add under5 in, which handed an
+    // appetizer to parties well short of the bar.
+    const platter = weekday || earnsLargePartyAppetizer({ adults, kids })
     return {
       plan: weekday ? "Weekday Special (Mon-Thu)" : "Standard",
       adultRate: weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price,

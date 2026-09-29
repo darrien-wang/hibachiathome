@@ -11,6 +11,7 @@ import {
   CALL_OUT_FEE_PER_CHEF,
   calcChefCount,
   calcAdultEquivalents,
+  tierHeadcount,
   calcReturningCustomerDiscount,
   PARTY_GUEST_CARD_DISCOUNT,
   isPromotionActive,
@@ -71,6 +72,8 @@ export type QuoteResult = {
   hasCoreInputs: boolean
   guestCount: number
   adultEquivalents: number
+  /** Paying heads for promo thresholds: adults 1, half-price kids 0.5, free under-5s 0. */
+  paidHeadcount: number
   chefCount: number
   callOutFee: number
   callOutFeeWaived: boolean
@@ -268,6 +271,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   return {
     hasCoreInputs,
     guestCount,
+    paidHeadcount: tierHeadcount({ adults, kids }),
     adultEquivalents,
     chefCount,
     callOutFee,
