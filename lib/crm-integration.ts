@@ -226,6 +226,14 @@ const PLACEHOLDER_PHONE_VALUES = new Set(["tbd", "n/a", "na", "unknown"])
 function asPhoneString(value: unknown): string | undefined {
   const text = asString(value)
   if (!text || PLACEHOLDER_PHONE_VALUES.has(text.toLowerCase())) return undefined
+  // Stored the way every lookup reads it. A phone kept as typed, "(562)
+  // 743-3690", made a paid customer invisible to everything that matches
+  // orders by trailing digits: on 2026-09-29 the SMS brake took him for a
+  // lead being chased and refused the text asking for his address.
+  if (/^\+\d{8,15}$/.test(text)) return text
+  const digits = text.replace(/\D/g, "")
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`
   return text
 }
 
