@@ -465,6 +465,25 @@ export function leadUnreplied(l: LeadRow): boolean {
   if (!Number.isFinite(inb)) return l.response_seconds === null && l.status === "new"
   return !Number.isFinite(out) || inb > out
 }
+/**
+ * 谁最后说了话——**和上面那个"客人等回复"不是一个问题**（老板 2026-09-29）。
+ *
+ * `leadUnreplied` 是漏斗口径，故意不算已成单 / 流失的人。可响铃那一侧（手机收件箱、
+ * 巡检）是**按号码扫 Twilio 的，根本不看状态**：成单客人发来的一条地址照样让手机
+ * 每十分钟响一次。于是 Daria（已成单）那条对话桌面写着"已回复"、手机却一直在报，
+ * 而关掉它的那颗按钮因为挂在漏斗口径上，恰恰不显示。
+ *
+ * 所以"这条对话现在球在谁那边"只能问这个函数。标过「不用回」的算已处理。
+ */
+export function customerSpokeLast(l: LeadRow): boolean {
+  const inb = l.last_inbound_at ? Date.parse(l.last_inbound_at) : NaN
+  if (!Number.isFinite(inb)) return false
+  const acked = l.acked_until ? Date.parse(l.acked_until) : NaN
+  if (Number.isFinite(acked) && inb <= acked) return false
+  const out = l.last_outbound_at ? Date.parse(l.last_outbound_at) : NaN
+  return !Number.isFinite(out) || inb > out
+}
+
 export function isTestLead(l: { full_name?: string | null; phone?: string | null }): boolean {
   const p = (l.phone ?? "").replace(/\D/g, "")
   if (/^1?\d{3}555\d{4}$/.test(p)) return true

@@ -16,6 +16,7 @@ import {
   LEAD_STATUS_LABELS,
   LEAD_TAG_CLASS,
   leadKeyword,
+  customerSpokeLast,
   leadUnreplied,
   md,
   ordersForLead,
@@ -162,6 +163,9 @@ export function LeadDialog({
   )
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
   const unreplied = leadUnreplied(lead)
+  // 顶栏那颗「不用回」跟着对话走，不跟着漏斗走：成单和流失的客人也会发消息，
+  // 手机也会为他们响（老板 2026-09-29）。
+  const spokeLast = customerSpokeLast(lead)
   const onHold = leadOnHold(lead)
   const acked = Boolean(lead.acked_until && Date.parse(lead.acked_until) > 0 &&
     (!lead.last_inbound_at || Date.parse(lead.last_inbound_at) <= Date.parse(lead.acked_until)))
@@ -395,7 +399,7 @@ export function LeadDialog({
                     「不用回」一直都在，但决定"这条我不回了"的那一秒，人看的是
                     这行红字，不是右栏。同一个动作，同一条水位线。 */}
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {unreplied ? (
+                  {spokeLast ? (
                     <button
                       type="button"
                       className="wb-chip wb-chip-sm"
@@ -406,8 +410,8 @@ export function LeadDialog({
                       {busy === "ack" ? "…" : "不用回"}
                     </button>
                   ) : null}
-                  <span style={{ color: unreplied ? "var(--color-accent-700)" : "var(--color-neutral-600)", textTransform: "none", letterSpacing: 0, fontWeight: 600 }}>
-                    {unreplied ? "客人在等回复" : acked ? "已标不用回" : lead.last_outbound_at ? "已回复" : "还没联系"}
+                  <span style={{ color: spokeLast ? "var(--color-accent-700)" : "var(--color-neutral-600)", textTransform: "none", letterSpacing: 0, fontWeight: 600 }}>
+                    {spokeLast ? "客人在等回复" : acked ? "已标不用回" : lead.last_outbound_at ? "已回复" : "还没联系"}
                   </span>
                 </span>
               </div>
