@@ -65,7 +65,7 @@ const INK = "var(--color-text)"
 const MUTED = "var(--color-neutral-700)"
 const fmt = (n: number) => String(Math.round(n * 10) / 10)
 
-type Tab = "stock" | "prep" | "in" | "out" | "chef" | "re"
+type Tab = "stock" | "prep" | "in" | "out" | "chef" | "re" | "kit"
 type Layout = "A" | "B" | "C"
 
 /* ---------- 小件 ---------- */
@@ -310,6 +310,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
     ["out", "出库 · 归还", outCount ? String(outCount) : ""],
     ["chef", "厨师", ""],
     ["re", "补货清单", needs.length ? String(needs.length) : ""],
+    ["kit", "学员套装", ""],
   ]
 
   /* --- 周转品的两个按钮 --- */
@@ -536,6 +537,8 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
       ) : null}
 
       {tab === "prep" ? <PrepPlanner adminKey={adminKey} events={d.events} /> : null}
+
+      {tab === "kit" ? <TraineeKits adminKey={adminKey} /> : null}
 
       {tab === "in" ? (
         <>
@@ -1080,6 +1083,339 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
           ) : null}
         </div>
       ) : null}
+    </div>
+  )
+}
+
+
+/* ---------- 学员套装：一套要买什么 + 手上这几套现在怎么样 ---------- */
+
+type Candidate = { title: string; url?: string; price?: number; ship?: number; store?: string; note?: string }
+type KitItem = {
+  id: string
+  label: string
+  qty: number
+  unit: string
+  item_key: string | null
+  buy_channel: string | null
+  est_cost_cents: number | null
+  note: string | null
+  candidates: Candidate[]
+  chosen_url: string | null
+  buy_note: string | null
+}
+type Kit = {
+  id: string
+  kit_no: string
+  status: "in_stock" | "on_loan" | "sold" | "retired"
+  holder_staff_id: string | null
+  holder_name: string | null
+  cost_cents: number
+  sold_price_cents: number | null
+  bought_on: string | null
+  loaned_on: string | null
+  sold_on: string | null
+  note: string | null
+}
+type KitResp = {
+  items: KitItem[]
+  kits: Kit[]
+  staff: Array<{ id: string; name: string }>
+  /** 坐席看不到套装的钱（和厨师工资一个口径），这时台账页整个不给。 */
+  canSeeMoney?: boolean
+  summary: { inStock: number; onLoan: number; sold: number; spentCents: number; recoveredCents: number }
+}
+
+const KIT_STATUS: Record<Kit["status"], string> = {
+  in_stock: "在库",
+  on_loan: "学员试用中",
+  sold: "已卖出",
+  retired: "拆了",
+}
+
+const money = (c: number | null | undefined) =>
+  c === null || c === undefined ? "—" : `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+// 到手价 = 标价 + 运费。$0.89 的东西加 $3.90 运费比 $3.32 的贵，按标价排会选错。
+const landed = (c: Candidate) => (c.price ?? 0) + (c.ship ?? 0)
+
+function TraineeKits({ adminKey }: { adminKey: string }) {
+  const [d, setD] = useState<KitResp | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [view, setView] = useState<"buy" | "ledger">("buy")
+
+  const load = useCallback(async () => {
+    try {
+      setD(await adminJson<KitResp>(adminKey, "/api/admin/trainee-kits"))
+      setErr(null)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "读不到")
+    }
+  }, [adminKey])
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const act = useCallback(
+    async (body: Record<string, unknown>, label: string) => {
+      setBusy(label)
+      try {
+        await adminJson(adminKey, "/api/admin/trainee-kits", { body })
+        await load()
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "没存上")
+      } finally {
+        setBusy(null)
+      }
+    },
+    [adminKey, load],
+  )
+
+  if (!d) return <div style={{ color: MUTED, fontSize: 13 }}>{err ? `读不到：${err}` : "读取中…"}</div>
+
+  // 一套大概多少钱：选定的那个优先，没选就用最便宜的候选，都没有就不算。
+  let known = 0
+  let unknown = 0
+  for (const it of d.items) {
+    const picked = it.candidates.find((c) => c.url && c.url === it.chosen_url)
+    const cheapest = [...it.candidates].sort((a, b) => landed(a) - landed(b))[0]
+    const c = picked ?? cheapest
+    if (c) known += landed(c)
+    else if (it.est_cost_cents) known += it.est_cost_cents
+    else unknown += 1
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24 }}>学员套装</div>
+        <div style={{ fontSize: 13, color: MUTED, marginTop: 4, lineHeight: 1.6 }}>
+          自己垫一套给学员跑一两场，他要长干就把这套卖给他，你再配一套。所以它不算消耗品也不算周转品——
+          卖出去就是它的归宿。成本不进采购流水，不会污染看板上的每人食材成本。
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+        {(d.canSeeMoney === false ? ([["buy", "一套买什么"]] as const) : ([["buy", "一套买什么"], ["ledger", "我的套装"]] as const)).map(([k, label]) => (
+          <button key={k} type="button" className="wb-chip wb-chip-sm" aria-pressed={view === k} onClick={() => setView(k)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {err ? <div className="notice danger" style={{ marginBottom: 12 }}>{err}</div> : null}
+
+      {view === "buy" ? (
+        <div>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 10, marginBottom: 4 }}>
+            <div>
+              <div className="kicker">配一套（已定价的部分）</div>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 26 }}>{money(known)}</div>
+            </div>
+            <div style={{ fontSize: 12.5, color: MUTED }}>
+              {d.items.length} 项 · 还有 {unknown} 项没找价（合计只算已有价的，所以这个数只会往上走）
+            </div>
+          </div>
+
+          {d.items.map((it) => {
+            const cheapest = [...it.candidates].sort((a, b) => landed(a) - landed(b))[0]
+            return (
+              <div key={it.id} style={{ padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>
+                    {it.label}
+                    {it.qty > 1 ? <span style={{ color: MUTED, fontWeight: 600 }}> ×{it.qty}</span> : null}
+                    {it.item_key ? <Tag cls="tag-faint">仓库有</Tag> : null}
+                    {it.buy_channel ? <Tag cls="tag-outline">{it.buy_channel}</Tag> : null}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 16, whiteSpace: "nowrap" }}>
+                    {cheapest ? money(landed(cheapest)) : <span style={{ color: MUTED, fontSize: 13, fontWeight: 600 }}>还没找</span>}
+                  </div>
+                </div>
+
+                {it.buy_note ? (
+                  <div style={{ fontSize: 12.5, color: "var(--color-accent-700)", marginTop: 4, lineHeight: 1.5 }}>{it.buy_note}</div>
+                ) : null}
+                {it.note ? <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3, lineHeight: 1.5 }}>{it.note}</div> : null}
+
+                {it.candidates.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                    {it.candidates.map((c, i) => {
+                      const chosen = !!c.url && c.url === it.chosen_url
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            alignItems: "baseline",
+                            flexWrap: "wrap",
+                            padding: "7px 10px",
+                            border: chosen ? `2px solid ${INK}` : "1px solid var(--color-divider)",
+                            background: chosen ? "var(--color-surface-2)" : undefined,
+                          }}
+                        >
+                          <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 14, whiteSpace: "nowrap" }}>
+                            {money(landed(c))}
+                          </span>
+                          {c.ship ? <span style={{ fontSize: 11, color: MUTED, whiteSpace: "nowrap" }}>（含运费 {money(c.ship)}）</span> : null}
+                          <span style={{ fontSize: 13, minWidth: 0, flex: 1 }}>
+                            {c.url ? (
+                              <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                                {c.title}
+                              </a>
+                            ) : (
+                              c.title
+                            )}
+                            {c.note ? <span style={{ color: MUTED }}> · {c.note}</span> : null}
+                          </span>
+                          {c.url ? (
+                            <button
+                              type="button"
+                              className="wb-chip wb-chip-sm"
+                              disabled={!!busy}
+                              onClick={() => void act({ action: "set_item", id: it.id, chosen_url: chosen ? "" : c.url }, `pick:${it.id}`)}
+                            >
+                              {chosen ? "已选" : "选它"}
+                            </button>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      ) : d.canSeeMoney === false ? (
+        <div style={{ color: MUTED, fontSize: 13 }}>套装台账带成本和卖价，只有 owner 能看。</div>
+      ) : (
+        <KitLedger d={d} busy={busy} act={act} />
+      )}
+    </div>
+  )
+}
+
+function KitLedger({
+  d,
+  busy,
+  act,
+}: {
+  d: KitResp
+  busy: string | null
+  act: (body: Record<string, unknown>, label: string) => Promise<void>
+}) {
+  const s = d.summary
+  const cell = (label: string, value: string, hint?: string) => (
+    <div className="wb-cell">
+      <div className="kicker">{label}</div>
+      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24 }}>{value}</div>
+      {hint ? <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{hint}</div> : null}
+    </div>
+  )
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginBottom: 18 }}>
+        {cell("在库能给出去", String(s.inStock), "配齐了放着的")}
+        {cell("学员试用中", String(s.onLoan), "")}
+        {cell("已卖出", String(s.sold), "")}
+        {cell("垫出去 / 收回来", `${money(s.spentCents)} / ${money(s.recoveredCents)}`, "收回来的只算已卖出的")}
+      </div>
+
+      <button
+        type="button"
+        className="btn btn-primary"
+        disabled={!!busy}
+        onClick={() => void act({ action: "add_kit" }, "add")}
+        style={{ marginBottom: 14 }}
+      >
+        {busy === "add" ? "加着…" : "+ 配了新的一套"}
+      </button>
+
+      {d.kits.length === 0 ? (
+        <div style={{ color: MUTED, fontSize: 13 }}>还没有记过套装。买齐一套之后点上面那个按钮。</div>
+      ) : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {d.kits.map((k) => (
+          <div key={k.id} style={{ border: `2px solid ${INK}`, padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 18 }}>
+                {k.kit_no} <Tag cls={k.status === "sold" ? "tag-accent" : k.status === "on_loan" ? "tag-ink" : "tag-neutral"}>{KIT_STATUS[k.status]}</Tag>
+              </div>
+              <div style={{ fontSize: 13, color: MUTED }}>
+                成本 {money(k.cost_cents)}
+                {k.sold_price_cents !== null ? ` · 卖了 ${money(k.sold_price_cents)}` : ""}
+                {k.status === "sold" ? (
+                  <b style={{ color: k.sold_price_cents !== null && k.sold_price_cents >= k.cost_cents ? "var(--color-accent-700)" : undefined }}>
+                    {" "}
+                    · {k.sold_price_cents !== null && k.sold_price_cents >= k.cost_cents ? "回本了" : "还差 " + money(k.cost_cents - (k.sold_price_cents ?? 0))}
+                  </b>
+                ) : null}
+              </div>
+            </div>
+            {k.holder_name ? <div style={{ fontSize: 13, marginTop: 4 }}>在 {k.holder_name} 手上</div> : null}
+
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+              {k.status !== "on_loan" && k.status !== "sold" ? (
+                <>
+                  {d.staff.map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      className="wb-chip wb-chip-sm"
+                      disabled={!!busy}
+                      onClick={() =>
+                        void act({ action: "set_kit", id: k.id, status: "on_loan", holder_staff_id: st.id, holder_name: st.name }, `loan:${k.id}`)
+                      }
+                    >
+                      借给 {st.name}
+                    </button>
+                  ))}
+                </>
+              ) : null}
+              {k.status === "on_loan" ? (
+                <>
+                  <button
+                    type="button"
+                    className="wb-chip wb-chip-sm"
+                    disabled={!!busy}
+                    onClick={async () => {
+                      const v = await askPrompt({ title: `${k.kit_no} 卖给 ${k.holder_name ?? "学员"}`, message: "卖了多少钱？（只填数字，美元）", placeholder: "例如 650", inputMode: "decimal" })
+                      if (v === null) return
+                      const n = Math.round(Number(v) * 100)
+                      if (!Number.isFinite(n) || n < 0) return
+                      await act({ action: "set_kit", id: k.id, status: "sold", sold_price_cents: n }, `sell:${k.id}`)
+                    }}
+                  >
+                    卖给他了
+                  </button>
+                  <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void act({ action: "set_kit", id: k.id, status: "in_stock" }, `back:${k.id}`)}>
+                    还回来了
+                  </button>
+                </>
+              ) : null}
+              <button
+                type="button"
+                className="wb-chip wb-chip-sm"
+                disabled={!!busy}
+                onClick={async () => {
+                  const v = await askPrompt({ title: `${k.kit_no} 配齐花了多少`, message: "只填数字，美元", placeholder: "例如 420", inputMode: "decimal" })
+                  if (v === null) return
+                  const n = Math.round(Number(v) * 100)
+                  if (!Number.isFinite(n) || n < 0) return
+                  await act({ action: "set_kit", id: k.id, cost_cents: n }, `cost:${k.id}`)
+                }}
+              >
+                改成本
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
