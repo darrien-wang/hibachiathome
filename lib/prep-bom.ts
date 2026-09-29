@@ -47,6 +47,10 @@ const PROTEIN_PORTIONS: Record<string, { adult: number; child: number; unit: str
   scallops: { adult: 4, child: 2, unit: "oz" },
   filet_mignon: { adult: 4.5, child: 2.25, unit: "oz" },
   lobster_tail: { adult: 6, child: 3, unit: "oz" },
+  // Staff-only upgrade (owner 2026-09-28, +$5 a head incl. kids). Not on the
+  // party page - staff put it on the invoice - but the chef still has to shop
+  // for it, so it needs a portion here. Mirrors the invoice repo's lib/pricing.ts.
+  ribeye: { adult: 4.5, child: 2.25, unit: "oz" },
 }
 const PROTEIN_LABELS: Record<string, string> = {
   chicken: "Chicken 鸡胸",
@@ -57,6 +61,7 @@ const PROTEIN_LABELS: Record<string, string> = {
   scallops: "Scallops 带子",
   filet_mignon: "Filet Mignon 菲力",
   lobster_tail: "Lobster Tail 龙虾尾",
+  ribeye: "Ribeye 肋眼",
 }
 const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
 const SALAD = { adult: 1, child: 0.5 } // 份
@@ -127,6 +132,8 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   // 西冷按盒（用户 09-24 定）：Family Pack 平均 1.6 lb/盒，经验 1 盒 ≈ 4 个选牛排的客人
   // （每人 6.4 oz，比份量表 4.5 oz 多四成——宁多勿少已含在规则里，不另乘 BUFFER）
   if (id === "steak") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil(qty / 18))} 盒（Family Pack ≈1.6lb/盒 ≈ 4 人）`
+  // 肋眼没有固定包装规格，按重量买（份量同西冷 4.5 oz，宁多勿少走 BUFFER）
+  if (id === "ribeye") return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp((qty * BUFFER) / 16)} lb`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
   if (id === "salmon") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_BAG_OZ))} 袋（Marketside 2lb 真空袋 = 5 块）`
   if (id === "shrimp") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / 43))} 袋（1 袋 = 43 只，09-24 实数）`

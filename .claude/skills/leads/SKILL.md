@@ -580,7 +580,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
   - **常规牛排是 top sirloin，不冷冻、提前一天买**（用户 2026-09-28 口述）。客人问肉好不好就说这两件事，别用形容词。想再上一档：**ribeye +$5/人**，filet +$8。“再好的牛肉冷冻过都不好了”只讲我们自己怎么做，**不写成普世真理**（客人抬杠就尴尬）；也不要说成“我们什么都不冻”——虾是 16/20 冻袋买的。
-  - ⚠️ **ribeye 还没进系统**：planner 和发票的 `PREMIUM_PROTEINS`（发票仓库 lib/pricing.ts）只有 scallops/filet/lobster，备料单 `lib/prep-bom.ts` 也没有它的份量。现在只能在对话里报价，要上清单/自助页得两个仓库同天改（还差一个份量 oz）。
+  - **ribeye 是隐藏项（用户 2026-09-28 定）**：只在**员工发票工具**里选得到（发票仓库 `STAFF_ONLY_PROTEINS`），**客户的派对页 planner 里永远不显示**，官网、FAQ、`/api/invoice/schema` 也都不写。**不主动告诉客户**；只有客人问“你们带什么牛肉/能不能更好”时才报。客人要了就员工在发票里加，份量按 4.5 oz（同西冷/菲力），备料单已同步（`lib/prep-bom.ts`）。
   - **报分量必须同时说“每人选 2 种”**（用户 2026-09-28 抓到）。把几种蛋白并排列出来——“5 oz chicken, 4.5 oz steak, 5 jumbo shrimp a person”——客人会读成**三样都给**，当天才发现只有两样。正确写法：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo, salmon 4 oz.`判据：句子里出现两个以上蛋白，就必须有“picks 2 / choose 2”这个词。（首例：Judy Fridman 09-28，已发出去没更正，下一次开口时自然带入。）
 - **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
 - **厨师到达**：开席前 10–30 分钟（人多提前多），卸货、铺防水防油垫、架铁板、接丙烷，不用插座不用电。
