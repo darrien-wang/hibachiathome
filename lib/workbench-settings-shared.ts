@@ -66,6 +66,27 @@ export type WorkbenchSettings = {
     day_end_hour: number
     evening_from_hour: number
   }
+  dispatch: {
+    /**
+     * 照的是老板他们人工排班的口径（2026-09-29 口述，见 lib/dispatch.ts）。
+     * 占用时长是一个范围：开场到装车能出发，顺利 90 分钟、拖满 120 分钟。
+     * 订单表里的 service_duration_minutes 全是默认值，派工不读它。
+     */
+    busy_min_minutes: number
+    busy_max_minutes: number
+    /** 目标：下一场开场前多久到。 */
+    arrive_early_minutes: number
+    /** 迟到多久以内算"最差还能接受"。 */
+    late_ok_minutes: number
+    /** 迟到的极限——到这个数就要给客人补偿了。 */
+    late_limit_minutes: number
+    /**
+     * 车程用 Google 按出发时刻预测路况，而不是 OSRM 的不堵车理想值。
+     * 默认关：带出发时刻的调用走 Google 更贵的计费档，花的是老板账户的钱，
+     * 得他自己点开。
+     */
+    google_traffic: boolean
+  }
   notifications: {
     /**
      * Copy every inbound customer text to the ops mailbox.
@@ -101,6 +122,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "targets",
   "sms_brakes",
   "lead_watch",
+  "dispatch",
   "notifications",
   "quick_replies",
   "calendar",
@@ -147,6 +169,14 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     auto_first_response: true,
     grace_minutes: 5,
     renotify_minutes: 120,
+  },
+  dispatch: {
+    busy_min_minutes: 90,
+    busy_max_minutes: 120,
+    arrive_early_minutes: 10,
+    late_ok_minutes: 30,
+    late_limit_minutes: 60,
+    google_traffic: false,
   },
   notifications: {
     sms_to_email: false,
@@ -270,6 +300,21 @@ export function sanitizeSection<K extends SettingsSection>(section: K, raw: unkn
         auto_first_response: bool(r.auto_first_response, d.lead_watch.auto_first_response),
         grace_minutes: num(r.grace_minutes, d.lead_watch.grace_minutes, 0, 120),
         renotify_minutes: num(r.renotify_minutes, d.lead_watch.renotify_minutes, 10, 1440),
+      }
+      return out as WorkbenchSettings[K]
+    }
+    case "dispatch": {
+      const r = isObj(raw) ? raw : {}
+      const lo = num(r.busy_min_minutes, d.dispatch.busy_min_minutes, 30, 300)
+      const ok = num(r.late_ok_minutes, d.dispatch.late_ok_minutes, 0, 180)
+      const out: WorkbenchSettings["dispatch"] = {
+        busy_min_minutes: lo,
+        // 拖满不可能比顺利还短；极限不可能比"还能接受"还小。
+        busy_max_minutes: Math.max(lo, num(r.busy_max_minutes, d.dispatch.busy_max_minutes, 30, 360)),
+        arrive_early_minutes: num(r.arrive_early_minutes, d.dispatch.arrive_early_minutes, 0, 120),
+        late_ok_minutes: ok,
+        late_limit_minutes: Math.max(ok, num(r.late_limit_minutes, d.dispatch.late_limit_minutes, 0, 240)),
+        google_traffic: bool(r.google_traffic, d.dispatch.google_traffic),
       }
       return out as WorkbenchSettings[K]
     }

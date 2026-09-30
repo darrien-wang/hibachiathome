@@ -4,19 +4,29 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { geocode } from "@/lib/travel-distance"
 import { HOME_BASE_QUERY } from "@/config/home-base"
 import { decodePlusCode, parseLatLng, parsePlusCode, recoverPlusCode } from "@/lib/plus-code"
+import { planDay, type DayPlan, type DispatchParams } from "@/lib/dispatch"
+import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-// 一天几场摆到地图上（老板 2026-09-29）：五场挤在 17:00–20:30，能不能让一个师傅
-// 连做两场，全看它们离多远、顺不顺路。
+// 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
+// 判断规则和它为什么这么写，见 lib/dispatch.ts。
 //
-// 全程免 key：地址用 Nominatim（地址补全本来就在用），车程用 OSRM，底图用 OSM 的
+// 默认全程免 key：地址用 Nominatim（地址补全本来就在用），车程用 OSRM，底图用 OSM 的
 // 瓦片。坐标查过就存进 address_geo——Nominatim 每秒只准问一次，老板来回点几下就撞
 // 配额了，而地址不会自己搬家。
+//
+// 车程有两个来源：
+//   · OSRM —— 免费，但给的是不堵车的理想值。
+//   · Google —— 带上师傅**实际出发的那个时刻**，返回按那个时段预测的路况。这类调用
+//     走 Google 更贵的计费档，所以挂在 设置 → 派工 的开关后面，默认关。
+// Google 任何一步失败都整体退回 OSRM，不把两个来源的数字混在一张图里。
 
 const OSRM_TABLE = "https://router.project-osrm.org/table/v1/driving"
+const GOOGLE_MATRIX = "https://maps.googleapis.com/maps/api/distancematrix/json"
 const METERS_PER_MILE = 1609.344
+const UA = "RealHibachi-Marketing/1.0 (support@realhibachi.com)"
 
 type OrderRow = {
   id: string
@@ -30,6 +40,9 @@ type OrderRow = {
   order_status: string | null
 }
 
+type Matrix = { minutes: Array<Array<number | null>>; miles: Array<Array<number | null>> }
+type DriveSource = "google_traffic" | "google" | "osrm" | "none"
+
 const norm = (a: string) => a.trim().replace(/\s+/g, " ").toLowerCase()
 
 type Located = { lat: number; lng: number; label: string; approx?: boolean }
@@ -41,6 +54,9 @@ const safeGeocode = async (q: string) => {
     return null
   }
 }
+
+/** 只写了城市、没写门牌（"Indio"、"La Quinta"）——定位得到，但图钉是市中心不是客人家。 */
+const streetless = (a: string) => !parseLatLng(a) && !parsePlusCode(a) && !/\d/.test(a.split(",")[0] ?? "")
 
 /**
  * 地址 → 坐标，按"最可信的先试"排：
@@ -123,29 +139,112 @@ async function locate(
   return hit
 }
 
-/**
- * 每一场到下一场的车程。一次 OSRM table 调用拿全部两两距离，不是 n 次路径查询——
- * 五个点就是 20 条腿，一条条问会被限流。
- */
-async function legs(points: Array<{ lat: number; lng: number }>): Promise<Array<{ minutes: number; miles: number } | null>> {
-  if (points.length < 2) return []
+// ---------------------------------------------------------------- 车程
+
+type Pt = { lat: number; lng: number }
+
+const empty = (n: number): Matrix => ({
+  minutes: Array.from({ length: n }, () => new Array<number | null>(n).fill(null)),
+  miles: Array.from({ length: n }, () => new Array<number | null>(n).fill(null)),
+})
+
+/** 一次调用拿全部两两车程，不是 n² 次路径查询——五个点就是 20 条腿，一条条问会被限流。 */
+async function osrmMatrix(points: Pt[]): Promise<Matrix | null> {
+  if (points.length < 2) return empty(points.length)
   const coords = points.map((p) => `${p.lng},${p.lat}`).join(";")
   try {
-    const res = await fetch(`${OSRM_TABLE}/${coords}?annotations=duration,distance`, {
-      headers: { "User-Agent": "RealHibachi-Marketing/1.0 (support@realhibachi.com)" },
-      cache: "no-store",
-    })
-    if (!res.ok) return points.slice(1).map(() => null)
-    const j = (await res.json()) as { durations?: number[][]; distances?: number[][] }
-    return points.slice(1).map((_, i) => {
-      const sec = j.durations?.[i]?.[i + 1]
-      const m = j.distances?.[i]?.[i + 1]
-      if (typeof sec !== "number" || typeof m !== "number") return null
-      return { minutes: Math.round(sec / 60), miles: Math.round((m / METERS_PER_MILE) * 10) / 10 }
-    })
+    const res = await fetch(`${OSRM_TABLE}/${coords}?annotations=duration,distance`, { headers: { "User-Agent": UA }, cache: "no-store" })
+    if (!res.ok) return null
+    const j = (await res.json()) as { code?: string; durations?: Array<Array<number | null>>; distances?: Array<Array<number | null>> }
+    if (j.code !== "Ok" || !j.durations) return null
+    const out = empty(points.length)
+    for (let i = 0; i < points.length; i++) {
+      for (let k = 0; k < points.length; k++) {
+        const sec = j.durations[i]?.[k]
+        const m = j.distances?.[i]?.[k]
+        if (typeof sec === "number") out.minutes[i][k] = Math.round(sec / 60)
+        if (typeof m === "number") out.miles[i][k] = Math.round((m / METERS_PER_MILE) * 10) / 10
+      }
+    }
+    return out
   } catch {
-    return points.slice(1).map(() => null)
+    return null
   }
+}
+
+/**
+ * Google 的车程，每个出发点单独问一次：出发时刻因人而异（上一场几点收完摊，师傅就
+ * 几点上路），而一次请求只能带一个出发时刻。
+ *
+ * 只问"往后接"的那些目的地——往回开的腿排班用不上，问了白花钱。
+ * 出发时刻已经过去的（回看昨天）Google 不接受，那一行就不带时刻、拿不含路况的数。
+ */
+async function googleMatrix(
+  points: Pt[],
+  starts: number[],
+  departMs: number[],
+  apiKey: string,
+): Promise<{ matrix: Matrix; traffic: boolean } | null> {
+  const n = points.length
+  const out = empty(n)
+  let allTraffic = true
+  const now = Date.now()
+  try {
+    for (let i = 0; i < n; i++) {
+      const later = points.map((_, k) => k).filter((k) => k !== i && starts[k] > starts[i])
+      if (later.length === 0) continue
+      const params = new URLSearchParams({
+        origins: `${points[i].lat},${points[i].lng}`,
+        destinations: later.map((k) => `${points[k].lat},${points[k].lng}`).join("|"),
+        units: "imperial",
+        key: apiKey,
+      })
+      const future = departMs[i] > now + 60_000
+      if (future) params.set("departure_time", String(Math.floor(departMs[i] / 1000)))
+      else allTraffic = false
+      const res = await fetch(`${GOOGLE_MATRIX}?${params}`, { cache: "no-store" })
+      if (!res.ok) return null
+      const j = (await res.json()) as {
+        status?: string
+        rows?: Array<{ elements?: Array<{ status?: string; duration?: { value?: number }; duration_in_traffic?: { value?: number }; distance?: { value?: number } }> }>
+      }
+      if (j.status !== "OK") return null
+      const els = j.rows?.[0]?.elements ?? []
+      for (let x = 0; x < later.length; x++) {
+        const el = els[x]
+        if (!el || el.status !== "OK") continue
+        const sec = el.duration_in_traffic?.value ?? el.duration?.value
+        if (typeof sec === "number") out.minutes[i][later[x]] = Math.round(sec / 60)
+        if (typeof el.distance?.value === "number") out.miles[i][later[x]] = Math.round((el.distance.value / METERS_PER_MILE) * 10) / 10
+        if (future && typeof el.duration_in_traffic?.value !== "number") allTraffic = false
+      }
+    }
+    return { matrix: out, traffic: allTraffic }
+  } catch {
+    return null
+  }
+}
+
+/** PT 的墙上时间 → 真实时刻。订单存的是墙上时间（按 UTC 写入），Google 要的是真实时刻。 */
+function ptInstantMs(date: string, minutesOfDay: number): number {
+  const asUtc = Date.parse(`${date}T00:00:00Z`) + minutesOfDay * 60_000
+  const tz =
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", timeZoneName: "shortOffset" })
+      .formatToParts(new Date(asUtc))
+      .find((p) => p.type === "timeZoneName")?.value ?? "GMT-8"
+  const m = /GMT([+-]\d{1,2})(?::(\d{2}))?/.exec(tz)
+  const offsetMin = m ? Number(m[1]) * 60 + (m[2] ? Math.sign(Number(m[1])) * Number(m[2]) : 0) : -480
+  return asUtc - offsetMin * 60_000
+}
+
+// 同一天的图来回开（每次「定位」都会重载），别每次都去问一遍路——尤其是按次计费的那家。
+const driveCache = new Map<string, { at: number; matrix: Matrix; source: DriveSource; note: string | null }>()
+const DRIVE_TTL_MS = 15 * 60_000
+
+const clock = (minutesOfDay: number) => {
+  const h = Math.floor(minutesOfDay / 60) % 24
+  const m = minutesOfDay % 60
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`
 }
 
 export async function GET(request: NextRequest) {
@@ -168,40 +267,169 @@ export async function GET(request: NextRequest) {
 
   const rows = ((data ?? []) as OrderRow[]).filter((r) => !/cancel|void|refund/i.test(r.order_status ?? ""))
 
-  const stops = []
+  type StopRow = {
+    id: string
+    orderNo: string
+    name: string
+    phone: string | null
+    address: string
+    time: string
+    startMin: number
+    guests: number
+    lat: number | null
+    lng: number | null
+    approx: boolean
+  }
+  const stops: StopRow[] = []
   for (const r of rows) {
     const addr = (r.event_address ?? "").trim()
     const geo = addr ? await locate(supabase, addr) : null
     const t = r.event_start ? new Date(r.event_start) : null
+    const startMin = t ? t.getUTCHours() * 60 + t.getUTCMinutes() : 0
     stops.push({
       id: r.id,
       orderNo: r.order_no,
       name: (r.customer_name ?? "").trim() || "未留名",
       phone: r.customer_phone ?? null,
       address: addr,
-      time: t ? t.toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }) : "",
+      time: clock(startMin),
+      startMin,
       guests: (r.guest_adult_count ?? 0) + (r.guest_child_count ?? 0),
       lat: geo?.lat ?? null,
       lng: geo?.lng ?? null,
-      // 只精确到城市/邮编的要标出来，别让人以为图钉就是门口。
-      approx: !!geo?.approx,
+      // 图钉不是门口的两种情况：查不到街道退到了城市，或者地址本来就只写了城市。
+      // 手工定位过的不算。
+      approx: !!geo && (!!geo.approx || (streetless(addr) && !geo.label.includes("手工定位"))),
     })
   }
 
-  const placed = stops.filter((s) => s.lat !== null && s.lng !== null) as Array<(typeof stops)[number] & { lat: number; lng: number }>
+  const settings = await getWorkbenchSettings()
+  const dp = settings.dispatch
+  const params: DispatchParams = {
+    busyMinMinutes: dp.busy_min_minutes,
+    busyMaxMinutes: dp.busy_max_minutes,
+    arriveEarlyMinutes: dp.arrive_early_minutes,
+  }
+
+  // 车程只在定位到的场次之间算；定位不到的那几场各占一个师傅。
+  const placedIdx = stops.map((s, i) => (s.lat !== null && s.lng !== null ? i : -1)).filter((i) => i >= 0)
+  const pts = placedIdx.map((i) => ({ lat: stops[i].lat as number, lng: stops[i].lng as number }))
+  const startsPlaced = placedIdx.map((i) => stops[i].startMin)
+
+  let source: DriveSource = "none"
+  let note: string | null = null
+  let small: Matrix = empty(pts.length)
+
+  if (pts.length >= 2) {
+    const wantGoogle = settings.dispatch.google_traffic && !!process.env.GOOGLE_MAPS_API_KEY
+    const cacheKey = JSON.stringify([date, wantGoogle, pts, startsPlaced, params])
+    const cached = driveCache.get(cacheKey)
+    if (cached && Date.now() - cached.at < DRIVE_TTL_MS) {
+      small = cached.matrix
+      source = cached.source
+      note = cached.note
+    } else {
+      if (wantGoogle) {
+        // 师傅上路的时刻：开场后 90–120 分钟之间，取中间那个点去问路况。
+        const depart = startsPlaced.map((s) => ptInstantMs(date, s + Math.round((params.busyMinMinutes + params.busyMaxMinutes) / 2)))
+        const g = await googleMatrix(pts, startsPlaced, depart, process.env.GOOGLE_MAPS_API_KEY as string)
+        if (g) {
+          small = g.matrix
+          source = g.traffic ? "google_traffic" : "google"
+        } else {
+          note = "Google 没算出来（多半是这把 key 没开通 Distance Matrix），这次用的是不含堵车的车程"
+        }
+      } else if (settings.dispatch.google_traffic) {
+        note = "开了 Google 路况，但服务器上没配 GOOGLE_MAPS_API_KEY"
+      }
+      if (source === "none") {
+        const o = await osrmMatrix(pts)
+        if (o) {
+          small = o
+          source = "osrm"
+        } else {
+          note = "车程没算出来（路线服务没响应），下面的排班只能当每场各派一个师傅"
+        }
+      }
+      if (source !== "none") driveCache.set(cacheKey, { at: Date.now(), matrix: small, source, note })
+    }
+  }
+
+  // 摊回全部场次的下标：planDay 看的是"当天所有场次"，定位不到的那几行全是 null。
+  const n = stops.length
+  const minutes = Array.from({ length: n }, () => new Array<number | null>(n).fill(null))
+  const miles = Array.from({ length: n }, () => new Array<number | null>(n).fill(null))
+  placedIdx.forEach((gi, a) => placedIdx.forEach((gk, b) => {
+    minutes[gi][gk] = small.minutes[a]?.[b] ?? null
+    miles[gi][gk] = small.miles[a]?.[b] ?? null
+  }))
+
+  // 三档容忍度各排一版。"省一个师傅"要付什么代价，让老板自己看、自己定——
+  // 接不接一条可能迟到的衔接是他的风险决定，不是算法替他决定。
+  const startsAll = stops.map((s) => s.startMin)
+  const tiers: Array<{ key: "safe" | "late_ok" | "late_limit"; tolerance: number }> = [
+    { key: "safe", tolerance: 0 },
+    { key: "late_ok", tolerance: dp.late_ok_minutes },
+    { key: "late_limit", tolerance: dp.late_limit_minutes },
+  ]
+  const plans: Array<{ key: string; plan: DayPlan }> = []
+  for (const t of tiers) {
+    const plan = planDay(startsAll, minutes, params, t.tolerance, dp.late_ok_minutes)
+    // 更冒险却没省下师傅的排法不给——那是白担风险。
+    if (plans.length > 0 && plan.chefs >= plans[plans.length - 1].plan.chefs) continue
+    plans.push({ key: t.key, plan })
+  }
+
+  const ceil5 = (m: number) => Math.ceil(m / 5) * 5
+  const floor5 = (m: number) => Math.floor(m / 5) * 5
   const home = await locate(supabase, HOME_BASE_QUERY)
-  const hops = await legs(placed.map((s) => ({ lat: s.lat, lng: s.lng })))
 
   return NextResponse.json({
     ok: true,
     date,
-    stops,
+    stops: stops.map(({ startMin: _startMin, ...s }) => s),
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),
-    approx: stops.filter((s) => s.approx).map((s) => ({ name: s.name, address: s.address })),
     home: home ? { lat: home.lat, lng: home.lng, label: "家（出发点）" } : null,
-    // 第 i 条 = 第 i 场开到第 i+1 场
-    hops,
+    plans: plans.map(({ key, plan }) => ({
+      key,
+      tolerance: plan.tolerance,
+      chefs: plan.chefs,
+      chains: plan.chains.map((c) => c.map((i) => stops[i].id)),
+      links: plan.links.map((l) => {
+        // 想让这一条稳下来（拖满也能提前到），得挪出多少分钟
+        const need = l.worstLate + params.arriveEarlyMinutes
+        // 只有师傅当天的第一台才提前得了——老板原话：第一台可以很早过去布置好，
+        // 人齐了就提前开。链中间的那一场自己都可能晚开，谈不上提前。
+        const isHead = plan.chains.some((c) => c[0] === l.from)
+        return {
+          fromId: stops[l.from].id,
+          toId: stops[l.to].id,
+          minutes: l.driveMinutes,
+          miles: miles[l.from][l.to],
+          bestLate: l.bestLate,
+          worstLate: l.worstLate,
+          grade: l.grade,
+          fix:
+            need > 0
+              ? {
+                  minutes: need,
+                  laterStart: clock(ceil5(stops[l.to].startMin + need)),
+                  earlierStart: isHead ? clock(floor5(stops[l.from].startMin - need)) : null,
+                }
+              : null,
+        }
+      }),
+    })),
+    params: {
+      busyMin: params.busyMinMinutes,
+      busyMax: params.busyMaxMinutes,
+      arriveEarly: params.arriveEarlyMinutes,
+      lateOk: dp.late_ok_minutes,
+      lateLimit: dp.late_limit_minutes,
+    },
+    source,
+    note,
   })
 }
 
@@ -251,5 +479,7 @@ export async function POST(request: NextRequest) {
     found: true,
     geocoded_at: new Date().toISOString(),
   })
+  // 这个地址的坐标变了，之前算过的车程作废。
+  driveCache.clear()
   return NextResponse.json({ ok: true, lat: pt.lat, lng: pt.lng })
 }

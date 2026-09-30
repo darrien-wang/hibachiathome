@@ -158,6 +158,7 @@ export function SettingsTab({
   const s = draft.sms_brakes
   const w = draft.lead_watch
   const nf = draft.notifications
+  const dp = draft.dispatch
   const c = draft.calendar
 
   return (
@@ -204,6 +205,22 @@ export function SettingsTab({
           {numField("两条主动消息间隔", s.spacing_hours, (n) => set("sms_brakes", { spacing_hours: n }), { suffix: "小时", step: 0.5 })}
           {numField("回复窗口", s.reply_window_minutes, (n) => set("sms_brakes", { reply_window_minutes: n }), { suffix: "分钟内算回答", min: 1 })}
           {numField("窗口内最多回", s.reply_burst_cap, (n) => set("sms_brakes", { reply_burst_cap: n }), { suffix: "条", min: 1 })}
+        </div>
+      </Section>
+
+      <Section title="派工（日历上点「N 场」算最少几个师傅）" hint="照你们人工排班的算法：第一台准时开 → 开场到装车出发 → 路上 → 下一场提前多久到。" section="dispatch" meta={meta} canEdit={canEdit} dirty={dirty("dispatch")} busy={busy === "dispatch"} onSave={() => void save("dispatch")} onReset={() => void save("dispatch", true)}>
+        <div style={grid}>
+          {numField("开场到装车出发 · 顺利", dp.busy_min_minutes, (n) => set("dispatch", { busy_min_minutes: n }), { suffix: "分钟", min: 30 })}
+          {numField("开场到装车出发 · 拖满", dp.busy_max_minutes, (n) => set("dispatch", { busy_max_minutes: n }), { suffix: "分钟", min: 30 })}
+          {numField("下一场提前到", dp.arrive_early_minutes, (n) => set("dispatch", { arrive_early_minutes: n }), { suffix: "分钟", min: 0 })}
+          {numField("迟到还能接受", dp.late_ok_minutes, (n) => set("dispatch", { late_ok_minutes: n }), { suffix: "分钟以内", min: 0 })}
+          {numField("迟到极限（要补偿）", dp.late_limit_minutes, (n) => set("dispatch", { late_limit_minutes: n }), { suffix: "分钟", min: 0 })}
+          <label className="check">
+            <input type="checkbox" checked={dp.google_traffic} disabled={!canEdit} onChange={(e) => set("dispatch", { google_traffic: e.target.checked })} /> 车程用 Google 路况预测
+          </label>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--color-neutral-600)", lineHeight: 1.6 }}>
+          不开：车程是不堵车的理想值（免费）。开了：按师傅实际出发的那个时刻预测路况，周六傍晚的 101 会比账面慢——这类调用 Google 按次计费，走你现有的那把 key。
         </div>
       </Section>
 
