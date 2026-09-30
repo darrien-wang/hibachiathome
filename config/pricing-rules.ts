@@ -139,8 +139,22 @@ export const FULL_SETUP_PER_GUEST = TABLES_CHAIRS_PER_GUEST + UTENSILS_PER_GUEST
  * have survived. Applies to any setup on white linen — which includes the
  * table themes that come on white (see config/table-themes.ts), so picking
  * one of those is the one case where a theme changes the price.
+ *
+ * Charged per CLOTH, one per table (owner, 2026-09-30). It had been $5 per
+ * guest, which quoted 18 guests $90 for five cloths. We seat 4 to a table.
  */
-export const WHITE_CLOTH_PER_GUEST = 5
+export const WHITE_CLOTH_PER_TABLE = 5
+export const GUESTS_PER_TABLE = 4
+
+/** Tables (and so tablecloths) for a party: 4 guests to a table, rounded up. */
+export function tablesFor(guests: number): number {
+  return Math.ceil(Math.max(0, guests) / GUESTS_PER_TABLE)
+}
+
+/** The white-linen surcharge for a party: $5 for every table's cloth. */
+export function whiteClothFee(guests: number): number {
+  return tablesFor(guests) * WHITE_CLOTH_PER_TABLE
+}
 
 // ---------------------------------------------------------------
 // Weekday Special

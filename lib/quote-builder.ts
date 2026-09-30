@@ -3,7 +3,7 @@ import {
   WEEKDAY_SPECIAL,
   MINIMUM_SPEND as RULES_MINIMUM_SPEND,
   FULL_SETUP_PER_GUEST as RULES_FULL_SETUP,
-  WHITE_CLOTH_PER_GUEST as RULES_WHITE_CLOTH,
+  whiteClothFee as rulesWhiteClothFee,
   partySizeDiscount as rulesPartySizeDiscount,
   partySizeDiscountLabel,
   TRAVEL_FREE_RADIUS_MILES,
@@ -49,7 +49,7 @@ export type QuoteInput = {
    * What the visitor built on /rentals before coming here (theme, tablecloth,
    * guest count). Mostly so the lead says which plates to pack rather than
    * just "rental: yes" - the plates themselves are free either way. The one
-   * exception is the tablecloth: white costs WHITE_CLOTH_PER_GUEST more.
+   * exception is the tablecloth: white costs whiteClothFee() more ($5 a table).
    */
   setupSelection?: SetupSelection
   tent10x10: boolean
@@ -198,11 +198,11 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   const baseSubtotal = isWeekdaySaver
     ? roundCurrency(adults * WEEKDAY_SAVER_ADULT_PRICE + kids * WEEKDAY_SAVER_KID_PRICE + toddlers * TODDLER_PRICE)
     : roundCurrency(adults * ADULT_PRICE + kids * KID_FOOD_PRICE + toddlers * TODDLER_PRICE)
-  // 白桌布每人多 $5（老板 09-23 定）。只有从 /rentals 带着选择过来的才知道
-  // 桌布颜色；在 /quote 自己勾的没得选,按黑布算,和默认一致。
+  // 白桌布按张加 $5，4 人一桌（老板 09-23 定加价、09-30 改按张）。只有从
+  // /rentals 带着选择过来的才知道桌布颜色；在 /quote 自己勾的没得选,按黑布算。
   const whiteClothFee =
     input.tablewareRental && input.setupSelection?.cloth === "white"
-      ? roundCurrency(guestCount * RULES_WHITE_CLOTH)
+      ? roundCurrency(rulesWhiteClothFee(guestCount))
       : 0
   const tablewareFee = input.tablewareRental ? roundCurrency(guestCount * FULL_SETUP_PER_GUEST) + whiteClothFee : 0
 

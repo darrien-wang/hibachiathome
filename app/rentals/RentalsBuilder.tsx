@@ -14,7 +14,7 @@ import {
   type SetupSelection,
   type ThemeVariant,
 } from "@/config/table-themes"
-import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST, WHITE_CLOTH_PER_GUEST } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST, WHITE_CLOTH_PER_TABLE, tablesFor, whiteClothFee } from "@/config/pricing-rules"
 
 // 设计稿 4a704199 "Rentals Page" 的配置器。稿子是用 Design 自己的 token 写
 // 的，这里照旧翻成站点自己的 Organic token（奶油底、flame 做选中态、gold 做
@@ -132,11 +132,13 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
     [pkg, effectiveCloth, isFull, theme?.id, variant?.id, guests],
   )
 
-  // 白桌布另算钱（老板 09-23 定）。白布的主题因此比黑布的贵 $5/人——这是
-  // 唯一一处"选主题影响价格",FAQ 里如实写了。
+  // 白桌布另算钱（老板 09-23 定），按张算、一桌一张、4 人一桌（09-30 改，
+  // 之前按人头 $5，18 人要付 $90 买 5 张布）。白布的主题因此贵这几张布的钱
+  // ——这是唯一一处"选主题影响价格",FAQ 里如实写了。
   const whiteCloth = effectiveCloth === "white"
-  const perGuest = (isFull ? FULL_SETUP_PER_GUEST : TABLES_CHAIRS_PER_GUEST) + (whiteCloth ? WHITE_CLOTH_PER_GUEST : 0)
-  const total = perGuest * guests
+  const perGuest = isFull ? FULL_SETUP_PER_GUEST : TABLES_CHAIRS_PER_GUEST
+  const clothFee = whiteCloth ? whiteClothFee(guests) : 0
+  const total = perGuest * guests + clothFee
 
   const quoteUrl = useMemo(() => {
     const q = new URLSearchParams({
@@ -266,7 +268,7 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
                     />
                     {c.name}
                     {c.id === "white" && (
-                      <span className="text-[13px] font-normal text-clay-700">+${WHITE_CLOTH_PER_GUEST}/guest</span>
+                      <span className="text-[13px] font-normal text-clay-700">+${WHITE_CLOTH_PER_TABLE}/table</span>
                     )}
                   </button>
                 )
@@ -436,9 +438,9 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
           {whiteCloth && (
             <div className="flex justify-between gap-3">
               <span>
-                White tablecloths · ${WHITE_CLOTH_PER_GUEST} × {guests}
+                White tablecloths · ${WHITE_CLOTH_PER_TABLE} × {tablesFor(guests)} tables
               </span>
-              <span>{usd(WHITE_CLOTH_PER_GUEST * guests)}</span>
+              <span>{usd(clothFee)}</span>
             </div>
           )}
           <div className="flex justify-between gap-3 pt-2 text-[17px] font-bold">
