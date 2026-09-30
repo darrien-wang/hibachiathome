@@ -1,32 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { geocode } from "@/lib/travel-distance"
 import { HOME_BASE_QUERY } from "@/config/home-base"
 import { decodePlusCode, parseLatLng, parsePlusCode, recoverPlusCode } from "@/lib/plus-code"
-import { planDay, type DayPlan, type DispatchParams } from "@/lib/dispatch"
+import { planTiers, type DispatchParams } from "@/lib/dispatch"
+import { makeResolver, streetless, type Located } from "@/lib/address-resolve"
+import { emptyMatrix, googleMatrix, osrmMatrix, ptInstantMs, type Matrix } from "@/lib/drive-matrix"
+import { geocode } from "@/lib/travel-distance"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 // 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
-// 判断规则和它为什么这么写，见 lib/dispatch.ts。
+// 判断规则和它为什么这么写，见 lib/dispatch.ts。地址怎么查见 lib/address-resolve.ts，
+// 车程怎么算见 lib/drive-matrix.ts——这两块和分享出去的排班页（/tools/schedule）共用。
 //
-// 默认全程免 key：地址用 Nominatim（地址补全本来就在用），车程用 OSRM，底图用 OSM 的
-// 瓦片。坐标查过就存进 address_geo——Nominatim 每秒只准问一次，老板来回点几下就撞
-// 配额了，而地址不会自己搬家。
+// 这里多的一层是缓存：坐标查过就存进 address_geo——Nominatim 每秒只准问一次，Google
+// 按次计费，而地址不会自己搬家。分享页不走这一层，它什么都不存。
 //
-// 车程有两个来源：
-//   · OSRM —— 免费，但给的是不堵车的理想值。
-//   · Google —— 带上师傅**实际出发的那个时刻**，返回按那个时段预测的路况。这类调用
-//     走 Google 更贵的计费档，所以挂在 设置 → 派工 的开关后面，默认关。
+// 车程在 设置 → 派工 的开关打开时走 Google（按师傅出发时刻预测路况），否则 OSRM。
 // Google 任何一步失败都整体退回 OSRM，不把两个来源的数字混在一张图里。
-
-const OSRM_TABLE = "https://router.project-osrm.org/table/v1/driving"
-const GOOGLE_MATRIX = "https://maps.googleapis.com/maps/api/distancematrix/json"
-const METERS_PER_MILE = 1609.344
-const UA = "RealHibachi-Marketing/1.0 (support@realhibachi.com)"
 
 type OrderRow = {
   id: string
@@ -40,12 +34,9 @@ type OrderRow = {
   order_status: string | null
 }
 
-type Matrix = { minutes: Array<Array<number | null>>; miles: Array<Array<number | null>> }
 type DriveSource = "google_traffic" | "google" | "osrm" | "none"
 
 const norm = (a: string) => a.trim().replace(/\s+/g, " ").toLowerCase()
-
-type Located = { lat: number; lng: number; label: string; approx?: boolean }
 
 const safeGeocode = async (q: string) => {
   try {
@@ -56,50 +47,13 @@ const safeGeocode = async (q: string) => {
 }
 
 /**
- * Google 的地址解析。OSM 认不出的街道它多半认得——沙漠区的度假屋尤其（Stargate、
- * Evangeline Way 都是 OSM 没有、Google 一查就有）。每个地址只查一次就进缓存。
- *
- * ROOFTOP / RANGE_INTERPOLATED 是门口级别；GEOMETRIC_CENTER / APPROXIMATE 或
- * partial_match 只是个大概，照样标 approx。label 带 "google:" 是为了让缓存知道
- * Google 已经试过了，别每次打开地图都再问一遍。
- */
-async function googleGeocode(address: string, key: string): Promise<Located | null> {
-  try {
-    const params = new URLSearchParams({ address, region: "us", key })
-    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`, { cache: "no-store" })
-    const j = (await res.json()) as {
-      status?: string
-      results?: Array<{ formatted_address?: string; partial_match?: boolean; geometry?: { location?: { lat: number; lng: number }; location_type?: string } }>
-    }
-    if (j.status !== "OK") return null
-    const r = j.results?.[0]
-    const loc = r?.geometry?.location
-    if (!r || !loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) return null
-    const approx = r.partial_match === true || !/^(ROOFTOP|RANGE_INTERPOLATED)$/.test(r.geometry?.location_type ?? "")
-    return { lat: loc.lat, lng: loc.lng, label: `${approx ? "~" : ""}google: ${r.formatted_address ?? address}`, approx }
-  } catch {
-    return null
-  }
-}
-
-/** 只写了城市、没写门牌（"Indio"、"La Quinta"）——定位得到，但图钉是市中心不是客人家。 */
-const streetless = (a: string) => !parseLatLng(a) && !parsePlusCode(a) && !/\d/.test(a.split(",")[0] ?? "")
-
-/**
- * 地址 → 坐标，按"最可信的先试"排：
- *
- *  1. 粘进来的坐标 / Plus Code —— 它本身就是坐标，不用查任何服务，最准也最快。
- *  2. Nominatim 查完整地址。
- *  3. 查不到就退到邮编或城市，标成 approx。
- *
- * 第 3 步是有意的：OSM 在沙漠区缺街道（Caleb 那单的 Stargate 五种写法都查不到），
- * 而"大概在 Yucca Valley"对调度已经够用了——你要判断的是能不能连做两场，不是门牌号。
- * 让它从地图上消失反而更糟：看起来像那天没这一场。
- *
- * 查过的都存进 address_geo，查不到也存——Nominatim 每秒只准问一次，而地址不会自己搬家。
+ * 带缓存的地址解析。精确的、手工钉的、Google 已经试过的，都直接用缓存；剩下的是
+ * "只到城市"或"查不到"而且 Google 还没试过——接上 Google 之前存的那批，值得再给一次
+ * 机会，否则它们会永远停在市中心。
  */
 async function locate(
   supabase: ReturnType<typeof createServerSupabaseClient>,
+  resolver: ReturnType<typeof makeResolver>,
   address: string,
 ): Promise<Located | null> {
   const key = norm(address)
@@ -111,9 +65,6 @@ async function locate(
       const row = data as { lat: number | null; lng: number | null; label: string | null; found: boolean }
       const label = row.label ?? ""
       const precise = row.found && row.lat !== null && row.lng !== null && !label.startsWith("~")
-      // 精确的、手工钉的、Google 已经试过的，都直接用缓存。
-      // 剩下的是"只到城市"或"查不到"而且 Google 还没试过——接上 Google 之前存的那批，
-      // 值得再给一次机会，否则它们会永远停在市中心。
       const settled = precise || label.includes("手工定位") || label.includes("google:") || !gkey
       if (settled) {
         return row.found && row.lat !== null && row.lng !== null
@@ -123,56 +74,7 @@ async function locate(
     }
   }
 
-  let hit: Located | null = null
-
-  // 1. 直接就是坐标或 Plus Code
-  const pin = parseLatLng(address)
-  if (pin) hit = { ...pin, label: address }
-  if (!hit) {
-    const plus = parsePlusCode(address)
-    if (plus) {
-      if (plus.full) {
-        const d = decodePlusCode(plus.code)
-        if (d) hit = { ...d, label: plus.code }
-      } else if (plus.rest) {
-        // 短码省掉了前四位，得先知道大概在地球哪一块。地名部分就是那个参考点。
-        const ref = await safeGeocode(plus.rest)
-        if (ref) {
-          const d = decodePlusCode(recoverPlusCode(plus.code, ref.lat, ref.lng))
-          if (d) hit = { ...d, label: plus.code }
-        }
-      }
-    }
-  }
-
-  // 2. Google 优先（认得的街道多、结果稳），没配 key 或它也查不到再问 OSM。
-  //    两边都是查一次进缓存，所以"优先 Google"多花的钱是每个新地址一次。
-  if (!hit && gkey) hit = await googleGeocode(address, gkey)
-  if (!hit) {
-    const g = await safeGeocode(address)
-    if (g) hit = { lat: g.lat, lng: g.lng, label: g.label }
-  }
-
-  // 3. 退到城市 / 邮编——但要核对拿回来的是不是那个地方。
-  //    Nominatim 对美国邮编很不靠谱：问 "92253, CA, USA" 它回过圣莱安德罗的一个路口
-  //    （2026-09-29，Frank 那单因此被画到了旧金山湾区）。所以先问城市，再问邮编，
-  //    而且结果的名字里必须带着问的那个城市名 / 邮编，否则当没查到。
-  if (!hit) {
-    const zip = /\b(\d{5})(?:-\d{4})?\b/.exec(address)?.[1]
-    const parts = address.split(",").map((x) => x.trim()).filter(Boolean)
-    const city = (parts.length >= 2 ? parts[parts.length - 2] : "").replace(/\s*\d{5}(-\d{4})?\s*/, "").trim()
-    const tries: Array<{ q: string; mustContain: string }> = []
-    if (city) tries.push({ q: `${city}, CA, USA`, mustContain: city.toLowerCase() })
-    if (zip) tries.push({ q: `${zip}, CA, USA`, mustContain: zip })
-    for (const t of tries) {
-      const g = await safeGeocode(t.q)
-      if (g && g.label.toLowerCase().includes(t.mustContain)) {
-        // label 打个 ~ 前缀，取缓存时还认得出这是个大概位置。
-        hit = { lat: g.lat, lng: g.lng, label: `~${g.label}`, approx: true }
-        break
-      }
-    }
-  }
+  const hit = await resolver.resolve(address)
 
   if (supabase) {
     await supabase
@@ -189,107 +91,6 @@ async function locate(
       .select("query")
   }
   return hit
-}
-
-// ---------------------------------------------------------------- 车程
-
-type Pt = { lat: number; lng: number }
-
-const empty = (n: number): Matrix => ({
-  minutes: Array.from({ length: n }, () => new Array<number | null>(n).fill(null)),
-  miles: Array.from({ length: n }, () => new Array<number | null>(n).fill(null)),
-})
-
-/** 一次调用拿全部两两车程，不是 n² 次路径查询——五个点就是 20 条腿，一条条问会被限流。 */
-async function osrmMatrix(points: Pt[]): Promise<Matrix | null> {
-  if (points.length < 2) return empty(points.length)
-  const coords = points.map((p) => `${p.lng},${p.lat}`).join(";")
-  try {
-    const res = await fetch(`${OSRM_TABLE}/${coords}?annotations=duration,distance`, { headers: { "User-Agent": UA }, cache: "no-store" })
-    if (!res.ok) return null
-    const j = (await res.json()) as { code?: string; durations?: Array<Array<number | null>>; distances?: Array<Array<number | null>> }
-    if (j.code !== "Ok" || !j.durations) return null
-    const out = empty(points.length)
-    for (let i = 0; i < points.length; i++) {
-      for (let k = 0; k < points.length; k++) {
-        const sec = j.durations[i]?.[k]
-        const m = j.distances?.[i]?.[k]
-        if (typeof sec === "number") out.minutes[i][k] = Math.round(sec / 60)
-        if (typeof m === "number") out.miles[i][k] = Math.round((m / METERS_PER_MILE) * 10) / 10
-      }
-    }
-    return out
-  } catch {
-    return null
-  }
-}
-
-/**
- * Google 的车程，每个出发点单独问一次：出发时刻因人而异（上一场几点收完摊，师傅就
- * 几点上路），而一次请求只能带一个出发时刻。
- *
- * 只问"往后接"的那些目的地——往回开的腿排班用不上，问了白花钱。
- * 出发时刻已经过去的（回看昨天）Google 不接受，那一行就不带时刻、拿不含路况的数。
- */
-async function googleMatrix(
-  points: Pt[],
-  starts: number[],
-  departMs: number[],
-  apiKey: string,
-): Promise<{ matrix: Matrix; traffic: boolean } | { error: string }> {
-  const n = points.length
-  const out = empty(n)
-  let allTraffic = true
-  const now = Date.now()
-  try {
-    for (let i = 0; i < n; i++) {
-      const later = points.map((_, k) => k).filter((k) => k !== i && starts[k] > starts[i])
-      if (later.length === 0) continue
-      const params = new URLSearchParams({
-        origins: `${points[i].lat},${points[i].lng}`,
-        destinations: later.map((k) => `${points[k].lat},${points[k].lng}`).join("|"),
-        units: "imperial",
-        key: apiKey,
-      })
-      const future = departMs[i] > now + 60_000
-      if (future) params.set("departure_time", String(Math.floor(departMs[i] / 1000)))
-      else allTraffic = false
-      const res = await fetch(`${GOOGLE_MATRIX}?${params}`, { cache: "no-store" })
-      if (!res.ok) return { error: `HTTP ${res.status}` }
-      const j = (await res.json()) as {
-        status?: string
-        error_message?: string
-        rows?: Array<{ elements?: Array<{ status?: string; duration?: { value?: number }; duration_in_traffic?: { value?: number }; distance?: { value?: number } }> }>
-      }
-      // Google 自己说的拒绝理由原样带出去——猜"多半是没开通"没有用，
-      // REQUEST_DENIED 背后可能是没开通、没绑账单、或者 key 限了来源，修法各不相同。
-      if (j.status !== "OK") return { error: `${j.status ?? "UNKNOWN"}${j.error_message ? ` — ${j.error_message}` : ""}` }
-      const els = j.rows?.[0]?.elements ?? []
-      for (let x = 0; x < later.length; x++) {
-        const el = els[x]
-        if (!el || el.status !== "OK") continue
-        const sec = el.duration_in_traffic?.value ?? el.duration?.value
-        if (typeof sec === "number") out.minutes[i][later[x]] = Math.round(sec / 60)
-        if (typeof el.distance?.value === "number") out.miles[i][later[x]] = Math.round((el.distance.value / METERS_PER_MILE) * 10) / 10
-        if (future && typeof el.duration_in_traffic?.value !== "number") allTraffic = false
-      }
-    }
-    return { matrix: out, traffic: allTraffic }
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "network error" }
-  }
-}
-
-/** PT 的墙上时间 → 真实时刻。订单存的是墙上时间（按 UTC 写入），Google 要的是真实时刻。 */
-function ptInstantMs(date: string, minutesOfDay: number): number {
-  const asUtc = Date.parse(`${date}T00:00:00Z`) + minutesOfDay * 60_000
-  const tz =
-    new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", timeZoneName: "shortOffset" })
-      .formatToParts(new Date(asUtc))
-      .find((p) => p.type === "timeZoneName")?.value ?? "GMT-8"
-  const m = /GMT([+-]\d{1,2})(?::(\d{2}))?/.exec(tz)
-  const offsetMin = m ? Number(m[1]) * 60 + (m[2] ? Math.sign(Number(m[1])) * Number(m[2]) : 0) : -480
-  return asUtc - offsetMin * 60_000
 }
 
 // 同一天的图来回开（每次「定位」都会重载），别每次都去问一遍路——尤其是按次计费的那家。
@@ -335,10 +136,11 @@ export async function GET(request: NextRequest) {
     lng: number | null
     approx: boolean
   }
+  const resolver = makeResolver({ googleKey: process.env.GOOGLE_MAPS_API_KEY || null })
   const stops: StopRow[] = []
   for (const r of rows) {
     const addr = (r.event_address ?? "").trim()
-    const geo = addr ? await locate(supabase, addr) : null
+    const geo = addr ? await locate(supabase, resolver, addr) : null
     const t = r.event_start ? new Date(r.event_start) : null
     const startMin = t ? t.getUTCHours() * 60 + t.getUTCMinutes() : 0
     stops.push({
@@ -373,7 +175,7 @@ export async function GET(request: NextRequest) {
 
   let source: DriveSource = "none"
   let note: string | null = null
-  let small: Matrix = empty(pts.length)
+  let small: Matrix = emptyMatrix(pts.length)
 
   if (pts.length >= 2) {
     const wantGoogle = settings.dispatch.google_traffic && !!process.env.GOOGLE_MAPS_API_KEY
@@ -422,25 +224,9 @@ export async function GET(request: NextRequest) {
     miles[gi][gk] = small.miles[a]?.[b] ?? null
   }))
 
-  // 三档容忍度各排一版。"省一个师傅"要付什么代价，让老板自己看、自己定——
-  // 接不接一条可能迟到的衔接是他的风险决定，不是算法替他决定。
-  const startsAll = stops.map((s) => s.startMin)
-  const tiers: Array<{ key: "safe" | "late_ok" | "late_limit"; tolerance: number }> = [
-    { key: "safe", tolerance: 0 },
-    { key: "late_ok", tolerance: dp.late_ok_minutes },
-    { key: "late_limit", tolerance: dp.late_limit_minutes },
-  ]
-  const plans: Array<{ key: string; plan: DayPlan }> = []
-  for (const t of tiers) {
-    const plan = planDay(startsAll, minutes, params, t.tolerance, dp.late_ok_minutes)
-    // 更冒险却没省下师傅的排法不给——那是白担风险。
-    if (plans.length > 0 && plan.chefs >= plans[plans.length - 1].plan.chefs) continue
-    plans.push({ key: t.key, plan })
-  }
-
-  const ceil5 = (m: number) => Math.ceil(m / 5) * 5
-  const floor5 = (m: number) => Math.floor(m / 5) * 5
-  const home = await locate(supabase, HOME_BASE_QUERY)
+  // 三档容忍度各排一版，接不接一条可能迟到的衔接是老板的风险决定（见 lib/dispatch.ts planTiers）。
+  const plans = planTiers(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, dp.late_limit_minutes)
+  const home = await locate(supabase, resolver, HOME_BASE_QUERY)
 
   return NextResponse.json({
     ok: true,
@@ -449,35 +235,21 @@ export async function GET(request: NextRequest) {
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),
     home: home ? { lat: home.lat, lng: home.lng, label: "家（出发点）" } : null,
-    plans: plans.map(({ key, plan }) => ({
-      key,
+    plans: plans.map((plan) => ({
+      key: plan.key,
       tolerance: plan.tolerance,
       chefs: plan.chefs,
       chains: plan.chains.map((c) => c.map((i) => stops[i].id)),
-      links: plan.links.map((l) => {
-        // 想让这一条稳下来（拖满也能提前到），得挪出多少分钟
-        const need = l.worstLate + params.arriveEarlyMinutes
-        // 只有师傅当天的第一台才提前得了——老板原话：第一台可以很早过去布置好，
-        // 人齐了就提前开。链中间的那一场自己都可能晚开，谈不上提前。
-        const isHead = plan.chains.some((c) => c[0] === l.from)
-        return {
-          fromId: stops[l.from].id,
-          toId: stops[l.to].id,
-          minutes: l.driveMinutes,
-          miles: miles[l.from][l.to],
-          bestLate: l.bestLate,
-          worstLate: l.worstLate,
-          grade: l.grade,
-          fix:
-            need > 0
-              ? {
-                  minutes: need,
-                  laterStart: clock(ceil5(stops[l.to].startMin + need)),
-                  earlierStart: isHead ? clock(floor5(stops[l.from].startMin - need)) : null,
-                }
-              : null,
-        }
-      }),
+      links: plan.links.map((l) => ({
+        fromId: stops[l.from].id,
+        toId: stops[l.to].id,
+        minutes: l.driveMinutes,
+        miles: miles[l.from][l.to],
+        bestLate: l.bestLate,
+        worstLate: l.worstLate,
+        grade: l.grade,
+        fix: l.fix ? { minutes: l.fix.minutes, laterStart: clock(l.fix.laterStartMin), earlierStart: l.fix.earlierStartMin === null ? null : clock(l.fix.earlierStartMin) } : null,
+      })),
     })),
     params: {
       busyMin: params.busyMinMinutes,

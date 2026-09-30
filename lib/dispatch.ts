@@ -130,3 +130,64 @@ export function planDay(starts: number[], drive: Array<Array<number | null>>, p:
     links: sorted.flatMap((c) => c.links),
   }
 }
+
+// ---------------------------------------------------------------- 三档排法
+
+export type TierKey = "safe" | "late_ok" | "late_limit"
+
+export type TierLink = ChainLink & {
+  /** 想让这条稳下来（拖满也能提前到）要挪的：分钟数、下一场推到几点、或上一场提前到几点 */
+  fix: { minutes: number; laterStartMin: number; earlierStartMin: number | null } | null
+}
+
+export type TierPlan = { key: TierKey; tolerance: number; chefs: number; chains: number[][]; links: TierLink[] }
+
+/**
+ * 稳妥 / 肯迟到 / 极限 各排一版。接不接一条可能迟到的衔接是老板的风险决定，不是算法
+ * 替他决定，所以三版都给他看。更冒险却没省下师傅的那版不给——白担风险。
+ *
+ * 日历弹窗（服务端）和分享出去的排班页（浏览器里）用的是这同一个函数。
+ */
+export function planTiers(
+  starts: number[],
+  drive: Array<Array<number | null>>,
+  p: DispatchParams,
+  lateOk: number,
+  lateLimit: number,
+): TierPlan[] {
+  const tiers: Array<{ key: TierKey; tolerance: number }> = [
+    { key: "safe", tolerance: 0 },
+    { key: "late_ok", tolerance: lateOk },
+    { key: "late_limit", tolerance: lateLimit },
+  ]
+  const out: TierPlan[] = []
+  for (const t of tiers) {
+    const plan = planDay(starts, drive, p, t.tolerance, lateOk)
+    if (out.length > 0 && plan.chefs >= out[out.length - 1].chefs) continue
+    const heads = new Set(plan.chains.map((c) => c[0]))
+    out.push({
+      key: t.key,
+      tolerance: t.tolerance,
+      chefs: plan.chefs,
+      chains: plan.chains,
+      links: plan.links.map((l) => {
+        const need = l.worstLate + p.arriveEarlyMinutes
+        return {
+          ...l,
+          fix:
+            need > 0
+              ? {
+                  minutes: need,
+                  // 往整 5 分钟取：没人会约 8:22 开场
+                  laterStartMin: Math.ceil((starts[l.to] + need) / 5) * 5,
+                  // 只有师傅当天第一台才提前得了：老板原话，第一台可以很早过去布置好，人齐了
+                  // 就提前开。链中间那一场自己都可能晚开，谈不上提前。
+                  earlierStartMin: heads.has(l.from) ? Math.floor((starts[l.from] - need) / 5) * 5 : null,
+                }
+              : null,
+        }
+      }),
+    })
+  }
+  return out
+}

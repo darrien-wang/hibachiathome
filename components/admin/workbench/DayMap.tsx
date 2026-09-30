@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askPrompt, tell } from "./ask"
+import { TileMap } from "@/components/schedule/TileMap"
 
 // 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
 // 排班规则照的是他们人工的算法，见 lib/dispatch.ts。
@@ -71,16 +72,6 @@ const GRADE_LABEL: Record<Grade, string> = {
 
 const when = (late: number) => (late <= 0 ? `早到 ${-late} 分` : `迟到 ${late} 分`)
 
-const TILE = 256
-const MAX_Z = 17
-
-// Web Mercator：经纬度 → 瓦片坐标（z 级下的小数瓦片号）
-const xOf = (lng: number, z: number) => ((lng + 180) / 360) * 2 ** z
-const yOf = (lat: number, z: number) => {
-  const r = (lat * Math.PI) / 180
-  return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** z
-}
-
 export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: string; date: string; onClose: () => void; onOpenOrder: (id: string) => void }) {
   const [d, setD] = useState<Resp | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -129,48 +120,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   const numOf = useCallback((id: string) => placed.findIndex((s) => s.id === id) + 1, [placed])
   const plan = useMemo(() => d?.plans.find((p) => p.key === tier) ?? d?.plans[0] ?? null, [d, tier])
 
-  // 选一个刚好装下全部点的缩放级别，而不是写死一个——同城五场和跨县五场
-  // 差着几个数量级，写死不是太挤就是太空。
-  const view = useMemo(() => {
-    const pts = [...placed, ...(d?.home ? [d.home] : [])]
-    if (pts.length === 0) return null
-    const W = 640
-    const H = 420
-    const pad = 56
-    const lats = pts.map((p) => p.lat)
-    const lngs = pts.map((p) => p.lng)
-    let z = MAX_Z
-    for (; z > 3; z--) {
-      const xs = lngs.map((v) => xOf(v, z) * TILE)
-      const ys = lats.map((v) => yOf(v, z) * TILE)
-      if (Math.max(...xs) - Math.min(...xs) <= W - pad * 2 && Math.max(...ys) - Math.min(...ys) <= H - pad * 2) break
-    }
-    const cx = (xOf(Math.min(...lngs), z) + xOf(Math.max(...lngs), z)) / 2
-    const cy = (yOf(Math.min(...lats), z) + yOf(Math.max(...lats), z)) / 2
-    const originX = cx * TILE - W / 2
-    const originY = cy * TILE - H / 2
-    const at = (lat: number, lng: number) => ({ x: xOf(lng, z) * TILE - originX, y: yOf(lat, z) * TILE - originY })
-    const tiles: Array<{ x: number; y: number; left: number; top: number }> = []
-    const x0 = Math.floor(originX / TILE)
-    const y0 = Math.floor(originY / TILE)
-    for (let tx = x0; tx * TILE < originX + W; tx++) {
-      for (let ty = y0; ty * TILE < originY + H; ty++) {
-        if (ty < 0 || ty >= 2 ** z) continue
-        tiles.push({ x: ((tx % 2 ** z) + 2 ** z) % 2 ** z, y: ty, left: tx * TILE - originX, top: ty * TILE - originY })
-      }
-    }
-    return { W, H, z, at, tiles }
-  }, [placed, d])
-
   const cur = placed.find((s) => s.id === open) ?? null
-
-  // 一条线的两个端点（都定位到了才画得出来）
-  const ends = (fromId: string, toId: string) => {
-    const a = byId.get(fromId)
-    const b = byId.get(toId)
-    if (!view || !a || !b || a.lat === null || a.lng === null || b.lat === null || b.lng === null) return null
-    return { a: view.at(a.lat, a.lng), b: view.at(b.lat, b.lng) }
-  }
 
   const tierLabel = (p: Plan) =>
     p.key === "safe" ? `稳妥 · ${p.chefs} 个师傅` : p.key === "late_ok" ? `肯迟到 ${p.tolerance} 分内 · ${p.chefs} 个` : `极限迟到 ${p.tolerance} 分 · ${p.chefs} 个`
@@ -197,69 +147,13 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
           </div>
         ) : null}
 
-        {d && view ? (
-          <div style={{ position: "relative", width: view.W, height: view.H, maxWidth: "100%", overflow: "hidden", border: "2px solid var(--color-text)", background: "#e8e4df" }}>
-            {view.tiles.map((t) => (
-              <img
-                key={`${t.x}-${t.y}`}
-                src={`https://tile.openstreetmap.org/${view.z}/${t.x}/${t.y}.png`}
-                alt=""
-                width={TILE}
-                height={TILE}
-                style={{ position: "absolute", left: t.left, top: t.top, filter: "grayscale(1) contrast(0.92) brightness(1.06)" }}
-              />
-            ))}
-
-            <svg width={view.W} height={view.H} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-              {plan?.links.map((l) => {
-                const e = ends(l.fromId, l.toId)
-                if (!e) return null
-                const risky = l.worstLate > 0
-                return (
-                  <g key={`ln-${l.fromId}-${l.toId}`}>
-                    <line x1={e.a.x} y1={e.a.y} x2={e.b.x} y2={e.b.y} stroke="var(--color-accent)" strokeWidth={3.5} strokeDasharray={risky ? "7 5" : undefined} />
-                    <text x={(e.a.x + e.b.x) / 2} y={(e.a.y + e.b.y) / 2 - 7} textAnchor="middle" fontSize={12} fontWeight={800} fill="var(--color-text)" stroke="#fff" strokeWidth={3} paintOrder="stroke">
-                      路上 {l.minutes} 分 · 拖满{when(l.worstLate)}
-                    </text>
-                  </g>
-                )
-              })}
-            </svg>
-
-            {d.home ? (
-              <div title={d.home.label} style={{ position: "absolute", left: view.at(d.home.lat, d.home.lng).x - 7, top: view.at(d.home.lat, d.home.lng).y - 7, width: 14, height: 14, borderRadius: "50%", background: "#fff", border: "3px solid var(--color-text)" }} />
-            ) : null}
-
-            {placed.map((s, i) => {
-              const p = view.at(s.lat, s.lng)
-              const on = open === s.id
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setOpen(on ? null : s.id)}
-                  title={`${s.time} ${s.name}`}
-                  style={{
-                    position: "absolute",
-                    left: p.x - 15,
-                    top: p.y - 15,
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    border: `3px solid ${on ? "var(--color-text)" : "#fff"}`,
-                    background: "var(--color-accent)",
-                    color: "#fff",
-                    fontWeight: 800,
-                    fontSize: 14,
-                    cursor: "pointer",
-                    boxShadow: "0 1px 5px rgba(0,0,0,.35)",
-                  }}
-                >
-                  {i + 1}
-                </button>
-              )
-            })}
-          </div>
+        {d && placed.length ? (
+          <TileMap
+            pins={placed.map((st, i) => ({ id: st.id, lat: st.lat, lng: st.lng, label: String(i + 1), title: `${st.time} ${st.name}`, active: open === st.id }))}
+            home={d.home}
+            lines={(plan?.links ?? []).map((l) => ({ fromId: l.fromId, toId: l.toId, dashed: l.worstLate > 0, text: `路上 ${l.minutes} 分 · 拖满${when(l.worstLate)}` }))}
+            onPick={(id) => setOpen(open === id ? null : id)}
+          />
         ) : null}
 
         {cur ? (

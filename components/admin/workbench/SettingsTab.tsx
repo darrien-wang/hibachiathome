@@ -6,6 +6,7 @@ import { Field, Kicker } from "./ui"
 import { stamp } from "./helpers"
 import { MembersSection } from "./MembersSection"
 import { PasskeySection } from "./PasskeySection"
+import { ScheduleLinksSection } from "./ScheduleLinksSection"
 import type { PublicActor } from "@/lib/workbench-perms"
 import { DEFAULT_SETTINGS, QUICK_REPLY_PLACEHOLDERS, type QuickReply, type SettingsSection, type WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
@@ -378,6 +379,7 @@ export function SettingsTab({
       </section>
       <PasskeySection adminKey={adminKey} viewer={viewer} />
       {canEdit ? <MembersSection adminKey={adminKey} selfId={viewer?.memberId ?? null} /> : null}
+      {canEdit ? <ScheduleLinksSection adminKey={adminKey} /> : null}
       <div style={{ fontSize: 11, color: "var(--color-neutral-500)" }}>默认值来自 lib/workbench-settings-shared.ts · 快捷回复默认 {DEFAULT_SETTINGS.quick_replies.length} 条</div>
     </div>
   )

@@ -50,7 +50,7 @@ function milesFromMeters(meters: number): number {
   return Math.round((meters / METERS_PER_MILE) * 10) / 10
 }
 
-export async function geocode(query: string): Promise<GeoPoint | null> {
+export async function geocode(query: string, opts: { noStore?: boolean } = {}): Promise<GeoPoint | null> {
   const trimmed = query.trim()
   if (!trimmed) return null
 
@@ -64,8 +64,10 @@ export async function geocode(query: string): Promise<GeoPoint | null> {
 
   const res = await fetch(`${NOMINATIM_URL}?${params}`, {
     headers: { "User-Agent": USER_AGENT, "Accept-Language": "en" },
-    // Addresses rarely move; let the platform cache identical lookups for a day.
-    next: { revalidate: 86_400 },
+    // Addresses rarely move; let the platform cache identical lookups for a day -
+    // except for the shared scheduling page, which promises not to keep other
+    // businesses' customer addresses anywhere, the platform cache included.
+    ...(opts.noStore ? { cache: "no-store" as const } : { next: { revalidate: 86_400 } }),
   })
   if (!res.ok) return null
 
