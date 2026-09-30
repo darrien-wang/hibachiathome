@@ -55,6 +55,33 @@ const safeGeocode = async (q: string) => {
   }
 }
 
+/**
+ * Google 的地址解析。OSM 认不出的街道它多半认得——沙漠区的度假屋尤其（Stargate、
+ * Evangeline Way 都是 OSM 没有、Google 一查就有）。每个地址只查一次就进缓存。
+ *
+ * ROOFTOP / RANGE_INTERPOLATED 是门口级别；GEOMETRIC_CENTER / APPROXIMATE 或
+ * partial_match 只是个大概，照样标 approx。label 带 "google:" 是为了让缓存知道
+ * Google 已经试过了，别每次打开地图都再问一遍。
+ */
+async function googleGeocode(address: string, key: string): Promise<Located | null> {
+  try {
+    const params = new URLSearchParams({ address, region: "us", key })
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params}`, { cache: "no-store" })
+    const j = (await res.json()) as {
+      status?: string
+      results?: Array<{ formatted_address?: string; partial_match?: boolean; geometry?: { location?: { lat: number; lng: number }; location_type?: string } }>
+    }
+    if (j.status !== "OK") return null
+    const r = j.results?.[0]
+    const loc = r?.geometry?.location
+    if (!r || !loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) return null
+    const approx = r.partial_match === true || !/^(ROOFTOP|RANGE_INTERPOLATED)$/.test(r.geometry?.location_type ?? "")
+    return { lat: loc.lat, lng: loc.lng, label: `${approx ? "~" : ""}google: ${r.formatted_address ?? address}`, approx }
+  } catch {
+    return null
+  }
+}
+
 /** 只写了城市、没写门牌（"Indio"、"La Quinta"）——定位得到，但图钉是市中心不是客人家。 */
 const streetless = (a: string) => !parseLatLng(a) && !parsePlusCode(a) && !/\d/.test(a.split(",")[0] ?? "")
 
@@ -77,13 +104,22 @@ async function locate(
 ): Promise<Located | null> {
   const key = norm(address)
   if (!key) return null
+  const gkey = process.env.GOOGLE_MAPS_API_KEY ?? ""
   if (supabase) {
     const { data } = await supabase.from("address_geo").select("lat, lng, label, found").eq("query", key).maybeSingle()
     if (data) {
       const row = data as { lat: number | null; lng: number | null; label: string | null; found: boolean }
-      return row.found && row.lat !== null && row.lng !== null
-        ? { lat: row.lat, lng: row.lng, label: row.label ?? address, approx: (row.label ?? "").startsWith("~") }
-        : null
+      const label = row.label ?? ""
+      const precise = row.found && row.lat !== null && row.lng !== null && !label.startsWith("~")
+      // 精确的、手工钉的、Google 已经试过的，都直接用缓存。
+      // 剩下的是"只到城市"或"查不到"而且 Google 还没试过——接上 Google 之前存的那批，
+      // 值得再给一次机会，否则它们会永远停在市中心。
+      const settled = precise || label.includes("手工定位") || label.includes("google:") || !gkey
+      if (settled) {
+        return row.found && row.lat !== null && row.lng !== null
+          ? { lat: row.lat, lng: row.lng, label: row.label ?? address, approx: label.startsWith("~") }
+          : null
+      }
     }
   }
 
@@ -109,7 +145,9 @@ async function locate(
     }
   }
 
-  // 2. 正常查
+  // 2. Google 优先（认得的街道多、结果稳），没配 key 或它也查不到再问 OSM。
+  //    两边都是查一次进缓存，所以"优先 Google"多花的钱是每个新地址一次。
+  if (!hit && gkey) hit = await googleGeocode(address, gkey)
   if (!hit) {
     const g = await safeGeocode(address)
     if (g) hit = { lat: g.lat, lng: g.lng, label: g.label }
@@ -139,7 +177,15 @@ async function locate(
   if (supabase) {
     await supabase
       .from("address_geo")
-      .upsert({ query: key, lat: hit?.lat ?? null, lng: hit?.lng ?? null, label: hit?.label ?? null, found: !!hit, geocoded_at: new Date().toISOString() })
+      .upsert({
+        query: key,
+        lat: hit?.lat ?? null,
+        lng: hit?.lng ?? null,
+        // Google 试过但没帮上忙的也要记下来（"google:miss"），不然下次打开还会再问一遍。
+        label: hit ? (gkey && !hit.label.includes("google:") ? `${hit.label} · google:miss` : hit.label) : gkey ? "google:miss" : null,
+        found: !!hit,
+        geocoded_at: new Date().toISOString(),
+      })
       .select("query")
   }
   return hit
