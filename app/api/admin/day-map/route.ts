@@ -184,7 +184,7 @@ async function googleMatrix(
   starts: number[],
   departMs: number[],
   apiKey: string,
-): Promise<{ matrix: Matrix; traffic: boolean } | null> {
+): Promise<{ matrix: Matrix; traffic: boolean } | { error: string }> {
   const n = points.length
   const out = empty(n)
   let allTraffic = true
@@ -203,12 +203,15 @@ async function googleMatrix(
       if (future) params.set("departure_time", String(Math.floor(departMs[i] / 1000)))
       else allTraffic = false
       const res = await fetch(`${GOOGLE_MATRIX}?${params}`, { cache: "no-store" })
-      if (!res.ok) return null
+      if (!res.ok) return { error: `HTTP ${res.status}` }
       const j = (await res.json()) as {
         status?: string
+        error_message?: string
         rows?: Array<{ elements?: Array<{ status?: string; duration?: { value?: number }; duration_in_traffic?: { value?: number }; distance?: { value?: number } }> }>
       }
-      if (j.status !== "OK") return null
+      // Google 自己说的拒绝理由原样带出去——猜"多半是没开通"没有用，
+      // REQUEST_DENIED 背后可能是没开通、没绑账单、或者 key 限了来源，修法各不相同。
+      if (j.status !== "OK") return { error: `${j.status ?? "UNKNOWN"}${j.error_message ? ` — ${j.error_message}` : ""}` }
       const els = j.rows?.[0]?.elements ?? []
       for (let x = 0; x < later.length; x++) {
         const el = els[x]
@@ -220,8 +223,8 @@ async function googleMatrix(
       }
     }
     return { matrix: out, traffic: allTraffic }
-  } catch {
-    return null
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "network error" }
   }
 }
 
@@ -333,11 +336,11 @@ export async function GET(request: NextRequest) {
         // 师傅上路的时刻：开场后 90–120 分钟之间，取中间那个点去问路况。
         const depart = startsPlaced.map((s) => ptInstantMs(date, s + Math.round((params.busyMinMinutes + params.busyMaxMinutes) / 2)))
         const g = await googleMatrix(pts, startsPlaced, depart, process.env.GOOGLE_MAPS_API_KEY as string)
-        if (g) {
+        if ("matrix" in g) {
           small = g.matrix
           source = g.traffic ? "google_traffic" : "google"
         } else {
-          note = "Google 没算出来（多半是这把 key 没开通 Distance Matrix），这次用的是不含堵车的车程"
+          note = `Google 拒了：${g.error}。这次用的是不含堵车的车程。`
         }
       } else if (settings.dispatch.google_traffic) {
         note = "开了 Google 路况，但服务器上没配 GOOGLE_MAPS_API_KEY"
@@ -351,7 +354,10 @@ export async function GET(request: NextRequest) {
           note = "车程没算出来（路线服务没响应），下面的排班只能当每场各派一个师傅"
         }
       }
-      if (source !== "none") driveCache.set(cacheKey, { at: Date.now(), matrix: small, source, note })
+      // 想要 Google 却退回了 OSRM 的这次不缓存：老板去后台把 key 修好之后，
+      // 下一次打开就该立刻用上，而不是再看 15 分钟的旧结果。
+      const degraded = wantGoogle && source === "osrm"
+      if (source !== "none" && !degraded) driveCache.set(cacheKey, { at: Date.now(), matrix: small, source, note })
     }
   }
 
