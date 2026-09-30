@@ -397,6 +397,26 @@ const MERGE_INTO_PROTEIN: Record<string, { id: string; fromOz: (oz: number) => n
   diy_rice_chicken: { id: "chicken", fromOz: (oz) => r1(oz) },
 }
 
+/**
+ * 蔬菜合计拆成四样（老板 2026-09-30："我需要你告诉我 broccoli zucchini carrot onion 各要多少"）。
+ * 配比和厨师备料单同一套：发票仓库 lib/pricing.ts 的 VEGE_MIX（西葫芦/西兰花/洋葱 各 30%、胡萝卜 10%）。
+ * 改配比两边同一天改。
+ */
+export const VEGE_MIX: Array<{ id: string; label: string; ratio: number }> = [
+  { id: "zucchini", label: "Zucchini 西葫芦", ratio: 0.3 },
+  { id: "broccoli", label: "Broccoli 西兰花", ratio: 0.3 },
+  { id: "onion", label: "Onion 洋葱", ratio: 0.3 },
+  { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.1 },
+]
+
+/** 蔬菜合计那一行 → 四样各一行（oz），按各自的采购单位出"买几根/几袋/几个"。 */
+export function splitVeg(item: PrepItem): PrepItem[] {
+  return VEGE_MIX.map((v) => {
+    const qty = r1(item.qty * v.ratio)
+    return { id: v.id, label: v.label, qty, unit: "oz", group: "produce" as PrepGroup, alt: alt(v.id, qty, "oz") }
+  })
+}
+
 export function aggregatePrep(all: PrepItem[]): PrepItem[] {
   const by = new Map<string, PrepItem>()
   for (const raw of all) {

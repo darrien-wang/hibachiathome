@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { aggregatePrep, BUY_UNITS, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
+import { aggregatePrep, BUY_UNITS, orderPrep, splitVeg, VEGE_MIX, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { committedDetail, reserveForOrders, setVegTotal, settleDueReservations, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
@@ -155,7 +155,15 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.sort.localeCompare(b.sort))
       .map(({ sort: _sort, ...h }) => h)
   }
-  committedBy.mixed_vege = [...(committedBy.mixed_vege ?? []), ...VEG_IDS.flatMap((k) => committedBy[k] ?? [])]
+  // 备货页把蔬菜拆成四样（老板 2026-09-30："broccoli zucchini carrot onion 各要多少"）：
+  // 别的单占的蔬菜是按合计记的，按同一个配比摊到四样上。先摊，再把四样并回合计给按日期看的页面。
+  const mixedHolders = committedBy.mixed_vege ?? []
+  const mixedReserved = mixedHolders.reduce((n, h) => n + h.qty, 0)
+  for (const v of VEGE_MIX) {
+    committed[v.id] = Math.round(((committed[v.id] ?? 0) + mixedReserved * v.ratio) * 100) / 100
+    committedBy[v.id] = [...(committedBy[v.id] ?? []), ...mixedHolders.map((h) => ({ ...h, qty: Math.round(h.qty * v.ratio * 100) / 100 }))]
+  }
+  committedBy.mixed_vege = [...mixedHolders, ...VEG_IDS.flatMap((k) => (committedBy[k] ?? []).filter((h) => !mixedHolders.some((m) => m.orderId === h.orderId)))]
 
   const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
@@ -168,7 +176,10 @@ export async function GET(request: NextRequest) {
       guestTotal: orders.reduce((n, o) => n + o.adults + o.kids, 0),
       orders,
       // pack = 这一行的采购单位，页面用它把缺口翻成"买几瓶/几盒"。
-      totals: aggregatePrep(allItems).map((i) => ({ ...i, pack: BUY_UNITS[i.id] ?? null })),
+      // 备货模式把"蔬菜合计"拆成四样各一行（按单看的订单页还是一行合计）
+      totals: aggregatePrep(allItems)
+        .flatMap((i) => (byOrders && i.id === "mixed_vege" ? splitVeg(i) : [i]))
+        .map((i) => ({ ...i, pack: BUY_UNITS[i.id] ?? null })),
       stock: stock ?? [],
       pantry,
       // 别的单占着的量：页面上「可用 = 在库 − 占用」，缺口按可用算。

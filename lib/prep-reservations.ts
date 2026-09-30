@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
+import { VEGE_MIX } from "@/lib/prep-bom"
 
 // 占用：算过缺口的单，它那份料就被占住，别的单看到的可用量要扣掉（老板 2026-09-29）。
 //
@@ -76,9 +77,13 @@ export async function settleDueReservations(supabase: SupabaseClient, now = new 
     if (!claimed || claimed.length === 0) continue
 
     if (r.item_key === "mixed_vege") {
-      // 蔬菜的占用记在合计上，库存是四样分开记的：按比例从四样里扣
-      const total = await vegTotal(supabase)
-      await setVegTotal(supabase, Math.max(0, total - Number(r.qty)), "auto", false)
+      // 蔬菜的占用记在合计上，库存是四样分开记的：按厨师备料单的配比从四样里扣
+      for (const v of VEGE_MIX) {
+        const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", v.id).maybeSingle()
+        if (!cur) continue
+        const next = Math.max(0, Math.round(((Number(cur.qty) || 0) - Number(r.qty) * v.ratio) * 100) / 100)
+        await supabase.from("pantry_stock").update({ qty: next, updated_at: stamp, updated_by: "auto" }).eq("item_key", v.id)
+      }
     } else {
       const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", r.item_key).maybeSingle()
       const next = Math.max(0, Math.round(((Number(cur?.qty) || 0) - Number(r.qty)) * 100) / 100)
