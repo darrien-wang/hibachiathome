@@ -302,6 +302,11 @@ export default function QuoteBuilderClient() {
   const [weatherPreview, setWeatherPreview] = useState<WeatherPreview | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [travelFeeRange, setTravelFeeRange] = useState<QuoteRange>({ low: 0, high: 0 })
+  // True until a lookup has actually measured the drive. An unknown place
+  // ("Big Bear") comes back as source "unavailable" with a $0 range, and a $0
+  // we could not measure is not a free trip (2026-09-29: two customers were
+  // texted "No travel fee" for parties 70 and 83 miles out).
+  const [travelUnknown, setTravelUnknown] = useState(true)
   const [quoteStartIntentCaptured, setQuoteStartIntentCaptured] = useState(false)
   const [quoteStartedTracked, setQuoteStartedTracked] = useState(false)
   const [quoteCompletedTracked, setQuoteCompletedTracked] = useState(false)
@@ -744,6 +749,7 @@ export default function QuoteBuilderClient() {
     const destination = input.location.trim()
     if (!destination) {
       setTravelFeeRange({ low: 0, high: 0 })
+      setTravelUnknown(true)
       return
     }
 
@@ -764,6 +770,7 @@ export default function QuoteBuilderClient() {
         if (Number.isFinite(low) && Number.isFinite(high)) {
           setTravelFeeRange({ low, high })
         }
+        setTravelUnknown(data?.source === "unavailable" || !Number.isFinite(Number(data?.distance_miles)))
       } catch {
         // keep current fee range on transient network errors
       }
@@ -1472,6 +1479,7 @@ export default function QuoteBuilderClient() {
         eventDate: input.eventDate || "",
         plan: isWeekdaySaverTier ? "weekday" : "standard",
         travelFee: result.travelFeeRange.high,
+        ...(travelUnknown ? { travelPending: true } : {}),
         phone: customerPhone.trim(),
         email: customerEmail.trim(),
         name: customerName.trim(),
@@ -2149,7 +2157,9 @@ export default function QuoteBuilderClient() {
                   ) : null}
                   <div className="flex items-center justify-between border-b border-ink/15 py-2.5">
                     <span>Travel · {input.location.trim() || "Southern California"}</span>
-                    {result.travelFeeRange.high <= 0 ? (
+                    {travelUnknown ? (
+                      <span className="text-[12px] font-semibold text-ink/70">Confirmed from your address</span>
+                    ) : result.travelFeeRange.high <= 0 ? (
                       <span className="rounded-full bg-gold-100 px-2.5 py-0.5 text-[11px] font-semibold text-gold-800">Included</span>
                     ) : (
                       <span className="font-semibold">

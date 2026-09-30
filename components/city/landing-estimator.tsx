@@ -181,7 +181,12 @@ export default function LandingEstimator({
   // A real date decides the rate; without one the visitor's toggle stands.
   const weekday = eligibility ? eligibility.isEligible : manualWeekday
 
-  const fee = travelFee && travelFee > 0 ? Math.round(travelFee) : 0
+  // ?loc= can put the visitor's own city on the card ("Temecula" on the LA
+  // page), but the fee passed in is the page city's. For a city we did not
+  // price, say it is confirmed from the address rather than promise it free.
+  const cityIsPage = shownCity === cityName
+  const fee = cityIsPage && travelFee && travelFee > 0 ? Math.round(travelFee) : 0
+  const travelUnknown = !cityIsPage || Boolean(travelNote)
   // One shared calculation for every simple estimator: tier rate, the Party
   // Size Discount, then the $599 floor (which applies on weekday dates too —
   // 2026-09-13: five adults on a Thursday were being shown $274.50).
@@ -234,7 +239,7 @@ export default function LandingEstimator({
     phone: phoneValue,
     email: email.trim(),
     pagePath: window.location.pathname,
-    ...(travelNote && fee === 0 ? { travelPending: true } : {}),
+    ...(travelUnknown && fee === 0 ? { travelPending: true } : {}),
   })
 
   const validateContact = () => {
@@ -538,7 +543,7 @@ export default function LandingEstimator({
                 </p>
               </div>
               <p className="text-right text-xs font-semibold leading-snug text-gold-700">
-                {fee > 0 ? `~$${fee} travel added` : travelNote ?? "Travel included"}
+                {fee > 0 ? `~$${fee} travel added` : travelNote ?? (cityIsPage ? "Travel included" : "Travel confirmed from your address")}
                 <br />
                 {weekday ? "free appetizer (your pick)" : "No fees hidden"}
               </p>

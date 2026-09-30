@@ -6,6 +6,7 @@ import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
+import { getCityTravel } from "@/config/city-travel"
 import { DEPOSIT_AMOUNT, FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
@@ -114,6 +115,11 @@ export async function POST(request: NextRequest) {
   const kids = asInt(body.kids, 0, 100)
   const eventDate = /^\d{4}-\d{2}-\d{2}$/.test(asStr(body.eventDate, 10)) ? asStr(body.eventDate, 10) : ""
   const travelFee = Math.max(0, Math.round(Number(body.travelFee) || 0))
+  // "No travel fee" is a promise. A client can send $0 for a place it never
+  // measured, so a city the travel table prices above $0 is never called
+  // free here - the text says the fee is confirmed from the address instead.
+  const tableTravel = getCityTravel(cityName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))
+  const travelPending = Boolean(body.travelPending) || (travelFee === 0 && Boolean(tableTravel && tableTravel.fee > 0))
 
   // Price from config, never from the client. With a date the weekday rate is
   // decided by the real rule (Mon–Thu, blackouts); without one the visitor's
@@ -237,7 +243,13 @@ export async function POST(request: NextRequest) {
       )
     }
     if (previous.travelFee !== travelFee) {
-      whyLines.push(travelFee ? `This one includes ~$${travelFee} travel to ${cityName}.` : `No travel fee for ${cityName}.`)
+      whyLines.push(
+        travelFee
+          ? `This one includes ~$${travelFee} travel to ${cityName}.`
+          : travelPending
+            ? `Travel to ${cityName} is confirmed from your address.`
+            : `No travel fee for ${cityName}.`,
+      )
     }
   }
 
@@ -271,7 +283,7 @@ export async function POST(request: NextRequest) {
 
   const travelLine = travelFee
     ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).`
-    : body.travelPending
+    : travelPending
       ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
       : "No travel fee for your area."
   const smsBody = (
@@ -308,7 +320,7 @@ export async function POST(request: NextRequest) {
       ...(discountLine ? [discountLine] : []),
       travelFee
         ? `Includes about $${travelFee} travel.`
-        : body.travelPending
+        : travelPending
           ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
           : "No travel fee for your area.",
       "",
