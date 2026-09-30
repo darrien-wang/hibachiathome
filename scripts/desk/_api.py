@@ -48,7 +48,13 @@ class ApiError(Exception):
 
 
 def env(name: str) -> str:
-    """Read one key from .env.local without ever printing it."""
+    """Read one key without ever printing it: the process environment first,
+    then .env.local. The environment wins because .env.local is shared with
+    local dev servers, and a session testing locally has twice put a throwaway
+    ADMIN_DASH_KEY there (2026-09-29 16:17, 09-30 11:08) - every desk call then
+    got 401 from production until it was put back."""
+    if os.environ.get(name, "").strip():
+        return os.environ[name].strip().strip('"').strip("'")
     text = ENV_FILE.read_text(encoding="utf-8", errors="ignore")
     m = re.search(rf"^{re.escape(name)}=(.+)$", text, re.M)
     if not m:
