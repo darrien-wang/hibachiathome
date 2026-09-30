@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
-import { askPrompt, tell } from "./ask"
+import { askConfirm, askPrompt, tell } from "./ask"
 import type { PrepGroup } from "@/lib/prep-bom"
 import { bulkName, isBulkItem } from "@/lib/pantry"
 
@@ -994,6 +994,26 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     [adminKey, run],
   )
 
+  // 释放一单的占用：这单没备，就别占着料（老板 2026-09-30）
+  const release = async (h: Occupant) => {
+    const ok = await askConfirm({
+      title: "释放占用",
+      message: `${h.date} ${h.name} 这单占着的料全部放出来？
+以后勾上这单再算缺口，会重新占。`,
+      okLabel: "释放",
+    })
+    if (!ok) return
+    setBusy(true)
+    try {
+      await adminJson(adminKey, "/api/admin/prep", { body: { action: "release", order_id: h.orderId } })
+      await run()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "没释放成")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const groups = (() => {
     if (!resp) return null
     type Line = { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean }
@@ -1136,7 +1156,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                 <div style={{ fontSize: 12.5, color: MUTED }}>点一下实际还有几瓶，下面的"要买"立刻重算</div>
               </div>
               {groups.ask.map((l) => (
-                <CountRow key={l.row.id} line={l} busy={busy} onSet={(qty) => void setHave(l.row.id, qty)} />
+                <CountRow key={l.row.id} line={l} busy={busy} onSet={(qty) => void setHave(l.row.id, qty)} onRelease={(h) => void release(h)} />
               ))}
             </section>
           ) : null}
@@ -1148,7 +1168,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
               </summary>
               <div style={{ marginTop: 8 }}>
                 {groups.trusted.map((l) => (
-                  <CountRow key={l.row.id} line={l} busy={busy} onSet={(qty) => void setHave(l.row.id, qty)} />
+                  <CountRow key={l.row.id} line={l} busy={busy} onSet={(qty) => void setHave(l.row.id, qty)} onRelease={(h) => void release(h)} />
                 ))}
               </div>
             </details>
@@ -1659,10 +1679,12 @@ function CountRow({
   line,
   busy,
   onSet,
+  onRelease,
 }: {
   line: { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean }
   busy: boolean
   onSet: (qty: number) => void
+  onRelease?: (h: Occupant) => void
 }) {
   const { row, have, committed, holders, avail, short, buy, stale } = line
   const per = row.pack?.per ?? 0
@@ -1697,7 +1719,7 @@ function CountRow({
               style={{ all: "unset", cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: 3 }}
             >
               别的单占了 {amount(committed)}
-              {holders.length === 1 ? `（${holders[0].date} ${holders[0].name}）` : holders.length > 1 ? `（${holders.length} 单 ${showHolders ? "▴" : "▾"}）` : ""}
+              {holders.length === 1 ? `（${holders[0].date} ${holders[0].name} ${showHolders ? "▴" : "▾"}）` : holders.length > 1 ? `（${holders.length} 单 ${showHolders ? "▴" : "▾"}）` : ""}
             </button>
             ，可用 {per > 0 ? Math.round((avail / per) * 10) / 10 : avail}
           </>
@@ -1706,8 +1728,15 @@ function CountRow({
       {showHolders && holders.length > 0 ? (
         <div style={{ fontSize: 12, color: MUTED, margin: "4px 0 2px 4px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)", lineHeight: 1.7 }}>
           {holders.map((h) => (
-            <div key={h.orderId}>
-              {h.date} {h.time} · {h.name} · 占 {amount(h.qty)}
+            <div key={h.orderId} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span>
+                {h.date} {h.time} · {h.name} · 占 {amount(h.qty)}
+              </span>
+              {onRelease ? (
+                <button type="button" className="wb-chip wb-chip-sm" disabled={busy} onClick={() => onRelease(h)}>
+                  释放
+                </button>
+              ) : null}
             </div>
           ))}
         </div>

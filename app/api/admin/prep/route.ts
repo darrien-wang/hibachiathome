@@ -259,6 +259,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, applied })
   }
 
+  // 释放一单的占用（老板 2026-09-30："我的备货明明没有够到他"）：这单没备，就别占着料。
+  // 只删还没结转的行；以后再勾上这单算缺口，会重新占。
+  if (body.action === "release") {
+    const orderId = typeof body.order_id === "string" && /^[0-9a-f-]{36}$/i.test(body.order_id) ? body.order_id : ""
+    if (!orderId) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+    const { data, error } = await supabase.from("prep_reservations").delete().eq("order_id", orderId).is("settled_at", null).select("item_key")
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, released: (data ?? []).length })
+  }
+
   if (body.action === "set_pantry") {
     const key = typeof body.item_key === "string" ? body.item_key.trim().slice(0, 40) : ""
     const qty = Number(body.qty)
