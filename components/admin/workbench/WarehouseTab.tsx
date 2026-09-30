@@ -5,6 +5,7 @@ import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askPrompt, tell } from "./ask"
 import type { PrepGroup } from "@/lib/prep-bom"
+import { bulkName, isBulkItem } from "@/lib/pantry"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -998,9 +999,15 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     const setup: PlanRow[] = []
     const countedAt = new Map(resp.pantryDetail?.map((r) => [r.item_key, r.counted_at]) ?? [])
     const staleBefore = Date.now() - STALE_DAYS * 86400_000
+    const bulk: string[] = []
     for (const row of resp.totals) {
       if (row.group === "setup") {
         setup.push(row)
+        continue
+      }
+      // 米、油、酱油是大宗，一次买很多、缺了直接买，不进备货清单（老板 2026-09-30）
+      if (isBulkItem(row.id)) {
+        bulk.push(bulkName(row.id))
         continue
       }
       const have = Math.round((resp.pantry[row.id] ?? 0) * 10) / 10
@@ -1026,8 +1033,14 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
     const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry"]
     const all = GROUP_ORDER.flatMap((g) => byGroup[g] ?? [])
-    return { buy, storeKeys, setup, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
+    return { buy, storeKeys, setup, bulk, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
   })()
+
+  // 全选 / 反选（老板 2026-09-30）
+  const allIds = events.map((e) => e.key.replace(/^order:/, ""))
+  const selCount = allIds.filter((id) => sel.has(id)).length
+  const selectAll = () => setSel(new Set(allIds))
+  const invert = () => setSel((prev) => new Set(allIds.filter((id) => !prev.has(id))))
 
   return (
     <div>
@@ -1037,6 +1050,19 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
       </div>
 
       {events.length === 0 ? <div style={{ color: MUTED, fontSize: 13 }}>未来 10 天没有订单。</div> : null}
+      {events.length > 1 ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <button type="button" className="btn btn-secondary btn-sm" disabled={busy || selCount === allIds.length} onClick={selectAll}>
+            全选
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={invert}>
+            反选
+          </button>
+          <span style={{ fontSize: 12.5, color: MUTED }}>
+            已选 {selCount} / {allIds.length} 单
+          </span>
+        </div>
+      ) : null}
       <div style={{ display: "flex", flexDirection: "column", border: events.length ? `2px solid ${INK}` : "none", marginBottom: 12 }}>
         {events.map((e) => {
           const id = e.key.replace(/^order:/, "")
@@ -1123,6 +1149,10 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                 ))}
               </div>
             </details>
+          ) : null}
+
+          {groups.bulk.length > 0 ? (
+            <div style={{ fontSize: 12.5, color: MUTED }}>{groups.bulk.join("、")}是大宗，缺了直接买，不在这里算。</div>
           ) : null}
         </div>
       ) : null}

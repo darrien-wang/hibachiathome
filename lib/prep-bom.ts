@@ -70,7 +70,10 @@ const SALAD = { adult: 1, child: 0.5 } // 份
 // 用来给"买多少"。
 const VEGE_OZ_LOW = { adult: 4, child: 2 }
 const VEGE_OZ_HIGH = { adult: 5, child: 2.5 }
-const NOODLE_PORTION = { adult: 4, child: 2 }
+const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料单一致）
+// 份量表的 4 oz 是熟面；面吸水，干:熟 ≈ 1:3（重量，老板 2026-09-30）。
+// 采购买的是干面（RD 10 lb/箱），所以清单里按干重算：熟面 ÷ 3。
+const NOODLE_COOKED_PER_DRY = 3
 const PORTION_POLICY = { gyozaPcs: 10, springRollPcs: 10, edamameFeeds: 3, diyRiceOz: 4 as number | null }
 const LEGACY_PORTION_POLICY = { gyozaPcs: 12, springRollPcs: 12, edamameFeeds: 2, diyRiceOz: null as number | null }
 const PORTION_POLICY_CUTOFF_MS = Date.parse("2026-09-02T00:00:00Z")
@@ -268,8 +271,9 @@ export function orderPrep(
     }
   }
   if (noodleA + noodleK > 0) {
-    const oz = r1(noodleA * NOODLE_PORTION.adult + noodleK * NOODLE_PORTION.child)
-    items.push({ id: "noodles", label: "Noodles 面", qty: oz, unit: "oz", alt: alt("noodles", oz, "oz"), group: "frozen" })
+    const cooked = noodleA * NOODLE_PORTION.adult + noodleK * NOODLE_PORTION.child
+    const oz = r1(cooked / NOODLE_COOKED_PER_DRY)
+    items.push({ id: "noodles", label: "Noodles 面（干面，熟面 ÷ 3）", qty: oz, unit: "oz", alt: alt("noodles", oz, "oz"), group: "frozen" })
   }
   for (const e of extras) {
     const qty = e.qty ?? 0
@@ -375,9 +379,23 @@ export const BUY_UNITS: Record<string, { per: number; noun: string; desc: string
   sake: { per: 18, noun: "箱", desc: "1 箱 = 18L" },
 }
 
+/**
+ * DIY 炒饭加的虾、鸡和正常备的是同一种货（老板 2026-09-30）：合计时并进虾、鸡胸，
+ * 只要总数够就行，不单列。单子上还是分开写（按单明细看得出来是 DIY），合计和占用
+ * 才并。虾按只记：16/20 规格 ≈ 18 只/lb，4 oz ≈ 4.5 只。
+ */
+const MERGE_INTO_PROTEIN: Record<string, { id: string; fromOz: (oz: number) => number }> = {
+  diy_rice_shrimp: { id: "shrimp", fromOz: (oz) => r1((oz / 16) * SHRIMP_PER_LB) },
+  diy_rice_chicken: { id: "chicken", fromOz: (oz) => r1(oz) },
+}
+
 export function aggregatePrep(all: PrepItem[]): PrepItem[] {
   const by = new Map<string, PrepItem>()
-  for (const it of all) {
+  for (const raw of all) {
+    const m = MERGE_INTO_PROTEIN[raw.id]
+    const it: PrepItem = m
+      ? { id: m.id, label: PROTEIN_LABELS[m.id] ?? m.id, qty: m.fromOz(raw.qty), unit: PROTEIN_PORTIONS[m.id]?.unit ?? raw.unit, group: "protein" }
+      : raw
     // 装车行按 label 分开：同一天两张单选了不同主题，盘具是两箱不同的东西，
     // 合成一行会让师傅只装一箱。食材行照旧按 id 合并。
     const key = it.group === "setup" ? `${it.id}|${it.unit}|${it.label}` : `${it.id}|${it.unit}`

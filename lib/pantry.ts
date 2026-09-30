@@ -91,6 +91,16 @@ export const RESTOCK_ITEMS = new Set([
 ])
 export const isRestockItem = (key: string) => RESTOCK_ITEMS.has(key)
 
+/**
+ * 大宗：米（熟饭）、油、酱油——一次买很多，缺了直接买（老板 2026-09-30）。
+ * 仓库「备货」清单不列它们，也不占用、不自动扣库存。
+ * 比 RESTOCK_ITEMS 窄：Yum Yum、姜汁酱、黄油这些按瓶按根算的还在备货里。
+ */
+export const BULK_ITEMS = new Set(["fried_rice", "oil", "soy_sauce"])
+export const isBulkItem = (key: string) => BULK_ITEMS.has(key)
+const BULK_NAMES: Record<string, string> = { fried_rice: "米", oil: "油", soy_sauce: "酱油" }
+export const bulkName = (key: string) => BULK_NAMES[key] ?? stockLabel(key)
+
 /** 备料清单把这四样合成一行"蔬菜合计"，所以库存也要合起来比。 */
 export const VEG_IDS = ["zucchini", "broccoli", "onion", "carrots"] as const
 

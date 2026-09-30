@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
-import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
+import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { committedByItem, reserveForOrders, settleDueReservations } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
 
@@ -79,11 +79,7 @@ export async function GET(request: NextRequest) {
     const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
     if (prep.menuKnown) allItems.push(...prep.items)
     else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
-    perOrder.push({
-      orderId: r.id,
-      // 装车的桌椅是周转品，不是吃掉的东西，不进占用。
-      items: aggregatePrep(mine).filter((i) => i.group !== "setup").map((i) => ({ id: i.id, qty: i.qty, unit: i.unit })),
-    })
+    perOrder.push({ orderId: r.id, items: reservableItems(mine) })
     const t = new Date(r.event_start as string)
     return {
       id: r.id,
@@ -125,6 +121,10 @@ export async function GET(request: NextRequest) {
   if (byOrders && perOrder.length > 0) {
     await reserveForOrders(supabase, perOrder).catch((e) => console.error("[prep] reserve failed", e))
   }
+  // 别的还占着料的单，按现在的菜单和配方重算一遍：菜单改了、配方改了（09-30 面改按干重、
+  // DIY 的虾鸡并进总量、大宗不占用），占用跟着变，不留旧数。
+  // 只跳过刚占过的那几单（按日期看的模式没占，不跳）。
+  await refreshOtherReservations(supabase, new Set(byOrders ? rows.map((r) => r.id) : [])).catch((e) => console.error("[prep] refresh failed", e))
   // 别的单还占着多少——可用 = 在库 − 这个。不含正在算的这几单，否则自己扣自己。
   const committed = await committedByItem(supabase, rows.map((r) => r.id)).catch(() => ({} as Record<string, number>))
   committed.mixed_vege = Math.round(VEG_IDS.reduce((n, k) => n + (committed[k] ?? 0), 0) * 100) / 100
@@ -151,6 +151,38 @@ export async function GET(request: NextRequest) {
     },
     { headers: { "cache-control": "no-store" } },
   )
+}
+
+/**
+ * 一单的用料 → 占用行。装车的桌椅是周转品，不是吃掉的东西，不进占用；
+ * 米、油、酱油是大宗，缺了直接买，也不进（老板 2026-09-30）。
+ */
+function reservableItems(items: PrepItem[]): Array<{ id: string; qty: number; unit: string }> {
+  return aggregatePrep(items)
+    .filter((i) => i.group !== "setup" && !isBulkItem(i.id))
+    .map((i) => ({ id: i.id, qty: i.qty, unit: i.unit }))
+}
+
+type Supabase = NonNullable<ReturnType<typeof createServerSupabaseClient>>
+
+/** 还占着料、但这次没勾的单：按现在的配方重算它们的占用。 */
+async function refreshOtherReservations(supabase: Supabase, skip: Set<string>) {
+  const { data: open } = await supabase.from("prep_reservations").select("order_id").is("settled_at", null)
+  const ids = Array.from(new Set(((open ?? []) as Array<{ order_id: string }>).map((r) => r.order_id))).filter((id) => !skip.has(id))
+  if (ids.length === 0) return
+  const { data } = await supabase
+    .from("orders")
+    .select("id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection")
+    .in("id", ids)
+  // 只动还没办的单：办过的归 settleDueReservations 结转；这里要是重写了它的行，
+  // upsert 会把已结转的行翻回"占着"，下次就扣两遍库存。
+  const today = ptDay(new Date())
+  const live = ((data ?? []) as Row[]).filter((r) => !/cancel|void|refund/i.test(r.order_status ?? "") && (r.event_start ?? "").slice(0, 10) >= today)
+  const perOrder = live.map((r) => {
+    const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
+    return { orderId: r.id, items: reservableItems(prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")) }
+  })
+  if (perOrder.length) await reserveForOrders(supabase, perOrder)
 }
 
 // 盘点：改一个装备的数（只有老板）。POST { action: "set_stock", item_key, qty, note? }
