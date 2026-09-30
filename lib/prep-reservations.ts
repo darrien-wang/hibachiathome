@@ -129,12 +129,25 @@ export async function reserveForOrders(
  * 把自己的占用也扣一遍就成了双重计算）。
  */
 export async function committedByItem(supabase: SupabaseClient, excludeOrderIds: string[] = []): Promise<Record<string, number>> {
+  return (await committedDetail(supabase, excludeOrderIds)).totals
+}
+
+/**
+ * 同上，再按单拆开：每样东西是哪几单占着、各占多少（老板 2026-09-30："我怎么知道
+ * 是哪一单占用的"）。
+ */
+export async function committedDetail(
+  supabase: SupabaseClient,
+  excludeOrderIds: string[] = [],
+): Promise<{ totals: Record<string, number>; byItem: Record<string, Array<{ orderId: string; qty: number }>> }> {
   const { data } = await supabase.from("prep_reservations").select("order_id, item_key, qty").is("settled_at", null)
   const skip = new Set(excludeOrderIds)
-  const out: Record<string, number> = {}
+  const totals: Record<string, number> = {}
+  const byItem: Record<string, Array<{ orderId: string; qty: number }>> = {}
   for (const r of (data ?? []) as Row[]) {
     if (skip.has(r.order_id)) continue
-    out[r.item_key] = Math.round(((out[r.item_key] ?? 0) + Number(r.qty)) * 100) / 100
+    totals[r.item_key] = Math.round(((totals[r.item_key] ?? 0) + Number(r.qty)) * 100) / 100
+    ;(byItem[r.item_key] = byItem[r.item_key] ?? []).push({ orderId: r.order_id, qty: Number(r.qty) })
   }
-  return out
+  return { totals, byItem }
 }

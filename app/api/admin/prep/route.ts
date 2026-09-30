@@ -3,7 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
-import { committedByItem, reserveForOrders, settleDueReservations } from "@/lib/prep-reservations"
+import { committedDetail, reserveForOrders, settleDueReservations } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
 
 export const dynamic = "force-dynamic"
@@ -126,8 +126,36 @@ export async function GET(request: NextRequest) {
   // 只跳过刚占过的那几单（按日期看的模式没占，不跳）。
   await refreshOtherReservations(supabase, new Set(byOrders ? rows.map((r) => r.id) : [])).catch((e) => console.error("[prep] refresh failed", e))
   // 别的单还占着多少——可用 = 在库 − 这个。不含正在算的这几单，否则自己扣自己。
-  const committed = await committedByItem(supabase, rows.map((r) => r.id)).catch(() => ({} as Record<string, number>))
-  committed.mixed_vege = Math.round(VEG_IDS.reduce((n, k) => n + (committed[k] ?? 0), 0) * 100) / 100
+  const detail = await committedDetail(supabase, rows.map((r) => r.id)).catch(() => ({ totals: {} as Record<string, number>, byItem: {} as Record<string, Array<{ orderId: string; qty: number }>> }))
+  const committed = detail.totals
+  // 蔬菜的占用记在 mixed_vege 上（和清单同一行），四样分开记的库存那边另算；原来这里用四样
+  // 分开的占用之和把它盖掉了，而那个和永远是 0——蔬菜的"别的单占了"就一直显示没有。
+  committed.mixed_vege = Math.round(((committed.mixed_vege ?? 0) + VEG_IDS.reduce((n, k) => n + (committed[k] ?? 0), 0)) * 100) / 100
+
+  // 占着的是哪几单：带上名字和日子，页面上点"别的单占了"就能看到（老板 2026-09-30）
+  const holderIds = Array.from(new Set(Object.values(detail.byItem).flatMap((l) => l.map((x) => x.orderId))))
+  const { data: holderRows } = holderIds.length
+    ? await supabase.from("orders").select("id, customer_name, event_start").in("id", holderIds)
+    : { data: [] as Array<{ id: string; customer_name: string | null; event_start: string | null }> }
+  const holderOf = new Map(
+    ((holderRows ?? []) as Array<{ id: string; customer_name: string | null; event_start: string | null }>).map((o) => [
+      o.id,
+      {
+        name: (o.customer_name ?? "").trim() || "未留名",
+        date: (o.event_start ?? "").slice(5, 10),
+        time: o.event_start ? new Date(o.event_start).toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }) : "",
+        sort: o.event_start ?? "",
+      },
+    ]),
+  )
+  const committedBy: Record<string, Array<{ orderId: string; name: string; date: string; time: string; qty: number }>> = {}
+  for (const [item, list] of Object.entries(detail.byItem)) {
+    committedBy[item] = list
+      .map((x) => ({ orderId: x.orderId, qty: x.qty, ...(holderOf.get(x.orderId) ?? { name: "（订单已删）", date: "", time: "", sort: "" }) }))
+      .sort((a, b) => a.sort.localeCompare(b.sort))
+      .map(({ sort: _sort, ...h }) => h)
+  }
+  committedBy.mixed_vege = [...(committedBy.mixed_vege ?? []), ...VEG_IDS.flatMap((k) => committedBy[k] ?? [])]
 
   const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
@@ -145,6 +173,8 @@ export async function GET(request: NextRequest) {
       pantry,
       // 别的单占着的量：页面上「可用 = 在库 − 占用」，缺口按可用算。
       committed,
+      // 占着的是哪几单、各占多少
+      committedBy,
       pantryDetail: pantryRows ?? [],
       consumed: (consumed ?? []).length > 0,
       warnings: unknown.map((o) => `${o.timeLabel} ${o.name}（${o.adults + o.kids} 人）菜单未定——蛋白质没算进合计，买前先把菜单问回来`),

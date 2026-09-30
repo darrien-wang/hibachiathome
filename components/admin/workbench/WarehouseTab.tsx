@@ -926,6 +926,7 @@ function DetailDialog({
 /* ---------- 备货：勾订单，算"要补什么、去哪买" ---------- */
 
 type BuyPack = { per: number; noun: string; desc: string }
+type Occupant = { orderId: string; name: string; date: string; time: string; qty: number }
 type PlanRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string; pack?: BuyPack | null }
 type PlanResp = {
   orders: Array<{ id: string; dateLabel: string; orderNo: string; name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean }>
@@ -933,6 +934,8 @@ type PlanResp = {
   pantry: Record<string, number>
   /** 别的单还占着的量。可用 = 在库 − 这个（老板 2026-09-29）。 */
   committed: Record<string, number>
+  /** 占着的是哪几单、各占多少（老板 2026-09-30："我怎么知道是哪一单占用的"） */
+  committedBy?: Record<string, Occupant[]>
   pantryDetail: Array<{ item_key: string; qty: number; counted_at: string | null }>
   stores: Record<string, { channel: string | null; pack: string | null }>
   warnings: string[]
@@ -993,7 +996,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
 
   const groups = (() => {
     if (!resp) return null
-    type Line = { row: PlanRow; have: number; committed: number; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean }
+    type Line = { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean }
     const buy: Record<string, Line[]> = {}
     const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
@@ -1020,7 +1023,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
       // 要不要麻烦你走一趟冰箱：不够的必须看，太久没盘的也该看一眼。
       // 够、而且最近盘过的，默认信它——这正是"我不在乎有什么"。
       const ask = short > 0 || stale
-      const line = { row, have, committed, avail, short, buy: buyCount(short, row.pack), stale, ask }
+      const line = { row, have, committed, holders: resp.committedBy?.[row.id] ?? [], avail, short, buy: buyCount(short, row.pack), stale, ask }
       // 全量核对表要看到每一样东西，不管够不够 —— 老板要的就是能发现"账上说够、
       // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
       ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
@@ -1657,13 +1660,15 @@ function CountRow({
   busy,
   onSet,
 }: {
-  line: { row: PlanRow; have: number; committed: number; avail: number; short: number; buy: number | null; stale: boolean }
+  line: { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean }
   busy: boolean
   onSet: (qty: number) => void
 }) {
-  const { row, have, committed, avail, short, buy, stale } = line
+  const { row, have, committed, holders, avail, short, buy, stale } = line
   const per = row.pack?.per ?? 0
   const noun = row.pack?.noun ?? ""
+  const [showHolders, setShowHolders] = useState(false)
+  const amount = (q: number) => (per > 0 ? `${Math.round((q / per) * 10) / 10} ${noun}` : `${Math.round(q * 10) / 10} ${row.unit}`)
   const havePacks = per > 0 ? Math.round((have / per) * 2) / 2 : null
   const choices = per > 0 ? [0, 0.5, 1, 2, 3, 4] : []
 
@@ -1681,8 +1686,32 @@ function CountRow({
       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
         要 {Math.round(row.qty * 10) / 10} {row.unit}
         {per > 0 ? `（≈${Math.round((row.qty / per) * 10) / 10} ${noun}）` : ""} · 在库 {havePacks === null ? `${have} ${row.unit}` : `${havePacks} ${noun}`}
-        {committed > 0 ? ` · 别的单占了 ${per > 0 ? `${Math.round((committed / per) * 10) / 10} ${noun}` : `${committed} ${row.unit}`}，可用 ${per > 0 ? Math.round((avail / per) * 10) / 10 : avail}` : ""}
+        {committed > 0 ? (
+          <>
+            {" · "}
+            {/* 点开看是哪几单占着；只有一单就直接写名字 */}
+            <button
+              type="button"
+              aria-expanded={showHolders}
+              onClick={() => setShowHolders((v) => !v)}
+              style={{ all: "unset", cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: 3 }}
+            >
+              别的单占了 {amount(committed)}
+              {holders.length === 1 ? `（${holders[0].date} ${holders[0].name}）` : holders.length > 1 ? `（${holders.length} 单 ${showHolders ? "▴" : "▾"}）` : ""}
+            </button>
+            ，可用 {per > 0 ? Math.round((avail / per) * 10) / 10 : avail}
+          </>
+        ) : null}
       </div>
+      {showHolders && holders.length > 0 ? (
+        <div style={{ fontSize: 12, color: MUTED, margin: "4px 0 2px 4px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)", lineHeight: 1.7 }}>
+          {holders.map((h) => (
+            <div key={h.orderId}>
+              {h.date} {h.time} · {h.name} · 占 {amount(h.qty)}
+            </div>
+          ))}
+        </div>
+      ) : null}
       {per > 0 ? (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
           {choices.map((n) => (
