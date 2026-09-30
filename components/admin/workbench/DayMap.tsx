@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
-import { askPrompt, tell } from "./ask"
+import { askConfirm, askPrompt, tell } from "./ask"
 import { TileMap } from "@/components/schedule/TileMap"
 
 // 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
@@ -30,7 +30,10 @@ type Stop = {
   lng: number | null
   /** 只精确到城市/邮编——图钉不是门口。 */
   approx?: boolean
+  /** 这一单现在派给了谁（order_staff_assignments 里没取消的） */
+  chefIds: string[]
 }
+type Chef = { id: string; name: string; active: boolean }
 type Grade = "solid" | "ontime" | "late_ok" | "late_limit"
 type Link = {
   fromId: string
@@ -44,10 +47,12 @@ type Link = {
   grade: Grade
   fix: { minutes: number; laterStart: string; earlierStart: string | null } | null
 }
-type Plan = { key: "safe" | "late_ok" | "late_limit"; tolerance: number; chefs: number; chains: string[][]; links: Link[] }
+/** key: safe / late_ok / late_limit = 最少几个师傅；spread_N = 多派到 N 个 */
+type Plan = { key: string; tolerance: number; chefs: number; chains: string[][]; links: Link[]; spread: boolean; onePerParty: boolean }
 type Resp = {
   date: string
   stops: Stop[]
+  chefs: Chef[]
   missing: Array<{ name: string; address: string }>
   home: { lat: number; lng: number; label: string } | null
   plans: Plan[]
@@ -78,7 +83,8 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   const [open, setOpen] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   // 默认看最稳的那版：冒不冒险得是老板自己点过去看的，不是打开就替他选好。
-  const [tier, setTier] = useState<Plan["key"]>("safe")
+  const [tier, setTier] = useState<string>("safe")
+  const [assigning, setAssigning] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -123,7 +129,71 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   const cur = placed.find((s) => s.id === open) ?? null
 
   const tierLabel = (p: Plan) =>
-    p.key === "safe" ? `稳妥 · ${p.chefs} 个师傅` : p.key === "late_ok" ? `肯迟到 ${p.tolerance} 分内 · ${p.chefs} 个` : `极限迟到 ${p.tolerance} 分 · ${p.chefs} 个`
+    p.spread
+      ? p.onePerParty
+        ? `每人一台 · ${p.chefs} 个`
+        : `多派 · ${p.chefs} 个`
+      : p.key === "safe"
+        ? `稳妥 · ${p.chefs} 个师傅`
+        : p.key === "late_ok"
+          ? `肯迟到 ${p.tolerance} 分内 · ${p.chefs} 个`
+          : `极限迟到 ${p.tolerance} 分 · ${p.chefs} 个`
+
+  // 多派（老板 2026-09-30）：有时候想让每个师傅都有台做，不一定最省人。10 场的一天多派的
+  // 版本会有七八个，芯片只放前几个和"每人一台"。
+  const chips = useMemo(() => {
+    const all = d?.plans ?? []
+    const spread = all.filter((p) => p.spread)
+    return [...all.filter((p) => !p.spread), ...(spread.length > 6 ? [...spread.slice(0, 4), spread[spread.length - 1]] : spread)]
+  }, [d])
+
+  // ---- 指派（老板 2026-09-30）：给每条线派一个师傅，写进这条线上每一单
+  const chefName = useMemo(() => new Map((d?.chefs ?? []).map((c) => [c.id, c.name])), [d])
+  const namesOf = (ids: string[]) => ids.map((id) => chefName.get(id) ?? "已停用的师傅").join("、")
+  /** 这条线现在派给了谁：每一单都正好是同一个人才算数；各单不一样 = mixed */
+  const chainChef = (chain: string[]): { id: string; mixed: boolean } => {
+    const sets = chain.map((id) => byId.get(id)?.chefIds ?? [])
+    const one = sets[0]?.length === 1 ? sets[0][0] : null
+    if (one && sets.every((s) => s.length === 1 && s[0] === one)) return { id: one, mixed: false }
+    return { id: "", mixed: sets.some((s) => s.length > 0) }
+  }
+  const assignChain = async (ci: number, chain: string[], chefId: string) => {
+    if (!chefId) return
+    const who = chefName.get(chefId) ?? "这位师傅"
+    const change = chain.map((id) => byId.get(id)).filter((s): s is Stop => !!s && !(s.chefIds.length === 1 && s.chefIds[0] === chefId))
+    if (!change.length) return
+    // 换掉已经派了的人要先问：两个师傅的大单这样派会只剩一个
+    const replacing = change.filter((s) => s.chefIds.length > 0)
+    if (replacing.length) {
+      const ok = await askConfirm({
+        title: `改派给 ${who}`,
+        message: `${replacing.map((s) => `${s.time} ${s.name}：现在是 ${namesOf(s.chefIds)}`).join("\n")}\n\n改完这几单都只有 ${who} 一个人。`,
+        okLabel: "改派",
+      })
+      if (!ok) return
+    }
+    setAssigning(ci)
+    try {
+      for (const s of change) await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
+    } catch (e) {
+      void tell({ title: "没派上", message: e instanceof Error ? e.message : "出错了" })
+    } finally {
+      await load()
+      setAssigning(null)
+    }
+  }
+  // 同一个师傅被派到了两条线上：线是按"一个人跑得过来"拆的，两条都给他多半接不上
+  const doubleBooked = (() => {
+    if (!plan) return [] as string[]
+    const seen = new Map<string, number[]>()
+    plan.chains.forEach((c, ci) => {
+      const x = chainChef(c)
+      if (x.id) seen.set(x.id, [...(seen.get(x.id) ?? []), ci + 1])
+    })
+    return Array.from(seen.entries())
+      .filter(([, v]) => v.length > 1)
+      .map(([id, v]) => `${chefName.get(id) ?? "?"} 排在了师傅 ${v.join("、")} 两条线上`)
+  })()
 
   return (
     <Dialog onClose={onClose} width={720}>
@@ -137,9 +207,9 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
         {!d ? <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>算距离中…（第一次打开要给每个地址定位，慢一点）</div> : null}
         {d?.note ? <div className="notice">{d.note}</div> : null}
 
-        {d && d.plans.length > 1 ? (
+        {d && chips.length > 1 ? (
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {d.plans.map((p) => (
+            {chips.map((p) => (
               <button key={p.key} type="button" className="wb-chip wb-chip-sm" aria-pressed={plan?.key === p.key} onClick={() => setTier(p.key)}>
                 {tierLabel(p)}
               </button>
@@ -190,13 +260,23 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
         {plan && d ? (
           <div>
             <div style={{ borderBottom: "2px solid var(--color-text)", paddingBottom: 6, marginBottom: 2, fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 17 }}>
-              {plan.chefs} 个师傅{plan.key !== "safe" ? `（拖满的话最多迟到 ${Math.max(0, ...plan.links.map((l) => l.worstLate))} 分）` : "（拖满也不迟到）"}
+              {plan.chefs} 个师傅
+              {plan.onePerParty && plan.spread
+                ? "（每场一个师傅，不用赶场）"
+                : plan.spread
+                  ? "（多派，拖满也不迟到）"
+                  : plan.key !== "safe"
+                    ? `（拖满的话最多迟到 ${Math.max(0, ...plan.links.map((l) => l.worstLate))} 分）`
+                    : "（拖满也不迟到）"}
             </div>
-            {plan.chains.map((chain, ci) => (
+            {doubleBooked.length ? <div className="notice" style={{ marginTop: 8 }}>{doubleBooked.join("；")}——确认时间接得上。</div> : null}
+            {plan.chains.map((chain, ci) => {
+              const cc = chainChef(chain)
+              return (
               <div key={ci} style={{ padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
                   <span className="kicker" style={{ width: 52, flex: "none" }}>师傅 {ci + 1}</span>
-                  <div style={{ flex: 1, minWidth: 0, fontSize: 14, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ flex: 1, minWidth: 220, fontSize: 14, display: "flex", flexDirection: "column", gap: 4 }}>
                     {chain.map((id, k) => {
                       const s = byId.get(id)
                       if (!s) return null
@@ -223,6 +303,8 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                             {s.time} {s.name}
                           </button>
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
+                          {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
+                          {cc.mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length ? `已派 ${namesOf(s.chefIds)}` : "还没派"}</span> : null}
                           {s.lat === null ? <span style={{ color: "var(--color-accent-700)" }}> · 地址定位不到</span> : null}
                           {s.lat !== null && s.approx ? <span style={{ color: "var(--color-neutral-600)" }}> · 只到城市</span> : null}
                           {s.lat === null || s.approx ? (
@@ -234,9 +316,27 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                       )
                     })}
                   </div>
+                  <select
+                    className="input"
+                    aria-label={`师傅 ${ci + 1} 指派给谁`}
+                    style={{ flex: "none", width: 150, minHeight: 34, padding: "4px 8px", fontSize: 13, marginLeft: "auto" }}
+                    value={cc.id}
+                    disabled={assigning !== null}
+                    onChange={(e) => void assignChain(ci, chain, e.target.value)}
+                  >
+                    <option value="">{assigning === ci ? "派单中…" : cc.mixed ? "各单派的人不一样" : "指派师傅…"}</option>
+                    {(d.chefs ?? [])
+                      .filter((c) => c.active || c.id === cc.id)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
               </div>
-            ))}
+              )
+            })}
 
             <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 12, lineHeight: 1.7 }}>
               算法：第一台准时开 → 开场到装车出发 {d.params.busyMin}–{d.params.busyMax} 分 → 路上 → 下一场提前 {d.params.arriveEarly} 分到。迟到 {d.params.lateOk} 分内算还能接受，{d.params.lateLimit} 分是极限。（设置 → 派工 里能改）

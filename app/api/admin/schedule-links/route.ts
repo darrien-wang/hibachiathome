@@ -6,8 +6,8 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-// 排班计算器的分享链接：老板在 设置 里发给认识的人，看每个链接用了多少，随时收回
-// （2026-09-29）。只有 owner 能管。
+// 排班计算器的分享链接：老板在 设置 里发给认识的人，看每个链接用了多少、存下来哪些
+// 场次，随时收回（2026-09-29；09-30 起存场次，以后合作换单用）。只有 owner 能管。
 
 const TODAY_TZ = "America/Los_Angeles"
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: TODAY_TZ })
@@ -26,10 +26,33 @@ export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "not configured" }, { status: 500 })
 
-  const [{ data: links }, { data: usage }] = await Promise.all([
+  // ?stops=<链接 id>：这个链接存下来的场次（2026-09-30 起存，以后换单用），新的日子在前
+  const stopsOf = (request.nextUrl.searchParams.get("stops") ?? "").trim()
+  if (stopsOf) {
+    if (!/^[0-9a-f-]{36}$/i.test(stopsOf)) return NextResponse.json({ error: "bad id" }, { status: 400 })
+    const { data, error } = await supabase
+      .from("schedule_share_stops")
+      .select("service_date, seq, start_min, name, address, guests, lat, lng, approx, found, saved_at")
+      .eq("link_id", stopsOf)
+      .order("service_date", { ascending: false })
+      .order("seq", { ascending: true })
+      .limit(600)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, stops: data ?? [] })
+  }
+
+  const [{ data: links }, { data: usage }, { data: kept }] = await Promise.all([
     supabase.from("schedule_share_links").select("id, token, name, daily_limit, created_at, revoked_at, last_used_at").order("created_at", { ascending: false }),
     supabase.from("schedule_share_usage").select("link_id, day, runs, stops"),
+    supabase.from("schedule_share_stops").select("link_id, service_date").limit(20000),
   ])
+  const keptBy = new Map<string, { days: Set<string>; stops: number }>()
+  for (const k of (kept ?? []) as Array<{ link_id: string; service_date: string }>) {
+    const cur = keptBy.get(k.link_id) ?? { days: new Set<string>(), stops: 0 }
+    cur.days.add(k.service_date)
+    cur.stops += 1
+    keptBy.set(k.link_id, cur)
+  }
   const d = today()
   const byLink = new Map<string, { today: number; runs: number; stops: number }>()
   for (const u of (usage ?? []) as Array<{ link_id: string; day: string; runs: number; stops: number }>) {
@@ -41,7 +64,10 @@ export async function GET(request: NextRequest) {
   }
   return NextResponse.json({
     ok: true,
-    links: ((links ?? []) as Array<Record<string, unknown>>).map((l) => ({ ...l, usage: byLink.get(l.id as string) ?? { today: 0, runs: 0, stops: 0 } })),
+    links: ((links ?? []) as Array<Record<string, unknown>>).map((l) => {
+      const k = keptBy.get(l.id as string)
+      return { ...l, usage: byLink.get(l.id as string) ?? { today: 0, runs: 0, stops: 0 }, kept: { days: k?.days.size ?? 0, stops: k?.stops ?? 0 } }
+    }),
   })
 }
 

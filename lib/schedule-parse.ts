@@ -19,16 +19,24 @@ export type ParsedLine = {
   timeLabel: string | null
   name: string | null
   address: string
+  /** 这一行写了几位客人（"15人" "15 guests" "10 adults 5 kids"）；没写 = null */
+  guests: number | null
   error: string | null
 }
 
-export type ParseResult = { lines: ParsedLine[]; warnings: string[] }
+export type ParseResult = {
+  lines: ParsedLine[]
+  warnings: string[]
+  /** 粘贴内容里认出的那一天（YYYY-MM-DD）；没写、或者写了好几天 = null */
+  date: string | null
+}
 
 export const MAX_STOPS = 15
 
 const CELL_SPLIT = /\t|\s*[|｜;；]\s*|\s+·\s+/
-const GUESTS = /\b\d{1,3}\s*(?:人|位|ppl|pax|people|guests?)\b|\b\d{1,3}\s*(?:人|位)/gi
-const DATE = /\b\d{1,2}[/.-]\d{1,2}(?:[/.-]\d{2,4})?\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b|\d{1,2}\s*月\s*\d{1,2}\s*(?:日|号)/gi
+const GUESTS = /\b\d{1,3}\s*(?:人|位|ppl|pax|people|guests?|adults?|kids?|children)\b|\b\d{1,3}\s*(?:人|位)/gi
+const GUEST_COUNT = /(\d{1,3})\s*(人|位|ppl|pax|people|guests?|adults?|kids?|children)(?![a-z])/gi
+const DATE = /\b\d{4}[/.-]\d{1,2}[/.-]\d{1,2}\b|\b\d{1,2}[/.-]\d{1,2}(?:[/.-]\d{2,4})?\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b|\d{1,2}\s*月\s*\d{1,2}\s*(?:日|号)/gi
 const WEEKDAY = /\b(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day)?\b\.?|(?:周|星期|礼拜)[一二三四五六日天]/gi
 const HEADER = /^(?:时间|地址|名字|姓名|time|address|name|when|where)(?:\s|$)/i
 
@@ -136,6 +144,61 @@ function splitLeadingName(s: string): { name: string | null; address: string } {
   return { name: m[1].trim(), address: m[2].trim() }
 }
 
+/** "15人" → 15；"10 adults 5 kids" → 15；写了总人数就以总人数为准。 */
+function guestsOf(line: string): number | null {
+  let total: number | null = null
+  let parts = 0
+  for (const m of line.matchAll(GUEST_COUNT)) {
+    const n = Number(m[1])
+    if (!n) continue
+    if (/^(?:adults?|kids?|children)$/i.test(m[2])) parts += n
+    else if (total === null) total = n
+  }
+  const n = total ?? (parts || null)
+  return n !== null && n >= 1 && n <= 999 ? n : null
+}
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+const pad2 = (n: number) => String(n).padStart(2, "0")
+
+/**
+ * "10/3" "10-03-26" "2026-10-03" "Oct 3rd" "10月3日" → "2026-10-03"。
+ * 没写年份：取离今天最近的那一年（最多往回 60 天，往后不超过 10 个月）。
+ */
+export function dateTokenToISO(token: string, today = new Date()): string | null {
+  const t = token.toLowerCase().trim()
+  let y: number | null = null
+  let mo = 0
+  let d = 0
+  let r: RegExpExecArray | null
+  if ((r = /^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/.exec(t))) {
+    y = Number(r[1])
+    mo = Number(r[2])
+    d = Number(r[3])
+  } else if ((r = /^(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?$/.exec(t))) {
+    mo = Number(r[1])
+    d = Number(r[2])
+    if (r[3]) y = r[3].length === 2 ? 2000 + Number(r[3]) : Number(r[3])
+  } else if ((r = /^([a-z]+)\.?\s+(\d{1,2})/.exec(t))) {
+    mo = MONTHS.indexOf(r[1].slice(0, 3)) + 1
+    d = Number(r[2])
+  } else if ((r = /^(\d{1,2})\s*月\s*(\d{1,2})/.exec(t))) {
+    mo = Number(r[1])
+    d = Number(r[2])
+  }
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null
+  if (y === null) {
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    y = today.getFullYear()
+    const diff = (new Date(y, mo - 1, d).getTime() - start) / 86_400_000
+    if (diff < -60) y += 1
+    else if (diff > 305) y -= 1
+  }
+  const dt = new Date(y, mo - 1, d)
+  if (dt.getMonth() !== mo - 1) return null // 2/30 这种
+  return `${y}-${pad2(mo)}-${pad2(d)}`
+}
+
 export function parseScheduleText(text: string): ParseResult {
   const warnings: string[] = []
   const dates = new Set<string>()
@@ -146,17 +209,24 @@ export function parseScheduleText(text: string): ParseResult {
     const line = raw.trim()
     if (!line) return
 
-    for (const d of line.match(DATE) ?? []) dates.add(d.toLowerCase().replace(/\s+/g, " "))
-
     const hit = findTime(line)
+    // 日期在去掉时间之后再找：不然 "5-8 pm" 里的 "5-8" 会被当成 5 月 8 日
+    const noTime = hit ? line.slice(0, hit.start) + " " + line.slice(hit.end) : line
+    const lineDates = noTime.match(DATE) ?? []
+    for (const d of lineDates) {
+      const iso = dateTokenToISO(d)
+      if (iso) dates.add(iso)
+    }
+
     if (!hit) {
-      // 表头（"时间 地址"）直接跳过，别的照实报错
+      // 表头（"时间 地址"）、单独一行的日期（"10/3 周六"）直接跳过，别的照实报错
       if (HEADER.test(line)) return
-      lines.push({ lineNo: i + 1, raw, startMin: null, timeLabel: null, name: null, address: tidy(line), error: "没认出开场时间" })
+      if (lineDates.length && !/\d/.test(tidy(line.replace(DATE, " ").replace(WEEKDAY, " ")))) return
+      lines.push({ lineNo: i + 1, raw, startMin: null, timeLabel: null, name: null, address: tidy(line), guests: null, error: "没认出开场时间" })
       return
     }
 
-    const rest = (line.slice(0, hit.start) + " " + line.slice(hit.end)).replace(DATE, " ").replace(WEEKDAY, " ")
+    const rest = noTime.replace(DATE, " ").replace(WEEKDAY, " ")
     let name: string | null = null
     let address = ""
 
@@ -184,14 +254,15 @@ export function parseScheduleText(text: string): ParseResult {
       timeLabel: fmt(hit.minutes),
       name,
       address,
+      guests: guestsOf(noTime),
       error: address ? null : "有时间，但没有地址",
     })
   })
 
-  if (dates.size > 1) warnings.push(`看起来是好几天的场次（${Array.from(dates).slice(0, 4).join("、")}）——一次只算一天，其他日子分开粘`)
+  if (dates.size > 1) warnings.push(`看起来是好几天的场次（${Array.from(dates).slice(0, 4).map((d) => d.slice(5).replace("-", "/")).join("、")}）——一次只算一天，其他日子分开粘`)
   const ok = lines.filter((l) => !l.error)
   if (ok.length > MAX_STOPS) warnings.push(`一次最多 ${MAX_STOPS} 场，现在有 ${ok.length} 场——算法把所有排法都试一遍，再多会算不完`)
-  return { lines, warnings }
+  return { lines, warnings, date: dates.size === 1 ? Array.from(dates)[0] : null }
 }
 
 export const formatClock = fmt

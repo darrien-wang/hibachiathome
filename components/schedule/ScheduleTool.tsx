@@ -16,11 +16,12 @@ import { planTiers, type Grade, type TierKey, type TierPlan } from "@/lib/dispat
 
 type Lang = "zh" | "en"
 type Resolved = { lat: number | null; lng: number | null; approx: boolean; found: boolean }
-type RunResult = { lines: ParsedLine[]; stops: Resolved[]; minutes: Array<Array<number | null>>; miles: Array<Array<number | null>>; matrixOk: boolean }
+type RunResult = { date: string; lines: ParsedLine[]; stops: Resolved[]; minutes: Array<Array<number | null>>; miles: Array<Array<number | null>>; matrixOk: boolean }
 type LinkInfo = { name: string; dailyLimit: number; usedToday: number; maxStops: number }
 
 const DRAFT_KEY = "rh-schedule-draft"
 const PARAMS_KEY = "rh-schedule-params"
+const DATE_KEY = "rh-schedule-date"
 const DEFAULT_PARAMS = { busyMin: 90, busyMax: 120, early: 10, lateOk: 30, lateLimit: 60 }
 
 const whenZh = (late: number) => (late <= 0 ? `早到 ${-late} 分` : `迟到 ${late} 分`)
@@ -45,7 +46,21 @@ const T = {
     bad: "这个链接无效或已经收回了，找分享给你的人要个新的。",
     stale: "上面的内容改过了，下面还是上一次的结果——再点一次「算」。",
     chefs: (n: number) => `最少 ${n} 个师傅`,
-    tier: (p: TierPlan) => (p.key === "safe" ? `稳妥 · ${p.chefs} 个师傅` : p.key === "late_ok" ? `肯迟到 ${p.tolerance} 分内 · ${p.chefs} 个` : `迟到到 ${p.tolerance} 分 · ${p.chefs} 个`),
+    tier: (p: TierPlan) =>
+      p.spread
+        ? p.onePerParty
+          ? `每人一台 · ${p.chefs} 个`
+          : `多派 · ${p.chefs} 个`
+        : p.key === "safe"
+          ? `稳妥 · ${p.chefs} 个师傅`
+          : p.key === "late_ok"
+            ? `肯迟到 ${p.tolerance} 分内 · ${p.chefs} 个`
+            : `迟到到 ${p.tolerance} 分 · ${p.chefs} 个`,
+    onePer: "（每场一个师傅，不用赶场）",
+    date: "哪天",
+    dateNeeded: "先填上是哪天",
+    cGuests: "人数",
+    saveNote: "点「算」会把这天的场次（日期、时间、名字、地址、人数）存到 Real Hibachi，方便以后我们之间互相调单。",
     chef: (i: number) => `师傅 ${i}`,
     worstNone: "（拖满也不迟到）",
     worstMax: (m: number) => `（拖满的话最多迟到 ${m} 分）`,
@@ -69,7 +84,7 @@ const T = {
     copy: "复制成文字",
     copied: "已复制",
     rule: (a: number, b: number, c: number) => `算法：每个师傅的第一台准时开 → 开场到装车出发 ${a}–${b} 分 → 路上 → 下一场提前 ${c} 分到。迟到会顺着一个师傅的场次往下传。`,
-    footer: "地图 © OpenStreetMap contributors · 车程由 OSRM 估算，不含堵车 · 你粘的地址只拿去 OpenStreetMap 查坐标、算这一次，我们不保存",
+    footer: "地图 © OpenStreetMap contributors · 车程由 OSRM 估算，不含堵车 · 地址用 OpenStreetMap 查坐标",
     tooMany: `一次最多 ${MAX_STOPS} 场`,
     matrixFail: "车程没算出来（路线服务没响应），稍后再试。",
     lang: "EN",
@@ -92,7 +107,19 @@ const T = {
     bad: "This link is invalid or has been revoked. Ask whoever shared it for a new one.",
     stale: "The list above changed; the result below is from the last run. Run it again.",
     chefs: (n: number) => `At least ${n} chef${n === 1 ? "" : "s"}`,
-    tier: (p: TierPlan) => (p.key === "safe" ? `Safe · ${p.chefs} chefs` : p.key === "late_ok" ? `Up to ${p.tolerance} min late · ${p.chefs}` : `Up to ${p.tolerance} min late · ${p.chefs}`),
+    tier: (p: TierPlan) =>
+      p.spread
+        ? p.onePerParty
+          ? `One chef per job · ${p.chefs}`
+          : `More chefs · ${p.chefs}`
+        : p.key === "safe"
+          ? `Safe · ${p.chefs} chefs`
+          : `Up to ${p.tolerance} min late · ${p.chefs}`,
+    onePer: "(one chef per job, no driving between jobs)",
+    date: "Date",
+    dateNeeded: "Pick the date first",
+    cGuests: "Guests",
+    saveNote: "Running saves this day's jobs (date, time, name, address, guests) with Real Hibachi so we can trade jobs with each other later.",
     chef: (i: number) => `Chef ${i}`,
     worstNone: "(on time even if parties run long)",
     worstMax: (m: number) => `(up to ${m} min late if parties run long)`,
@@ -116,7 +143,7 @@ const T = {
     copy: "Copy as text",
     copied: "Copied",
     rule: (a: number, b: number, c: number) => `Rule: each chef's first job starts on time → ${a}–${b} min from start to packed up → drive → arrive ${c} min before the next start. Lateness carries down a chef's day.`,
-    footer: "Map © OpenStreetMap contributors · Drive times from OSRM, no traffic · Addresses you paste are only looked up on OpenStreetMap for this run; we don't store them",
+    footer: "Map © OpenStreetMap contributors · Drive times from OSRM, no traffic · Addresses are geocoded with OpenStreetMap",
     tooMany: `Up to ${MAX_STOPS} jobs at a time`,
     matrixFail: "Couldn't get drive times (routing service didn't respond). Try again shortly.",
     lang: "中文",
@@ -168,6 +195,29 @@ export function ScheduleTool() {
   const parsed = useMemo(() => parseScheduleText(text), [text])
   // 按开场时间排好：图钉编号、师傅的场次都按时间走
   const okLines = useMemo(() => parsed.lines.filter((l) => !l.error).sort((a, b) => (a.startMin ?? 0) - (b.startMin ?? 0)), [parsed])
+  const hasGuests = parsed.lines.some((l) => l.guests !== null)
+
+  // 哪一天：场次要存下来以后换单用，没有日期就对不上（老板 2026-09-30）。
+  // 粘进来的内容里写了日期就自动填；粘了另一天的内容，跟着换。
+  const [date, setDate] = useState("")
+  const lastParsedDate = useRef<string | null>(null)
+  const editDate = (v: string) => {
+    setDate(v)
+    try {
+      localStorage.setItem(DATE_KEY, v)
+    } catch {}
+  }
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(DATE_KEY)
+      if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) setDate(v)
+    } catch {}
+  }, [])
+  useEffect(() => {
+    if (parsed.date && parsed.date !== lastParsedDate.current) editDate(parsed.date)
+    lastParsedDate.current = parsed.date
+  }, [parsed.date])
+  const weekday = date ? new Date(`${date}T12:00:00`).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", { weekday: "short" }) : ""
 
   // 参数是对方自己的排班习惯，记在他这台设备上，下次打开不用重填
   const [params, setParams] = useState(DEFAULT_PARAMS)
@@ -203,12 +253,12 @@ export function ScheduleTool() {
   const [copied, setCopied] = useState(false)
 
   const sig = (ls: ParsedLine[]) => ls.map((l) => `${l.startMin}|${l.address}|${l.name ?? ""}`).join("\n")
-  const stale = !!result && sig(result.lines) !== sig(okLines)
+  const stale = !!result && (sig(result.lines) !== sig(okLines) || result.date !== date)
   const needLookup = okLines.filter((l) => !known[l.address]).length
   const runsLeft = info ? Math.max(0, info.dailyLimit - info.usedToday) : 0
 
   const run = async () => {
-    if (busy || okLines.length === 0 || okLines.length > MAX_STOPS) return
+    if (busy || !date || okLines.length === 0 || okLines.length > MAX_STOPS) return
     setBusy(true)
     setErr(null)
     try {
@@ -216,7 +266,11 @@ export function ScheduleTool() {
         method: "POST",
         headers: { "content-type": "application/json" },
         // 没改过的地址把上次查到的坐标带回去，服务器就不再查
-        body: JSON.stringify({ t: token, stops: okLines.map((l) => ({ address: l.address, ...(known[l.address]?.found ? known[l.address] : {}) })) }),
+        body: JSON.stringify({
+          t: token,
+          date,
+          stops: okLines.map((l) => ({ address: l.address, name: l.name, startMin: l.startMin, guests: l.guests, ...(known[l.address]?.found ? known[l.address] : {}) })),
+        }),
       })
       const j = await res.json()
       if (!res.ok || !j.ok) {
@@ -232,7 +286,7 @@ export function ScheduleTool() {
         })
         return next
       })
-      setResult({ lines: okLines, stops, minutes: j.minutes, miles: j.miles, matrixOk: j.matrixOk })
+      setResult({ date, lines: okLines, stops, minutes: j.minutes, miles: j.miles, matrixOk: j.matrixOk })
       setInfo((i) => (i ? { ...i, usedToday: j.usedToday, dailyLimit: j.dailyLimit } : i))
       setOpen(null)
     } catch (e) {
@@ -254,6 +308,11 @@ export function ScheduleTool() {
     )
   }, [result, params])
   const plan = plans.find((p) => p.key === tier) ?? plans[0] ?? null
+  // 多派的版本可能很多，芯片只放前几个和"每人一台"
+  const chips = useMemo(() => {
+    const spread = plans.filter((p) => p.spread)
+    return [...plans.filter((p) => !p.spread), ...(spread.length > 6 ? [...spread.slice(0, 4), spread[spread.length - 1]] : spread)]
+  }, [plans])
 
   // 地图宽度跟着容器走（手机上别被裁掉一半）
   const mapBox = useRef<HTMLDivElement | null>(null)
@@ -276,7 +335,7 @@ export function ScheduleTool() {
     if (!result || !plan) return
     const L = result.lines
     const worstLate = Math.max(0, ...plan.links.map((l) => l.worstLate))
-    const out = [`${t.chefs(plan.chefs)} ${worstLate > 0 ? t.worstMax(worstLate) : t.worstNone}`]
+    const out = [`${date ? `${date} ${weekday} · ` : ""}${t.chefs(plan.chefs)} ${plan.onePerParty && plan.spread ? t.onePer : worstLate > 0 ? t.worstMax(worstLate) : t.worstNone}`]
     plan.chains.forEach((c, ci) => {
       const parts = c.map((i, k) => {
         const link = k > 0 ? plan.links.find((l) => l.from === c[k - 1] && l.to === i) : null
@@ -327,6 +386,7 @@ export function ScheduleTool() {
                   <tr>
                     <th style={{ textAlign: "left", width: 80 }}>{t.cTime}</th>
                     <th style={{ textAlign: "left", width: 110 }}>{t.cName}</th>
+                    {hasGuests ? <th style={{ textAlign: "left", width: 56 }}>{t.cGuests}</th> : null}
                     <th style={{ textAlign: "left" }}>{t.cAddr}</th>
                   </tr>
                 </thead>
@@ -335,6 +395,7 @@ export function ScheduleTool() {
                     <tr key={l.lineNo} style={{ color: l.error ? "var(--color-accent-700, #b8240d)" : undefined }}>
                       <td style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{l.timeLabel ?? "—"}</td>
                       <td>{l.name ?? ""}</td>
+                      {hasGuests ? <td>{l.guests ?? ""}</td> : null}
                       <td>{l.error ? `${t.noTime} · ${l.raw.trim()}` : l.address}</td>
                     </tr>
                   ))}
@@ -347,11 +408,17 @@ export function ScheduleTool() {
           ) : null}
 
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <button type="button" className="btn btn-primary" disabled={busy || okLines.length === 0 || okLines.length > MAX_STOPS || !info || runsLeft <= 0} onClick={() => void run()}>
-              {busy ? t.running(Math.max(2, Math.ceil(needLookup * 1.3) + 1)) : okLines.length > MAX_STOPS ? t.tooMany : t.run(okLines.length)}
+            <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 14, fontWeight: 700 }}>
+              {t.date}
+              <input className="input" type="date" value={date} onChange={(e) => editDate(e.target.value)} style={{ width: 170 }} />
+              <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}>{weekday}</span>
+            </label>
+            <button type="button" className="btn btn-primary" disabled={busy || !date || okLines.length === 0 || okLines.length > MAX_STOPS || !info || runsLeft <= 0} onClick={() => void run()}>
+              {busy ? t.running(Math.max(2, Math.ceil(needLookup * 1.3) + 1)) : okLines.length > MAX_STOPS ? t.tooMany : !date && okLines.length ? t.dateNeeded : t.run(okLines.length)}
             </button>
             {info ? <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{runsLeft > 0 ? t.left(runsLeft) : t.none}</span> : null}
           </div>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10, lineHeight: 1.6 }}>{t.saveNote}</div>
           {err ? <div className="notice danger">{err}</div> : null}
 
           {result ? (
@@ -359,9 +426,9 @@ export function ScheduleTool() {
               {stale ? <div className="notice">{t.stale}</div> : null}
               {!result.matrixOk ? <div className="notice danger">{t.matrixFail}</div> : null}
 
-              {plans.length > 1 ? (
+              {chips.length > 1 ? (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {plans.map((p) => (
+                  {chips.map((p) => (
                     <button key={p.key} type="button" className="wb-chip wb-chip-sm" aria-pressed={plan?.key === p.key} onClick={() => setTier(p.key)}>
                       {t.tier(p)}
                     </button>
@@ -408,7 +475,7 @@ export function ScheduleTool() {
                     <span>
                       {t.chefs(plan.chefs)}{" "}
                       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-neutral-600)" }}>
-                        {plan.links.some((l) => l.worstLate > 0) ? t.worstMax(Math.max(...plan.links.map((l) => l.worstLate))) : t.worstNone}
+                        {plan.onePerParty && plan.spread ? t.onePer : plan.links.some((l) => l.worstLate > 0) ? t.worstMax(Math.max(...plan.links.map((l) => l.worstLate))) : t.worstNone}
                       </span>
                     </span>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyText()}>

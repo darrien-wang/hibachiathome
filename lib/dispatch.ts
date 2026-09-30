@@ -131,20 +131,58 @@ export function planDay(starts: number[], drive: Array<Array<number | null>>, p:
   }
 }
 
-// ---------------------------------------------------------------- 三档排法
+/** 一个师傅按顺序跑这几场：每段衔接顺利 / 拖满各到得多早多晚。和 planDay 里的算法一模一样。 */
+export function chainLinks(items: number[], starts: number[], drive: Array<Array<number | null>>, p: DispatchParams, lateOk: number): ChainLink[] {
+  const links: ChainLink[] = []
+  let delayBest = 0
+  let delayWorst = 0
+  for (let k = 1; k < items.length; k++) {
+    const i = items[k - 1]
+    const j = items[k]
+    const d = drive[i]?.[j] ?? 0
+    const worstLate = starts[i] + delayWorst + p.busyMaxMinutes + d - starts[j]
+    const bestLate = starts[i] + delayBest + p.busyMinMinutes + d - starts[j]
+    links.push({ from: i, to: j, driveMinutes: d, bestLate, worstLate, grade: gradeOf(worstLate, p, lateOk) })
+    delayWorst = Math.max(0, worstLate + p.arriveEarlyMinutes)
+    delayBest = Math.max(0, bestLate + p.arriveEarlyMinutes)
+  }
+  return links
+}
 
-export type TierKey = "safe" | "late_ok" | "late_limit"
+// ---------------------------------------------------------------- 三档排法 + 多派
+
+/** safe / late_ok / late_limit = 最少几个师傅（按肯冒的迟到风险）；spread_N = 多派到 N 个师傅 */
+export type TierKey = "safe" | "late_ok" | "late_limit" | `spread_${number}`
 
 export type TierLink = ChainLink & {
   /** 想让这条稳下来（拖满也能提前到）要挪的：分钟数、下一场推到几点、或上一场提前到几点 */
   fix: { minutes: number; laterStartMin: number; earlierStartMin: number | null } | null
 }
 
-export type TierPlan = { key: TierKey; tolerance: number; chefs: number; chains: number[][]; links: TierLink[] }
+export type TierPlan = {
+  key: TierKey
+  tolerance: number
+  chefs: number
+  chains: number[][]
+  links: TierLink[]
+  /** 多派的版本：不是最省人，是比稳妥那版多派了师傅 */
+  spread: boolean
+  /** 多派到每场一个师傅了 */
+  onePerParty: boolean
+}
+
+export const isSpreadKey = (k: string) => k.startsWith("spread_")
 
 /**
- * 稳妥 / 肯迟到 / 极限 各排一版。接不接一条可能迟到的衔接是老板的风险决定，不是算法
- * 替他决定，所以三版都给他看。更冒险却没省下师傅的那版不给——白担风险。
+ * 稳妥 / 肯迟到 / 极限 各排一版，再加上"多派"的几版。
+ *
+ * 接不接一条可能迟到的衔接是老板的风险决定，不是算法替他决定，所以三版都给他看。
+ * 更冒险却没省下师傅的那版不给——白担风险。
+ *
+ * 多派（老板 2026-09-30）："有时候我们想要每个师傅都有台炒，不一定追求效率最大化。"
+ * 从稳妥那版出发，每多派一个师傅，就把当前最紧的一段衔接拆开（拖满时到得最晚的那段；
+ * 一样紧就拆路最远的），一直拆到每场一个师傅。拆开只会让剩下的更松——后半段变成新
+ * 师傅的第一台，准时开——所以多派的每一版都是稳的。
  *
  * 日历弹窗（服务端）和分享出去的排班页（浏览器里）用的是这同一个函数。
  */
@@ -155,22 +193,17 @@ export function planTiers(
   lateOk: number,
   lateLimit: number,
 ): TierPlan[] {
-  const tiers: Array<{ key: TierKey; tolerance: number }> = [
-    { key: "safe", tolerance: 0 },
-    { key: "late_ok", tolerance: lateOk },
-    { key: "late_limit", tolerance: lateLimit },
-  ]
-  const out: TierPlan[] = []
-  for (const t of tiers) {
-    const plan = planDay(starts, drive, p, t.tolerance, lateOk)
-    if (out.length > 0 && plan.chefs >= out[out.length - 1].chefs) continue
-    const heads = new Set(plan.chains.map((c) => c[0]))
-    out.push({
-      key: t.key,
-      tolerance: t.tolerance,
-      chefs: plan.chefs,
-      chains: plan.chains,
-      links: plan.links.map((l) => {
+  const byStart = (a: number[], b: number[]) => starts[a[0]] - starts[b[0]] || a[0] - b[0]
+  const build = (key: TierKey, tolerance: number, chains: number[][], links: ChainLink[], spread: boolean): TierPlan => {
+    const heads = new Set(chains.map((c) => c[0]))
+    return {
+      key,
+      tolerance,
+      chefs: chains.length,
+      chains,
+      spread,
+      onePerParty: chains.length === starts.length,
+      links: links.map((l) => {
         const need = l.worstLate + p.arriveEarlyMinutes
         return {
           ...l,
@@ -187,7 +220,38 @@ export function planTiers(
               : null,
         }
       }),
-    })
+    }
+  }
+
+  const tiers: Array<{ key: TierKey; tolerance: number }> = [
+    { key: "safe", tolerance: 0 },
+    { key: "late_ok", tolerance: lateOk },
+    { key: "late_limit", tolerance: lateLimit },
+  ]
+  const out: TierPlan[] = []
+  for (const t of tiers) {
+    const plan = planDay(starts, drive, p, t.tolerance, lateOk)
+    if (out.length > 0 && plan.chefs >= out[out.length - 1].chefs) continue
+    out.push(build(t.key, t.tolerance, plan.chains, plan.links, false))
+  }
+
+  const safe = out.find((x) => x.key === "safe")
+  if (safe) {
+    let chains = safe.chains.map((c) => [...c])
+    while (chains.length < starts.length) {
+      let cut: { ci: number; k: number; worst: number; drive: number } | null = null
+      for (let ci = 0; ci < chains.length; ci++) {
+        const links = chainLinks(chains[ci], starts, drive, p, lateOk)
+        for (let k = 0; k < links.length; k++) {
+          const l = links[k]
+          if (!cut || l.worstLate > cut.worst || (l.worstLate === cut.worst && l.driveMinutes > cut.drive)) cut = { ci, k, worst: l.worstLate, drive: l.driveMinutes }
+        }
+      }
+      if (!cut) break
+      const c = chains[cut.ci]
+      chains = [...chains.slice(0, cut.ci), c.slice(0, cut.k + 1), c.slice(cut.k + 1), ...chains.slice(cut.ci + 1)].sort(byStart)
+      out.push(build(`spread_${chains.length}`, 0, chains, chains.flatMap((ch) => chainLinks(ch, starts, drive, p, lateOk)), true))
+    }
   }
   return out
 }

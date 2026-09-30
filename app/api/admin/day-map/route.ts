@@ -224,14 +224,34 @@ export async function GET(request: NextRequest) {
     miles[gi][gk] = small.miles[a]?.[b] ?? null
   }))
 
-  // 三档容忍度各排一版，接不接一条可能迟到的衔接是老板的风险决定（见 lib/dispatch.ts planTiers）。
+  // 三档容忍度各排一版，再加多派的几版（见 lib/dispatch.ts planTiers）。
   const plans = planTiers(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, dp.late_limit_minutes)
   const home = await locate(supabase, resolver, HOME_BASE_QUERY)
+
+  // 指派（老板 2026-09-30）：图上直接给每条线派师傅。这里带上每单现在派给了谁、能派的师傅名单；
+  // 写入走 /api/admin/chefs 的 assign，和订单弹窗、厨师页是同一套。
+  const ACTIVE = ["tentative", "confirmed", "completed"]
+  const [{ data: asg }, { data: staff }] = await Promise.all([
+    rows.length
+      ? supabase.from("order_staff_assignments").select("order_id, staff_member_id").in("order_id", rows.map((r) => r.id)).in("assignment_status", ACTIVE)
+      : Promise.resolve({ data: [] as Array<{ order_id: string; staff_member_id: string }> }),
+    supabase.from("staff_members").select("id, display_name, full_name, status, is_bookable").neq("status", "deleted").order("display_name", { ascending: true }),
+  ])
+  const chefIdsOf = new Map<string, string[]>()
+  for (const a of (asg ?? []) as Array<{ order_id: string; staff_member_id: string }>) {
+    chefIdsOf.set(a.order_id, [...(chefIdsOf.get(a.order_id) ?? []), a.staff_member_id])
+  }
+  const chefs = ((staff ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; status: string | null; is_bookable: boolean | null }>).map((s) => ({
+    id: s.id,
+    name: (s.display_name ?? s.full_name ?? "").trim() || "未命名",
+    active: s.status === "active" && s.is_bookable !== false,
+  }))
 
   return NextResponse.json({
     ok: true,
     date,
-    stops: stops.map(({ startMin: _startMin, ...s }) => s),
+    stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [] })),
+    chefs,
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),
     home: home ? { lat: home.lat, lng: home.lng, label: "家（出发点）" } : null,
@@ -239,6 +259,8 @@ export async function GET(request: NextRequest) {
       key: plan.key,
       tolerance: plan.tolerance,
       chefs: plan.chefs,
+      spread: plan.spread,
+      onePerParty: plan.onePerParty,
       chains: plan.chains.map((c) => c.map((i) => stops[i].id)),
       links: plan.links.map((l) => ({
         fromId: stops[l.from].id,
