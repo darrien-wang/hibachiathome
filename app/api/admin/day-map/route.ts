@@ -115,14 +115,20 @@ async function locate(
     if (g) hit = { lat: g.lat, lng: g.lng, label: g.label }
   }
 
-  // 3. 退到邮编 / 城市
+  // 3. 退到城市 / 邮编——但要核对拿回来的是不是那个地方。
+  //    Nominatim 对美国邮编很不靠谱：问 "92253, CA, USA" 它回过圣莱安德罗的一个路口
+  //    （2026-09-29，Frank 那单因此被画到了旧金山湾区）。所以先问城市，再问邮编，
+  //    而且结果的名字里必须带着问的那个城市名 / 邮编，否则当没查到。
   if (!hit) {
     const zip = /\b(\d{5})(?:-\d{4})?\b/.exec(address)?.[1]
     const parts = address.split(",").map((x) => x.trim()).filter(Boolean)
-    const city = parts.length >= 2 ? parts.slice(-2).join(", ").replace(/\s*\d{5}(-\d{4})?\s*/, "").trim() : ""
-    for (const q of [zip ? `${zip}, CA, USA` : "", city ? `${city}, USA` : ""].filter(Boolean)) {
-      const g = await safeGeocode(q)
-      if (g) {
+    const city = (parts.length >= 2 ? parts[parts.length - 2] : "").replace(/\s*\d{5}(-\d{4})?\s*/, "").trim()
+    const tries: Array<{ q: string; mustContain: string }> = []
+    if (city) tries.push({ q: `${city}, CA, USA`, mustContain: city.toLowerCase() })
+    if (zip) tries.push({ q: `${zip}, CA, USA`, mustContain: zip })
+    for (const t of tries) {
+      const g = await safeGeocode(t.q)
+      if (g && g.label.toLowerCase().includes(t.mustContain)) {
         // label 打个 ~ 前缀，取缓存时还认得出这是个大概位置。
         hit = { lat: g.lat, lng: g.lng, label: `~${g.label}`, approx: true }
         break
