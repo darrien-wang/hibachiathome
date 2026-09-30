@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 
 // 占用：算过缺口的单，它那份料就被占住，别的单看到的可用量要扣掉（老板 2026-09-29）。
 //
@@ -74,10 +75,16 @@ export async function settleDueReservations(supabase: SupabaseClient, now = new 
       .select("order_id")
     if (!claimed || claimed.length === 0) continue
 
-    const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", r.item_key).maybeSingle()
-    const next = Math.max(0, Math.round(((Number(cur?.qty) || 0) - Number(r.qty)) * 100) / 100)
-    if (cur) {
-      await supabase.from("pantry_stock").update({ qty: next, updated_at: stamp, updated_by: "auto" }).eq("item_key", r.item_key)
+    if (r.item_key === "mixed_vege") {
+      // 蔬菜的占用记在合计上，库存是四样分开记的：按比例从四样里扣
+      const total = await vegTotal(supabase)
+      await setVegTotal(supabase, Math.max(0, total - Number(r.qty)), "auto", false)
+    } else {
+      const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", r.item_key).maybeSingle()
+      const next = Math.max(0, Math.round(((Number(cur?.qty) || 0) - Number(r.qty)) * 100) / 100)
+      if (cur) {
+        await supabase.from("pantry_stock").update({ qty: next, updated_at: stamp, updated_by: "auto" }).eq("item_key", r.item_key)
+      }
     }
     await supabase.from("stock_moves").insert({
       item_key: r.item_key,
@@ -92,6 +99,33 @@ export async function settleDueReservations(supabase: SupabaseClient, now = new 
   }
 
   return { consumed, released }
+}
+
+// ---- 蔬菜：清单和对货只有一行"蔬菜合计"（西葫芦/西兰花/洋葱/胡萝卜随意配），
+// 库存却是四样分开记的（收据按样入库）。四样分开的数是唯一的账：
+//   读 = 四样之和；对货写一个总数 = 按比例改四样；派对办完扣 = 按比例扣四样。
+// 原来对货写进一个单独的 mixed_vege 行，读的时候又被四样之和盖掉——老板点"没了"不生效，
+// 蔬菜永远显示够（2026-09-30 老板："为什么备货不展示蔬菜要买多少"）。
+
+export async function vegTotal(supabase: SupabaseClient): Promise<number> {
+  const { data } = await supabase.from("pantry_stock").select("item_key, qty").in("item_key", [...VEG_IDS])
+  return Math.round(((data ?? []) as Array<{ qty: number }>).reduce((n, r) => n + (Number(r.qty) || 0), 0) * 100) / 100
+}
+
+/** 把四样蔬菜按原来的比例缩放到 total（原来全是 0 就平分）。counted = 这是一次盘点（记盘点时间）。 */
+export async function setVegTotal(supabase: SupabaseClient, total: number, by: string, counted: boolean): Promise<void> {
+  const { data } = await supabase.from("pantry_stock").select("item_key, qty").in("item_key", [...VEG_IDS])
+  const cur = new Map(((data ?? []) as Array<{ item_key: string; qty: number }>).map((r) => [r.item_key, Number(r.qty) || 0]))
+  const sum = VEG_IDS.reduce((n, k) => n + (cur.get(k) ?? 0), 0)
+  const now = new Date().toISOString()
+  for (const k of VEG_IDS) {
+    const q = Math.round((sum > 0 ? ((cur.get(k) ?? 0) * total) / sum : total / VEG_IDS.length) * 100) / 100
+    const patch = { label: stockLabel(k), unit: stockUnit(k), qty: Math.max(0, q), updated_at: now, updated_by: by, ...(counted ? { counted_at: now } : {}) }
+    if (cur.has(k)) await supabase.from("pantry_stock").update(patch).eq("item_key", k)
+    else await supabase.from("pantry_stock").insert({ item_key: k, ...patch })
+  }
+  // 合计行不单独记账：有旧的就清掉，免得又有人以为它是数
+  await supabase.from("pantry_stock").delete().eq("item_key", "mixed_vege")
 }
 
 /** 这几单算过缺口 = 它们的料被占住。重算就覆盖，所以可以随便重算。 */

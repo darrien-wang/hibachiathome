@@ -3,7 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
-import { committedDetail, reserveForOrders, settleDueReservations } from "@/lib/prep-reservations"
+import { committedDetail, reserveForOrders, setVegTotal, settleDueReservations, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
 
 export const dynamic = "force-dynamic"
@@ -175,7 +175,20 @@ export async function GET(request: NextRequest) {
       committed,
       // 占着的是哪几单、各占多少
       committedBy,
-      pantryDetail: pantryRows ?? [],
+      // 蔬菜合计不单独记账：它的"上次盘点"= 四样里最近盘的那一次
+      pantryDetail: [
+        ...((pantryRows ?? []) as Array<{ item_key: string; counted_at: string | null }>).filter((r) => r.item_key !== "mixed_vege"),
+        {
+          item_key: "mixed_vege",
+          qty: pantry.mixed_vege,
+          counted_at:
+            ((pantryRows ?? []) as Array<{ item_key: string; counted_at: string | null }>)
+              .filter((r) => (VEG_IDS as readonly string[]).includes(r.item_key) && r.counted_at)
+              .map((r) => r.counted_at as string)
+              .sort()
+              .pop() ?? null,
+        },
+      ],
       consumed: (consumed ?? []).length > 0,
       warnings: unknown.map((o) => `${o.timeLabel} ${o.name}（${o.adults + o.kids} 人）菜单未定——蛋白质没算进合计，买前先把菜单问回来`),
     },
@@ -274,6 +287,13 @@ export async function POST(request: NextRequest) {
     const qty = Number(body.qty)
     if (!key || !Number.isFinite(qty) || qty < 0) return NextResponse.json({ error: "item_key / qty 不对" }, { status: 400 })
     const rounded = Math.round(qty * 100) / 100
+    // 蔬菜合计：按比例改四样分开记的数（见 lib/prep-reservations.ts setVegTotal）
+    if (key === "mixed_vege") {
+      const before = await vegTotal(supabase)
+      await setVegTotal(supabase, rounded, actor.alias, true)
+      await supabase.from("stock_moves").insert({ item_key: key, delta: rounded - before, unit: "oz", reason: "count", note: "盘点（蔬菜合计，按比例分到四样）", created_by: actor.alias })
+      return NextResponse.json({ ok: true })
+    }
     const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", key).maybeSingle()
     const patch = { label: stockLabel(key), unit: stockUnit(key), qty: rounded, counted_at: new Date().toISOString(), updated_by: actor.alias, updated_at: new Date().toISOString() }
     const { error } = cur
