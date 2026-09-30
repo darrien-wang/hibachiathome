@@ -2,6 +2,7 @@ import { createHmac, randomUUID } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { plannerKeyLink } from "@/lib/planner-key-link"
 
 export const runtime = "nodejs"
 
@@ -24,6 +25,8 @@ type VerifyResponse = {
   location?: string
   adults?: number
   kids?: number
+  /** Keyed planner link (/order?key=ok_...), the same one the deposit text carries. Paid only. */
+  planner_url?: string
   error?: string
 }
 
@@ -383,5 +386,15 @@ export async function GET(request: NextRequest) {
     location: normalizePrefillText(data.address),
     adults: normalizeGuestCount(data.guest_adults),
     kids: normalizeGuestCount(data.guest_kids),
+    // Same identity the deposit webhook keys the text link with (the RH order
+    // number, then email / phone), so the invoice app hands back that key.
+    planner_url: paid
+      ? await plannerKeyLink({
+          bookingId: bookingNumber,
+          email: normalizePrefillEmail(data.email),
+          phone: normalizePrefillPhone(data.phone),
+          surface: "deposit_success",
+        })
+      : undefined,
   })
 }

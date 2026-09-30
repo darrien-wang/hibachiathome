@@ -28,6 +28,7 @@ type DepositVerifyResponse = {
   location?: string
   adults?: number
   kids?: number
+  planner_url?: string
   error?: string
 }
 
@@ -234,6 +235,10 @@ export default function DepositSuccessClient({
   const displayAdults = resolvedAdults ?? normalizeCount(initialAdults)
   const displayKids = resolvedKids ?? normalizeCount(initialKids)
   const isPaidState = state.stage === "resolved" && state.payload.paid
+  // The keyed planner link from verify: party domain, nothing personal in the
+  // address, the same link the deposit text carries. The parameter link below
+  // is only the fallback when the key could not be minted.
+  const plannerUrl = state.stage === "resolved" && state.payload.paid ? normalizeText(state.payload.planner_url) : null
   const invoiceSelfServiceHref = useMemo(
     () =>
       buildInvoiceSelfServiceHref({
@@ -273,11 +278,11 @@ export default function DepositSuccessClient({
         orderNo: displayBookingId,
         eventDate: displayEventDate,
         eventTime: displayEventTime,
-        manageUrl: invoiceSelfServiceHref ?? null,
+        manageUrl: plannerUrl ?? invoiceSelfServiceHref ?? null,
         savedAt: Date.now(),
       },
     )
-  }, [isPaidState, initialLeadId, displayEmail, displayEventDate, displayEventTime, displayBookingId, invoiceSelfServiceHref])
+  }, [isPaidState, initialLeadId, displayEmail, displayEventDate, displayEventTime, displayBookingId, invoiceSelfServiceHref, plannerUrl])
 
   const verify = useCallback(async () => {
     if (!sessionId) {
@@ -406,7 +411,7 @@ export default function DepositSuccessClient({
               </p>
             )}
           </div>
-          {invoiceSelfServiceHref && (
+          {(plannerUrl || invoiceSelfServiceHref) && (
             <p className="text-sm text-gray-700">
               Need to confirm your party-day menu selections or update contact information? Use the self-service link
               below.
@@ -445,9 +450,9 @@ export default function DepositSuccessClient({
           <CardContent className="space-y-4">
             {content}
             <div className="flex flex-wrap gap-3">
-              {isPaidState && invoiceSelfServiceHref && (
+              {isPaidState && (plannerUrl || invoiceSelfServiceHref) && (
                 <Button asChild>
-                  <a href={invoiceSelfServiceHref} target="_blank" rel="noreferrer">
+                  <a href={plannerUrl ?? invoiceSelfServiceHref ?? undefined} target="_blank" rel="noreferrer">
                     Manage Party-Day Details
                   </a>
                 </Button>
