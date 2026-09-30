@@ -95,8 +95,9 @@ const GUESTS_PER_TABLE = 4
 
 const OZ_PER = { zucchini: 11, onion: 12 } // 09-22 用实际收据校准：8 根 = 5.7lb、2 个 = 1.6lb（向下取整，买的件数只多不少）
 const BAG_OZ = { broccoli: 32, carrots: 12 } // Walmart 袋装
-// 三文鱼只能整袋买：Marketside 2 lb 真空袋 = 5 块（≈6.4oz/块，用户 09-24 定）
-const SALMON_BAG_OZ = 32
+// 三文鱼现在买分装好的，拆袋后按个数（老板 2026-09-30）：1 个 = 2 份 = 8 oz。
+// 原来 Marketside 2 lb 真空袋 = 5 块的口径作废——拆开以后数不清还算几袋。
+const SALMON_PIECE_OZ = 8
 const SHRIMP_PER_LB = 18 // 16/20 规格取中
 const EGGS_PER_BOX = 36
 
@@ -138,7 +139,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   // 肋眼没有固定包装规格，按重量买（份量同西冷 4.5 oz，宁多勿少走 BUFFER）
   if (id === "ribeye") return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp((qty * BUFFER) / 16)} lb`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
-  if (id === "salmon") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_BAG_OZ))} 袋（Marketside 2lb 真空袋 = 5 块）`
+  if (id === "salmon") return `≈ ${r1(qty / 4)} 份，要 ${Math.max(1, Math.ceil(qty / SALMON_PIECE_OZ))} 个（分装，1 个 = 2 份）`
   if (id === "shrimp") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / 43))} 袋（1 袋 = 43 只，09-24 实数）`
   if (id === "eggs") return `带 ${Math.ceil(qty * BUFFER) + 1} 个（combo 装 2 盒一提 = 36 个，要 ${Math.max(1, Math.ceil((qty * BUFFER + 1) / EGGS_PER_BOX))} 提）`
   if (unit === "oz" && qty >= 16) return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp(qty / 16)} lb`
@@ -336,8 +337,8 @@ export function orderPrep(
  * 用来把"还差 70.3 tbsp"翻译成"买 3 盒"——老板 2026-09-25 定的口径：采购单只说
  * 瓶/盒/袋，跟师傅说的是同一种话，差几毫升是师傅现场的事。
  *
- * 注意 per 记的是"这一个包装能覆盖多少需求"，不是它的物理净重。三文鱼一袋 5 块、
- * 一人一块，所以 per = 5 × 4oz = 20oz，而不是整袋 32oz；牛排一盒管 4 个人，
+ * 注意 per 记的是"这一个包装能覆盖多少需求"，不是它的物理净重。三文鱼 1 个 = 2 份，
+ * 所以 per = 2 × 4oz = 8oz；牛排一盒管 4 个人，
  * per = 4 × 4.5oz = 18oz，盒子本身 1.6lb 里多出来的就是老板留的余量。
  *
  * 也正因为 per 已经含余量、买又只能整包取整，planner 不再另乘 1.1 缓冲——
@@ -348,7 +349,7 @@ export const BUY_UNITS: Record<string, { per: number; noun: string; desc: string
   steak: { per: 18, noun: "盒", desc: "Family Pack ≈1.6lb，1 盒 ≈ 4 人" },
   chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
   filet_mignon: { per: 9.6, noun: "盒", desc: "≈0.6lb，1 盒 ≈ 2 人" },
-  salmon: { per: 20, noun: "袋", desc: "Marketside 2lb 袋 = 5 块，一人一块" },
+  salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" },
   lobster_tail: { per: 12, noun: "盒", desc: "1 盒 = 2 只" },
   scallops: { per: 80, noun: "袋", desc: "RD 5lb 袋 ≈ 20 人份" },
   shrimp: { per: 43, noun: "袋", desc: "1 袋 = 43 只" },
