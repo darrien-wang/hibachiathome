@@ -473,8 +473,9 @@ Real Hibachi · (213) 770-7788
    - 总价、押金、尾款对得上
 2. **给用户看**（用户 2026-09-29：“改完先给我看看再发”、“这个环节需要人工复核”）。把改了什么、总价尾款、自查结果摆出来，**等他说发**。发票是白纸黑字，发错了收不回来。
 3. **发**：`desk order email <单号>`（NOTES 有内部内容会 409 拦你，看完两份清单再 `--notes-reviewed`）+ 一条短信：
-   > Emailed you the invoice for [星期几] - please give it a look and text me "confirm" if it's right. [金额变了的话，一句话说清为什么变]
-   - **确认只走短信**（用户 2026-09-30）：写 "text me"，不写 "reply"——Daria 把 "reply" 理解成回邮件，发票邮件的发件人 notify@ 没有邮箱，直接退信 "Address not found"。发票邮件已补回复地址到 support@（invoice commit 6869371），但我们的流程看的是短信时间线，邮件回复要人去翻 Gmail。客人说"回邮件没发出去"就直接回一句 "Your text is all we need: you're confirmed"，当作确认。
+   **发票一律 `desk order send <单号>`**（用户 2026-09-30 定）：一条命令两件事——**邮件发 PDF**，**短信发发票链接并请他在短信里回 "confirm"**：
+   > Here's your invoice for [星期几]: <链接> - please look it over and reply "confirm" here if it's all right. A PDF copy is in your email too.
+   [金额变了的话，另起一条一句话说清为什么变]。**确认只在短信里收**：发票邮件的发件人 notify@ 没有邮箱（Daria 回邮件确认被退信 "Address not found"），邮件已补 Reply-To 到 support@ 兜底，但流程看的是短信。客人说"回邮件没发出去"就回一句 "Your text is all we need: you're confirmed"，老板点确认（`/api/admin/orders/confirm-invoice`）。
 
 **金额变了就要主动说**：客人手上记着一个旧数字，不说他会以为我们乱改价。对他有利就直说 “changed in your favor”。
 

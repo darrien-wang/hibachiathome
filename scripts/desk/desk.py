@@ -26,6 +26,7 @@
                                    [--proteins chicken=10 steak=10 shrimp=10]   totals texted by the customer
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
+  python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link asking them to reply "confirm" (the normal way)
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
                                    local faster-whisper, customer/us on separate channels; --note files it on the lead
@@ -567,7 +568,7 @@ def cmd_order(a):
         res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data})
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
         return
-    if a.op == "email":
+    if a.op in ("email", "send"):
         _print_invoice(order_no, prefill)
         _print_totals(_totals(prefill))
         payload = {"invoiceData": prefill, "orderNo": order_no}
@@ -585,6 +586,31 @@ def cmd_order(a):
         print(f"OK    emailed {res.get('email')}  pdf={res.get('pdfAttached')}  archive={res.get('archiveId')}")
         if res.get("notesPrinted") is not None:
             print(f"      notes printed: {res.get('notesPrinted')}")
+        if a.op == "send":
+            # Owner 2026-09-30: the email carries the PDF; the text carries the
+            # link and the ask, and the customer confirms in the text thread.
+            # (The invoice email's sender, notify@, has no mailbox - Daria's
+            # emailed "confirm" bounced.)
+            detail = site_get("/api/admin/orders", {"id": order["id"]})
+            row = detail.get("order") if isinstance(detail.get("order"), dict) else {}
+            lead_id = ((row.get("source_metadata") or {}).get("lead_id")) or a.lead
+            phone = e164(row.get("customer_phone") or order.get("customer_phone") or "")
+            url = res.get("invoiceUrl")
+            if not (url and phone):
+                raise SystemExit(f"emailed, but no text sent: invoiceUrl={url!r} phone={phone!r}")
+            short = site_post("/api/admin/short-link", {"url": url, **({"leadId": lead_id} if lead_id else {})}).get("shortUrl") or url
+            day = ""
+            date = (prefill.get("contactInfo") or {}).get("eventDate") or ""
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+                import datetime as _dt
+                day = _dt.date.fromisoformat(date).strftime("%A")
+            body = (f"Here's your invoice{' for ' + day if day else ''}: {short} - please look it over and reply "
+                    f"\"confirm\" here if it's all right. A PDF copy is in your email too.")
+            payload = {"phone": phone, "body": body}
+            if lead_id:
+                payload["leadId"] = lead_id
+            sent = site_post("/api/admin/sms-thread", payload)
+            print(f"OK    texted {phone}  {sent.get('sid', '')}\n      {body}")
         return
 
 
@@ -631,9 +657,10 @@ def main(argv=None):
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*"); p.set_defaults(fn=cmd_email)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send"]); p.add_argument("ident")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
+    p.add_argument("--lead", help="lead id for order send when the order does not carry one")
     p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
     p.add_argument("--proteins", nargs="+", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
                    "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode.")
