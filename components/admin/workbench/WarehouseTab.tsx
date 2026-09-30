@@ -925,7 +925,7 @@ function DetailDialog({
 
 /* ---------- 备货：勾订单，算"要补什么、去哪买" ---------- */
 
-type BuyPack = { per: number; noun: string; desc: string }
+type BuyPack = { per: number; noun: string; desc: string; big?: { noun: string; count: number } }
 type Occupant = { orderId: string; name: string; date: string; time: string; qty: number }
 type PlanRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string; pack?: BuyPack | null }
 type PlanResp = {
@@ -948,8 +948,34 @@ const STALE_DAYS = 7
 // 采购只能整包买，向上取整本身就是"宁多勿少"——所以这里不再额外乘缓冲系数。
 // （而且像牛排"一盒管 4 人"这种规则，余量早就写在 BUY_UNITS 的 per 里了，
 // 两层叠加会无缘无故多买一整盒。用户 2026-09-25 定。）
-const buyCount = (short: number, pack: BuyPack | null | undefined) =>
-  pack && pack.per > 0 ? Math.max(1, Math.ceil(short / pack.per)) : null
+// 两级单位（老板 2026-09-30）：per/noun 是最小单位（三文鱼、龙虾按个），big 是整包买的（盒/袋）。
+// 要买按大单位；没有大单位就按最小单位。
+const bigOf = (pack: BuyPack | null | undefined) => (pack?.big && pack.big.count > 1 ? pack.big : null)
+const buyPer = (pack: BuyPack | null | undefined) => (pack && pack.per > 0 ? pack.per * (bigOf(pack)?.count ?? 1) : 0)
+const buyNoun = (pack: BuyPack | null | undefined) => bigOf(pack)?.noun ?? pack?.noun ?? ""
+const buyCount = (short: number, pack: BuyPack | null | undefined) => {
+  const p = buyPer(pack)
+  return p > 0 ? Math.max(1, Math.ceil(short / p)) : null
+}
+const r1 = (n: number) => Math.round(n * 10) / 10
+/** 实物的写法（在库、占用、可用）："3 个" / "1 盒 1 个" / "2 袋"；没有大单位就是"1.5 瓶"。 */
+function fmtCount(qty: number, pack: BuyPack | null | undefined, unit: string): string {
+  if (!pack || pack.per <= 0) return `${r1(qty)} ${unit}`
+  const small = qty / pack.per
+  const big = bigOf(pack)
+  if (!big) return `${r1(small)} ${pack.noun}`
+  const b = Math.floor(small / big.count + 1e-9)
+  const rest = r1(small - b * big.count)
+  if (b === 0) return `${rest} ${pack.noun}`
+  return rest > 0 ? `${b} ${big.noun} ${rest} ${pack.noun}` : `${b} ${big.noun}`
+}
+/** 需求的写法："4 个 ≈ 2 盒" / "76.5 只 ≈ 1.8 袋"；没有大单位就是"1.5 瓶"。 */
+function fmtNeed(qty: number, pack: BuyPack | null | undefined, unit: string): string {
+  if (!pack || pack.per <= 0) return `${r1(qty)} ${unit}`
+  const small = qty / pack.per
+  const big = bigOf(pack)
+  return big ? `${r1(small)} ${pack.noun} ≈ ${r1(small / big.count)} ${big.noun}` : `${r1(small)} ${pack.noun}`
+}
 
 function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] }) {
   const [sel, setSel] = useState<Set<string>>(() => new Set(events.map((e) => e.key.replace(/^order:/, ""))))
@@ -1123,12 +1149,12 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                      要 {Math.round(row.qty * 10) / 10} {row.unit} · 在库 {have} {row.unit}
+                      要 {fmtNeed(row.qty, row.pack, row.unit)} · 在库 {fmtCount(have, row.pack, row.unit)}
                       {row.pack?.desc ? ` · ${row.pack.desc}` : ""}
                     </div>
                   </div>
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
-                    {buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${row.pack!.noun}`}
+                    {buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${buyNoun(row.pack)}`}
                   </div>
                 </div>
               ))}
@@ -1674,7 +1700,10 @@ function KitLedger({
 
 
 /* 对货的一行：按「瓶/袋/盒」点，不按 oz 填。
-   站在冰箱前你能数出"还有 2 瓶"，数不出"还有 32 tbsp"——换算让系统做。 */
+   站在冰箱前你能数出"还有 2 瓶"，数不出"还有 32 tbsp"——换算让系统做。
+   两级单位（老板 2026-09-30）：拆开的按最小单位数（个），整包的按大单位（盒/袋），
+   写出来是"1 盒 1 个"；一包里个数少的（龙虾 2 个/盒）两级都有快捷按钮，个数多的
+   （虾 43 只/袋）按包点，零头在"更多…"里填。 */
 function CountRow({
   line,
   busy,
@@ -1687,12 +1716,49 @@ function CountRow({
   onRelease?: (h: Occupant) => void
 }) {
   const { row, have, committed, holders, avail, short, buy, stale } = line
-  const per = row.pack?.per ?? 0
-  const noun = row.pack?.noun ?? ""
+  const pack = row.pack ?? null
+  const per = pack?.per ?? 0
+  const noun = pack?.noun ?? ""
+  const big = bigOf(pack)
   const [showHolders, setShowHolders] = useState(false)
-  const amount = (q: number) => (per > 0 ? `${Math.round((q / per) * 10) / 10} ${noun}` : `${Math.round(q * 10) / 10} ${row.unit}`)
-  const havePacks = per > 0 ? Math.round((have / per) * 2) / 2 : null
-  const choices = per > 0 ? [0, 0.5, 1, 2, 3, 4] : []
+  const [editing, setEditing] = useState(false)
+  const [bigIn, setBigIn] = useState("")
+  const [smallIn, setSmallIn] = useState("")
+  const count = (q: number) => fmtCount(q, pack, row.unit)
+
+  // 快捷按钮，值都换回 BOM 单位（oz / 只 / tbsp）存
+  const chips: Array<{ label: string; qty: number }> =
+    per <= 0
+      ? []
+      : big
+        ? big.count <= 12
+          ? [
+              { label: "没了", qty: 0 },
+              ...Array.from({ length: Math.min(big.count - 1, 4) }, (_, i) => ({ label: `${i + 1} ${noun}`, qty: (i + 1) * per })),
+              ...[1, 2, 3].map((n) => ({ label: `${n} ${big.noun}`, qty: n * big.count * per })),
+            ]
+          : [
+              { label: "没了", qty: 0 },
+              { label: `半${big.noun}`, qty: (big.count * per) / 2 },
+              ...[1, 2, 3, 4].map((n) => ({ label: `${n} ${big.noun}`, qty: n * big.count * per })),
+            ]
+        : [0, 0.5, 1, 2, 3, 4].map((n) => ({ label: n === 0 ? "没了" : n === 0.5 ? `半${noun}` : `${n} ${noun}`, qty: n * per }))
+  const pressed = (q: number) => per > 0 && Math.abs(have - q) < per * 0.25
+
+  const openEdit = () => {
+    const small = per > 0 ? have / per : 0
+    const b = big ? Math.floor(small / big.count + 1e-9) : 0
+    setBigIn(big ? String(b) : "")
+    setSmallIn(String(r1(small - (big ? b * big.count : 0))))
+    setEditing(true)
+  }
+  const saveEdit = () => {
+    const b = big ? Number(bigIn || 0) : 0
+    const sm = Number(smallIn || 0)
+    if (!Number.isFinite(b) || !Number.isFinite(sm) || b < 0 || sm < 0) return
+    onSet(Math.round(((big ? b * big.count : 0) + sm) * per * 100) / 100)
+    setEditing(false)
+  }
 
   return (
     <div style={{ padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
@@ -1702,12 +1768,12 @@ function CountRow({
           {stale ? <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}> · 有阵子没盘了</span> : null}
         </div>
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
-          {short > 0 ? (buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${noun}`) : "够"}
+          {short > 0 ? (buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${buyNoun(pack)}`) : "够"}
         </div>
       </div>
       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
-        要 {Math.round(row.qty * 10) / 10} {row.unit}
-        {per > 0 ? `（≈${Math.round((row.qty / per) * 10) / 10} ${noun}）` : ""} · 在库 {havePacks === null ? `${have} ${row.unit}` : `${havePacks} ${noun}`}
+        {/* 记账单位就是最小单位（只、个）时不重复写一遍 */}
+        要 {per === 1 ? fmtNeed(row.qty, pack, row.unit) : `${r1(row.qty)} ${row.unit}${per > 0 ? `（≈${fmtNeed(row.qty, pack, row.unit)}）` : ""}`} · 在库 {count(have)}
         {committed > 0 ? (
           <>
             {" · "}
@@ -1718,10 +1784,10 @@ function CountRow({
               onClick={() => setShowHolders((v) => !v)}
               style={{ all: "unset", cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: 3 }}
             >
-              别的单占了 {amount(committed)}
+              别的单占了 {count(committed)}
               {holders.length === 1 ? `（${holders[0].date} ${holders[0].name} ${showHolders ? "▴" : "▾"}）` : holders.length > 1 ? `（${holders.length} 单 ${showHolders ? "▴" : "▾"}）` : ""}
             </button>
-            ，可用 {per > 0 ? Math.round((avail / per) * 10) / 10 : avail}
+            ，可用 {count(avail)}
           </>
         ) : null}
       </div>
@@ -1730,7 +1796,7 @@ function CountRow({
           {holders.map((h) => (
             <div key={h.orderId} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span>
-                {h.date} {h.time} · {h.name} · 占 {amount(h.qty)}
+                {h.date} {h.time} · {h.name} · 占 {count(h.qty)}
               </span>
               {onRelease ? (
                 <button type="button" className="wb-chip wb-chip-sm" disabled={busy} onClick={() => onRelease(h)}>
@@ -1743,30 +1809,12 @@ function CountRow({
       ) : null}
       {per > 0 ? (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
-          {choices.map((n) => (
-            <button
-              key={n}
-              type="button"
-              className="wb-chip wb-chip-sm"
-              aria-pressed={havePacks === n}
-              disabled={busy}
-              onClick={() => onSet(Math.round(n * per * 100) / 100)}
-            >
-              {n === 0 ? "没了" : n === 0.5 ? "半" + noun : `${n} ${noun}`}
+          {chips.map((c) => (
+            <button key={c.label} type="button" className="wb-chip wb-chip-sm" aria-pressed={pressed(c.qty)} disabled={busy} onClick={() => onSet(Math.round(c.qty * 100) / 100)}>
+              {c.label}
             </button>
           ))}
-          <button
-            type="button"
-            className="wb-chip wb-chip-sm"
-            disabled={busy}
-            onClick={async () => {
-              const v = await askPrompt({ title: row.label, message: `实际还有几${noun}？`, placeholder: "例如 6", inputMode: "decimal" })
-              if (v === null) return
-              const n = Number(v)
-              if (!Number.isFinite(n) || n < 0) return
-              onSet(Math.round(n * per * 100) / 100)
-            }}
-          >
+          <button type="button" className="wb-chip wb-chip-sm" aria-pressed={editing} disabled={busy} onClick={() => (editing ? setEditing(false) : openEdit())}>
             更多…
           </button>
         </div>
@@ -1787,6 +1835,25 @@ function CountRow({
           改在库（{have} {row.unit}）
         </button>
       )}
+      {editing && per > 0 ? (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 8, fontSize: 13 }}>
+          实际还有
+          {big ? (
+            <>
+              <input className="input" inputMode="numeric" aria-label={big.noun} style={{ width: 64, textAlign: "center" }} value={bigIn} onChange={(e) => setBigIn(e.target.value.replace(/[^\d]/g, ""))} />
+              {big.noun} +
+            </>
+          ) : null}
+          <input className="input" inputMode="decimal" aria-label={noun} style={{ width: 64, textAlign: "center" }} value={smallIn} onChange={(e) => setSmallIn(e.target.value.replace(/[^\d.]/g, ""))} />
+          {noun}
+          <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveEdit}>
+            存
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
+            取消
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

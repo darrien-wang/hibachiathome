@@ -343,16 +343,23 @@ export function orderPrep(
  *
  * 也正因为 per 已经含余量、买又只能整包取整，planner 不再另乘 1.1 缓冲——
  * 两层叠加会无缘无故多买一个单位。
+ *
+ * 两级单位（老板 2026-09-30："陈列的时候需要一个最小单位和一个较大单位"）：
+ * noun/per 是**最小单位**——拆开以后也数得清的那个（三文鱼、龙虾按个）；big 是整包买的
+ * 那个（袋、盒），count = 一个大单位里有几个最小单位。显示写成"1 盒 1 个"，要买按大单位。
+ * 没有 big 的，最小单位就是买的单位。
  */
-export const BUY_UNITS: Record<string, { per: number; noun: string; desc: string }> = {
+export type BuyUnit = { per: number; noun: string; desc: string; big?: { noun: string; count: number } }
+
+export const BUY_UNITS: Record<string, BuyUnit> = {
   // 蛋白
   steak: { per: 18, noun: "盒", desc: "Family Pack ≈1.6lb，1 盒 ≈ 4 人" },
   chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
   filet_mignon: { per: 9.6, noun: "盒", desc: "≈0.6lb，1 盒 ≈ 2 人" },
-  salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" },
-  lobster_tail: { per: 12, noun: "盒", desc: "1 盒 = 2 只" },
-  scallops: { per: 80, noun: "袋", desc: "RD 5lb 袋 ≈ 20 人份" },
-  shrimp: { per: 43, noun: "袋", desc: "1 袋 = 43 只" },
+  salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" }, // 一袋几个还没定，定了加 big: { noun: "袋", count }
+  lobster_tail: { per: 6, noun: "个", desc: "1 个 = 1 位客人，1 盒 = 2 个", big: { noun: "盒", count: 2 } },
+  scallops: { per: 1, noun: "个", desc: "1 个 ≈ 1 oz，每人 4 个；RD 5lb 袋 ≈ 20 人份", big: { noun: "袋", count: 80 } },
+  shrimp: { per: 1, noun: "只", desc: "1 袋 = 43 只", big: { noun: "袋", count: 43 } },
   tofu: { per: 15, noun: "盒", desc: "16oz 盒 ≈ 3 人份" },
   // 生鲜
   mixed_vege: { per: 16, noun: "lb", desc: "西葫芦/西兰花/洋葱/胡萝卜随意配" },
@@ -360,19 +367,19 @@ export const BUY_UNITS: Record<string, { per: number; noun: string; desc: string
   broccoli: { per: 32, noun: "袋", desc: "32oz 袋" },
   onion: { per: 12, noun: "个", desc: "炒饭也用，能囤" },
   carrots: { per: 12, noun: "袋", desc: "12oz 袋" },
-  eggs: { per: 36, noun: "提", desc: "combo 2 盒一提 = 36 个" },
+  eggs: { per: 1, noun: "个", desc: "combo 2 盒一提 = 36 个", big: { noun: "提", count: 36 } },
   salad: { per: 48, noun: "袋", desc: "RD 3lb 袋 = 48 份" },
   lime: { per: 1, noun: "个", desc: "每场 1 个，配海鲜" },
   // 冻品 · 前菜 · 面
-  gyoza: { per: 40, noun: "袋", desc: "46.5oz 袋 ≈ 40 个" },
-  spring_rolls: { per: 8, noun: "盒", desc: "24.5oz 盒 ≈ 8 个" },
+  gyoza: { per: 1, noun: "个", desc: "46.5oz 袋 ≈ 40 个", big: { noun: "袋", count: 40 } },
+  spring_rolls: { per: 1, noun: "个", desc: "24.5oz 盒 ≈ 8 个", big: { noun: "盒", count: 8 } },
   edamame: { per: 1, noun: "袋", desc: "1 袋 = 1 份，喂 3 人" },
-  noodles: { per: 160, noun: "箱", desc: "RD pasta 10lb/箱" },
+  noodles: { per: 16, noun: "lb", desc: "RD pasta 10lb/箱（干面）", big: { noun: "箱", count: 10 } },
   // 调料与大宗
   fried_rice: { per: 2400, noun: "袋", desc: "50lb 生米 ≈ 2400oz 熟饭" },
   ginger_sauce: { per: 32, noun: "瓶", desc: "16oz/瓶 ≈ 8 人" },
   ginger_dressing: { per: 32, noun: "瓶", desc: "16oz/瓶 ≈ 16 人" },
-  garlic_butter: { per: 32, noun: "盒", desc: "1 盒 = 2 根 × 8oz" },
+  garlic_butter: { per: 16, noun: "根", desc: "1 根 = 8oz，1 盒 = 2 根", big: { noun: "盒", count: 2 } },
   fried_rice_seasoning: { per: 24, noun: "包", desc: "12oz 包 ≈ 30 人" },
   soy_sauce: { per: 1280, noun: "桶", desc: "5gal 桶" },
   teriyaki: { per: 256, noun: "桶", desc: "1gal 桶" },
