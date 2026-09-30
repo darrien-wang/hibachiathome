@@ -221,10 +221,33 @@ export async function POST(request: NextRequest) {
       const FOLLOWUP_CAP = brakes.followup_cap
       const REPLY_WINDOW_MS = brakes.reply_window_minutes * 60_000
       const REPLY_BURST_CAP = brakes.reply_burst_cap
+      // A phone call is the customer talking too. The thread is texts only, so
+      // a customer who rang us and never texted looked like a lead who never
+      // answered: on 2026-09-29 one booked her date with the owner on the
+      // phone, and the third text of the owner's recap was refused as "sent 3,
+      // never replied". Calls now count as inbound for every brake below.
+      let callTimes: number[] = []
+      if (supabase) {
+        const { data: calls } = await supabase
+          .from("lead_touchpoints")
+          .select("occurred_at")
+          .eq("touchpoint_type", "call_inbound")
+          .eq("raw_payload_json->>From", phone)
+          .order("occurred_at", { ascending: false })
+          .limit(20)
+        callTimes = ((calls ?? []) as Array<{ occurred_at: string }>)
+          .map((c) => new Date(c.occurred_at).getTime())
+          .filter((t) => Number.isFinite(t))
+      }
       const last = thread[thread.length - 1]
-      const customerSpokeLast = last?.direction === "inbound"
+      const lastCallAt = callTimes.length > 0 ? Math.max(...callTimes) : null
+      const customerSpokeLast =
+        last?.direction === "inbound" || (lastCallAt !== null && (!last || lastCallAt > new Date(last.at).getTime()))
       const now = Date.now()
-      const inboundTimes = thread.filter((m) => m.direction === "inbound").map((m) => new Date(m.at).getTime())
+      const inboundTimes = [
+        ...thread.filter((m) => m.direction === "inbound").map((m) => new Date(m.at).getTime()),
+        ...callTimes,
+      ]
       const lastInbound = inboundTimes.length > 0 ? Math.max(...inboundTimes) : null
       // Still answering the customer's last message.
       const inReplyWindow = lastInbound !== null && now - lastInbound < REPLY_WINDOW_MS
@@ -240,7 +263,7 @@ export async function POST(request: NextRequest) {
         }
         // Only messages that were not answers count against the caps.
         const outbound = thread.filter((m) => m.direction === "outbound" && !answeredAt(m))
-        const everReplied = thread.some((m) => m.direction === "inbound")
+        const everReplied = inboundTimes.length > 0
         const last24h = outbound.filter((m) => now - new Date(m.at).getTime() < 24 * 3600_000).length
         // Spacing is about a person texting twice in a row. An automated
         // quote reads as automatic, so a personal first message right after
