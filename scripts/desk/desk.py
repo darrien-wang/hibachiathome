@@ -54,6 +54,10 @@ THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
 
 # Protein ids the invoice engine knows (v0 invoice repo, lib/pricing.ts).
 PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"}
+# Menu price of the appetizers a free-appetizer promo can bring, so changing
+# how many trays it brings moves the discount by the same amount and the
+# customer is never charged for what we gave them.
+APPETIZER_PRICES = {"gyoza": 15.0, "spring_rolls": 15.0, "edamame": 10.0}
 
 
 def is_tapback(body: str) -> bool:
@@ -559,6 +563,34 @@ def cmd_order(a):
             new_notes = pathlib.Path(a.notes_file).read_bytes().decode("utf-8").strip()
             changes.append(f"specialNotes: {c.get('specialNotes')!r} -> {new_notes!r}")
             c["specialNotes"] = new_notes
+        if a.free_appetizer_trays is not None:
+            # The free appetizer used to be one tray whatever the party size, so
+            # 21 people shared 10 gyoza (Annie Phan, 10/01). Owner 2026-10-01:
+            # give a tray per 10 guests. The promo line and the extras have to
+            # move together - the promo's amount includes the menu price of what
+            # it brings, so raising the trays without raising the amount would
+            # bill the customer for the gift.
+            want = max(1, int(a.free_appetizer_trays))
+            promo = next((p for p in (data.get("promotions") or [])
+                          if re.search(r"free appetizer|appetizer platter", str(p.get("label") or ""), re.I)), None)
+            if not promo:
+                raise SystemExit("this order has no free-appetizer promotion line - add the promo in the invoice tool first")
+            named = [i for i in APPETIZER_PRICES if re.search(i.replace("_", "[ _]"), str(promo.get("label") or ""), re.I)]
+            if not named:  # "appetizer platter" names none of them: it is all three
+                named = sorted(APPETIZER_PRICES)
+            extras = data.setdefault("partyExtras", [])
+            delta = 0.0
+            for app_id in named:
+                row = next((e for e in extras if e.get("id") == app_id), None)
+                have = int(row.get("qty") or 0) if row else 0
+                if row:
+                    row["qty"] = want
+                else:
+                    extras.append({"id": app_id, "qty": want})
+                delta += (want - have) * APPETIZER_PRICES[app_id]
+            promo["amount"] = round(float(promo.get("amount") or 0) + delta, 2)
+            changes.append(f"free appetizer: {', '.join(named)} -> {want} tray(s) each; "
+                           f"promo '{str(promo.get('label'))[:40]}…' amount {promo['amount']:.2f} ({delta:+.2f})")
         if a.travel_miles is not None:
             # The invoice charges travel from distanceMiles (first 50 free, $1/mi,
             # same rule as the site); a deposit-created order starts with none,
@@ -600,7 +632,7 @@ def cmd_order(a):
             if adult_servings != expected:
                 print(f"   ! {adult_servings} adult servings for {data.get('adultCount')} adults - two each would be {expected}; extras are billed")
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--free-appetizer-trays")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -745,6 +777,9 @@ def main(argv=None):
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")
     p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
+    p.add_argument("--free-appetizer-trays", type=int, metavar="N",
+                   help="how many trays the free-appetizer promo brings (owner 2026-10-01: one per 10 guests). "
+                        "Moves the promo's discount by the same amount, so the customer is not billed for it.")
     p.add_argument("--proteins", nargs="+", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
                    "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode.")
     p.set_defaults(fn=cmd_order)
