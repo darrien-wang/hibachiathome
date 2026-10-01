@@ -776,6 +776,7 @@ python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip="Long Bea
 python scripts/desk/desk.py link deposit --lead <id> --adults 24 --kids 0 --city "Long Beach" --date 2026-10-13 --email <e>   # 预填押金页 → 短链
 python scripts/desk/desk.py link planner --email <e> --phone <p> [--booked] --lead <id>
 python scripts/desk/desk.py link short  <长链> --lead <id>
+python scripts/desk/desk.py scan [--bucket D] [--no-write]   # 全池分桶：谁该动、什么时候动（lead-scan skill）；措辞仍按本 skill
 python scripts/desk/desk.py order find <姓名|手机|邮箱|单号>
 python scripts/desk/desk.py order show <单号>                # 发票内容：联系人、时间地址、逐人菜单、加购、NOTES(客户看得到)、内部备注、总价
 python scripts/desk/desk.py order set  <单号> --time 18:30 [--date] [--address] [--name] [--email] [--phone] [--notes-file f]   # 先算价再存，同步 planner

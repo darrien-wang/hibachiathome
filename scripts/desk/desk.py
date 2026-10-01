@@ -3,6 +3,7 @@
 
   python scripts/desk/desk.py next                         what is waiting, one full card each (one call)
   python scripts/desk/desk.py card   <phone|leadId>        the same card for one customer
+  python scripts/desk/desk.py scan   [--bucket D] [--no-write] every open lead in a bucket with its reason (线索扫描 skill)
   python scripts/desk/desk.py thread <phone|leadId>        the Twilio conversation, oldest first
   python scripts/desk/desk.py search <text>                name / phone / email / order no
   python scripts/desk/desk.py price  --adults 24 [--kids 0] [--date 2026-10-13] [--zip 90802] [--alt-date ...]
@@ -158,6 +159,71 @@ def cmd_next(a):
         return
     for c in cards:
         render_card(c)
+    if a.json:
+        print(dump(data))
+
+
+BUCKETS = [
+    ("A", "欠回复", "立刻回：事实直发，聊类拟稿"),
+    ("C", "热信号", "10 分钟内动：答疑或递链接（唯一该主动递链接的时候）"),
+    ("G", "已付未齐", "运营催齐，不受刹车"),
+    ("B", "承诺到期", "接着他自己的话问，不是催"),
+    ("F", "隐性异议", "按让步带宽出牌：桌椅换锁日期 / 周中 $500 底线 / 先问数再让"),
+    ("E", "派对临近", "真时钟 + 开门句；满 3 条的要 force，先给老板看"),
+    ("D", "到期跟进", "台阶句 + 一个真理由 + 一个好答的问题；一批一次批"),
+    ("H", "停", "不发；needs_hold 的挂 14 天"),
+]
+
+
+def cmd_scan(a):
+    data = site_get("/api/admin/scan", {"write": "0" if a.no_write else "1"})
+    items = data.get("items") or []
+    orders = data.get("orders") or []
+    summ = data.get("summary") or {}
+    print(f"扫描 {pt(data.get('serverTime'))} PT · 池 {data.get('pool')} · "
+          + " · ".join(f"{k} {summ.get(k, 0)}" for k, _, _ in BUCKETS))
+    want = (a.bucket or "").upper()
+
+    def line(it: dict) -> str:
+        bits = [it.get("name") or "-", it.get("phone") or "-", it.get("city") or "-", f"{it.get('guests') or '?'} 人"]
+        if it.get("eventDate"):
+            d = it.get("daysToEvent")
+            bits.append(f"{it['eventDate']}{f' ({d} 天)' if d is not None else ''}")
+        q = it.get("quoted")
+        if q:
+            bits.append(f"报价 ${q.get('total')}")
+        flags = [f for f in (it.get("flags") or []) if f not in ("has_paid_order",)]
+        return f"   {' · '.join(bits)}\n      → {it.get('reason')}" + (f"   [{' '.join(flags)}]" if flags else "")
+
+    for key, label, action in BUCKETS:
+        if want and key != want:
+            continue
+        if key == "G":
+            rows = orders
+        elif key == "F":
+            rows = [it for it in items if it.get("objection")]
+        else:
+            rows = [it for it in items if it.get("bucket") == key and not (key in ("D", "E") and it.get("objection"))]
+        if not rows:
+            continue
+        print("━" * 78)
+        print(f"{key} {label} · {len(rows)} · {action}")
+        for it in rows:
+            if key == "G":
+                when = (it.get("eventStart") or "")[:16].replace("T", " ")
+                dte = it.get("daysToEvent")
+                days = f" ({dte} 天)" if dte is not None else ""
+                gaps = "、".join(it.get("gaps") or [])
+                lead_ref = f"   lead {it.get('leadId')}" if it.get("leadId") else ""
+                print(f"   {it.get('orderNo')} · {it.get('name') or '-'} · {it.get('phone') or '-'} · {when}{days}")
+                print(f"      → 缺：{gaps}{lead_ref}")
+            else:
+                print(line(it) + f"   id {it.get('leadId')}")
+        if want and key != "G":
+            # The full card for each, so the wording can be written from the thread.
+            for it in rows:
+                for c in (site_get("/api/admin/desk", {"lead": it["leadId"]}).get("cards") or []):
+                    render_card(c)
     if a.json:
         print(dump(data))
 
@@ -635,6 +701,9 @@ def main(argv=None):
 
     p = sp.add_parser("next"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_next)
     p = sp.add_parser("card"); p.add_argument("ident"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_card)
+    p = sp.add_parser("scan"); p.add_argument("--bucket", help="A C G B F E D H - print the full card of each lead in that bucket")
+    p.add_argument("--no-write", action="store_true", help="do not store the bucket in leads.segment / next_action_at")
+    p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_scan)
     p = sp.add_parser("thread"); p.add_argument("ident"); p.set_defaults(fn=cmd_thread)
     p = sp.add_parser("search"); p.add_argument("text"); p.set_defaults(fn=cmd_search)
     p = sp.add_parser("price"); p.add_argument("--adults", type=int, required=True); p.add_argument("--kids", type=int, default=0)
