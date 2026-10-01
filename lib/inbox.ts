@@ -41,10 +41,29 @@ export type InboxEvent = {
    * for these; lead-watch re-notifies them every 10 minutes instead of two hours.
    */
   urgent?: boolean
+  /**
+   * Inside the grace window - the customer may still be typing the rest of it.
+   * Only ever set when the caller asked for these (the desk does); the phone
+   * never sees them, which is the whole point of the grace.
+   */
+  justArrived?: boolean
   /** The lead / phone / order behind the event, so a card can be built without re-parsing `url`. */
   leadId?: string | null
   phone?: string | null
   orderId?: string | null
+}
+
+export type InboxOptions = {
+  /**
+   * Include texts younger than the grace window, flagged `justArrived`. The
+   * phone must not (a buzz per line while someone types three lines is the
+   * thing the grace exists to stop); a person reading the desk must, or a
+   * message is invisible to them for two minutes - which is how 951-629-7007
+   * reached the owner before it reached the desk on 2026-09-30.
+   */
+  includeFresh?: boolean
+  /** Skip the 60-second Twilio cache; the desk polls on demand and wants the truth. */
+  noCache?: boolean
 }
 
 export type InboxCounts = {
@@ -75,7 +94,11 @@ const SOURCE_LABELS: Record<string, string> = {
   ai_agent: "AI 代理",
 }
 
-export async function computeInbox(supabase: SupabaseClient, now = Date.now()): Promise<{ counts: InboxCounts; events: InboxEvent[] }> {
+export async function computeInbox(
+  supabase: SupabaseClient,
+  now = Date.now(),
+  opts: InboxOptions = {},
+): Promise<{ counts: InboxCounts; events: InboxEvent[] }> {
   const events: InboxEvent[] = []
   // 挂起中的客人不响手机：他说了他会回头找我们，这不是我们欠回复。
   // 同一份规则巡检也在用（lib/lead-hold.ts）。
@@ -125,13 +148,17 @@ export async function computeInbox(supabase: SupabaseClient, now = Date.now()): 
   }
 
   // ---- customer texts nobody answered ---------------------------------------
-  const byPeer = await fetchLastByPeer().catch(() => new Map())
+  // The phone polls every 10 s and is happy with the 60-second cache; the desk
+  // asks on demand, usually right after the owner says "anything new?", and a
+  // cached answer there is a blind spot rather than a saving.
+  const byPeer = await fetchLastByPeer(800, opts.noCache ? 0 : undefined).catch(() => new Map())
   const unanswered: Array<{ peer: string; at: string; body: string }> = []
   for (const [peer, v] of byPeer) {
     if (!v.lastInAt || v.last.direction !== "inbound") continue
     if (v.lastOutAt && v.lastOutAt >= v.lastInAt) continue
     const atMs = Date.parse(v.lastInAt)
-    if (now - atMs > SMS_LOOKBACK_MS || now - atMs < SMS_GRACE_MS) continue
+    if (now - atMs > SMS_LOOKBACK_MS) continue
+    if (now - atMs < SMS_GRACE_MS && !opts.includeFresh) continue
     if (isTestNumber(peer)) continue
     const body = (v.last.body ?? "").trim()
     // 一条规则管三件事：挂起中、老板标过「不用回」、这条本来就不是问题（点赞
@@ -171,6 +198,7 @@ export async function computeInbox(supabase: SupabaseClient, now = Date.now()): 
         waitedMinutes: waited,
         ring: waited <= MAX_EVENT_AGE_MIN,
         urgent: waited >= URGENT_MIN,
+        justArrived: now - Date.parse(u.at) < SMS_GRACE_MS,
         leadId: lead?.id ?? null,
         phone: u.peer,
       })

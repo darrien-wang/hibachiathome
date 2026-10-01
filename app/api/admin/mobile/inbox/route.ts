@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const now = Date.now()
   const { counts, events } = await computeInbox(supabase, now)
-  // The extra ids ride on the desk response only; the app keys off `key`/`url`.
-  const slim = events.map(({ leadId: _l, phone: _p, orderId: _o, ...rest }) => rest)
+  // The extra ids and the desk-only grace flag ride on the desk response; the
+  // app keys off `key`/`url` and its payload stays exactly as it was.
+  const slim = events.map(({ leadId: _l, phone: _p, orderId: _o, justArrived: _j, ...rest }) => rest)
   return NextResponse.json({
     ok: true,
     serverTime: new Date(now).toISOString(),

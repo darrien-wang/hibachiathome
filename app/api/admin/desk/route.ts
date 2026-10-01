@@ -186,6 +186,7 @@ async function buildCard(
     kinds: Array.from(new Set((input.events ?? []).map((e) => e.kind))),
     waitedMinutes: input.events?.length ? Math.max(...input.events.map((e) => e.waitedMinutes)) : null,
     urgent: (input.events ?? []).some((e) => e.urgent),
+    justArrived: (input.events ?? []).some((e) => e.justArrived),
     lead: lead
       ? {
           id: lead.id,
@@ -248,7 +249,10 @@ export async function GET(request: NextRequest) {
   }
 
   // ---- everything waiting ----------------------------------------------------
-  const { counts, events } = await computeInbox(supabase, now)
+  // A person is reading this, so show texts that are still inside the grace
+  // window (flagged, so the card can say they may still be typing) and skip
+  // the Twilio cache - the desk is asked on demand, not polled.
+  const { counts, events } = await computeInbox(supabase, now, { includeFresh: true, noCache: true })
   const groups = new Map<string, { leadId: string | null; phone: string | null; orderId: string | null; events: InboxEvent[] }>()
   for (const ev of events) {
     if (ev.kind === "reddit") continue

@@ -96,6 +96,11 @@ def render_card(c: dict) -> None:
         head += f"   [{' '.join(c['kinds'])}]"
     if c.get("waitedMinutes") is not None:
         head += f" 等了 {c['waitedMinutes']} 分钟" + (" ⚠️" if c.get("urgent") else "")
+    # Inside the 2-minute grace the phone stays silent on purpose (people send
+    # one thought as three texts). The desk shows it anyway, labelled - a human
+    # reading the list should never have a two-minute blind spot.
+    if c.get("justArrived"):
+        head += "  ⏳刚到，可能还在打字"
     print(head)
     if lead:
         print(f"   {lead.get('city_or_zip') or '-'} · {lead.get('guest_count') or '?'} 人 · {lead.get('status')}"
