@@ -70,11 +70,6 @@ function formatClockTime(value: string | undefined): string {
 const CHIPS = ["Pick proteins later", "Headcount stays flexible", "1.5–2 hr show", "Allergies handled free"] as const
 const QUESTION_SMS = "Hi Real Hibachi! Quick question about my booking deposit."
 
-// A texted quote's location is often the page's default region, not a place.
-const isPlaceholderLocation = (value: string) => {
-  const v = value.trim()
-  return !v || /^(southern california|socal|tbd|california)$/i.test(v)
-}
 const TIME_OPTIONS: ReadonlyArray<readonly [string, string]> = [
   ["", "Pick a start time"],
   ["17:00", "5:00 PM"],
@@ -205,7 +200,12 @@ function DepositPaymentPageInner() {
   )
   const needsDate = detailsEditable && !ISO_DATE.test(base.date)
   const needsTime = detailsEditable && !eventTimeParam
-  const needsLocation = detailsEditable && isPlaceholderLocation(base.location)
+  // Always ask, never require (owner 2026-09-30). A quote's "location" is a
+  // city or a whole region at best - "LA & Orange County" is what Shaunae's
+  // link carried, and because that is not one of the placeholder words the
+  // page never asked her for an address at all. We want the street from
+  // everyone who already knows it, and nothing from those who do not.
+  const needsLocation = detailsEditable
   const [dateInput, setDateInput] = useState("")
   const [timeInput, setTimeInput] = useState("")
   const [locationInput, setLocationInput] = useState("")
@@ -213,11 +213,16 @@ function DepositPaymentPageInner() {
   const [kidsInput, setKidsInput] = useState<number>(kidsParam ?? 0)
   const effectiveDate = needsDate ? dateInput : base.date
   const effectiveTime = needsTime ? timeInput : eventTimeParam
-  const effectiveLocation = needsLocation ? locationInput.trim() : base.location
+  // A typed street address wins; otherwise keep whatever the link knew, so a
+  // blank field never erases the city we already had.
+  const effectiveLocation = locationInput.trim() || base.location
   const guestsChanged = detailsEditable && (adultsInput !== base.adults || kidsInput !== base.kids)
   const dateChanged = needsDate && ISO_DATE.test(dateInput)
-  const detailsMissing =
-    (needsDate && !ISO_DATE.test(dateInput)) || (needsTime && !timeInput) || (needsLocation && !locationInput.trim())
+  // The address is asked for but never required (owner 2026-09-30): plenty of
+  // people book the date before they have settled where, and a blank field
+  // must not stand between them and the deposit. Asking anyway means the ones
+  // who do know it hand it over now instead of in a text days later.
+  const detailsMissing = (needsDate && !ISO_DATE.test(dateInput)) || (needsTime && !timeInput)
   // Re-price with the engine the quote used, so the number moves the way the
   // text explained it. The link's estimate may include travel; that part is
   // recovered by pricing the link's own party and taking the difference, so a
@@ -495,7 +500,7 @@ function DepositPaymentPageInner() {
       setCheckoutError(
         needsDate && !ISO_DATE.test(dateInput)
           ? "Pick your party date first - that is the date the deposit locks."
-          : "Fill in the details above first.",
+          : "Pick a start time - \"Not sure yet\" is fine.",
       )
       return
     }
@@ -769,17 +774,18 @@ function DepositPaymentPageInner() {
             ) : null}
             {needsLocation ? (
               <label className="mt-3 block text-sm font-semibold text-ink">
-                Party address or city
+                Party address <span className="font-normal text-clay-600">(optional)</span>
                 <input
                   type="text"
                   value={locationInput}
                   onChange={(e) => setLocationInput(e.target.value)}
-                  placeholder="Street address, or just the city for now"
+                  placeholder="Street address, if you know it yet"
                   autoComplete="street-address"
                   className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-base font-normal text-ink"
-                  required
                 />
-                <span className="mt-1 block text-xs font-normal text-clay-600">Travel is confirmed from the address - the first 50 miles are free.</span>
+                <span className="mt-1 block text-xs font-normal text-clay-600">
+                  Leave it blank if the place isn&apos;t settled - you can text it to us later. The first 50 miles of travel are free either way.
+                </span>
               </label>
             ) : null}
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink">
@@ -839,7 +845,7 @@ function DepositPaymentPageInner() {
               Opening secure checkout…
             </>
           ) : detailsMissing ? (
-            needsDate && !ISO_DATE.test(dateInput) ? "Pick your date to continue" : "Fill in the details to continue"
+            needsDate && !ISO_DATE.test(dateInput) ? "Pick your date to continue" : "Pick a start time to continue"
           ) : (
             `Pay ${depositLabel} deposit · lock ${ISO_DATE.test(effectiveDate) ? formatUiDate(effectiveDate, "the date") : "the date"}`
           )}
