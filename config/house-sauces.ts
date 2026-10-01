@@ -17,6 +17,8 @@ export type SauceIngredient = {
   est?: { qty: number; unit: string; note?: string }
   /** 每克多少钱（美元）+ 这个价从哪来 */
   price: { perG: number; note: string }
+  /** 进"冻底料"：能冻、不影响风味的那几样，提前打成泥分袋冻（老板 2026-09-30） */
+  base?: boolean
 }
 
 export type SauceRecipe = {
@@ -33,6 +35,8 @@ export type SauceRecipe = {
   ingredients: SauceIngredient[]
   /** 对照：现在买的成品 */
   storeBought: { label: string; perOz: number; note: string }
+  /** 冻底料的说明（有 base 料的配方才有） */
+  baseHowTo?: string
 }
 
 export const G_PER_OZ = 28.35
@@ -58,22 +62,24 @@ export const HOUSE_SAUCES: SauceRecipe[] = [
     bottleOz: 16,
     batchLabel: "标准一锅 48 oz（各料合计 1,350 g，配方标题写 1.36 kg 是取整）",
     ingredients: [
-      { zh: "洋葱", en: "Onion", g: 130, est: { qty: 0.5, unit: "颗", note: "中等洋葱" }, price: { perG: 5.82 / (7.5 * LB), note: "收据 09-25 Walmart：7 个 7.5 lb $5.82" } },
-      { zh: "胡萝卜", en: "Carrot", g: 75, est: { qty: 0.5, unit: "根", note: "中等胡萝卜" }, price: { perG: 2.26 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $2.26" } },
-      { zh: "生姜", en: "Ginger", g: 45, est: { qty: 1, unit: "小块", note: "鸡蛋大小" }, price: { perG: 3.97 / LB, note: "Walmart 市价 $3.97/lb" } },
-      { zh: "芹菜", en: "Celery", g: 30, est: { qty: 1 / 16, unit: "颗", note: "或几根茎" }, price: { perG: 1.98 / (1.5 * LB), note: "估：一把 ~$1.98 ≈ 1.5 lb" } },
-      { zh: "橙子", en: "Orange", g: 130, est: { qty: 0.5, unit: "个" }, price: { perG: 5 / (4 * LB), note: "估：navel 4 lb 袋 ~$5" } },
-      { zh: "柠檬", en: "Lemon", g: 65, est: { qty: 0.5, unit: "个" }, price: { perG: 3.92 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $3.92" } },
+      { zh: "洋葱", en: "Onion", g: 130, est: { qty: 0.5, unit: "颗", note: "中等洋葱" }, price: { perG: 5.82 / (7.5 * LB), note: "收据 09-25 Walmart：7 个 7.5 lb $5.82" } , base: true },
+      { zh: "胡萝卜", en: "Carrot", g: 75, est: { qty: 0.5, unit: "根", note: "中等胡萝卜" }, price: { perG: 2.26 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $2.26" } , base: true },
+      { zh: "生姜", en: "Ginger", g: 45, est: { qty: 1, unit: "小块", note: "鸡蛋大小" }, price: { perG: 3.97 / LB, note: "Walmart 市价 $3.97/lb" } , base: true },
+      { zh: "芹菜", en: "Celery", g: 30, est: { qty: 1 / 16, unit: "颗", note: "或几根茎" }, price: { perG: 1.98 / (1.5 * LB), note: "估：一把 ~$1.98 ≈ 1.5 lb" } , base: true },
+      { zh: "橙子", en: "Orange", g: 130, est: { qty: 0.5, unit: "个" }, price: { perG: 5 / (4 * LB), note: "估：navel 4 lb 袋 ~$5" } , base: true },
+      { zh: "柠檬", en: "Lemon", g: 65, est: { qty: 0.5, unit: "个" }, price: { perG: 3.92 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $3.92" } , base: true },
       { zh: "菠萝汁", en: "Pineapple Juice", g: 60, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
       { zh: "苹果酱", en: "Applesauce", g: 60, price: { perG: 2.68 / (48 * G_PER_OZ), note: "估：Great Value 48 oz ~$2.68" } },
-      { zh: "白醋", en: "White Vinegar", g: 60, price: { perG: 3.94 / (GAL_ML * 1.01), note: "Walmart 市价：Great Value 白醋 1 gal $3.94（老板 09-30 确认用白醋）" } },
+      { zh: "白醋", en: "White Vinegar", g: 60, price: { perG: 3.94 / (GAL_ML * 1.01), note: "Walmart 市价：Great Value 白醋 1 gal $3.94（老板 09-30 确认用白醋）" } , base: true },
       { zh: "番茄酱", en: "Ketchup", g: 60, price: { perG: 2.98 / (64 * G_PER_OZ), note: "估：Great Value 64 oz ~$2.98" } },
-      { zh: "酱油", en: "Soy Sauce", g: 60, price: { perG: 39.99 / (5 * 128 * FL_OZ * 1.17), note: "收据 09-18 RD：Kikkoman 5 gal $39.99" } },
+      { zh: "酱油", en: "Soy Sauce", g: 60, price: { perG: 39.99 / (5 * 128 * FL_OZ * 1.17), note: "收据 09-18 RD：Kikkoman 5 gal $39.99" } , base: true },
       { zh: "油", en: "Oil", g: 60, price: { perG: 45.99 / (35 * LB), note: "收据 09-18 RD：大豆油 35 lb $45.99" } },
       { zh: "糖浆", en: "Sugar syrup", g: 55, price: { perG: SYRUP_PER_G, note: SYRUP_NOTE } },
       { zh: "美乃滋", en: "Mayonnaise", g: 460, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
     ],
     storeBought: { label: "Terry Ho's 姜汁酱", perOz: 4.82 / 16, note: "收据 09-22 / 09-25 Walmart：16 fl oz $4.82" },
+    baseHowTo:
+      "洋葱、胡萝卜、生姜、芹菜、橙子、柠檬（橙柠去皮）连同白醋、酱油一起打成泥，按每袋的克数分装冷冻，袋上写日期，一个月内用完。用的前一晚放冷藏解冻（别用微波炉），出的水一起用；美乃滋和成品酱不能冻。",
   },
   {
     key: "yumyum",
