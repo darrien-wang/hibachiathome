@@ -335,6 +335,14 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = `我们 ${lastOutAt.slice(0, 16)} 刚发过，第 2 天再看`
       nextActionAt = new Date(Date.parse(lastOutAt) + FOLLOWUP_WAIT_MS).toISOString()
+    } else if (outbound.filter((m) => now - Date.parse(m.at) < DAY_MS).length >= 2) {
+      // The send route refuses a third unprompted text inside 24 hours and the
+      // instant quote counts, so a lead that got the quote and our first text
+      // yesterday afternoon is not due until the quote ages out.
+      const recent = outbound.filter((m) => now - Date.parse(m.at) < DAY_MS).map((m) => Date.parse(m.at)).sort((a, b) => a - b)
+      bucket = "H"
+      reason = "24 小时内已发 2 条（含自动报价），刹车会拦，等最早那条过 24 小时"
+      nextActionAt = new Date(recent[0] + DAY_MS).toISOString()
     } else {
       bucket = "D"
       reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条${run + 1 >= CAP ? "（最后一条）" : ""}到期`
