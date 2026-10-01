@@ -6,7 +6,7 @@ import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
 import type { PrepGroup } from "@/lib/prep-bom"
 import { bulkName, isBulkItem } from "@/lib/pantry"
-import { DressingCalc } from "./DressingCalc"
+import { SauceCalc } from "./SauceCalc"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -315,7 +315,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
   const tabs: Array<[Tab, string, string]> = [
     ["prep", "备货", ""],
-    ["sauce", "姜汁酱", ""],
+    ["sauce", "自制酱", ""],
     ["stock", "库存 · 只读", ""],
     ["in", "入库记录", ""],
     ["out", "出库 · 归还", outCount ? String(outCount) : ""],
@@ -549,7 +549,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
       {tab === "prep" ? <PrepPlanner adminKey={adminKey} events={d.events} /> : null}
 
-      {tab === "sauce" ? <DressingCalc events={d.events} /> : null}
+      {tab === "sauce" ? <SauceCalc events={d.events} /> : null}
 
       {tab === "kit" ? <TraineeKits adminKey={adminKey} /> : null}
 
