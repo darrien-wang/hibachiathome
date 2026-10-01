@@ -112,7 +112,8 @@ export async function GET(request: NextRequest) {
     .map((o) => {
       const heads = (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
       const day = String(o.event_start ?? "").slice(5, 10)
-      return { key: `order:${o.id}`, name: `${str(o.customer_name, 24) || o.order_no} ${heads ? `${heads} 人 · ` : ""}${day}` }
+      // date / guests 给姜汁酱计算器用（按这周的人头算要做多少，老板 2026-09-30）
+      return { key: `order:${o.id}`, name: `${str(o.customer_name, 24) || o.order_no} ${heads ? `${heads} 人 · ` : ""}${day}`, date: String(o.event_start ?? "").slice(0, 10), guests: heads }
     })
 
   // agent 视图：一屏能读完的摘要，别名带上，省得它拿小票文字来回猜。

@@ -6,6 +6,7 @@ import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
 import type { PrepGroup } from "@/lib/prep-bom"
 import { bulkName, isBulkItem } from "@/lib/pantry"
+import { DressingCalc } from "./DressingCalc"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -37,7 +38,7 @@ type Pack = { item_key: string; idx: number; value: number; source_label: string
 type Hold = { item_key: string; holder_key: string; holder_kind: "chef" | "event" | "misc"; holder_name: string; qty: number; size_note: string | null }
 type LogRow = { id: string; item_key: string; body: string; via: string; quote: string | null; created_at: string; batch_id: string | null }
 type Record_ = { id: string; date: string; channel: string; store: string; meta: string; lines: Array<{ item_key: string; n: number; raw: string }> }
-type Holder = { key: string; name: string }
+type Holder = { key: string; name: string; date?: string; guests?: number }
 type Resp = {
   today: string
   canWrite: boolean
@@ -66,7 +67,7 @@ const INK = "var(--color-text)"
 const MUTED = "var(--color-neutral-700)"
 const fmt = (n: number) => String(Math.round(n * 10) / 10)
 
-type Tab = "stock" | "prep" | "in" | "out" | "chef" | "re" | "kit"
+type Tab = "stock" | "prep" | "sauce" | "in" | "out" | "chef" | "re" | "kit"
 type Layout = "A" | "B" | "C"
 
 /* ---------- 小件 ---------- */
@@ -314,6 +315,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
   const tabs: Array<[Tab, string, string]> = [
     ["prep", "备货", ""],
+    ["sauce", "姜汁酱", ""],
     ["stock", "库存 · 只读", ""],
     ["in", "入库记录", ""],
     ["out", "出库 · 归还", outCount ? String(outCount) : ""],
@@ -546,6 +548,8 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
       ) : null}
 
       {tab === "prep" ? <PrepPlanner adminKey={adminKey} events={d.events} /> : null}
+
+      {tab === "sauce" ? <DressingCalc events={d.events} /> : null}
 
       {tab === "kit" ? <TraineeKits adminKey={adminKey} /> : null}
 
