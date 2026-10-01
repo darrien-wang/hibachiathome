@@ -254,6 +254,16 @@ Hi! Bling from Real Hibachi 👋 Saw your quote for [N] on [Weekday, Month D] �
 We do! Temecula's inside our area — travel's usually $20–40 depending on the exact address. How many guests are you thinking, roughly?
 ```
 
+**L · 等人数定了再订（"先锁日期、人数之后再调"）**（用户 2026-10-01 定为模板，直发）
+客人说 "getting a final headcount / still making our guest list / will get back to you once I confirm the list"——他以为要等人数定了才能订。这句解掉的就是这个误会：
+```
+You don't need the final number to lock [Mon D] - $19.90 holds it, and the headcount can change later[, even last minute]: <link>
+```
+- 人数在涨就先接一句他的话（"Love that it's growing!"），有回头客 / 让步就点一句（"with your $60 off"）。
+- 链接用他手上那条（预填人数不对就按新人数重铸一条，`desk link deposit`），发完挂起 3–5 天，**之后不追**——他说了等名单，名单就是下一步。
+- 依据：09-29 Corrina 收到后 18 小时自己付了押金；10-01 用在 Santa Clarita（她点了链接，卡被发卡行拒，改给 Zelle/Venmo）和 917-618-3851（老公 37 岁，名单在涨）。
+- 和 §4.4 不冲突：客人自设节奏照样尊重，这句是**回他那句话时**说的，不是到期去催。
+
 **E · 31+ 大单**
 ```
 Hi! Bling from Real Hibachi. 50–60 guests on Dec 5 — love it, that's a 2-chef party. Ballpark is $59.90/adult (kids 5–12 $29.90, under 5 free); I'll put an exact number together tonight. Quick one: evening event, and roughly how many kids?
