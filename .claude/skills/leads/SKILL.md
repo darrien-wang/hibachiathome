@@ -633,6 +633,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 - **软饮**：卖，**$5/位**（可乐、健怡、雪碧、水；网站菜单 `config/menu-items.ts` 上挂着 Soft Drinks Package，另有 Premium $12/位：软饮+果汁+无酒精鸡尾酒）。客人问"饮料包不包" → sake 包含，软饮 $5/位要就带，或者自备。**发票工具里没有饮料 SKU**，客人要了得手动加一行并告诉用户。
 - **押金退不退**：≥72h 取消全退。
+- **押金也能走 Zelle / Venmo**（用户 2026-10-01 定）：卡被拒时提供（比如 `transaction_not_allowed` 是发卡行拦的，不是我们的问题）。**Zelle 562-713-4832，Venmo @realhibachiathome**，$19.90。让客人付完发条短信说一声——这两条路**系统不会自动建单**，老板确认到账后手动建单（订单上要写清日期、时间、人数、价格）。尾款当天付 Venmo/Zelle 照样加 4%，押金这 $19.90 不加。
 - **是真人吗**："Yes — Bling, I run Real Hibachi."
 
 ## 7. 销售心理学 → 具体怎么用（每条话术至少用到两条）
