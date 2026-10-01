@@ -65,11 +65,10 @@ const PROTEIN_LABELS: Record<string, string> = {
 }
 const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
 const SALAD = { adult: 1, child: 0.5 } // 份
-// 蔬菜（2026-09-22 用户定）：不按固定配比，总量每人 4–5oz 左右即可，
-// 西葫芦/西兰花/洋葱/胡萝卜随意搭。低值 4oz 与厨师备料单一致，高值 5oz
-// 用来给"买多少"。
-const VEGE_OZ_LOW = { adult: 4, child: 2 }
-const VEGE_OZ_HIGH = { adult: 5, child: 2.5 }
+// 蔬菜（2026-09-22 用户定）：总量每人 4–5oz 左右。厨师备料单按 4oz 做菜；
+// 备货、占用、办完自动扣一律按 5oz 算（老板 2026-09-30："按 5 oz 算吧"）——宁多勿少。
+// 四样怎么分见下面的 VEGE_MIX。
+const VEGE_OZ = { adult: 5, child: 2.5 }
 const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料单一致）
 // 份量表的 4 oz 是熟面；面吸水，干:熟 ≈ 1:3（重量，老板 2026-09-30）。
 // 采购买的是干面（RD 10 lb/箱），所以清单里按干重算：熟面 ÷ 3。
@@ -223,17 +222,14 @@ export function orderPrep(
   if (rice > 0) items.push({ id: "fried_rice", label: "Fried Rice 熟饭", qty: rice, unit: "oz", alt: alt("fried_rice", rice, "oz"), group: "pantry" })
   const salad = r1(adults * SALAD.adult + kids * SALAD.child)
   if (salad > 0) items.push({ id: "salad", label: "Salad 沙拉菜", qty: salad, unit: "份", group: "produce" })
-  const vegeLow = adults * VEGE_OZ_LOW.adult + kids * VEGE_OZ_LOW.child
-  const vegeHigh = adults * VEGE_OZ_HIGH.adult + kids * VEGE_OZ_HIGH.child
-  if (vegeLow > 0) {
-    const lowLb = Math.round((vegeLow / 16) * 10) / 10
-    const buyLb = Math.ceil(((vegeHigh * BUFFER) / 16) * 2) / 2
+  const vege = adults * VEGE_OZ.adult + kids * VEGE_OZ.child
+  if (vege > 0) {
     items.push({
       id: "mixed_vege",
-      label: "蔬菜合计（西葫芦/西兰花/洋葱/胡萝卜随意搭）",
-      qty: r1(vegeLow),
+      label: "蔬菜合计（西葫芦/西兰花/洋葱/胡萝卜）",
+      qty: r1(vege),
       unit: "oz",
-      alt: `每人 4–5oz：≈ ${lowLb} lb 起，买 ${buyLb} lb`,
+      alt: vegeAlt(vege),
       group: "produce",
     })
   }
@@ -409,6 +405,16 @@ export const VEGE_MIX: Array<{ id: string; label: string; ratio: number }> = [
   { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.1 },
 ]
 
+/** 蔬菜合计的提示：总磅数 + 四样各买几（和备货页拆出来的四行同一个算法）。 */
+function vegeAlt(oz: number): string {
+  const parts = VEGE_MIX.map((v) => {
+    const u = BUY_UNITS[v.id]
+    const name = v.label.split(" ")[1] ?? v.label
+    return u ? `${name} ${Math.max(1, Math.ceil((oz * v.ratio) / u.per))} ${u.noun}` : `${name} ${r1(oz * v.ratio)} oz`
+  }).join("、")
+  return `每人 5 oz：≈ ${r1(oz / 16)} lb（${parts}）`
+}
+
 /** 蔬菜合计那一行 → 四样各一行（oz），按各自的采购单位出"买几根/几袋/几个"。 */
 export function splitVeg(item: PrepItem): PrepItem[] {
   return VEGE_MIX.map((v) => {
@@ -433,11 +439,8 @@ export function aggregatePrep(all: PrepItem[]): PrepItem[] {
   }
   const out = [...by.values()]
   for (const it of out) {
-    if (it.id === "mixed_vege") {
-      const lowLb = Math.round((it.qty / 16) * 10) / 10
-      const buyLb = Math.ceil(((it.qty * 1.25 * BUFFER) / 16) * 2) / 2
-      it.alt = `每人 4–5oz：≈ ${lowLb} lb 起，买 ${buyLb} lb`
-    } else it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
+    if (it.id === "mixed_vege") it.alt = vegeAlt(it.qty)
+    else it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
   }
   const order: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "setup"]
   out.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || b.qty - a.qty)
