@@ -13,12 +13,16 @@ import { batchCost, batchGrams, costPerOz, G_PER_OZ, HOUSE_SAUCES, type SauceIng
 type Ev = { key: string; name: string; date?: string; guests?: number }
 type Key = SauceRecipe["key"]
 type Mode = "fresh" | "frozen"
+/** 重量单位（老板 2026-10-01："支持换算一下单位"）——买东西看 oz / lb，称料看 g */
+type WUnit = "g" | "oz" | "lb"
+const G_PER: Record<WUnit, number> = { g: 1, oz: 28.35, lb: 453.6 }
 
 const MUTED = "var(--color-neutral-600)"
 const INK = "var(--color-text)"
 const PICK_KEY = "rh-sauce-pick"
 const MODE_KEY = "rh-sauce-mode"
 const BAG_KEY = "rh-sauce-bag"
+const UNIT_KEY = "rh-sauce-unit"
 
 const ptToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
 const addDays = (ymd: string, n: number) => {
@@ -34,6 +38,13 @@ const num = (v: string, fallback = 0) => {
 const grams = (g: number) => (g >= 10 ? `${Math.round(g).toLocaleString()} g` : `${Math.round(g * 10) / 10} g`)
 const usd = (n: number) => `$${n.toFixed(2)}`
 const r1 = (n: number) => Math.round(n * 10) / 10
+const r2 = (n: number) => Math.round(n * 100) / 100
+/** 按选的单位写重量：g 取整，oz 一位小数（不到 10 oz 两位），lb 两位 */
+function fmtW(g: number, u: WUnit): string {
+  if (u === "g") return grams(g)
+  const v = g / G_PER[u]
+  return `${u === "oz" && v >= 10 ? r1(v) : r2(v)} ${u}`
+}
 const store = (k: string, v: string) => {
   try {
     localStorage.setItem(k, v)
@@ -61,13 +72,13 @@ const scale = (list: SauceIngredient[], factor: number): Row[] =>
     estText: i.est ? `≈ ${frac(i.est.qty * factor)} ${i.est.unit}${i.est.note ? `（${i.est.note}）` : ""}` : "",
   }))
 
-function Table({ rows, showCost = true }: { rows: Row[]; showCost?: boolean }) {
+function Table({ rows, showCost = true, fmt }: { rows: Row[]; showCost?: boolean; fmt: (g: number) => string }) {
   return (
     <table className="table" style={{ width: "100%", fontSize: 14 }}>
       <thead>
         <tr>
           <th style={{ textAlign: "left" }}>配料</th>
-          <th style={{ textAlign: "right", width: 110 }}>克数</th>
+          <th style={{ textAlign: "right", width: 110 }}>重量</th>
           <th style={{ textAlign: "left" }}>大概</th>
           {showCost ? <th style={{ textAlign: "right", width: 70 }}>成本</th> : null}
         </tr>
@@ -78,7 +89,7 @@ function Table({ rows, showCost = true }: { rows: Row[]; showCost?: boolean }) {
             <td style={{ fontWeight: 700 }}>
               {r.zh} <span style={{ fontWeight: 400, color: MUTED }}>{r.en}</span>
             </td>
-            <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{grams(r.gScaled)}</td>
+            <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{fmt(r.gScaled)}</td>
             <td style={{ color: MUTED, fontSize: 13 }}>{r.estText}</td>
             {showCost ? (
               <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: MUTED, fontSize: 13 }} title={r.price.note}>
@@ -97,6 +108,7 @@ export function SauceCalc({ events }: { events: Ev[] }) {
   const [pick, setPick] = useState<Key>("ginger")
   const [mode, setMode] = useState<Mode>("fresh")
   const [bagScale, setBagScale] = useState(1)
+  const [unit, setUnit] = useState<WUnit>("g")
   useEffect(() => {
     try {
       const v = localStorage.getItem(PICK_KEY)
@@ -105,6 +117,8 @@ export function SauceCalc({ events }: { events: Ev[] }) {
       if (m === "fresh" || m === "frozen") setMode(m)
       const b = Number(localStorage.getItem(BAG_KEY))
       if (b === 1 || b === 0.5) setBagScale(b)
+      const u = localStorage.getItem(UNIT_KEY)
+      if (u === "g" || u === "oz" || u === "lb") setUnit(u)
     } catch {}
   }, [])
   const choose = (k: Key) => {
@@ -154,6 +168,23 @@ export function SauceCalc({ events }: { events: Ev[] }) {
   const makeN = Math.max(0, Math.round(num(makeBags)))
   const makeRows = scale(baseList, makeN * bagScale)
   const makeTotalG = makeRows.reduce((n, r) => n + r.gScaled, 0)
+  const w = (g: number) => fmtW(g, unit)
+
+  // 用完手上的料（老板 2026-10-01："比如生姜只有 6 oz，其他的有很多，我想先把生姜用完"）：
+  // 以某一样料的实际重量为准，倒推整锅（冻底料时只推底料）的倍数。
+  const [useKey, setUseKey] = useState("Ginger")
+  const [useAmt, setUseAmt] = useState("")
+  const [useUnit, setUseUnit] = useState<WUnit>("oz")
+  const useList = frozen ? baseList : recipe.ingredients
+  const useIng = useList.find((i) => i.en === useKey) ?? useList[0]
+  const useG = num(useAmt) * G_PER[useUnit]
+  const useFactor = useIng && useG > 0 ? useG / useIng.g : 0
+  const useRows = scale(frozen ? baseList : recipe.ingredients, useFactor)
+  const useCost = useRows.reduce((n, r) => n + r.cost, 0)
+  const useYieldOz = (useFactor * baseG) / G_PER_OZ
+  const useBaseG = useRows.reduce((n, r) => n + r.gScaled, 0)
+  const useFullBags = bagG > 0 ? Math.floor(useBaseG / bagG + 1e-9) : 0
+  const useRestG = useBaseG - useFullBags * bagG
 
   const toggle = (key: string) =>
     setOff((prev) => {
@@ -164,22 +195,29 @@ export function SauceCalc({ events }: { events: Ev[] }) {
     })
 
   const bagLabel = bagScale === 1 ? "一锅的量" : "半锅的量"
-  const copyText = async (which: "week" | "base") => {
+  const copyText = async (which: "week" | "base" | "use") => {
     const lines =
-      which === "base"
+      which === "use"
         ? [
-            `${recipe.name}底料 · 做 ${makeN} 袋（每袋 ${grams(bagG)}，${bagLabel}），合计 ${grams(makeTotalG)}`,
-            ...makeRows.map((r) => `${r.zh} ${r.en}：${grams(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
+            frozen
+              ? `${recipe.name}底料 · 用完 ${num(useAmt)} ${useUnit} ${useIng?.zh ?? ""} → 底料 ${w(useBaseG)}，装 ${useFullBags} 袋（每袋 ${w(bagG)}）${useRestG > 5 ? ` + 1 袋 ${w(useRestG)}` : ""}`
+              : `${recipe.name} · 用完 ${num(useAmt)} ${useUnit} ${useIng?.zh ?? ""} → 做出 ${r1(useYieldOz)} oz（配方的 ${r2(useFactor)} 倍），够 ${Math.floor(useYieldOz / perGuest)} 位客人`,
+            ...useRows.map((r) => `${r.zh} ${r.en}：${w(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
+          ]
+        : which === "base"
+        ? [
+            `${recipe.name}底料 · 做 ${makeN} 袋（每袋 ${w(bagG)}，${bagLabel}），合计 ${w(makeTotalG)}`,
+            ...makeRows.map((r) => `${r.zh} ${r.en}：${w(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
             recipe.baseHowTo ?? "",
           ]
         : frozen
           ? [
-              `${recipe.name} · ${md(from)}–${md(to)} · ${guests} 人 × ${perGuest} oz → 解冻 ${bags} 袋底料（每袋 ${grams(bagG)}）+ 现加下面这些，做出 ${r1(madeOz)} oz，装 ${bottles} 瓶`,
-              ...freshRows.map((r) => `${r.zh} ${r.en}：${grams(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
+              `${recipe.name} · ${md(from)}–${md(to)} · ${guests} 人 × ${perGuest} oz → 解冻 ${bags} 袋底料（每袋 ${w(bagG)}）+ 现加下面这些，做出 ${r1(madeOz)} oz，装 ${bottles} 瓶`,
+              ...freshRows.map((r) => `${r.zh} ${r.en}：${w(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
             ]
           : [
               `${recipe.name} · ${md(from)}–${md(to)} · ${guests} 人 × ${perGuest} oz → 做 ${r1(madeOz)} oz（${Math.round(madeG).toLocaleString()} g，配方的 ${Math.round(factor * 100) / 100} 倍，装 ${bottles} 瓶，原料约 ${usd(cost)}）`,
-              ...allRows.map((r) => `${r.zh} ${r.en}：${grams(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
+              ...allRows.map((r) => `${r.zh} ${r.en}：${w(r.gScaled)}${r.estText ? `  ${r.estText}` : ""}`),
             ]
     try {
       await navigator.clipboard.writeText(lines.filter(Boolean).join("\n"))
@@ -252,7 +290,7 @@ export function SauceCalc({ events }: { events: Ev[] }) {
                   {b === 1 ? "一锅的量" : "半锅的量"}
                 </button>
               ))}
-              <span style={{ color: MUTED }}>（{grams(bagG)}）</span>
+              <span style={{ color: MUTED }}>（{w(bagG)}）</span>
             </span>
           ) : null}
         </div>
@@ -287,6 +325,25 @@ export function SauceCalc({ events }: { events: Ev[] }) {
         {field("还有能用的", leftBy[pick] ?? "", (v) => setLeftBy((p) => ({ ...p, [pick]: v })), "oz")}
       </div>
 
+      <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", marginBottom: 10, fontSize: 13 }}>
+        重量单位
+        {(["g", "oz", "lb"] as WUnit[]).map((u) => (
+          <button
+            key={u}
+            type="button"
+            className="wb-chip wb-chip-sm"
+            aria-pressed={unit === u}
+            onClick={() => {
+              setUnit(u)
+              store(UNIT_KEY, u)
+            }}
+          >
+            {u}
+          </button>
+        ))}
+        <span style={{ color: MUTED, marginLeft: 6 }}>1 oz = 28.35 g · 1 lb = 16 oz = 453.6 g</span>
+      </div>
+
       <div style={box}>
         <div style={{ fontSize: 13, color: MUTED }}>
           {counted.length} 单{num(extra) ? ` + 另外 ${num(extra)} 人` : ""} · 共 {guests} 人 × {perGuest} oz = {r1(need)} oz
@@ -299,7 +356,7 @@ export function SauceCalc({ events }: { events: Ev[] }) {
               解冻 {bags} 袋底料 + 现加下面这些 → 做出 {r1(madeOz)} oz
             </div>
             <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
-              底料按整袋用（每袋 {grams(bagG)}，{bagLabel}），比要的 {r1(target)} oz 多 {r1(Math.max(0, madeOz - target))} oz · 装 {bottles} 瓶（{recipe.bottleOz} oz）
+              底料按整袋用（每袋 {w(bagG)}，{bagLabel}），比要的 {r1(target)} oz 多 {r1(Math.max(0, madeOz - target))} oz · 装 {bottles} 瓶（{recipe.bottleOz} oz）
             </div>
           </>
         ) : (
@@ -332,7 +389,7 @@ export function SauceCalc({ events }: { events: Ev[] }) {
       {frozen ? (
         <>
           <div style={{ ...h, marginBottom: 6 }}>本周现加（底料以外）</div>
-          <Table rows={freshRows} />
+          <Table rows={freshRows} fmt={w} />
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
             <button type="button" className="btn btn-secondary btn-sm" disabled={bags <= 0} onClick={() => void copyText("week")}>
               {copied === "week" ? "已复制" : "复制本周做法"}
@@ -342,15 +399,15 @@ export function SauceCalc({ events }: { events: Ev[] }) {
           <div style={{ ...box, marginTop: 22 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <div style={h}>做底料冻起来</div>
-              {field("做", makeBags, setMakeBags, `袋（每袋 ${grams(bagG)}，${bagLabel}）`, 56)}
+              {field("做", makeBags, setMakeBags, `袋（每袋 ${w(bagG)}，${bagLabel}）`, 56)}
             </div>
             <div style={{ fontSize: 12.5, color: MUTED, marginTop: 6, lineHeight: 1.6 }}>{recipe.baseHowTo}</div>
           </div>
-          {makeN > 0 ? <Table rows={makeRows} showCost={false} /> : null}
+          {makeN > 0 ? <Table rows={makeRows} showCost={false} fmt={w} /> : null}
           {makeN > 0 ? (
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13 }}>
-                合计 <b>{grams(makeTotalG)}</b>，分 {makeN} 袋，每袋 {grams(bagG)}
+                合计 <b>{w(makeTotalG)}</b>，分 {makeN} 袋，每袋 {w(bagG)}
               </span>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyText("base")}>
                 {copied === "base" ? "已复制" : "复制底料做法"}
@@ -360,7 +417,7 @@ export function SauceCalc({ events }: { events: Ev[] }) {
         </>
       ) : (
         <>
-          <Table rows={allRows} />
+          <Table rows={allRows} fmt={w} />
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
             <button type="button" className="btn btn-secondary btn-sm" disabled={target <= 0} onClick={() => void copyText("week")}>
               {copied === "week" ? "已复制" : "复制成文字（发给备菜的人）"}
@@ -371,6 +428,55 @@ export function SauceCalc({ events }: { events: Ev[] }) {
           </div>
         </>
       )}
+
+      <div style={{ ...box, marginTop: 22 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={h}>用完手上的料</div>
+          <span style={{ fontSize: 13, color: MUTED }}>{frozen ? "按某样底料的实际重量，倒推其他底料各要多少" : "按某样料的实际重量，倒推其他料各要多少、能做多少"}</span>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
+          <select className="input" style={{ width: 170 }} value={useIng?.en ?? ""} onChange={(e) => setUseKey(e.target.value)} aria-label="按哪样料">
+            {useList.map((i) => (
+              <option key={i.en} value={i.en}>
+                {i.zh} {i.en}
+              </option>
+            ))}
+          </select>
+          手上有
+          <input className="input" inputMode="decimal" style={{ width: 80, textAlign: "center" }} value={useAmt} placeholder="例如 6" onChange={(e) => setUseAmt(e.target.value.replace(/[^\d.]/g, ""))} />
+          {(["g", "oz", "lb"] as WUnit[]).map((u) => (
+            <button key={u} type="button" className="wb-chip wb-chip-sm" aria-pressed={useUnit === u} onClick={() => setUseUnit(u)}>
+              {u}
+            </button>
+          ))}
+        </div>
+        {useFactor > 0 && useIng ? (
+          <div style={{ fontSize: 14, marginTop: 10, lineHeight: 1.6 }}>
+            {frozen ? (
+              <>
+                用完 {num(useAmt)} {useUnit} {useIng.zh}{unit !== useUnit ? `（${w(useG)}）` : ""} → 底料一共 <b>{w(useBaseG)}</b>，装 <b>{useFullBags} 袋</b>（每袋 {w(bagG)}，{bagLabel}）
+                {useRestG > 5 ? <>，再加 1 袋 {w(useRestG)}（约 {r2(useRestG / (bagG / bagScale))} 锅，袋上写清楚）</> : null}
+              </>
+            ) : (
+              <>
+                用完 {num(useAmt)} {useUnit} {useIng.zh}{unit !== useUnit ? `（${w(useG)}）` : ""} → 配方的 <b>{r2(useFactor)} 倍</b>，做出 <b>{r1(useYieldOz)} oz</b>（装 {Math.ceil(useYieldOz / recipe.bottleOz)} 瓶），够 <b>{Math.floor(useYieldOz / perGuest)} 位客人</b>，原料约 {usd(useCost)}
+                <span style={{ color: MUTED }}>
+                  {" "}
+                  · 这周要 {r1(target)} oz，{useYieldOz >= target ? `多 ${r1(useYieldOz - target)} oz` : `还差 ${r1(target - useYieldOz)} oz`}
+                </span>
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
+      {useFactor > 0 ? <Table rows={useRows} showCost={!frozen} fmt={w} /> : null}
+      {useFactor > 0 ? (
+        <div style={{ marginTop: 10 }}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyText("use")}>
+            {copied === "use" ? "已复制" : "复制这份用量"}
+          </button>
+        </div>
+      ) : null}
 
       <details style={{ marginTop: 14 }}>
         <summary style={{ cursor: "pointer", fontSize: 13, color: MUTED }}>单价从哪来（有收据用收据，没买过的按 9 月市价估）</summary>
