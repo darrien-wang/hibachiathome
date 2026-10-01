@@ -337,7 +337,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       nextActionAt = new Date(Date.parse(lastOutAt) + FOLLOWUP_WAIT_MS).toISOString()
     } else {
       bucket = "D"
-      reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条（最后一条）到期`
+      reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条${run + 1 >= CAP ? "（最后一条）" : ""}到期`
     }
     const objection = (bucket === "D" || bucket === "E") && objectionWords
 
