@@ -419,6 +419,15 @@ def _print_invoice(order_no: str, data: dict) -> None:
         if g.get("foodAllergy"): bits.append(f"ALLERGY: {g['foodAllergy']}")
         if g.get("note"): bits.append(g["note"])
         print(f"     {'小' if g.get('isChild') else '大'} {g.get('name') or '-'}: {' · '.join(bits)}")
+    # Quick mode carries the menu as party-wide counts instead of guest rows,
+    # which is how a texted menu lands ("15 steaks 10 shrimps 5 chickens").
+    # Without this the proteins were saved but invisible here, so there was no
+    # way to check what went in (Frank Musso, 2026-09-30).
+    for q in data.get("quickCountItems") or []:
+        qty = q.get("qty")
+        child = q.get("childQty")
+        print(f"   · {q.get('category', '?')} {q.get('itemId')}: {qty}"
+              + (f" + {child} child" if child else ""))
     for x in data.get("partyExtras") or []:
         print(f"   + extra {x}")
     for p in data.get("promotions") or []:
