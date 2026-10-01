@@ -66,7 +66,7 @@ export const HOUSE_SAUCES: SauceRecipe[] = [
       { zh: "柠檬", en: "Lemon", g: 65, est: { qty: 0.5, unit: "个" }, price: { perG: 3.92 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $3.92" } },
       { zh: "菠萝汁", en: "Pineapple Juice", g: 60, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
       { zh: "苹果酱", en: "Applesauce", g: 60, price: { perG: 2.68 / (48 * G_PER_OZ), note: "估：Great Value 48 oz ~$2.68" } },
-      { zh: "醋", en: "Vinegar", g: 60, price: { perG: 6.99 / (24 * FL_OZ * 1.01), note: "估：米醋 Marukan 24 oz ~$6.99；用白醋（1 gal ~$3）这一项几乎不要钱" } },
+      { zh: "白醋", en: "White Vinegar", g: 60, price: { perG: 3.94 / (GAL_ML * 1.01), note: "Walmart 市价：Great Value 白醋 1 gal $3.94（老板 09-30 确认用白醋）" } },
       { zh: "番茄酱", en: "Ketchup", g: 60, price: { perG: 2.98 / (64 * G_PER_OZ), note: "估：Great Value 64 oz ~$2.98" } },
       { zh: "酱油", en: "Soy Sauce", g: 60, price: { perG: 39.99 / (5 * 128 * FL_OZ * 1.17), note: "收据 09-18 RD：Kikkoman 5 gal $39.99" } },
       { zh: "油", en: "Oil", g: 60, price: { perG: 45.99 / (35 * LB), note: "收据 09-18 RD：大豆油 35 lb $45.99" } },
