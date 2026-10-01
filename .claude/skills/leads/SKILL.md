@@ -629,6 +629,8 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - **自带蛋白**：不行（安全 + 定价一致）。
 - **多少人要几个厨师**：28 人/厨师，一次预订即可，我们安排。
 - **酒/清酒**：**提供**（**不加价，含在派对里**，用户 09-15 定）。**客人问饮料时，短信里直接说 sake**（用户 2026-09-29 定，Nasim、Carlos 两次都 delivered）："We bring sake for the adults - it's included." 边界：**只在回答客人的问题时说**，不写进首条、跟进、群发或任何主动发的短信，不写 alcohol/liquor/beer/wine 这些泛称，不描述喝法和数量（"unlimited" 之类）。原因：运营商对商家短信有 SHAFT 酒类限制（错误码 30955），我们从来没因此被拦过，用户评估后选择在回答里直说；发了之后看一眼送达状态，出现 30955 立刻停用并告诉用户。客人要细节或想免掉 → 照办。
+  - **喷酒枪是真有的**（用户 2026-09-30 确认）：师傅会用 sake gun 往客人嘴里喷清酒，**客人自己提起来或问起来就可以认**（“your chef brings the sake gun”）。单身派对/生日这种场合答好了特别加分。边界和 sake 一样：**只在回答里说，不写进首条/跟进/群发**，也不主动向带小孩的派对提。头一例：Frank Musso（10/3 La Quinta 单身派对）自己说 “feel free to bring some sake water guns”。
+
 - **软饮**：卖，**$5/位**（可乐、健怡、雪碧、水；网站菜单 `config/menu-items.ts` 上挂着 Soft Drinks Package，另有 Premium $12/位：软饮+果汁+无酒精鸡尾酒）。客人问"饮料包不包" → sake 包含，软饮 $5/位要就带，或者自备。**发票工具里没有饮料 SKU**，客人要了得手动加一行并告诉用户。
 - **押金退不退**：≥72h 取消全退。
 - **是真人吗**："Yes — Bling, I run Real Hibachi."
