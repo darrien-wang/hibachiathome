@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { type BoardClaim, type BoardReview, type ChefLite, ptToday, recentWeeks, reviewState, soleMatch, standings, weekRange, weekStart } from "@/lib/review-board"
-import { creditedByClaim, isSettled, resolveClaims } from "@/lib/review-claims-server"
+import { creditReview, creditedByClaim, isSettled, resolveClaims, revokeCredit } from "@/lib/review-claims-server"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -11,6 +12,12 @@ export const runtime = "nodejs"
 //   GET  ?week=YYYY-MM-DD | ?range=all   榜单 + 该周的评价清单（谁都能看）
 //   GET  ?t=<token>                      再带上"我是谁"，页面才给认领按钮
 //   POST ?t=<token>  { action: claim|unclaim, review_id }
+//   POST（带工作台登录 cookie，老板）{ action: assign|unassign, review_id, staff_member_id }
+//
+// 老板 2026-10-02："我需要有权限能够替师傅结算，我知道的我就帮他们直接点了"。
+// 他手机上工作台是登录状态，session cookie 的 path 是 /，对 /api/tools/ 一样
+// 带得过来 —— 所以不用再发一套权限，resolveAdminActor 认得出他。
+// 指派等同工作台的 link_chef：老板说了算，这条之后谁也抢不走。
 //
 // 老板的原话："因为厨师是没有拿到他的名字的，那这样子这个好评呢就不会归到那个
 // 厨师头上，我觉得这样子也不公平"。所以没点名的那些要能被认领。
@@ -50,8 +57,10 @@ export async function GET(request: NextRequest) {
   const today = ptToday()
   const week = /^\d{4}-\d{2}-\d{2}$/.test(sp.get("week") ?? "") ? weekStart(sp.get("week")!) : weekStart(today)
 
-  const [me, { data: staff }, { data: reviewRows, error }] = await Promise.all([
+  const [me, actor, { data: staff }, { data: reviewRows, error }] = await Promise.all([
     token ? whoAmI(supabase, token) : Promise.resolve(null),
+    // 老板用工作台的登录态打开这个页面时，多给他一套"替师傅点"的按钮
+    resolveAdminActor(request).catch(() => null),
     supabase.from("staff_members").select("id, display_name, full_name, review_aliases").eq("status", "active").order("display_name"),
     supabase
       .from("business_reviews")
@@ -105,6 +114,7 @@ export async function GET(request: NextRequest) {
       weeks,
       chefs: chefs.map((c) => ({ id: c.id, name: c.name })),
       me: me ? { id: me.id, name: nameOf(me) } : null,
+      owner: actor?.role === "owner",
       standings: rows,
       lifetime,
       summary,
@@ -134,7 +144,9 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return deny(500, "supabase not configured")
   const me = await whoAmI(supabase, (request.nextUrl.searchParams.get("t") ?? "").trim())
-  if (!me) return deny(401, "链接无效或已收回——找老板要你的榜单链接")
+  const actor = await resolveAdminActor(request).catch(() => null)
+  const isOwner = actor?.role === "owner"
+  if (!me && !isOwner) return deny(401, "链接无效或已收回——找老板要你的榜单链接")
 
   let body: Record<string, unknown>
   try {
@@ -148,6 +160,47 @@ export async function POST(request: NextRequest) {
 
   const { data: rev } = await supabase.from("business_reviews").select("id, staff_member_id, bonus_id").eq("id", reviewId).maybeSingle()
   if (!rev) return deny(404, "这条评价不在了")
+
+  // ---- 老板替师傅点（和工作台 link_chef / unlink_chef 同一套语义）----
+  if (action === "assign" || action === "unassign") {
+    if (!isOwner) return deny(403, "只有老板能直接指派")
+    if (await isSettled(supabase, rev.bonus_id)) return deny(409, "这条已经结算过了，先撤那张对账单")
+    const alias = actor?.alias ?? "owner"
+    const now = new Date().toISOString()
+
+    if (action === "unassign") {
+      if (!rev.bonus_id) return NextResponse.json({ ok: true, state: "open" }, { headers: noStore })
+      if (!(await revokeCredit(supabase, reviewId))) return deny(409, "这条已经结算过了，先撤那张对账单")
+      // 只否掉被取消的那一个人，别人该认领还能认领（和工作台一致）
+      if (rev.staff_member_id) {
+        await supabase
+          .from("review_claims")
+          .update({ state: "rejected", decided_at: now, decided_by: alias, note: "老板取消了归属" })
+          .eq("review_id", reviewId)
+          .eq("staff_member_id", rev.staff_member_id)
+          .in("state", ["pending", "approved"])
+      }
+      const state = await resolveClaims(supabase, reviewId, alias)
+      return NextResponse.json({ ok: true, state }, { headers: noStore })
+    }
+
+    if (!isUuid(body.staff_member_id)) return deny(400, "staff_member_id required")
+    const target = body.staff_member_id
+    if (rev.staff_member_id === target) return NextResponse.json({ ok: true, state: "credited" }, { headers: noStore })
+    // 改派：先把现在那个人的退回来
+    if (rev.bonus_id && !(await revokeCredit(supabase, reviewId))) return deny(409, "这条已经结算过了，先撤那张对账单")
+    const done = await creditReview(supabase, reviewId, target, alias)
+    if (!done) return deny(409, "刚被占上了，刷新看看")
+    // 老板定了，这条上挂着的认领全部作废（谁也别再抢）
+    await supabase
+      .from("review_claims")
+      .update({ state: "rejected", decided_at: now, decided_by: alias, note: "老板直接指定了" })
+      .eq("review_id", reviewId)
+      .in("state", ["pending", "approved"])
+    return NextResponse.json({ ok: true, state: "credited", cents: done.cents }, { headers: noStore })
+  }
+
+  if (!me) return deny(401, "链接无效或已收回——找老板要你的榜单链接")
 
   if (action === "claim") {
     if (await isSettled(supabase, rev.bonus_id)) return deny(409, "这条已经结算过了，找老板")

@@ -43,6 +43,8 @@ type Resp = {
   weeks: string[]
   chefs: Array<{ id: string; name: string }>
   me: { id: string; name: string } | null
+  /** 工作台登录态认出的老板 —— 多一排"替师傅点"的按钮 */
+  owner: boolean
   standings: ChefStanding[]
   lifetime: ChefStanding[]
   summary: { total: number; credited: number; openCount: number; openCents: number; contestedCount: number; contestedCents: number }
@@ -90,6 +92,9 @@ const T = {
     claimHelp: "If nobody else claims it, it's yours right away — no waiting.",
     least: "Fewest so far",
     err: "Something went wrong",
+    assignTo: "Credit to",
+    clearIt: "Clear",
+    ownerNote: "You're signed in as the owner — tap a name to credit it straight away.",
   },
   zh: {
     title: "好评榜",
@@ -127,6 +132,9 @@ const T = {
     claimHelp: "没人跟你抢的话，点完立刻就是你的，不用等。",
     least: "目前最少",
     err: "出错了",
+    assignTo: "记给",
+    clearIt: "取消",
+    ownerNote: "工作台登录态，认出你是老板 —— 知道是谁的直接点名字，立刻入账。",
   },
 } as const
 
@@ -179,15 +187,16 @@ export function ReviewBoard() {
   }, [load])
 
   const act = useCallback(
-    async (action: "claim" | "unclaim", reviewId: string) => {
-      if (!token) return
+    async (action: "claim" | "unclaim" | "assign" | "unassign", reviewId: string, staffId?: string) => {
+      // claim/unclaim 要师傅自己的 token；assign/unassign 靠工作台登录 cookie
+      if (!token && (action === "claim" || action === "unclaim")) return
       setBusy(reviewId)
       setErr(null)
       try {
-        const r = await fetch(`/api/tools/reviews?t=${encodeURIComponent(token)}`, {
+        const r = await fetch(`/api/tools/reviews${token ? `?t=${encodeURIComponent(token)}` : ""}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action, review_id: reviewId }),
+          body: JSON.stringify({ action, review_id: reviewId, ...(staffId ? { staff_member_id: staffId } : {}) }),
         })
         const j = (await r.json()) as { ok?: boolean; error?: string }
         if (!j.ok) throw new Error(j.error ?? T.en.err)
@@ -255,7 +264,9 @@ export function ReviewBoard() {
           </Chip>
         </div>
       </div>
-      <p style={{ margin: 0, fontSize: 12, color: d.me ? "var(--color-accent-700)" : "var(--color-neutral-600)", fontWeight: d.me ? 700 : 400 }}>{d.me ? t.hi(d.me.name) : t.guest}</p>
+      <p style={{ margin: 0, fontSize: 12, color: d.me || d.owner ? "var(--color-accent-700)" : "var(--color-neutral-600)", fontWeight: d.me || d.owner ? 700 : 400 }}>
+        {d.owner ? t.ownerNote : d.me ? t.hi(d.me.name) : t.guest}
+      </p>
 
       {/* ---------- 周切换 ---------- */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -435,6 +446,31 @@ export function ReviewBoard() {
                   </button>
                 )}
               </div>
+
+              {/* 老板：知道是谁的，直接点名字，一下入账（和工作台 link_chef 同一条路）。
+                  已结算的不给按钮——那种要先撤对账单。 */}
+              {d.owner && !r.settled && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", borderTop: "1px dashed var(--color-line)", paddingTop: 6 }}>
+                  <span style={{ fontSize: 10, color: "var(--color-neutral-600)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>{t.assignTo}</span>
+                  {d.chefs.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="wb-chip wb-chip-sm"
+                      aria-pressed={r.creditedTo === c.id ? "true" : "false"}
+                      disabled={busy === r.id || r.creditedTo === c.id}
+                      onClick={() => void act("assign", r.id, c.id)}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                  {r.creditedTo && (
+                    <button type="button" className="wb-chip wb-chip-sm" disabled={busy === r.id} onClick={() => void act("unassign", r.id)}>
+                      {t.clearIt}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
