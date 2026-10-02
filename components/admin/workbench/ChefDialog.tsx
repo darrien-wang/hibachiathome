@@ -15,6 +15,11 @@ import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 // Reads /api/admin/chefs?id=, writes through its POST actions. 净额 = 工钱 +
 // 报销 − 代收；正数我们欠他，负数他欠我们。
 
+// 结算表的列宽（用户 2026-10-02 指出表头和数据对不上）。
+// 表头和每一行各自是独立的 grid，`auto` 列按各自内容算宽 —— 表头是短中文、
+// 数据是金额和按钮，两边宽度必然不同，列就永远错开。两边必须写同一套显式宽度。
+const SETTLE_COLS = "minmax(0,1fr) 84px 88px 88px 96px 76px"
+
 const TABS: Array<[ChefTabKey, string]> = [
   ["shifts", "场次"],
   ["profile", "资料 · 工价"],
@@ -802,7 +807,7 @@ export function ChefDialog({
             ) : null}
 
             <div style={{ fontSize: 13, borderTop: "2px solid var(--color-divider)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto auto", gap: 10, padding: "6px 0", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-neutral-600)", borderBottom: "1px solid var(--color-line)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: SETTLE_COLS, gap: 10, padding: "6px 0", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-neutral-600)", borderBottom: "1px solid var(--color-line)" }}>
                 <span>场次</span>
                 <span style={{ textAlign: "right" }}>工钱</span>
                 <span style={{ textAlign: "right" }}>代收</span>
@@ -814,7 +819,7 @@ export function ChefDialog({
               {[...openRows, ...settledRecent].map((s) => {
                 const rowNet = shiftNet(s)
                 return (
-                  <div key={s.assignmentId} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto auto", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", opacity: s.settledAt ? 0.45 : 1 }}>
+                  <div key={s.assignmentId} style={{ display: "grid", gridTemplateColumns: SETTLE_COLS, gap: 10, padding: "7px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", opacity: s.settledAt ? 0.45 : 1 }}>
                     <div style={{ minWidth: 0 }}>
                       {/* 场次行的客户名也可点 —— 对账时想看哪单就看哪单 */}
                       <button
@@ -851,11 +856,11 @@ export function ChefDialog({
                     <span style={{ textAlign: "right", whiteSpace: "nowrap", color: s.paySettledAt && !s.settledAt ? "var(--color-neutral-500)" : undefined }} title={`人头费 ${money(s.payCents)} + 桌椅 ${money(s.tablesCents)} + 路费 ${money(s.travelCents)}${s.paySettledAt && !s.settledAt ? "；人头费已提前结过" : ""}`}>
                       {s.paySettledAt && !s.settledAt ? <s>{money(s.payCents)}</s> : money(s.payCents + s.tablesCents + s.travelCents)}
                     </span>
-                    <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void promptCash(s)} title="点击改代收金额">
+                    <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%", justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void promptCash(s)} title="点击改代收金额">
                       {s.cashCents ? money(s.cashCents) : "—"}
                     </button>
                     {s.method === "card" ? (
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void cardFlow(s)} title="点击重新核对卡上小费">
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%", justifyContent: "flex-end", padding: "2px 4px", color: "var(--color-neutral-700)" }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void cardFlow(s)} title="点击重新核对卡上小费">
                         {s.cardTipCents ? money(s.cardTipCents) : "—"}
                       </button>
                     ) : (
@@ -867,7 +872,7 @@ export function ChefDialog({
                       <NetSpan n={rowNet} />
                     </span>
                     {owner ? (
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "2px 6px" }} disabled={!!busy} onClick={() => void (s.settledAt ? unsettle(s) : settleOne(s))}>
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%", padding: "2px 6px", whiteSpace: "nowrap" }} disabled={!!busy} onClick={() => void (s.settledAt ? unsettle(s) : settleOne(s))}>
                         {s.settledAt ? "撤销" : "结这一场"}
                       </button>
                     ) : (
