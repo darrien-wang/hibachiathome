@@ -4,6 +4,13 @@ const UI_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 })
 
+// "Fri, Dec 11" - for buttons, where "December 11, 2026" overflows a phone.
+const UI_DATE_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+})
+
 function parseDateOnly(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) {
@@ -67,4 +74,10 @@ export function formatUiDate(
   }
 
   return UI_DATE_FORMATTER.format(parsed)
+}
+
+/** Short form of formatUiDate ("Fri, Dec 11") for tight spots such as a CTA button. */
+export function formatUiDateShort(value: string | null | undefined, fallback = ""): string {
+  const parsed = value ? parseUiDateInput(value) : null
+  return parsed ? UI_DATE_SHORT_FORMATTER.format(parsed) : fallback
 }

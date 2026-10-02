@@ -9,7 +9,7 @@ import { getDepositAmount } from "@/config/deposit"
 import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
-import { formatUiDate } from "@/lib/date-display"
+import { formatUiDate, formatUiDateShort } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
 import { readDepositMarker, writeDepositMarker, type DepositMarker } from "@/lib/deposit-marker"
 
@@ -844,7 +844,7 @@ function DepositPaymentPageInner() {
           type="button"
           onClick={handleDepositCtaClick}
           disabled={checkoutStarting || detailsMissing}
-          className="mt-[26px] flex h-14 w-full items-center justify-center gap-2 rounded-full bg-flame text-lg font-semibold text-white transition hover:bg-flame-600 active:bg-flame-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-[26px] flex min-h-14 w-full items-center justify-center gap-2 text-balance rounded-full bg-flame px-6 py-3 text-center text-lg font-semibold leading-tight text-white transition hover:bg-flame-600 active:bg-flame-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {checkoutStarting ? (
             <>
@@ -854,7 +854,8 @@ function DepositPaymentPageInner() {
           ) : detailsMissing ? (
             needsDate && !ISO_DATE.test(dateInput) ? "Pick your date to continue" : "Pick a start time to continue"
           ) : (
-            `Pay ${depositLabel} deposit · lock ${ISO_DATE.test(effectiveDate) ? formatUiDate(effectiveDate, "the date") : "the date"}`
+            // No-break space keeps the "·" on the first line when this wraps on a phone.
+            `Pay ${depositLabel} deposit · lock ${ISO_DATE.test(effectiveDate) ? formatUiDateShort(effectiveDate, "the date") : "the date"}`
           )}
         </button>
         <p className="mt-3 text-sm text-clay-700">
