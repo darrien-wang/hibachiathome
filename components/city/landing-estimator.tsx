@@ -513,6 +513,8 @@ export default function LandingEstimator({
                 <input
                   type="date"
                   value={date}
+                  // No past dates: the server drops them anyway, but the picker should not offer them.
+                  min={new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())}
                   onChange={(e) => setDate(e.target.value)}
                   aria-label="Party date (optional)"
                   data-quote-field="date"

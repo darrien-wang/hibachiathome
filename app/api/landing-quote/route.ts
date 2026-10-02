@@ -113,7 +113,12 @@ export async function POST(request: NextRequest) {
   const source = asStr(body.source, 60) || `landing_${citySlug.replace(/-/g, "_")}`
   const adults = asInt(body.adults, 1, 200)
   const kids = asInt(body.kids, 0, 100)
-  const eventDate = /^\d{4}-\d{2}-\d{2}$/.test(asStr(body.eventDate, 10)) ? asStr(body.eventDate, 10) : ""
+  // A date already gone is treated as "date TBD": quoting "Mon, Aug 3, 2026" on
+  // Oct 2 got an instant STOP (626-206-1118, 2026-10-02). ISO strings compare
+  // correctly as text; "today" is Pacific, where every party is.
+  const todayPacific = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())
+  const rawEventDate = /^\d{4}-\d{2}-\d{2}$/.test(asStr(body.eventDate, 10)) ? asStr(body.eventDate, 10) : ""
+  const eventDate = rawEventDate && rawEventDate >= todayPacific ? rawEventDate : ""
   const travelFee = Math.max(0, Math.round(Number(body.travelFee) || 0))
   // "No travel fee" is a promise. A client can send $0 for a place it never
   // measured, so a city the travel table prices above $0 is never called
