@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS } from "@/lib/chef-pay"
 import { type ChefLite, soleMatch } from "@/lib/review-board"
-import { creditReview, resolveClaims } from "@/lib/review-claims-server"
+import { creditReview, resolveClaims, setPhoto } from "@/lib/review-claims-server"
 import { createHash, randomBytes } from "node:crypto"
 
 export const dynamic = "force-dynamic"
@@ -416,14 +416,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true })
       }
       case "set_photo": {
+        // 2026-10-02 改：已记给师傅的也能改带图，奖励金额跟着 $2 ⇄ $3 走。
+        // 原来这里直接拒绝（"金额按当时档位冻结"），老板得先取消归属再改再记
+        // 回去，三步；而带图只能靠人眼标，这步是常态不是例外。结过账的仍然不动。
         if (!isUuid(body.review_id)) return NextResponse.json({ error: "review_id required" }, { status: 400 })
-        const { data: rev } = await supabase.from("business_reviews").select("id, bonus_id, photo_count").eq("id", body.review_id).maybeSingle()
-        if (!rev) return NextResponse.json({ error: "not found" }, { status: 404 })
-        if (rev.bonus_id) return NextResponse.json({ error: "已记给师傅（金额按当时档位冻结）：先取消关联再改带图" }, { status: 400 })
-        const hasPhoto = body.has_photo === true
-        const { error } = await supabase.from("business_reviews").update({ has_photo: hasPhoto, photo_count: hasPhoto ? Math.max(1, Number(rev.photo_count) || 0) : 0 }).eq("id", rev.id)
-        if (error) throw error
-        return NextResponse.json({ ok: true })
+        const r = await setPhoto(supabase, body.review_id, body.has_photo === true, actor.alias)
+        if (!r.ok) return NextResponse.json({ error: r.error }, { status: 409 })
+        return NextResponse.json({ ok: true, cents: r.cents })
       }
       case "delete_row": {
         if (!isUuid(body.review_id)) return NextResponse.json({ error: "review_id required" }, { status: 400 })

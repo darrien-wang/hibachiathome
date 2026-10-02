@@ -94,6 +94,8 @@ const T = {
     err: "Something went wrong",
     assignTo: "Credit to",
     clearIt: "Clear",
+    markPhoto: "Has a photo ($3)",
+    unmarkPhoto: "No photo ($2)",
     ownerNote: "You're signed in as the owner — tap a name to credit it straight away.",
   },
   zh: {
@@ -134,6 +136,8 @@ const T = {
     err: "出错了",
     assignTo: "记给",
     clearIt: "取消",
+    markPhoto: "标带图（$3）",
+    unmarkPhoto: "改回无图（$2）",
     ownerNote: "工作台登录态，认出你是老板 —— 知道是谁的直接点名字，立刻入账。",
   },
 } as const
@@ -187,7 +191,7 @@ export function ReviewBoard() {
   }, [load])
 
   const act = useCallback(
-    async (action: "claim" | "unclaim" | "assign" | "unassign", reviewId: string, staffId?: string) => {
+    async (action: "claim" | "unclaim" | "assign" | "unassign" | "set_photo", reviewId: string, staffId?: string, hasPhoto?: boolean) => {
       // claim/unclaim 要师傅自己的 token；assign/unassign 靠工作台登录 cookie
       if (!token && (action === "claim" || action === "unclaim")) return
       setBusy(reviewId)
@@ -196,7 +200,7 @@ export function ReviewBoard() {
         const r = await fetch(`/api/tools/reviews${token ? `?t=${encodeURIComponent(token)}` : ""}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action, review_id: reviewId, ...(staffId ? { staff_member_id: staffId } : {}) }),
+          body: JSON.stringify({ action, review_id: reviewId, ...(staffId ? { staff_member_id: staffId } : {}), ...(hasPhoto === undefined ? {} : { has_photo: hasPhoto }) }),
         })
         const j = (await r.json()) as { ok?: boolean; error?: string }
         if (!j.ok) throw new Error(j.error ?? T.en.err)
@@ -469,6 +473,17 @@ export function ReviewBoard() {
                       {t.clearIt}
                     </button>
                   )}
+                  {/* 带图只能人眼标 —— 平台不给这个信息。已入账的也能改，
+                      金额跟着 $2 ⇄ $3 走，不用先取消归属。 */}
+                  <button
+                    type="button"
+                    className="wb-chip wb-chip-sm"
+                    style={{ marginLeft: "auto" }}
+                    disabled={busy === r.id}
+                    onClick={() => void act("set_photo", r.id, undefined, !r.hasPhoto)}
+                  >
+                    {r.hasPhoto ? t.unmarkPhoto : t.markPhoto}
+                  </button>
                 </div>
               )}
             </div>

@@ -94,6 +94,38 @@ export async function revokeCredit(supabase: SB, reviewId: string): Promise<bool
 }
 
 /**
+ * 人工标带图 / 取消带图（用户 2026-10-02 要的）。
+ *
+ * 为什么必须人工：平台这边**没有任何自动识别**。Places API 不返回评价带不带
+ * 图（refresh 那条路直接写死 false），agent 从页面拉的也看不出来。所以带图
+ * 一直是靠人看一眼再标。
+ *
+ * 已经记给师傅的也要能改：原来的 set_photo 在有 bonus 时直接拒绝（"金额按当时
+ * 档位冻结"），结果老板得先取消归属、改完再记回去，三步。这里改成一步 ——
+ * 标带图的同时把那笔奖励从 $2 抬到 $3（取消带图就落回 $2）。
+ *
+ * 结过账的不许动：钱已经付出去了，要改先撤对账单。
+ */
+export async function setPhoto(supabase: SB, reviewId: string, hasPhoto: boolean, alias: string): Promise<{ ok: true; cents: number | null } | { ok: false; error: string }> {
+  const { data } = await supabase.from("business_reviews").select("id, bonus_id, photo_count").eq("id", reviewId).maybeSingle()
+  const rev = data as { id: string; bonus_id: string | null; photo_count: number } | null
+  if (!rev) return { ok: false, error: "这条评价不在了" }
+  if (await isSettled(supabase, rev.bonus_id)) return { ok: false, error: "这条奖励已经结算过了，先撤那张对账单再改" }
+
+  await supabase
+    .from("business_reviews")
+    .update({ has_photo: hasPhoto, photo_count: hasPhoto ? Math.max(1, Number(rev.photo_count) || 0) : 0 })
+    .eq("id", rev.id)
+
+  if (!rev.bonus_id) return { ok: true, cents: null }
+  // 已经入账的：金额跟着档位走，不然台账和实际给的钱对不上
+  const cents = hasPhoto ? REVIEW_PHOTO_CENTS : REVIEW_PLAIN_CENTS
+  const { error } = await supabase.from("chef_review_bonuses").update({ has_photo: hasPhoto, cents, created_by: alias }).eq("id", rev.bonus_id).is("settlement_id", null)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, cents }
+}
+
+/**
  * 认领发生变化后重算这一条的归属。claim / unclaim / 老板驳回 之后都要调一次。
  * 幂等：重复调结果一样。
  */

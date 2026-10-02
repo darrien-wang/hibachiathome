@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { type BoardClaim, type BoardReview, type ChefLite, ptToday, recentWeeks, reviewState, soleMatch, standings, weekRange, weekStart } from "@/lib/review-board"
-import { creditReview, creditedByClaim, isSettled, resolveClaims, revokeCredit } from "@/lib/review-claims-server"
+import { creditReview, creditedByClaim, isSettled, resolveClaims, revokeCredit, setPhoto } from "@/lib/review-claims-server"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -160,6 +160,16 @@ export async function POST(request: NextRequest) {
 
   const { data: rev } = await supabase.from("business_reviews").select("id, staff_member_id, bonus_id").eq("id", reviewId).maybeSingle()
   if (!rev) return deny(404, "这条评价不在了")
+
+  // ---- 老板人工标带图 ----
+  // 平台不告诉我们评价带不带图，只能人看一眼再标。已入账的也能改，
+  // 金额跟着从 $2 抬到 $3（或落回），不用先取消归属。
+  if (action === "set_photo") {
+    if (!isOwner) return deny(403, "只有老板能标带图")
+    const r = await setPhoto(supabase, reviewId, body.has_photo === true, actor?.alias ?? "owner")
+    if (!r.ok) return deny(409, r.error)
+    return NextResponse.json({ ok: true, cents: r.cents }, { headers: noStore })
+  }
 
   // ---- 老板替师傅点（和工作台 link_chef / unlink_chef 同一套语义）----
   if (action === "assign" || action === "unassign") {
