@@ -63,6 +63,14 @@ Vercel's queue.
 pnpm build
 ```
 
+**First check whether a dev server is running in this folder** (the tool hooks
+say "Another chat's dev server is running in this folder"). `next dev` and
+`next build` share the same `.next`, so building clobbers the dev server: it
+keeps serving HTML but every `_next/static/chunks/*` 404s and pages render
+blank. Deleting `.next` is not enough — that process has to be restarted, and
+you cannot stop another session's server. Either have it stopped first, or
+build anyway and tell the user to restart it (2026-10-02, hit exactly this).
+
 **If the build dies with `Failed to load SWC binary for win32/x64`** (often with
 `Assertion failed !(handle->flags & UV_HANDLE_CLOSING)`), the `node_modules` was
 populated in a different environment and is missing the Windows SWC binary.
@@ -83,10 +91,19 @@ f=.next/server/app/index.html
 echo "size: $(wc -c < $f) | h1: $(grep -o '<h1' $f | wc -l) | jsonld: $(grep -o 'application/ld+json' $f | wc -l)"
 ```
 
-Expect **size > 100000**, **h1 ≥ 1**, and **jsonld ≥ 2**. If size is ~28KB with
-0 h1, the page is bailing to CSR again — stop and fix the offending
-`useSearchParams()`/Suspense boundary before deploying (see
-`lib/use-active-region.ts` for the pattern that fixes it).
+**Judge it by `h1` and `jsonld`, not by size.** A real CSR bailout ships an
+empty body: `h1: 0` and `jsonld: 0`. Those two are the signal.
+
+- **h1 ≥ 1** and **jsonld ≥ 2** — if either is 0, the page is bailing to CSR
+  again. Stop and fix the offending `useSearchParams()`/Suspense boundary
+  before deploying (see `lib/use-active-region.ts` for the pattern that fixes
+  it).
+- **size** is only a sanity floor: anything **under ~40000** alongside a missing
+  h1 is the bailout. The homepage has measured **~77KB** since the 2026-09
+  redesign (verified against production on 2026-10-02: local build 77139,
+  live 77526). The old "> 100000" threshold predates that redesign and fired
+  on every deploy — don't reintroduce it, and don't block a deploy on size
+  alone when h1 and jsonld are present.
 
 ## Phase 3 — Commit
 
@@ -145,7 +162,9 @@ Read its output against these expectations:
   `/locations/la-orange-county`; `https://realhibachi.com/...` (non-www) → 308 to
   the www host
 - **`/llms.txt`:** `200`
-- **`/sitemap.xml`:** ~33 `<loc>` entries
+- **`/sitemap.xml`:** **115** `<loc>` entries as of 2026-10-02 (it grows as city
+  and occasion pages are added — a number well below this is the thing to look
+  at, a higher one is normal)
 
 If the homepage still shows the *old* content, the CDN may not have flipped yet —
 wait another 30–60s and re-run. If it shows a 28KB empty body, the CSR

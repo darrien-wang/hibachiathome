@@ -183,15 +183,19 @@ export async function POST(request: NextRequest) {
     // customer was braked because the automatic deposit confirmation counted
     // toward the daily limit). The dead-number block below still applies.
     let isCustomer = false
+    // 在册员工同样不是"被追的线索"（老板 2026-10-02 定）。师傅从来不回短信——
+    // 他们只收备料单和通知——所以"发了 N 条对方没回过"的上限必然会撞上：
+    // 10-02 发好评榜链接时 Blu 就被拦了，只能 force。给员工放行。
+    // 退订那道闸在下面，对员工照样生效：师傅回了 STOP 也必须停。
+    let isStaff = false
     if (supabase) {
       const digits = phone.replace(/\D/g, "").slice(-10)
-      const { data: paid } = await supabase
-        .from("orders")
-        .select("id")
-        .ilike("customer_phone", `%${digits}`)
-        .eq("deposit_status", "paid_verified")
-        .limit(1)
+      const [{ data: paid }, { data: staff }] = await Promise.all([
+        supabase.from("orders").select("id").ilike("customer_phone", `%${digits}`).eq("deposit_status", "paid_verified").limit(1),
+        supabase.from("staff_members").select("id").eq("status", "active").ilike("phone", `%${digits}`).limit(1),
+      ])
       isCustomer = (paid?.length ?? 0) > 0
+      isStaff = (staff?.length ?? 0) > 0
     }
     // An opt-out (they texted STOP / CANCEL) holds even against force: texting
     // them again is a compliance problem, and Twilio refuses it anyway (21610).
@@ -216,7 +220,7 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-    if (!payload.force && !isCustomer) {
+    if (!payload.force && !isCustomer && !isStaff) {
       const brakes = (await getWorkbenchSettings()).sms_brakes
       const FOLLOWUP_CAP = brakes.followup_cap
       const REPLY_WINDOW_MS = brakes.reply_window_minutes * 60_000
