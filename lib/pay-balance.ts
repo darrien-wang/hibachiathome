@@ -19,9 +19,16 @@ export type PayContext = {
   found: boolean
   /** 账本说已经收够了 —— 此时 balanceDue 强制为 0，只能补小费。 */
   settled: boolean
-  /** 还欠多少（美元）。settled 时为 0。 */
+  /** 还欠多少（美元，发票原样）。settled 时为 0。 */
   balanceDue: number
-  /** 发票本身是不是按刷卡报的价（决定 4% 加在哪一层）。 */
+  /**
+   * 派对本身还欠多少，现金口径：拿掉发票上的 4%，也拿掉发票上已经选好的小费
+   * （那部分在 includedGratuity）。拆账和刷卡价都从它算。
+   */
+  cashBalance: number
+  /** 发票上已经选好、算进尾款里的小费（现金口径）。没选就是 0。 */
+  includedGratuity: number
+  /** 发票本身是不是按刷卡报的价。 */
   invoiceIsCard: boolean
   clientName: string
   eventDate: string | null
@@ -38,8 +45,12 @@ type BalanceResponse = {
   guests?: number
   paymentMethod?: string
   balanceDue?: number
+  creditCardFee?: number
+  selectedGratuity?: number
   gratuityOptions?: Array<{ rate: number; amount: number }>
 }
+
+const round2 = (n: number) => Math.round(n * 100) / 100
 
 export async function loadPayContext(orderId: string): Promise<PayContext | null> {
   let data: BalanceResponse
@@ -74,11 +85,19 @@ export async function loadPayContext(orderId: string): Promise<PayContext | null
   const paid = typeof row?.amount_paid_total_cents === "number" ? row.amount_paid_total_cents : 0
   const settled = quoted > 0 && paid > 0 && paid >= quoted
 
+  // 发票的 balanceDue = 派对 + 4%（刷卡发票才有）+ 选好的小费 − 押金。三块都由
+  // 发票接口直接给，拆开用，不靠 ÷1.04 倒推（那样会差一分钱）。
+  const owed = Math.max(0, data.balanceDue - (data.creditCardFee ?? 0))
+  const includedGratuity = Math.min(Math.max(0, data.selectedGratuity ?? 0), owed)
+
   return {
     found: true,
     settled,
     balanceDue: settled ? 0 : Math.max(0, data.balanceDue),
-    invoiceIsCard: data.paymentMethod === "card",
+    cashBalance: settled ? 0 : round2(owed - includedGratuity),
+    includedGratuity: settled ? 0 : round2(includedGratuity),
+    // The invoice says "credit_card"; this read "card" and so never matched.
+    invoiceIsCard: data.paymentMethod === "credit_card" || data.paymentMethod === "card",
     clientName: (data.clientName ?? "").trim(),
     eventDate: data.eventDate ?? null,
     guests: typeof data.guests === "number" ? data.guests : null,
@@ -99,6 +118,8 @@ function empty(): PayContext {
     found: false,
     settled: false,
     balanceDue: 0,
+    cashBalance: 0,
+    includedGratuity: 0,
     invoiceIsCard: false,
     clientName: "",
     eventDate: null,

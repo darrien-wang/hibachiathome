@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
-import { splitPayment, dollars } from "@/lib/pay-link-math"
+import { splitCardPayment, dollars } from "@/lib/pay-link-math"
 import { loadPayContext } from "@/lib/pay-balance"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-// 客户在 /pay 填完总数按 Pay 走到这里。
+// 客户在 /pay 选好金额按 Pay 走到这里。
 //
-// 口径（老板 2026-09-23 定）：**客户填多少就刷多少**，超出尾款的部分全是师傅
-// 的小费。师傅当天一般已经和客户当面谈好，所以页面不显示欠多少、也不再在上面
-// 加 4%——收到的金额必须正好等于他跟师傅谈的那个数。
+// 口径（老板 2026-10-01 定）：专属链接上的数都是**刷卡价**（已含 4%），客户点
+// 哪个就刷哪个，金额本身不再改。拆账先把刷卡额换回现金口径（÷1.04），抵掉
+// 现金尾款，剩下的才是师傅的小费（见 lib/pay-link-math.ts）。通用链接（不带
+// 订单号）还是填多少刷多少。
 //
-// 客户填的是"付多少"，不是"欠多少"：拆账用的余额每次现查（发票算金额、订单
+// 客户传的是"付多少"，不是"欠多少"：拆账用的尾款每次现查（发票算金额、订单
 // 账本判有没有付过，见 lib/pay-balance.ts），客户端传不进来。
 //
 // 付款成功由 Stripe webhook 记账（flow=balance_payment）。这里额外把拆出来的
@@ -133,7 +134,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
   }
 
-  const split = splitPayment(amount, ctx.balanceDue)
+  // Every payment here is a card payment: change it back to cash terms first,
+  // so the 4% is not booked as the chef's tip (Daria, 2026-10-01).
+  const split = splitCardPayment(amount, ctx.cashBalance)
 
   // webhook 靠 source_ref 把钱记到订单上；没有就别铸链接，否则钱落地找不到
   // 归属（pay-link 路由踩过这个坑）。
