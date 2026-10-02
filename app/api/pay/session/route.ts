@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getStripeServerClient } from "@/lib/stripe-server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
-import { splitCardPayment, dollars } from "@/lib/pay-link-math"
+import { splitCardPayment, checkoutDescription, dollars } from "@/lib/pay-link-math"
 import { loadPayContext } from "@/lib/pay-balance"
 
 export const runtime = "nodejs"
@@ -169,11 +169,8 @@ export async function POST(request: NextRequest) {
                 : name
                   ? `Real Hibachi — ${name}`
                   : "Real Hibachi Party Payment",
-              description: onlyTip
-                ? `Chef gratuity $${dollars(split.tipCents)}`
-                : split.tipCents > 0
-                  ? `Party balance $${dollars(split.towardBalanceCents)} + chef gratuity $${dollars(split.tipCents)}`
-                  : `Party balance $${dollars(split.towardBalanceCents)}`,
+              // No amounts here: the split is in cash terms and would not match the card price above it.
+              description: checkoutDescription(split, ctx.cashBalance),
             },
           },
         },

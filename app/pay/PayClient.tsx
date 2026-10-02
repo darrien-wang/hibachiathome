@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { splitCardPayment } from "@/lib/pay-link-math"
 
 // 付款页。
 //
@@ -248,6 +249,10 @@ export default function PayClient() {
             : choice === "other"
               ? amountNumber
               : 0
+    // 刷卡尾款 = 现金尾款 × 1.04 取到分，÷1.04 再取到分正好还原现金尾款；
+    // 用它跑和服务端同一个拆账，"Other amount" 下面显示的小费才和记账一致。
+    const cashBalance = Math.round(Math.round(cardBalance * 100) / 1.04) / 100
+    const otherTipCents = choice === "other" && amountNumber > 0 ? splitCardPayment(amountNumber, cashBalance).tipCents : 0
     const option = (key: Choice, label: string, sub: string | null, value: number | null) => (
       <button
         key={key}
@@ -313,7 +318,15 @@ export default function PayClient() {
             </label>
           ) : null}
           {choice === "other" ? (
-            <span className="text-[13px] text-clay-700">Anything above {usd(cardBalance)} goes to your chef.</span>
+            <span className="text-[13px] text-clay-700">
+              {otherTipCents > 0
+                ? `${usd(otherTipCents / 100)} for your chef`
+                : amountNumber > 0 && amountNumber < cardBalance
+                  ? "This pays part of your balance."
+                  : amountNumber > 0
+                    ? "This pays your balance."
+                    : `Enter more than ${usd(cardBalance)} to add a gratuity for your chef.`}
+            </span>
           ) : null}
 
           {/* "Balance only": say what the gratuity is for before taking it (owner 10-01). */}

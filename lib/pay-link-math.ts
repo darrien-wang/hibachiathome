@@ -46,4 +46,22 @@ export function splitCardPayment(amountDollars: number, cashBalanceDollars: numb
   }
 }
 
+/**
+ * Stripe 结账页金额下面那行小字：只说付的是什么，**不写金额**。页面上给的全是
+ * 刷卡价，这里要是再冒出一个现金口径的数（以前写 "Party balance $1283.00"，
+ * 上面却是 $1,334.32），客人会以为收错了（老板 2026-10-01）。
+ */
+export function checkoutDescription(split: PaymentSplit, cashBalanceDollars: number): string {
+  const balanceCents = Math.max(0, Math.round(cashBalanceDollars * 100))
+  const what =
+    split.towardBalanceCents === 0
+      ? "Gratuity for your chef"
+      : split.tipCents > 0
+        ? "Party balance + gratuity for your chef"
+        : split.towardBalanceCents < balanceCents
+          ? "Toward your party balance"
+          : "Party balance"
+  return `${what} · 4% card fee included`
+}
+
 export const dollars = (c: number) => (c / 100).toFixed(2)
