@@ -81,9 +81,14 @@ export default function Workbench() {
   )
   const go = (t: Tab) => setParams({ tab: t, since: null, filter: null, view: null })
   const openLead = useCallback((id: string) => setParams({ lead: id, order: null, lead_order: null, chef: null, ctab: null }), [setParams])
-  const openOrder = useCallback((id: string) => setParams({ order: id, lead: null, lead_order: null, chef: null, ctab: null }), [setParams])
+  // chef/ctab 故意不清：从师傅弹窗（比如结算页点客户名）打开订单时，师傅弹窗
+  // 留在后面，关掉订单就回到他刚才那一页 —— 对账到一半不该被弹回去。
+  // 从别处打开时 chef 本来就是空的，行为不变。
+  const openOrder = useCallback((id: string) => setParams({ order: id, lead: null, lead_order: null }), [setParams])
   const openChef = useCallback((id: string, t?: ChefTabKey) => setParams({ chef: id, ctab: t ?? null, lead: null, order: null, lead_order: null }), [setParams])
   const closeDialogs = useCallback(() => setParams({ lead: null, order: null, lead_order: null, chef: null, ctab: null }), [setParams])
+  /** 只关订单那一层；底下还开着师傅弹窗的话就回到它。 */
+  const closeOrder = useCallback(() => setParams({ order: null, lead: null, lead_order: null }), [setParams])
 
   // ?lead_order=<leadId> (old /admin/orders?lead=) → the order that lead became.
   useEffect(() => {
@@ -346,25 +351,6 @@ export default function Workbench() {
           </div>
         </div>
       ) : null}
-      {orderId ? (
-        <OrderDialog
-          adminKey={key}
-          orderId={orderId}
-          orders={data.orders}
-          leads={data.leads}
-          chefs={data.chefs}
-          assignments={data.assignments[orderId] ?? []}
-          live={data.planner.byOrder[orderId]}
-          clarityProject={data.planner.clarityProject}
-          settings={data.settings}
-          viewerRole={data.viewer?.role ?? null}
-          onClose={closeDialogs}
-          onChanged={refreshOrdersAndChefs}
-          onOpenLead={openLead}
-          onOpenChef={(id) => openChef(id, "shifts")}
-          onCall={onCall}
-        />
-      ) : null}
       {chefId ? (
         <ChefDialog
           key={chefId}
@@ -377,6 +363,27 @@ export default function Workbench() {
           onClose={closeDialogs}
           onChanged={refreshOrdersAndChefs}
           onOpenOrder={openOrder}
+          onCall={onCall}
+        />
+      ) : null}
+      {/* 订单弹窗放在师傅弹窗之后：两层 backdrop 同 z-index，后渲染的在上。
+          从结算页点客户名时订单要盖在上面，关掉它才回到师傅那一页。 */}
+      {orderId ? (
+        <OrderDialog
+          adminKey={key}
+          orderId={orderId}
+          orders={data.orders}
+          leads={data.leads}
+          chefs={data.chefs}
+          assignments={data.assignments[orderId] ?? []}
+          live={data.planner.byOrder[orderId]}
+          clarityProject={data.planner.clarityProject}
+          settings={data.settings}
+          viewerRole={data.viewer?.role ?? null}
+          onClose={closeOrder}
+          onChanged={refreshOrdersAndChefs}
+          onOpenLead={openLead}
+          onOpenChef={(id) => openChef(id, "shifts")}
           onCall={onCall}
         />
       ) : null}

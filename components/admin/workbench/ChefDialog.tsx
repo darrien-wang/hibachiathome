@@ -771,7 +771,19 @@ export function ChefDialog({
                 {pendingMethod.map((s) => (
                   <div key={s.assignmentId} style={{ padding: "8px 0", borderTop: "1px solid var(--color-line)" }}>
                     <div style={{ fontSize: 13 }}>
-                      <strong>{s.customer ?? "客户"}</strong> · {md(s.date)} {dowZh(s.date)} · {s.share} 人 · 工钱 {money(s.payCents)}
+                      {/* 点客户名开这单的详情（用户 2026-10-02 定）：判"现金还是刷卡"
+                          之前得能看一眼这单到底是什么情况。订单弹窗盖在上面，
+                          关掉就回到这一页。 */}
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: 0, fontSize: 13, fontWeight: 700, textDecoration: "underline" }}
+                        onClick={() => onOpenOrder(s.orderId)}
+                        title="看这单的详情"
+                      >
+                        {s.customer ?? "客户"}
+                      </button>{" "}
+                      · {md(s.date)} {dowZh(s.date)} · {s.share} 人 · 工钱 {money(s.payCents)}
                       {s.balanceDueCents ? <span style={{ color: "var(--color-neutral-600)" }}> · 应收尾款 {money(s.balanceDueCents)}</span> : null}
                       {s.paySettledAt ? <Tag cls="tag-faint">工钱已提前结</Tag> : null}
                     </div>
@@ -804,7 +816,16 @@ export function ChefDialog({
                 return (
                   <div key={s.assignmentId} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto auto", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", opacity: s.settledAt ? 0.45 : 1 }}>
                     <div style={{ minWidth: 0 }}>
-                      <div className="clamp1">{s.customer ?? "客户"}</div>
+                      {/* 场次行的客户名也可点 —— 对账时想看哪单就看哪单 */}
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm clamp1"
+                        style={{ padding: 0, fontSize: 13, textDecoration: "underline", display: "block", textAlign: "left", maxWidth: "100%" }}
+                        onClick={() => onOpenOrder(s.orderId)}
+                        title="看这单的详情"
+                      >
+                        {s.customer ?? "客户"}
+                      </button>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
                         {md(s.date)} {dowZh(s.date)} · {s.team.length > 1 ? `${s.share} / ${s.guests} 人 · 与 ${s.team.filter((t) => t.id !== chefId).map((t) => t.name).join("、")} 平分` : `${s.share} 人`}
                         {s.method ? (
