@@ -5,6 +5,7 @@ import { adminJson } from "./api"
 import { Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
 import { md, money } from "./helpers"
+import { matchChefs } from "@/lib/review-board"
 
 // 好评台账（2026-09-28）——独立模块，以后长成历史看板。
 // 三件事：
@@ -32,18 +33,19 @@ type ReviewRow = {
   last_seen_at: string
 }
 type BonusRow = { id: string; staff_member_id: string; platform: string; review_date: string; cents: number; has_photo: boolean; settlement_id: string | null; review_id: string | null }
-type StaffLite = { id: string; name: string }
+type ClaimRow = { id: string; review_id: string; staff_member_id: string; state: string; source: string; claimed_at: string; decided_at: string | null }
+type StaffLite = { id: string; name: string; aliases?: string[]; boardUrl?: string | null }
 type Resp = {
   ok: boolean
   reviews: ReviewRow[]
   staff: StaffLite[]
   bonuses: BonusRow[]
-  links: { google: string; yelp: string }
+  claims: ClaimRow[]
+  links: { google: string; yelp: string; board: string }
   providers: { google: boolean; yelp: boolean }
 }
 
 const PLATFORM_LABEL: Record<string, string> = { google: "Google", yelp: "Yelp", other: "其它" }
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKey: string; isMobile: boolean; viewerRole: string | null }) {
   const owner = viewerRole === "owner"
@@ -98,12 +100,12 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
   const staffById = useMemo(() => new Map((d?.staff ?? []).map((s) => [s.id, s.name])), [d])
   const bonusById = useMemo(() => new Map((d?.bonuses ?? []).map((b) => [b.id, b])), [d])
 
-  // 提到谁：拿师傅名字在正文里整词匹配（Blu ≠ blue，大小写不论）。
+  // 提到谁：整词匹配师傅的名字和别名。和服务端 auto_name、公开榜单
+  // 用的是同一个函数（lib/review-board），三边不会各判各的。
   const mentionsOf = useCallback(
     (r: ReviewRow): StaffLite[] => {
-      const text = `${r.body ?? ""}`
-      if (!text) return []
-      return (d?.staff ?? []).filter((s) => s.name.length >= 2 && new RegExp(`\\b${escapeRe(s.name)}\\b`, "i").test(text))
+      const hit = new Set(matchChefs(r.body, d?.staff ?? []))
+      return (d?.staff ?? []).filter((s) => hit.has(s.id))
     },
     [d],
   )
@@ -167,6 +169,86 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
     await post(`unlink:${r.id}`, { action: "unlink_chef", review_id: r.id })
   }
   const togglePhoto = (r: ReviewRow) => post(`photo:${r.id}`, { action: "set_photo", review_id: r.id, has_photo: !r.has_photo })
+
+  // ---- 认领（师傅在 /tools/reviews 上点"这条是我的"）----
+  //
+  // 规则是老板定的：没人抢的在公开页就自动通过了，不经过这里。所以能挂到
+  // pending 的只剩一种 —— 两个人以上在抢同一条。那种双方名字在榜单上互相
+  // 亮着，让他们自己谈；谈不拢才轮到老板判。
+  const reviewById = useMemo(() => new Map((d?.reviews ?? []).map((r) => [r.id, r])), [d])
+  const disputes = useMemo(() => {
+    const byReview = new Map<string, ClaimRow[]>()
+    for (const c of d?.claims ?? []) {
+      if (c.state !== "pending" || !reviewById.has(c.review_id)) continue
+      const list = byReview.get(c.review_id)
+      if (list) list.push(c)
+      else byReview.set(c.review_id, [c])
+    }
+    return [...byReview.entries()].sort((a, b) => (reviewById.get(b[0])?.review_date ?? "").localeCompare(reviewById.get(a[0])?.review_date ?? ""))
+  }, [d, reviewById])
+  // 自动归属的最近几条：钱不经过老板的手了，至少让他看得见
+  const autoCredited = useMemo(() => {
+    const cutoff = Date.now() - 14 * 86400000
+    return (d?.claims ?? [])
+      .filter((c) => c.state === "approved" && c.decided_at && Date.parse(c.decided_at) >= cutoff && reviewById.has(c.review_id))
+      .sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at)))
+  }, [d, reviewById])
+
+  const awardTo = async (c: ClaimRow) => {
+    const who = staffById.get(c.staff_member_id) ?? "师傅"
+    if (!(await askConfirm({ title: `判给 ${who}`, message: `这条归 ${who}，同一条上其他人的认领一并作废（他们不能再认领这条）。`, okLabel: "判给他" }))) return
+    await post(`claim:${c.id}`, { action: "approve_claim", claim_id: c.id }, `已判给 ${who}`)
+  }
+  const dropClaim = async (c: ClaimRow) => {
+    const who = staffById.get(c.staff_member_id) ?? "师傅"
+    if (!(await askConfirm({ title: `驳回 ${who}`, message: `${who} 这条不算。如果驳完只剩一个人，那条会自动归剩下那位。`, okLabel: "驳回", danger: true }))) return
+    await post(`claim:${c.id}`, { action: "reject_claim", claim_id: c.id })
+  }
+
+  // ---- 按名字自动归类 ----
+  const autoName = async () => {
+    const dry = await post("auto", { action: "auto_name", dry: true })
+    const hits = (dry?.hits ?? []) as Array<{ chef: string; reviewer: string | null; date: string | null; cents: number }>
+    if (!hits.length) {
+      setMsg("没有能自动归的——剩下的要么没提名字，要么提了不止一个人")
+      return
+    }
+    const cents = hits.reduce((a, h) => a + h.cents, 0)
+    const preview = hits.slice(0, 12).map((h) => `· ${h.chef} ← ${h.reviewer ?? "匿名"}${h.date ? ` (${h.date})` : ""}`).join("\n")
+    if (!(await askConfirm({ title: `自动归类 ${hits.length} 条`, message: `正文里只提到一位师傅的，直接记到他头上，共 ${money(cents)}：\n\n${preview}${hits.length > 12 ? `\n… 还有 ${hits.length - 12} 条` : ""}`, okLabel: "归类" }))) return
+    const r = await post("auto", { action: "auto_name" })
+    if (r) setMsg(`已归 ${r.linked ?? 0} 条 · ${money(Number(r.cents ?? 0))}`)
+  }
+
+  // ---- 师傅的榜单链接 ----
+  const issueLink = async (s: StaffLite) => {
+    if (s.boardUrl && !(await askConfirm({ title: `重发 ${s.name} 的链接`, message: "重发会换一条新链接，他手上那条立刻失效。", okLabel: "重发", danger: true }))) return
+    const r = await post(`link:${s.id}`, { action: "issue_link", staff_member_id: s.id })
+    if (r?.url) {
+      try {
+        await navigator.clipboard.writeText(String(r.url))
+        setMsg(`${s.name} 的链接已复制，发给他`)
+      } catch {
+        setMsg(String(r.url))
+      }
+    }
+  }
+  const revokeLink = async (s: StaffLite) => {
+    if (!(await askConfirm({ title: `收回 ${s.name} 的链接`, message: "他就打不开榜单了，已认领的不受影响。", okLabel: "收回", danger: true }))) return
+    await post(`link:${s.id}`, { action: "revoke_link", staff_member_id: s.id })
+  }
+  const editAliases = async (s: StaffLite) => {
+    const cur = (s.aliases ?? []).join(", ")
+    const ans = await askPrompt({
+      title: `${s.name} 的别名`,
+      message: '客人写别的叫法也要能自动归到他头上。逗号隔开，比如：Mr. Blue, Chef Blu。留空=只认 "' + s.name + '"。',
+      defaultValue: cur,
+      placeholder: "Mr. Blue, Chef Blu",
+      okLabel: "存",
+    })
+    if (ans === null) return
+    await post(`alias:${s.id}`, { action: "set_aliases", staff_member_id: s.id, aliases: ans.split(/[,，]/).map((v) => v.trim()).filter(Boolean) }, "别名已存")
+  }
   const delRow = async (r: ReviewRow) => {
     if (!(await askConfirm({ title: "删掉这条记录", message: "只删台账里的这行（平台上的评价当然还在）。记过奖励的删不了。", okLabel: "删除", danger: true }))) return
     await post(`del:${r.id}`, { action: "delete_row", review_id: r.id })
@@ -224,6 +306,11 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
             Yelp 全部 ↗
           </a>
           {owner ? (
+            <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void autoName()}>
+              按名字自动归类
+            </button>
+          ) : null}
+          {owner ? (
             <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void addManual()}>
               补一条
             </button>
@@ -237,6 +324,114 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
       {!d.providers.google && !d.providers.yelp ? (
         <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
           平台 API 还没接（Google 要 GCP 开 Places API + 计费，Yelp Fusion 免费申请 key）——接上之前"手动刷新"拉不到新评价，由 agent 打开平台页面拉全量导入。重复导入会自动合并，不会多行。
+        </div>
+      ) : null}
+
+      {/* 抢单：两个人以上说同一条是自己的。没人抢的已经在公开页自动归属了，不会到这儿。 */}
+      {owner && disputes.length ? (
+        <div style={{ ...cardStyle, borderColor: "var(--color-accent)" }}>
+          <div className="kicker" style={{ color: "var(--color-accent-700)" }}>
+            抢单待解决 · {disputes.length} 条
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 8px" }}>
+            双方名字在榜单上互相亮着，先让他们自己谈——一方放手，另一方立刻拿到，不用你管。**这些条目结不了算**，一直卡着才轮到你判。
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {disputes.map(([reviewId, rivals]) => {
+              const r = reviewById.get(reviewId)!
+              const named = mentionsOf(r)
+              return (
+                <div key={reviewId} style={{ padding: "8px 0", borderTop: "1px solid var(--color-line)" }}>
+                  <div style={{ fontSize: 12.5 }}>
+                    <strong>{rivals.map((c) => staffById.get(c.staff_member_id) ?? "?").join(" vs ")}</strong>
+                    <span style={{ color: "var(--color-neutral-600)" }}>
+                      {" "}
+                      · {PLATFORM_LABEL[r.platform]} · {r.reviewer ?? "匿名"} · {r.review_date ?? "—"} · {r.has_photo ? "带图 $3" : "无图 $2"}
+                    </span>
+                    {/* 正文点了名的话，这就是最硬的证据 */}
+                    {named.length ? (
+                      <Tag cls="tag-accent" style={{ marginLeft: 6 }}>
+                        正文写的是 {named.map((n) => n.name).join(" / ")}
+                      </Tag>
+                    ) : null}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-700)", margin: "2px 0 6px" }}>{r.body ? (r.body.length > 120 ? `${r.body.slice(0, 120)}…` : r.body) : "（没写字）"}</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    {r.url ? (
+                      <a className="btn btn-ghost btn-sm" href={r.url} target="_blank" rel="noreferrer">
+                        原文 ↗
+                      </a>
+                    ) : null}
+                    {rivals.map((c) => (
+                      <span key={c.id} style={{ display: "inline-flex", gap: 4 }}>
+                        <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void awardTo(c)}>
+                          判给 {staffById.get(c.staff_member_id) ?? "?"}
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void dropClaim(c)} title={`驳回 ${staffById.get(c.staff_member_id) ?? ""}`}>
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* 自动归属的回看：钱不再经你的手，这里是能查的那本账 */}
+      {owner && autoCredited.length ? (
+        <div style={cardStyle}>
+          <div className="kicker">最近自动归属 · 近 14 天 {autoCredited.length} 条</div>
+          <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 8px" }}>没人抢，师傅点了就直接进他账本。觉得哪条不对，在下面列表里「取消关联」——取消之后他不能再认领同一条。</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {autoCredited.slice(0, 20).map((c) => {
+              const r = reviewById.get(c.review_id)!
+              return (
+                <div key={c.id} style={{ fontSize: 12, display: "flex", gap: 6, flexWrap: "wrap", borderTop: "1px solid var(--color-line)", padding: "4px 0" }}>
+                  <strong>{staffById.get(c.staff_member_id) ?? "?"}</strong>
+                  <span style={{ color: "var(--color-neutral-600)" }}>
+                    {r.reviewer ?? "匿名"} · {r.review_date ?? "—"} · {money(r.has_photo ? 300 : 200)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* 师傅的榜单链接 + 名字别名 */}
+      {owner ? (
+        <div style={cardStyle}>
+          <div className="kicker">师傅榜单链接</div>
+          <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 8px" }}>
+            发给师傅，他自己打开看排名、认领没点到名的评价。榜单本身谁拿到链接都能看（不收录搜索引擎），认领只认自己那条。
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(d.staff ?? []).map((s) => (
+              <div key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0", borderTop: "1px solid var(--color-line)", flexWrap: "wrap" }}>
+                <strong style={{ fontSize: 12.5, minWidth: 60 }}>{s.name}</strong>
+                <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)", flex: "1 1 160px", minWidth: 0, wordBreak: "break-all" }}>
+                  {s.boardUrl ? s.boardUrl : "还没发链接"}
+                  {s.aliases?.length ? <span style={{ marginLeft: 8 }}>别名：{s.aliases.join(" / ")}</span> : null}
+                </span>
+                <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void editAliases(s)}>
+                    别名
+                  </button>
+                  {s.boardUrl ? (
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => void revokeLink(s)}>
+                      收回
+                    </button>
+                  ) : null}
+                  <button type="button" className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => void issueLink(s)}>
+                    {s.boardUrl ? "重发" : "发链接"}
+                  </button>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

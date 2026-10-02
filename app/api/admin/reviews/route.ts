@@ -2,7 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS } from "@/lib/chef-pay"
-import { createHash } from "node:crypto"
+import { type ChefLite, soleMatch } from "@/lib/review-board"
+import { creditReview, resolveClaims } from "@/lib/review-claims-server"
+import { createHash, randomBytes } from "node:crypto"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -16,6 +18,10 @@ export const runtime = "nodejs"
 //     unlink_chef  老板：取消关联（奖励没结算才行）
 //     set_photo    老板：改带图标记（记过奖励的不许改——金额录入时已冻结）
 //     delete_row   老板：删一条没关联奖励的原始记录
+//     approve_claim / reject_claim   老板：处理师傅在 /tools/reviews 上的认领
+//     auto_name    老板：正文点到名的一批自动归类（只归"只提到一个人"的）
+//     issue_link / revoke_link       老板：发/收回师傅的榜单链接
+//     set_aliases  老板：改师傅的名字别名（"Mr. Blue" -> Blu）
 // 防重是硬规矩：(platform, external_key) 唯一 => 同一条评价只存一行；
 // 一行最多挂一个 bonus_id => 同一条评价只算一次钱。
 //
@@ -33,6 +39,7 @@ const GOOGLE_PLACE_ID = "ChIJkxNMr8pbkkARqHR_D2YBK6E"
 const GOOGLE_ALL_REVIEWS_URL = `https://search.google.com/local/reviews?placeid=${GOOGLE_PLACE_ID}`
 const YELP_BIZ_ID = "nWEciUJTjQ40_5ZBzy80mA"
 const YELP_ALL_REVIEWS_URL = "https://www.yelp.com/biz/nWEciUJTjQ40_5ZBzy80mA"
+const BOARD_BASE = "https://www.realhibachi.com/tools/reviews"
 
 type Body = Record<string, unknown> & { action?: string }
 const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v)
@@ -41,7 +48,7 @@ const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}
 const ptToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
 const hash10 = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 10)
 const PLATFORMS = new Set(["google", "yelp", "other"])
-const OWNER_ACTIONS = new Set(["import", "link_chef", "unlink_chef", "set_photo", "delete_row"])
+const OWNER_ACTIONS = new Set(["import", "link_chef", "unlink_chef", "set_photo", "delete_row", "approve_claim", "reject_claim", "auto_name", "issue_link", "revoke_link", "set_aliases"])
 
 type ReviewInsert = {
   platform: string
@@ -138,23 +145,33 @@ export async function GET(request: NextRequest) {
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
-  const [{ data: reviews, error: e1 }, { data: staff }, { data: bonuses }] = await Promise.all([
+  const [{ data: reviews, error: e1 }, { data: staff }, { data: bonuses }, { data: claims }] = await Promise.all([
     supabase
       .from("business_reviews")
       .select("id, platform, external_key, reviewer, rating, review_date, body, url, has_photo, photo_count, staff_member_id, bonus_id, source, first_seen_at, last_seen_at")
       .order("review_date", { ascending: false })
       .order("first_seen_at", { ascending: false })
       .limit(500),
-    supabase.from("staff_members").select("id, display_name, full_name, status").eq("status", "active").order("display_name"),
+    supabase.from("staff_members").select("id, display_name, full_name, status, review_token, review_aliases").eq("status", "active").order("display_name"),
     supabase.from("chef_review_bonuses").select("id, staff_member_id, platform, review_date, cents, has_photo, settlement_id, review_id").order("review_date", { ascending: false }).limit(1000),
+    // pending = 还在抢的（要老板裁决）；approved = 自动归属的，给老板一个
+    // 能回看的账 —— 钱现在不经过他的手，至少得看得见。
+    supabase.from("review_claims").select("id, review_id, staff_member_id, state, source, claimed_at, decided_at").in("state", ["pending", "approved"]).order("claimed_at", { ascending: false }).limit(500),
   ])
   if (e1) return NextResponse.json({ error: e1.message }, { status: 500 })
+  type StaffRow = { id: string; display_name: string | null; full_name: string | null; review_token: string | null; review_aliases: string[] | null }
   return NextResponse.json({
     ok: true,
     reviews: reviews ?? [],
-    staff: (staff ?? []).map((s: { id: string; display_name: string | null; full_name: string | null }) => ({ id: s.id, name: String(s.display_name ?? s.full_name ?? "").trim() || "未命名" })),
+    staff: ((staff ?? []) as StaffRow[]).map((s) => ({
+      id: s.id,
+      name: String(s.display_name ?? s.full_name ?? "").trim() || "未命名",
+      aliases: s.review_aliases ?? [],
+      boardUrl: s.review_token ? `${BOARD_BASE}?t=${s.review_token}` : null,
+    })),
     bonuses: bonuses ?? [],
-    links: { google: GOOGLE_ALL_REVIEWS_URL, yelp: YELP_ALL_REVIEWS_URL },
+    claims: claims ?? [],
+    links: { google: GOOGLE_ALL_REVIEWS_URL, yelp: YELP_ALL_REVIEWS_URL, board: BOARD_BASE },
     providers: { google: !!process.env.GOOGLE_PLACES_API_KEY, yelp: !!process.env.YELP_API_KEY },
   })
 }
@@ -273,38 +290,108 @@ export async function POST(request: NextRequest) {
       case "link_chef": {
         // 这条评价记给某师傅（$2/$3 进他的月结账本）。一条只许记一次。
         if (!isUuid(body.review_id) || !isUuid(body.staff_member_id)) return NextResponse.json({ error: "review_id + staff_member_id required" }, { status: 400 })
-        const { data: rev } = await supabase.from("business_reviews").select("id, platform, reviewer, review_date, body, url, has_photo, bonus_id").eq("id", body.review_id).maybeSingle()
-        if (!rev) return NextResponse.json({ error: "not found" }, { status: 404 })
-        if (rev.bonus_id) return NextResponse.json({ error: "这条已经记过奖励了（不能重复计算）" }, { status: 400 })
-        const cents = rev.has_photo ? REVIEW_PHOTO_CENTS : REVIEW_PLAIN_CENTS
-        const { data: bonus, error } = await supabase
-          .from("chef_review_bonuses")
-          .insert({
-            staff_member_id: body.staff_member_id,
-            platform: rev.platform,
-            review_date: rev.review_date ?? ptToday(),
-            reviewer: rev.reviewer,
-            has_photo: rev.has_photo,
-            excerpt: (rev.body ?? "").slice(0, 200) || null,
-            url: rev.url,
-            review_id: rev.id,
-            cents,
-            created_by: actor.alias,
-          })
-          .select("id")
-          .single()
+        const done = await creditReview(supabase, body.review_id, body.staff_member_id, actor.alias)
+        if (!done) return NextResponse.json({ error: "这条已经记过奖励了（不能重复计算）" }, { status: 409 })
+        // 老板直接定了，这条上挂着的认领都作废（他说了算，不许再抢）
+        await supabase
+          .from("review_claims")
+          .update({ state: "rejected", decided_at: new Date().toISOString(), decided_by: actor.alias, note: "老板直接指定了" })
+          .eq("review_id", body.review_id)
+          .in("state", ["pending", "approved"])
+        return NextResponse.json({ ok: true, bonusId: done.bonusId, cents: done.cents })
+      }
+      case "approve_claim": {
+        // 老板裁决一条抢单：判给这个人，同一条上其他人的认领一并驳回。
+        // 正常情况（没人抢）根本走不到这里 —— 那种在 /tools/reviews 上已经自动通过了。
+        if (!isUuid(body.claim_id)) return NextResponse.json({ error: "claim_id required" }, { status: 400 })
+        const { data: claim } = await supabase.from("review_claims").select("id, review_id, staff_member_id, state").eq("id", body.claim_id).maybeSingle()
+        if (!claim) return NextResponse.json({ error: "not found" }, { status: 404 })
+        if (claim.state === "approved") return NextResponse.json({ error: "这条已经是他的了" }, { status: 400 })
+        if (claim.state !== "pending") return NextResponse.json({ error: "这条认领已经处理过了" }, { status: 400 })
+        const now = new Date().toISOString()
+        // 先把其他人的认领驳回，剩下一个人，resolveClaims 自然就判给他
+        await supabase
+          .from("review_claims")
+          .update({ state: "rejected", decided_at: now, decided_by: actor.alias, note: "老板判给了别人" })
+          .eq("review_id", claim.review_id)
+          .eq("state", "pending")
+          .neq("id", claim.id)
+        const state = await resolveClaims(supabase, claim.review_id, actor.alias)
+        if (state !== "credited") return NextResponse.json({ error: state === "frozen" ? "这条已经结算过了，先撤那张对账单" : "判不下去，刷新看看" }, { status: 409 })
+        // resolveClaims 留的痕是"没人抢，自动通过"——这条是老板判的，改回真实原因
+        await supabase.from("review_claims").update({ note: "老板判的" }).eq("id", claim.id)
+        return NextResponse.json({ ok: true, state })
+      }
+      case "reject_claim": {
+        // 驳回一个人的认领。驳完如果只剩一个人，那个人自动拿到。
+        if (!isUuid(body.claim_id)) return NextResponse.json({ error: "claim_id required" }, { status: 400 })
+        const { data: claim } = await supabase.from("review_claims").select("id, review_id, state").eq("id", body.claim_id).maybeSingle()
+        if (!claim) return NextResponse.json({ error: "not found" }, { status: 404 })
+        const { error } = await supabase
+          .from("review_claims")
+          .update({ state: "rejected", decided_at: new Date().toISOString(), decided_by: actor.alias, note: str(body.note, 200) || null })
+          .eq("id", body.claim_id)
+          .in("state", ["pending", "approved"])
         if (error) throw error
-        // 条件占位：并发下两个人同时点，只有一个占得上，另一个的 bonus 回滚。
-        const { data: claimed } = await supabase.from("business_reviews").update({ bonus_id: bonus.id, staff_member_id: body.staff_member_id }).eq("id", rev.id).is("bonus_id", null).select("id")
-        if (!claimed?.length) {
-          await supabase.from("chef_review_bonuses").delete().eq("id", bonus.id)
-          return NextResponse.json({ error: "刚被别人记过了（不能重复计算）" }, { status: 409 })
+        const state = await resolveClaims(supabase, claim.review_id, actor.alias)
+        return NextResponse.json({ ok: true, state })
+      }
+      case "auto_name": {
+        // 正文点到名的一批自动归类。只动"正好提到一个在册师傅"的那些——
+        // 两个人都被提到、或者一个都没提到的，留给人判断。
+        // dry=true 只看会归哪些，不写库（页面先给老板过目）。
+        const dry = body.dry === true
+        const { data: staffRows } = await supabase.from("staff_members").select("id, display_name, full_name, review_aliases").eq("status", "active")
+        const chefs: ChefLite[] = ((staffRows ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; review_aliases: string[] | null }>).map((s) => ({
+          id: s.id,
+          name: String(s.display_name ?? s.full_name ?? "").trim() || "未命名",
+          aliases: s.review_aliases,
+        }))
+        const names = new Map(chefs.map((c) => [c.id, c.name]))
+        const { data: open } = await supabase.from("business_reviews").select("id, reviewer, review_date, body, has_photo").is("bonus_id", null).limit(500)
+        const hits: Array<{ review_id: string; staff_member_id: string; chef: string; reviewer: string | null; date: string | null; cents: number }> = []
+        for (const r of (open ?? []) as Array<{ id: string; reviewer: string | null; review_date: string | null; body: string | null; has_photo: boolean }>) {
+          const only = soleMatch(r.body, chefs)
+          if (!only) continue
+          hits.push({ review_id: r.id, staff_member_id: only, chef: names.get(only) ?? "", reviewer: r.reviewer, date: r.review_date, cents: r.has_photo ? REVIEW_PHOTO_CENTS : REVIEW_PLAIN_CENTS })
         }
-        return NextResponse.json({ ok: true, bonusId: bonus.id, cents })
+        if (dry) return NextResponse.json({ ok: true, dry: true, hits })
+        let linked = 0
+        let cents = 0
+        for (const h of hits) {
+          const done = await creditReview(supabase, h.review_id, h.staff_member_id, actor.alias)
+          if (done) {
+            linked += 1
+            cents += done.cents
+          }
+        }
+        return NextResponse.json({ ok: true, linked, cents, considered: hits.length })
+      }
+      case "issue_link": {
+        // 给师傅发一条个人榜单链接。重发会换新 token（旧链接立刻失效）。
+        if (!isUuid(body.staff_member_id)) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 })
+        const token = randomBytes(18).toString("base64url")
+        const { error } = await supabase.from("staff_members").update({ review_token: token }).eq("id", body.staff_member_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true, url: `${BOARD_BASE}?t=${token}` })
+      }
+      case "revoke_link": {
+        if (!isUuid(body.staff_member_id)) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 })
+        const { error } = await supabase.from("staff_members").update({ review_token: null }).eq("id", body.staff_member_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
+      }
+      case "set_aliases": {
+        // 客人写 "Mr. Blue" 指的是 Blu —— 别名加上，自动归类才认得出来。
+        if (!isUuid(body.staff_member_id)) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 })
+        const list = Array.isArray(body.aliases) ? (body.aliases as unknown[]).map((v) => str(v, 40)).filter((v) => v.length >= 2).slice(0, 12) : []
+        const { error } = await supabase.from("staff_members").update({ review_aliases: list }).eq("id", body.staff_member_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true, aliases: list })
       }
       case "unlink_chef": {
         if (!isUuid(body.review_id)) return NextResponse.json({ error: "review_id required" }, { status: 400 })
-        const { data: rev } = await supabase.from("business_reviews").select("id, bonus_id").eq("id", body.review_id).maybeSingle()
+        const { data: rev } = await supabase.from("business_reviews").select("id, bonus_id, staff_member_id").eq("id", body.review_id).maybeSingle()
         if (!rev?.bonus_id) return NextResponse.json({ error: "这条没有记过奖励" }, { status: 400 })
         const { data: bonus } = await supabase.from("chef_review_bonuses").select("id, settlement_id").eq("id", rev.bonus_id).maybeSingle()
         if (bonus?.settlement_id) return NextResponse.json({ error: "这条奖励已经结算过（在对账单里），先撤销那张对账单" }, { status: 400 })
@@ -313,6 +400,19 @@ export async function POST(request: NextRequest) {
           if (error) throw error
         }
         await supabase.from("business_reviews").update({ bonus_id: null, staff_member_id: null }).eq("id", rev.id)
+        // 老板取消归属 = "这条不是他的"，**只否掉他一个人**，别人该认领还能认领。
+        // 否掉的理由：退回 pending 的话会被"没人抢就自动通过"立刻又判回给他，
+        // 跟老板对着干；否掉之后他也不能再认领这条。
+        if (rev.staff_member_id) {
+          await supabase
+            .from("review_claims")
+            .update({ state: "rejected", decided_at: new Date().toISOString(), decided_by: actor.alias, note: "老板取消了归属" })
+            .eq("review_id", rev.id)
+            .eq("staff_member_id", rev.staff_member_id)
+            .in("state", ["pending", "approved"])
+        }
+        // 还有别人挂着认领的话，这里会自动收敛（只剩一个人就直接判给他）
+        await resolveClaims(supabase, rev.id, actor.alias)
         return NextResponse.json({ ok: true })
       }
       case "set_photo": {
