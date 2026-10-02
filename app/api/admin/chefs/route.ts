@@ -592,9 +592,12 @@ export async function POST(request: NextRequest) {
         // 手续费一律按 4% 计（2026-09-28 用户定）：不查 Stripe 实扣，
         // 和发票上收客人的 Card Processing Fee 用同一个数。gross 就是
         // payments 里记的实刷金额，所以这里连 Stripe API 都不用碰。
+        // 2026-10-01 起刷卡价 = 现金价 × 1.04（发票刷卡价、/pay 专属链接同一
+        // 口径），所以 4% 要从实刷里 ÷1.04 拿掉，不是 ×0.96——后者多扣一点，
+        // 师傅拿到的就比 /pay 上告诉客人的"$X for your chef"少（$1,213.87 少 $1.86）。
         const grossCents = card.amount_cents ?? 0
-        const feeCents = Math.round(grossCents * CARD_FEE_RATE)
-        const netCents = grossCents - feeCents
+        const netCents = Math.round(grossCents / (1 + CARD_FEE_RATE))
+        const feeCents = grossCents - netCents
         return NextResponse.json({
           ok: true,
           found: true,

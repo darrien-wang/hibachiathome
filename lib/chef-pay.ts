@@ -108,5 +108,7 @@ export function reviewBonusCents(plain: number, photo: number): number {
 /**
  * 结算口径的刷卡手续费：一律按 4% 算，不看 Stripe 实扣（2026-09-28 用户定）。
  * 和发票上收客人的 Card Processing Fee 是同一个数——全链条只有一个 4%。
+ * 4% 是加在现金价上的（刷卡价 = 现金 × 1.04），所以从实刷金额里拿掉时用
+ * ÷ (1 + CARD_FEE_RATE)，不是 × (1 − CARD_FEE_RATE)。
  */
 export const CARD_FEE_RATE = 0.04
