@@ -291,7 +291,11 @@ export default function PayClient() {
         <div className="mt-8 flex flex-col gap-3 rounded-[28px] bg-surface p-6">
           <div className="flex items-baseline justify-between">
             <span className="text-[15px] font-bold">Your balance</span>
-            <span className="text-[26px] font-extrabold tabular-nums">{usd(cardBalance)}</span>
+            {/* "(card price)" under the number - owner 10-01; one line doesn't fit a phone. */}
+            <span className="flex flex-col items-end">
+              <span className="text-[26px] font-extrabold leading-tight tabular-nums">{usd(cardBalance)}</span>
+              <span className="text-[12px] text-clay-700">(card price)</span>
+            </span>
           </div>
           {tipIncluded ? (
             <span className="-mt-2 text-[13px] text-clay-700">Includes {usd(tipIncluded)} gratuity for your chef</span>
