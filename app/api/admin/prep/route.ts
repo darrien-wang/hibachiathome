@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     (r) => r.event_start && (byOrders || r.event_start.slice(0, 10) === date) && !/cancel|void|refund/i.test(r.order_status ?? ""),
   )
 
-  // 进门先把办完的派对结掉：占用变消耗，库存自动扣，不用人工划（老板 2026-09-29）。
+  // 进门先把办完/取消的单的占用放掉（不扣库存——老板 2026-10-02：每次备货自己核对）。
   // 放在这里而不是定时任务——定时任务卡死过三天没人发现。
   await settleDueReservations(supabase).catch((e) => console.error("[prep] settle failed", e))
 

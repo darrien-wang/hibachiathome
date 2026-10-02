@@ -1191,10 +1191,11 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             </section>
           ) : null}
 
+          {/* 老板 2026-10-02：默认展开、每次都自己核一遍（库存不再自动扣，全靠对货） */}
           {groups.trusted.length > 0 ? (
-            <details>
+            <details open>
               <summary style={{ cursor: "pointer", fontSize: 13, color: MUTED }}>
-                这 {groups.trusted.length} 项按上次盘的够用，不用去看 · 展开核对
+                这 {groups.trusted.length} 项按上次盘的够用 · 也核一遍
               </summary>
               <div style={{ marginTop: 8 }}>
                 {groups.trusted.map((l) => (

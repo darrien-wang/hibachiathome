@@ -1,12 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
-import { VEGE_MIX } from "@/lib/prep-bom"
 
 // 占用：算过缺口的单，它那份料就被占住，别的单看到的可用量要扣掉（老板 2026-09-29）。
 //
 // 三个动作：
 //   reserve()   算缺口的时候把这几单的用量占住（幂等，重算就覆盖）
-//   settle()    派对那天过去了 → 占用变成消耗，库存自动扣掉，不用人工划
+//   settle()    派对那天过去了（或订单取消了）→ 占用放掉。**不扣库存**：老板 2026-10-02 定，
+//               库存每次备货自己重新核对（"不用自动扣库存了，每次都重新自己核对"）——
+//               自动扣只扣在备货页算过的单，漏算的单会让库存虚高（9/26 两场菲力就是这样挂了 5 盒）。
 //   committed() 别的单还占着多少，算可用量用
 //
 // 为什么懒执行而不是定时任务：定时任务卡死过三天没人发现（2026-09-27），而这件事
@@ -22,15 +23,13 @@ function todayPT(now = new Date()): string {
 }
 
 /**
- * 把过期的占用结掉：派对那天过去了就扣库存，订单取消了就直接释放。
- *
- * 扣到 0 为止不记负数——师傅多拿少拿是正常波动，负库存只会误导（和 consume 那条
- * 一个口径）。
+ * 把过期的占用放掉：派对那天过去了、或者订单取消/删了，这单就不再占着料。
+ * 不碰库存——库存靠每次备货时对货（老板 2026-10-02）。
  */
-export async function settleDueReservations(supabase: SupabaseClient, now = new Date()): Promise<{ consumed: number; released: number }> {
+export async function settleDueReservations(supabase: SupabaseClient, now = new Date()): Promise<{ released: number }> {
   const { data: open } = await supabase.from("prep_reservations").select("order_id, item_key, qty, unit").is("settled_at", null)
   const rows = (open ?? []) as Row[]
-  if (rows.length === 0) return { consumed: 0, released: 0 }
+  if (rows.length === 0) return { released: 0 }
 
   const orderIds = Array.from(new Set(rows.map((r) => r.order_id)))
   const { data: orders } = await supabase.from("orders").select("id, event_start, order_status").in("id", orderIds)
@@ -40,75 +39,32 @@ export async function settleDueReservations(supabase: SupabaseClient, now = new 
   }
 
   const today = todayPT(now)
-  const stamp = now.toISOString()
-  let consumed = 0
-  let released = 0
-
-  for (const r of rows) {
-    const o = byId.get(r.order_id)
-    // 订单没了（删了）或者取消了 → 释放，不扣库存。
-    const gone = !o || /cancel|void|refund/i.test(o.order_status ?? "")
-    // event_start 存的是墙上时间（按 UTC 写入），所以"哪一天"直接取 ISO 日期位。
-    const day = (o?.event_start ?? "").slice(0, 10)
-    const done = !!day && day < today
-
-    if (!gone && !done) continue
-
-    if (gone) {
-      await supabase
-        .from("prep_reservations")
-        .update({ settled_at: stamp, settled_kind: "released" })
-        .eq("order_id", r.order_id)
-        .eq("item_key", r.item_key)
-        .is("settled_at", null)
-      released++
-      continue
-    }
-
-    // 先标已结算再扣库存：两个人同时打开页面时，唯一键 + settled_at is null 的条件
-    // 让只有一个人扣得动，不会扣两次。
-    const { data: claimed } = await supabase
-      .from("prep_reservations")
-      .update({ settled_at: stamp, settled_kind: "consumed" })
-      .eq("order_id", r.order_id)
-      .eq("item_key", r.item_key)
-      .is("settled_at", null)
-      .select("order_id")
-    if (!claimed || claimed.length === 0) continue
-
-    if (r.item_key === "mixed_vege") {
-      // 蔬菜的占用记在合计上，库存是四样分开记的：按厨师备料单的配比从四样里扣
-      for (const v of VEGE_MIX) {
-        const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", v.id).maybeSingle()
-        if (!cur) continue
-        const next = Math.max(0, Math.round(((Number(cur.qty) || 0) - Number(r.qty) * v.ratio) * 100) / 100)
-        await supabase.from("pantry_stock").update({ qty: next, updated_at: stamp, updated_by: "auto" }).eq("item_key", v.id)
-      }
-    } else {
-      const { data: cur } = await supabase.from("pantry_stock").select("qty").eq("item_key", r.item_key).maybeSingle()
-      const next = Math.max(0, Math.round(((Number(cur?.qty) || 0) - Number(r.qty)) * 100) / 100)
-      if (cur) {
-        await supabase.from("pantry_stock").update({ qty: next, updated_at: stamp, updated_by: "auto" }).eq("item_key", r.item_key)
-      }
-    }
-    await supabase.from("stock_moves").insert({
-      item_key: r.item_key,
-      delta: -Number(r.qty),
-      unit: r.unit || "",
-      reason: "consume",
-      ref: `reserve:${r.order_id}:${r.item_key}`,
-      note: "派对办完，占用自动结转",
-      created_by: "auto",
-    })
-    consumed++
-  }
-
-  return { consumed, released }
+  const due = Array.from(
+    new Set(
+      rows
+        .filter((r) => {
+          const o = byId.get(r.order_id)
+          // 订单没了（删了）或者取消了；或者派对那天过去了（event_start 是墙上时间，直接取日期位）
+          const gone = !o || /cancel|void|refund/i.test(o.order_status ?? "")
+          const day = (o?.event_start ?? "").slice(0, 10)
+          return gone || (!!day && day < today)
+        })
+        .map((r) => r.order_id),
+    ),
+  )
+  if (due.length === 0) return { released: 0 }
+  const { data } = await supabase
+    .from("prep_reservations")
+    .update({ settled_at: now.toISOString(), settled_kind: "released" })
+    .in("order_id", due)
+    .is("settled_at", null)
+    .select("order_id")
+  return { released: (data ?? []).length }
 }
 
 // ---- 蔬菜：清单和对货只有一行"蔬菜合计"（西葫芦/西兰花/洋葱/胡萝卜随意配），
 // 库存却是四样分开记的（收据按样入库）。四样分开的数是唯一的账：
-//   读 = 四样之和；对货写一个总数 = 按比例改四样；派对办完扣 = 按比例扣四样。
+//   读 = 四样之和；对货写一个总数 = 按比例改四样。
 // 原来对货写进一个单独的 mixed_vege 行，读的时候又被四样之和盖掉——老板点"没了"不生效，
 // 蔬菜永远显示够（2026-09-30 老板："为什么备货不展示蔬菜要买多少"）。
 

@@ -66,7 +66,7 @@ const PROTEIN_LABELS: Record<string, string> = {
 const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
 const SALAD = { adult: 1, child: 0.5 } // 份
 // 蔬菜（2026-09-22 用户定）：总量每人 4–5oz 左右。厨师备料单按 4oz 做菜；
-// 备货、占用、办完自动扣一律按 5oz 算（老板 2026-09-30："按 5 oz 算吧"）——宁多勿少。
+// 备货、占用一律按 5oz 算（老板 2026-09-30："按 5 oz 算吧"）——宁多勿少。
 // 四样怎么分见下面的 VEGE_MIX。
 const VEGE_OZ = { adult: 5, child: 2.5 }
 const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料单一致）
