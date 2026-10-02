@@ -165,6 +165,11 @@ function DepositPaymentPageInner() {
   // Negotiated total, signed by staff; the server re-verifies it.
   const agreedTotalParam = searchParams.get("agreed_total")?.trim() || ""
   const agreedSigParam = searchParams.get("agreed_sig")?.trim() || ""
+  // Staff-signed deal rules (free tables, per-head rate, flat off); the server
+  // re-verifies the signature. Without these two the deal never reached
+  // checkout from this page (Gregorio RH-20261002-3569, 2026-10-01).
+  const dealParam = searchParams.get("deal")?.trim() || ""
+  const dealSigParam = searchParams.get("deal_sig")?.trim() || ""
   const eventDateParam = searchParams.get("event_date") || ""
   const eventTimeParam = searchParams.get("event_time") || ""
   const locationParam = searchParams.get("location") || ""
@@ -520,6 +525,8 @@ function DepositPaymentPageInner() {
           another: anotherParam || undefined,
           agreedTotal: agreedTotalParam || undefined,
           agreedSig: agreedSigParam || undefined,
+          deal: dealParam || undefined,
+          dealSig: dealSigParam || undefined,
           source: source || "deposit_pay",
           customerName: booking.full_name,
           customerEmail: booking.email,
