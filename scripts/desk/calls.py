@@ -102,7 +102,12 @@ def transcribe(recording_sid: str, model_name: str = "small", swap: bool = False
     else:
         from faster_whisper import WhisperModel  # local import: slow, only when needed
 
-        model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        # Models live on D: (owner 2026-10-02): C: is the small drive and the
+        # 09-28 cleanup wiped the old Hugging Face cache there.
+        import os
+
+        model_dir = os.environ.get("DESK_WHISPER_DIR", r"D:\models\huggingface")
+        model = WhisperModel(model_name, device="cpu", compute_type="int8", download_root=model_dir)
         segs = []
         for who, wav in split_channels(download(recording_sid)):
             result, _info = model.transcribe(str(wav), language="en", beam_size=5, vad_filter=True,
