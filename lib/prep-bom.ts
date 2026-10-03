@@ -85,7 +85,7 @@ const MISC_PER_PERSON = [
   { id: "fried_rice_seasoning", label: "炒饭料（冻青豆胡萝卜）", amount: 0.8, unit: "tbsp" }, // 2026-09-24 用户定：12oz 包 ≈ 30 人，正本已同步
 ]
 const MISC_PER_GROUP = [
-  { id: "lime", label: "Lime 青柠", perNGuests: 10, unit: "pcs" }, // 2026-09-24 用户定：改按场算（下方特判），每场 1 个配海鲜；perNGuests 已不用
+  { id: "lime", label: "Lime 青柠", perNGuests: 10, unit: "pcs" }, // 只配海鲜，每 10 人半个（下方特判，2026-10-03 用户定；正本 pricing.ts 同步）
   { id: "eggs", label: "Eggs 鸡蛋（炒饭）", perNGuests: 1, unit: "个" }, // 2026-09-22 用户定：每人 1 个，只许多不许少（正本 pricing.ts 已同步）
 ]
 const GUESTS_PER_TABLE = 4
@@ -233,13 +233,13 @@ export function orderPrep(
       group: "produce",
     })
   }
-  // 青柠按场算（2026-09-24 用户定）：一场 1 个配海鲜，没海鲜不带；
-  // 菜单未定的场按有算（宁多勿少，一个青柠而已）。
+  // 青柠只配海鲜，没海鲜不带；有海鲜每 10 人半个，按半个往上取（2026-10-03 用户定，原来每场 1 个）。
+  // 菜单未定的场按有算（宁多勿少，几个青柠而已）。
   const LIME_SEAFOOD = new Set(["shrimp", "salmon", "scallops", "lobster_tail"])
   for (const grp of MISC_PER_GROUP) {
     if (grp.id === "lime") {
       const hasSeafood = items.some((i) => i.group === "protein" && LIME_SEAFOOD.has(i.id))
-      if (hasSeafood || !menuKnown) items.push({ id: "lime", label: grp.label, qty: 1, unit: grp.unit, group: "produce" })
+      if (total > 0 && (hasSeafood || !menuKnown)) items.push({ id: "lime", label: grp.label, qty: Math.ceil(total / 10) * 0.5, unit: grp.unit, group: "produce" })
       continue
     }
     const qty = Math.ceil(total / grp.perNGuests)
@@ -365,7 +365,7 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   carrots: { per: 12, noun: "袋", desc: "12oz 袋" },
   eggs: { per: 1, noun: "个", desc: "combo 2 盒一提 = 36 个", big: { noun: "提", count: 36 } },
   salad: { per: 48, noun: "袋", desc: "RD 3lb 袋 = 48 份" },
-  lime: { per: 1, noun: "个", desc: "每场 1 个，配海鲜" },
+  lime: { per: 1, noun: "个", desc: "配海鲜，每 10 人半个" },
   // 冻品 · 前菜 · 面
   gyoza: { per: 1, noun: "个", desc: "46.5oz 袋 ≈ 40 个", big: { noun: "袋", count: 40 } },
   spring_rolls: { per: 1, noun: "个", desc: "24.5oz 盒 ≈ 8 个", big: { noun: "盒", count: 8 } },
