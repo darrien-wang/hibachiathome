@@ -29,6 +29,15 @@ const FREE_EXTRA_IDS = [
   "extra_egg",
   "tables_chairs",
   "utensils",
+  // 整桌蛋白加单（2026-10-03 起 planner 可点）——老板签特价时也能送
+  "side_chicken",
+  "side_steak",
+  "side_shrimp",
+  "side_salmon",
+  "side_tofu",
+  "side_scallops",
+  "side_filet_mignon",
+  "side_lobster_tail",
 ] as const
 
 function secret(): string | null {

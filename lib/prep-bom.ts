@@ -206,6 +206,16 @@ export function orderPrep(
       servK[it.itemId] = (servK[it.itemId] ?? 0) + (it.childQty ?? 0)
     }
   }
+  // 整桌蛋白加单（planner 的 "Protein sides"，partyExtras 里 id = side_<蛋白>）：
+  // 一份 = 一个成人份量，两种模式都并进来。镜像发票仓库 calcBom 的同名规则
+  //（v0-real-hibachi-invoice-generator lib/pricing.ts sideProteinIdOf，同天改）。
+  for (const e of Array.isArray(data.partyExtras) ? data.partyExtras : []) {
+    if (typeof e.id !== "string" || !e.id.startsWith("side_")) continue
+    const pid = e.id.slice(5)
+    const qty = typeof e.qty === "number" ? e.qty : 0
+    if (!PROTEIN_PORTIONS[pid] || qty <= 0) continue
+    servA[pid] = (servA[pid] ?? 0) + qty
+  }
   const proteinServings: OrderPrep["proteinServings"] = []
   for (const pid of new Set([...Object.keys(servA), ...Object.keys(servK)])) {
     const portion = PROTEIN_PORTIONS[pid]
