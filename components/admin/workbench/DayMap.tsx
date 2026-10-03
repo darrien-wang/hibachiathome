@@ -195,6 +195,62 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
       .map(([id, v]) => `${chefName.get(id) ?? "?"} 排在了师傅 ${v.join("、")} 两条线上`)
   })()
 
+  // ---- 批量发 prep sheet（老板 2026-10-02："发送短信给师傅，能够勾选，批量发送"——"就是发 prep sheet"）
+  // 按每单现在派给了谁分组（排班的线只是建议，发给谁以指派为准）。每单一条短信：走
+  // /api/admin/chefs 的 send_sheet，发票工具从 213 线发备料单链接，和订单弹窗里发的是同一个。
+  const [sendOpen, setSendOpen] = useState(false)
+  const [sendOff, setSendOff] = useState<Set<string>>(() => new Set())
+  const [sendNote, setSendNote] = useState("")
+  const [sendState, setSendState] = useState<Record<string, string>>({})
+  const [sending, setSending] = useState(false)
+  const sendGroups = useMemo(() => {
+    const stops = d?.stops ?? []
+    const by = new Map<string, Stop[]>()
+    for (const s of stops) for (const cid of s.chefIds) by.set(cid, [...(by.get(cid) ?? []), s])
+    return Array.from(by.entries())
+      .map(([chefId, list]) => ({ chefId, name: chefName.get(chefId) ?? "已停用的师傅", stops: list, first: stops.indexOf(list[0]) }))
+      .sort((a, b) => a.first - b.first)
+  }, [d, chefName])
+  const unassigned = (d?.stops ?? []).filter((s) => s.chefIds.length === 0)
+  const picked = sendGroups.filter((g) => !sendOff.has(g.chefId))
+  const msgCount = picked.reduce((n, g) => n + g.stops.length, 0)
+  // "83145 N. Shore Dr, Indio, CA 92203" → "Indio"（末尾可能还带 USA）
+  const cityOf = (a: string) => {
+    const p = a.split(",").map((x) => x.trim()).filter(Boolean)
+    if (p.length >= 2 && /^(USA|US|United States)$/i.test(p[p.length - 1])) p.pop()
+    if (p.length >= 2 && /^[A-Z]{2}\b/.test(p[p.length - 1])) return p[p.length - 2]
+    return p[p.length - 1] ?? a
+  }
+  const sendSheets = async () => {
+    if (sending || !picked.length) return
+    const ok = await askConfirm({
+      title: "发 prep sheet",
+      message: [
+        ...picked.map((g) => `${g.name}：${g.stops.map((s) => `${s.time} ${s.name}`).join("、")}`),
+        "",
+        `一共 ${msgCount} 条短信，从 213 线发出${sendNote.trim() ? `，附言："${sendNote.trim()}"` : ""}。`,
+      ].join("\n"),
+      okLabel: "发送",
+    })
+    if (!ok) return
+    setSending(true)
+    for (const g of picked) {
+      for (const s of g.stops) {
+        const key = `${s.id}|${g.chefId}`
+        setSendState((p) => ({ ...p, [key]: "sending" }))
+        try {
+          const r = await adminJson<{ ok: boolean; resent?: boolean; sms?: { delivered?: boolean; error?: string } }>(adminKey, "/api/admin/chefs", {
+            body: { action: "send_sheet", order_id: s.id, staff_member_id: g.chefId, note: sendNote.trim() || undefined },
+          })
+          setSendState((p) => ({ ...p, [key]: r.sms && r.sms.delivered === false ? `链接生成了，短信没发出去：${r.sms.error ?? "原因不明"}` : "ok" }))
+        } catch (e) {
+          setSendState((p) => ({ ...p, [key]: e instanceof Error ? e.message : "没发出去" }))
+        }
+      }
+    }
+    setSending(false)
+  }
+
   return (
     <Dialog onClose={onClose} width={720}>
       <DialogHead
@@ -337,6 +393,71 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
               </div>
               )
             })}
+
+            <div style={{ marginTop: 14, border: "2px solid var(--color-text)", padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>发 prep sheet 给师傅</div>
+                {!sendOpen ? (
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!sendGroups.length} onClick={() => setSendOpen(true)}>
+                    选师傅发送
+                  </button>
+                ) : null}
+              </div>
+              {!sendGroups.length ? (
+                <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>这天还没给师傅指派单子——先在上面每条线右边选师傅。</div>
+              ) : null}
+              {sendOpen ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                  {sendGroups.map((g) => (
+                    <label key={g.chefId} style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 14 }}>
+                      <input
+                        type="checkbox"
+                        style={{ marginTop: 3 }}
+                        checked={!sendOff.has(g.chefId)}
+                        disabled={sending}
+                        onChange={() =>
+                          setSendOff((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(g.chefId)) next.delete(g.chefId)
+                            else next.add(g.chefId)
+                            return next
+                          })
+                        }
+                      />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <b>{g.name}</b>
+                        {g.stops.map((s) => {
+                          const st = sendState[`${s.id}|${g.chefId}`]
+                          return (
+                            <span key={s.id} style={{ display: "block", fontSize: 13, color: "var(--color-neutral-700)" }}>
+                              {s.time} {s.name} · {cityOf(s.address)} · {s.guests} 人
+                              {st === "sending" ? <span style={{ color: "var(--color-neutral-600)" }}> · 发送中…</span> : null}
+                              {st === "ok" ? <span style={{ color: "#16a34a", fontWeight: 700 }}> · 已发</span> : null}
+                              {st && st !== "sending" && st !== "ok" ? <span style={{ color: "var(--color-accent-700)" }}> · {st}</span> : null}
+                            </span>
+                          )
+                        })}
+                      </span>
+                    </label>
+                  ))}
+                  {unassigned.length ? (
+                    <div style={{ fontSize: 12.5, color: "var(--color-accent-700)" }}>
+                      还没派师傅、发不了：{unassigned.map((s) => `${s.time} ${s.name}`).join("、")}
+                    </div>
+                  ) : null}
+                  <input className="input" placeholder="附言（可选，会写进短信，英文最好）" value={sendNote} maxLength={200} disabled={sending} onChange={(e) => setSendNote(e.target.value)} />
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button type="button" className="btn btn-primary btn-sm" disabled={sending || !msgCount} onClick={() => void sendSheets()}>
+                      {sending ? "发送中…" : `发送 ${msgCount} 条`}
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={sending} onClick={() => setSendOpen(false)}>
+                      收起
+                    </button>
+                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>每单一条，带这单的备料单链接；同一单重发会用同一个链接</span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
             <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 12, lineHeight: 1.7 }}>
               算法：第一台准时开 → 开场到装车出发 {d.params.busyMin}–{d.params.busyMax} 分 → 路上 → 下一场提前 {d.params.arriveEarly} 分到。迟到 {d.params.lateOk} 分内算还能接受，{d.params.lateLimit} 分是极限。（设置 → 派工 里能改）
