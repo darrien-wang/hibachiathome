@@ -15,6 +15,11 @@
 // dialogs import the types and defaults into the browser bundle.
 
 import { phone as sitePhone, siteConfig } from "@/config/site"
+import { PARTY_SIZE_DISCOUNT_TIERS } from "@/config/pricing-rules"
+
+// Built from the tier table: written out by hand, the 优惠说明 text still
+// stopped at 25-30 after the ladder was extended to 60 (2026-10-03).
+const PARTY_SIZE_TEXT = PARTY_SIZE_DISCOUNT_TIERS.map((t, i) => `$${t.amount} off for ${t.minGuests}-${t.maxGuests}${i === 0 ? " adults" : ""}`).join(", ")
 
 export type QuickReply = { id: string; label: string; body: string }
 
@@ -213,7 +218,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     {
       id: "discounts",
       label: "优惠说明",
-      body: "Party-size discount: $30 off for 10-14 adults, $60 off for 15-24, $90 off for 25-30. Mon-Thu parties also get a free appetizer of your choice (gyoza, edamame or spring rolls).",
+      body: `Party-size discount: ${PARTY_SIZE_TEXT}. Mon-Thu parties also get a free appetizer of your choice (gyoza, edamame or spring rolls).`,
     },
   ],
   calendar: {
