@@ -121,7 +121,7 @@ function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings): { subj
     }
   if (t === "balance")
     return {
-      subject: `You're confirmed - ${md(eventParts(o.event_start)?.ymd ?? "")} hibachi party (${o.order_no ?? ""})`,
+      subject: `You're confirmed - ${eventParts(o.event_start) ? `${md(eventParts(o.event_start)!.ymd)} ` : ""}hibachi party (${o.order_no ?? ""})`,
       body: `${hi}\n\n${line}\n\n${bal > 0 ? `Your remaining balance is ${money(bal)}, due on the day of the party - cash, Zelle, Venmo or card all work (card adds 4%).` : "Your balance is settled - nothing more to pay."}\n\nYour chef will be confirmed by name before the party and arrives about 10 minutes before start time with the grill and fresh ingredients. See you soon!${sign}`,
     }
   return {
@@ -250,6 +250,9 @@ export function OrderDialog({
   // 这个 useState 必须待在下面那个 `if (!o) return` 之前：订单列表还没加载完就
   // 用链接直接打开抽屉时，两次渲染的 hook 数量会对不上，整页白屏。
   const [selfPayCopied, setSelfPayCopied] = useState(false)
+  // 日期待定的单定日期用（同样要在 `if (!o) return` 之前）。
+  const [holdDate, setHoldDate] = useState("")
+  const [holdTime, setHoldTime] = useState("")
   const now = Date.now()
 
   if (!o) {
@@ -262,6 +265,9 @@ export function OrderDialog({
   }
 
   const ev = eventParts(o.event_start)
+  // 日期待定（2026-10-04）：付了押金、日期没定，日期被拿掉了，原来的日期在 date_hold。
+  const hold = !ev && o.order_status !== "cancelled" ? (((o.source_metadata ?? {}) as Record<string, unknown>).date_hold as { previous_start?: string; note?: string } | undefined) ?? null : null
+  const heldEv = hold?.previous_start ? eventParts(hold.previous_start) : null
   const stage = stageOf(o, now)
   const pstate = plannerState(o, detail?.events ?? null)
   const first = firstName(o.customer_name)
@@ -293,6 +299,29 @@ export function OrderDialog({
       setBusy(null)
     }
   }
+
+  // 改成日期待定：订单、押金都留着，日期拿掉（日历、日地图、备货、档期都按日期取单）。
+  const putOnHold = async () => {
+    if (!ev || busy) return
+    const ok = await askConfirm({
+      title: "改成日期待定",
+      message: `${first || "客人"}付了押金，但日期还没定。\n\n这单会从日历、日地图、备货和档期里拿掉，订单和押金都留着；原定 ${md(ev.ymd)} ${ev.hm} 记下来，发票上的日期也先清掉。客人定了日期，回到这里填。${assignments.length ? `\n\n已派的师傅（${assignments.map((a) => a.name).join("、")}）不会自动撤下，记得跟他说一声。` : ""}`,
+      okLabel: "改成日期待定",
+    })
+    if (!ok) return
+    await call("hold", async () => {
+      await adminJson(adminKey, "/api/admin/orders/date-hold", { body: { orderId: o.id, action: "hold" } })
+      await Promise.all([load(), onChanged()])
+    })
+  }
+  const setHeldDate = () =>
+    call("hold", async () => {
+      if (!holdDate) throw new Error("先选日期")
+      await adminJson(adminKey, "/api/admin/orders/date-hold", { body: { orderId: o.id, action: "set_date", date: holdDate, time: holdTime } })
+      setHoldDate("")
+      setHoldTime("")
+      await Promise.all([load(), onChanged()])
+    })
 
   // 「这条不回了」：把水位线推到现在，手机和巡检都不再提醒这一刻之前的消息。
   // 唯一实现在 /api/admin/leads（lib/lead-hold.ts 读它），这里只是第二个入口。
@@ -364,7 +393,7 @@ export function OrderDialog({
       setPayUrl(d.url)
       const to = payPhone.trim()
       const total = Number(d.total ?? amount)
-      const body = `${settings.business.brand}: here's the card link for your ${ev ? md(ev.ymd) : ""} party balance, $${total.toFixed(2)}: ${d.url}`
+      const body = `${settings.business.brand}: here's the card link for your ${ev ? `${md(ev.ymd)} ` : ""}party balance, $${total.toFixed(2)}: ${d.url}`
       if (to && (await askConfirm({ title: "发付款链接", message: `发到 ${prettyPhone(to)}？\n\n${body}`, okLabel: "发送" }))) {
         await sendSms(to, body)
         await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to, subject: `pay link $${total.toFixed(2)} via SMS`, operator: operatorName() } }).catch(() => null)
@@ -440,7 +469,7 @@ export function OrderDialog({
   return (
     <Dialog onClose={onClose} width={960}>
       <DialogHead
-        title={ev ? `${md(ev.ymd)} ${dowZh(ev.ymd)} ${ev.hm}` : "日期未定"}
+        title={ev ? `${md(ev.ymd)} ${dowZh(ev.ymd)} ${ev.hm}` : hold ? "日期待定" : "日期未定"}
         tags={
           <>
             <Tag cls={STAGE_TAG_CLASS[stage]}>{stage}</Tag>
@@ -461,6 +490,23 @@ export function OrderDialog({
           <>
             {o.event_address ?? "地址未填"} · 大人 {o.guest_adult_count ?? 0} / 小孩 {o.guest_child_count ?? 0}
           </>,
+          ...(hold
+            ? [
+                <span key="date-hold" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
+                  <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
+                    日期待定{heldEv ? ` · 原定 ${md(heldEv.ymd)} ${heldEv.hm}` : ""}
+                    {(o.deposit_paid_total_cents ?? 0) > 0 ? ` · 押金已付 ${money(o.deposit_paid_total_cents)}` : ""}
+                    {hold.note ? ` · ${hold.note}` : ""}
+                  </span>
+                  <input type="date" className="input" value={holdDate} onChange={(e) => setHoldDate(e.target.value)} style={{ width: 150, minHeight: 30, padding: "2px 8px" }} aria-label="新日期" />
+                  <input type="time" className="input" value={holdTime} onChange={(e) => setHoldTime(e.target.value)} style={{ width: 110, minHeight: 30, padding: "2px 8px" }} aria-label="开场时间（可空）" />
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!!busy || !holdDate} onClick={() => void setHeldDate()}>
+                    {busy === "hold" ? "保存中…" : "定日期"}
+                  </button>
+                  <span style={{ color: "var(--color-neutral-600)" }}>时间可以先空着</span>
+                </span>,
+              ]
+            : []),
           ...(addrHint
             ? [
                 <span key="addr-hint" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
@@ -659,7 +705,7 @@ export function OrderDialog({
                 <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void requestAction(mergedReq.all, "complete")}>
                   已更新 · 通知师傅
                 </button>
-                <button type="button" className="btn btn-secondary btn-left" onClick={() => toSms(`${settings.business.brand}: got your update for the ${ev ? md(ev.ymd) : ""} party - I've updated the invoice, you'll get the new copy by email. Anything else, just text here.`)}>
+                <button type="button" className="btn btn-secondary btn-left" onClick={() => toSms(`${settings.business.brand}: got your update for the ${ev ? `${md(ev.ymd)} ` : ""}party - I've updated the invoice, you'll get the new copy by email. Anything else, just text here.`)}>
                   发短信确认新金额
                 </button>
               </div>
@@ -740,6 +786,11 @@ export function OrderDialog({
             <button type="button" className="btn btn-secondary btn-left" onClick={openInvoiceTool}>
               改日期 / 人数 / 菜单（专业表单）
             </button>
+            {ev && o.order_status !== "cancelled" ? (
+              <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void putOnHold()} title="付了押金、日期还没定：从日历上拿掉，订单和押金留着">
+                {busy === "hold" ? "处理中…" : "日期待定（hold）"}
+              </button>
+            ) : null}
             <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => toSms(`Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`))}>
               {busy === "planner" ? "生成中…" : "给客人发 Planner 链接"}
             </button>
@@ -748,7 +799,7 @@ export function OrderDialog({
               className="btn btn-secondary btn-left"
               onClick={() =>
                 toSms(
-                  `${settings.business.brand}: quick 30-second check for your ${ev ? md(ev.ymd) : ""} party - date, address, guest count and menu all on one page. Tap confirm if it's exactly right: https://www.realhibachi.com/confirm?o=${o.id}`,
+                  `${settings.business.brand}: quick 30-second check for your ${ev ? `${md(ev.ymd)} ` : ""}party - date, address, guest count and menu all on one page. Tap confirm if it's exactly right: https://www.realhibachi.com/confirm?o=${o.id}`,
                 )
               }
             >

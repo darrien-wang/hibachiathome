@@ -128,7 +128,8 @@ export type CrmBalancePaidEventEnvelope = {
     customer_name: string
     customer_phone?: string
     customer_email?: string
-    event_start: string
+    /** Absent when the order's date is on hold (日期待定); the invoice app then leaves it alone. */
+    event_start?: string
     event_timezone: "America/Los_Angeles"
     event_address?: string
   }
@@ -744,7 +745,10 @@ export function buildBalancePaidEventEnvelope(params: {
         customer_name: asString(params.order.customer_name) ?? "Customer",
         customer_phone: asPhoneString(params.order.customer_phone),
         customer_email: asString(params.order.customer_email),
-        event_start: asString(params.order.event_start) ?? paidAt,
+        // No date on the order means 日期待定 (date on hold): leave it out so the
+        // invoice app's update keeps it empty. Falling back to paidAt used to date
+        // the party at the moment the customer paid (2026-10-04).
+        event_start: asString(params.order.event_start),
         event_timezone: "America/Los_Angeles",
         event_address: asString(params.order.event_address),
       },

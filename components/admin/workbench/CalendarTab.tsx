@@ -48,6 +48,24 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
     return map
   }, [orders, now, settings.evening_from_hour])
 
+  // 日期待定（2026-10-04）：付了押金、日期没定的单不在任何一天里，单独列在上面，免得忘了。
+  const held = useMemo(
+    () =>
+      orders
+        .filter((o) => o.order_status !== "cancelled" && !o.event_start)
+        .map((o) => {
+          const was = eventParts((((o.source_metadata ?? {}) as Record<string, unknown>).date_hold as { previous_start?: string } | undefined)?.previous_start)
+          return {
+            id: o.id,
+            name: firstName(o.customer_name) || o.customer_name || o.customer_phone || "客户",
+            guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0),
+            was: was ? `${md(was.ymd)} ${was.hm}` : "",
+            deposit: (o.deposit_paid_total_cents ?? 0) > 0,
+          }
+        }),
+    [orders],
+  )
+
   const cur = parseYmd(cursor)
   const y = cur.getUTCFullYear()
   const m = cur.getUTCMonth()
@@ -108,6 +126,17 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
           </Chip>
         </div>
       </div>
+
+      {held.length > 0 ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 10px", border: "2px dashed var(--color-divider)" }}>
+          <span className="kicker" style={{ color: "var(--color-accent-700)" }}>日期待定 · {held.length} 单</span>
+          {held.map((h) => (
+            <button key={h.id} type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenOrder(h.id)} title="付了押金、日期还没定。点开订单填日期">
+              {h.name} · {h.guests}人{h.was ? ` · 原定 ${h.was}` : ""}{h.deposit ? " · 押金已付" : ""}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {view === "month" ? (
         <>

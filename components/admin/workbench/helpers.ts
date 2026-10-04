@@ -333,11 +333,15 @@ export function weekSundayOf(ymd: string): string {
 export function monthStartOf(ymd: string): string {
   return `${ymd.slice(0, 8)}01`
 }
+// 日期待定的单（2026-10-04）没有日期：给空串，别冒出 "NaN/NaN" 和 "周undefined"。
+const isYmd = (ymd: string) => /^\d{4}-\d{2}-\d{2}/.test(ymd ?? "")
 export function md(ymd: string): string {
+  if (!isYmd(ymd)) return ""
   const d = parseYmd(ymd)
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`
 }
 export function dowZh(ymd: string): string {
+  if (!isYmd(ymd)) return ""
   return `周${DOW_ZH[parseYmd(ymd).getUTCDay()]}`
 }
 export function ymdLabel(ymd: string): string {

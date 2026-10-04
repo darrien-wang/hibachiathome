@@ -44,10 +44,11 @@ export async function settleDueReservations(supabase: SupabaseClient, now = new 
       rows
         .filter((r) => {
           const o = byId.get(r.order_id)
-          // 订单没了（删了）或者取消了；或者派对那天过去了（event_start 是墙上时间，直接取日期位）
+          // 订单没了（删了）或者取消了；或者派对那天过去了（event_start 是墙上时间，直接取日期位）；
+          // 或者日期被拿掉了（日期待定，2026-10-04）——原来那天不办了，料也不该再占着。
           const gone = !o || /cancel|void|refund/i.test(o.order_status ?? "")
           const day = (o?.event_start ?? "").slice(0, 10)
-          return gone || (!!day && day < today)
+          return gone || !day || day < today
         })
         .map((r) => r.order_id),
     ),

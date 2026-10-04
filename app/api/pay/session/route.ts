@@ -65,7 +65,8 @@ export async function POST(request: NextRequest) {
             .select("id, event_start")
             .ilike("customer_phone", `%${digits}`)
             .not("order_status", "in", "(cancelled,canceled)")
-            .order("event_start", { ascending: false })
+            // NULLs last: a party on hold (日期待定) must not win over the dated one.
+            .order("event_start", { ascending: false, nullsFirst: false })
             .limit(1)
             .maybeSingle()
         : { data: null }

@@ -10,10 +10,11 @@ import { PrepDialog } from "./PrepDialog"
 // 订单 · 售后. One row per order; "有修改" surfaces the ones the customer
 // changed in the planner and nobody has looked at yet.
 
-export type OrderFilter = "upcoming" | "changed" | "待细节" | "本周执行" | "待尾款" | "已办完" | "已取消" | "all"
+export type OrderFilter = "upcoming" | "changed" | "hold" | "待细节" | "本周执行" | "待尾款" | "已办完" | "已取消" | "all"
 const FILTERS: Array<[OrderFilter, string]> = [
   ["upcoming", "即将执行"],
   ["changed", "有修改"],
+  ["hold", "日期待定"],
   ["待细节", "待细节"],
   ["本周执行", "本周执行"],
   ["待尾款", "待尾款"],
@@ -82,6 +83,8 @@ export function OrdersTab({
     if (f === "all") return true
     if (f === "upcoming") return !!r.ev && r.ev.ymd >= today && r.stage !== "已取消"
     if (f === "changed") return r.changed
+    // 日期待定（2026-10-04）：付了押金、日期还没定，不在"即将执行"里。
+    if (f === "hold") return !r.ev && r.stage !== "已取消"
     return r.stage === f
   }
   const counts = Object.fromEntries(FILTERS.map(([k]) => [k, rowsAll.filter((r) => match(r, k)).length])) as Record<OrderFilter, number>
@@ -105,7 +108,10 @@ export function OrdersTab({
   const arrow = (key: "event" | "created") => (sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "")
 
   const plannerLine = (r: (typeof rowsAll)[number]) =>
-    r.changed
+    !r.o.event_start && (r.o.source_metadata as Record<string, unknown> | null)?.date_hold
+      ? // 日期待定 (2026-10-04): deposit paid, no date yet - the calendar lists these on top.
+        { text: "日期待定 · 等客人定日期", color: "var(--color-accent-700)" }
+      : r.changed
       ? { text: "客人改了，未核对", color: "var(--color-accent-700)" }
       : // "Not sure yet" on the deposit page: the clock time on the row is a default, not the customer's.
         (r.o.source_metadata as Record<string, unknown> | null)?.event_time_tbd

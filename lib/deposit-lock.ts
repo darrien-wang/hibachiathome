@@ -84,12 +84,13 @@ export async function findDepositLock(input: {
     .from("orders")
     .select("order_no, customer_name, customer_email, customer_phone, event_start, order_status")
     .eq("deposit_status", "paid_verified")
-    .gte("event_start", since)
-    .order("event_start", { ascending: true })
+    .order("event_start", { ascending: true, nullsFirst: false })
     .limit(5)
   query = byLead
-    ? query.eq("source_metadata->>lead_id", leadId)
-    : query.ilike("customer_email", email).gte("event_start", `${eventDate}T00:00:00+00:00`).lt("event_start", `${eventDate}T23:59:59+00:00`)
+    ? // A party on hold (日期待定, no event_start) counts too: the deposit is
+      // already on file, so the same lead must not pay a second one (2026-10-04).
+      query.eq("source_metadata->>lead_id", leadId).or(`event_start.gte.${since},event_start.is.null`)
+    : query.ilike("customer_email", email).gte("event_start", since).gte("event_start", `${eventDate}T00:00:00+00:00`).lt("event_start", `${eventDate}T23:59:59+00:00`)
 
   const { data, error } = await query
   if (error) {
