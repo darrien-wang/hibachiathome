@@ -224,7 +224,7 @@ description: >-
 | **B 报价已发** | `Landing quote (…): N adults · plan · date · est. $X` 或 quote_unlock | 已经收到自动短信+押金链接。首条不重复价格：**确认日期开着 + 时间选择题** |
 | **C 主动来短信** | Twilio 收件箱有客户消息 | 先答他的问题（≤2 句），再收口一个问题。5 分钟内 |
 | **D 主动来邮件 / contact 表单** | Gmail `support@` / `lead_source=contact` | 邮件回 + 若有手机同步一条短信 "just emailed you the details" |
-| **E 大单 31+** | `guest_count ≥ 31` 或客户说 "50-60 people" | **不报总价**。报人均 + "2-chef party" + "exact number tonight" + 问一个信息（晚上还是白天 / 大概几个小孩） |
+| **E 大单 61+** | `guest_count ≥ 61` 或客户说 "70-80 people" | **不报总价**。报人均 + "3-chef party" + "exact number tonight" + 问一个信息（晚上还是白天 / 大概几个小孩）。**31–60 人不走这条** — 阶梯已经盖到 60，照 B/C 直接报引擎价 |
 | **F 已付押金** | status won / 订单工作台有押金 | 转成交后阶梯：planner → 实名确认 → 邀评 → 晒图 |
 | **G 骚扰/无效** | 用户标注、470 号那种、空手机 | 不回，`set_status disqualified` |
 
@@ -264,9 +264,9 @@ You don't need the final number to lock [Mon D] - $19.90 holds it, and the headc
 - 依据：09-29 Corrina 收到后 18 小时自己付了押金；10-01 用在 Santa Clarita（她点了链接，卡被发卡行拒，改给 Zelle/Venmo）和 917-618-3851（老公 37 岁，名单在涨）。
 - 和 §4.4 不冲突：客人自设节奏照样尊重，这句是**回他那句话时**说的，不是到期去催。
 
-**E · 31+ 大单**
+**E · 61+ 大单**
 ```
-Hi! Bling from Real Hibachi. 50–60 guests on Dec 5 — love it, that's a 2-chef party. Ballpark is $59.90/adult (kids 5–12 $29.90, under 5 free); I'll put an exact number together tonight. Quick one: evening event, and roughly how many kids?
+Hi! Bling from Real Hibachi. 70–80 guests on Dec 5 — love it, that's a 3-chef party. Ballpark is $59.90/adult (kids 5–12 $29.90, under 5 free); I'll put an exact number together tonight. Quick one: evening event, and roughly how many kids?
 ```
 
 **D · 邮件版首条（比短信长一点，仍然一屏）**
@@ -522,7 +522,9 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 - **5 岁以下免费 = 不带蛋白**（用户 2026-09-30 定）：师傅给他们多带炒饭和蔬菜，或者 butter noodles。planner 里给小宝宝点了蛋白也照此办。**对客不主动说"没有蛋白"**（§1.2.3 只主动说省心的事）；客人问起"小的吃什么"，答 "rice, veggies and butter noodles if they like"。⚠️ 备料系统（`lib/prep-bom.ts`、师傅单）目前把所有小孩行的蛋白都算进去，分不出哪几个是免费的——派对前在内部备注里写清楚，免得多买。
 - **最低消费 $599**（折后仍不低于 599）。**付最低消费的小派对按 10 人的量做菜**（2026-09-22 用户定，Big Bear 619 那条）：客户问"人不够 10 个，价格一样，会不会按 10 人做"→ 答 "you're paying the 10-guest minimum, so I'll cook for 10. If a few more show up they eat, and if not you have leftovers."。多备的食材成本约 $40，换来的是最低消费不显得亏。**只按 10 人备料，不等于可以再多来人**——真超过 10 人按人头正常加钱。
-- **派对人数折扣（任何日期自动，按付费人数 = 成人 + 5–12 岁）**：10–14 人 −$30 · 15–24 人 −$60 · 25–30 人 −$90 · **31+ 定制报价**（多厨师，28 人/厨师；永远不在聊天里报固定总价）。折扣码 PARTY30/60/90。
+- **派对人数折扣（任何日期自动，按付费人数 = 成人 + 5–12 岁）**：10–14 人 −$30 · 15–24 人 −$60 · 25–30 人 −$90 · 31–40 人 −$120 · 41–50 人 −$150 · 51–60 人 −$180 · **61+ 定制报价**。折扣码 PARTY30/60/90/120/150/180。
+  → 阶梯就是**每十个成人让 $30**（= 5%，因为十个成人正好开 $599），所以跳档那个客人只按半价 $29.90 算。**31–60 人是自动档，不是定制档**（2026-10-03 用户定）：直接报 `calcSimpleEstimate()` 算出来的数，**不准自己再加任何让价**（比如给周末单用周中价、或在阶梯之外再减一笔）——让价只走 §7.1。
+  ⚠️ 10-03 Whitney（35 人、周日、Brentwood）就是这么错的：agent 看到“31+ 定制”便即兴给了 $54.90/人 + 额外 $90，报 $1,831.50；按新阶梯应为 **$1,976.50**，白让 $145。
 - **路费**：从基地起算（`config/home-base.ts`，现为 91744），**驾车里程前 50 英里免费，之后 $1/英里**；里程以站内 `/api/quote/travel-fee` 为准（发票工具用的同一个服务），别自己用别的起点手算。服务范围：南加州、单程 ≤ 2.5h。
 - **押金 $19.90** 锁日期，尾款派对当天付；**≥72h 取消/改期免费**。押金**只在私聊里提**，公开页面不提（规则 D-0913-01）。
 - **税**：所有报价都是**含税价**。客户问 "does that include tax" → "tax-included"；不说 "no tax" / "plus tax"。
@@ -557,7 +559,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 其它人数：跑 `node -e` 按公式算，或直接调 `calcSimpleEstimate()`。短信里报**总价 + 一句"everything included"**；人均只在对方嫌贵时作为重新锚定用。
 
-### 5.0 大单（31+）成交包（用户 09-16 定，Kande 60–75 人为例）
+### 5.0 大单（61+）成交包（用户 09-16 定，Kande 60–75 人为例；2026-10-03 门槛由 31 提到 61）
 
 - 报价按人均（用户定的大单价，如 $55.90/adult 含税）× 两个人数档，+ 路费；小孩 5–12 $29.90、5 岁以下免费；厨师数 = ⌈人数/28⌉。
 - **桌椅+餐具可免费**作为大单让利（用户当场决定，不主动给）。
@@ -573,7 +575,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | **客户没提贵、没提竞品** | 只用上面 5 个杠杆，**不先报让步的数**；可以在 f_deadline 开门问"什么挡着你"（§4.2），他说了再按 §4.3 给一个小赢。 |
 | **嫌贵但没提竞品** | 先重新锚定人均 + 调日期（周中省 $5/人 + 送一份自选前菜）/ 调人数（10+ 阶梯）/ 小孩免费；不加折扣。问 "Would a Thursday work, or is it a Saturday thing?" |
 | **提到竞品报价 / "找到更便宜的"** | 走**竞争让价流程**（下） |
-| **31+ / 企业 / 淡季周中大单** | 报给用户定制，不自己定 |
+| **61+ / 企业 / 淡季周中大单** | 报给用户定制，不自己定（**31–60 不在此列**，按阶梯自动报） |
 
 **竞争让价流程**
 1. **先问清对方包含什么**（一句话）："Happy to look at it - does that price include 2 proteins per person, travel, and setup?" 同行常见套路：单蛋白、路费另算、桌椅另算、押金不退、无保险。
@@ -669,7 +671,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 ### 7.1 谈判模块（罗杰·道森《优势谈判》，只在价格/条款被拿出来谈时启动）
 
-八成的线索没有谈判——明码标价，要不要而已，**不触发就一个字都不用**。触发条件：客户报预算/说超预算、提竞品价、31+ 或企业单（价格本来就是定制的）、要折扣/要赠品、成交后追加要求。总原则：**让对方觉得自己赢了**，同时我们一分钱都不白让。
+八成的线索没有谈判——明码标价，要不要而已，**不触发就一个字都不用**。触发条件：客户报预算/说超预算、提竞品价、61+ 或企业单（价格本来就是定制的）、要折扣/要赠品、成交后追加要求。**人数多不是触发条件**：31–60 人自己就有阶梯价，客人没推价就不要让。总原则：**让对方觉得自己赢了**，同时我们一分钱都不白让。
 
 **演与不演的界线（用户 09-18 定）**：姿态可以演——不急、要请示、后厨当黑脸、惊讶得比实际重——客户拿到的价格、日期、服务都是真的，他只是在过程中觉得"我争取到了"，这是给他的情绪价值。**事实不能编**——不说"只剩一个档期"（其实空着）、"另一个客户也要这天"（没有）、"这个价今天到期"（不会）。姿态被看穿是"这人会谈"，事实被看穿是"这人骗我"，后者会变成差评。**唯一判据：客户在这个过程里有没有损失。** 演出来的只是情绪价值，让他觉得是自己争取到的、订单顺利成交，他一分钱、一天档期、一样服务都没少——这就是 OK 的；让他为不存在的事实付出（多付钱、错过别家、仓促决定）就不 OK。
 
@@ -735,7 +737,8 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | **只想要报价别打电话** | 尊重，只邮件；工作台 note 记 "email only" |
 | **你们去 X 城市吗** | 基地起 2.5h 内都去；50 英里免费后 $1/英里，报一个区间（用 `/api/quote/travel-fee?destination=` 查里程） |
 | **能便宜点吗（回头客）** | 客户自己提"上次订过" → $60/每 10 人 |
-| **31+ 人要总价** | 人均 + "exact number tonight" + 问细节，报给用户人工算；报价按 §7.1：先标准价，低价留作换条件的让步 |
+| **61+ 人要总价** | 人均 + "exact number tonight" + 问细节，报给用户人工算；报价按 §7.1：先标准价，低价留作换条件的让步 |
+| **31–60 人要总价** | **直接报**引擎价（阶梯 $120/$150/$180 自动），不转人工、也不自己额外让价 |
 
 ## 9. 禁区（一条都不能碰）
 
@@ -747,7 +750,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
   **正确说法：只给答案，要么给一个对他有用的理由**——"Later works. What time?"、"7:30 or 8 both work - which?"、"That date is yours, headcount can change up to the day before."
   **判据**：这句话讲的是"他能得到什么"，还是"我们有多空"？后者一律删掉。注意这和 §7.1 不冲突——那条禁止编假档期，这条禁止**炫耀真空档**；档期开着就照开着答（§5.3），但不用"没人订"去解释。
 - 不猜客户名字；不编评分、单量、"500+ parties"。
-- 31+ 人不报固定总价。
+- 61+ 人不报固定总价（31–60 照阶梯直接报）。
 - 短信不**主动**提酒（30955）；客人问饮料时可以说 sake（§6，用户 2026-09-29 定），泛称 alcohol/liquor 仍然不写。
 - 不在公开页面 / 公开评论提押金；私聊可以。
 - **谈判红线（§7.1）**：姿态可以演（不急、请示后厨、后厨当黑脸），**事实不能编**（假档期、假竞争客户、假到期）；不白给让步——每一次让步都要换回报。
@@ -924,4 +927,4 @@ f_morning: ¡Buenos días! Sigo apartando [fecha] para tu fiesta de [N]. Tu chef
 ⏸ Tony (+1707…) · B · SMS 30003 不可达 ×2 → 改邮件 · 下一步 f_morning 明早 9:00
 ```
 
-结尾附一行"需要你决定的事"（档期确认 / 31+ 报价 / 特殊折扣），没有就写"无"。
+结尾附一行"需要你决定的事"（档期确认 / 61+ 报价 / 特殊折扣），没有就写"无"。

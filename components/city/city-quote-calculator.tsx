@@ -206,7 +206,7 @@ export default function CityQuoteCalculator({
               Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu, plus a{" "}
               {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} ({WEEKDAY_SPECIAL.appetizerPlatter.detail})
             </li>
-            <li>Party size discount, any day: 10–14 adults $30 off · 15–24 $60 off · 25–30 $90 off — your code comes with the exact quote</li>
+            <li>Party size discount, any day: $30 off per ten adults — $30 at 10–14 · $60 at 15–24 · $90 at 25–30 · $120 at 31–40 · $150 at 41–50 · $180 at 51–60 — your code comes with the exact quote</li>
             <li>
               Standard: ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid, any day, ${MINIMUM_SPEND} minimum
             </li>

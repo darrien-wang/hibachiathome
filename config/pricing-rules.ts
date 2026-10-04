@@ -186,17 +186,30 @@ export function setupPerGuest(): number {
 
 // ---------------------------------------------------------------
 // Party Size Discount — every party, any day, on top of the Weekday
-// Special. Automatic by paid headcount; 31+ guests get a custom quote. The
+// Special. Automatic by paid headcount; 61+ guests get a custom quote. The
 // $599 minimum still applies after the discount, same as the invoice system.
 // Mirrors the invoice repo's PARTY_SIZE_DISCOUNT_TIERS and paidGuestCount()
 // (kept in sync by hand, 2026-09-13; headcount rule 2026-09-24).
+//
+// The ladder is $30 per ten paying adults — a flat 5%, since ten adults bill
+// at $599. Its real design rule lives at the boundaries: each tier is exactly
+// $30 above the last, so the guest who crosses one comes in at half price
+// ($29.90 instead of $59.90) and nobody is ever punished for inviting one
+// more person. 2026-10-03 (owner): extended past 30 for precisely that
+// reason — the 31st adult used to cost $149.90 because the ladder simply
+// stopped, the same cliff the Weekday Special's old 15-guest gate had (see
+// GUEST_TIERS.adult.weekdayPrice). Custom quoting now starts at 61, where a
+// third chef comes on and the logistics stop being a template.
 // ---------------------------------------------------------------
 export const PARTY_SIZE_DISCOUNT_TIERS = [
   { minGuests: 10, maxGuests: 14, amount: 30 },
   { minGuests: 15, maxGuests: 24, amount: 60 },
   { minGuests: 25, maxGuests: 30, amount: 90 },
+  { minGuests: 31, maxGuests: 40, amount: 120 },
+  { minGuests: 41, maxGuests: 50, amount: 150 },
+  { minGuests: 51, maxGuests: 60, amount: 180 },
 ] as const
-export const PARTY_SIZE_CUSTOM_FROM = 31
+export const PARTY_SIZE_CUSTOM_FROM = 61
 
 /** 收半价的小孩，在阶梯里算半个成人。 */
 export const KID_TIER_WEIGHT = 0.5
@@ -234,10 +247,27 @@ export function earnsLargePartyAppetizer(heads: TierHeads): boolean {
   return tierHeadcount(heads) >= LARGE_PARTY_APPETIZER_MIN
 }
 
+/**
+ * The discount a party earns. Above the table the TOP tier's amount carries
+ * on instead of dropping to zero: a 61-adult party is still a custom quote
+ * (PARTY_SIZE_CUSTOM_FROM) priced by a person, but if any path does compute a
+ * number for it, that number must not be $239.90 higher than the 60-adult
+ * one. Capping rather than continuing the ladder means the discount stops
+ * growing past $180 — deliberately, so nothing auto-concedes on a huge party
+ * — while the price stays monotone in headcount.
+ *
+ * The invoice repo deliberately does NOT mirror this: its partySizePromoFor()
+ * returns null above the table, because an invoice line labelled "51–60
+ * adults" on a 70-person party would be a lie in print, and those invoices
+ * carry a hand-made custom-deal line anyway.
+ */
 export function partySizeDiscount(heads: TierHeads): number {
   const count = tierHeadcount(heads)
-  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
-  return tier ? tier.amount : 0
+  for (let i = PARTY_SIZE_DISCOUNT_TIERS.length - 1; i >= 0; i--) {
+    const tier = PARTY_SIZE_DISCOUNT_TIERS[i]
+    if (count >= tier.minGuests) return tier.amount
+  }
+  return 0
 }
 
 /**

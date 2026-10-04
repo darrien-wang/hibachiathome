@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { DEPOSIT_AMOUNT } from "@/config/pricing-rules"
+import { DEPOSIT_AMOUNT, PARTY_SIZE_CUSTOM_FROM } from "@/config/pricing-rules"
 import { SITE } from "@/lib/ai-facts"
 
 // The booking interface for AI agents, described as OpenAPI 3.1 so Codex,
@@ -63,7 +63,7 @@ const spec = {
           { name: "zip", in: "query", schema: { type: "string", pattern: "^\\d{5}$" }, description: "Event ZIP for the exact travel fee" },
         ],
         responses: {
-          "200": { description: "Price breakdown in USD. `customQuote: true` for parties of 31+.", content: { "application/json": { schema: { type: "object" } } } },
+          "200": { description: `Price breakdown in USD. \`customQuote: true\` for parties of ${PARTY_SIZE_CUSTOM_FROM}+.`, content: { "application/json": { schema: { type: "object" } } } },
           "400": { description: "Invalid input", content: { "application/json": { schema: err } } },
           "429": { description: "Too many requests" },
         },
