@@ -20,7 +20,11 @@ export const runtime = "nodejs"
 
 const PT = "America/Los_Angeles"
 const ptDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: PT })
-const CATS = new Set(["fresh", "frozen", "pantry", "sake", "other"])
+// `gear` 是非食材（老板 2026-09-28 定）：夹子、饮料桶、收纳箱、挤酱瓶、纸巾、汽水
+// 这些常和食材混在同一张 Walmart / Instacart 单里，但它们不是食材，算进"每人食材
+// 成本"会把那个数顶高——9/30–10/3 那批里就有 $119.40。拆单时用 `#gear` 后缀的
+// order_ref 单独记一笔，category 填 gear。
+const CATS = new Set(["fresh", "frozen", "pantry", "sake", "other", "gear"])
 
 type Purchase = { id: string; purchased_on: string; channel: string; category: string; amount_cents: number; note: string | null }
 type OrderLite = { event_start: string | null; guest_adult_count: number | null; guest_child_count: number | null; order_status: string | null }
@@ -34,13 +38,19 @@ function statsFor(purchases: Purchase[], orders: Array<{ day: string; guests: nu
   // 米、油、酱油、清酒这类大宗能用好几个月，落在哪个月纯看哪天下单；
   // 单独给一条"不含大宗"的每人成本，周与周之间才可比。
   const bulkCents = (byCategory.pantry ?? 0) + (byCategory.sake ?? 0)
+  // 非食材先整个拿掉，再谈大宗：每人成本问的是"一个客人吃掉多少钱"，收纳箱不在里面。
+  // spendCents 仍是这段时间真花出去的全部钱，账才对得上。
+  const gearCents = byCategory.gear ?? 0
+  const foodCents = total - gearCents
   return {
     from,
     to,
     spendCents: total,
     guests,
-    perGuestCents: guests > 0 ? Math.round(total / guests) : null,
-    perGuestExBulkCents: guests > 0 ? Math.round((total - bulkCents) / guests) : null,
+    foodCents,
+    gearCents,
+    perGuestCents: guests > 0 ? Math.round(foodCents / guests) : null,
+    perGuestExBulkCents: guests > 0 ? Math.round((foodCents - bulkCents) / guests) : null,
     bulkCents,
     byCategory,
   }

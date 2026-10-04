@@ -522,7 +522,7 @@ export function BoardTab({
 
 // ---- 食材成本：采购流水 ÷ 已办场次人头 = 每人平均（用户 09-22 要的成本分摊） ----
 
-type SupplyStats = { from: string; to: string; spendCents: number; guests: number; perGuestCents: number | null; perGuestExBulkCents: number | null; bulkCents: number; byCategory: Record<string, number> }
+type SupplyStats = { from: string; to: string; spendCents: number; guests: number; foodCents?: number; gearCents?: number; perGuestCents: number | null; perGuestExBulkCents: number | null; bulkCents: number; byCategory: Record<string, number> }
 type SupplyResp = {
   ok: boolean
   purchases: Array<{ id: string; purchased_on: string; channel: string; category: string; amount_cents: number; note: string | null }>
@@ -534,6 +534,7 @@ const SUPPLY_CATS: Array<[string, string]> = [
   ["pantry", "仓库"],
   ["sake", "清酒"],
   ["other", "其他"],
+  ["gear", "非食材"],
 ]
 const catLabel = (k: string) => SUPPLY_CATS.find(([c]) => c === k)?.[1] ?? k
 
@@ -562,7 +563,8 @@ function SupplyCostCard({ adminKey }: { adminKey: string }) {
         <strong style={{ fontVariantNumeric: "tabular-nums" }}>{st.perGuestExBulkCents != null ? `$${(st.perGuestExBulkCents / 100).toFixed(2)} /人` : "—"}</strong>
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
           不含大宗 · 全口径 {st.perGuestCents != null ? `$${(st.perGuestCents / 100).toFixed(2)}` : "—"} · 花 {money(st.spendCents)}
-          {st.bulkCents ? `（其中大宗 ${money(st.bulkCents)}）` : ""} · {st.guests} 人
+          {st.bulkCents ? `（其中大宗 ${money(st.bulkCents)}）` : ""}
+          {st.gearCents ? `（非食材 ${money(st.gearCents)} 已剔除）` : ""} · {st.guests} 人
         </span>
       </div>
     ) : null
