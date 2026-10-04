@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { getDrivingMiles, TravelDistanceError, type DistanceResult } from "@/lib/travel-distance"
+import { type DistanceResult } from "@/lib/travel-distance"
 import { homeBaseOrigin } from "@/config/home-base"
-import { coarserDestinations, MAX_PLAUSIBLE_MILES } from "@/lib/coarse-destination"
+import { driveFromBase } from "@/lib/base-drive"
 import {
   calcTravelFee,
   TRAVEL_FREE_RADIUS_MILES,
@@ -26,11 +26,6 @@ const ORIGIN_ZIP = homeBaseOrigin()
 // inventing a number: an early version derived "miles" from the arithmetic
 // difference between zip codes, which quoted travel fees off a figure that was
 // not a distance at all.
-
-/** Nothing this far away is a real party — it's a geocode that went wrong. */
-function implausible(miles: number): boolean {
-  return !Number.isFinite(miles) || miles > MAX_PLAUSIBLE_MILES
-}
 
 function quote(result: DistanceResult, origin: string, extra: Record<string, unknown> = {}) {
   const fee = calcTravelFee(result.drivingMiles)
@@ -70,32 +65,15 @@ export async function GET(request: Request) {
     )
   }
 
-  let code: TravelDistanceError["code"] = "provider_unavailable"
-
-  try {
-    const result = await getDrivingMiles(origin, destination)
-    if (!implausible(result.drivingMiles)) return quote(result, origin)
-    // The address geocoded, but to the wrong side of the country.
-    code = "destination_not_found"
-  } catch (error) {
-    code = error instanceof TravelDistanceError ? error.code : "provider_unavailable"
-  }
-
-  // The exact house may not exist in the map data. Try the town, then the zip,
-  // before giving up — an approximate distance beats a $0 fee on a 107-mile
-  // drive. Anything still implausible is dropped rather than quoted.
-  for (const candidate of coarserDestinations(destination)) {
-    try {
-      const result = await getDrivingMiles(origin, candidate)
-      if (implausible(result.drivingMiles)) continue
-      return quote(result, origin, {
-        requested_destination: destination,
-        source: `${result.provider}_city_fallback`,
-        approximate: true,
-      })
-    } catch {
-      // try the next, coarser candidate
-    }
+  // Exact address, then the town, then the zip (lib/base-drive.ts).
+  const drive = await driveFromBase(origin, destination)
+  if (drive.ok && !drive.approximate) return quote(drive.result, origin)
+  if (drive.ok) {
+    return quote(drive.result, origin, {
+      requested_destination: destination,
+      source: `${drive.result.provider}_city_fallback`,
+      approximate: true,
+    })
   }
 
   // No usable route at all: quote $0 travel and let the team confirm, rather
@@ -109,7 +87,7 @@ export async function GET(request: Request) {
       free_radius_miles: TRAVEL_FREE_RADIUS_MILES,
       rate_per_mile: TRAVEL_RATE_PER_MILE,
       source: "unavailable",
-      code,
+      code: drive.code,
     },
     { status: 200 },
   )

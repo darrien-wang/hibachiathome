@@ -848,7 +848,13 @@ export function ChefDialog({
                         <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `桌椅 ${s.tableHeads} 人 × $4，点击改成不带` : "点击改成带桌椅"}>
                           · 桌椅 {s.hasTables ? money(s.tablesCents) : "无"}
                         </button>
-                        <span title={s.miles == null ? "发票里没有里程，路费按 $0" : `基地到客户家 ${s.miles} mi：超过 50 mi 的场整程 × $1/mi，50 及以内 $0`}>
+                        <span
+                          title={
+                            s.miles == null
+                              ? "这单地址量不出车程（地址不全？），路费先按 $0"
+                              : `基地到客户家 ${s.miles} mi（${s.milesSource === "invoice" ? "发票上的里程" : s.milesSource?.endsWith("_city_fallback") ? "按城市估的车程" : "按地址实量的车程"}）：超过 50 mi 的场整程 × $1/mi，50 及以内 $0`
+                          }
+                        >
                           · 路费 {s.travelCents ? money(s.travelCents) : s.miles == null ? "?" : "$0"}
                         </span>
                       </div>

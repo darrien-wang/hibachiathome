@@ -5,6 +5,7 @@ import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents
 import { randomBytes } from "node:crypto"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
+import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -125,7 +126,16 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
     const k = `${s.order_id}|${s.staff_member_id}`
     if (!cashReported.has(k)) cashReported.set(k, Number(s.cash_collected_cents ?? 0))
   }
-  return { staff: (staff ?? []) as Staff[], assignments: (assignments ?? []) as Assignment[], orderMap, cashReported }
+  // 路费里程：只量还没定下路费（结过的场冻结在 travel_cents 里）、发票上又没有
+  // 50 mi 以上里程的单 —— 规则见 shiftOf。
+  const unpriced = new Set(((assignments ?? []) as Assignment[]).filter((a) => a.travel_cents == null).map((a) => a.order_id))
+  const needMiles = [...orderMap.values()].filter((o) => {
+    if (!unpriced.has(o.id)) return false
+    const m = partyComp(o).miles
+    return m == null || m <= TRAVEL_FREE_MILES
+  })
+  const drive = await chefDriveMiles(supabase, needMiles)
+  return { staff: (staff ?? []) as Staff[], assignments: (assignments ?? []) as Assignment[], orderMap, cashReported, drive }
 }
 
 /**
@@ -134,6 +144,8 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
  *   行为准（它才是"这个孩子没收钱"的账面记录），quick 模式同理。
  *   桌椅人头 —— detailed 数勾了 tablesChairs 的客人；quick 看 partyWideAddons。
  *   里程 —— 发票 travelFee.distanceMiles（客户免不免路费不影响给师傅补）。
+ *            2026-10-04 起这只是后备：师傅的里程按地址实量（lib/chef-drive-miles.ts），
+ *            发票上客人路费手填时这个数是空的或被改过。
  */
 function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; miles: number | null } {
   const inv = (o.invoice_data ?? {}) as Record<string, unknown>
@@ -167,7 +179,7 @@ function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; mile
 }
 
 /** One chef's shift on one order, with the pay/cash/settlement the ledger needs. */
-function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map<string, Staff>, cashReported: Map<string, number>, nowWall = ptNowWall()) {
+function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map<string, Staff>, cashReported: Map<string, number>, drive: Map<string, DriveMiles>, nowWall = ptNowWall()) {
   const s = staffById.get(a.staff_member_id)
   const endedAt = partyEndedAt(o)
   const guests = guestsOf(o)
@@ -180,7 +192,14 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const heads = payableHeads(comp.counts) / n
   const pay = a.pay_cents ?? (s ? chefPayCentsFrac(rateOf(s), heads) : 0)
   const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads) / n)
-  const travel = a.travel_cents ?? travelCompCents(comp.miles)
+  // 发票上量过、而且超过 50 mi：客人就是按这个数付的路费，师傅照这个数。发票没量，
+  // 或者在 50 以内（客人路费手填 $0、里程被改成 50 都是这样），按地址实量 ——
+  // 客户那头免不免路费都照给师傅（2026-10-04，Niko/Nasim West Hills 53.7 mi）。
+  const invoiceCounts = comp.miles != null && comp.miles > TRAVEL_FREE_MILES
+  const measured = invoiceCounts ? undefined : drive.get(o.id)
+  const miles = measured?.miles ?? comp.miles
+  const milesSource = measured ? measured.source : comp.miles != null ? "invoice" : null
+  const travel = a.travel_cents ?? travelCompCents(miles)
   const cash = a.cash_collected_cents ?? cashReported.get(`${o.id}|${a.staff_member_id}`) ?? 0
   return {
     assignmentId: a.id,
@@ -199,7 +218,8 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     counts: comp.counts,
     tableHeads,
     hasTables,
-    miles: comp.miles,
+    miles,
+    milesSource,
     cashCents: cash,
     cashSource: a.cash_collected_cents != null ? "manual" : cashReported.has(`${o.id}|${a.staff_member_id}`) ? "chef_sheet" : "none",
     // 派对办完之前不知道尾款怎么收，所以这场先不进结算。
@@ -250,7 +270,7 @@ export async function GET(request: NextRequest) {
     if (!chef) return NextResponse.json({ error: "not found" }, { status: 404 })
     const shifts = world.assignments
       .filter((a) => a.staff_member_id === id && world.orderMap.has(a.order_id))
-      .map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported))
+      .map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported, world.drive))
       .sort((x, y) => (y.date || "").localeCompare(x.date || ""))
     const [{ data: performance }, { data: files }, { data: settlements }, { data: assetRows }, { data: reviewRows }] = await Promise.all([
       supabase.from("chef_performance").select("*").eq("staff_member_id", id).order("event_date", { ascending: false }).limit(300),
@@ -276,7 +296,7 @@ export async function GET(request: NextRequest) {
   ])
   const chefs = world.staff.map((s) => {
     const mine = world.assignments.filter((a) => a.staff_member_id === s.id && world.orderMap.has(a.order_id))
-    const shifts = mine.map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported))
+    const shifts = mine.map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported, world.drive))
     // 名单上的结余也只认"办完了 + 确认过尾款怎么收的"那些场，不然派单当天
     // 就会写着欠他多少，而那时候钱进谁口袋还不知道。
     const live = shifts.filter((x) => !x.settledAt && x.orderStatus !== "cancelled")
@@ -730,7 +750,7 @@ export async function POST(request: NextRequest) {
         const only = Array.isArray(body.assignment_ids) ? new Set(body.assignment_ids.filter(isUuid)) : null
         const mine = world.assignments
           .filter((a) => a.staff_member_id === body.id && !a.settled_at && world.orderMap.has(a.order_id))
-          .map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported))
+          .map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported, world.drive))
           .filter((x) => x.orderStatus !== "cancelled")
         // 逐场结：老板点哪场结哪场（包括提前结一场还没办的）。
         // 一键结清：只收已经办完并确认过收款方式的，外加之前提前结过工钱、

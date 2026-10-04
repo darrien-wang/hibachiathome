@@ -20,6 +20,8 @@ export type ShiftRow = {
   tableHeads: number
   hasTables: boolean
   miles: number | null
+  /** 里程哪来的：google / osrm（按地址实量）、*_city_fallback（按城市估）、invoice（发票上的数）。 */
+  milesSource?: string | null
   cashCents: number
   cashSource: "manual" | "chef_sheet" | "none"
   settledAt: string | null

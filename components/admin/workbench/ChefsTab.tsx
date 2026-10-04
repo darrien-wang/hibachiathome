@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Chip, Dialog, DialogHead, Field } from "./ui"
 import { addDays, dowZh, md, money, prettyPhone, ptToday } from "./helpers"
-import { weekStartOf, type ChefSummary, type MediaItem } from "./chef-types"
+import { shiftNet, weekStartOf, type ChefSummary, type MediaItem } from "./chef-types"
 import { BILLING_LABELS, rateLabel } from "@/lib/chef-pay"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
@@ -46,7 +46,10 @@ export function ChefsTab({
     () =>
       chefs.map((c) => {
         const ws = c.shifts.filter((s) => s.date >= week && s.date <= weekEnd && s.orderStatus !== "cancelled")
-        const net = c.openPayCents + c.openTipCents - c.openCashCents
+        // Same sum as the 结算 tab (shiftNet: 人头费 + 桌椅 + 路费 + 卡上小费 − 代收) over the
+        // same shifts the server counts as open. It used to be pay + tip − cash, so a
+        // chef's 桌椅 and 路费 never showed in the list (2026-10-04).
+        const net = c.shifts.filter((s) => !s.settledAt && s.orderStatus !== "cancelled" && s.partyOver && !!s.method).reduce((a, s) => a + shiftNet(s), 0)
         return { c, weekCount: ws.length, weekGuests: ws.reduce((a, s) => a + s.share, 0), net }
       }),
     [chefs, week, weekEnd],
