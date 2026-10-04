@@ -92,6 +92,8 @@ export type BoardReview = {
   body: string | null
   url: string | null
   has_photo: boolean
+  /** 客人传的照片（平台图床地址，见 lib/review-photos.ts）；没拉到就是空数组。 */
+  photo_urls?: string[] | null
   /** 已入账的归属（= chef_review_bonuses 已生成） */
   staff_member_id: string | null
   bonus_id: string | null

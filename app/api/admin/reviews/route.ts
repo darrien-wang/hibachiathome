@@ -4,6 +4,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS } from "@/lib/chef-pay"
 import { type ChefLite, soleMatch } from "@/lib/review-board"
 import { creditReview, resolveClaims, setPhoto } from "@/lib/review-claims-server"
+import { cleanPhotoUrls } from "@/lib/review-photos"
 import { createHash, randomBytes } from "node:crypto"
 
 export const dynamic = "force-dynamic"
@@ -60,6 +61,8 @@ type ReviewInsert = {
   url: string | null
   has_photo: boolean
   photo_count: number
+  /** 页面上看到的照片地址（agent 导入才有；平台 API 不给）。 */
+  photo_urls: string[]
   raw: unknown
 }
 
@@ -72,12 +75,14 @@ type SB = any
 //（Google 一个账号只能评一次，重名双评是不同账号、正文必不同），没正文
 // 的按 评价人+日期±3 天。不做跨 key 回填，宁可少动已有行。
 async function fuzzyFilter(supabase: SB, rows: ReviewInsert[]) {
-  if (!rows.length) return { keep: rows, merged: 0 }
-  const { data: existing } = await supabase.from("business_reviews").select("platform, external_key, reviewer, review_date, body").limit(1000)
-  const all = (existing ?? []) as Array<{ platform: string; external_key: string; reviewer: string | null; review_date: string | null; body: string | null }>
+  const photoPatches: PhotoPatch[] = []
+  if (!rows.length) return { keep: rows, merged: 0, photoPatches }
+  const { data: existing } = await supabase.from("business_reviews").select("id, platform, external_key, reviewer, review_date, body, has_photo, photo_count").limit(1000)
+  const all = (existing ?? []) as Array<ExistingReview & { platform: string; external_key: string; reviewer: string | null; review_date: string | null; body: string | null }>
   const exact = new Set(all.map((e) => `${e.platform}|${e.external_key}`))
   const norm = (v: string | null | undefined) => (v ?? "").toLowerCase().replace(/\s+/g, " ").trim()
-  const sigs = new Set(all.filter((e) => e.body).map((e) => `${e.platform}|${norm(e.reviewer)}|${norm(e.body).slice(0, 25)}`))
+  const sigOf = (platform: string, reviewer: string | null, body: string | null) => `${platform}|${norm(reviewer)}|${norm(body).slice(0, 25)}`
+  const sigs = new Map(all.filter((e) => e.body).map((e) => [sigOf(e.platform, e.reviewer, e.body), e]))
   const near = (a: string | null, b: string | null) => !!a && !!b && Math.abs(Date.parse(a) - Date.parse(b)) <= 3 * 86400000
   const keep: ReviewInsert[] = []
   let merged = 0
@@ -86,15 +91,37 @@ async function fuzzyFilter(supabase: SB, rows: ReviewInsert[]) {
       keep.push(r) // 同 key：upsertRows 负责 bump/enrich
       continue
     }
-    const dupBody = r.body ? sigs.has(`${r.platform}|${norm(r.reviewer)}|${norm(r.body).slice(0, 25)}`) : false
-    const dupBare = !r.body && all.some((e) => e.platform === r.platform && norm(e.reviewer) === norm(r.reviewer) && norm(r.reviewer) !== "" && near(e.review_date, r.review_date))
-    if (dupBody || dupBare) {
+    const dupBody = r.body ? sigs.get(sigOf(r.platform, r.reviewer, r.body)) : undefined
+    const dupBare = !r.body ? all.find((e) => e.platform === r.platform && norm(e.reviewer) === norm(r.reviewer) && norm(r.reviewer) !== "" && near(e.review_date, r.review_date)) : undefined
+    const same = dupBody ?? dupBare
+    if (same) {
       merged += 1
+      // 同一条换了个 key 进来（API 行 vs 页面行）：别的字段不动，照片补到原来那行上
+      if (r.photo_urls.length) photoPatches.push({ existing: same, photos: r.photo_urls })
       continue
     }
     keep.push(r)
   }
-  return { keep, merged }
+  return { keep, merged, photoPatches }
+}
+
+type ExistingReview = { id: string; has_photo: boolean; photo_count: number | null }
+type PhotoPatch = { existing: ExistingReview; photos: string[] }
+
+/**
+ * 把照片地址挂到已有的评价上。没图 -> 有图会改钱（$2 -> $3），所以这一步走
+ * setPhoto：已入账没结算的奖励跟着改；已结算的钱不动（setPhoto 会拒），照片照样存。
+ * 导入只会把"没图"升成"有图"，不会反过来把老板手动标的带图冲掉。
+ */
+async function attachPhotos(supabase: SB, patches: PhotoPatch[], alias: string): Promise<number> {
+  for (const { existing, photos } of patches) {
+    await supabase
+      .from("business_reviews")
+      .update({ photo_urls: photos, photo_count: Math.max(Number(existing.photo_count) || 0, photos.length) })
+      .eq("id", existing.id)
+    if (!existing.has_photo) await setPhoto(supabase, existing.id, true, alias)
+  }
+  return patches.length
 }
 
 // 入库：同 (platform, external_key) 只存一行。enrich=true（agent 导入）时
@@ -104,18 +131,21 @@ async function upsertRows(supabase: SB, rows: ReviewInsert[], source: string, al
   let added = 0
   let seen = 0
   let enriched = 0
+  let photos = 0
   const now = new Date().toISOString()
   const byPlatform = new Map<string, ReviewInsert[]>()
   for (const r of rows) (byPlatform.get(r.platform) ?? byPlatform.set(r.platform, []).get(r.platform)!).push(r)
   for (const [platform, list] of byPlatform) {
     const keys = list.map((r) => r.external_key)
-    const { data: existing } = await supabase.from("business_reviews").select("id, external_key").eq("platform", platform).in("external_key", keys)
-    const have = new Map<string, string>((existing ?? []).map((e: { id: string; external_key: string }) => [e.external_key, e.id]))
+    const { data: existing } = await supabase.from("business_reviews").select("id, external_key, has_photo, photo_count").eq("platform", platform).in("external_key", keys)
+    const rowsByKey = new Map<string, ExistingReview>((existing ?? []).map((e: ExistingReview & { external_key: string }) => [e.external_key, e]))
+    const have = new Map<string, string>([...rowsByKey].map(([k, e]) => [k, e.id]))
     const fresh = list.filter((r) => !have.has(r.external_key))
     if (fresh.length) {
       const { error } = await supabase.from("business_reviews").insert(fresh.map((r) => ({ ...r, source, created_by: alias, first_seen_at: now, last_seen_at: now })))
       if (error) throw error
       added += fresh.length
+      photos += fresh.filter((r) => r.photo_urls.length > 0).length
     }
     for (const r of list) {
       const id = have.get(r.external_key)
@@ -128,16 +158,21 @@ async function upsertRows(supabase: SB, rows: ReviewInsert[], source: string, al
         if (r.rating != null) patch.rating = r.rating
         if (r.review_date) patch.review_date = r.review_date
         if (r.reviewer) patch.reviewer = r.reviewer
-        patch.has_photo = r.has_photo
-        patch.photo_count = r.photo_count
         await supabase.from("business_reviews").update(patch).eq("id", id)
         enriched += 1
+        // 带图标记只升不降，并且走 setPhoto（见 attachPhotos）
+        const e = rowsByKey.get(r.external_key)!
+        if (r.photo_urls.length) {
+          photos += await attachPhotos(supabase, [{ existing: e, photos: r.photo_urls }], alias)
+        } else if (r.has_photo && !e.has_photo) {
+          await setPhoto(supabase, id, true, alias)
+        }
       } else {
         await supabase.from("business_reviews").update({ last_seen_at: now }).eq("id", id)
       }
     }
   }
-  return { added, seen, enriched }
+  return { added, seen, enriched, photos }
 }
 
 export async function GET(request: NextRequest) {
@@ -221,6 +256,7 @@ export async function POST(request: NextRequest) {
               url: str(v.googleMapsUri, 500) || GOOGLE_ALL_REVIEWS_URL,
               has_photo: false,
               photo_count: 0,
+              photo_urls: [],
               raw: v,
             }))
             const { keep, merged } = await fuzzyFilter(supabase, rows)
@@ -247,6 +283,7 @@ export async function POST(request: NextRequest) {
               url: str(v.url, 500) || YELP_ALL_REVIEWS_URL,
               has_photo: false,
               photo_count: 0,
+              photo_urls: [],
               raw: v,
             }))
             const { keep, merged } = await fuzzyFilter(supabase, rows)
@@ -270,6 +307,7 @@ export async function POST(request: NextRequest) {
           const reviewDate = dateOrNull(v.review_date)
           const text = str(v.body, 4000) || null
           const key = str(v.external_key, 120) || `m_${hash10(`${platform}|${reviewer ?? ""}|${reviewDate ?? ""}|${(text ?? "").slice(0, 60)}`)}`
+          const photos = cleanPhotoUrls(v.photos)
           rows.push({
             platform,
             external_key: key,
@@ -278,14 +316,16 @@ export async function POST(request: NextRequest) {
             review_date: reviewDate,
             body: text,
             url: str(v.url, 500) || null,
-            has_photo: v.has_photo === true,
-            photo_count: Number.isFinite(Number(v.photo_count)) ? Math.max(0, Math.round(Number(v.photo_count))) : v.has_photo === true ? 1 : 0,
+            has_photo: v.has_photo === true || photos.length > 0,
+            photo_count: Math.max(photos.length, Number.isFinite(Number(v.photo_count)) ? Math.max(0, Math.round(Number(v.photo_count))) : v.has_photo === true ? 1 : 0),
+            photo_urls: photos,
             raw: null,
           })
         }
-        const { keep, merged } = await fuzzyFilter(supabase, rows)
+        const { keep, merged, photoPatches } = await fuzzyFilter(supabase, rows)
         const res = await upsertRows(supabase, keep, str(body.source, 20) || "agent", actor.alias, true)
-        return NextResponse.json({ ok: true, ...res, merged })
+        const photosOnMerged = await attachPhotos(supabase, photoPatches, actor.alias)
+        return NextResponse.json({ ok: true, ...res, merged, photos: res.photos + photosOnMerged })
       }
       case "link_chef": {
         // 这条评价记给某师傅（$2/$3 进他的月结账本）。一条只许记一次。

@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     supabase.from("staff_members").select("id, display_name, full_name, review_aliases").eq("status", "active").order("display_name"),
     supabase
       .from("business_reviews")
-      .select("id, platform, reviewer, rating, review_date, body, url, has_photo, staff_member_id, bonus_id")
+      .select("id, platform, reviewer, rating, review_date, body, url, has_photo, photo_urls, staff_member_id, bonus_id")
       .order("review_date", { ascending: false })
       .limit(1000),
   ])
@@ -127,6 +127,7 @@ export async function GET(request: NextRequest) {
         body: r.body,
         url: r.url,
         hasPhoto: r.has_photo,
+        photos: r.photo_urls ?? [],
         state: reviewState(r, claims),
         settled: r.settled,
         creditedTo: r.staff_member_id,

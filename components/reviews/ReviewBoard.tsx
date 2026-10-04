@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Chip, Tag } from "@/components/admin/workbench/ui"
 import { addDays, type ChefStanding, dollars, weekLabel, weekStart } from "@/lib/review-board"
+import { photoFull, photoThumb } from "@/lib/review-photos"
 
 // 好评榜（老板 2026-10-02）
 //
@@ -13,7 +14,8 @@ import { addDays, type ChefStanding, dollars, weekLabel, weekStart } from "@/lib
 // 页面三层：
 //   1. 奖台 —— 前三名，看得见的那种。奖池 = 已入账 + 待确认。
 //   2. 全员榜 —— 每个人拿了多少、还欠他多少，最少的那位也标出来（激励两头）。
-//   3. 评价清单 —— 可按周切，按"待认领 / 已归属 / 我认领的"筛。
+//   3. 评价清单 —— 可按周切，按"待认领 / 已归属 / 带图 / 我认领的"筛。
+//      客人传的照片（2026-10-04 老板要的）：清单上方一排、每条下面缩略图，点开看大图。
 //
 // 认领不等于拿到钱：认领只是排队等老板确认，页面上写清楚，别让人误会。
 // 语言默认英文，和备料单 /chef/<token> 同一个 localStorage key。
@@ -28,6 +30,8 @@ type ReviewRow = {
   body: string | null
   url: string | null
   hasPhoto: boolean
+  /** 平台图床的照片地址（不带尺寸，见 lib/review-photos.ts） */
+  photos?: string[]
   state: "credited" | "contested" | "pending" | "open"
   settled: boolean
   creditedTo: string | null
@@ -78,6 +82,9 @@ const T = {
     fCredited: "Credited",
     fContested: "Disputed",
     fMine: "Mine",
+    fPhoto: "With photos",
+    photoWall: (n: number) => `Photos guests posted · ${n}`,
+    close: "Close",
     claim: "This one was mine",
     yours: "Yours",
     giveUp: "Not mine — give it up",
@@ -120,6 +127,9 @@ const T = {
     fCredited: "已归属",
     fContested: "抢中",
     fMine: "我的",
+    fPhoto: "带图",
+    photoWall: (n: number) => `客人拍的照片 · ${n} 张`,
+    close: "关闭",
     claim: "这条是我的",
     yours: "你的",
     giveUp: "不是我的 · 让给他",
@@ -149,7 +159,9 @@ export function ReviewBoard() {
   const [d, setD] = useState<Resp | null>(null)
   const [week, setWeek] = useState<string | null>(null)
   const [allTime, setAllTime] = useState(false)
-  const [filter, setFilter] = useState<"all" | "open" | "credited" | "contested" | "mine">("all")
+  const [filter, setFilter] = useState<"all" | "open" | "credited" | "contested" | "photo" | "mine">("all")
+  // 看大图：同一组照片里左右翻（清单上方那排 = 本周全部；某条下面的 = 这一条的）
+  const [viewer, setViewer] = useState<{ list: Array<{ src: string; review: ReviewRow }>; i: number } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const t = T[lang]
@@ -231,12 +243,28 @@ export function ReviewBoard() {
 
   const shown = useMemo(() => {
     const rows = d?.reviews ?? []
+    if (filter === "photo") return rows.filter((r) => r.hasPhoto || (r.photos?.length ?? 0) > 0)
     if (filter === "open") return rows.filter((r) => r.state === "open")
     if (filter === "credited") return rows.filter((r) => r.state === "credited")
     if (filter === "contested") return rows.filter((r) => r.state === "contested" || r.state === "pending")
     if (filter === "mine") return rows.filter((r) => r.minedByMe || (d?.me && r.creditedTo === d.me.id))
     return rows
   }, [d, filter])
+
+  // 这一周（或全部）客人拍的照片，按评价顺序平铺
+  const wall = useMemo(() => (d?.reviews ?? []).flatMap((r) => (r.photos ?? []).map((src) => ({ src, review: r }))), [d])
+  const photoReviews = useMemo(() => (d?.reviews ?? []).filter((r) => r.hasPhoto || (r.photos?.length ?? 0) > 0).length, [d])
+
+  useEffect(() => {
+    if (!viewer) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setViewer(null)
+      if (e.key === "ArrowRight") setViewer((v) => (v ? { ...v, i: (v.i + 1) % v.list.length } : v))
+      if (e.key === "ArrowLeft") setViewer((v) => (v ? { ...v, i: (v.i - 1 + v.list.length) % v.list.length } : v))
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [viewer])
 
   if (!d) {
     return (
@@ -385,6 +413,11 @@ export function ReviewBoard() {
           <Chip small active={filter === "credited"} onClick={() => setFilter("credited")}>
             {t.fCredited} {d.summary.credited}
           </Chip>
+          {photoReviews > 0 && (
+            <Chip small active={filter === "photo"} onClick={() => setFilter("photo")}>
+              {t.fPhoto} {photoReviews}
+            </Chip>
+          )}
           {d.summary.contestedCount > 0 && (
             <Chip small active={filter === "contested"} onClick={() => setFilter("contested")}>
               {t.fContested} {d.summary.contestedCount}
@@ -399,6 +432,17 @@ export function ReviewBoard() {
 
         {d.me && d.summary.openCount > 0 && <p style={{ margin: 0, fontSize: 11, color: "var(--color-neutral-600)" }}>{t.claimHelp}</p>}
         {err && <p style={{ margin: 0, fontSize: 12, color: "var(--color-accent-700)", fontWeight: 700 }}>{err}</p>}
+
+        {wall.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-neutral-700)" }}>{t.photoWall(wall.length)}</span>
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+              {wall.map((ph, i) => (
+                <Thumb key={`${ph.src}-${i}`} src={ph.src} size={96} label={ph.review.reviewer ?? ""} onOpen={() => setViewer({ list: wall, i })} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {shown.length === 0 && <p style={{ margin: "8px 0", fontSize: 13, color: "var(--color-neutral-600)" }}>{t.nobody}</p>}
 
@@ -415,6 +459,20 @@ export function ReviewBoard() {
               </div>
 
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.45, color: r.body ? "var(--color-text)" : "var(--color-neutral-500)" }}>{r.body || t.noText}</p>
+
+              {(r.photos?.length ?? 0) > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {(r.photos ?? []).map((src, i) => (
+                    <Thumb
+                      key={src}
+                      src={src}
+                      size={72}
+                      label={r.reviewer ?? ""}
+                      onOpen={() => setViewer({ list: (r.photos ?? []).map((x) => ({ src: x, review: r })), i })}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* 有人抢：名字互相亮出来，自己谈。谁放手，另一个人马上拿到。 */}
               {(r.state === "contested" || (r.state === "pending" && r.claimedBy.length > 1)) && (
@@ -490,6 +548,57 @@ export function ReviewBoard() {
           ))}
         </div>
       </div>
+
+      {viewer && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={viewer.list[viewer.i].review.reviewer ?? t.photo}
+          onClick={() => setViewer(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(0,0,0,.86)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: 16 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- 平台图床的地址，不过 next/image */}
+          <img
+            src={photoFull(viewer.list[viewer.i].src)}
+            alt={viewer.list[viewer.i].review.reviewer ?? ""}
+            referrerPolicy="no-referrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "100%", maxHeight: "78vh", objectFit: "contain", background: "#111" }}
+          />
+          <div onClick={(e) => e.stopPropagation()} style={{ color: "#fff", fontSize: 13, textAlign: "center", maxWidth: 560, lineHeight: 1.45 }}>
+            <strong>{viewer.list[viewer.i].review.reviewer ?? "—"}</strong>
+            {viewer.list[viewer.i].review.date ? ` · ${viewer.list[viewer.i].review.date}` : ""}
+            {viewer.list.length > 1 ? ` · ${viewer.i + 1}/${viewer.list.length}` : ""}
+          </div>
+          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8 }}>
+            {viewer.list.length > 1 && (
+              <button type="button" className="wb-chip wb-chip-sm" style={{ background: "#fff" }} onClick={() => setViewer({ ...viewer, i: (viewer.i - 1 + viewer.list.length) % viewer.list.length })}>
+                ‹
+              </button>
+            )}
+            <button type="button" className="wb-chip wb-chip-sm" style={{ background: "#fff" }} onClick={() => setViewer(null)}>
+              {t.close}
+            </button>
+            {viewer.list.length > 1 && (
+              <button type="button" className="wb-chip wb-chip-sm" style={{ background: "#fff" }} onClick={() => setViewer({ ...viewer, i: (viewer.i + 1) % viewer.list.length })}>
+                ›
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+/** 一张缩略图：方形裁切，加载失败（客人删了图）就整个不显示。 */
+function Thumb({ src, size, label, onOpen }: { src: string; size: number; label: string; onOpen: () => void }) {
+  const [gone, setGone] = useState(false)
+  if (gone) return null
+  return (
+    <button type="button" onClick={onOpen} aria-label={label} style={{ flex: "none", width: size, height: size, padding: 0, border: "1px solid var(--color-line)", background: "var(--color-surface)", cursor: "zoom-in", overflow: "hidden" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- 平台图床的地址，不过 next/image */}
+      <img src={photoThumb(src, size * 2)} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setGone(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+    </button>
   )
 }
