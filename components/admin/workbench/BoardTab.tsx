@@ -139,8 +139,22 @@ export function BoardTab({
   const prevByChannel = new Map((prev?.channels ?? []).map((c) => [c.channel, c]))
   const channels = (cur?.channels ?? []).filter((c) => c.costCents > 0 || c.leads > 0 || c.deposits > 0)
 
-  // Campaign table from raw spend rows; leads matched by utm_campaign (id or name).
+  // Campaign table from raw spend rows; leads matched by utm_campaign. The
+  // ads carry a slug, not the platform id or the full name: Google final URLs
+  // say utm_campaign=la-cities / destination-rentals / la-search-clean-leads,
+  // Meta says meta_test_0924, while the spend row says "LA Cities - Hibachi at
+  // Home by City" / 24272927695. Until 2026-10-04 only id or exact lowercase
+  // name was accepted, so 留资/成单 showed "–" for every row. A lead matches a
+  // campaign when every token of its slug appears, in order, in the campaign
+  // name (or it equals the id); each lead is counted once, on the first match.
   const campaigns = useMemo(() => {
+    const tokens = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+    const subseq = (needle: string[], hay: string[]) => {
+      if (!needle.length) return false
+      let i = 0
+      for (const h of hay) if (h === needle[i] && ++i === needle.length) return true
+      return false
+    }
     const m = new Map<string, { name: string; channel: string; impr: number; clicks: number; cost: number; ids: Set<string> }>()
     for (const r of spend) {
       const key = r.campaign_name ?? r.campaign_id ?? "(未命名)"
@@ -153,13 +167,20 @@ export function BoardTab({
       m.set(key, c)
     }
     const depositPhones = new Set(depositsWindow.map((o) => digits10(o.customer_phone)).filter(Boolean))
-    return Array.from(m.values())
-      .map((c) => {
-        const ls = inWindow.filter((l) => l.utm_campaign && (c.ids.has(l.utm_campaign) || c.ids.has(l.utm_campaign.toLowerCase())))
-        const won = ls.filter((l) => depositPhones.has(digits10(l.phone))).length
-        return { ...c, leads: ls.length, won }
+    const list = Array.from(m.values()).sort((a, b) => b.cost - a.cost)
+    const nameTokens = list.map((c) => tokens(c.name))
+    const claimed = new Set<string>()
+    return list.map((c, idx) => {
+      const ls = inWindow.filter((l) => {
+        if (!l.utm_campaign || claimed.has(l.id)) return false
+        const slug = l.utm_campaign.toLowerCase()
+        const hit = c.ids.has(slug) || subseq(tokens(slug), nameTokens[idx])
+        if (hit) claimed.add(l.id)
+        return hit
       })
-      .sort((a, b) => b.cost - a.cost)
+      const won = ls.filter((l) => depositPhones.has(digits10(l.phone))).length
+      return { ...c, leads: ls.length, won }
+    })
   }, [spend, inWindow, depositsWindow])
   const lastSync = spend.reduce<string | null>((a, r) => (r.source === "api" && r.updated_at && (!a || r.updated_at > a) ? r.updated_at : a), null)
 
