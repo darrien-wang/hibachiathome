@@ -279,7 +279,14 @@ export function partySizeDiscount(heads: TierHeads): number {
 export function partySizeDiscountLabel(heads: TierHeads): string | null {
   const count = tierHeadcount(heads)
   const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
-  return tier ? `${tier.minGuests}–${tier.maxGuests} adults · $${tier.amount} off` : null
+  if (tier) return `${tier.minGuests}–${tier.maxGuests} adults · $${tier.amount} off`
+  // Above the table partySizeDiscount() still pays the top tier's amount, so
+  // this has to name it rather than return null: /quote prints the label
+  // inside parentheses with no guard, and a 61-adult party would otherwise
+  // read "Party size discount ()". Says "61+" instead of the top tier's own
+  // range, because "51–60 adults" on a 70-person party would be wrong.
+  const top = PARTY_SIZE_DISCOUNT_TIERS[PARTY_SIZE_DISCOUNT_TIERS.length - 1]
+  return count >= top.minGuests ? `${PARTY_SIZE_CUSTOM_FROM}+ adults · $${top.amount} off` : null
 }
 
 export type SimpleEstimate = {
