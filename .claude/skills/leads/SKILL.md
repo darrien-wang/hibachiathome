@@ -884,8 +884,10 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
 ```
 
 `agreed-total` 接口还在（存量链接不会坏），但**新的让价不再用它**。
-客户付押金后，订单、客户选菜页、发票都带着这条规则开张，每次改动重新算一遍。**不填 = 常规单，行为不变。** 2026-09-20 起工作台线索抽屉不再有协议总价输入框和话术/阶梯按钮（用户定“以 agent 优先”）：首响、跟进阶梯、促销/让步/西语话术、邮件跟进、提醒全由本 skill 执行；抽屉只留状态、备注、短信对话、操作历史和信用卡收款链接。
+客户付押金后，订单、客户选菜页、发票都带着这条规则开张，每次改动重新算一遍。**不填 = 常规单，行为不变。** 2026-09-20 起工作台线索抽屉不再有协议总价输入框和话术/阶梯按钮（用户定“以 agent 优先”）：首响、跟进阶梯、促销/让步/西语话术、邮件跟进、提醒全由本 skill 执行。**例外：2026-10-04 老板要了「报价」工具**（抽屉右栏，`components/admin/workbench/quote-tool.ts`），给他自己打电话时用：填人数/日期/每人特价/再减/送前菜/桌椅餐具 → 生成英文报价短信 + 签好规则的押金链接，发出去才记一条 `[承诺]`。它签规则的口径和这里一样，agent 照常用 custom-deal 接口，不用它。
 - 送桌椅/餐具这类让利用 `freeExtraIds` 写成规则，不要拿总价去抵。
+- **送前菜（饺子/春卷/毛豆几盘）不要签进 `freeExtraIds`**：发票会把那一类前菜**全部**退钱（客人在 planner 多点也白送），还会和周中 / 20 人以上自带的那 1 盘重复退。前菜只记承诺；付押金后在发票里把盘数加进 `partyExtras`，再加一条 **Free Item** 行（发票工具里的「Free Item」：id `<前菜id>_<时间戳>`，label `FREE: Spring Rolls (10 pcs) x4`，金额=单价×盘数）——固定金额，planner 重算不动它，多点的照收。
+- **每人特价在周中要加回 $5 再签**：发票的 deal_rate 从 $59.90 往下让、和周中价叠加。客人周中每位实付 $49.90 → 签 `adultRate: 54.90`。
 - **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData}` 存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
 - 正式发票邮件：`POST https://invoice.realhibachi.com/api/invoice/email {invoiceData, orderNo}`。
 - **发发票之前，先看 NOTES 框会印什么**（用户 2026-09-25 定）。`contactInfo.specialNotes` 会**原样印在客户发票上**（PDF、邮件、存档副本），而同一个字段也是我们和 `orders.notes` 互相同步的草稿本——押金自动建单会往里写 `Auto-generated booking for deposit checkout | deposit_source=workbench`，agent 会话会往里写 `[why]` `[callback]` 和中文过程记录。

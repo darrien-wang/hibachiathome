@@ -33,7 +33,8 @@ import {
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { PlannerPill, type PlannerSession } from "./planner-live"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
-import { calcSimpleEstimate, WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, GUEST_TIERS, DEPOSIT_AMOUNT } from "@/config/pricing-rules"
+import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, DEPOSIT_AMOUNT } from "@/config/pricing-rules"
+import { computeQuote, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, usd, type QuoteAppetizer } from "./quote-tool"
 
 // 线索弹窗 · 客服：对话 + 承诺 + 操作. Everything a person does with a lead
 // before the deposit lands. Writes go through /api/admin/leads (PATCH) and
@@ -93,7 +94,18 @@ export function LeadDialog({
   const [noteDraft, setNoteDraft] = useState("")
   const [adults, setAdults] = useState(String(lead.guest_count ?? 10))
   const [kids, setKids] = useState("0")
-  const [agreed, setAgreed] = useState("")
+  // 报价工具（老板 2026-10-04）：电话里给的让价写成规则、签进押金链接、短信一键生成。
+  // 原来的「协议总价」是 09-28 就停用的冻结总价机制，这里改用 custom-deal 规则。
+  const [qDate, setQDate] = useState(lead.event_hint ?? "")
+  const [qTime, setQTime] = useState("")
+  const [rate, setRate] = useState("")
+  const [flatOff, setFlatOff] = useState("")
+  const [appId, setAppId] = useState<"" | QuoteAppetizer>("")
+  const [appTrays, setAppTrays] = useState("")
+  const [freeTables, setFreeTables] = useState(false)
+  const [freeUtensils, setFreeUtensils] = useState(false)
+  // The last generated quote: it goes into 承诺 only once a text carrying its link is sent.
+  const [pendingQuote, setPendingQuote] = useState<{ link: string; note: string } | null>(null)
   const [travel, setTravel] = useState<{ miles: number | null; fee: number } | null>(null)
   const [insert, setInsert] = useState<{ text: string; nonce: number } | null>(null)
   const [edit, setEdit] = useState({ full_name: lead.full_name ?? "", phone: lead.phone ?? "", email: lead.email ?? "", city_or_zip: lead.city_or_zip ?? "", guest_count: String(lead.guest_count ?? "") })
@@ -110,6 +122,11 @@ export function LeadDialog({
   useEffect(() => {
     void loadEvents()
   }, [loadEvents])
+
+  // On a phone the composer sits on the 对话 tab: bring it up when a quote or link lands in it.
+  useEffect(() => {
+    if (insert && isMobile) setLtab("chat")
+  }, [insert, isMobile])
 
   // Travel fee from the site's own service (never hand-computed: base ZIP config).
   useEffect(() => {
@@ -156,11 +173,25 @@ export function LeadDialog({
     [events],
   )
 
-  const weekday = isWeekdaySpecialDate(lead.event_hint)
-  const est = useMemo(
-    () => calcSimpleEstimate({ adults: Number(adults) || 0, kids: Number(kids) || 0, weekdaySpecial: weekday, travelFee: travel?.fee ?? 0 }),
-    [adults, kids, weekday, travel],
+  const weekday = isWeekdaySpecialDate(qDate || lead.event_hint)
+  const quote = useMemo(
+    () =>
+      computeQuote({
+        adults: Number(adults) || 0,
+        kids: Number(kids) || 0,
+        weekdaySpecial: weekday,
+        eventDate: qDate || lead.event_hint,
+        // null = no address yet: the quote text then leaves travel out instead of promising none.
+        travelFee: travel ? travel.fee : null,
+        adultRate: Number(rate) || null,
+        flatOff: Number(flatOff) || null,
+        freeAppetizer: appId && Number(appTrays) > 0 ? { id: appId, trays: Math.floor(Number(appTrays)) } : null,
+        freeTables,
+        freeUtensils,
+      }),
+    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, freeTables, freeUtensils],
   )
+  const qLabel = quoteDateLabel(qDate || lead.event_hint, qTime)
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
   const unreplied = leadUnreplied(lead)
   // 顶栏那颗「不用回」跟着对话走，不跟着漏斗走：成单和流失的客人也会发消息，
@@ -182,11 +213,19 @@ export function LeadDialog({
     if (Number(adults) > 0) u.searchParams.set("adults", String(Number(adults)))
     if (Number(kids) > 0) u.searchParams.set("kids", String(Number(kids)))
     if (lead.city_or_zip) u.searchParams.set("location", lead.city_or_zip)
-    if (lead.event_hint) u.searchParams.set("event_date", lead.event_hint)
+    const date = qDate || lead.event_hint
+    if (date) u.searchParams.set("event_date", date)
+    if (qTime) u.searchParams.set("event_time", qTime)
+    if (quote.total > 0) {
+      // Display only on the deposit page; the order re-prices from the rules below.
+      u.searchParams.set("estimate_low", String(Math.round(quote.total)))
+      u.searchParams.set("estimate_high", String(Math.round(quote.total)))
+    }
     let url = u.toString()
-    const agreedN = Number(agreed)
-    if (agreed.trim() && Number.isFinite(agreedN) && agreedN > 0) {
-      const d = await adminJson<{ ok: boolean; query?: string }>(adminKey, "/api/admin/agreed-total", { body: { leadId: lead.id, agreedTotal: agreedN } })
+    if (quote.deal) {
+      // Signed rules, not a frozen total (owner 2026-09-28): the order and the
+      // invoice re-price them when the headcount moves.
+      const d = await adminJson<{ ok: boolean; query?: string }>(adminKey, "/api/admin/custom-deal", { body: { leadId: lead.id, ...quote.deal } })
       if (d.ok && d.query) url += `&${d.query}`
     }
     try {
@@ -194,7 +233,7 @@ export function LeadDialog({
       if (s.ok && s.shortUrl) return s.shortUrl
     } catch {}
     return url
-  }, [adminKey, lead, adults, kids, agreed])
+  }, [adminKey, lead, adults, kids, qDate, qTime, quote])
 
   const plannerLink = useCallback(async (): Promise<string> => {
     const d = await adminJson<{ ok: boolean; url?: string; error?: string }>(adminKey, "/api/admin/planner-link", {
@@ -232,6 +271,22 @@ export function LeadDialog({
     }
   }
 
+  // 报价工具的主按钮：英文报价 + 签好让价的押金链接，落到短信输入框，看一眼再发。
+  // 真发出去了（发出的短信里带着这条链接）才记进「承诺」，见 onSent。
+  const pushQuote = async () => {
+    setBusy("quote")
+    setMsg(null)
+    try {
+      const link = await depositLink()
+      setInsert({ text: quoteSms(quote, { dateLabel: qLabel, depositLink: link }), nonce: Date.now() })
+      setPendingQuote({ link, note: quotePromiseNote(quote, qLabel) })
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "报价生成失败")
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const pushPlannerLink = async () => {
     setBusy("planner")
     try {
@@ -256,7 +311,7 @@ export function LeadDialog({
         if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n发票尾款 $${bal.toFixed(2)}，链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
         amount = bal
       } else {
-        const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接就收这个数）：", defaultValue: est.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
+        const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接就收这个数）：", defaultValue: quote.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
         if (!raw) return
         amount = Number(raw)
         if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
@@ -294,9 +349,14 @@ export function LeadDialog({
       // The first personal text is the first response: the list's 首响 column
       // and the auto-watch both key off this touchpoint.
       if (!lead.first_response_at) await adminJson(adminKey, "/api/admin/leads", { method: "PATCH", body: { leadId: lead.id, action: "mark_contacted", via: "sms", note: body.slice(0, 120) } })
+      // The quote went out (edited or not, the link is the deal): now it is a promise.
+      if (pendingQuote && body.includes(pendingQuote.link)) {
+        setPendingQuote(null)
+        await adminJson(adminKey, "/api/admin/leads", { method: "PATCH", body: { leadId: lead.id, action: "add_note", note: `${PROMISE_PREFIX} ${pendingQuote.note}` } }).catch(() => {})
+      }
       await Promise.all([loadEvents(), onChanged()])
     },
-    [adminKey, lead.id, lead.first_response_at, loadEvents, onChanged],
+    [adminKey, lead.id, lead.first_response_at, loadEvents, onChanged, pendingQuote],
   )
 
   const cityLine = [lead.city_or_zip, lead.guest_count ? `${lead.guest_count} 人` : null, lead.event_hint ? `想订 ${md(lead.event_hint)} ${weekday ? "(周中价)" : ""}` : null].filter(Boolean).join(" · ")
@@ -529,31 +589,91 @@ export function LeadDialog({
 
           <div>
             <Kicker>报价 {weekday ? "· 周中价" : ""}</Kicker>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
               <label className="field">
-                <span className="label">大人 × ${(weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)}</span>
+                <span className="label">大人 × ${quote.listAdultPrice.toFixed(2)}</span>
                 <input className="input" type="number" min={0} value={adults} onChange={(e) => setAdults(e.target.value)} />
               </label>
               <label className="field">
-                <span className="label">小孩 × ${(weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)}</span>
+                <span className="label">小孩 × ${quote.childPrice.toFixed(2)}</span>
                 <input className="input" type="number" min={0} value={kids} onChange={(e) => setKids(e.target.value)} />
               </label>
               <label className="field">
-                <span className="label">协议总价（可选）</span>
-                <input className="input" type="number" min={0} step="0.01" value={agreed} onChange={(e) => setAgreed(e.target.value)} placeholder="签名进押金链接" />
+                <span className="label">日期</span>
+                <input className="input" type="date" value={qDate} onChange={(e) => setQDate(e.target.value)} />
+              </label>
+              <label className="field">
+                <span className="label">开始时间</span>
+                <input className="input" type="time" value={qTime} onChange={(e) => setQTime(e.target.value)} />
+              </label>
+              <label className="field">
+                <span className="label">每人特价（可选）</span>
+                <input className="input" type="number" min={0} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder={quote.listAdultPrice.toFixed(2)} />
+              </label>
+              <label className="field">
+                <span className="label">再减 $（可选）</span>
+                <input className="input" type="number" min={0} step="1" value={flatOff} onChange={(e) => setFlatOff(e.target.value)} placeholder="0" />
               </label>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8, fontSize: 13 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 8, fontSize: 13 }}>
+              <span style={{ color: "var(--color-neutral-600)" }}>送</span>
+              <select className="input" style={{ width: "auto" }} value={appId} onChange={(e) => setAppId(e.target.value as "" | QuoteAppetizer)}>
+                <option value="">不送前菜</option>
+                {(Object.keys(QUOTE_APPETIZERS) as QuoteAppetizer[]).map((id) => (
+                  <option key={id} value={id}>{QUOTE_APPETIZERS[id].zh}（${QUOTE_APPETIZERS[id].price}/盘）</option>
+                ))}
+              </select>
+              {appId ? (
+                <input className="input" style={{ width: 80 }} type="number" min={1} value={appTrays} onChange={(e) => setAppTrays(e.target.value)} placeholder="盘数" aria-label="盘数" />
+              ) : null}
+              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="checkbox" checked={freeTables} onChange={(e) => setFreeTables(e.target.checked)} />
+                桌椅
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="checkbox" checked={freeUtensils} onChange={(e) => setFreeUtensils(e.target.checked)} />
+                餐具
+              </label>
+              {quote.autoAppetizer ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{weekday ? "周中" : "20 人以上"}本来就送 1 盘前菜</span> : null}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.65, color: "var(--color-neutral-700)" }}>
+              <div>
+                {quote.adults} 大人 × ${quote.listAdultPrice.toFixed(2)}
+                {quote.kids ? ` + ${quote.kids} 小孩 × $${quote.childPrice.toFixed(2)}` : ""}
+                {` = ${usd(quote.foodSubtotal)}`}
+              </div>
+              <div>
+                {[
+                  quote.partySize > 0 ? `人数折扣${quote.partySizeTier ? `（${quote.partySizeTier}）` : ""} −$${quote.partySize}` : null,
+                  quote.rateCut > 0 ? `每人 $${quote.adultPrice.toFixed(2)} 让 −${usd(quote.rateCut)}` : null,
+                  quote.flatOff > 0 ? `再减 −${usd(quote.flatOff)}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "没有折扣"}
+                {quote.minApplied ? " → 不到 $599，按 $599 起订" : ""}
+              </div>
+              {quote.freebiesZh.length ? <div>送：{quote.freebiesZh.join("、")}，共值 ${quote.freeValue}，不进总价</div> : null}
+              {appId ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>前菜不签进押金链接，付押金后发票里按盘数加上（发出后记在承诺里）</div> : null}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 6, fontSize: 13 }}>
               <span style={{ color: "var(--color-neutral-600)" }}>
-                合计（含路费 ${est.travelFee}
+                合计（{quote.travelKnown ? `含路费 $${quote.travelFee}` : "路费按地址再算"}
                 {travel?.miles != null ? ` · ${Math.round(travel.miles)} 英里` : ""}
-                {est.partySizeDiscountApplied > 0 ? ` · 人数折扣 −$${est.partySizeDiscountApplied}` : ""}
-                {est.minApplied ? " · 按 $599 起订" : ""}）
+                {quote.adults + quote.kids > 0 ? ` · 人均 $${quote.perPerson.toFixed(2)}` : ""}）
               </span>
               <strong className="num" style={{ fontSize: 18 }}>
-                ${est.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {usd(quote.total)}
               </strong>
             </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-left"
+              style={{ width: "100%", marginTop: 8 }}
+              disabled={!!busy || !lead.phone || quote.adults + quote.kids === 0}
+              onClick={() => void pushQuote()}
+            >
+              {busy === "quote" ? "生成中…" : "生成报价短信（带押金链接）"}
+            </button>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
