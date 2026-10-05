@@ -234,6 +234,9 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
   for (const f of b.freebies) lines.push(`${f} on us`)
   const travel = !b.travelKnown ? "" : b.travelFee > 0 ? ` (includes ${usd(b.travelFee)} travel)` : ", no travel fee"
   lines.push(`Total: ${usd(b.total)}, tax included${travel}`)
+  // Owner 2026-10-05: say it before they decide - cash on the day is the price,
+  // card / Venmo / Zelle add 4% (Zelle is not the cash price).
+  lines.push("That's the cash price - pay your chef in cash on the day and nothing's added; card is 4% more.")
   if (opts.depositLink) lines.push(`${usd(DEPOSIT_AMOUNT)} locks the date: ${opts.depositLink}`)
   return lines.join("\n")
 }

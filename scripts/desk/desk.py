@@ -28,6 +28,7 @@
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link asking them to reply "confirm" (the normal way)
+  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: balance + "cash to your chef is easiest, no fees"
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
                                    local faster-whisper, customer/us on separate channels; --note files it on the lead
@@ -744,6 +745,45 @@ def cmd_order(a):
         res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data})
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
         return
+    if a.op == "remind":
+        # Owner 2026-10-05: the text before the party says what is left to pay
+        # and that cash to the chef is easiest - cash is the price, and card,
+        # Venmo and Zelle add 4%. The balance comes from the invoice engine, the
+        # same number the chef's sheet and /pay use.
+        import datetime as _dt
+        from zoneinfo import ZoneInfo
+        c = prefill.get("contactInfo") or {}
+        date, hhmm = str(c.get("eventDate") or "")[:10], str(c.get("eventTime") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) or not re.fullmatch(r"\d{2}:\d{2}", hhmm):
+            raise SystemExit(f"the invoice needs the party date and time first (has {date!r} {hhmm!r})")
+        inv = _totals(prefill)
+        _print_totals(inv)
+        balance = float(inv.get("balanceDue") or 0)
+        if balance <= 0:
+            raise SystemExit("nothing left to pay - no reminder needed")
+        party = _dt.date.fromisoformat(date)
+        days = (party - _dt.datetime.now(ZoneInfo("America/Los_Angeles")).date()).days
+        hh, mm = (int(x) for x in hhmm.split(":"))
+        if days == 0:
+            when = "tonight" if hh >= 17 else "today"
+        elif days == 1:
+            when = "tomorrow"
+        else:
+            raise SystemExit(f"the party is {days} days away - this goes out the day before (or the morning of)")
+        at = f"{(hh + 11) % 12 + 1}{f':{mm:02d}' if mm else ''}"
+        body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
+        if a.dry:
+            print(f"DRY   {body}")
+            return
+        detail = site_get("/api/admin/orders", {"id": order["id"]})
+        row = detail.get("order") if isinstance(detail.get("order"), dict) else {}
+        lead_id = ((row.get("source_metadata") or {}).get("lead_id")) or a.lead
+        phone = e164(row.get("customer_phone") or order.get("customer_phone") or "")
+        if not phone:
+            raise SystemExit("no phone on the order")
+        sent = site_post("/api/admin/sms-thread", {"phone": phone, "body": body, **({"leadId": lead_id} if lead_id else {})})
+        print(f"OK    texted {phone}  {sent.get('sid', '')}\n      {body}")
+        return
     if a.op in ("email", "send"):
         _print_invoice(order_no, prefill)
         _print_totals(_totals(prefill))
@@ -836,7 +876,8 @@ def main(argv=None):
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*"); p.set_defaults(fn=cmd_email)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind"]); p.add_argument("ident")
+    p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")
