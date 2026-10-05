@@ -104,6 +104,11 @@ const T = {
     markPhoto: "Has a photo ($3)",
     unmarkPhoto: "No photo ($2)",
     ownerNote: "You're signed in as the owner — tap a name to credit it straight away.",
+    sync: "Sync from Google",
+    syncing: "Syncing…",
+    syncDone: (added: number) => (added ? `${added} new review${added === 1 ? "" : "s"} came in.` : "Nothing new this time."),
+    syncCount: (total: number, have: number) => `Google shows ${total}, the board has ${have}.`,
+    syncGap: "Google only hands out its 5 \"most relevant\" reviews per sync, so some new ones (and all photos) need a full pull — ask Claude.",
   },
   zh: {
     title: "好评榜",
@@ -149,6 +154,11 @@ const T = {
     markPhoto: "标带图（$3）",
     unmarkPhoto: "改回无图（$2）",
     ownerNote: "工作台登录态，认出你是老板 —— 知道是谁的直接点名字，立刻入账。",
+    sync: "从 Google 同步",
+    syncing: "同步中…",
+    syncDone: (added: number) => (added ? `新进 ${added} 条。` : "这次没有新的。"),
+    syncCount: (total: number, have: number) => `Google 上 ${total} 条，榜上 ${have} 条。`,
+    syncGap: "Google 每次只给 5 条“最相关”的，差的那几条和所有照片要全量拉一次（找 Claude）。",
   },
 } as const
 
@@ -164,6 +174,9 @@ export function ReviewBoard() {
   const [viewer, setViewer] = useState<{ list: Array<{ src: string; review: ReviewRow }>; i: number } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  // 老板手动同步（2026-10-05 老板："好评页面上能够手动发起同步吗"）。和工作台
+  // 「好评」页签的"手动刷新"是同一个接口，靠工作台登录 cookie 认人。
+  const [sync, setSync] = useState<{ busy: boolean; added?: number; total?: number; have?: number; error?: string } | null>(null)
   const t = T[lang]
 
   useEffect(() => {
@@ -225,6 +238,20 @@ export function ReviewBoard() {
     },
     [token, load],
   )
+
+  const syncGoogle = useCallback(async () => {
+    setSync({ busy: true })
+    try {
+      const r = await fetch("/api/admin/reviews", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "refresh" }) })
+      const j = (await r.json().catch(() => null)) as { providers?: { google?: { ok?: boolean; added?: number; total?: number; have?: number; reason?: string } }; error?: string } | null
+      const g = j?.providers?.google
+      if (!r.ok || !g?.ok) throw new Error(g?.reason ?? j?.error ?? T.en.err)
+      setSync({ busy: false, added: g.added ?? 0, total: g.total, have: g.have })
+      await load()
+    } catch (e) {
+      setSync({ busy: false, error: e instanceof Error ? e.message : T.en.err })
+    }
+  }, [load])
 
   const nameOf = useCallback((id: string | null) => (id ? (d?.chefs.find((c) => c.id === id)?.name ?? "—") : "—"), [d])
 
@@ -299,6 +326,29 @@ export function ReviewBoard() {
       <p style={{ margin: 0, fontSize: 12, color: d.me || d.owner ? "var(--color-accent-700)" : "var(--color-neutral-600)", fontWeight: d.me || d.owner ? 700 : 400 }}>
         {d.owner ? t.ownerNote : d.me ? t.hi(d.me.name) : t.guest}
       </p>
+
+      {d.owner && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div>
+            <button type="button" className="wb-chip wb-chip-sm" disabled={sync?.busy} onClick={() => void syncGoogle()}>
+              {sync?.busy ? t.syncing : t.sync}
+            </button>
+          </div>
+          {sync && !sync.busy && (
+            <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45, color: sync.error ? "var(--color-accent-700)" : "var(--color-neutral-700)" }}>
+              {sync.error
+                ? sync.error
+                : [
+                    t.syncDone(sync.added ?? 0),
+                    sync.total != null && sync.have != null ? t.syncCount(sync.total, sync.have) : "",
+                    sync.total != null && sync.have != null && sync.have < sync.total ? t.syncGap : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ---------- 周切换 ---------- */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

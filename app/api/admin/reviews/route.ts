@@ -260,7 +260,10 @@ export async function POST(request: NextRequest) {
               raw: v,
             }))
             const { keep, merged } = await fuzzyFilter(supabase, rows)
-            out.google = { ok: true, ...(await upsertRows(supabase, keep, "api", actor.alias, false)), merged, rating: j.rating, total: j.userRatingCount, note: "Places API (New)：最相关 5 条（非最新），带图靠人工标；总数对不上就让 agent 全量拉一遍" }
+            const res = await upsertRows(supabase, keep, "api", actor.alias, false)
+            // 台账里有几条 Google 评价：和 Google 的总数一比，就知道还差没差（差了要全量拉）
+            const { count: have } = await supabase.from("business_reviews").select("id", { count: "exact", head: true }).eq("platform", "google")
+            out.google = { ok: true, ...res, merged, rating: j.rating, total: j.userRatingCount, have: have ?? null, note: "Places API (New)：最相关 5 条（非最新），带图靠人工标；总数对不上就让 agent 全量拉一遍" }
           } catch (e) {
             out.google = { ok: false, reason: e instanceof Error ? e.message : "拉取失败" }
           }
