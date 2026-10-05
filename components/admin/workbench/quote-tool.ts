@@ -16,7 +16,7 @@
 //      flatOff，不然付押金后的订单比报价贵。
 //   4. 送桌椅、餐具签进链接：发票上"加一行再减一行"，按人头算，总价不变。
 //      送前菜**不签**：发票的 freeExtraIds 会把这一类前菜全部退钱——客人在
-//      planner 里多点几盘也白送，还会和周中 / 20 人以上自带的那一盘重复退。
+//      planner 里多点几盘也白送，还会和周中 / 20 人以上自带的那几盘重复退。
 //      前菜只记进承诺，发票里按盘数加上。
 
 import {
@@ -83,8 +83,10 @@ export type QuoteBreakdown = {
   travelKnown: boolean
   total: number
   perPerson: number
-  /** The party already gets one free appetizer (Weekday Special or 20+). */
+  /** The party already gets a free appetizer (Weekday Special or 20+). */
   autoAppetizer: boolean
+  /** How many trays of it: one per 10 paying guests, at least one; 0 when none. */
+  autoAppetizerTrays: number
   /** Value of what we give away (appetizers, tables, place settings) - not in the total. */
   freeValue: number
   /** Customer-facing lines for the gifts, e.g. "Spring rolls (4 trays)". */
@@ -128,6 +130,10 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const autoAppetizer =
     heads > 0 &&
     (q.weekdaySpecial || (earnsLargePartyAppetizer({ adults, kids }) && (q.eventDate || today) <= LARGE_PARTY_APPETIZER_UNTIL))
+  // One tray per 10 paying guests, at least one (owner 2026-10-01, after 21
+  // people shared one tray of gyoza; Annie Phan's 21 got 2). The invoice still
+  // seeds 1 - `desk order set --free-appetizer-trays` raises it.
+  const autoAppetizerTrays = autoAppetizer ? Math.max(1, Math.floor(count / 10)) : 0
 
   const freebies: string[] = []
   const freebiesZh: string[] = []
@@ -136,13 +142,19 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const app = q.freeAppetizer && q.freeAppetizer.trays > 0 ? q.freeAppetizer : null
   if (app) {
     const def = QUOTE_APPETIZERS[app.id]
-    const value = def.price * app.trays
+    // Never quote fewer trays than the party gets anyway.
+    const trays = Math.max(app.trays, autoAppetizerTrays)
+    const value = def.price * trays
     freeValue += value
-    freebies.push(`${def.en} (${app.trays} ${def.unit}${app.trays === 1 ? "" : "s"})`)
-    freebiesZh.push(`${def.zh} ${app.trays} 盘（$${value}${autoAppetizer ? "，含本来就送的 1 盘" : ""}）`)
-  } else if (autoAppetizer) {
+    freebies.push(`${def.en} (${trays} ${def.unit}${trays === 1 ? "" : "s"})`)
+    freebiesZh.push(`${def.zh} ${trays} 盘（$${value}${autoAppetizerTrays ? `，含本来就送的 ${autoAppetizerTrays} 盘` : ""}）`)
+  } else if (autoAppetizerTrays) {
     // Already theirs; worth saying when the owner is listing what they get.
-    freebies.push("An appetizer of your choice (gyoza, spring rolls or edamame)")
+    freebies.push(
+      autoAppetizerTrays === 1
+        ? "An appetizer of your choice (gyoza, spring rolls or edamame)"
+        : `${autoAppetizerTrays} appetizer trays of your choice (gyoza, spring rolls or edamame)`,
+    )
   }
   if (q.freeTables && heads > 0) {
     freeValue += TABLES_PER_GUEST * heads
@@ -183,6 +195,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     total,
     perPerson: heads > 0 ? r2(total / heads) : 0,
     autoAppetizer,
+    autoAppetizerTrays,
     freeValue,
     freebies,
     freebiesZh,
