@@ -171,6 +171,12 @@ export async function startLiveCaptions({
     if (type === "error") {
       const detail = payload.error?.message ?? JSON.stringify(payload.error ?? payload)
       console.error("[captions] session error", detail)
+      // 余额用完时令牌照样签得出来（签令牌不花钱），一开始转写才被拒 ——
+      // 2026-10-05 字幕"突然没了"就是这个。说人话，告诉老板去哪充。
+      if (payload.error?.code === "credit_balance_exhausted" || payload.error?.type === "insufficient_quota") {
+        onError("字幕停了：OpenAI 账户余额用完了。去 platform.openai.com → Settings → Billing 充值，充完下一通电话自动恢复。")
+        return
+      }
       onError(`字幕出错：${detail}`)
     }
   })
