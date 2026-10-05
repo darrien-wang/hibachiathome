@@ -478,6 +478,7 @@ Real Hibachi · (213) 770-7788
    - 免费幼儿（3–4 岁）有没有 `under5_auto` 那一行；有的话**人数档要重算**（只数掉钱的人头：成人 1、收费小孩 0.5、免费小孩 0）
    - **免费小孩的人数要跟客人确认过**（用户 2026-09-30）：免费小孩**不带蛋白**，师傅多带炒饭和蔬菜，或者给 butter noodles——他们往往吃不了什么。所以这个数决定的是**份量**，不只是价格。planner 前后两次提交对不上时（Daria：先报 3 个 3–4 岁、后改成 8 个 5–12 岁），直接问一句：
      "Quick check for tomorrow: are three of the kids 3-4 (those eat free), or are all 8 between 5 and 12?"
+   - **收费小孩（5–12）大概几岁问过了**（用户 2026-10-05）：小孩是半份蛋白，大孩子可能不够吃。还没问就照 §5 那句问，答案定了再发发票
    - 路费：`travelFee.distanceMiles` 不能是空的，否则发票按 $0 收路费
    - **NOTES 栏（客人看得到）干净**：押金自动建单的 `Auto-generated booking … deposit_source=` 必须清掉，只留客人该看的事实
    - 总价、押金、尾款对得上
@@ -521,6 +522,9 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | 附赠 | — | 免费前菜 1 份，客户三选一：gyoza / edamame / spring rolls（一盘全桌分；没选默认 gyoza；最多值 $15）。**不再是三样拼盘**（2026-09-22 用户定），对客说 "a free appetizer of your choice (gyoza, edamame or spring rolls)"，不说 platter、不说 $40 |
 
 - **5 岁以下免费 = 不带蛋白**（用户 2026-09-30 定）：师傅给他们多带炒饭和蔬菜，或者 butter noodles。planner 里给小宝宝点了蛋白也照此办。**对客不主动说"没有蛋白"**（§1.2.3 只主动说省心的事）；客人问起"小的吃什么"，答 "rice, veggies and butter noodles if they like"。⚠️ 备料系统（`lib/prep-bom.ts`、师傅单）目前把所有小孩行的蛋白都算进去，分不出哪几个是免费的——派对前在内部备注里写清楚，免得多买。
+- **5–12 岁小孩是半份（蛋白减半，所以半价）——有小孩的单要问大概几岁**（用户 2026-10-05 定）：小的吃半份正好，十一二岁饭量大的半份可能不够，派对上饿着比多花钱更伤。**收菜单时顺口问**（最晚在 §4.5 发票自查那一步问完），答案记线索备注 `[data] kids ages: …`：
+  "Quick one on the kids - roughly how old are they? Kids' plates are half portions (that's why they're half price) - plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry."
+  客人说按大人算 → 那几位改成成人行（成人价、整份，人数档按新人头重算）；说半份够 → 照旧。**不是推销**：问的是够不够吃，客人说够就不再劝。
 - **最低消费 $599**（折后仍不低于 599）。**付最低消费的小派对按 10 人的量做菜**（2026-09-22 用户定，Big Bear 619 那条）：客户问"人不够 10 个，价格一样，会不会按 10 人做"→ 答 "you're paying the 10-guest minimum, so I'll cook for 10. If a few more show up they eat, and if not you have leftovers."。多备的食材成本约 $40，换来的是最低消费不显得亏。**只按 10 人备料，不等于可以再多来人**——真超过 10 人按人头正常加钱。
 - **派对人数折扣（任何日期自动，按付费人数 = 成人 + 5–12 岁）**：10–14 人 −$30 · 15–24 人 −$60 · 25–30 人 −$90 · 31–40 人 −$120 · 41–50 人 −$150 · 51–60 人 −$180 · **61+ 定制报价**。折扣码 PARTY30/60/90/120/150/180。
   → 阶梯就是**每十个成人让 $30**（= 5%，因为十个成人正好开 $599），所以跳档那个客人只按半价 $29.90 算。**31–60 人是自动档，不是定制档**（2026-10-03 用户定）：直接报 `calcSimpleEstimate()` 算出来的数，**不准自己再加任何让价**（比如给周末单用周中价、或在阶梯之外再减一笔）——让价只走 §7.1。
