@@ -87,7 +87,18 @@ export const DEPOSIT_AMOUNT = 19.9
 export const CARD_SURCHARGE_RATE = 0.04
 export const CARD_SURCHARGE_LABEL = "Venmo, Zelle, Credit Card"
 
-/** Gratuity is quoted on the pre-discount order total. */
+/**
+ * Gratuity is quoted on the whole Event Total: after discounts, travel fee
+ * included — `beforeFees` in the invoice engine (lib/pricing.ts), i.e.
+ * max(subtotal − promotions, MINIMUM_SPEND) + travelFee. It stops there: the
+ * 4% card surcharge is ours to collect, not something to tip on.
+ *
+ * Two things were wrong here until 2026-10-05. This comment said "pre-discount",
+ * which was never true, and the engine left the travel fee out — on Gregorio's
+ * 117.8-mile party the printed 20% was $200.68 against an Event Total of
+ * $1,071.20. The owner's call that day: the drive is part of the job being
+ * tipped on, so gratuity follows the total the customer actually sees.
+ */
 export const GRATUITY_OPTIONS = [0.2, 0.25, 0.3] as const
 
 // ---------------------------------------------------------------

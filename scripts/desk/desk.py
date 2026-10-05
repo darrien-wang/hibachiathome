@@ -549,7 +549,17 @@ def cmd_order(a):
     inv_order, prefill = _lookup(order)
     if a.op == "preview":
         _print_invoice(order_no, prefill)
-        _print_totals(_totals(prefill))
+        # /api/invoice already mints a PDF token to price the invoice; printing
+        # the url it hands back is what "let me look at it first" needs, and
+        # saves pasting the order into the invoice tool to see the same page.
+        # It is the customer's view, so it is also what they will receive.
+        priced = invoice_post("/api/invoice", {**prefill, "orderNo": order_no})
+        _print_totals(priced["invoice"])
+        if priced.get("pdfUrl"):
+            # The url comes back on whatever host we posted to, which is the
+            # staff tool's (invoice.*, password-gated at its root). Customers
+            # get party.* - the same app, the name we have always texted them.
+            print(f"   PDF(客户视角): {priced['pdfUrl'].replace('//invoice.', '//party.')}&view=confirmed")
         return
     if a.op == "set":
         data = copy.deepcopy(prefill)
@@ -631,8 +641,62 @@ def cmd_order(a):
             expected = 2 * int(data.get("adultCount") or 0)
             if adult_servings != expected:
                 print(f"   ! {adult_servings} adult servings for {data.get('adultCount')} adults - two each would be {expected}; extras are billed")
+        # "Can I add one more?" the day of. order set used to have no answer for
+        # a detailed-mode party: --proteins refuses one (and would wipe every
+        # guest's picks), so the only route was the planner. The new rows copy
+        # the last guest of that kind, because a late add is almost always "same
+        # as everyone else" - and because an empty proteins list bills
+        # differently from a filled one, so leaving it blank is not neutral.
+        for kind, count in (("adult", a.add_adult), ("child", a.add_child)):
+            if not count:
+                continue
+            if count < 1:
+                raise SystemExit(f"--add-{kind} needs a positive number")
+            is_child = kind == "child"
+            guests = data.setdefault("guests", [])
+            if data.get("mode") == "quick":
+                raise SystemExit("this order carries party-wide counts, not guest rows - change the headcount with --proteins instead")
+            like = next((g for g in reversed(guests) if bool(g.get("isChild")) == is_child), None)
+            if like is None:
+                raise SystemExit(f"no existing {kind} row to copy - add the first one in the planner so the proteins are the guest's own")
+            key = "adultCount" if not is_child else "childCount"
+            before = int(data.get(key) or 0)
+            for i in range(count):
+                guests.append({
+                    "name": f"Guest {len(guests) + 1}",
+                    "isChild": is_child,
+                    "proteins": list(like.get("proteins") or []),
+                    "noodles": bool(like.get("noodles")),
+                    "tablesChairs": bool(like.get("tablesChairs")),
+                    "utensils": bool(like.get("utensils")),
+                })
+            data[key] = before + count
+            changes.append(f"{key}: {before} -> {before + count} (copied {', '.join(like.get('proteins') or ['no proteins'])})")
+            # Promotions are stored as a dollar amount, not a rule, so the
+            # per-head ones keep the number they were computed at and silently
+            # overcharge the new guest. Gregorio 2026-10-05: one late adult left
+            # the Weekday Special at 13 adults and "Tables & Chairs on us" at 17
+            # guests, $15 too little off. Nothing here can re-derive those rates
+            # from an amount, so say so loudly rather than guess.
+            stale = [x for x in (data.get("promotions") or [])
+                     if str(x.get("id", "")).startswith("official_weekday") or str(x.get("id", "")).startswith("deal_")]
+            for x in stale:
+                print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount - "
+                      f"re-state it with --promo {x.get('id')}=<amount> or the extra guest is overcharged")
+        if a.promo:
+            promos = data.setdefault("promotions", [])
+            for pair in a.promo:
+                m = re.fullmatch(r"([A-Za-z0-9_]+)=(\d+(?:\.\d{1,2})?)", pair)
+                if not m:
+                    raise SystemExit(f"--promo {pair!r}: use id=AMOUNT, e.g. official_weekday=89.80")
+                pid, amount = m.group(1), float(m.group(2))
+                hit = next((x for x in promos if x.get("id") == pid), None)
+                if hit is None:
+                    raise SystemExit(f"--promo {pid}: this invoice has no such promotion ({[x.get('id') for x in promos]})")
+                changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
+                hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--free-appetizer-trays")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -782,6 +846,13 @@ def main(argv=None):
                         "Moves the promo's discount by the same amount, so the customer is not billed for it.")
     p.add_argument("--proteins", nargs="+", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
                    "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode.")
+    p.add_argument("--add-adult", type=int, metavar="N", help="add N adults to a party whose guests are already picked. The new rows copy "
+                   "the last adult's proteins and their tables/utensils flags, so a late 'can I bring one more' keeps billing the same way "
+                   "as everyone else. Check the printed rows before sending - proteins are a guess until the guest says otherwise.")
+    p.add_argument("--add-child", type=int, metavar="N", help="same as --add-adult for children 5-12.")
+    p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
+                   "Promotions are frozen numbers on the invoice, not rules, so any per-head one (the Weekday Special, a free-extras deal) "
+                   "has to be re-stated by hand when the headcount moves - see the warning --add-adult prints.")
     p.set_defaults(fn=cmd_order)
 
     a = ap.parse_args(argv)
