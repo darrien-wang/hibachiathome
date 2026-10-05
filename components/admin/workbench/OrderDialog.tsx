@@ -238,9 +238,18 @@ export function OrderDialog({
     if (detail && tab === null) setTab(openReqs.length > 0 ? "planner" : "money")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail])
+  // Key this on the ids, not on the array. `assignments` arrives from the
+  // workbench as `data.assignments[orderId] ?? []`, so an order with nobody on
+  // it yet gets a brand new array on every parent render - and the workbench
+  // polls. Watching the array's identity, this effect fired on each of those
+  // and threw away the chef the user had just clicked, so picking a chef only
+  // ever failed on the orders that had none, which is exactly when you need to
+  // (owner, 2026-10-05: "我这次又是选人选不上"). orderId stays in the deps
+  // because two unassigned orders share the same empty id list.
+  const assignedIds = assignments.map((a) => a.staffId).join(",")
   useEffect(() => {
-    setTeam(assignments.map((a) => a.staffId))
-  }, [assignments])
+    setTeam(assignedIds ? assignedIds.split(",") : [])
+  }, [assignedIds, orderId])
   useEffect(() => {
     setSheet(null)
   }, [orderId])
