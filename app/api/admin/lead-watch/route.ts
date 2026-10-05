@@ -42,9 +42,59 @@ const MISSED_CALL_GRACE_MS = 2 * 60_000
 // of every renotify_minutes (2026-09-27 audit: p90 reply time was 103 min).
 const URGENT_AFTER_MIN = 15
 const URGENT_RENOTIFY_MS = 10 * 60_000
+// The desktop task only ever ran 07:00-23:59 PT, so the automatic texts
+// (first response, missed-call backstop) keep those hours now that a server
+// cron calls this around the clock. The backup person is texted in a
+// narrower window: nobody is woken for a lead that can wait until 8.
+const ACTIVE_HOURS_PT: [number, number] = [7, 24]
+const ESCALATE_HOURS_PT: [number, number] = [8, 23]
+// A party occupies the desk from 90 min before the booked start (driving,
+// setup) to 150 min after it (cooking, packing up).
+const PARTY_BEFORE_MS = 90 * 60_000
+const PARTY_AFTER_MS = 150 * 60_000
+const ESCALATE_RENOTIFY_MS = 60 * 60_000
 
+// Two callers: the workbench / desktop task (admin actor) and the Supabase
+// pg_cron job, which carries its own single-purpose key (LEAD_WATCH_CRON_KEY,
+// 2026-10-04) so the owner key never sits in the database. The cron key is
+// accepted here and nowhere else.
 async function isAuthorized(request: NextRequest): Promise<boolean> {
-  return (await resolveAdminActor(request)) !== null
+  if (await resolveAdminActor(request)) return true
+  const cronKey = process.env.LEAD_WATCH_CRON_KEY?.trim()
+  if (!cronKey) return false
+  const bearer = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim()
+  const provided = request.headers.get("x-admin-key")?.trim() || bearer
+  return provided === cronKey
+}
+
+function ptHour(ms: number): number {
+  const h = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hour12: false }).format(new Date(ms))
+  return Number(h) % 24
+}
+const withinPt = (ms: number, [from, to]: [number, number]) => {
+  const h = ptHour(ms)
+  return h >= from && h < to
+}
+
+type AnySupabase = NonNullable<ReturnType<typeof getSupabaseAdmin>>
+
+// Is a party on right now? Any booked order whose window covers this moment.
+// The owner cooks most of them, and when he does not, the backup still only
+// hears about customers who have already waited escalate_after_minutes.
+async function partyInProgress(supabase: AnySupabase, now: number): Promise<boolean> {
+  const { data } = await supabase
+    .from("orders")
+    .select("id, event_start")
+    .eq("deposit_status", "paid_verified")
+    .gte("event_start", new Date(now - PARTY_AFTER_MS).toISOString())
+    .lte("event_start", new Date(now + PARTY_BEFORE_MS).toISOString())
+    .limit(1)
+  return (data ?? []).length > 0
+}
+
+const fmtPhone = (e164: string | null | undefined) => {
+  const d = (e164 ?? "").replace(/\D/g, "").slice(-10)
+  return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : (e164 ?? "")
 }
 
 // The 555 exchange is never assigned to real subscribers; our own tests use it.
@@ -152,10 +202,17 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const dryRun = request.nextUrl.searchParams.get("dry") === "1"
+  // consumer=cron: nobody reads that response, so the "reported once" marks
+  // for plain items are left alone - otherwise the server run at :05 would
+  // swallow the push the desktop task sends at :10. Escalation keeps its own marks.
+  const cronCaller = request.nextUrl.searchParams.get("consumer") === "cron"
   const now = Date.now()
   const watch = (await getWorkbenchSettings()).lead_watch
   if (!watch.enabled) {
     return NextResponse.json({ ok: true, dryRun, disabled: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 })
+  }
+  if (!withinPt(now, ACTIVE_HOURS_PT)) {
+    return NextResponse.json({ ok: true, dryRun, quietHours: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 })
   }
 
   // ---- open leads with no first response --------------------------------
@@ -363,12 +420,55 @@ export async function POST(request: NextRequest) {
       return now - last >= (c.urgent ? URGENT_RENOTIFY_MS : watch.renotify_minutes * 60_000)
     })
     needsHuman = fresh.map((c) => ({ ...c.item, urgent: c.urgent }))
-    if (!dryRun && fresh.length > 0) {
+    if (!dryRun && !cronCaller && fresh.length > 0) {
       await supabase
         .from("lead_watch_notified")
         .upsert(fresh.map((c) => ({ key: c.key, kind: c.key.split(":")[0], notified_at: new Date().toISOString() })), { onConflict: "key" })
     }
   }
 
-  return NextResponse.json({ ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, needsHuman, stillOpen: candidates.length })
+  // ---- 派对时段转接 -------------------------------------------------------
+  // 2026-10-01~03: the owner was cooking Friday and Saturday, six leads waited
+  // three hours or more, and that cohort closed 0 of 20 (the week before: 9 of
+  // 30). When a party is on and a customer has waited escalate_after_minutes,
+  // the backup number gets one text with the queue; the same item is re-sent
+  // after an hour if it is still open. Off until a number is set.
+  const escalated: Array<Record<string, unknown>> = []
+  const escalateTo = watch.escalate_mode !== "off" ? toE164(watch.escalate_phone) : null
+  if (escalateTo && !isTestNumber(escalateTo) && candidates.length > 0 && withinPt(now, ESCALATE_HOURS_PT)) {
+    const busy = watch.escalate_mode === "always" ? true : await partyInProgress(supabase, now)
+    const due = busy ? candidates.filter((c) => Number(c.item.minutesWaiting) >= watch.escalate_after_minutes) : []
+    if (due.length > 0) {
+      const keys = due.map((c) => `esc:${c.key}`)
+      const { data: already } = await supabase.from("lead_watch_notified").select("key, notified_at").in("key", keys)
+      const lastAt = new Map((already ?? []).map((r) => [r.key as string, new Date(r.notified_at).getTime()]))
+      const fresh = due.filter((c) => {
+        const last = lastAt.get(`esc:${c.key}`)
+        return last === undefined || now - last >= ESCALATE_RENOTIFY_MS
+      })
+      if (fresh.length > 0) {
+        const lines = fresh.slice(0, 3).map((c, i) => {
+          const it = c.item as Record<string, unknown>
+          const wait = `等 ${Number(it.minutesWaiting)} 分`
+          if (c.key.startsWith("sms:")) {
+            const body = String(it.body ?? "").replace(/\s+/g, " ").slice(0, 60)
+            return `${i + 1}. ${fmtPhone(String(it.from ?? ""))} 问“${body}”（${wait}）`
+          }
+          const who = [it.city, it.guests ? `${it.guests} 人` : null].filter(Boolean).join(" ")
+          return `${i + 1}. 新线索 ${who || fmtPhone(String(it.phone ?? ""))}（${wait}）`
+        })
+        const more = fresh.length > 3 ? ` 还有 ${fresh.length - 3} 条。` : ""
+        const text = `Real Hibachi 值班：${watch.escalate_mode === "always" ? "" : "老板在场上，"}${fresh.length} 位客人等回复。${lines.join(" ")}${more} 工作台：https://www.realhibachi.com/admin/leads`
+        const sms = dryRun ? ({ ok: true } as const) : await sendSms(escalateTo, text)
+        escalated.push({ to: fmtPhone(escalateTo), items: fresh.map((c) => c.key), sms: sms.ok ? (dryRun ? "dry" : "sent") : ("error" in sms ? sms.error : "failed"), text })
+        if (!dryRun && sms.ok) {
+          await supabase
+            .from("lead_watch_notified")
+            .upsert(fresh.map((c) => ({ key: `esc:${c.key}`, kind: "esc", notified_at: new Date().toISOString() })), { onConflict: "key" })
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, needsHuman, escalated, stillOpen: candidates.length })
 }

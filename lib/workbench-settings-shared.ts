@@ -64,6 +64,10 @@ export type WorkbenchSettings = {
     auto_first_response: boolean
     grace_minutes: number
     renotify_minutes: number
+    // 派对时段转接：老板在场上时，等太久的客人由备份号码接手（2026-10-04）。
+    escalate_mode: "off" | "party_hours" | "always"
+    escalate_phone: string
+    escalate_after_minutes: number
   }
   quick_replies: QuickReply[]
   calendar: {
@@ -174,6 +178,9 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     auto_first_response: true,
     grace_minutes: 5,
     renotify_minutes: 120,
+    escalate_mode: "party_hours",
+    escalate_phone: "",
+    escalate_after_minutes: 15,
   },
   dispatch: {
     busy_min_minutes: 90,
@@ -305,6 +312,9 @@ export function sanitizeSection<K extends SettingsSection>(section: K, raw: unkn
         auto_first_response: bool(r.auto_first_response, d.lead_watch.auto_first_response),
         grace_minutes: num(r.grace_minutes, d.lead_watch.grace_minutes, 0, 120),
         renotify_minutes: num(r.renotify_minutes, d.lead_watch.renotify_minutes, 10, 1440),
+        escalate_mode: r.escalate_mode === "off" || r.escalate_mode === "always" || r.escalate_mode === "party_hours" ? r.escalate_mode : d.lead_watch.escalate_mode,
+        escalate_phone: str(r.escalate_phone, d.lead_watch.escalate_phone, 30),
+        escalate_after_minutes: num(r.escalate_after_minutes, d.lead_watch.escalate_after_minutes, 5, 240),
       }
       return out as WorkbenchSettings[K]
     }

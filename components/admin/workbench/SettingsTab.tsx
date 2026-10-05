@@ -239,7 +239,7 @@ export function SettingsTab({
         </div>
       </Section>
 
-      <Section title="线索巡检（自动首响 + 提醒）" hint="桌面定时任务每 10 分钟调一次；关掉开关它就只报告不动手。" section="lead_watch" meta={meta} canEdit={canEdit} dirty={dirty("lead_watch")} busy={busy === "lead_watch"} onSave={() => void save("lead_watch")} onReset={() => void save("lead_watch", true)}>
+      <Section title="线索巡检（自动首响 + 提醒 + 派对时段转接）" hint="服务器每 10 分钟跑一次，不依赖电脑开着；关掉开关它就只报告不动手。转接：老板在场上时，等太久的客人由备份号码接手。" section="lead_watch" meta={meta} canEdit={canEdit} dirty={dirty("lead_watch")} busy={busy === "lead_watch"} onSave={() => void save("lead_watch")} onReset={() => void save("lead_watch", true)}>
         <div style={grid}>
           <label className="check">
             <input type="checkbox" checked={w.enabled} disabled={!canEdit} onChange={(e) => set("lead_watch", { enabled: e.target.checked })} /> 巡检开启
@@ -249,6 +249,15 @@ export function SettingsTab({
           </label>
           {numField("留资后等", w.grace_minutes, (n) => set("lead_watch", { grace_minutes: n }), { suffix: "分钟再动（让第二步先落地）" })}
           {numField("同一条再提醒间隔", w.renotify_minutes, (n) => set("lead_watch", { renotify_minutes: n }), { suffix: "分钟", min: 10 })}
+          <Field label="派对时段转接">
+            <select className="input" value={w.escalate_mode} disabled={!canEdit} onChange={(e) => set("lead_watch", { escalate_mode: e.target.value as typeof w.escalate_mode })}>
+              <option value="party_hours">有派对在进行时</option>
+              <option value="always">任何时候</option>
+              <option value="off">关</option>
+            </select>
+          </Field>
+          {textField("转接给（手机号）", w.escalate_phone, (v) => set("lead_watch", { escalate_phone: v }), "626-555-0100")}
+          {numField("客人等超过", w.escalate_after_minutes, (n) => set("lead_watch", { escalate_after_minutes: n }), { suffix: "分钟就发短信给备份号（08:00–23:00）", min: 5 })}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button type="button" className="btn btn-secondary btn-sm" disabled={busy === "watch"} onClick={() => void tryWatch()}>
