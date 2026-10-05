@@ -104,6 +104,12 @@ const FOLLOWUP_WAIT_MS = 20 * 3600_000
 const SIGNAL_WINDOW_MS = 48 * 3600_000
 const COURTESY_WINDOW_MS = 2 * 3600_000
 const ORDER_HORIZON_DAYS = 14
+/**
+ * Twilio stamps a text when the carrier takes it (date_sent), a second or two
+ * after the timeline logged the same send. Only a Twilio send later than this
+ * is one the timeline missed (a text from the phone app).
+ */
+const TWILIO_LAG_MS = 2 * 60_000
 
 const SCAN_TYPES = Array.from(
   new Set([
@@ -234,7 +240,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const lastCustomerAt = later(lastInAt, lastCallAt)
 
     let run = outbound.filter((m) => !lastInAt || m.at > lastInAt).length
-    if (tw?.lastOutAt && (!dbLastOut || tw.lastOutAt > dbLastOut)) run += 1
+    // Compared straight, the carrier's stamp counted every desk / workbench text
+    // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04).
+    if (tw?.lastOutAt && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
 
     const holdActive = Boolean(lead.hold_until && Date.parse(lead.hold_until) > now && !(lastCustomerAt && lead.hold_set_at && lastCustomerAt > lead.hold_set_at))
     const callbackNote = [...notes].reverse().find((n) => /^\s*\[callback\]/i.test(n.note)) ?? null
