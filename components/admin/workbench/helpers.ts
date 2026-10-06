@@ -82,6 +82,12 @@ export type OrderRow = {
   deposit_status: string | null
   deposit_required_cents: number | null
   deposit_paid_total_cents: number | null
+  /** Card on file (D-1006-04): set when the date was locked with a saved card and $0 charged. */
+  stripe_payment_method_id?: string | null
+  card_brand?: string | null
+  card_last4?: string | null
+  card_funding?: string | null
+  card_on_file_at?: string | null
   details_status: string | null
   quoted_total_cents: number | null
   amount_paid_total_cents: number | null
@@ -106,6 +112,19 @@ export type OrderRow = {
   /** Chef gratuity the customer typed on /pay. Selected, not necessarily paid. */
   chosen_gratuity_cents?: number | null
   chosen_gratuity_at?: string | null
+}
+
+/** "押金已付 $19.90" for a paid deposit, "已留卡 VISA ····4242" for a card on file, "" otherwise. */
+export function lockLabel(o: Pick<OrderRow, "deposit_paid_total_cents" | "deposit_status" | "stripe_payment_method_id" | "card_brand" | "card_last4" | "card_funding">): string {
+  const cents = o.deposit_paid_total_cents ?? 0
+  if (cents > 0) return `押金已付 $${(cents / 100).toFixed(2)}`
+  if (o.stripe_payment_method_id || o.card_last4) {
+    const brand = (o.card_brand ?? "card").toUpperCase()
+    const tail = o.card_last4 ? ` ····${o.card_last4}` : ""
+    const debit = o.card_funding === "debit" || o.card_funding === "prepaid" ? ` · ${o.card_funding}` : ""
+    return `已留卡 ${brand}${tail}${debit}`
+  }
+  return o.deposit_status === "paid_verified" ? "已确认" : ""
 }
 
 /**

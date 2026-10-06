@@ -27,6 +27,12 @@ const LIST_COLUMNS = [
   "deposit_status",
   "deposit_required_cents",
   "deposit_paid_total_cents",
+  // Card on file (D-1006-04): the date was locked with a saved card, nothing charged.
+  "stripe_payment_method_id",
+  "card_brand",
+  "card_last4",
+  "card_funding",
+  "card_on_file_at",
   "details_status",
   "quoted_total_cents",
   "amount_paid_total_cents",

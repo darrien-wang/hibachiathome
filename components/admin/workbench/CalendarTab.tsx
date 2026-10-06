@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { Chip } from "./ui"
 import { DayMap } from "./DayMap"
-import { addDays, dowZh, eventParts, firstName, md, parseYmd, ptToday, stageOf, type OrderRow } from "./helpers"
+import { addDays, dowZh, eventParts, firstName, md, parseYmd, ptToday, stageOf, type OrderRow, lockLabel } from "./helpers"
 import { holidayOn, upcomingHolidays } from "./holidays"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
@@ -60,7 +60,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
             name: firstName(o.customer_name) || o.customer_name || o.customer_phone || "客户",
             guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0),
             was: was ? `${md(was.ymd)} ${was.hm}` : "",
-            deposit: (o.deposit_paid_total_cents ?? 0) > 0,
+            lock: lockLabel(o),
           }
         }),
     [orders],
@@ -131,8 +131,8 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 10px", border: "2px dashed var(--color-divider)" }}>
           <span className="kicker" style={{ color: "var(--color-accent-700)" }}>日期待定 · {held.length} 单</span>
           {held.map((h) => (
-            <button key={h.id} type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenOrder(h.id)} title="付了押金、日期还没定。点开订单填日期">
-              {h.name} · {h.guests}人{h.was ? ` · 原定 ${h.was}` : ""}{h.deposit ? " · 押金已付" : ""}
+            <button key={h.id} type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenOrder(h.id)} title="锁了日期（押金或留卡）、日期还没定。点开订单填日期">
+              {h.name} · {h.guests}人{h.was ? ` · 原定 ${h.was}` : ""}{h.lock ? ` · ${h.lock}` : ""}
             </button>
           ))}
         </div>

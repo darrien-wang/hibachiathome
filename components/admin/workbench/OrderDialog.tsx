@@ -29,6 +29,7 @@ import {
   type OrderDetail,
   type OrderRow,
   type UpdateRequest,
+  lockLabel,
 } from "./helpers"
 import type { ChefSummary, OrderAssignment } from "./chef-types"
 import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
@@ -607,7 +608,7 @@ export function OrderDialog({
                 <span key="date-hold" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
                   <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
                     日期待定{heldEv ? ` · 原定 ${md(heldEv.ymd)} ${heldEv.hm}` : ""}
-                    {(o.deposit_paid_total_cents ?? 0) > 0 ? ` · 押金已付 ${money(o.deposit_paid_total_cents)}` : ""}
+                    {lockLabel(o) ? ` · ${lockLabel(o)}` : ""}
                     {hold.note ? ` · ${hold.note}` : ""}
                   </span>
                   <input type="date" className="input" value={holdDate} onChange={(e) => setHoldDate(e.target.value)} style={{ width: 150, minHeight: 30, padding: "2px 8px" }} aria-label="新日期" />
@@ -684,7 +685,9 @@ export function OrderDialog({
               <Lines
                 rows={[
                   { label: "总报价（发票）", value: money(o.quoted_total_cents), strong: true },
-                  { label: `已收押金${deposit?.paid_at ? ` · ${stamp(deposit.paid_at)}` : ""}`, value: `− ${money(o.deposit_paid_total_cents)}` },
+                  ...((o.deposit_paid_total_cents ?? 0) > 0 || !o.stripe_payment_method_id
+                    ? [{ label: `已收押金${deposit?.paid_at ? ` · ${stamp(deposit.paid_at)}` : ""}`, value: `− ${money(o.deposit_paid_total_cents)}` }]
+                    : [{ label: `${lockLabel(o)}${o.card_on_file_at ? ` · ${stamp(o.card_on_file_at)}` : ""}`, value: "$0 · 派对后扣", muted: true }]),
                   ...(otherPaid > 0 ? [{ label: "其他已收", value: `− ${money(otherPaid)}` }] : []),
                   ...(travel ? [{ label: `含路费（发票）${travel.manual ? " · 手动" : travel.miles != null ? ` · ${Math.round(travel.miles)} 英里` : ""}`, value: `$${travel.fee}`, muted: true }] : []),
                 ]}
