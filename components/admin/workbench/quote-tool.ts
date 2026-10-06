@@ -238,11 +238,10 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
   else if (shownDiscount > 0) lines.push(`Discount: -${usd(shownDiscount)}`)
   for (const f of b.freebies) lines.push(`${f} on us`)
   const travel = !b.travelKnown ? "" : b.travelFee > 0 ? ` (includes ${usd(b.travelFee)} travel)` : ", no travel fee"
-  // Pricing terms v2 (owner 2026-10-05): listed price + 10% sales tax; a 10%
-  // cash discount when the chef is paid in cash. Both totals spelled out, and
-  // always "cash discount" - never "no tax for cash".
-  lines.push(`Total: ${usd(b.total)} + 10% sales tax = ${usd(b.cardTotal)} by card, Venmo or Zelle${travel}`)
-  lines.push(`Pay your chef in cash on the day and get a 10% cash discount: ${usd(b.total)}`)
+  // The listed (cash) price only. Owner 2026-10-06: before the deposit, tax and
+  // the cash discount are not brought up - they appear on the invoice and the
+  // pay page, and are answered when asked (leads skill §8).
+  lines.push(`Total: ${usd(b.total)}${travel}`)
   if (opts.depositLink) lines.push(`${usd(DEPOSIT_AMOUNT)} locks the date: ${opts.depositLink}`)
   return lines.join("\n")
 }

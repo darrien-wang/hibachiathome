@@ -4,7 +4,6 @@ import { readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/le
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { escapeHtml } from "@/lib/escape-html"
-import { cardTotalOf } from "@/config/pricing-rules"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -181,9 +180,7 @@ export async function POST(request: NextRequest) {
   }
 
   const smsBody = [
-    // Pricing terms v2 (owner 2026-10-05): listed price + 10% sales tax by card /
-    // Venmo / Zelle; a 10% cash discount when the chef is paid in cash.
-    `Real Hibachi: your party is saved. ${guestsLine}${eventDate ? `, ${dateLine}` : ""} - exact price ${money(total)}${weekday ? " (Weekday Special)" : ""} + 10% sales tax = ${money(cardTotalOf(total))} by card, Venmo or Zelle. Pay your chef in cash on the day and get a 10% cash discount: ${money(total)}.`,
+    `Real Hibachi: your party is saved. ${guestsLine}${eventDate ? `, ${dateLine}` : ""} - exact price ${money(total)}${weekday ? " (Weekday Special)" : ""}.`,
     discountLine,
     `Keep planning, or send this to your guests so they pick their own seats and proteins: ${plannerUrl}`,
     "Reply here with any question - a real person answers. Reply STOP to opt out.",
@@ -198,8 +195,7 @@ export async function POST(request: NextRequest) {
     `Hi ${first},`,
     "",
     `Your party is saved: ${guestsLine}${eventDate ? ` · ${dateLine}` : ""}.`,
-    `Exact price: ${money(total)}${weekday ? " (Weekday Special)" : ""} + 10% sales tax`,
-    `By card, Venmo or Zelle: ${money(cardTotalOf(total))}. Pay your chef in cash on the day and get a 10% cash discount: ${money(total)}.`,
+    `Exact price: ${money(total)}${weekday ? " (Weekday Special)" : ""}`,
     ...(discountLine ? [discountLine] : []),
     "",
     "Your private party link - open it on any device, keep designing, or send it to your guests so everyone grabs a seat and picks their own proteins:",

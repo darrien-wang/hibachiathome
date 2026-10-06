@@ -132,9 +132,10 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
   const travelSms = travel > 0 ? `, plus about $${travel} travel` : ", no travel fee"
   const sms =
     `Hi! Bling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
+    // Listed (cash) price only: tax and the cash discount are not brought up
+    // before the deposit (owner 2026-10-06); the invoice and pay page carry them.
     `For ${guests}${where} it's ${money(weekend)} Fri-Sun or ${money(weekday)} Mon-Thu${travelSms} ` +
-    `(2 proteins each + fried rice, veggies, salad and the chef show), plus 10% sales tax - ` +
-    `pay your chef in cash on the day and get a 10% cash discount. What date are you thinking?`
+    `(2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?`
   const emailText = [
     "Hi there,",
     "",
@@ -144,7 +145,6 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
     `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
     travel > 0 ? `- Travel${city ? ` to ${city}` : ""}: about $${travel}` : `- ${city || "Your area"}: no travel fee`,
     "- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.",
-    "- Prices are plus 10% sales tax. Pay your chef in cash on the day and get a 10% cash discount; card, Venmo and Zelle have no fees.",
     `- Tables, chairs & linens are $${TABLES_CHAIRS_PER_GUEST} a guest if you need them, plates & silverware $${FULL_SETUP_PER_GUEST - TABLES_CHAIRS_PER_GUEST} - or use your own.`,
     "",
     "What date are you thinking?",

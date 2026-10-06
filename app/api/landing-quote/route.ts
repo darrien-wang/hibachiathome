@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
   const smsBody = (
     updated
       ? [
-          `Real Hibachi: updated for ${guestsLine} in ${cityName}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""}) + 10% sales tax = ${money(est.cardTotal)} by card, Venmo or Zelle; ${money(total)} with the 10% cash discount when you pay your chef in cash.`,
+          `Real Hibachi: updated for ${guestsLine} in ${cityName}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
           ...whyLines,
           // The travel line is only repeated when it did not just get explained.
           previous && previous.travelFee !== travelFee ? null : travelLine,
@@ -302,11 +302,10 @@ export async function POST(request: NextRequest) {
           "Reply here with questions - a real person answers. Reply STOP to opt out.",
         ]
       : [
-          // Pricing terms v2 (owner 2026-10-05): listed price + 10% sales tax; a
-          // 10% cash discount when the chef is paid in cash. Both totals are
-          // spelled out so nobody has to do the arithmetic - and it is always
-          // "cash discount", never "no tax for cash".
-          `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}) + 10% sales tax = ${money(est.cardTotal)} by card, Venmo or Zelle. Pay your chef in cash on the day and get a 10% cash discount: ${money(total)}.`,
+          // The listed (cash) price. Tax and the cash discount are not brought up
+          // before the deposit (owner 2026-10-06): the site's price labels, the
+          // deposit page, the invoice and the pay page carry them.
+          `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
           discountLine,
           travelLine,
           `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
@@ -324,9 +323,8 @@ export async function POST(request: NextRequest) {
 
   {
     const lines = [
-      `Your ${cityName} hibachi price: ${money(total)} + 10% sales tax`,
+      `Your ${cityName} hibachi price: ${money(total)}`,
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
-      `By card, Venmo or Zelle: ${money(est.cardTotal)}. Pay your chef in cash on the day and get a 10% cash discount: ${money(total)}.`,
       ...(discountLine ? [discountLine] : []),
       travelFee
         ? `Includes about $${travelFee} travel.`
