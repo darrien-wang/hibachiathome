@@ -241,9 +241,9 @@ Hi! Bling from Real Hibachi — our system should've texted you a price and didn
 
 **B · 报价已发**
 ```
-Hi! Bling from Real Hibachi 👋 Saw your quote for [N] on [Weekday, Month D] — that date's open on our end. Dinner parties usually kick off at 7 or 7:30. Which works better for you?
+Hi! Bling from Real Hibachi 👋 Saw your quote for [N] on [Weekday, Month D] — that date's open on our end. Would a 4 PM or a 7 PM start work better for you?
 ```
-（没日期时把最后一句换成 "Which date are you looking at?"）
+（没日期时把最后一句换成 "Which date are you looking at?"。**问 4 点还是 7 点，不再问 7 点还是 7:30**——用户 2026-10-06 定：4 点场和 7 点场同一个师傅接得上，6 点场把整个晚上占死；见 §5 开场时间那段。）
 
 **C · 主动来短信**
 ```
@@ -597,7 +597,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 **做法**
 1. **先查当天的订单**（`GET /api/admin/orders?...` 或日历），看已经有谁、几点。
-2. **往能接上的档推**：当天已有 7 点的 → 推 4 点；已有 4 点的 → 推 7 点或 7:30；当天空着 → 冬天推 4 点（见下），夏天照常 6/6:30/7。
+2. **往能接上的档推**：当天已有 7 点的 → 推 4 点；已有 4 点的 → 推 7 点；当天空着 → 冬天推 4 点（见下），其余时候就问 4 点还是 7 点（首条模板 B 已经这么问，用户 2026-10-06 定，不再问 7 点还是 7:30）。
 3. **给的理由必须是为他好、而且是真的**，绝不说"我们那天排不开"（不真，也把稀缺感用歪了）：
    - **冬天（11–2 月）日落早**：先查那天那个城市的日落时间告诉他，再推 4 点——"我们在天亮时摆好台，表演正好演到日落，大家吃完天才冷下来，之后整晚留给切蛋糕和喝酒"。洛杉矶 12 月初日落约 4:44 PM，傍晚 7 点常见 50 多度（San Pedro 12/4 那单就是这么谈的）。
    - 有小孩 → 早开场，孩子吃完还能玩。
@@ -659,7 +659,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 |---|---|---|
 | **先到先得（首响效应）** | 5 分钟内回；客户回复也 5 分钟内接。别等"想好完美话术" | — |
 | **互惠** | 先给、不索取：A 型直接给精确价；免押金占位；专属 planner 工具 | "I'll pencil your date in — no deposit needed until you confirm" |
-| **微承诺 / 二选一** | 永远不问开放式 "when?"；问 "7 or 7:30?" "Sat or Sun?" "12 or 15 guests?"。每次只要一个 yes | "Which works better — 7 or 7:30?" |
+| **微承诺 / 二选一** | 永远不问开放式 "when?"；问 "4 or 7?" "Sat or Sun?" "12 or 15 guests?"。每次只要一个 yes | "Which works better — a 4 PM or a 7 PM start?" |
 | **损失厌恶** | hold 必须带期限（"until tomorrow evening"），到期还能名正言顺再跟一次；72h 免费取消 = 零风险 | "Just don't want you to lose it while you're deciding" |
 | **确定性 / 权威** | 到场承诺写在纸上、分量写在纸上、持证有保险、自己的厨师。客户买的是"这事一定成"，不是最低价 | "Your chef is confirmed by name before your party" |
 | **真实稀缺** | 只说能兑现的：具体日期开着、"weekends fill up first"（真的）。**不说** "only 1 slot left" | "Saturday's still open on our end" |
