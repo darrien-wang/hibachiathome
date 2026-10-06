@@ -35,7 +35,7 @@ const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSou
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
 const STAFF_COLUMNS =
   "id, full_name, display_name, staff_type, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
-const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data"
+const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data, created_at"
 
 type Staff = Record<string, unknown> & { id: string }
 type Assignment = {
@@ -70,6 +70,7 @@ type SettleMethod = "cash" | "card" | "prepaid" | "other"
 const SETTLE_METHODS = new Set<SettleMethod>(["cash", "card", "prepaid", "other"])
 type OrderLite = {
   service_duration_minutes?: number | null
+  created_at?: string | null
   id: string
   order_no: string | null
   customer_name: string | null
@@ -239,6 +240,9 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     status: a.assignment_status,
     orderStatus: o.order_status,
     balanceDueCents: o.balance_due_cents,
+    // v1 (through 2026-10-05): card payments carry the 4% fee. v2: the 10%
+    // sales tax instead, no fee - the statement labels its lines by this.
+    pricingTerms: pricingTermsFor(o.created_at ?? null),
   }
 }
 
@@ -820,6 +824,7 @@ export async function POST(request: NextRequest) {
               cardTipCents: x.method ? x.cardTipCents : 0,
               cardGrossCents: x.cardGrossCents,
               cardFeeCents: x.cardFeeCents,
+              pricingTerms: x.pricingTerms,
               cashCents: x.method ? x.cashCents : 0,
               cashTipCents: x.cashTipCents,
               subtotalCents: payOf(x) + (x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents : 0),
