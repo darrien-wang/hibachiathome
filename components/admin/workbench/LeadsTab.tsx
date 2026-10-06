@@ -22,6 +22,7 @@ import {
   relativeTime,
   type LeadRow,
   type LeadStats,
+  guestLabel,
 } from "./helpers"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { PlannerPill, type PlannerLive } from "./planner-live"
@@ -239,7 +240,10 @@ export function LeadsTab({
                     <PlannerPill s={planner.byLead[l.id]} project={planner.clarityProject} compact style={{ marginTop: 3 }} />
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    {l.city_or_zip ?? "—"} <span style={{ color: "var(--color-neutral-600)" }}>· {l.guest_count ?? "?"} 人</span>
+                    {l.city_or_zip ?? "—"}{" "}
+                    <span style={{ color: "var(--color-neutral-600)" }} title={guestLabel(l)?.title}>
+                      · {guestLabel(l)?.text ?? "? 人"}
+                    </span>
                     {l.event_hint ? <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>想订 {md(l.event_hint)}</div> : null}
                   </td>
                   <td style={{ maxWidth: 0, width: "36%" }}>
@@ -278,7 +282,7 @@ export function LeadsTab({
                   </span>
                 </div>
                 <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>
-                  {l.city_or_zip ?? "—"} · {l.guest_count ?? "?"} 人 · <span style={{ color: "var(--color-neutral-600)" }}>{leadKeyword(l)}</span>
+                  {l.city_or_zip ?? "—"} · {guestLabel(l)?.text ?? "? 人"} · <span style={{ color: "var(--color-neutral-600)" }}>{leadKeyword(l)}</span>
                   {l.event_hint ? ` · 想订 ${md(l.event_hint)}` : ""}
                 </div>
                 <div className="clamp2" style={{ fontSize: 13, lineHeight: 1.45, color: last.color, fontWeight: last.weight }}>

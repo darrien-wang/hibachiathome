@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
       leadChannel: 'website_direct_booking',
       cityOrZip: String(body.zip_code ?? ''),
       guestCount: Number(body.guest_adults ?? 0) + Number(body.guest_kids ?? 0),
+      adultCount: Number(body.guest_adults ?? 0),
+      childCount: Number(body.guest_kids ?? 0),
       sourcePage: '/book',
       touchpointType: 'booking_created',
       touchpointSource: 'website_api',

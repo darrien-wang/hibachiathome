@@ -171,6 +171,8 @@ export async function POST(request: NextRequest) {
         // The contact step has no real party yet (the card's default), so
         // store no guest count; the quote step writes the real one.
         guestCount: contactOnly ? undefined : adults + kids,
+        adultCount: contactOnly ? undefined : adults,
+        childCount: contactOnly ? undefined : kids,
         touchpointType: contactOnly ? "landing_contact" : "landing_quote_text",
         touchpointSource: source,
         sourcePage: pagePath,
@@ -202,7 +204,7 @@ export async function POST(request: NextRequest) {
   if (!contactOnly && supabase && leadId) {
     const { error: partyError } = await supabase
       .from("leads")
-      .update({ guest_count: adults + kids, city_or_zip: cityName, updated_at: new Date().toISOString() })
+      .update({ guest_count: adults + kids, adult_count: adults, child_count: kids, city_or_zip: cityName, updated_at: new Date().toISOString() })
       .eq("id", leadId)
     if (partyError) console.error("[landing-quote] party refresh failed", { leadId, error: partyError.message })
   }

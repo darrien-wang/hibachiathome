@@ -29,6 +29,7 @@ import {
   type LeadEvent,
   type LeadRow,
   type OrderRow,
+  guestLabel,
 } from "./helpers"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { PlannerPill, type PlannerSession } from "./planner-live"
@@ -361,7 +362,7 @@ export function LeadDialog({
     [adminKey, lead.id, lead.first_response_at, loadEvents, onChanged, pendingQuote],
   )
 
-  const cityLine = [lead.city_or_zip, lead.guest_count ? `${lead.guest_count} 人` : null, lead.event_hint ? `想订 ${md(lead.event_hint)} ${weekday ? "(周中价)" : ""}` : null].filter(Boolean).join(" · ")
+  const cityLine = [lead.city_or_zip, guestLabel(lead)?.text ?? null, lead.event_hint ? `想订 ${md(lead.event_hint)} ${weekday ? "(周中价)" : ""}` : null].filter(Boolean).join(" · ")
 
   return (
     <Dialog onClose={onClose} width={1000}>

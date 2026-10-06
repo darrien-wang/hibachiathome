@@ -29,6 +29,10 @@ export type ContactLeadUpsertInput = {
   leadType?: string
   cityOrZip?: string
   guestCount?: string | number
+  /** 大人/收费小孩/免费幼儿拆分（知道就传；工作台按成人折算显示）。 */
+  adultCount?: number
+  childCount?: number
+  littleCount?: number
   sourcePage?: string
   touchpointType?: string
   touchpointSource?: string
@@ -53,6 +57,9 @@ type NormalizedLeadInput = {
   leadChannel: string
   cityOrZip?: string
   guestCount?: number
+  adultCount?: number
+  childCount?: number
+  littleCount?: number
   sourcePage?: string
   touchpointType: string
   touchpointSource: string
@@ -182,6 +189,12 @@ function parseGuestCountFromMessage(message: string | undefined): number | undef
   return Math.trunc(parsed)
 }
 
+/** 人头拆分字段：0–500 的整数才收，别的当没传。 */
+function asHeadCount(v: unknown): number | undefined {
+  const n = Number(v)
+  return Number.isFinite(n) && n >= 0 && n <= 500 ? Math.round(n) : undefined
+}
+
 function normalizeGuestCount(value: string | number | undefined, fallbackFromMessage: number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return Math.trunc(value)
@@ -242,6 +255,9 @@ function normalizeInput(input: ContactLeadUpsertInput): NormalizedLeadInput {
     leadChannel: asNonEmptyString(input.leadChannel) ?? "contact_form",
     cityOrZip: asNonEmptyString(input.cityOrZip) ?? fallbackCityOrZip,
     guestCount: normalizeGuestCount(input.guestCount, fallbackGuestCount),
+    adultCount: asHeadCount(input.adultCount),
+    childCount: asHeadCount(input.childCount),
+    littleCount: asHeadCount(input.littleCount),
     sourcePage: asNonEmptyString(input.sourcePage),
     touchpointType: asNonEmptyString(input.touchpointType) ?? "contact_form",
     touchpointSource: asNonEmptyString(input.touchpointSource) ?? "website_api",
@@ -375,6 +391,9 @@ export async function upsertLeadFromContact(
       source_page: withFallback(current.source_page, input.sourcePage),
       city_or_zip: withFallback(current.city_or_zip, input.cityOrZip),
       guest_count: withFallback(current.guest_count, input.guestCount),
+      adult_count: withFallback(current.adult_count, input.adultCount),
+      child_count: withFallback(current.child_count, input.childCount),
+      little_count: withFallback(current.little_count, input.littleCount),
       latest_message: withFallback(input.message, current.latest_message),
       first_message: withFallback(current.first_message, input.message),
       utm_source: withFallback(current.utm_source, input.attribution.utm_source),
@@ -430,6 +449,9 @@ export async function upsertLeadFromContact(
     source_page: input.sourcePage,
     city_or_zip: input.cityOrZip,
     guest_count: input.guestCount,
+    adult_count: input.adultCount,
+    child_count: input.childCount,
+    little_count: input.littleCount,
     first_message: input.message,
     latest_message: input.message,
     utm_source: input.attribution.utm_source,

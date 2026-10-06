@@ -19,6 +19,10 @@ export type LeadRow = {
   lead_type: string | null
   city_or_zip: string | null
   guest_count: number | null
+  /** 大人/收费小孩/免费幼儿拆分；老线索三列全空。 */
+  adult_count?: number | null
+  child_count?: number | null
+  little_count?: number | null
   latest_message: string | null
   utm_source: string | null
   utm_medium: string | null
@@ -384,6 +388,23 @@ export function confirmState(o: OrderRow): ConfirmState {
 }
 export const CONFIRM_LABEL: Record<ConfirmState, string> = { confirmed: "客已确认 ✓", stale: "改后未确认", pending: "客未确认" }
 export const CONFIRM_TAG_CLS: Record<ConfirmState, string> = { confirmed: "tag-ink", stale: "tag-accent", pending: "tag-faint" }
+
+/**
+ * 线索人数的显示口径（老板 2026-10-06）：不报总人头，按成人折算——
+ * 大人 1、收费小孩 0.5、免费幼儿不算。知道拆分才折算；老线索只有
+ * guest_count 就原样 "N 人"。悬停给拆分明细。
+ */
+export function guestLabel(l: { guest_count?: number | null; adult_count?: number | null; child_count?: number | null; little_count?: number | null }): { text: string; title?: string } | null {
+  const a = l.adult_count
+  if (a != null) {
+    const kids = l.child_count ?? 0
+    const w = a + 0.5 * kids
+    const text = `${Number.isInteger(w) ? w : w.toFixed(1)} 大人量`
+    const parts = [`${a} 大人`, kids ? `${kids} 小孩×0.5` : "", l.little_count ? `${l.little_count} 免费不计` : ""].filter(Boolean)
+    return { text, title: parts.join(" + ") }
+  }
+  return l.guest_count ? { text: `${l.guest_count} 人` } : null
+}
 
 export function eventParts(iso: string | null | undefined): { ymd: string; hm: string; hour: number; minute: number; ms: number } | null {
   if (!iso) return null

@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "100", 10) || 100, 300)
 
   const LIST_COLUMNS =
-    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at, hold_until, hold_set_at, acked_until"
+    "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, adult_count, child_count, little_count, latest_message, utm_source, utm_medium, utm_campaign, utm_term, gclid, referral_code, hear_about_us, touchpoint_count, last_seen_at, hold_until, hold_set_at, acked_until"
 
   // merged_into arrives with add-lead-merge-fields.sql. Until that migration is
   // applied the column does not exist, and filtering on it would 500 the whole

@@ -397,6 +397,8 @@ export async function POST(request: Request) {
           leadType: "booking_inquiry",
           cityOrZip: location,
           guestCount: adults + kids,
+          adultCount: adults,
+          childCount: kids,
           touchpointType: "quote_book_online",
           touchpointSource: leadSource,
           sourcePage,
