@@ -17,7 +17,7 @@
 // advertised), sake/alcohol, and claims we cannot back (insurance, ratings).
 
 import {
-  CARD_SURCHARGE_RATE,
+  CASH_DISCOUNT_RATE,
   DEPOSIT_AMOUNT,
   EXTRA_PROTEIN_PRICE,
   GUESTS_PER_CHEF,
@@ -27,12 +27,14 @@ import {
   PARTY_SIZE_CUSTOM_FROM,
   PARTY_SIZE_DISCOUNT_TIERS,
   LARGE_PARTY_APPETIZER_MIN,
+  SALES_TAX_RATE,
   TABLES_CHAIRS_PER_GUEST,
   TRAVEL_FREE_RADIUS_MILES,
   TRAVEL_RATE_PER_MILE,
   UTENSILS_PER_GUEST,
   WEEKDAY_SPECIAL,
   WEEKDAY_SPECIAL_BLACKOUTS,
+  cardTotalOf,
   isPromotionActive,
 } from "@/config/pricing-rules"
 import { premiumProteins, sides } from "@/config/menu-items"
@@ -48,6 +50,7 @@ export type FactSection = { id: string; title: string; items: string[] }
 
 const usd = (n: number) => `$${n.toFixed(2).replace(/\.00$/, "")}`
 const usd2 = (n: number) => `$${n.toFixed(2)}`
+const pct = (rate: number) => `${Math.round(rate * 100)}%`
 
 function todayLA(now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(now)
@@ -65,7 +68,10 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
 
   const pricing: string[] = [
     `Standard rate, any day: ${usd2(adult.price)} per adult (13+), ${usd2(child.price)} per child (5-12), kids under 5 eat free.`,
-    `Event minimum: ${usd(MINIMUM_SPEND)} (the food total after discounts, before travel and tip).`,
+    // Pricing terms v2 (owner 2026-10-05): listed prices are before sales tax,
+    // and the cash discount is its own line - never "no tax for cash".
+    `All listed prices are before sales tax. Every total carries ${pct(SALES_TAX_RATE)} sales tax; paying the chef in cash on the day earns a ${pct(CASH_DISCOUNT_RATE)} cash discount of the same amount. So the cash total equals the listed price, and the card / Venmo / Zelle total is the listed price plus ${pct(SALES_TAX_RATE)}. No payment method carries a fee.`,
+    `Event minimum: ${usd(MINIMUM_SPEND)} (the food total after discounts, before travel, tax and tip).`,
     `Weekday Special, Monday-Thursday: ${usd2(adult.weekdayPrice)} per adult, ${usd2(child.weekdayPrice)} per child, plus a free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}): one tray for the table to share, gyoza if the customer doesn't choose. Any party size, full menu.${blackouts.length ? ` Not available on major holidays: ${blackouts.join("; ")}.` : ""}`,
     `Party Size Discount, automatic on any day and on top of the Weekday Special (counts paying heads: each adult 1, each child 5-12 counts as half, under-5s do not count): ${PARTY_SIZE_DISCOUNT_TIERS.map((t) => `${t.minGuests}-${t.maxGuests} adults ${usd(t.amount)} off`).join(", ")}. ${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
     ...(platterOn
@@ -85,7 +91,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
       .filter(Boolean)
       .join(", ")}.`,
     `Gratuity is not included; 20-25% for the chef is customary.`,
-    `Example: 15 adults on a Saturday = 15 x ${usd2(adult.price)} = ${usd2(15 * adult.price)} - ${usd(60)} party size discount = ${usd2(15 * adult.price - 60)}, plus travel if over ${TRAVEL_FREE_RADIUS_MILES} miles. The /api/agent/price endpoint computes any party exactly.`,
+    `Example: 15 adults on a Saturday = 15 x ${usd2(adult.price)} = ${usd2(15 * adult.price)} - ${usd(60)} party size discount = ${usd2(15 * adult.price - 60)}, plus travel if over ${TRAVEL_FREE_RADIUS_MILES} miles. + ${pct(SALES_TAX_RATE)} sales tax = ${usd2(cardTotalOf(15 * adult.price - 60))} by card, Venmo or Zelle; ${usd2(15 * adult.price - 60)} with the ${pct(CASH_DISCOUNT_RATE)} cash discount when the chef is paid in cash. The /api/agent/price endpoint computes any party exactly (total = cash, cardTotal = by card).`,
   ]
 
   const included: string[] = [
@@ -101,7 +107,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     `2. Get the exact price: GET ${SITE}/api/agent/price?adults=N&kids=N&date=YYYY-MM-DD&zip=ZIP.`,
     `3. Only with the customer's permission, submit a quote request: POST ${SITE}/api/agent/quote-request with their name, mobile and email. We text and email them the exact quote and a secure deposit link, and a real person follows up by text.`,
     `4. The customer pays a ${usd2(DEPOSIT_AMOUNT)} deposit to lock the date themselves. Agents never handle payment. The deposit is fully refundable with 72+ hours notice.`,
-    `5. The balance is paid on the day: cash (no fee), or card, Venmo or Zelle (+${Math.round(CARD_SURCHARGE_RATE * 100)}%).`,
+    `5. The balance is paid on the day: by card, Venmo or Zelle (the listed price plus ${pct(SALES_TAX_RATE)} sales tax, no fees), or in cash to the chef with the ${pct(CASH_DISCOUNT_RATE)} cash discount, which brings it back to the listed price.`,
     `Full API description (OpenAPI 3.1): ${SITE}/openapi.json. Humans can book at ${SITE}/quote.`,
     `Prefer a person? Call or text ${phone.voice.display}, or email ${siteConfig.contact.email}.`,
   ]

@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
+import { pricingTermsFor, SALES_TAX_RATE } from "@/config/pricing-rules"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -591,7 +592,7 @@ export async function POST(request: NextRequest) {
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
         const { data: asn } = await supabase.from("order_staff_assignments").select("order_id").eq("id", body.assignment_id).maybeSingle()
         if (!asn) return NextResponse.json({ error: "assignment not found" }, { status: 404 })
-        const { data: ord } = await supabase.from("orders").select("balance_due_cents, quoted_total_cents").eq("id", asn.order_id).maybeSingle()
+        const { data: ord } = await supabase.from("orders").select("balance_due_cents, quoted_total_cents, created_at").eq("id", asn.order_id).maybeSingle()
         const { data: pays } = await supabase
           .from("payments")
           .select("id, type, provider, status, amount_cents, external_payment_id, paid_at")
@@ -615,9 +616,14 @@ export async function POST(request: NextRequest) {
         // 2026-10-01 起刷卡价 = 现金价 × 1.04（发票刷卡价、/pay 专属链接同一
         // 口径），所以 4% 要从实刷里 ÷1.04 拿掉，不是 ×0.96——后者多扣一点，
         // 师傅拿到的就比 /pay 上告诉客人的"$X for your chef"少（$1,213.87 少 $1.86）。
+        // Pricing terms v2 (orders from 2026-10-06): no fee; what sits on top of
+        // the cash balance in a card payment is the 10% sales tax on the event
+        // total (quoted_total is the cash total), and the tip is untaxed.
+        const terms = pricingTermsFor(ord?.created_at ?? null)
         const grossCents = card.amount_cents ?? 0
-        const netCents = Math.round(grossCents / (1 + CARD_FEE_RATE))
-        const feeCents = grossCents - netCents
+        const taxCents = terms === "v2_tax_added" ? Math.round(Math.max(0, ord?.quoted_total_cents ?? balanceRefCents + others) * SALES_TAX_RATE) : 0
+        const netCents = terms === "v2_tax_added" ? Math.max(0, grossCents - taxCents) : Math.round(grossCents / (1 + CARD_FEE_RATE))
+        const feeCents = terms === "v2_tax_added" ? 0 : grossCents - netCents
         return NextResponse.json({
           ok: true,
           found: true,
@@ -625,9 +631,11 @@ export async function POST(request: NextRequest) {
           paidAt: card.paid_at,
           grossCents,
           feeCents,
+          taxCents,
           netCents,
           balanceRefCents,
-          feeRatePct: CARD_FEE_RATE * 100,
+          terms,
+          feeRatePct: terms === "v2_tax_added" ? 0 : CARD_FEE_RATE * 100,
           tipCents: Math.max(0, netCents - balanceRefCents),
         })
       }

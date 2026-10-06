@@ -875,12 +875,12 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "How do payment and paperwork work for a company?",
         answer:
-          "You get an itemized quote with your company name on it. A company card is fine — cards carry a 4% processing fee and settle at least 72 hours before the event; cash on the day has no fee. If accounting needs a W-9, just ask. We handle headcount changes gracefully, and cancelling or rescheduling is free with 72 hours' notice.",
+          "You get an itemized quote with your company name on it. A company card is fine — card, Venmo and Zelle carry no fees and pay the listed price plus 10% sales tax; paying the chef in cash on the day earns a 10% cash discount. Either way the balance is paid on the day of the event. If accounting needs a W-9, just ask. We handle headcount changes gracefully, and cancelling or rescheduling is free with 72 hours' notice.",
       },
       {
         question: "What does it cost for a team?",
         answer:
-          "Monday–Thursday is $54.90 per person with a free appetizer of your choice (gyoza, edamame or spring rolls); Friday–Sunday is $59.90, and so are Thanksgiving week and December 20 – January 3. There's a $599 event minimum, and a Party Size Discount comes off automatically: $30 for 10–14 adults, $60 for 15–24, $90 for 25–30, $120 for 31–40, $150 for 41–50, $180 for 51–60. A 28-person weekday lunch comes to about $1,450; gratuity is separate and up to you (20–25% is customary). Over 60 people, we quote it for you directly. Need seating? Tables, chairs and tablecloths are $10 per person. Every guest picks 2 proteins, with fried rice, vegetables and salad — extra rice and vegetables are free if you tell us ahead.",
+          "Monday–Thursday is $54.90 per person with a free appetizer of your choice (gyoza, edamame or spring rolls); Friday–Sunday is $59.90, and so are Thanksgiving week and December 20 – January 3. There's a $599 event minimum, and a Party Size Discount comes off automatically: $30 for 10–14 adults, $60 for 15–24, $90 for 25–30, $120 for 31–40, $150 for 41–50, $180 for 51–60. A 28-person weekday lunch comes to about $1,450 plus 10% sales tax — about $1,590 by card, Venmo or Zelle, or $1,450 with the 10% cash discount when you pay the chef in cash; gratuity is separate and up to you (20–25% is customary). Over 60 people, we quote it for you directly. Need seating? Tables, chairs and tablecloths are $10 per person. Every guest picks 2 proteins, with fried rice, vegetables and salad — extra rice and vegetables are free if you tell us ahead.",
       },
       {
         question: "What about dietary needs on a big crew?",

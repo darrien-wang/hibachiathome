@@ -38,6 +38,17 @@ import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
 import { describeSetup, findTheme, findVariant } from "@/config/table-themes"
 import { ORDER_SOP_STEPS } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
+import { pricingTermsFor, SALES_TAX_RATE } from "@/config/pricing-rules"
+
+// 尾款口径（老板 2026-10-05）：10-06 起建的单是税前价 + 10% 税、现金 10% 折扣、
+// 无手续费；之前的单含税、刷卡 +4%。对客话术按订单建立时间分两套。
+function balanceTerms(o: OrderRow): { v2: boolean; cashCents: number; cardCents: number } {
+  const cashCents = Math.max(0, o.balance_due_cents ?? 0)
+  const v2 = pricingTermsFor(o.created_at) === "v2_tax_added"
+  // The tax is on the event total (cash total), not on the balance.
+  const taxCents = v2 ? Math.round(Math.max(0, o.quoted_total_cents ?? cashCents + (o.deposit_paid_total_cents ?? 0)) * SALES_TAX_RATE) : 0
+  return { v2, cashCents, cardCents: cashCents + taxCents }
+}
 
 // 订单弹窗 · 售后：金额·收款 / Planner·派单 / 短信 / 记录.
 // Orders are owned by the invoice app; this dialog reads them and acts
@@ -113,6 +124,10 @@ function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings): { subj
   const where = o.event_address ? ` at ${o.event_address}` : ""
   const line = when ? `Your hibachi party is set for ${when}${where}${guests ? ` for ${guests} guests` : ""}.` : `Your hibachi party is confirmed${where}.`
   const bal = o.balance_due_cents ?? 0
+  const bt = balanceTerms(o)
+  const balanceLine = bt.v2
+    ? `Your remaining balance is ${money(bt.cashCents)} in cash (that's with your 10% cash discount), or ${money(bt.cardCents)} by card, Venmo or Zelle (that includes the 10% sales tax) - due on the day of the party.`
+    : `Your remaining balance is ${money(bal)}, due on the day of the party - cash, Zelle, Venmo or card all work (card adds 4%).`
   const sign = `\n\n${s.business.agent_name}\n${s.business.brand} · www.realhibachi.com\n${s.business.support_email} · ${s.business.support_phone}`
   if (t === "details")
     return {
@@ -122,7 +137,7 @@ function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings): { subj
   if (t === "balance")
     return {
       subject: `You're confirmed - ${eventParts(o.event_start) ? `${md(eventParts(o.event_start)!.ymd)} ` : ""}hibachi party (${o.order_no ?? ""})`,
-      body: `${hi}\n\n${line}\n\n${bal > 0 ? `Your remaining balance is ${money(bal)}, due on the day of the party - cash, Zelle, Venmo or card all work (card adds 4%).` : "Your balance is settled - nothing more to pay."}\n\nYour chef will be confirmed by name before the party and arrives about 10 minutes before start time with the grill and fresh ingredients. See you soon!${sign}`,
+      body: `${hi}\n\n${line}\n\n${bal > 0 ? balanceLine : "Your balance is settled - nothing more to pay."}\n\nYour chef will be confirmed by name before the party and arrives about 10 minutes before start time with the grill and fresh ingredients. See you soon!${sign}`,
     }
   return {
     subject: `Thank you from ${s.business.brand}!`,
@@ -366,7 +381,10 @@ export function OrderDialog({
   // 客服动作 = 复制话术+链接，粘出去就能发（2026-09-28 用户定：不放解释文字，
   // 放一条现成的对客短信）。
   const selfPayUrl = `https://www.realhibachi.com/pay?o=${o.id}`
-  const selfPaySms = `${settings.business.brand}: here's the secure link to settle the balance for your party - enter the total you agreed with your chef, plus a 4% card processing fee. Anything above the balance goes to your chef as their tip, 100%: ${selfPayUrl}`
+  const bt = balanceTerms(o)
+  const selfPaySms = bt.v2
+    ? `${settings.business.brand}: here's the secure link to pay your party balance by card, Venmo or Zelle - it shows the balance with the 10% sales tax. Anything above the balance goes to your chef as their tip, 100%: ${selfPayUrl}`
+    : `${settings.business.brand}: here's the secure link to settle the balance for your party - enter the total you agreed with your chef, plus a 4% card processing fee. Anything above the balance goes to your chef as their tip, 100%: ${selfPayUrl}`
   const copySelfPay = (withScript: boolean) => {
     copyText(withScript ? selfPaySms : selfPayUrl)
     setSelfPayCopied(true)
@@ -470,7 +488,13 @@ export function OrderDialog({
   const payOther = digits10(payPhone) !== digits10(o.customer_phone)
   const smsChips = [
     { id: "confirm", label: "开席前确认", body: ORDER_SOP_STEPS.find((s) => s.id === "w_confirm48")!.build({ chefName: assignments[0]?.name ?? settings.business.chef_default_name }) },
-    { id: "balance", label: "尾款提醒", body: `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - the balance is ${money(o.balance_due_cents)} and is due on the day (cash, Zelle, Venmo, or card with 4%). Text here if you'd like a card link.` },
+    {
+      id: "balance",
+      label: "尾款提醒",
+      body: bt.v2
+        ? `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - the balance is ${money(bt.cashCents)} in cash (with your 10% cash discount) or ${money(bt.cardCents)} by card, Venmo or Zelle, due on the day. Text here if you'd like a card link.`
+        : `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - the balance is ${money(o.balance_due_cents)} and is due on the day (cash, Zelle, Venmo, or card with 4%). Text here if you'd like a card link.`,
+    },
     { id: "review", label: "邀评", body: ORDER_SOP_STEPS.find((s) => s.id === "w_review")!.build({ firstName: first || undefined, reviewUrl: settings.business.review_url || undefined }) },
     { id: "ugc", label: "晒图邀请", body: ORDER_SOP_STEPS.find((s) => s.id === "w_ugc")!.build({ firstName: first || undefined }) },
   ]

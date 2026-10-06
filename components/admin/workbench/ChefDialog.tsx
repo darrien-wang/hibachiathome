@@ -273,7 +273,7 @@ export function ChefDialog({
   const cardFlow = async (s: ShiftRow) => {
     setBusy(`m:${s.assignmentId}`)
     setMsg(null)
-    let look: { found?: boolean; grossCents?: number; feeCents?: number; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; reason?: string } | null = null
+    let look: { found?: boolean; grossCents?: number; feeCents?: number; taxCents?: number; terms?: string; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; reason?: string } | null = null
     try {
       look = await adminJson(adminKey, "/api/admin/chefs", { body: { action: "card_lookup", assignment_id: s.assignmentId } })
     } catch (e) {
@@ -283,7 +283,9 @@ export function ChefDialog({
     }
     const lines = look?.found
       ? [
-          `实刷 ${money(look.grossCents ?? 0)} − 手续费 4% ${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`,
+          look.terms === "v2_tax_added"
+            ? `实刷 ${money(look.grossCents ?? 0)} − 消费税 10% ${money(look.taxCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`
+            : `实刷 ${money(look.grossCents ?? 0)} − 手续费 4% ${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`,
           `应收尾款 ${money(look.balanceRefCents ?? 0)}`,
 
         ].filter(Boolean).join("\n")

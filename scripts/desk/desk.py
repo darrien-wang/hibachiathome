@@ -755,10 +755,11 @@ def cmd_order(a):
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
         return
     if a.op == "remind":
-        # Owner 2026-10-05: the text before the party says what is left to pay
-        # and that cash to the chef is easiest - cash is the price, and card,
-        # Venmo and Zelle add 4%. The balance comes from the invoice engine, the
-        # same number the chef's sheet and /pay use.
+        # Owner 2026-10-05: the text before the party says what is left to pay.
+        # v2 orders (from 10-06): cash balance (10% cash discount applied) and
+        # card / Venmo / Zelle balance (10% sales tax). v1 orders: the old line.
+        # The balance comes from the invoice engine, the same number the chef's
+        # sheet and /pay use.
         import datetime as _dt
         from zoneinfo import ZoneInfo
         c = prefill.get("contactInfo") or {}

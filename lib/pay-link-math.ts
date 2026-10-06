@@ -76,7 +76,7 @@ export function checkoutDescription(split: PaymentSplit, cashBalanceDollars: num
         : split.towardBalanceCents < balanceCents
           ? "Toward your party balance"
           : "Party balance"
-  if (terms.version === "v2") return split.towardBalanceCents === 0 ? what : `${what} · sales tax included`
+  if (terms.version === "v2") return split.towardBalanceCents === 0 ? what : `${what} · with 10% sales tax`
   return `${what} · 4% card fee included`
 }
 

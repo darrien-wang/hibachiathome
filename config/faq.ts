@@ -17,9 +17,10 @@ Gratuity: 20–25% of the final bill is customary
 
 Travel fee: first 50 miles free, then $1 per mile — shown in your quote before you pay
 
-Payment options:
-- Cash (preferred, no fee)
-- Credit card, Venmo or Zelle (4% processing fee)
+Sales tax and payment:
+- Prices are plus 10% sales tax
+- Pay your chef in cash on the day and get a 10% cash discount
+- Card, Venmo and Zelle have no fees
 
 Whichever you pick, the balance is paid on the day of your party.`,
   },

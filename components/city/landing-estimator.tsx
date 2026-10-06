@@ -11,6 +11,7 @@ import {
   GUEST_TIERS,
   MINIMUM_SPEND,
   calcSimpleEstimate,
+  cardTotalOf,
   checkWeekdayEligibility,
   displayRangeForEstimate,
   formatDisplayRange,
@@ -543,11 +544,16 @@ export default function LandingEstimator({
                 <p className="mt-1 text-[11px] font-semibold text-gold-700">
                   {discountCode ? `Code ${discountCode} · −$${sizeOff} party size discount included` : "Your exact price · nothing charged"}
                 </p>
+                {/* Pricing terms v2 (owner 2026-10-05): the big number is the listed
+                    (cash) price, before 10% sales tax; the text message says the same. */}
+                <p className="mt-1 text-[11px] leading-snug text-clay-600">
+                  + 10% sales tax = {fmt(est.cardTotal)} by card, Venmo or Zelle. Pay your chef in cash on the day and get a 10% cash discount: {fmt(total)}.
+                </p>
               </div>
               <p className="text-right text-xs font-semibold leading-snug text-gold-700">
                 {fee > 0 ? `~$${fee} travel added` : travelNote ?? (cityIsPage ? "Travel included" : "Travel confirmed from your address")}
                 <br />
-                {weekday ? "free appetizer (your pick)" : "No fees hidden"}
+                {weekday ? "free appetizer (your pick)" : "No card fees"}
               </p>
             </div>
 
@@ -567,6 +573,9 @@ export default function LandingEstimator({
                     A real person follows up within 15 min by text or email.
                   </p>
                   <p className="mt-2 font-serif text-2xl font-extrabold leading-none">{fmt(sent.total)}</p>
+                  <p className="mt-1 text-xs text-clay-700">
+                    + 10% sales tax = {fmt(cardTotalOf(sent.total))} by card, Venmo or Zelle · {fmt(sent.total)} with the 10% cash discount when you pay your chef in cash
+                  </p>
                   {sent.discountCode ? (
                     <p className="mt-1 text-xs font-semibold text-gold-700">Code {sent.discountCode} · −${sent.discount} party size discount, applied automatically when you book</p>
                   ) : null}

@@ -14,9 +14,10 @@ Propina: lo habitual es 20–25% de la cuenta final
 
 Cargo por traslado: las primeras 50 millas son gratis, después $1 por milla — lo ves en tu cotización antes de pagar
 
-Formas de pago:
-- Efectivo (preferido, sin comisión)
-- Tarjeta de crédito, Venmo o Zelle (4% de comisión)
+Impuesto y formas de pago:
+- Los precios no incluyen el 10% de impuesto sobre ventas
+- Si pagas en efectivo al chef el día del evento recibes un 10% de descuento por pago en efectivo
+- Tarjeta, Venmo y Zelle no tienen comisión
 
 Elijas lo que elijas, el saldo se paga el día de tu fiesta.`,
   },

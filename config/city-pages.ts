@@ -2350,7 +2350,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Riverside?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — everything included. Weekday Special ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies in California too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup and cleanup included. Prices are plus 10% sales tax; pay your chef in cash on the day and get a 10% cash discount. Weekday Special ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies in California too.",
       },
     ],
     nearby: ["corona", "temecula", "anaheim"],
@@ -2819,7 +2819,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Corona — big Inland Empire backyards, family milestones, warm-evening parties. $59.90/adult flat rate with setup and cleanup.",
     intro: [
       "Corona backyards have what LA patios dream of: space. Room for the grill, room for long tables, and warm Inland Empire evenings that keep the party outside until late. Our chef brings the teppanyaki show to Dos Lagos, Eagle Glen, and every neighborhood between.",
-      "Just off the 91 and 15, Corona is an easy run for our chefs — birthdays, graduations, and family milestones with everything included.",
+      "Just off the 91 and 15, Corona is an easy run for our chefs — birthdays, graduations, and family milestones with chef, grill, food, show, setup and cleanup included.",
     ],
     neighborhoods: [
       "Dos Lagos",

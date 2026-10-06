@@ -200,6 +200,7 @@ export default function CityQuoteCalculator({
           <ul className="list-disc space-y-1 pl-4">
             <li>Chef, grill, food &amp; live show</li>
             <li>Setup &amp; cleanup</li>
+            <li>Prices are plus 10% sales tax — pay your chef in cash on the day and get a 10% cash discount; card, Venmo and Zelle have no fees</li>
             <li>Kids under 5 eat free</li>
             <li>First 50 miles of travel free — any travel fee shows before you pay</li>
             <li>

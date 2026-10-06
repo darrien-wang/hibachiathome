@@ -25,6 +25,7 @@ const TRUST_MARKERS = ["Reserva y modifica en línea 24/7", "Más de 500 fiestas
 const standardFeatures = [
   "$29.90 por niño (5–12), menores de 5 gratis",
   "Consumo mínimo de $599 por evento",
+  "Precios más 10% de impuesto sobre ventas · 10% de descuento si pagas en efectivo al chef el día del evento",
   "2 proteínas regulares por invitado incluidas",
   "Arroz frito, verduras frescas y ensalada incluidos",
   "Show del chef en vivo y cocina en tu casa",

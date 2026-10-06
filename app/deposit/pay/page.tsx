@@ -6,7 +6,7 @@ import Link from "next/link"
 import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
 import { getDepositAmount } from "@/config/deposit"
-import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
+import { calcSimpleEstimate, cardTotalOf, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate, formatUiDateShort } from "@/lib/date-display"
@@ -486,6 +486,11 @@ function DepositPaymentPageInner() {
     : hasBookingEstimateRange
       ? formatRange(Number(booking?.estimate_low), Number(booking?.estimate_high))
       : `$${totalAmount.toFixed(2)}`
+  // Pricing terms v2 (owner 2026-10-05): every estimate on this page is the
+  // listed (cash) price, before 10% sales tax. Card / Venmo / Zelle pay the
+  // tax; cash to the chef on the day earns a 10% cash discount. Null when the
+  // page only has a range to show, and the line below stays generic.
+  const cashEstimate = shownEstimate ?? agreedTotal ?? (!hasBookingEstimateRange && totalAmount > 0 ? totalAmount : null)
 
   const handleDepositCtaClick = async () => {
     if (!booking) return
@@ -741,6 +746,11 @@ function DepositPaymentPageInner() {
         {latest ? (
           <p className="mt-2 text-[13px] text-clay-600">Using your latest details from our text thread.</p>
         ) : null}
+        <p className="mt-2 text-[13px] text-clay-600">
+          {cashEstimate !== null
+            ? `Your estimate is before 10% sales tax: $${cardTotalOf(cashEstimate).toFixed(2)} by card, Venmo or Zelle. Pay your chef in cash on the day and get a 10% cash discount: $${cashEstimate.toFixed(2)}.`
+            : "Estimates are before 10% sales tax. Card, Venmo and Zelle pay the tax; pay your chef in cash on the day and get a 10% cash discount."}
+        </p>
 
         {detailsEditable ? (
           <div className="mt-5 rounded-[28px] bg-cream px-5 py-4 text-left">
