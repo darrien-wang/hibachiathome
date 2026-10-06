@@ -41,7 +41,7 @@ Want your number? The [instant quote tool](/quote) shows your price range in 30 
 
 We audited this market carefully. The advertised per-person price is rarely the whole story. Four patterns show up again and again in Los Angeles hibachi catering, as published on competitor sites:
 
-**1. Big deposits.** Several services ask $150 or more up front to hold a date. Ours is **$19.90, fully refundable with 72+ hours notice.**
+**1. Big deposits.** Several services ask $150 or more up front to hold a date. We hold yours with a card on file and charge nothing until after the party — free to change or cancel up to 48 hours before.
 
 **2. Per-guest setup fees.** Some services add $8–$10 per guest for table and chair setup — that's $200 hidden dollars on a 25-person party. Our setup and cleanup are in the price. (Tables and chairs themselves are your call: bring your own or add our tableware rental at $15/person.)
 
@@ -93,7 +93,7 @@ Not sure? Send a photo with your quote request and the team will confirm the spo
 ## Step 2: Pick your date and time
 
 - **Golden hour is the move.** Start the chef about an hour before sunset — the fire show runs straight into the string-light hours.
-- **Weekends book first.** Two to three weeks ahead is comfortable for a Saturday; a $19.90 refundable deposit locks it.
+- **Weekends book first.** Two to three weeks ahead is comfortable for a Saturday; a card on file locks it, nothing charged until after the party.
 - **Monday–Thursday saves real money** — $54.90/adult instead of $59.90, plus a free appetizer of your choice (gyoza, edamame or spring rolls), at any party size.
 
 ## Step 3: Count your people, then quote it
@@ -159,8 +159,8 @@ What we can give you is better: **the exact checklist we'd use to compare any at
 **1. Is the price on the website?**
 Several SoCal hibachi services won't show a single number until you fill in a form. Our rates are published everywhere: **$59.90/adult, $29.90/child 5–12, $599 event minimum** — and an [instant calculator](/quote) shows your price range before you type a thing. The exact total and your party size discount code come by text.
 
-**2. How big is the deposit, and does it refund?**
-$150+ deposits are common in this market. Ours is **$19.90, refundable in full with 72+ hours notice.**
+**2. Is there a deposit?**
+$150+ deposits are common in this market. We don't take one: a card on file holds your date and nothing is charged until after the party. Change or cancel free up to 48 hours before.
 
 **3. Is setup and cleanup included, or per guest?**
 Some services add $8–$10 per guest for setup. Ours is included — the quote is the price.
@@ -186,7 +186,7 @@ Fairness requires saying it: the core show — the onion volcano, the egg toss, 
 Run any hibachi service through those seven questions — including us. If someone beats us on all seven for your date, book them and have a great party. We publish our numbers because we win that comparison more often than not:
 
 - Published price: **$59.90/adult**, calculator with no gate
-- Deposit: **$19.90, refundable 72h+**
+- Deposit: **none — card on file, free changes up to 48h before**
 - Setup/cleanup: **included**
 - Travel: **first 50 miles free**
 - Quote = price: **yes**
@@ -284,7 +284,7 @@ The grill needs cover; the party doesn't.
 
 Most clients put up a **10'×10' pop-up tent** over the chef's station. They're inexpensive new, often cheap secondhand on Facebook Marketplace, and easy to rent. **We don't supply tents** — that's on you, and I'd rather tell you now than on the day.
 
-Beyond that: guests eat indoors, or you reschedule. Cancel or move your date with 72+ hours notice and your $19.90 deposit is refunded in full.
+Beyond that: guests eat indoors, or you reschedule. Cancel or move your date with 48+ hours notice at no charge.
 
 ## Have I ever said no?
 
@@ -308,7 +308,7 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). Setup and cleanup included, first 50 miles free, $19.90 refundable deposit. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-los-angeles-backyard-event-02.jpg",
     date: "2026-08-26",
@@ -499,7 +499,7 @@ So if your place is a haul, the tip is where that lands — and if it isn't, no 
 
 ## The deposit
 
-**$19.90 to lock your date.** Fully refundable if you cancel or reschedule with 72+ hours notice.
+**There isn't one.** A card on file holds your date and nothing is charged until after the party; change or cancel free up to 48 hours before.
 
 I mention it because deposits in this market run much higher — $150 is a number you'll see. If you're comparing services and one wants $150 before you've met the chef, that's a real difference in what you're risking to hold a Saturday.
 
@@ -553,7 +553,7 @@ For a 20-adult party in Los Angeles with no upgrades:
 | Food & chef (20 × $59.90) | $1,198 |
 | Travel (inside 50 miles) | $0 |
 | Tip at 20% | ~$240 |
-| Deposit (applied to your total) | $19.90 |
+| Deposit | None — card on file, nothing charged until after the party |
 | **Realistic total** | **~$1,440** |
 
 Add roughly $160 if everyone upgrades to filet. Subtract about $280 if you move it to a Tuesday.

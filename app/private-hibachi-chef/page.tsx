@@ -99,7 +99,7 @@ const faqs = [
   {
     question: "Can I cancel or reschedule my chef?",
     answer:
-      "Yes. Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full. And the promise runs both ways — if Real Hibachi ever cancels on you, you get double your money back.",
+      "Yes. Cancel or reschedule at least 48 hours before your event at no cost. Inside 48 hours there's a $99 late-cancellation charge. And the promise runs both ways — if Real Hibachi ever cancels on you, you get double your money back.",
   },
 ]
 

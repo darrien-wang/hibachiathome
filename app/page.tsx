@@ -33,11 +33,11 @@ const FAQ = [
   },
   {
     q: "What if it rains?",
-    a: "We cook rain or shine under a dry area — a 10×10 pop-up over the chef's station works. Need to cancel for weather? 72 hours' notice and there is no charge.",
+    a: "We cook rain or shine under a dry area — a 10×10 pop-up over the chef's station works. Need to cancel for weather? 48 hours' notice and there is no charge.",
   },
   {
     q: "Cancellation policy",
-    a: "Cancel or reschedule free with 72 hours' notice. Your chef is confirmed by name before your party, and if we ever cancel on you we refund double what you have paid.",
+    a: "Cancel or reschedule free with 48 hours' notice. Your chef is confirmed by name before your party, and if we ever cancel on you we refund double what you have paid.",
   },
 ] as const
 
@@ -161,7 +161,7 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-wrap gap-2 text-[12px] font-semibold lg:text-[13px]">
-              {["500+ parties", "72h full refund", "Our own chefs"].map((chip) => (
+              {["500+ parties", "Free to cancel 48h+", "Our own chefs"].map((chip) => (
                 <span key={chip} className="rounded-full border border-white/35 px-3 py-1.5">
                   {chip}
                 </span>

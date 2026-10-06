@@ -48,11 +48,11 @@ const faqs = [
   },
   {
     question: "What if it rains?",
-    answer: "The grill needs cover, not the whole party. Most clients put up a 10'x10' pop-up tent over the chef's station — cheap to buy or rent, and we do not supply them. Guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, give us at least 72 hours notice and there is no charge.",
+    answer: "The grill needs cover, not the whole party. Most clients put up a 10'x10' pop-up tent over the chef's station — cheap to buy or rent, and we do not supply them. Guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, give us at least 48 hours notice and there is no charge.",
   },
   {
     question: "Can I cancel or reschedule?",
-    answer: "Yes. Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full.",
+    answer: "Yes. Cancel or reschedule at least 48 hours before your event at no cost. Inside 48 hours there's a $99 late-cancellation charge.",
   },
 ]
 
@@ -90,7 +90,7 @@ const reviews = [
 // The four verbatim Google reviews the old TestimonialsSection showed.
 const MORE_REVIEWS = GOOGLE_REVIEWS.filter((r) => ["Kelsey Molnar", "Lisa Craven", "Judy Gothelf", "Beatrix Barrera"].includes(r.name))
 
-const TRUST_MARKERS = ["Book & modify online 24/7", "500+ parties served", "Free cancellation up to 72h"]
+const TRUST_MARKERS = ["Book & modify online 24/7", "500+ parties served", "Free to cancel up to 48h"]
 
 function VideoBlock({ poster, src, lead, note }: { poster: string; src: string; lead: string; note: string }) {
   return (
@@ -308,7 +308,7 @@ export default function HibachiAtHomePage() {
               {[
                 { big: "500+", label: "Parties Served" },
                 { big: "1 per 28", label: "A Dedicated Chef & Griddle per 28 Guests" },
-                { big: "72h", label: "Full-Refund Cancellation Window" },
+                { big: "48h", label: "Free Cancellation Window" },
               ].map((c) => (
                 <div key={c.label} className="flex flex-col gap-1 rounded-2xl bg-surface/70 p-3.5">
                   <span className="font-serif text-xl font-extrabold leading-none text-flame lg:text-2xl">{c.big}</span>

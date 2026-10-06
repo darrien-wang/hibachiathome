@@ -23,7 +23,6 @@ import {
 } from "@/config/regional-policies"
 import {
   GUEST_TIERS,
-  DEPOSIT_AMOUNT,
   displayRange,
   formatDisplayRange,
   MINIMUM_SPEND,
@@ -1437,7 +1436,7 @@ export default function QuoteBuilderClient() {
       ? "Mobile + email · price on the next screen · nothing charged"
       : step === 2
         ? "Exact price below · also by text and email · nothing charged"
-        : `We confirm within hours · free to cancel up to 72h before`
+        : `We confirm within hours · free to cancel up to 48h before`
   const planName = isWeekdaySaverTier ? weekdaySaverPolicy.title : "Standard Plan"
   const totalLabel =
     result.totalRange.low === result.totalRange.high
@@ -1684,10 +1683,10 @@ export default function QuoteBuilderClient() {
                 onClick={() => trackEvent("deposit_start_click", { contact_surface: "quote_confirmation", quote_surface: quoteSurface, value: bookingConfirmation.estimateLow, currency: "USD" })}
                 className="mt-3 flex h-12 w-full items-center justify-center rounded-full border-2 border-flame text-base font-semibold text-flame-700 transition hover:bg-flame/5"
               >
-                Ready now? Pay the ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit
+                Ready now? Lock your date - nothing charged today
               </Link>
               <p className="mt-3 text-sm text-clay-700">
-                Free to cancel or reschedule up to 72h before.
+                Free to change or cancel up to 48 hours before.
               </p>
               <p className="mt-[18px] text-[13px] text-clay-600">
                 Or{" "}
@@ -2314,7 +2313,7 @@ export default function QuoteBuilderClient() {
                     onClick={() => trackEvent("deposit_start_click", { contact_surface: "quote_step3", quote_surface: quoteSurface, value: result.totalRange.low, currency: "USD" })}
                     className="font-semibold text-flame-700 underline underline-offset-[3px]"
                   >
-                    Pay the ${DEPOSIT_AMOUNT.toFixed(2)} refundable deposit
+                    Lock your date - nothing charged today
                   </Link>{" "}
                   and your date is held today. Otherwise book below and we confirm with you first.
                 </p>
@@ -2420,7 +2419,7 @@ export default function QuoteBuilderClient() {
                 <div className="flex flex-col gap-2 text-[13px] leading-snug text-clay-700">
                   {[
                     "Chef confirmed by name before your party — if we cancel, double your money back",
-                    "Free to cancel or reschedule up to 72h before",
+                    "Free to cancel or reschedule up to 48h before",
                     "Tarp under the grill, full cleanup before we leave",
                   ].map((line) => (
                     <div key={line} className="flex gap-2.5">
@@ -2470,7 +2469,7 @@ export default function QuoteBuilderClient() {
               <div className="flex flex-col gap-3 rounded-[28px] border border-ink/10 bg-surface p-6 text-sm leading-relaxed text-clay-700 shadow-organic">
                 {[
                   "Chef confirmed by name before your party — if we cancel, double your money back",
-                  "Free to cancel or reschedule up to 72h before",
+                  "Free to cancel or reschedule up to 48h before",
                   "Tarp under the grill, full cleanup before we leave",
                 ].map((line) => (
                   <div key={line} className="flex gap-2.5">

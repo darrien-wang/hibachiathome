@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
-import { getDepositAmount } from "@/config/deposit"
-import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
+import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel, zelleVenmoPriceOf } from "@/config/pricing-rules"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate, formatUiDateShort } from "@/lib/date-display"
@@ -68,7 +67,7 @@ function formatClockTime(value: string | undefined): string {
 // "Realhibachi Booking Confirmed Modal"): the questions people ask right
 // before they decide whether to put money down.
 const CHIPS = ["Pick proteins later", "Headcount stays flexible", "1.5–2 hr show", "Allergies handled free"] as const
-const QUESTION_SMS = "Hi Real Hibachi! Quick question about my booking deposit."
+const QUESTION_SMS = "Hi Real Hibachi! Quick question about locking my date."
 
 const TIME_OPTIONS: ReadonlyArray<readonly [string, string]> = [
   ["", "Pick a start time"],
@@ -470,7 +469,8 @@ function DepositPaymentPageInner() {
     booking.estimate_low > 0 &&
     booking.estimate_high >= booking.estimate_low
 
-  const depositAmount = getDepositAmount(hasBookingEstimateRange ? booking?.estimate_high : totalAmount)
+  // D-1006-04: the date is locked with a card on file; nothing is charged today.
+  const depositAmount = 0
   // An owner-signed agreed total (the "协议总价" link) is what the customer was
   // quoted by text, and it is what the server locks in at payment. Until
   // 2026-09-18 this page still showed the standard rate, so a customer who
@@ -708,7 +708,9 @@ function DepositPaymentPageInner() {
   const dateLine = `${formatUiDate(shownDate || undefined, "Date TBD")} · ${formatClockTime(shownTime || undefined)}`
   const guestsLine = shownKids > 0 ? `${shownAdults} adults, ${shownKids} kids` : `${shownAdults} guests`
   const step = (setter: (n: number) => void, value: number, delta: number, min: number) => () => setter(Math.max(min, value + delta))
-  const depositLabel = `$${depositAmount.toFixed(2)}`
+  const cashEstimate =
+    shownEstimate !== null ? shownEstimate : agreedTotal ?? (hasBookingEstimateRange ? Number(booking?.estimate_high) : totalAmount)
+  const money = (n: number) => `$${n.toFixed(2)}`
 
   return (
     <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
@@ -720,7 +722,7 @@ function DepositPaymentPageInner() {
         </div>
         <h1 className="font-serif text-[28px] font-extrabold leading-[1.1] text-ink sm:text-[34px]">Lock your date</h1>
         <p className="mt-2 text-base text-clay-700">
-          A {depositLabel} deposit holds your chef. It comes off your final balance.
+          Card on file, nothing charged today. Your chef is yours for the date.
         </p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-cream px-5 py-4 text-base text-ink">
@@ -757,7 +759,7 @@ function DepositPaymentPageInner() {
                       className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-base font-normal text-ink"
                       required
                     />
-                    <span className="mt-1 block text-xs font-normal text-clay-600">This is the date the deposit locks.</span>
+                    <span className="mt-1 block text-xs font-normal text-clay-600">This is the date we lock for you.</span>
                   </label>
                 ) : null}
                 {needsTime ? (
@@ -840,6 +842,33 @@ function DepositPaymentPageInner() {
           ))}
         </div>
 
+        <div className="mt-6 rounded-[28px] bg-cream px-5 py-4 text-left text-sm text-ink">
+          <p className="font-semibold">How you can pay</p>
+          <p className="mt-1 text-clay-700">
+            Your quote is the cash price, sales tax included. Pay your chef in cash on the day and that&apos;s the whole bill.
+          </p>
+          <ul className="mt-2 space-y-1">
+            <li>
+              <span className="font-semibold">Cash on the day</span> — {money(cashEstimate)}
+            </li>
+            <li>
+              <span className="font-semibold">Zelle / Venmo</span> — {money(zelleVenmoPriceOf(cashEstimate))}
+            </li>
+            <li>
+              <span className="font-semibold">Credit card</span> — {money(cashEstimate)} + sales tax for your address + card processing
+              (2.9% + 30¢). We&apos;ll show the exact total once your menu is set and charge your card after the party.
+            </li>
+          </ul>
+          <p className="mt-2 text-xs text-clay-600">
+            Why the totals differ: we quote one cash price instead of building everyone&apos;s tax and card costs into a higher
+            price; the other methods just show the costs that come with them.
+          </p>
+          <p className="mt-1 text-xs text-clay-600">
+            Gratuity isn&apos;t included — 20–25% is customary and all of it goes to your chef. Add it to the card or tip in person.
+          </p>
+          <p className="mt-1 text-xs text-clay-600">Nothing is charged today. Change or cancel free up to 48 hours before; $99 inside 48 hours.</p>
+        </div>
+
         <button
           type="button"
           onClick={handleDepositCtaClick}
@@ -855,18 +884,18 @@ function DepositPaymentPageInner() {
             needsDate && !ISO_DATE.test(dateInput) ? "Pick your date to continue" : "Pick a start time to continue"
           ) : (
             // No-break space keeps the "·" on the first line when this wraps on a phone.
-            `Pay ${depositLabel} deposit · lock ${ISO_DATE.test(effectiveDate) ? formatUiDateShort(effectiveDate, "the date") : "the date"}`
+            `Lock ${ISO_DATE.test(effectiveDate) ? formatUiDateShort(effectiveDate, "the date") : "the date"} · nothing charged today`
           )}
         </button>
         <p className="mt-3 text-sm text-clay-700">
-          Fully refundable up to 72h before.{" "}
+          Free to change or cancel up to 48 hours before.{" "}
           <a href={smsHref(QUESTION_SMS)} className="font-semibold text-flame-700 underline-offset-[3px] hover:underline">
             Questions? Text {phone.sms.dashed}
           </a>
         </p>
         <p className="mt-2 flex items-center justify-center gap-1.5 text-[13px] text-clay-600">
           <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-          Secure checkout by Stripe
+          Card saved securely by Stripe · nothing charged today
         </p>
 
         {checkoutError ? (
@@ -878,17 +907,17 @@ function DepositPaymentPageInner() {
 
         <details className="mt-7 text-left text-[13px] leading-5 text-clay-700">
           <summary className="cursor-pointer text-center font-medium text-clay-700 hover:text-ink">
-            By paying you agree to our terms and cancellation policy — read the fine print
+            By continuing you agree to our terms and cancellation policy — read the fine print
           </summary>
           <div className="mt-3 space-y-2 rounded-2xl bg-cream p-4">
             <p>
-              <span className="font-semibold text-ink">Cancellation:</span> tell us at least 72 hours before your event to
-              cancel or reschedule for a full deposit refund. Changes inside 72 hours may make the deposit non-refundable.
+              <span className="font-semibold text-ink">Cancellation:</span> nothing is charged today. Tell us at least 48 hours
+              before your event to cancel or reschedule for free; cancellations inside 48 hours are charged a $99 fee to the card on file.
             </p>
             <p>
               <span className="font-semibold text-ink">Weather:</span> cooking is outdoors. If rain is in the forecast we
               recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents. Weather
-              cancellations with 72+ hours notice are refunded in full.
+              cancellations with 48+ hours notice are free.
             </p>
             <p>
               <span className="font-semibold text-ink">Liability:</span> Real Hibachi LLC is not liable for property

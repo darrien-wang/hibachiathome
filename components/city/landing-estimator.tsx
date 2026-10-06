@@ -605,7 +605,7 @@ export default function LandingEstimator({
             <p className="text-ink">
               &ldquo;{proofQuote.text}&rdquo; <span className="text-clay-600">— {proofQuote.name}, {proofQuote.source}</span>
             </p>
-            <p className="mt-0.5 font-semibold text-clay-700">We reply within 15 min · free to cancel 72h+</p>
+            <p className="mt-0.5 font-semibold text-clay-700">We reply within 15 min · free to cancel 48h+</p>
           </div>
         </div>
       </div>

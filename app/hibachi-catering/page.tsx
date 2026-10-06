@@ -165,7 +165,7 @@ export default function HibachiCateringHubPage() {
           </>
         }
         subhead={INTRO[0]}
-        chips={["Free cancellation up to 72h", "1 Chef & Grill per 28 Guests", "Our Own Chefs", "Setup & Cleanup Included"]}
+        chips={["Free to cancel up to 48h", "1 Chef & Grill per 28 Guests", "Our Own Chefs", "Setup & Cleanup Included"]}
         imageAlt="Hibachi catering event in Southern California - live teppanyaki fire show"
         estimator={{
           citySlug: "socal",

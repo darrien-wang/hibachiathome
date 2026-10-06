@@ -17,7 +17,7 @@ import { TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
 export const HERO_IMG = "/images/hero/fire-show-hero.jpg"
 // Inside-the-card proof photo: a different real party from the hero shot.
 export const CARD_PROOF_IMG = "/gallery/real-hibachi-party-los-angeles-chef-guest-game-17.jpg"
-export const HERO_CHIPS = ["Free to cancel 72h+", "Our own chefs", "500+ parties"]
+export const HERO_CHIPS = ["Free to cancel 48h+", "Our own chefs", "500+ parties"]
 
 /** "First 50 mi free" for pages that cannot know the visitor's distance. */
 export const FIRST_MILES_FREE = `First ${TRAVEL_FREE_RADIUS_MILES} mi free`

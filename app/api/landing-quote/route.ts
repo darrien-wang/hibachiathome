@@ -7,7 +7,7 @@ import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notif
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 import { getCityTravel } from "@/config/city-travel"
-import { DEPOSIT_AMOUNT, FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
 // most-asked question in 15 days of texts, and competitors bundle them, so a
@@ -304,13 +304,13 @@ export async function POST(request: NextRequest) {
           "Reply here with questions - a real person answers. Reply STOP to opt out.",
         ]
       : [
-          // The listed (cash) price. Tax and the cash discount are not brought up
-          // before the deposit (owner 2026-10-06): the site's price labels, the
-          // deposit page, the invoice and the pay page carry them.
+          // The listed price. Nothing about tax or payment method is brought up
+          // before the booking is confirmed (owner 2026-10-06): the invoice and
+          // the pay page carry the itemised bills.
           `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
           discountLine,
           travelLine,
-          `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
+          `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
           // The single most-asked question in the 09-13..09-27 audit (10+ threads),
           // and the one that cost a corporate customer his plates on the day: say it
           // before they have to ask. Numbers come from config/pricing-rules.
@@ -334,7 +334,7 @@ export async function POST(request: NextRequest) {
           ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
           : "No travel fee for your area.",
       "",
-      `Lock your date with a ${money(DEPOSIT_AMOUNT)} refundable deposit: ${depositUrl}`,
+      `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
       "",
       "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup and cleanup.",
       RENTALS_LINE,

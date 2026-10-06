@@ -150,7 +150,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How far in advance should I book in Los Angeles?",
         answer:
-          "Two to three weeks for a weekend date is safe. Graduation season in May and June and the weeks around major holidays go earlier — You can cancel or reschedule free with 72+ hours notice.",
+          "Two to three weeks for a weekend date is safe. Graduation season in May and June and the weeks around major holidays go earlier — You can cancel or reschedule free with 48+ hours notice.",
       },
       {
         question: "What does hibachi at home cost in Los Angeles?",
@@ -885,7 +885,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How late can we book?",
         answer:
-          "Two to three weeks ahead is safe for a weekend, and holiday weekends fill first. That said, West Covina is close enough to base that we can sometimes accommodate shorter notice \u2014 it is worth asking. You can cancel or reschedule free with 72+ hours notice.",
+          "Two to three weeks ahead is safe for a weekend, and holiday weekends fill first. That said, West Covina is close enough to base that we can sometimes accommodate shorter notice \u2014 it is worth asking. You can cancel or reschedule free with 48+ hours notice.",
       },
       {
         question: "What does hibachi at home cost in West Covina?",
@@ -1060,7 +1060,7 @@ export const cityPages: CityPage[] = [
       {
         question: "Do you cook for Lunar New Year and other holiday gatherings?",
         answer:
-          "Yes, and those dates book out early — late January and February weekends fill first. You can cancel or reschedule free with 72+ hours notice.",
+          "Yes, and those dates book out early — late January and February weekends fill first. You can cancel or reschedule free with 48+ hours notice.",
       },
       {
         question: "Do you serve the rest of the San Gabriel Valley?",
@@ -1245,7 +1245,7 @@ export const cityPages: CityPage[] = [
       {
         question: "When should we book for a holiday gathering?",
         answer:
-          "Earlier than you think. Lunar New Year weekends and the weeks around Thanksgiving and Christmas are our busiest SGV dates and fill first. You can cancel or reschedule free with 72+ hours notice.",
+          "Earlier than you think. Lunar New Year weekends and the weeks around Thanksgiving and Christmas are our busiest SGV dates and fill first. You can cancel or reschedule free with 48+ hours notice.",
       },
       {
         question: "What does hibachi at home cost in Rowland Heights?",
@@ -1707,7 +1707,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What about June Gloom or marine layer?",
         answer:
-          "The grill doesn't mind the marine layer, and neither do our chefs. If real rain threatens, a 10'x10' pop-up tent over the chef's station solves it — you provide the tent, we do not supply them. You can also seat guests indoors while the chef cooks outside, or reschedule with 72+ hours notice at no cost.",
+          "The grill doesn't mind the marine layer, and neither do our chefs. If real rain threatens, a 10'x10' pop-up tent over the chef's station solves it — you provide the tent, we do not supply them. You can also seat guests indoors while the chef cooks outside, or reschedule with 48+ hours notice at no cost.",
       },
       {
         question: "How much does hibachi at home cost in San Diego?",
@@ -1882,7 +1882,7 @@ export const cityPages: CityPage[] = [
       {
         question: "We're visiting from out of town — how far ahead should we book?",
         answer:
-          "For weekend dates, 2–3 weeks ahead is safe; holiday weeks around the parks book out earlier. You can cancel or reschedule free with 72+ hours notice.",
+          "For weekend dates, 2–3 weeks ahead is safe; holiday weeks around the parks book out earlier. You can cancel or reschedule free with 48+ hours notice.",
       },
       {
         question: "How many guests can you handle at one event?",

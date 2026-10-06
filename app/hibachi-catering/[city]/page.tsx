@@ -124,7 +124,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     {
       question: "How far ahead should we book?",
       answer:
-        "Weekend evenings go first, so two to three weeks ahead is comfortable. Weekday corporate events can often be booked closer in. Cancel or reschedule 72+ hours out at no cost.",
+        "Weekend evenings go first, so two to three weeks ahead is comfortable. Weekday corporate events can often be booked closer in. Cancel or reschedule 48+ hours out at no cost.",
     },
   ]
 

@@ -28,7 +28,7 @@ const EXTRA: Record<string, FaqEntry> = {
   weather: {
     question: "What if weather changes on event day?",
     answer:
-      "Cooking is outdoors, so if the forecast is uncertain we recommend a 10'x10' pop-up tent over the chef's station — they are inexpensive to buy or rent, and we do not supply them. Your guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, notify us at least 72 hours in advance and there is no charge.",
+      "Cooking is outdoors, so if the forecast is uncertain we recommend a 10'x10' pop-up tent over the chef's station — they are inexpensive to buy or rent, and we do not supply them. Your guests can also eat indoors while the chef cooks outside. If you still need to cancel for weather, notify us at least 48 hours in advance and there is no charge.",
     open: true,
   },
   allergies: {

@@ -393,13 +393,13 @@ export default function DepositSuccessClient({
         <div className="space-y-4">
           <Alert className="border-green-200 bg-green-50 text-green-900">
             <CheckCircle2 className="h-4 w-4 text-green-700" />
-            <AlertTitle>Deposit payment confirmed</AlertTitle>
+            <AlertTitle>Your date is locked</AlertTitle>
             <AlertDescription>
-              Your Stripe payment has been verified from canonical payment records.
+              Your card is on file with Stripe and nothing was charged today. The balance is settled after your party.
             </AlertDescription>
           </Alert>
           <div className="rounded-md border border-gray-200 p-4 text-sm text-gray-700">
-            {typeof result.value === "number" && (
+            {typeof result.value === "number" && result.value > 0 && (
               <p>
                 Amount:{" "}
                 <span className="font-medium">{formatCurrency(result.value, (result.currency || "USD").toUpperCase())}</span>
@@ -425,9 +425,9 @@ export default function DepositSuccessClient({
       <div className="space-y-4">
         <Alert className="border-amber-200 bg-amber-50 text-amber-900">
           <AlertCircle className="h-4 w-4 text-amber-700" />
-          <AlertTitle>Payment not confirmed yet</AlertTitle>
+          <AlertTitle>Not confirmed yet</AlertTitle>
           <AlertDescription>
-            We have not verified a paid deposit for this session yet. This can happen if webhook delivery is delayed.
+            We haven&apos;t received Stripe&apos;s confirmation for this session yet. It usually arrives within a few seconds.
           </AlertDescription>
         </Alert>
         <p className="text-sm text-gray-700">
@@ -445,7 +445,7 @@ export default function DepositSuccessClient({
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Deposit Payment Status</CardTitle>
+            <CardTitle>Booking status</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {content}
@@ -466,7 +466,7 @@ export default function DepositSuccessClient({
               )}
               {!isPaidState && (
                 <Button asChild variant="outline">
-                  <Link href="/deposit/cancel">Payment Help</Link>
+                  <Link href="/deposit/cancel">Need help?</Link>
                 </Button>
               )}
               <Button asChild variant="outline">

@@ -20,6 +20,16 @@ export type CrmBookingSnapshot = {
   deposit_amount?: number | null
 }
 
+/** What the webhook read off a setup-mode Checkout session (card saved, nothing charged). */
+export type CrmCardOnFile = {
+  setupIntentId?: string
+  customerId?: string
+  paymentMethodId?: string
+  brand?: string
+  last4?: string
+  funding?: "credit" | "debit" | "prepaid" | "unknown"
+}
+
 export type CrmDepositPaidEventEnvelope = {
   event_id: string
   event_type: "order.deposit_paid"
@@ -44,10 +54,19 @@ export type CrmDepositPaidEventEnvelope = {
       custom_deal?: CustomDeal
     }
     notes?: string
+    /** D-1006-04: the date was locked with a card on file ($0 charged); the CRM order keeps it for the day-of charge. */
+    card_on_file?: {
+      stripe_customer_id?: string
+      stripe_payment_method_id?: string
+      brand?: string
+      last4?: string
+      funding?: "credit" | "debit" | "prepaid" | "unknown"
+    }
   }
   payment: {
     external_payment_id: string
-    type: "deposit"
+    /** "card_on_file": $0, external_payment_id is the Stripe SetupIntent. */
+    type: "deposit" | "card_on_file"
     status: "paid"
     amount_cents: number
     currency: "USD"
@@ -475,6 +494,8 @@ export function buildDepositPaidEventEnvelope(params: {
   paymentIntentId?: string
   depositAmount?: number
   source?: string
+  /** Present when the session saved a card instead of taking a deposit (D-1006-04). */
+  cardOnFile?: CrmCardOnFile
 }): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
   const source = resolveSource(params.source)
   const deploymentEnvironment = getRuntimeEnvironmentTag()
@@ -521,11 +542,13 @@ export function buildDepositPaidEventEnvelope(params: {
     params.depositAmount ??
     amountFromStripeSession(params.session) ??
     (typeof params.booking?.deposit_amount === "number" ? params.booking.deposit_amount : undefined)
-  const amountCents = toAmountCents(depositAmount ?? undefined)
+  const cardOnFile = params.cardOnFile
+  // Card on file: $0 by design; the SetupIntent stands in for the payment id.
+  const amountCents = cardOnFile ? 0 : toAmountCents(depositAmount ?? undefined)
 
-  const externalPaymentId = asString(params.paymentIntentId) ?? params.session.id
+  const externalPaymentId = asString(params.paymentIntentId) ?? asString(cardOnFile?.setupIntentId) ?? params.session.id
 
-  if (!externalOrderId || !amountCents || !externalPaymentId) {
+  if (!externalOrderId || !externalPaymentId || (!cardOnFile && !amountCents)) {
     return {
       ok: false,
       reason: "missing_required_fields",
@@ -571,13 +594,25 @@ export function buildDepositPaidEventEnvelope(params: {
         notes:
           deploymentEnvironment === "pre"
             ? prefixPreTestNote(asString(params.booking?.special_requests), stripeMode)
-            : asString(params.booking?.special_requests) ?? "Deposit paid via Stripe Checkout on website.",
+            : asString(params.booking?.special_requests) ??
+              (cardOnFile
+                ? "Date locked with a card on file (nothing charged) via Stripe Checkout on website."
+                : "Deposit paid via Stripe Checkout on website."),
+        card_on_file: cardOnFile
+          ? {
+              stripe_customer_id: cardOnFile.customerId,
+              stripe_payment_method_id: cardOnFile.paymentMethodId,
+              brand: cardOnFile.brand,
+              last4: cardOnFile.last4,
+              funding: cardOnFile.funding,
+            }
+          : undefined,
       },
       payment: {
         external_payment_id: externalPaymentId,
-        type: "deposit",
+        type: cardOnFile ? "card_on_file" : "deposit",
         status: "paid",
-        amount_cents: amountCents,
+        amount_cents: amountCents ?? 0,
         currency: "USD",
         provider: "stripe",
         paid_at: fallbackOccurredAt,

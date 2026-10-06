@@ -2,7 +2,6 @@ import { verifyAgreedTotal } from "@/lib/agreed-total"
 import { encodeDeal, verifyDeal, type CustomDeal } from "@/lib/custom-deal"
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
-import { getDepositAmount } from "@/config/deposit"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { sendSupportNotificationEmail, type OpsEmailDeliveryResult } from "@/lib/ops-notifications"
 import { recordCheckoutStart } from "@/lib/checkout-struggle"
@@ -437,17 +436,6 @@ function resolveOrigin(request: NextRequest): string {
   return request.nextUrl.origin
 }
 
-function resolveDepositAmount(payload: NormalizedDepositStartPayload): number {
-  const ruleBasedAmount = getDepositAmount(payload.estimateHigh ?? payload.totalAmount)
-
-  if (payload.depositAmount === undefined || payload.depositAmount <= 0) {
-    return ruleBasedAmount
-  }
-
-  // Trust the rule-based amount first; this also protects against client-side tampering.
-  return ruleBasedAmount
-}
-
 function metadataField(value: unknown): string | undefined {
   if (value === undefined || value === null) {
     return undefined
@@ -558,13 +546,6 @@ function buildCancelUrl(origin: string, payload: NormalizedDepositStartPayload):
   }
 
   return params.toString() ? `${origin}${CHECKOUT_CANCEL_PATH}?${params.toString()}` : `${origin}${CHECKOUT_CANCEL_PATH}`
-}
-
-function normalizeCheckoutDescription(payload: NormalizedDepositStartPayload): string {
-  if (payload.bookingId) {
-    return `Deposit for booking ${payload.bookingId}`
-  }
-  return "Deposit to lock your event date"
 }
 
 function isLikelyEmail(email: string | undefined): email is string {
@@ -804,46 +785,50 @@ async function createCheckoutSession(
   const stripe = getStripeServerClient()
   const origin = resolveOrigin(request)
   const currency = payload.currency
-  const depositAmount = resolveDepositAmount(payload)
-  const unitAmount = Math.round(depositAmount * 100)
-
-  if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
-    throw new Error("Invalid deposit amount.")
-  }
-
+  // D-1006-04 (owner, 2026-10-06): the date is locked with a card on file and
+  // nothing is charged today. Checkout runs in setup mode and saves the card
+  // to a Stripe Customer; the webhook reads the SetupIntent and the CRM order
+  // carries the card for the day-of balance or the $99 late-cancel fee.
+  // depositAmount stays in the data model as 0 so every downstream reader
+  // (booking row, CRM event, ledger, GA value) keeps working unchanged.
+  const depositAmount = 0
   const metadata = buildMetadata(payload, depositAmount, currency, attribution)
+  metadata.card_on_file = "1"
+
+  const customer = await stripe.customers.create({
+    email: isLikelyEmail(payload.customerEmail) ? payload.customerEmail : undefined,
+    name: payload.customerName && !isPlaceholderName(payload.customerName) ? payload.customerName : undefined,
+    metadata: Object.fromEntries(
+      Object.entries({ lead_id: payload.leadId, booking_id: payload.bookingId, deposit_source: payload.source }).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0,
+      ),
+    ),
+  })
 
   const session = await stripe.checkout.sessions.create({
-    mode: "payment",
+    mode: "setup",
+    currency,
+    customer: customer.id,
     // Card only, which switches off Stripe's dynamic payment methods and with
     // them Link (owner 2026-09-24). Link cost us two customers in two days: a
     // Temecula customer needed five tries to pay $19.90, and Caleb got a
     // "payment declined, a backup will be charged in 24 hours" email for a
     // deposit he had already paid. Apple Pay and Google Pay ride on "card",
     // so the wallets our iPhone customers actually use are unaffected.
+    // (Phone collection is payment-mode only; the lead already carries the
+    // number and the webhook keeps backfilling from customer_details.)
     payment_method_types: ["card"],
-    customer_email: isLikelyEmail(payload.customerEmail) ? payload.customerEmail : undefined,
-    // SMS is our primary channel; collecting the phone at checkout lets the
-    // webhook backfill quote-flow bookings that started with no contact info.
-    phone_number_collection: { enabled: true },
     success_url: buildSuccessUrl(origin, payload),
     cancel_url: buildCancelUrl(origin, payload),
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency,
-          unit_amount: unitAmount,
-          product_data: {
-            name: "Real Hibachi Date-Lock Deposit",
-            description: normalizeCheckoutDescription(payload),
-          },
-        },
-      },
-    ],
     metadata,
-    payment_intent_data: {
+    setup_intent_data: {
       metadata,
+    },
+    custom_text: {
+      submit: {
+        message:
+          "Nothing is charged today. Your card stays on file for the balance after your party - free to change or cancel up to 48 hours before, $99 inside 48 hours.",
+      },
     },
   })
 

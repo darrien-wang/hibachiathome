@@ -135,7 +135,7 @@ export default function LAOrangeCountyPage() {
           </>
         }
         subhead={INTRO}
-        chips={["Free cancellation up to 72h", "500+ Events", "Same Day Available"]}
+        chips={["Free to cancel up to 48h", "500+ Events", "Same Day Available"]}
         imageAlt="Live hibachi fire show at a backyard party - hibachi at home in Los Angeles and Orange County"
         estimator={{ citySlug: "la-orange-county", cityName: "LA & Orange County", lockCity: true, source: "seo_location_la_oc", travelNote: FIRST_MILES_FREE }}
       />

@@ -95,7 +95,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
     },
     {
       question: `What happens if we need to cancel or reschedule?`,
-      answer: `Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full. If rain is the problem, a 10'x10' pop-up tent over the chef's station usually saves the party — you provide the tent, we do not supply them — and guests can eat indoors while the chef cooks outside.`,
+      answer: `Cancel or reschedule at least 48 hours before your event at no cost. Inside 48 hours there's a $99 late-cancellation charge. If rain is the problem, a 10'x10' pop-up tent over the chef's station usually saves the party — you provide the tent, we do not supply them — and guests can eat indoors while the chef cooks outside.`,
     },
   ]
 

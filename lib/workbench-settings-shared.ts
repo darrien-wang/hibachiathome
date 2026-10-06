@@ -210,7 +210,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     {
       id: "deposit",
       label: "押金链接",
-      body: "To lock in your date it's a $19.90 deposit and takes a minute: {deposit_link}",
+      body: "To lock in your date just pop a card on file - nothing's charged today and it takes a minute: {deposit_link}",
     },
     {
       id: "menu",

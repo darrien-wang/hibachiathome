@@ -9,6 +9,7 @@ import {
   buildDepositPaidEventEnvelope,
   buildPaymentRefundedEventEnvelope,
   type CrmBookingSnapshot,
+  type CrmCardOnFile,
 } from "@/lib/crm-integration"
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
@@ -326,6 +327,8 @@ function buildInvoiceSelfServiceLink(params: {
 }
 
 async function sendDepositConfirmationEmail(params: {
+  /** Locked with a card on file, nothing charged (D-1006-04): the copy says so. */
+  cardOnFile?: boolean
   recipientEmail?: string
   bookingId?: string
   selfServiceLink?: string
@@ -357,15 +360,20 @@ async function sendDepositConfirmationEmail(params: {
     }
   }
 
-  const subject = `Real Hibachi deposit confirmed for booking number ${bookingId}`
+  const subject = params.cardOnFile
+    ? `Real Hibachi: your date is locked (booking ${bookingId})`
+    : `Real Hibachi deposit confirmed for booking number ${bookingId}`
+  const lead = params.cardOnFile
+    ? "Your date is locked with Real Hibachi. Your card is on file with Stripe and nothing was charged today - the balance is settled after your party."
+    : "Thanks for your deposit payment with Real Hibachi."
   const text = [
-    "Thanks for your deposit payment with Real Hibachi.",
+    lead,
     `Booking Number: ${bookingId}`,
     `Update invoice details here: ${selfServiceLink}`,
     "Reply to this email if you need help.",
   ].join("\n")
   const html = [
-    "<p>Thanks for your deposit payment with Real Hibachi.</p>",
+    `<p>${lead}</p>`,
     `<p><strong>Booking Number:</strong> ${bookingId}</p>`,
     `<p><a href=\"${selfServiceLink}\">Update invoice details</a></p>`,
     "<p>Reply to this email if you need help.</p>",
@@ -395,6 +403,8 @@ async function sendDepositConfirmationEmail(params: {
 }
 
 async function sendDepositConfirmationSms(params: {
+  /** Locked with a card on file, nothing charged (D-1006-04): the copy says so. */
+  cardOnFile?: boolean
   recipientPhone?: string
   bookingId?: string
   selfServiceLink?: string
@@ -431,18 +441,18 @@ async function sendDepositConfirmationSms(params: {
 
   const preference = getSmsProviderPreference()
   if (preference === "sendly") {
-    return sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
+    return sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink, timeUnknown, cardOnFile: params.cardOnFile })
   }
   if (preference === "twilio") {
-    return sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
+    return sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink, timeUnknown, cardOnFile: params.cardOnFile })
   }
 
-  const sendly = await sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
+  const sendly = await sendDepositConfirmationSmsViaSendly({ recipientPhone, bookingId, selfServiceLink, timeUnknown, cardOnFile: params.cardOnFile })
   if (sendly.delivered || sendly.attempted) {
     return sendly
   }
 
-  const twilio = await sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink, timeUnknown })
+  const twilio = await sendDepositConfirmationSmsViaTwilio({ recipientPhone, bookingId, selfServiceLink, timeUnknown, cardOnFile: params.cardOnFile })
   if (twilio.delivered || twilio.attempted) {
     return twilio
   }
@@ -465,6 +475,8 @@ function getSmsProviderPreference(): SmsProviderPreference {
 const TIME_FOLLOW_UP = " Reply with your start time and we'll add it."
 
 async function sendDepositConfirmationSmsViaSendly(params: {
+  /** Locked with a card on file, nothing charged (D-1006-04): the copy says so. */
+  cardOnFile?: boolean
   recipientPhone: string
   bookingId: string
   selfServiceLink: string
@@ -490,7 +502,9 @@ async function sendDepositConfirmationSmsViaSendly(params: {
       },
       body: JSON.stringify({
         to: params.recipientPhone,
-        text: `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
+        text: params.cardOnFile
+          ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Add your menu and party details here: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
+          : `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
       }),
       cache: "no-store",
     })
@@ -522,6 +536,8 @@ async function sendDepositConfirmationSmsViaSendly(params: {
 }
 
 async function sendDepositConfirmationSmsViaTwilio(params: {
+  /** Locked with a card on file, nothing charged (D-1006-04): the copy says so. */
+  cardOnFile?: boolean
   recipientPhone: string
   bookingId: string
   selfServiceLink: string
@@ -547,7 +563,9 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
   const body = new URLSearchParams({
     To: params.recipientPhone,
-    Body: `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
+    Body: params.cardOnFile
+      ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
+      : `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
   })
   if (messagingServiceSid) {
     body.set("MessagingServiceSid", messagingServiceSid)
@@ -621,6 +639,36 @@ function amountFromMinorUnits(amountMinor: number | null | undefined): number | 
   return Number((amountMinor / 100).toFixed(2))
 }
 
+
+/**
+ * A setup-mode Checkout session (D-1006-04: card on file, nothing charged)
+ * carries a SetupIntent instead of a PaymentIntent. Read the saved card so the
+ * booking and the CRM order can charge it on the day. Never throws.
+ */
+async function readCardOnFile(session: Stripe.Checkout.Session): Promise<CrmCardOnFile | null> {
+  if (session.mode !== "setup" && session.metadata?.card_on_file !== "1") return null
+  const setupIntentId = typeof session.setup_intent === "string" ? session.setup_intent : session.setup_intent?.id
+  const customerFromSession = typeof session.customer === "string" ? session.customer : session.customer?.id ?? undefined
+  const base: CrmCardOnFile = { setupIntentId: setupIntentId ?? undefined, customerId: customerFromSession }
+  if (!setupIntentId) return base
+  try {
+    const intent = await getStripeServerClient().setupIntents.retrieve(setupIntentId, { expand: ["payment_method"] })
+    const pm = intent.payment_method && typeof intent.payment_method === "object" ? intent.payment_method : null
+    const funding = pm?.card?.funding
+    return {
+      ...base,
+      customerId: base.customerId ?? (typeof intent.customer === "string" ? intent.customer : intent.customer?.id ?? undefined),
+      paymentMethodId: pm?.id ?? (typeof intent.payment_method === "string" ? intent.payment_method : undefined),
+      brand: pm?.card?.brand ?? undefined,
+      last4: pm?.card?.last4 ?? undefined,
+      funding: funding === "credit" || funding === "debit" || funding === "prepaid" ? funding : "unknown",
+    }
+  } catch (error) {
+    console.error("[stripe/webhook] Failed to read the saved card for a setup session:", { sessionId: session.id, error })
+    return base
+  }
+}
+
 function readAttributionFromStripeMetadata(metadata: Stripe.Metadata | null | undefined): AttributionFields {
   if (!metadata) return {}
   const result: AttributionFields = {}
@@ -690,7 +738,8 @@ async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
 ) {
   const paymentIntentId = normalizePaymentIntentId(session.payment_intent)
-  const depositAmount = amountFromMinorUnits(session.amount_total)
+  const cardOnFile = await readCardOnFile(session)
+  const depositAmount = cardOnFile ? 0 : amountFromMinorUnits(session.amount_total)
   const bookingIdFromMetadata = session.metadata?.booking_id
   const attribution = readAttributionFromStripeMetadata(session.metadata)
   const bookingSyncWarnings: string[] = []
@@ -708,6 +757,16 @@ async function handleCheckoutSessionCompleted(
   }
   if (paymentIntentId) {
     bookingUpdate.payment_intent_id = paymentIntentId
+  }
+  if (cardOnFile) {
+    bookingUpdate.deposit_amount = 0
+    bookingUpdate.deposit = 0
+    bookingUpdate.stripe_customer_id = cardOnFile.customerId ?? null
+    bookingUpdate.stripe_payment_method_id = cardOnFile.paymentMethodId ?? null
+    bookingUpdate.card_brand = cardOnFile.brand ?? null
+    bookingUpdate.card_last4 = cardOnFile.last4 ?? null
+    bookingUpdate.card_funding = cardOnFile.funding ?? null
+    bookingUpdate.card_on_file_at = new Date().toISOString()
   }
   if (attribution.utm_source) bookingUpdate.utm_source = attribution.utm_source
   if (attribution.utm_medium) bookingUpdate.utm_medium = attribution.utm_medium
@@ -804,6 +863,7 @@ async function handleCheckoutSessionCompleted(
     updatedBookingId,
     paymentIntentId,
     depositAmount,
+    cardOnFile,
     bookingSnapshot,
     bookingSyncWarnings,
   }
@@ -1013,11 +1073,13 @@ async function sendCustomerDepositNotifications(params: {
       ]
     : await Promise.all([
         sendDepositConfirmationEmail({
+          cardOnFile: params.session.mode === "setup",
           recipientEmail: customerEmail,
           bookingId,
           selfServiceLink,
         }),
         sendDepositConfirmationSms({
+          cardOnFile: params.session.mode === "setup",
           recipientPhone: customerPhone,
           bookingId,
           selfServiceLink,
@@ -1374,6 +1436,7 @@ export async function POST(request: NextRequest) {
         booking: result.bookingSnapshot,
         paymentIntentId: result.paymentIntentId,
         depositAmount: result.depositAmount,
+        cardOnFile: result.cardOnFile ?? undefined,
       })
 
       let crmForwarded = false

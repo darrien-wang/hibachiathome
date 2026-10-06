@@ -77,7 +77,7 @@ const faqs = [
   {
     question: "Can I cancel or reschedule?",
     answer:
-      "Yes. Cancel or reschedule at least 72 hours before your event at no cost. Inside 72 hours we may not be able to refund in full.",
+      "Yes. Cancel or reschedule at least 48 hours before your event at no cost. Inside 48 hours there's a $99 late-cancellation charge.",
   },
 ]
 

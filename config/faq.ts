@@ -94,11 +94,11 @@ Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and 
   {
     question: "Can I change the headcount after I book?",
     answer:
-      "Yes. Your deposit holds the date, not a number — you can change your headcount up to the day before your party, and your total adjusts to match (the $599 minimum still applies). Need to cancel or reschedule instead? Tell us at least 72 hours before and your deposit comes back in full.",
+      "Yes. Locking the date holds the date, not a number — you can change your headcount up to the day before your party, and your total adjusts to match (the $599 minimum still applies). Need to cancel or reschedule instead? Tell us at least 48 hours before and there's no charge.",
   },
   {
     question: "What is your cancellation policy?",
     answer:
-      "Our cancellation policy includes the following terms:\n\n- 72 hours' notice required for cancellations or reschedules, at no cost\n- Inside 72 hours we may not be able to refund in full\n- For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents\n- If you still need to cancel due to weather, please let us know at least 72 hours beforehand",
+      "Our cancellation policy includes the following terms:\n\n- 48 hours' notice for cancellations or reschedules, at no cost\n- Inside 48 hours there's a $99 late-cancellation charge to the card on file\n- For rainy days, plan on a 10'x10' pop-up tent over the chef's station — you provide it, we do not supply tents\n- If you still need to cancel due to weather, please let us know at least 48 hours beforehand",
   },
 ]

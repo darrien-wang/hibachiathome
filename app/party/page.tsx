@@ -83,7 +83,7 @@ export default function PartyHubPage() {
         kicker="Fire up your story."
         title="A Reason to Gather Is All You Need"
         subhead={intro}
-        chips={["500+ parties served", "Full refund up to 72h", "All of Southern California"]}
+        chips={["500+ parties served", "Free to cancel up to 48h", "All of Southern California"]}
         imageAlt="Guests gathered around a live hibachi fire show at a backyard party"
         estimator={{ citySlug: "socal", cityName: "Southern California", source: "occasion_hub", travelNote: FIRST_MILES_FREE, cardLabel: "Your party" }}
       />

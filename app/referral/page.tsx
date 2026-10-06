@@ -251,7 +251,7 @@ export default function ReferralPage() {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
                 <span className="inline-flex items-center gap-1">
                   <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                  Free cancellation up to 72h
+                  Free to cancel up to 48h
                 </span>
                 <span>500+ parties served</span>
                 <span className="inline-flex items-center gap-1">

@@ -12,7 +12,7 @@ import { reviewSourceLabel, type GoogleReview } from "@/config/reviews"
 // Keep this component free of hooks so the async city pages can render it.
 
 const TRUST = [
-  { icon: Check, text: "Refund up to 72h" },
+  { icon: Check, text: "Free to cancel 48h+" },
   { icon: ChefHat, text: "Chef confirmed by name" },
   { icon: ShieldCheck, text: "Our own chefs" },
 ] as const
