@@ -58,13 +58,57 @@ const ESCALATE_RENOTIFY_MS = 60 * 60_000
 // pg_cron job, which carries its own single-purpose key (LEAD_WATCH_CRON_KEY,
 // 2026-10-04) so the owner key never sits in the database. The cron key is
 // accepted here and nowhere else.
-async function isAuthorized(request: NextRequest): Promise<boolean> {
-  if (await resolveAdminActor(request)) return true
+// Who is calling: a workbench / desktop actor, or the pg_cron job with its
+// own key. null = not allowed. The name is what the status panel shows.
+async function callerOf(request: NextRequest): Promise<string | null> {
+  const actor = await resolveAdminActor(request)
+  if (actor) return request.nextUrl.searchParams.get("consumer") === "cron" ? "cron" : actor.alias
   const cronKey = process.env.LEAD_WATCH_CRON_KEY?.trim()
-  if (!cronKey) return false
+  if (!cronKey) return null
   const bearer = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim()
   const provided = request.headers.get("x-admin-key")?.trim() || bearer
-  return provided === cronKey
+  return provided === cronKey ? "cron" : null
+}
+
+type WatchResult = {
+  ok: true
+  dryRun: boolean
+  checkedAt: string
+  disabled?: boolean
+  quietHours?: boolean
+  autoSent: unknown[]
+  missedCallTexts?: unknown[]
+  needsHuman: unknown[]
+  escalated?: unknown[]
+  stillOpen: number
+}
+
+// Every real run leaves a row in lead_watch_runs so the workbench can show
+// the patrol is alive and what it did (2026-10-06). Dry runs are not
+// recorded, and a failure here never fails the run itself.
+async function recordRun(supabase: AnySupabase, caller: string, t0: number, out: WatchResult | null, error?: string) {
+  try {
+    await supabase.from("lead_watch_runs").insert({
+      caller,
+      dry_run: false,
+      quiet_hours: Boolean(out?.quietHours),
+      disabled: Boolean(out?.disabled),
+      auto_sent: out?.autoSent.length ?? 0,
+      missed_call_texts: out?.missedCallTexts?.length ?? 0,
+      needs_human: out?.needsHuman.length ?? 0,
+      still_open: out?.stillOpen ?? 0,
+      escalated: out?.escalated?.length ?? 0,
+      duration_ms: Date.now() - t0,
+      ok: !error,
+      error: error ?? null,
+    })
+    // Keep two weeks; an occasional delete here beats another cron job.
+    if (Math.random() < 0.02) {
+      await supabase.from("lead_watch_runs").delete().lt("ran_at", new Date(Date.now() - 14 * 86400_000).toISOString())
+    }
+  } catch {
+    // status is best effort
+  }
 }
 
 function ptHour(ms: number): number {
@@ -200,21 +244,79 @@ async function listTwilioCalls(ours: string): Promise<TwilioCall[]> {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await isAuthorized(request))) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const caller = await callerOf(request)
+  if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const supabase = getSupabaseAdmin()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const dryRun = request.nextUrl.searchParams.get("dry") === "1"
-  // consumer=cron: nobody reads that response, so the "reported once" marks
-  // for plain items are left alone - otherwise the server run at :05 would
-  // swallow the push the desktop task sends at :10. Escalation keeps its own marks.
-  const cronCaller = request.nextUrl.searchParams.get("consumer") === "cron"
+  const t0 = Date.now()
+  try {
+    const out = await runWatch(supabase, dryRun, caller === "cron")
+    if (!dryRun) await recordRun(supabase, caller, t0, out)
+    return NextResponse.json(out)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (!dryRun) await recordRun(supabase, caller, t0, null, msg)
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 })
+  }
+}
+
+// 巡检状态（工作台线索页顶栏 + 设置页）：最近一次、最近一次服务器 cron、
+// 24 小时跑了几次、今天（PT）自动首响 / 漏接来电短信 / 转接各几条。
+export async function GET(request: NextRequest) {
+  if (!(await resolveAdminActor(request))) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const supabase = getSupabaseAdmin()
+  if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
+  const now = Date.now()
+  const { data: rows, error } = await supabase
+    .from("lead_watch_runs")
+    .select("ran_at, caller, quiet_hours, disabled, auto_sent, missed_call_texts, needs_human, still_open, escalated, duration_ms, ok, error")
+    .gte("ran_at", new Date(now - 24 * 3600_000).toISOString())
+    .order("ran_at", { ascending: false })
+    .limit(400)
+  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+  type Run = { ran_at: string; caller: string; quiet_hours: boolean; disabled: boolean; auto_sent: number; missed_call_texts: number; needs_human: number; still_open: number; escalated: number; duration_ms: number | null; ok: boolean; error: string | null }
+  const all = (rows ?? []) as Run[]
+  const ptDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
+  const today = ptDay(new Date(now).toISOString())
+  const todayRows = all.filter((r) => ptDay(r.ran_at) === today)
+  const last = all[0] ?? null
+  const lastCron = all.find((r) => r.caller === "cron") ?? null
+  const sum = (k: "auto_sent" | "missed_call_texts" | "escalated") => todayRows.reduce((a, r) => a + (Number(r[k]) || 0), 0)
+  const ageMinutes = last ? Math.round((now - new Date(last.ran_at).getTime()) / 60_000) : null
+  // The cron fires every 10 minutes around the clock, so 25 minutes of
+  // silence means the job or the site is down, whatever the hour.
+  const health = !last ? "never" : !last.ok ? "error" : ageMinutes !== null && ageMinutes > 25 ? "stale" : "ok"
+  return NextResponse.json({
+    ok: true,
+    health,
+    lastRunAt: last?.ran_at ?? null,
+    lastCaller: last?.caller ?? null,
+    ageMinutes,
+    lastError: last?.error ?? null,
+    lastCronAt: lastCron?.ran_at ?? null,
+    quietHours: Boolean(last?.quiet_hours),
+    disabled: Boolean(last?.disabled),
+    runs24h: all.length,
+    cronRuns24h: all.filter((r) => r.caller === "cron").length,
+    failed24h: all.filter((r) => !r.ok).length,
+    today: { autoSent: sum("auto_sent"), missedCallTexts: sum("missed_call_texts"), escalated: sum("escalated") },
+    stillOpen: last?.still_open ?? 0,
+    recent: all.slice(0, 12),
+  })
+}
+
+// cronCaller: nobody reads that response, so the "reported once" marks for
+// plain items are left alone - otherwise the server run at :05 would swallow
+// the push the desktop task sends at :10. Escalation keeps its own marks.
+async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: boolean): Promise<WatchResult> {
   const now = Date.now()
   const watch = (await getWorkbenchSettings()).lead_watch
   if (!watch.enabled) {
-    return NextResponse.json({ ok: true, dryRun, disabled: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 })
+    return { ok: true, dryRun, disabled: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 }
   }
   if (!withinPt(now, ACTIVE_HOURS_PT)) {
-    return NextResponse.json({ ok: true, dryRun, quietHours: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 })
+    return { ok: true, dryRun, quietHours: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 }
   }
 
   // ---- open leads with no first response --------------------------------
@@ -226,7 +328,7 @@ export async function POST(request: NextRequest) {
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(40)
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+  if (error) throw new Error(error.message)
 
   const ids = (leads ?? []).map((l) => l.id)
   const { data: touchpoints } = ids.length
@@ -472,5 +574,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, needsHuman, escalated, stillOpen: candidates.length })
+  return { ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, needsHuman, escalated, stillOpen: candidates.length }
 }

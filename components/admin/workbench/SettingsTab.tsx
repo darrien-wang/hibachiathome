@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { adminJson } from "./api"
+import { LeadWatchRuns } from "./LeadWatchStatus"
 import { Field, Kicker } from "./ui"
 import { stamp } from "./helpers"
 import { MembersSection } from "./MembersSection"
@@ -265,6 +266,7 @@ export function SettingsTab({
           </button>
           {watchResult ? <span style={{ fontSize: 12 }}>{watchResult}</span> : null}
         </div>
+        <LeadWatchRuns adminKey={adminKey} />
       </Section>
 
       <Section title="快捷回复" hint={`线索弹窗里的一排按钮。占位符：${QUICK_REPLY_PLACEHOLDERS.join(" ")}（押金链接会按这条线索现生成并缩短）。价格要跟代码里的一致，见最下面。`} section="quick_replies" meta={meta} canEdit={canEdit} dirty={dirty("quick_replies")} busy={busy === "quick_replies"} onSave={() => void save("quick_replies")} onReset={() => void save("quick_replies", true)}>

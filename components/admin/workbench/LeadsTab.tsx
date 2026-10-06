@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { adminJson } from "./api"
+import { LeadWatchStrip } from "./LeadWatchStatus"
 import { Cell, Chip, Dialog, DialogHead, Field, PhoneIcon, Tag } from "./ui"
 import { askConfirm, tell } from "./ask"
 import {
@@ -171,6 +172,7 @@ export function LeadsTab({
           sub={stats ? `${stats.responded_count_7d}/${stats.leads_7d} 已响应 · 5 分钟内 ${stats.within_5min_rate_7d ?? 0}%` : undefined}
         />
       </div>
+      <LeadWatchStrip adminKey={adminKey} />
 
 
       <RedditPanel adminKey={adminKey} />
