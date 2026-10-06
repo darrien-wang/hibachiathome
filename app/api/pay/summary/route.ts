@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { loadPayContext } from "@/lib/pay-balance"
-import { cardPrice, cardPriceWithTip } from "@/lib/pay-link-math"
+import { cardPrice, cardPriceWithTip, cardProcessingFeeFor } from "@/lib/pay-link-math"
+import { formatTaxRate } from "@/lib/sales-tax-rate"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,10 +10,15 @@ export const dynamic = "force-dynamic"
 // 客户打开 /pay?o=<订单 id> 时读的数据。
 //
 // 2026-10-01 起（老板定）专属链接**回刷卡价**：从这里付一定是刷卡，所以直接给
-// 已含 4% 的尾款，再给"加 20% / 25% 小费"的刷卡总数，客人点一个就付。
+// 刷卡尾款，再给"加 20% / 25% 小费"的刷卡总数，客人点一个就付。
 // 2026-09-23 那版不回金额（"师傅当面谈好了，页面只要一个输入框"），结果客人
 // 得自己算 4%、算小费，Daria 那单的 4% 就被记成了小费。链接里是订单的 UUID，
 // 猜不到；转给别人看到的也只是尾款和小费档位。
+//
+// 口径（D-1006-05，2026-10-06）：v1（10-05 及之前的单）刷卡尾款 = 现金尾款 ×1.04。
+// v2 一个标价三张账：刷卡 = 现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢
+// + 选的小费；另给现金数和 Venmo/Zelle 数让页面列成 "Other ways to pay"。税、税率、
+// Venmo/Zelle 数都由发票引擎算好（lib/pay-balance.ts），这里只搬。
 //
 // 发票上已经选好小费的单子（很少，一年一两单）：尾款里本来就含小费，直接回
 // 含小费的刷卡价，不再给小费档位，免得客人付两遍小费。
@@ -21,6 +27,7 @@ export const dynamic = "force-dynamic"
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const TIP_RATES = [0.2, 0.25]
+const round2 = (n: number) => Math.round(n * 100) / 100
 
 export async function GET(request: NextRequest) {
   const limited = await rateLimit("pay-summary", request, 40, 600)
@@ -52,9 +59,17 @@ export async function GET(request: NextRequest) {
     priced && !tipIncluded
       ? TIP_RATES.map((rate) => {
           const tip = ctx.gratuityOptions.find((o) => Math.abs(o.rate - rate) < 1e-9)?.amount ?? 0
-          return { rate, tip, total: cardPriceWithTip(ctx.cashBalance, tip, ctx.terms) }
+          return {
+            rate,
+            tip,
+            total: cardPriceWithTip(ctx.cashBalance, tip, ctx.terms),
+            // v2: the processing line follows the amount charged, so each option carries its own.
+            fee: cardProcessingFeeFor(ctx.cashBalance, tip, ctx.terms),
+          }
         }).filter((o) => o.tip > 0)
       : []
+
+  const v2 = ctx.terms.version === "v2" ? ctx.terms : null
 
   return NextResponse.json({
     ok: true,
@@ -62,12 +77,25 @@ export async function GET(request: NextRequest) {
     clientName: firstName(ctx.clientName),
     eventDate: ctx.eventDate,
     guests: ctx.guests,
-    // v1: cash balance + 4%. v2 (from 2026-10-06): cash balance + the party's sales tax.
+    // v1: cash balance + 4%. v2: cash balance + the party's sales tax + card processing.
     cardBalance: priced ? cardPrice(owed, ctx.terms) : null,
     terms: ctx.terms.version,
-    taxDue: priced ? ctx.terms.taxDollars : 0,
     gratuityIncluded: priced && tipIncluded ? ctx.includedGratuity : null,
     tipOptions,
+    ...(v2 && priced
+      ? {
+          v2: {
+            taxDue: v2.taxDollars,
+            taxRate: v2.taxRate,
+            taxRateLabel: formatTaxRate(v2.taxRate),
+            taxEstimated: v2.taxRateSource !== "address",
+            processingFee: cardProcessingFeeFor(owed, 0, ctx.terms),
+            cashBalance: ctx.cashBalance,
+            cashDue: round2(owed),
+            zelleVenmoDue: round2(v2.zelleVenmoBalance + ctx.includedGratuity),
+          },
+        }
+      : {}),
   })
 }
 

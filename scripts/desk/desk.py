@@ -288,9 +288,10 @@ def cmd_price(a):
             print(f"{date or '(no date)'}: 引擎没算出来（zip 对吗？）")
             continue
         pr = p["price"]
-        # total = the cash price (10% cash discount offsets the tax); cardTotal = +10% sales tax (2026-10-06 terms).
-        card = f"  刷卡/Venmo/Zelle ${pr['cardTotal']:,.2f}（+10% 税）" if isinstance(pr.get("cardTotal"), (int, float)) else ""
-        print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → 现金 ${pr['total']:,.2f}{card}  [{pr['plan']}]  "
+        # The listed price only (owner 2026-10-06): tax and payment method are not
+        # part of a quote. The three bills come from the invoice engine once the
+        # menu and headcount are set (`desk order totals` / /pay).
+        print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
               f"食 ${pr['foodSubtotal']:,.2f} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
         if a.json:
@@ -482,11 +483,16 @@ def _totals(data: dict) -> dict:
 def _print_totals(inv: dict) -> None:
     print(f"   base {money(inv.get('baseCost'))} | promos -{money(inv.get('promotionsTotal'))} | extras {money(inv.get('partyExtrasCost'))}"
           f" | travel {money(inv.get('travelFee'))} | TOTAL {money(inv.get('finalTotal'))} | deposit {money(inv.get('deposit'))} | BALANCE {money(inv.get('balanceDue'))}")
-    # v2 terms (orders from 2026-10-06): TOTAL / BALANCE above are the cash figures;
-    # card / Venmo / Zelle pay the 10% sales tax on top (gratuity untaxed).
-    if inv.get("pricingTerms") == "v2_tax_added":
-        print(f"   v2 税前价 · sales tax {money(inv.get('salesTax'))} · 现金折扣 -{money(inv.get('cashDiscount'))}"
-              f" · CARD TOTAL {money(inv.get('cardTotal'))} · CARD BALANCE {money(inv.get('cardBalanceDue'))}")
+    # v2 "by method" (orders from 2026-10-06, D-1006-05): one listed price, three
+    # bills. TOTAL / BALANCE above follow the invoice's payment method; the engine
+    # gives all three plus the party's own sales-tax rate (gratuity untaxed).
+    if inv.get("pricingTerms") == "v2_by_method":
+        rate = inv.get("salesTaxRate")
+        rate_s = f"{float(rate) * 100:g}%" if isinstance(rate, (int, float)) else "?"
+        est = "（估，发票里按地址 Re-rate）" if inv.get("salesTaxRateSource") != "address" else ""
+        print(f"   v2 · 现金 BALANCE {money(inv.get('cashBalanceDue'))} · Venmo/Zelle {money(inv.get('zelleVenmoBalanceDue'))}"
+              f" · 刷卡 {money(inv.get('cardBalanceDue'))} = 现金 + 消费税 {rate_s}{est} {money(inv.get('salesTax'))}"
+              f" + 手续费 2.9%+30¢ {money(inv.get('cardProcessingFee'))}")
     else:
         print("   v1 含税价 · 刷卡/Venmo/Zelle +4%")
 
@@ -756,10 +762,11 @@ def cmd_order(a):
         return
     if a.op == "remind":
         # Owner 2026-10-05: the text before the party says what is left to pay.
-        # v2 orders (from 10-06): cash balance (10% cash discount applied) and
-        # card / Venmo / Zelle balance (10% sales tax). v1 orders: the old line.
-        # The balance comes from the invoice engine, the same number the chef's
-        # sheet and /pay use.
+        # v2 orders (from 10-06, D-1006-05): the three bills itemised - cash to
+        # the chef, Zelle/Venmo, card with the party's sales tax and card
+        # processing - plus the one gratuity question. v1 orders: the old line.
+        # Every number comes from the invoice engine, the same ones the chef's
+        # sheet and /pay use; nothing is recomputed here.
         import datetime as _dt
         from zoneinfo import ZoneInfo
         c = prefill.get("contactInfo") or {}
@@ -781,12 +788,19 @@ def cmd_order(a):
         else:
             raise SystemExit(f"the party is {days} days away - this goes out the day before (or the morning of)")
         at = f"{(hh + 11) % 12 + 1}{f':{mm:02d}' if mm else ''}"
-        if inv.get("pricingTerms") == "v2_tax_added":
-            # 2026-10-06 terms: cash balance already carries the 10% cash discount;
-            # card / Venmo / Zelle balance includes the 10% sales tax. Never "no tax".
+        if inv.get("pricingTerms") == "v2_by_method":
+            # Never "no tax" / "tax-free"; Venmo/Zelle is a price, not a fee.
+            if inv.get("salesTaxRateSource") != "address":
+                raise SystemExit("the invoice's sales-tax rate is still the default (estimated) - Re-rate it by the party address in the invoice tool before quoting the card bill")
+            cash = float(inv.get("cashBalanceDue") or 0)
+            zv = float(inv.get("zelleVenmoBalanceDue") or 0)
             card = float(inv.get("cardBalanceDue") or 0)
-            body = (f"See you {when} at {at}! Your balance is {money(balance)} in cash (that's with your 10% cash discount), "
-                    f"or {money(card)} by card, Venmo or Zelle.")
+            tax = float(inv.get("salesTax") or 0)
+            fee = float(inv.get("cardProcessingFee") or 0)
+            body = (f"See you {when} at {at}! Your balance is {money(cash)} cash to your chef, "
+                    f"{money(zv)} by Zelle (562-713-4832) or Venmo (@realhibachiathome), "
+                    f"or {money(card)} by card ({money(cash)} + {money(tax)} sales tax + {money(fee)} card processing). "
+                    f"Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?")
         else:
             body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
         if a.dry:

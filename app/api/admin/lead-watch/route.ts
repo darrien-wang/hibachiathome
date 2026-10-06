@@ -176,8 +176,9 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
   const travelSms = travel > 0 ? `, plus about $${travel} travel` : ", no travel fee"
   const sms =
     `Hi! Bling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
-    // Listed (cash) price only: tax and the cash discount are not brought up
-    // before the deposit (owner 2026-10-06); the invoice and pay page carry them.
+    // Listed price only: nothing about tax or payment method is brought up
+    // before the booking is confirmed (owner 2026-10-06); the invoice and the
+    // pay page carry the itemised bills.
     `For ${guests}${where} it's ${money(weekend)} Fri-Sun or ${money(weekday)} Mon-Thu${travelSms} ` +
     `(2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?`
   const emailText = [

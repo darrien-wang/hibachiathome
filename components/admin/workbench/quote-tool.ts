@@ -21,7 +21,6 @@
 
 import {
   calcSimpleEstimate,
-  cardTotalOf,
   DEPOSIT_AMOUNT,
   earnsLargePartyAppetizer,
   GUEST_TIERS,
@@ -82,10 +81,11 @@ export type QuoteBreakdown = {
   minApplied: boolean
   travelFee: number
   travelKnown: boolean
-  /** The cash total (listed prices; the 10% cash discount offsets the tax). */
+  /**
+   * The listed price (the cash price, tax included). Nothing about tax or
+   * payment method is quoted before the booking is confirmed (owner 2026-10-06).
+   */
   total: number
-  /** By card / Venmo / Zelle: total plus 10% sales tax (owner 2026-10-05). */
-  cardTotal: number
   perPerson: number
   /** The party already gets a free appetizer (Weekday Special or 20+). */
   autoAppetizer: boolean
@@ -197,7 +197,6 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     travelFee,
     travelKnown: q.travelFee != null,
     total,
-    cardTotal: cardTotalOf(total),
     perPerson: heads > 0 ? r2(total / heads) : 0,
     autoAppetizer,
     autoAppetizerTrays,
@@ -238,9 +237,9 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
   else if (shownDiscount > 0) lines.push(`Discount: -${usd(shownDiscount)}`)
   for (const f of b.freebies) lines.push(`${f} on us`)
   const travel = !b.travelKnown ? "" : b.travelFee > 0 ? ` (includes ${usd(b.travelFee)} travel)` : ", no travel fee"
-  // The listed (cash) price only. Owner 2026-10-06: before the deposit, tax and
-  // the cash discount are not brought up - they appear on the invoice and the
-  // pay page, and are answered when asked (leads skill §8).
+  // The listed price only. Owner 2026-10-06: before the booking is confirmed
+  // nothing is said about tax or payment method - the itemised bills appear on
+  // the invoice and the pay page, and are answered when asked (leads skill §8).
   lines.push(`Total: ${usd(b.total)}${travel}`)
   if (opts.depositLink) lines.push(`${usd(DEPOSIT_AMOUNT)} locks the date: ${opts.depositLink}`)
   return lines.join("\n")

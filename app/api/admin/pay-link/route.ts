@@ -5,21 +5,22 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
 
-const CARD_FEE_RATE = 0.04 // must match the published policy (FAQ / invoice tool)
 const INVOICE_BALANCE_API = "https://invoice.realhibachi.com/api/self-service/orders/balance"
 
 // Staff-only credit-card balance links.
 //
-//   action:"quote"  { phone?, email? }        -> live balance from the invoice
-//                                                system (gratuity tier, deposit,
-//                                                card fee - the single source of
-//                                                truth), so texted links can
-//                                                never drift from the invoice.
-//   (default)       { amount, base?, ... }    -> mint a Stripe Checkout link.
-//                                                (金额从不加 4%，09-28 起)
-//                                                exact amount (invoice already
-//                                                includes the card fee);
-//                                                otherwise 4% is added here.
+//   action:"quote"  { orderId? | phone?, email? } -> live balance from the invoice
+//                                                system: the single source of truth
+//                                                for the three bills (cash / Venmo-Zelle
+//                                                / card with the party's sales tax and
+//                                                card processing under the by-method
+//                                                terms, +4% under v1), gratuity tier
+//                                                and deposit - so texted links and the
+//                                                workbench never drift from the invoice.
+//   (default)       { amount, ... }            -> mint a Stripe Checkout link for exactly
+//                                                that amount (金额从不加 4%，09-28 起; the
+//                                                caller passes the card bill the invoice
+//                                                quoted).
 // Which order this link settles. The webhook can only book the money against
 // an order it can name, so the link is stamped with the order's source_ref at
 // mint time — before this existed, every paid balance link was dropped on the
@@ -109,7 +110,8 @@ export async function POST(request: NextRequest) {
       const res = await fetch(INVOICE_BALANCE_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: body.phone || undefined, email: body.email || undefined }),
+        // orderId wins over contact (the order dialog knows its party); the lead dialog quotes by contact.
+        body: JSON.stringify({ orderId: asTrimmed(body.orderId), phone: body.phone || undefined, email: body.email || undefined }),
         cache: "no-store",
       })
       const data = await res.json()

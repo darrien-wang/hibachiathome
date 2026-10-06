@@ -34,7 +34,8 @@ import {
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { PlannerPill, type PlannerSession } from "./planner-live"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
-import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, DEPOSIT_AMOUNT } from "@/config/pricing-rules"
+import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, DEPOSIT_AMOUNT, normalizePricingTerms } from "@/config/pricing-rules"
+import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { computeQuote, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, usd, type QuoteAppetizer } from "./quote-tool"
 
 // 线索弹窗 · 客服：对话 + 承诺 + 操作. Everything a person does with a lead
@@ -308,10 +309,16 @@ export function LeadDialog({
       const q = await adminJson<Record<string, unknown>>(adminKey, "/api/admin/pay-link", { body: { action: "quote", phone: lead.phone || undefined, email: lead.email || undefined } })
       let amount: number
       if (q.ok && q.found && Number(q.balanceDue) > 0) {
-        // The link is a card payment: v2 orders owe the 10% sales tax on it, v1 the 4%.
+        // The link is a card payment, so it collects the card bill: v2 (D-1006-05)
+        // = cash balance + the party's sales tax + card processing, v1 = +4%. All
+        // figures are the invoice engine's; nothing is recomputed here.
         const bal = Number(q.cardBalanceDue ?? q.balanceDue)
-        const v2 = q.pricingTerms === "v2_tax_added"
-        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n刷卡尾款 $${bal.toFixed(2)}（${v2 ? "含 10% 税；现金尾款" : "含 4%；现金尾款"} $${Number(q.cashBalanceDue ?? q.balanceDue).toFixed(2)}），链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
+        const cash = Number(q.cashBalanceDue ?? q.balanceDue)
+        const v2 = normalizePricingTerms(typeof q.pricingTerms === "string" ? q.pricingTerms : null) === "v2_by_method"
+        const detail = v2
+          ? `含消费税${typeof q.salesTaxRate === "number" ? ` ${formatTaxRate(q.salesTaxRate)}` : ""} $${Number(q.salesTax ?? 0).toFixed(2)} + 刷卡手续费 $${Number(q.cardProcessingFee ?? 0).toFixed(2)}；现金尾款 $${cash.toFixed(2)}${typeof q.zelleVenmoBalanceDue === "number" ? ` · Venmo/Zelle $${q.zelleVenmoBalanceDue.toFixed(2)}` : ""}${q.salesTaxRateSource !== "address" ? "\n⚠ 税率是估的——先在发票里按派对地址 Re-rate" : ""}`
+          : `含 4%；现金尾款 $${cash.toFixed(2)}`
+        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n刷卡尾款 $${bal.toFixed(2)}（${detail}），链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
         amount = bal
       } else {
         const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接就收这个数）：", defaultValue: quote.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
@@ -667,9 +674,6 @@ export function LeadDialog({
               <strong className="num" style={{ fontSize: 18 }}>
                 {usd(quote.total)}
               </strong>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", textAlign: "right" }}>
-              现金价（含 10% 现金折扣）· 刷卡 / Venmo / Zelle +10% 税 = {usd(quote.cardTotal)}
             </div>
             <button
               type="button"

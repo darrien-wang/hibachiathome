@@ -6,7 +6,8 @@ import { randomBytes } from "node:crypto"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
-import { pricingTermsFor, SALES_TAX_RATE } from "@/config/pricing-rules"
+import { DEFAULT_SALES_TAX_RATE, cardProcessingFeeOn, normalizePricingTerms, pricingTermsFor, salesTaxOn, STRIPE_FEE_FIXED, STRIPE_FEE_RATE, type PricingTerms } from "@/config/pricing-rules"
+import { formatTaxRate } from "@/lib/sales-tax-rate"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -83,6 +84,43 @@ type OrderLite = {
   balance_due_cents: number | null
   quoted_total_cents: number | null
   invoice_data?: Record<string, unknown> | null
+}
+
+/** Which pricing terms a party bills under: what the invoice recorded, else the order's age. */
+function termsOfOrder(o: { invoice_data?: Record<string, unknown> | null; created_at?: string | null }): PricingTerms {
+  const stored = o.invoice_data?.pricingTerms
+  return typeof stored === "string" ? normalizePricingTerms(stored) : pricingTermsFor(o.created_at ?? null)
+}
+
+type PartyTax = { taxCents: number; rateLabel: string; source: "address" | "default" | "none" }
+
+/**
+ * The sales tax on a v2 party, for netting a card payment: the invoice engine's
+ * live figure first (its balance API carries the rate for the party address),
+ * else the rate the saved invoice recorded applied to the listed total
+ * (quoted_total_cents is the cash total), else the default rate - flagged, so
+ * nobody books a settlement on an estimate without knowing. Never a constant.
+ */
+async function invoiceTaxFor(orderId: string, ord: { quoted_total_cents?: number | null; invoice_data?: Record<string, unknown> | null } | null): Promise<PartyTax> {
+  try {
+    const res = await fetch(`${INVOICE_APP_ORIGIN}/api/self-service/orders/balance`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ orderId }),
+    })
+    const j = (await res.json().catch(() => ({}))) as { found?: boolean; salesTax?: number; salesTaxRate?: number; salesTaxRateSource?: "address" | "default" | "none" }
+    if (res.ok && j.found && typeof j.salesTax === "number" && typeof j.salesTaxRate === "number") {
+      return { taxCents: Math.round(j.salesTax * 100), rateLabel: formatTaxRate(j.salesTaxRate), source: j.salesTaxRateSource ?? "address" }
+    }
+  } catch {
+    // fall through to the saved invoice
+  }
+  const inv = ord?.invoice_data ?? {}
+  const stored = typeof inv.salesTaxRate === "number" ? inv.salesTaxRate : null
+  const rate = stored ?? DEFAULT_SALES_TAX_RATE
+  const listed = Math.max(0, ord?.quoted_total_cents ?? 0) / 100
+  return { taxCents: Math.round(salesTaxOn(listed, rate) * 100), rateLabel: formatTaxRate(rate), source: stored != null ? "address" : "default" }
 }
 
 const ptToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
@@ -240,9 +278,10 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     status: a.assignment_status,
     orderStatus: o.order_status,
     balanceDueCents: o.balance_due_cents,
-    // v1 (through 2026-10-05): card payments carry the 4% fee. v2: the 10%
-    // sales tax instead, no fee - the statement labels its lines by this.
-    pricingTerms: pricingTermsFor(o.created_at ?? null),
+    // v1 (through 2026-10-05): card payments carry the 4% fee. v2 "by method"
+    // (D-1006-05): a card payment carries the party's sales tax and Stripe's
+    // processing instead - the statement labels its lines by this.
+    pricingTerms: termsOfOrder(o),
   }
 }
 
@@ -596,7 +635,7 @@ export async function POST(request: NextRequest) {
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
         const { data: asn } = await supabase.from("order_staff_assignments").select("order_id").eq("id", body.assignment_id).maybeSingle()
         if (!asn) return NextResponse.json({ error: "assignment not found" }, { status: 404 })
-        const { data: ord } = await supabase.from("orders").select("balance_due_cents, quoted_total_cents, created_at").eq("id", asn.order_id).maybeSingle()
+        const { data: ord } = await supabase.from("orders").select("balance_due_cents, quoted_total_cents, created_at, invoice_data, chosen_gratuity_cents").eq("id", asn.order_id).maybeSingle()
         const { data: pays } = await supabase
           .from("payments")
           .select("id, type, provider, status, amount_cents, external_payment_id, paid_at")
@@ -620,14 +659,17 @@ export async function POST(request: NextRequest) {
         // 2026-10-01 起刷卡价 = 现金价 × 1.04（发票刷卡价、/pay 专属链接同一
         // 口径），所以 4% 要从实刷里 ÷1.04 拿掉，不是 ×0.96——后者多扣一点，
         // 师傅拿到的就比 /pay 上告诉客人的"$X for your chef"少（$1,213.87 少 $1.86）。
-        // Pricing terms v2 (orders from 2026-10-06): no fee; what sits on top of
-        // the cash balance in a card payment is the 10% sales tax on the event
-        // total (quoted_total is the cash total), and the tip is untaxed.
-        const terms = pricingTermsFor(ord?.created_at ?? null)
+        // 那是 v1（10-05 及之前的单）。v2 "by method"（D-1006-05，10-06 起）：刷卡账 =
+        // 现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢ + 小费。拆回来和
+        // /pay 记账同一套：手续费按实刷算，税是发票引擎给的这单的税（不用常数税率
+        // 重算），剩下的抵尾款，再剩下的是小费。公司净得 = 实刷 − 税 − 手续费 − 小费。
+        const terms = termsOfOrder(ord ?? {})
+        const v2 = terms === "v2_by_method"
         const grossCents = card.amount_cents ?? 0
-        const taxCents = terms === "v2_tax_added" ? Math.round(Math.max(0, ord?.quoted_total_cents ?? balanceRefCents + others) * SALES_TAX_RATE) : 0
-        const netCents = terms === "v2_tax_added" ? Math.max(0, grossCents - taxCents) : Math.round(grossCents / (1 + CARD_FEE_RATE))
-        const feeCents = terms === "v2_tax_added" ? 0 : grossCents - netCents
+        const tax = v2 ? await invoiceTaxFor(String(asn.order_id), ord ?? null) : null
+        const taxCents = tax?.taxCents ?? 0
+        const feeCents = v2 ? Math.round(cardProcessingFeeOn(grossCents / 100) * 100) : grossCents - Math.round(grossCents / (1 + CARD_FEE_RATE))
+        const netCents = Math.max(0, grossCents - taxCents - feeCents)
         return NextResponse.json({
           ok: true,
           found: true,
@@ -639,7 +681,14 @@ export async function POST(request: NextRequest) {
           netCents,
           balanceRefCents,
           terms,
-          feeRatePct: terms === "v2_tax_added" ? 0 : CARD_FEE_RATE * 100,
+          taxRateLabel: tax?.rateLabel ?? null,
+          // "default" = the invoice has not been rated by the party address yet; the
+          // tax above is an estimate and the owner should re-rate before booking it.
+          taxRateSource: tax?.source ?? "none",
+          feeRatePct: v2 ? STRIPE_FEE_RATE * 100 : CARD_FEE_RATE * 100,
+          feeFixedCents: v2 ? Math.round(STRIPE_FEE_FIXED * 100) : 0,
+          // What the customer typed on /pay as the chef's gratuity (the split at payment time).
+          chosenTipCents: typeof ord?.chosen_gratuity_cents === "number" ? ord.chosen_gratuity_cents : null,
           tipCents: Math.max(0, netCents - balanceRefCents),
         })
       }

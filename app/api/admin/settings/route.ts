@@ -5,6 +5,7 @@ import { invalidateWorkbenchSettings, loadWorkbenchSettings } from "@/lib/workbe
 import { DEFAULT_SETTINGS, isSettingsSection, sanitizeSection } from "@/lib/workbench-settings-shared"
 import {
   CARD_SURCHARGE_RATE,
+  DEFAULT_SALES_TAX_RATE,
   DEPOSIT_AMOUNT,
   FULL_SETUP_PER_GUEST,
   GUESTS_PER_CHEF,
@@ -12,12 +13,16 @@ import {
   MINIMUM_SPEND,
   PARTY_SIZE_DISCOUNT_TIERS,
   PRICING_RULES_VERSION,
+  PRICING_TERMS_V2_FROM,
+  STRIPE_FEE_FIXED,
+  STRIPE_FEE_RATE,
   TABLES_CHAIRS_PER_GUEST,
   TRAVEL_FREE_RADIUS_MILES,
   TRAVEL_RATE_PER_MILE,
   UTENSILS_PER_GUEST,
   WEEKDAY_SPECIAL,
   WEEKDAY_SPECIAL_BLACKOUTS,
+  ZELLE_VENMO_RATE,
 } from "@/config/pricing-rules"
 import { HOME_BASE_ZIP } from "@/config/home-base"
 
@@ -40,7 +45,17 @@ function codeConfig() {
     child_weekday: GUEST_TIERS.child.weekdayPrice,
     minimum_spend: MINIMUM_SPEND,
     deposit: DEPOSIT_AMOUNT,
+    // v1 terms only (orders created before pricing_terms_v2_from): the 4% on card / Venmo / Zelle.
     card_surcharge_rate: CARD_SURCHARGE_RATE,
+    card_surcharge_scope: "v1_tax_included",
+    // v2 "by method" (D-1006-05): cash = listed price (tax in); Venmo/Zelle = listed x (1 + rate);
+    // card = listed + sales tax at the party address + Stripe's cost. The default rate is only
+    // what an invoice shows before the address is rated, flagged as an estimate.
+    pricing_terms_v2_from: PRICING_TERMS_V2_FROM,
+    zelle_venmo_rate: ZELLE_VENMO_RATE,
+    stripe_fee_rate: STRIPE_FEE_RATE,
+    stripe_fee_fixed: STRIPE_FEE_FIXED,
+    default_sales_tax_rate: DEFAULT_SALES_TAX_RATE,
     travel_free_miles: TRAVEL_FREE_RADIUS_MILES,
     travel_rate_per_mile: TRAVEL_RATE_PER_MILE,
     home_base_zip: HOME_BASE_ZIP,

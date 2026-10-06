@@ -334,7 +334,12 @@ export function SettingsTab({
               ["小孩 / 周中", `$${code.child} / $${code.child_weekday}`],
               ["起订", `$${code.minimum_spend}`],
               ["押金", `$${code.deposit}`],
-              ["卡费", `${Number(code.card_surcharge_rate) * 100}%`],
+              ["卡费（只对 v1 · 10-05 及之前建的单）", `${Number(code.card_surcharge_rate) * 100}%`],
+              [
+                "付款方式（10-06 起 · 一个标价三张账）",
+                `现金 = 标价含税 · Venmo/Zelle = 标价 ×${(1 + Number(code.zelle_venmo_rate ?? 0)).toFixed(2)} · 刷卡 = 标价 + 派对地址销售税 + ${(Number(code.stripe_fee_rate ?? 0) * 100).toFixed(1)}% + ${Math.round(Number(code.stripe_fee_fixed ?? 0) * 100)}¢`,
+              ],
+              ["默认税率（发票没按地址定税时，标“估”）", `${(Number(code.default_sales_tax_rate ?? 0) * 100).toFixed(2).replace(/\.?0+$/, "")}%`],
               ["路费", `${code.travel_free_miles} 英里内免，之后 $${code.travel_rate_per_mile}/英里，从 ${code.home_base_zip} 算`],
               ["桌椅 / 餐具 / 全套", `$${code.tables_chairs_per_guest} / $${code.utensils_per_guest} / $${code.full_setup_per_guest} 每人`],
               ["每位师傅", `${code.guests_per_chef} 人`],

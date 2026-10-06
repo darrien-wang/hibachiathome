@@ -268,12 +268,14 @@ export function ChefDialog({
     if (r?.orderSync) setMsg(String(r.orderSync))
   }
 
-  // 刷卡：先按 pi_ 去 Stripe 查真实到账（总额 / 手续费 / 净额），
+  // 刷卡：先按 pi_ 查这单的实刷（总额 / 税 / 手续费 / 净额），
   // 小费 = 净额 − 应收尾款，算好了给老板确认，不用再去后台导表。
+  // v1 单扣 4%；v2 单（10-06 起，D-1006-05）扣派对地址的销售税（发票引擎给）和
+  // Stripe 手续费 2.9% + 30¢——税率还是默认值时提醒先在发票里 Re-rate。
   const cardFlow = async (s: ShiftRow) => {
     setBusy(`m:${s.assignmentId}`)
     setMsg(null)
-    let look: { found?: boolean; grossCents?: number; feeCents?: number; taxCents?: number; terms?: string; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; reason?: string } | null = null
+    let look: { found?: boolean; grossCents?: number; feeCents?: number; taxCents?: number; terms?: string; taxRateLabel?: string | null; taxRateSource?: string; chosenTipCents?: number | null; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; reason?: string } | null = null
     try {
       look = await adminJson(adminKey, "/api/admin/chefs", { body: { action: "card_lookup", assignment_id: s.assignmentId } })
     } catch (e) {
@@ -281,13 +283,15 @@ export function ChefDialog({
     } finally {
       setBusy(null)
     }
+    const v2 = look?.terms === "v2_by_method"
     const lines = look?.found
       ? [
-          look.terms === "v2_tax_added"
-            ? `实刷 ${money(look.grossCents ?? 0)} − 消费税 10% ${money(look.taxCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`
+          v2
+            ? `实刷 ${money(look.grossCents ?? 0)} − 消费税${look.taxRateLabel ? ` ${look.taxRateLabel}` : ""} ${money(look.taxCents ?? 0)} − 刷卡手续费（2.9% + 30¢）${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`
             : `实刷 ${money(look.grossCents ?? 0)} − 手续费 4% ${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`,
+          v2 && look.taxRateSource !== "address" ? "⚠ 税率是估的（发票还没按派对地址定税率）——先在发票里 Re-rate，再记这笔" : null,
           `应收尾款 ${money(look.balanceRefCents ?? 0)}`,
-
+          typeof look.chosenTipCents === "number" ? `客人在付款页填的小费 ${money(look.chosenTipCents)}` : null,
         ].filter(Boolean).join("\n")
       : look?.reason ?? "这单查不到 Stripe 付款，金额自己填。"
     const raw = await askPrompt({

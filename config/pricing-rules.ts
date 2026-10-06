@@ -90,37 +90,89 @@ export const CARD_SURCHARGE_RATE = 0.04
 export const CARD_SURCHARGE_LABEL = "Venmo, Zelle, Credit Card"
 
 // ---------------------------------------------------------------
-// Pricing terms (owner 2026-10-05)
+// Pricing terms (owner 2026-10-05 / 2026-10-06; decision log D-1005-01 -> D-1006-05)
 // ---------------------------------------------------------------
 // v1, through 2026-10-05: prices tax-included; card / Venmo / Zelle +4%.
-// v2, from 2026-10-06: the same listed prices are before sales tax. Every
-// total carries a 10% sales tax line; paying the chef in cash earns a 10%
-// cash discount of the same amount, and no payment method carries a fee.
-// So the cash total equals the listed price and the card / Venmo / Zelle
-// total is the listed price plus tax. Tax applies to the whole event total
-// (food, discounts, travel, rentals) and never to the gratuity; the deposit
-// is a payment against the total, not a taxed line.
-// Customer copy says "cash discount", never "no tax for cash" - the tax is
-// charged on every sale. Mirrored in the invoice app's lib/pricing.ts.
-export type PricingTerms = "v1_tax_included" | "v2_tax_added"
+// v2 "by method", from 2026-10-06: one listed price, three bills.
+//   cash (to the chef on the day) = listed price, sales tax included
+//                                   (Reg 1700 footer on the invoice).
+//   Venmo / Zelle                 = listed price x 1.04 - a PRICE, printed as
+//                                   "Venmo/Zelle price", never a "fee".
+//   credit card (card on file,    = listed price + the sales tax for the party's
+//   charged on the day)             own address (CDTFA rate, lib/sales-tax-rate.ts)
+//                                   + card processing at Stripe's real cost
+//                                   (2.9% + 30c; waived for debit) + the gratuity
+//                                   when the customer puts it on the card.
+// A flat "10% sales tax" line is not a lawful rate anywhere we serve and a card
+// surcharge above cost breaks the Visa 3% cap - so both are itemised at their
+// true amounts. Nothing about tax or payment method is said before the booking
+// is confirmed; the itemised bill appears once menu and headcount are set.
+// The invoice app's lib/pricing.ts is the engine; this file mirrors it.
+export type PricingTerms = "v1_tax_included" | "v2_by_method"
 /** 2026-10-06 00:00 Pacific. */
 export const PRICING_TERMS_V2_FROM = "2026-10-06T07:00:00.000Z"
-export const SALES_TAX_RATE = 0.1
-export const CASH_DISCOUNT_RATE = 0.1
+/** Venmo / Zelle price = listed price x (1 + this). */
+export const ZELLE_VENMO_RATE = 0.04
+/** Stripe's card cost, passed through at cost on card payments. */
+export const STRIPE_FEE_RATE = 0.029
+export const STRIPE_FEE_FIXED = 0.3
+/** Until the party address is rated by CDTFA: LA County base rate, flagged as a default. */
+export const DEFAULT_SALES_TAX_RATE = 0.095
+
+export type CardFunding = "credit" | "debit" | "prepaid" | "unknown"
 
 export function pricingTermsFor(createdAt: string | Date | null | undefined): PricingTerms {
   const ms = createdAt == null ? Date.now() : createdAt instanceof Date ? createdAt.getTime() : Date.parse(createdAt)
-  return Number.isFinite(ms) && ms < Date.parse(PRICING_TERMS_V2_FROM) ? "v1_tax_included" : "v2_tax_added"
+  return Number.isFinite(ms) && ms < Date.parse(PRICING_TERMS_V2_FROM) ? "v1_tax_included" : "v2_by_method"
 }
 
-/** Sales tax on a cash (listed-price) total under v2. */
-export function salesTaxOn(cashTotal: number): number {
-  return roundCurrency(cashTotal * SALES_TAX_RATE)
+/** Read a stored terms label; the short-lived "v2_tax_added" (10-05 -> 10-06) reads as v2 by method. */
+export function normalizePricingTerms(value: string | null | undefined): PricingTerms {
+  return value === "v2_by_method" || value === "v2_tax_added" ? "v2_by_method" : "v1_tax_included"
 }
 
-/** What the same party costs by card / Venmo / Zelle under v2: listed price plus tax. */
-export function cardTotalOf(cashTotal: number): number {
-  return roundCurrency(cashTotal + salesTaxOn(cashTotal))
+/** Sales tax at the party's rate on a listed (cash) total - v2 card bills. */
+export function salesTaxOn(cashTotal: number, rate: number): number {
+  return roundCurrency(cashTotal * rate)
+}
+
+/** Venmo / Zelle price for a listed (cash) amount under v2. */
+export function zelleVenmoPriceOf(cashTotal: number): number {
+  return roundCurrency(cashTotal * (1 + ZELLE_VENMO_RATE))
+}
+
+/**
+ * Card processing passed through at Stripe's cost on what runs through the
+ * card (balance incl. tax, plus gratuity on the card, deposit out). Zero for
+ * debit / prepaid cards and when nothing is charged.
+ */
+export function cardProcessingFeeOn(chargedAmount: number, funding: CardFunding | null | undefined = "unknown"): number {
+  if (chargedAmount <= 0) return 0
+  if (funding === "debit" || funding === "prepaid") return 0
+  return roundCurrency(chargedAmount * STRIPE_FEE_RATE + STRIPE_FEE_FIXED)
+}
+
+/**
+ * The card bill for a listed (cash) total under v2: listed + tax at `rate` +
+ * processing on (listed + tax + gratuity - deposit). Returns the pieces so a
+ * surface can print them as lines.
+ */
+export function cardBillOf(
+  cashTotal: number,
+  rate: number,
+  opts: { gratuity?: number; deposit?: number; funding?: CardFunding | null } = {},
+): { salesTax: number; cardProcessingFee: number; cardTotal: number; cardBalanceDue: number } {
+  const gratuity = opts.gratuity ?? 0
+  const deposit = opts.deposit ?? 0
+  const salesTax = salesTaxOn(cashTotal, rate)
+  const charged = Math.max(0, roundCurrency(cashTotal + salesTax + gratuity - deposit))
+  const cardProcessingFee = cardProcessingFeeOn(charged, opts.funding)
+  return {
+    salesTax,
+    cardProcessingFee,
+    cardTotal: roundCurrency(cashTotal + salesTax + cardProcessingFee),
+    cardBalanceDue: Math.max(0, roundCurrency(charged + cardProcessingFee)),
+  }
 }
 
 /**
@@ -345,12 +397,8 @@ export type SimpleEstimate = {
   minApplied: boolean
   base: number
   travelFee: number
-  /** The cash total: listed prices, discounts, minimum and travel. */
+  /** The listed (cash) total: prices, discounts, minimum and travel. Tax and payment-method figures live on the invoice (D-1006-05); estimates say nothing about them. */
   total: number
-  /** 10% sales tax on `total` (v2 terms, from 2026-10-06). */
-  salesTax: number
-  /** `total` plus tax: the card / Venmo / Zelle total. */
-  cardTotal: number
 }
 
 /**
@@ -376,8 +424,6 @@ export function calcSimpleEstimate(args: { adults: number; kids: number; weekday
     base,
     travelFee,
     total,
-    salesTax: salesTaxOn(total),
-    cardTotal: cardTotalOf(total),
   }
 }
 
