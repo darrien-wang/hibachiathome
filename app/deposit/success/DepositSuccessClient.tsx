@@ -1,11 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { AlertCircle, CalendarCheck, Loader2, Lock, MessageSquare } from "lucide-react"
+import { phone, smsHref } from "@/config/site"
+import { formatUiDate } from "@/lib/date-display"
 import { fireGoogleAdsDepositConversion, trackDepositCompletedOnce } from "@/lib/tracking"
 import { writeDepositMarker } from "@/lib/deposit-marker"
 
@@ -59,6 +57,17 @@ function formatCurrency(value: number, currency: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+/** "18:00" -> "6:00 PM"; anything else passes through. */
+function formatClock(value: string | null | undefined): string | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec((value ?? "").trim())
+  if (!match) return value && value.toUpperCase() !== "TBD" ? value : null
+  const hour24 = Number(match[1])
+  if (!Number.isFinite(hour24) || hour24 > 23) return value as string
+  const suffix = hour24 >= 12 ? "PM" : "AM"
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12
+  return `${hour12}:${match[2]} ${suffix}`
 }
 
 function normalizeText(value: string | null | undefined): string | null {
@@ -362,120 +371,142 @@ export default function DepositSuccessClient({
     }
   }, [displayBookingId, displayEmail, displayPhone, sessionId, state])
 
+  const adults = normalizeCount(initialAdults)
+  const kids = normalizeCount(initialKids)
+  const guestsLine =
+    adults !== null && adults > 0
+      ? kids && kids > 0
+        ? `${adults} adults, ${kids} kids`
+        : `${adults} guests`
+      : null
+  const dateLine = initialEventDate ? formatUiDate(initialEventDate, "") : ""
+  const clock = formatClock(initialEventTime)
+  const partyLine = [dateLine, clock, guestsLine, normalizeText(initialLocation)].filter(Boolean)
+
+  const heading =
+    state.stage === "failed"
+      ? "We couldn't confirm that"
+      : state.stage === "resolved"
+        ? state.payload.paid
+          ? "Your date is locked"
+          : "Almost there"
+        : "Locking your date…"
+
   const content = (() => {
-    if (state.stage === "idle" || state.stage === "loading") {
+    if (state.stage === "failed") {
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-700">
-            We are verifying your deposit with our server before confirming your booking status.
-          </p>
-          <div className="inline-flex items-center gap-2 text-sm text-gray-600">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Checking payment status...
-          </div>
+        <div role="alert" className="mt-5 flex items-start gap-2 rounded-2xl bg-flame-100 px-4 py-3 text-left text-sm text-flame-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{state.message}</span>
         </div>
       )
     }
 
-    if (state.stage === "failed") {
+    if (state.stage !== "resolved") {
       return (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Verification failed</AlertTitle>
-          <AlertDescription>{state.message}</AlertDescription>
-        </Alert>
+        <p className="mt-3 inline-flex items-center gap-2 text-base text-clay-700">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Confirming with Stripe…
+        </p>
       )
     }
 
     const result = state.payload
     if (result.paid) {
       return (
-        <div className="space-y-4">
-          <Alert className="border-green-200 bg-green-50 text-green-900">
-            <CheckCircle2 className="h-4 w-4 text-green-700" />
-            <AlertTitle>Your date is locked</AlertTitle>
-            <AlertDescription>
-              Your card is on file with Stripe and nothing was charged today. The balance is settled after your party.
-            </AlertDescription>
-          </Alert>
-          <div className="rounded-md border border-gray-200 p-4 text-sm text-gray-700">
-            {typeof result.value === "number" && result.value > 0 && (
-              <p>
-                Amount:{" "}
-                <span className="font-medium">{formatCurrency(result.value, (result.currency || "USD").toUpperCase())}</span>
-              </p>
-            )}
-            {displayBookingId && (
-              <p className="mt-1 break-all">
-                Booking Number: <span className="font-mono">{displayBookingId}</span>
-              </p>
-            )}
+        <>
+          <p className="mt-2 text-base text-clay-700">
+            Your card is on file with Stripe and nothing was charged today. We settle the balance after your party.
+          </p>
+          <div className="mt-6 rounded-[28px] bg-cream px-5 py-4 text-left text-sm text-ink">
+            <p className="font-semibold">What happens next</p>
+            <ul className="mt-2 space-y-1.5 text-clay-700">
+              <li>We text you to confirm your chef by name.</li>
+              <li>Pick proteins and party details whenever you like — the link below works on your phone.</li>
+              <li>Two days before the party we text once more to confirm, then your chef shows up and cooks.</li>
+            </ul>
+            <p className="mt-3 text-xs text-clay-600">Change or cancel free up to 48 hours before; $99 inside 48 hours.</p>
           </div>
-          {(plannerUrl || invoiceSelfServiceHref) && (
-            <p className="text-sm text-gray-700">
-              Need to confirm your party-day menu selections or update contact information? Use the self-service link
-              below.
-            </p>
-          )}
-        </div>
+          {displayBookingId ? <p className="mt-3 text-[13px] text-clay-600">Booking {displayBookingId}</p> : null}
+        </>
       )
     }
 
     return (
-      <div className="space-y-4">
-        <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-          <AlertCircle className="h-4 w-4 text-amber-700" />
-          <AlertTitle>Not confirmed yet</AlertTitle>
-          <AlertDescription>
-            We haven&apos;t received Stripe&apos;s confirmation for this session yet. It usually arrives within a few seconds.
-          </AlertDescription>
-        </Alert>
-        <p className="text-sm text-gray-700">
-          Status: <span className="font-medium">{result.status}</span>
+      <>
+        <p className="mt-2 text-base text-clay-700">
+          We haven&apos;t received Stripe&apos;s confirmation for this session yet. It usually arrives within a few seconds.
         </p>
-        <Button onClick={() => void verify()} variant="outline">
-          Refresh Verification
-        </Button>
-      </div>
+        <p className="mt-2 text-[13px] text-clay-600">Status: {result.status}</p>
+        <button
+          type="button"
+          onClick={() => void verify()}
+          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-flame px-6 text-base font-semibold text-flame-700 transition hover:bg-flame/5"
+        >
+          Check again
+        </button>
+      </>
     )
   })()
 
+  const manageHref = isPaidState ? plannerUrl ?? invoiceSelfServiceHref ?? null : invoiceSelfServiceHref ?? null
+
   return (
-    <div className="page-container container mx-auto px-4 py-12">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {content}
-            <div className="flex flex-wrap gap-3">
-              {isPaidState && (plannerUrl || invoiceSelfServiceHref) && (
-                <Button asChild>
-                  <a href={plannerUrl ?? invoiceSelfServiceHref ?? undefined} target="_blank" rel="noreferrer">
-                    Manage Party-Day Details
-                  </a>
-                </Button>
-              )}
-              {!isPaidState && invoiceSelfServiceHref && (
-                <Button asChild variant="outline">
-                  <a href={invoiceSelfServiceHref} target="_blank" rel="noreferrer">
-                    Open Self-Service Details
-                  </a>
-                </Button>
-              )}
-              {!isPaidState && (
-                <Button asChild variant="outline">
-                  <Link href="/deposit/cancel">Need help?</Link>
-                </Button>
-              )}
-              <Button asChild variant="outline">
-                <Link href="/contact">Contact Support</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+    <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
+      <div className="mx-auto w-full max-w-[560px] rounded-[32px] bg-surface px-6 pb-7 pt-10 text-center shadow-organic-lg sm:px-9">
+        <p className="mb-4 text-[13px] font-semibold uppercase tracking-[0.08em] text-clay-600">Real Hibachi · {phone.sms.dashed}</p>
+        <div
+          className={`mx-auto mb-[18px] grid h-16 w-16 place-items-center rounded-full ${
+            state.stage === "failed" ? "bg-flame-100 text-flame-700" : "bg-emerald-100 text-emerald-700"
+          }`}
+        >
+          {state.stage === "failed" ? (
+            <AlertCircle className="h-7 w-7" strokeWidth={2.5} aria-hidden="true" />
+          ) : isPaidState ? (
+            <CalendarCheck className="h-7 w-7" strokeWidth={2.5} aria-hidden="true" />
+          ) : (
+            <Lock className="h-7 w-7" strokeWidth={2.5} aria-hidden="true" />
+          )}
+        </div>
+        <h1 className="font-serif text-[28px] font-extrabold leading-[1.1] text-ink sm:text-[34px]">{heading}</h1>
+
+        {partyLine.length > 0 ? (
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-[18px] gap-y-2 rounded-[28px] bg-cream px-5 py-4 text-base text-ink">
+            {partyLine.map((part, index) => (
+              <span key={`${part}-${index}`} className={index === 0 ? "font-semibold" : undefined}>
+                {part}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {content}
+
+        <div className="mt-[26px] flex flex-col gap-3">
+          {manageHref ? (
+            <a
+              href={manageHref}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-flame px-6 py-3 text-lg font-semibold leading-tight text-white transition hover:bg-flame-600 active:bg-flame-700"
+            >
+              <CalendarCheck className="h-5 w-5" aria-hidden="true" />
+              Plan your party-day details
+            </a>
+          ) : null}
+          <a
+            href={smsHref("Hi Real Hibachi! I just locked my date - quick question.")}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-flame px-6 text-base font-semibold text-flame-700 transition hover:bg-flame/5"
+          >
+            <MessageSquare className="h-4 w-4" aria-hidden="true" />
+            Text us {phone.sms.dashed}
+          </a>
+        </div>
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-[13px] text-clay-600">
+          <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+          Card saved securely by Stripe · nothing charged today
+        </p>
       </div>
-    </div>
+    </main>
   )
 }
