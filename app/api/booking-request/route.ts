@@ -246,7 +246,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
     `Location: ${params.location}`,
     `Guests: ${params.adults} adults, ${params.kids} kids`,
     `Pricing Tier: ${params.pricingTierLabel}`,
-    `Estimated Range: $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}`,
+    `Estimated Range: $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)} (before 10% sales tax; pay your chef in cash on the day and get a 10% cash discount)`,
     "",
     "If you need anything in the meantime, reply to this email or contact support@realhibachi.com.",
     "",
@@ -264,7 +264,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
         <p><strong>Location:</strong> ${escapeHtml(params.location)}</p>
         <p><strong>Guests:</strong> ${params.adults} adults, ${params.kids} kids</p>
         <p><strong>Pricing Tier:</strong> ${escapeHtml(params.pricingTierLabel)}</p>
-        <p><strong>Estimated Range:</strong> $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}</p>
+        <p><strong>Estimated Range:</strong> $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)} (before 10% sales tax; pay your chef in cash on the day and get a 10% cash discount)</p>
       </div>
       <p>If you need anything in the meantime, reply to this email or contact <a href="mailto:support@realhibachi.com">support@realhibachi.com</a>.</p>
       <p>Real Hibachi</p>

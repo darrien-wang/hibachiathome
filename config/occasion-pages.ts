@@ -829,7 +829,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         title: "A quote you can forward upstairs",
         description:
-          "Itemized, with your company name on it and every line showing — food, travel if any, card fee. Nothing gets added after you approve it.",
+          "Itemized, with your company name on it and every line showing — food, travel if any, sales tax, and the cash discount if you pay in cash. Nothing gets added after you approve it.",
       },
     ],
     photos: [
