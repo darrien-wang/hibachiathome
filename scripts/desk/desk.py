@@ -288,7 +288,9 @@ def cmd_price(a):
             print(f"{date or '(no date)'}: 引擎没算出来（zip 对吗？）")
             continue
         pr = p["price"]
-        print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
+        # total = the cash price (10% cash discount offsets the tax); cardTotal = +10% sales tax (2026-10-06 terms).
+        card = f"  刷卡/Venmo/Zelle ${pr['cardTotal']:,.2f}（+10% 税）" if isinstance(pr.get("cardTotal"), (int, float)) else ""
+        print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → 现金 ${pr['total']:,.2f}{card}  [{pr['plan']}]  "
               f"食 ${pr['foodSubtotal']:,.2f} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
         if a.json:
@@ -480,6 +482,13 @@ def _totals(data: dict) -> dict:
 def _print_totals(inv: dict) -> None:
     print(f"   base {money(inv.get('baseCost'))} | promos -{money(inv.get('promotionsTotal'))} | extras {money(inv.get('partyExtrasCost'))}"
           f" | travel {money(inv.get('travelFee'))} | TOTAL {money(inv.get('finalTotal'))} | deposit {money(inv.get('deposit'))} | BALANCE {money(inv.get('balanceDue'))}")
+    # v2 terms (orders from 2026-10-06): TOTAL / BALANCE above are the cash figures;
+    # card / Venmo / Zelle pay the 10% sales tax on top (gratuity untaxed).
+    if inv.get("pricingTerms") == "v2_tax_added":
+        print(f"   v2 税前价 · sales tax {money(inv.get('salesTax'))} · 现金折扣 -{money(inv.get('cashDiscount'))}"
+              f" · CARD TOTAL {money(inv.get('cardTotal'))} · CARD BALANCE {money(inv.get('cardBalanceDue'))}")
+    else:
+        print("   v1 含税价 · 刷卡/Venmo/Zelle +4%")
 
 
 def _print_invoice(order_no: str, data: dict) -> None:
@@ -771,7 +780,14 @@ def cmd_order(a):
         else:
             raise SystemExit(f"the party is {days} days away - this goes out the day before (or the morning of)")
         at = f"{(hh + 11) % 12 + 1}{f':{mm:02d}' if mm else ''}"
-        body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
+        if inv.get("pricingTerms") == "v2_tax_added":
+            # 2026-10-06 terms: cash balance already carries the 10% cash discount;
+            # card / Venmo / Zelle balance includes the 10% sales tax. Never "no tax".
+            card = float(inv.get("cardBalanceDue") or 0)
+            body = (f"See you {when} at {at}! Your balance is {money(balance)} in cash (that's with your 10% cash discount), "
+                    f"or {money(card)} by card, Venmo or Zelle.")
+        else:
+            body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
         if a.dry:
             print(f"DRY   {body}")
             return

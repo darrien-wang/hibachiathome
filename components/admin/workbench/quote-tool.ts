@@ -21,6 +21,7 @@
 
 import {
   calcSimpleEstimate,
+  cardTotalOf,
   DEPOSIT_AMOUNT,
   earnsLargePartyAppetizer,
   GUEST_TIERS,
@@ -81,7 +82,10 @@ export type QuoteBreakdown = {
   minApplied: boolean
   travelFee: number
   travelKnown: boolean
+  /** The cash total (listed prices; the 10% cash discount offsets the tax). */
   total: number
+  /** By card / Venmo / Zelle: total plus 10% sales tax (owner 2026-10-05). */
+  cardTotal: number
   perPerson: number
   /** The party already gets a free appetizer (Weekday Special or 20+). */
   autoAppetizer: boolean
@@ -193,6 +197,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     travelFee,
     travelKnown: q.travelFee != null,
     total,
+    cardTotal: cardTotalOf(total),
     perPerson: heads > 0 ? r2(total / heads) : 0,
     autoAppetizer,
     autoAppetizerTrays,
@@ -233,10 +238,11 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
   else if (shownDiscount > 0) lines.push(`Discount: -${usd(shownDiscount)}`)
   for (const f of b.freebies) lines.push(`${f} on us`)
   const travel = !b.travelKnown ? "" : b.travelFee > 0 ? ` (includes ${usd(b.travelFee)} travel)` : ", no travel fee"
-  lines.push(`Total: ${usd(b.total)}, tax included${travel}`)
-  // Owner 2026-10-05: say it before they decide - cash on the day is the price,
-  // card / Venmo / Zelle add 4% (Zelle is not the cash price).
-  lines.push("That's the cash price - pay your chef in cash on the day and nothing's added; card is 4% more.")
+  // Pricing terms v2 (owner 2026-10-05): listed price + 10% sales tax; a 10%
+  // cash discount when the chef is paid in cash. Both totals spelled out, and
+  // always "cash discount" - never "no tax for cash".
+  lines.push(`Total: ${usd(b.total)} + 10% sales tax = ${usd(b.cardTotal)} by card, Venmo or Zelle${travel}`)
+  lines.push(`Pay your chef in cash on the day and get a 10% cash discount: ${usd(b.total)}`)
   if (opts.depositLink) lines.push(`${usd(DEPOSIT_AMOUNT)} locks the date: ${opts.depositLink}`)
   return lines.join("\n")
 }

@@ -307,8 +307,10 @@ export function LeadDialog({
       const q = await adminJson<Record<string, unknown>>(adminKey, "/api/admin/pay-link", { body: { action: "quote", phone: lead.phone || undefined, email: lead.email || undefined } })
       let amount: number
       if (q.ok && q.found && Number(q.balanceDue) > 0) {
-        const bal = Number(q.balanceDue)
-        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n发票尾款 $${bal.toFixed(2)}，链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
+        // The link is a card payment: v2 orders owe the 10% sales tax on it, v1 the 4%.
+        const bal = Number(q.cardBalanceDue ?? q.balanceDue)
+        const v2 = q.pricingTerms === "v2_tax_added"
+        if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n刷卡尾款 $${bal.toFixed(2)}（${v2 ? "含 10% 税；现金尾款" : "含 4%；现金尾款"} $${Number(q.cashBalanceDue ?? q.balanceDue).toFixed(2)}），链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
         amount = bal
       } else {
         const raw = await askPrompt({ title: "手输金额", message: "发票系统里没有这位客人的尾款。手输金额（美元，链接就收这个数）：", defaultValue: quote.total.toFixed(2), placeholder: "0.00", inputMode: "decimal", okLabel: "生成链接" })
@@ -664,6 +666,9 @@ export function LeadDialog({
               <strong className="num" style={{ fontSize: 18 }}>
                 {usd(quote.total)}
               </strong>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", textAlign: "right" }}>
+              现金价（含 10% 现金折扣）· 刷卡 / Venmo / Zelle +10% 税 = {usd(quote.cardTotal)}
             </div>
             <button
               type="button"
