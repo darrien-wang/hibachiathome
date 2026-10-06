@@ -106,11 +106,8 @@ export async function GET(request: Request) {
       partySizeDiscount: est.partySizeDiscountApplied,
       minimumApplied: est.minApplied,
       travelFee: est.travelFee,
-      /** The cash total: listed prices are before sales tax; paid in cash to the chef with the 10% cash discount. */
+      // Owner 2026-10-06: the price only - tax is on the invoice, not in the quote.
       total: est.total,
-      salesTax: est.salesTax,
-      /** By card, Venmo or Zelle: total plus 10% sales tax. */
-      cardTotal: est.cardTotal,
       // 2026-09-22: one appetizer of the customer's choice, not a 3-item platter.
       freeAppetizer: platter
         ? `One free appetizer of your choice (${WEEKDAY_SPECIAL.appetizerPlatter.detail}), one tray for the table to share; gyoza if you don't choose`
@@ -143,7 +140,6 @@ export async function GET(request: Request) {
     notIncluded: [
       "Gratuity for the chef (20-25% is customary)",
       "Optional upgrades and add-ons (see /llms.txt)",
-      "10% sales tax on the event total (in cardTotal). Paying the chef in cash on the day earns a 10% cash discount, which is why `total` is the cash figure.",
     ],
     minimum: MINIMUM_SPEND,
     deposit: {
