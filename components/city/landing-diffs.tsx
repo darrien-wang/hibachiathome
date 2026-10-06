@@ -11,7 +11,13 @@ export default function LandingDiffs({ distanceLine }: { distanceLine: string })
     { big: "15 min", label: "text reply", body: "A real person, not a bot", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
     { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
-    { big: "2×", label: "back if we ever cancel", body: "Your chef is confirmed by name before your party" },
+    // Was "2× back if we ever cancel" until 2026-10-06. It was the only card
+    // about us failing, so it raised a doubt the visitor had not had, and the
+    // multiple is of what they have paid so far - which before the party is the
+    // deposit. Two proteins each is the thing competitors actually shortchange
+    // (single protein, shrimp as an upcharge), it is checkable, and it makes
+    // all four cards one set: fast reply, free travel, no setup fee, the food.
+    { big: "2", label: "proteins per guest", body: "Steak, shrimp, salmon, chicken or tofu — all included" },
   ]
   return (
     <section className="flex flex-col gap-3.5">
