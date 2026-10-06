@@ -17,8 +17,6 @@ Cargo por traslado: las primeras 50 millas son gratis, después $1 por milla —
 Impuesto y formas de pago:
 - Los precios no incluyen el 10% de impuesto sobre ventas
 - Si pagas en efectivo al chef el día del evento recibes un 10% de descuento por pago en efectivo
-- Tarjeta, Venmo y Zelle no tienen comisión
-
 Elijas lo que elijas, el saldo se paga el día de tu fiesta.`,
   },
   {

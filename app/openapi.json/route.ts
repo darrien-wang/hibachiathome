@@ -54,7 +54,7 @@ const spec = {
       get: {
         operationId: "getPrice",
         summary: "Exact price for a party",
-        description: "Same rules the website and our quotes use: per-guest rate, Weekday Special (Mon-Thu), party size discount, $599 minimum, travel past 50 driving miles. Listed prices are before sales tax: `total` is the cash figure, `salesTax` the 10% sales tax and `cardTotal` the card / Venmo / Zelle total (listed price plus tax). Paying the chef in cash on the day earns a 10% cash discount; no payment method carries a fee. Gratuity and add-ons are extra.",
+        description: "Same rules the website and our quotes use: per-guest rate, Weekday Special (Mon-Thu), party size discount, $599 minimum, travel past 50 driving miles. Listed prices are before sales tax: `total` is the cash figure, `salesTax` the 10% sales tax and `cardTotal` the card / Venmo / Zelle total (listed price plus tax). Paying the chef in cash on the day earns a 10% cash discount. Gratuity and add-ons are extra.",
         parameters: [
           { name: "adults", in: "query", required: true, schema: { type: "integer", minimum: 1 }, description: "Guests 13 and older" },
           { name: "kids", in: "query", schema: { type: "integer", minimum: 0 }, description: "Ages 5-12" },

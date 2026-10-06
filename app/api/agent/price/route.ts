@@ -109,7 +109,7 @@ export async function GET(request: Request) {
       /** The cash total: listed prices are before sales tax; paid in cash to the chef with the 10% cash discount. */
       total: est.total,
       salesTax: est.salesTax,
-      /** By card, Venmo or Zelle: total plus 10% sales tax. No processing fees. */
+      /** By card, Venmo or Zelle: total plus 10% sales tax. */
       cardTotal: est.cardTotal,
       // 2026-09-22: one appetizer of the customer's choice, not a 3-item platter.
       freeAppetizer: platter
@@ -143,7 +143,7 @@ export async function GET(request: Request) {
     notIncluded: [
       "Gratuity for the chef (20-25% is customary)",
       "Optional upgrades and add-ons (see /llms.txt)",
-      "10% sales tax on the event total (in cardTotal). Paying the chef in cash on the day earns a 10% cash discount, which is why `total` is the cash figure. No processing fees on any method.",
+      "10% sales tax on the event total (in cardTotal). Paying the chef in cash on the day earns a 10% cash discount, which is why `total` is the cash figure.",
     ],
     minimum: MINIMUM_SPEND,
     deposit: {
