@@ -31,12 +31,11 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
         />
         <div className="flex items-baseline gap-1.5 border-t border-ink/10 pt-3">
           <span className="font-serif text-[40px] font-extrabold leading-none">{totalLabel}</span>
-          <span className="text-[13px] text-clay-600">+ 10% sales tax · within 50 mi · exact price by text</span>
+          <span className="text-[13px] text-clay-600">within 50 mi · exact price by text</span>
         </div>
         <Link href={href} onClick={onQuote} className="inline-flex h-[50px] items-center justify-center rounded-full bg-flame text-[15px] font-semibold text-white hover:bg-flame-600">
           Get my quote
         </Link>
-        <p className="text-center text-xs text-clay-600">Pay your chef in cash on the day and get a 10% cash discount</p>
         <p className="text-center text-xs text-clay-600">Kids, weekday special and add-ons on the next screen</p>
       </div>
     )
@@ -46,7 +45,7 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
     <div className="fixed inset-x-0 bottom-0 z-40 bg-[linear-gradient(to_top,#f7efe2_70%,transparent)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-4 lg:hidden">
       <div className="flex items-center gap-2 rounded-[28px] border border-ink/10 bg-white py-3 pl-[18px] pr-3 shadow-organic-lg">
         <div className="flex-1">
-          <p className="text-xs text-clay-600">{adults} adults · any day · + 10% sales tax</p>
+          <p className="text-xs text-clay-600">{adults} adults · any day</p>
           <p className="font-serif text-[22px] font-extrabold leading-[1.1]">{totalLabel}</p>
         </div>
         <button type="button" aria-label="Fewer adults" onClick={() => setAdults((a) => Math.max(1, a - 1))} className="flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 text-ink">

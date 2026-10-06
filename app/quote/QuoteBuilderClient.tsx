@@ -29,9 +29,7 @@ import {
   MINIMUM_SPEND,
   WEEKDAY_SPECIAL,
   calcAdultEquivalents,
-  cardTotalOf,
   isWeekdayEligibleDate,
-  salesTaxOn,
 } from "@/config/pricing-rules"
 import { parseSetupParams } from "@/config/table-themes"
 import { useActiveRegion } from "@/lib/use-active-region"
@@ -1447,13 +1445,6 @@ export default function QuoteBuilderClient() {
       : `$${fmtMoney(result.totalRange.low)}–$${fmtMoney(result.totalRange.high)}`
   const rangeLabel = formatDisplayRange(displayRange(result.totalRange.low, result.totalRange.high + result.partySizeDiscountApplied))
   const shownPriceLabel = unlocked ? totalLabel : rangeLabel
-  // Pricing terms v2 (owner 2026-10-05): the total above is the listed (cash)
-  // price, before 10% sales tax. Card / Venmo / Zelle pay the tax; cash to the
-  // chef on the day earns a 10% cash discount - say "cash discount", never
-  // "no tax for cash".
-  const moneyRange = (low: number, high: number) => (low === high ? `$${fmtMoney(low)}` : `$${fmtMoney(low)}–$${fmtMoney(high)}`)
-  const salesTaxLabel = moneyRange(salesTaxOn(result.totalRange.low), salesTaxOn(result.totalRange.high))
-  const cardTotalLabel = moneyRange(cardTotalOf(result.totalRange.low), cardTotalOf(result.totalRange.high))
 
   const validateContact = () => {
     const digits = customerPhone.replace(/\D/g, "").replace(/^1/, "")
@@ -1607,15 +1598,9 @@ export default function QuoteBuilderClient() {
       </span>
       <div className="flex items-baseline gap-1.5">
         <span className="font-serif text-[52px] font-extrabold leading-none lg:text-[56px]">{shownPriceLabel}</span>
-        <span className="text-sm opacity-85">+ 10% sales tax</span>
       </div>
       <p className="text-[13px] leading-relaxed opacity-90">
         Food, chef, live show, setup &amp; cleanup, travel within 50 mi. Gratuity not included.
-      </p>
-      <p className="text-[13px] leading-relaxed opacity-90">
-        {unlocked
-          ? `${cardTotalLabel} by card, Venmo or Zelle. Pay your chef in cash on the day and get a 10% cash discount: ${totalLabel}.`
-          : "Pay your chef in cash on the day and get a 10% cash discount."}
       </p>
       {isWeekdaySaverTier ? (
         <p className="text-[12px] opacity-90">{WEEKDAY_SAVER_MENU_DETAIL}</p>
@@ -2207,18 +2192,6 @@ export default function QuoteBuilderClient() {
                       <span className="font-semibold">−${result.loyaltyDiscount.toFixed(0)}</span>
                     </div>
                   ) : null}
-                  <div className="flex justify-between border-b border-ink/15 py-2.5">
-                    <span>Sales tax (10%)</span>
-                    <span className="font-semibold">+{salesTaxLabel}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-ink/15 py-2.5">
-                    <span>Total by card, Venmo or Zelle</span>
-                    <span className="font-semibold">{cardTotalLabel}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-ink/15 py-2.5 text-gold-800">
-                    <span>Cash to your chef on the day · 10% cash discount</span>
-                    <span className="font-semibold">{totalLabel}</span>
-                  </div>
                   {result.includesAppetizerPlatter || result.paidHeadcount >= 20 ? (
                     <div className="flex items-start gap-1.5 py-2.5 text-[13px] font-semibold text-gold-800">
                       <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

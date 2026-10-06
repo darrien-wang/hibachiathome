@@ -32,8 +32,7 @@ export default function MenuItemCard({ id, title, price, image, description }: M
         <div className="flex justify-between items-center">
           <span className="text-xl font-bold text-amber-600">
             ${typeof price === "number" ? price.toFixed(1) : price}{" "}
-            <span className="text-sm font-medium text-amber-800">/adult</span>{" "}
-            <span className="text-xs font-normal text-gray-500">+ tax</span>
+            <span className="text-sm font-medium text-amber-800">/adult</span>
           </span>
         </div>
       </div>

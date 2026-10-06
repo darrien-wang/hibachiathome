@@ -2350,7 +2350,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What does hibachi at home cost in Riverside?",
         answer:
-          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup and cleanup included. Prices are plus 10% sales tax; pay your chef in cash on the day and get a 10% cash discount. Weekday Special ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies in California too.",
+          "$59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, $599 event minimum — chef, grill, food, show, setup and cleanup included. Weekday Special ($54.90/adult, Mon–Thu, with a free appetizer of your choice: gyoza, edamame or spring rolls) applies in California too.",
       },
     ],
     nearby: ["corona", "temecula", "anaheim"],

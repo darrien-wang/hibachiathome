@@ -29,7 +29,6 @@ const PRICE_ROWS = [
   ["Pequeños (3–4)", "Gratis"],
   ["Bebés (0–2)", "Gratis"],
   ["Consumo mínimo", "$599 por evento"],
-  ["Impuesto sobre ventas", "+10% sobre el total. Si pagas en efectivo al chef el día del evento recibes un 10% de descuento por pago en efectivo"],
   ["Especial entre semana (lun–jue)", "$54.90 por adulto, $27.45 por niño + un aperitivo gratis a elegir (gyozas, edamame o rollitos primavera)"],
   ["Mesas, sillas y mantel", "+$10 por persona (opcional)"],
   ["Cubiertos y vajilla", "+$5 por persona (opcional)"],

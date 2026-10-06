@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PackageSmsButton } from "@/components/menu/package-sms-button"
 import { pricing } from "@/config/pricing"
-import { cardTotalOf } from "@/config/pricing-rules"
 
 // Honest math: tables/chairs are OPTIONAL and travel is free within 50
 // miles, so the headline number is what most parties actually pay - the
@@ -30,10 +29,8 @@ export default function PriceTransparency() {
     <section className="my-10 rounded-xl border border-amber-200 bg-amber-50/40 p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Total Price Examples (Fast Estimate)</h2>
       <p className="text-sm text-gray-700 mb-6">
-        The big number is the listed price for most parties — food, chef, live show, setup and cleanup,
-        with free travel within 50 miles — before 10% sales tax. Pay your chef in cash on the day and get a
-        10% cash discount; by card, Venmo or Zelle the total is the listed price plus tax. Add-ons are
-        optional and listed separately.
+        The big number is the price for most parties — chef, grill, food, live show, setup and cleanup,
+        with free travel within 50 miles. Add-ons are optional and listed separately.
       </p>
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
@@ -44,10 +41,7 @@ export default function PriceTransparency() {
             </CardHeader>
             <CardContent className="space-y-1 text-sm text-gray-700">
               <p className="text-2xl font-bold text-gray-900">${example.baseTotal.toFixed(0)}</p>
-              <p className="text-xs text-gray-500">
-                + 10% sales tax = ${cardTotalOf(example.baseTotal).toFixed(2)} by card, Venmo or Zelle. Pay your chef in cash on
-                the day and get a 10% cash discount: ${example.baseTotal.toFixed(0)}. No travel fee within 50 miles.
-              </p>
+              <p className="text-xs text-gray-500">Chef, grill, food, show, setup and cleanup — no travel fee within 50 miles.</p>
               <div className="pt-2 border-t border-amber-100 text-xs text-gray-600 space-y-0.5">
                 <p>Optional: tables, chairs &amp; utensils +${example.setupIfNeeded} (skip it if you have your own)</p>
                 <p>Optional: premium upgrades, appetizers, DIY fried rice add-ins</p>

@@ -447,7 +447,6 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
             <span>Setup total</span>
             <span>{usd(total)}</span>
           </div>
-          <p className="text-xs text-clay-600">+ 10% sales tax on your invoice · pay your chef in cash on the day and get a 10% cash discount</p>
         </div>
 
         {leadId ? (

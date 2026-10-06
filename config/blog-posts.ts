@@ -35,8 +35,6 @@ Weekday parties of every size also get a free appetizer of your choice (gyoza, e
 
 *The $599 minimum covers small parties — think of it as a private-restaurant buyout for your backyard.
 
-Every figure here is before 10% sales tax. By card, Venmo or Zelle the total is the listed price plus 10%; pay your chef in cash on the day and you get a 10% cash discount, so the cash total is the number in the table.
-
 Want your number? The [instant quote tool](/quote) shows your price range in 30 seconds with your real headcount, then texts you the exact total and your party size discount code.
 
 ## The fees to ask any hibachi caterer about
@@ -49,13 +47,13 @@ We audited this market carefully. The advertised per-person price is rarely the 
 
 **3. Travel fees that start early.** Some start charging at 20 miles, or add a flat ~$75. **Our first 50 miles are free**, which covers most of LA and Orange County; beyond that it's $1/mile, calculated from your address and shown in your quote before you pay anything.
 
-**4. "Estimates" that aren't quotes.** Some calculators warn you the number is not an exact price. Ours is: the total your quote shows — food, show, travel — is the total you pay, plus 10% sales tax. Pay your chef in cash on the day and you get a 10% cash discount, so the cash total is exactly the number on the quote.
+**4. "Estimates" that aren't quotes.** Some calculators warn you the number is not an exact price. Ours is: the total your quote shows — food, show, travel — is the exact price, not a ballpark.
 
 ## Why hibachi often beats a restaurant for groups
 
 Take those 16 adults and 6 kids to a mid-range LA teppanyaki restaurant and you're looking at roughly $60–$90 per adult after drinks, tax, tip, and the birthday-dessert upsell — call it $1,400–$1,900, split across two tables, with a two-hour limit.
 
-At home: $1,138 + 10% sales tax = $1,251.80 by card, Venmo or Zelle, or $1,138 with the 10% cash discount when you pay your chef in cash — one table, no closing time, and the show happens three feet from the birthday person. That's the trade.
+At home: $1,138, one table, no closing time, and the show happens three feet from the birthday person. That's the trade.
 
 ## Get your number
 
@@ -171,7 +169,7 @@ Some services add $8–$10 per guest for setup. Ours is included — the quote i
 Charging from mile 20, or a flat ~$75, is a common pattern. Our **first 50 miles are free** (that's most of LA and OC), then $1/mile, shown in the quote before you pay.
 
 **5. Is the "estimate" actually the price?**
-Read the fine print under any calculator. If it says the estimate isn't exact, budget for the difference. Our quote total is the amount you pay, plus 10% sales tax — or exactly that number when you pay your chef in cash on the day and take the 10% cash discount.
+Read the fine print under any calculator. If it says the estimate isn't exact, budget for the difference. Our quote total is exact, not an estimate.
 
 **6. Is the service actually local?**
 A surprising number of "Los Angeles" hibachi sites list out-of-state phone numbers and addresses, and dispatch through national chef marketplaces. We're based in the San Gabriel Valley, our number is a 213, and [the parties in our gallery](/gallery) are SoCal backyards you can recognize.
@@ -439,7 +437,7 @@ I have run more than three hundred of these parties across Southern California o
 
 ## The short answer
 
-**Roughly $60 per adult plus 10% sales tax for most parties in Los Angeles — or $54.90 an adult, with a free appetizer of your choice (gyoza, edamame or spring rolls), if you can do a weeknight.**
+**Roughly $60 per adult for most parties in Los Angeles — or $54.90 an adult, with a free appetizer of your choice (gyoza, edamame or spring rolls), if you can do a weeknight.**
 
 That is not a coincidence — nearly every mobile hibachi service in this market is priced around $60 per adult with a $600 minimum. Ours is $59.90 per adult, $29.90 per child 5–12, and kids under 5 eat free, with a $599 event minimum. Where services actually differ is everything *after* that number, which is the rest of this article.
 
@@ -454,10 +452,8 @@ These are the ranges I see in practice, not a calculator output.
 | 30 adults | **~$1,800** |
 
 Those are the numbers for an address inside our free 50-mile radius, which
-is most of Los Angeles and Orange County, before 10% sales tax: by card, Venmo
-or Zelle add 10%; pay your chef in cash on the day and the 10% cash discount
-brings it back to the number in the table. Travel is the only other thing that
-moves them, and it moves them less than you'd think — see below.
+is most of Los Angeles and Orange County. Travel is the only thing that moves
+them, and it moves them less than you'd think — see below.
 
 The math is simple because the rate is flat: it is about $60 a head, and it scales in a straight line. There is no "event fee," no per-guest setup charge, and no minimum you have to buy your way up to once you're past ten people.
 
@@ -556,10 +552,9 @@ For a 20-adult party in Los Angeles with no upgrades:
 |---|---|
 | Food & chef (20 × $59.90) | $1,198 |
 | Travel (inside 50 miles) | $0 |
-| Sales tax (10%) | $119.80 — offset by the 10% cash discount if you pay your chef in cash |
 | Tip at 20% | ~$240 |
 | Deposit (applied to your total) | $19.90 |
-| **Realistic total** | **~$1,440 in cash, ~$1,560 by card, Venmo or Zelle** |
+| **Realistic total** | **~$1,440** |
 
 Add roughly $160 if everyone upgrades to filet. Subtract about $280 if you move it to a Tuesday.
 
