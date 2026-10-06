@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { splitCardPayment } from "@/lib/pay-link-math"
+import { splitCardPayment, V1_TERMS, type PayTerms } from "@/lib/pay-link-math"
 
 // 付款页。
 //
@@ -23,8 +23,12 @@ type Summary = {
   clientName?: string
   eventDate?: string | null
   guests?: number | null
-  /** 刷卡尾款（已含 4%）。已结清或没有金额时为 null。 */
+  /** 刷卡尾款（v1 已含 4%；v2 已含税）。已结清或没有金额时为 null。 */
   cardBalance?: number | null
+  /** v1 = 含税价 + 4%（10-05 前的单）；v2 = 税前价 + 10% 税、无手续费（10-06 起）。 */
+  terms?: "v1" | "v2"
+  /** v2 下这单的税（美元），刷卡尾款里含的那部分。 */
+  taxDue?: number
   /** 发票上已经选好小费时，尾款里含的那份小费（现金口径）；此时没有小费档位。 */
   gratuityIncluded?: number | null
   tipOptions?: Array<{ rate: number; tip: number; total: number }>
@@ -249,10 +253,15 @@ export default function PayClient() {
             : choice === "other"
               ? amountNumber
               : 0
-    // 刷卡尾款 = 现金尾款 × 1.04 取到分，÷1.04 再取到分正好还原现金尾款；
-    // 用它跑和服务端同一个拆账，"Other amount" 下面显示的小费才和记账一致。
-    const cashBalance = Math.round(Math.round(cardBalance * 100) / 1.04) / 100
-    const otherTipCents = choice === "other" && amountNumber > 0 ? splitCardPayment(amountNumber, cashBalance).tipCents : 0
+    // v1：刷卡尾款 = 现金尾款 × 1.04 取到分，÷1.04 再取到分正好还原现金尾款；
+    // v2：刷卡尾款 = 现金尾款 + 税。用它跑和服务端同一个拆账，"Other amount"
+    // 下面显示的小费才和记账一致。
+    const terms: PayTerms = data.terms === "v2" ? { version: "v2", taxDollars: Math.max(0, data.taxDue ?? 0) } : V1_TERMS
+    const cashBalance =
+      terms.version === "v2"
+        ? Math.max(0, Math.round((cardBalance - terms.taxDollars) * 100) / 100)
+        : Math.round(Math.round(cardBalance * 100) / 1.04) / 100
+    const otherTipCents = choice === "other" && amountNumber > 0 ? splitCardPayment(amountNumber, cashBalance, terms).tipCents : 0
     const option = (key: Choice, label: string, sub: string | null, value: number | null) => (
       <button
         key={key}
@@ -413,7 +422,9 @@ export default function PayClient() {
             </button>
           ) : null}
           {err && <span className="text-[13px] leading-snug text-flame-800">{err}</span>}
-          <span className="text-center text-xs text-clay-700">Prices include the 4% card processing fee.</span>
+          <span className="text-center text-xs text-clay-700">
+            {terms.version === "v2" ? "Card, Venmo and Zelle totals include 10% sales tax." : "Prices include the 4% card processing fee."}
+          </span>
           <span className="text-center text-xs text-clay-700">Card payment handled by Stripe. We never see your card.</span>
         </div>
 
@@ -476,7 +487,6 @@ export default function PayClient() {
           {busy ? "Opening secure checkout…" : amountNumber > 0 ? `Pay ${usd(amountNumber)}` : "Enter an amount"}
         </button>
         {err && <span className="text-[13px] leading-snug text-flame-800">{err}</span>}
-        <span className="text-center text-xs text-clay-700">Card payments include a 4% processing fee.</span>
         <span className="text-center text-xs text-clay-700">
           Card payment handled by Stripe. We never see your card.
         </span>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { loadPayContext } from "@/lib/pay-balance"
-import { cardPrice } from "@/lib/pay-link-math"
+import { cardPrice, cardPriceWithTip } from "@/lib/pay-link-math"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     priced && !tipIncluded
       ? TIP_RATES.map((rate) => {
           const tip = ctx.gratuityOptions.find((o) => Math.abs(o.rate - rate) < 1e-9)?.amount ?? 0
-          return { rate, tip, total: cardPrice(ctx.cashBalance + tip) }
+          return { rate, tip, total: cardPriceWithTip(ctx.cashBalance, tip, ctx.terms) }
         }).filter((o) => o.tip > 0)
       : []
 
@@ -62,7 +62,10 @@ export async function GET(request: NextRequest) {
     clientName: firstName(ctx.clientName),
     eventDate: ctx.eventDate,
     guests: ctx.guests,
-    cardBalance: priced ? cardPrice(owed) : null,
+    // v1: cash balance + 4%. v2 (from 2026-10-06): cash balance + the party's sales tax.
+    cardBalance: priced ? cardPrice(owed, ctx.terms) : null,
+    terms: ctx.terms.version,
+    taxDue: priced ? ctx.terms.taxDollars : 0,
     gratuityIncluded: priced && tipIncluded ? ctx.includedGratuity : null,
     tipOptions,
   })

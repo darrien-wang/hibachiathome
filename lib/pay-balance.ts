@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import type { PayTerms } from "@/lib/pay-link-math"
 
 // /pay 的两个接口（summary 读、session 写）共用的"这单现在还欠多少"。
 //
@@ -30,6 +31,12 @@ export type PayContext = {
   includedGratuity: number
   /** 发票本身是不是按刷卡报的价。 */
   invoiceIsCard: boolean
+  /**
+   * 这单的口径：v1 = 含税价 + 刷卡 4%（10-05 及之前建的单）；v2 = 税前价 + 10%
+   * 消费税、现金折扣同额、无手续费（10-06 起）。taxDollars 是 v2 下这单的税
+   * （按派对总价算，发票接口给），v1 为 0。settled 时为 0。
+   */
+  terms: PayTerms
   clientName: string
   eventDate: string | null
   guests: number | null
@@ -48,6 +55,8 @@ type BalanceResponse = {
   creditCardFee?: number
   selectedGratuity?: number
   gratuityOptions?: Array<{ rate: number; amount: number }>
+  pricingTerms?: string
+  salesTax?: number
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -98,6 +107,10 @@ export async function loadPayContext(orderId: string): Promise<PayContext | null
     includedGratuity: settled ? 0 : round2(includedGratuity),
     // The invoice says "credit_card"; this read "card" and so never matched.
     invoiceIsCard: data.paymentMethod === "credit_card" || data.paymentMethod === "card",
+    terms:
+      data.pricingTerms === "v2_tax_added"
+        ? { version: "v2", taxDollars: settled ? 0 : round2(Math.max(0, data.salesTax ?? 0)) }
+        : { version: "v1", taxDollars: 0 },
     clientName: (data.clientName ?? "").trim(),
     eventDate: data.eventDate ?? null,
     guests: typeof data.guests === "number" ? data.guests : null,
@@ -121,6 +134,7 @@ function empty(): PayContext {
     cashBalance: 0,
     includedGratuity: 0,
     invoiceIsCard: false,
+    terms: { version: "v1", taxDollars: 0 },
     clientName: "",
     eventDate: null,
     guests: null,

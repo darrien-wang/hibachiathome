@@ -137,7 +137,8 @@ export async function POST(request: NextRequest) {
 
   // Every payment here is a card payment: change it back to cash terms first,
   // so the 4% is not booked as the chef's tip (Daria, 2026-10-01).
-  const split = splitCardPayment(amount, ctx.cashBalance)
+  // v2 orders: the tax comes off the top instead of the 4% (lib/pay-link-math.ts).
+  const split = splitCardPayment(amount, ctx.cashBalance, ctx.terms)
 
   // webhook 靠 source_ref 把钱记到订单上；没有就别铸链接，否则钱落地找不到
   // 归属（pay-link 路由踩过这个坑）。
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
                   ? `Real Hibachi — ${name}`
                   : "Real Hibachi Party Payment",
               // No amounts here: the split is in cash terms and would not match the card price above it.
-              description: checkoutDescription(split, ctx.cashBalance),
+              description: checkoutDescription(split, ctx.cashBalance, ctx.terms),
             },
           },
         },

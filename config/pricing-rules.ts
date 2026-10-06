@@ -81,11 +81,47 @@ export const MINIMUM_SPEND = 599
 export const DEPOSIT_AMOUNT = 19.9
 
 /**
- * Card surcharge. Charged on the amount actually swiped — the outstanding
- * balance plus gratuity — never on a deposit that was already paid.
+ * Card surcharge — v1 terms only (orders created through 2026-10-05). Charged
+ * on the amount actually swiped — the outstanding balance plus gratuity —
+ * never on a deposit that was already paid. Nothing quoted from 2026-10-06
+ * carries it; see the pricing terms below.
  */
 export const CARD_SURCHARGE_RATE = 0.04
 export const CARD_SURCHARGE_LABEL = "Venmo, Zelle, Credit Card"
+
+// ---------------------------------------------------------------
+// Pricing terms (owner 2026-10-05)
+// ---------------------------------------------------------------
+// v1, through 2026-10-05: prices tax-included; card / Venmo / Zelle +4%.
+// v2, from 2026-10-06: the same listed prices are before sales tax. Every
+// total carries a 10% sales tax line; paying the chef in cash earns a 10%
+// cash discount of the same amount, and no payment method carries a fee.
+// So the cash total equals the listed price and the card / Venmo / Zelle
+// total is the listed price plus tax. Tax applies to the whole event total
+// (food, discounts, travel, rentals) and never to the gratuity; the deposit
+// is a payment against the total, not a taxed line.
+// Customer copy says "cash discount", never "no tax for cash" - the tax is
+// charged on every sale. Mirrored in the invoice app's lib/pricing.ts.
+export type PricingTerms = "v1_tax_included" | "v2_tax_added"
+/** 2026-10-06 00:00 Pacific. */
+export const PRICING_TERMS_V2_FROM = "2026-10-06T07:00:00.000Z"
+export const SALES_TAX_RATE = 0.1
+export const CASH_DISCOUNT_RATE = 0.1
+
+export function pricingTermsFor(createdAt: string | Date | null | undefined): PricingTerms {
+  const ms = createdAt == null ? Date.now() : createdAt instanceof Date ? createdAt.getTime() : Date.parse(createdAt)
+  return Number.isFinite(ms) && ms < Date.parse(PRICING_TERMS_V2_FROM) ? "v1_tax_included" : "v2_tax_added"
+}
+
+/** Sales tax on a cash (listed-price) total under v2. */
+export function salesTaxOn(cashTotal: number): number {
+  return roundCurrency(cashTotal * SALES_TAX_RATE)
+}
+
+/** What the same party costs by card / Venmo / Zelle under v2: listed price plus tax. */
+export function cardTotalOf(cashTotal: number): number {
+  return roundCurrency(cashTotal + salesTaxOn(cashTotal))
+}
 
 /**
  * Gratuity is quoted on the whole Event Total: after discounts, travel fee
@@ -309,7 +345,12 @@ export type SimpleEstimate = {
   minApplied: boolean
   base: number
   travelFee: number
+  /** The cash total: listed prices, discounts, minimum and travel. */
   total: number
+  /** 10% sales tax on `total` (v2 terms, from 2026-10-06). */
+  salesTax: number
+  /** `total` plus tax: the card / Venmo / Zelle total. */
+  cardTotal: number
 }
 
 /**
@@ -326,6 +367,7 @@ export function calcSimpleEstimate(args: { adults: number; kids: number; weekday
   const base = Math.max(afterDiscount, MINIMUM_SPEND)
   const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotal - base))
   const travelFee = Math.max(0, Math.round(args.travelFee ?? 0))
+  const total = roundCurrency(base + travelFee)
   return {
     subtotal,
     partySizeDiscount: partySize,
@@ -333,7 +375,9 @@ export function calcSimpleEstimate(args: { adults: number; kids: number; weekday
     minApplied: afterDiscount < MINIMUM_SPEND,
     base,
     travelFee,
-    total: roundCurrency(base + travelFee),
+    total,
+    salesTax: salesTaxOn(total),
+    cardTotal: cardTotalOf(total),
   }
 }
 
