@@ -4,11 +4,12 @@ import { useState } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Field } from "./ui"
 import { digits10, displayName, isPlaceholderName, type LeadRow } from "./helpers"
-import { DEPOSIT_AMOUNT } from "@/config/pricing-rules"
 
 // 押金已付（线下）→ 转入订单. Posts /api/admin/orders/deposit-confirm, which
 // mints the RH- number through the CRM envelope, links the lead and marks it
-// won. Stripe deposits never come through here - the webhook does that.
+// won. Stripe deposits never come through here - the webhook does that. Since
+// 2026-10-06 (D-1006-04) the online flow saves a card and charges nothing, so
+// the amount here is whatever actually arrived offline - no default.
 
 const CHANNELS = [
   ["venmo", "Venmo"],
@@ -36,7 +37,7 @@ export function DepositDialog({
   const [address, setAddress] = useState(lead?.city_or_zip ?? "")
   const [adults, setAdults] = useState(String(lead?.guest_count ?? ""))
   const [kids, setKids] = useState("0")
-  const [amount, setAmount] = useState(DEPOSIT_AMOUNT.toFixed(2))
+  const [amount, setAmount] = useState("")
   const [channel, setChannel] = useState<(typeof CHANNELS)[number][0]>("venmo")
   const [proof, setProof] = useState("")
   const [busy, setBusy] = useState(false)
@@ -49,6 +50,10 @@ export function DepositDialog({
     }
     if (!digits10(phone) && !email.trim()) {
       setMsg("电话或邮箱至少填一个（布置工具和查单都靠它）")
+      return
+    }
+    if (!(Number(amount) > 0)) {
+      setMsg("填实际收到的金额（发票系统不收 $0 的押金流水）")
       return
     }
     setBusy(true)

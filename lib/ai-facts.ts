@@ -17,11 +17,12 @@
 // advertised), sake/alcohol, and claims we cannot back (insurance, ratings).
 
 import {
-  DEPOSIT_AMOUNT,
   EXTRA_PROTEIN_PRICE,
+  FREE_CHANGE_HOURS,
   GUESTS_PER_CHEF,
   GUEST_TIERS,
   INCLUDED_PROTEINS_PER_PERSON,
+  LATE_CANCEL_FEE,
   MINIMUM_SPEND,
   PARTY_SIZE_CUSTOM_FROM,
   PARTY_SIZE_DISCOUNT_TIERS,
@@ -100,8 +101,8 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
   const booking: string[] = [
     `1. Check a date: GET ${SITE}/api/quote/slot-availability?date=YYYY-MM-DD returns open start times.`,
     `2. Get the exact price: GET ${SITE}/api/agent/price?adults=N&kids=N&date=YYYY-MM-DD&zip=ZIP.`,
-    `3. Only with the customer's permission, submit a quote request: POST ${SITE}/api/agent/quote-request with their name, mobile and email. We text and email them the exact quote and a secure deposit link, and a real person follows up by text.`,
-    `4. The customer pays a ${usd2(DEPOSIT_AMOUNT)} deposit to lock the date themselves. Agents never handle payment. The deposit is fully refundable with 72+ hours notice.`,
+    `3. Only with the customer's permission, submit a quote request: POST ${SITE}/api/agent/quote-request with their name, mobile and email. We text and email them the exact quote and a secure link to lock the date, and a real person follows up by text.`,
+    `4. The customer locks the date themselves through that link: a card is saved with Stripe and nothing is charged before the party. Agents never handle payment. Changes and cancellations are free up to ${FREE_CHANGE_HOURS} hours before the party; inside ${FREE_CHANGE_HOURS} hours a $${LATE_CANCEL_FEE} fee applies.`,
     `5. The balance is paid on the day of the party: in cash to the chef, or by card, Venmo or Zelle.`,
     `Full API description (OpenAPI 3.1): ${SITE}/openapi.json. Humans can book at ${SITE}/quote.`,
     `Prefer a person? Call or text ${phone.voice.display}, or email ${siteConfig.contact.email}.`,

@@ -6,10 +6,11 @@ import { DEFAULT_SETTINGS, isSettingsSection, sanitizeSection } from "@/lib/work
 import {
   CARD_SURCHARGE_RATE,
   DEFAULT_SALES_TAX_RATE,
-  DEPOSIT_AMOUNT,
+  FREE_CHANGE_HOURS,
   FULL_SETUP_PER_GUEST,
   GUESTS_PER_CHEF,
   GUEST_TIERS,
+  LATE_CANCEL_FEE,
   MINIMUM_SPEND,
   PARTY_SIZE_DISCOUNT_TIERS,
   PRICING_RULES_VERSION,
@@ -44,7 +45,10 @@ function codeConfig() {
     child: GUEST_TIERS.child.price,
     child_weekday: GUEST_TIERS.child.weekdayPrice,
     minimum_spend: MINIMUM_SPEND,
-    deposit: DEPOSIT_AMOUNT,
+    // D-1006-04 (2026-10-06): the date is locked with a card on file, nothing charged.
+    deposit: 0,
+    free_change_hours: FREE_CHANGE_HOURS,
+    late_cancel_fee: LATE_CANCEL_FEE,
     // v1 terms only (orders created before pricing_terms_v2_from): the 4% on card / Venmo / Zelle.
     card_surcharge_rate: CARD_SURCHARGE_RATE,
     card_surcharge_scope: "v1_tax_included",

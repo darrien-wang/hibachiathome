@@ -34,7 +34,7 @@ import {
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { PlannerPill, type PlannerSession } from "./planner-live"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
-import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, DEPOSIT_AMOUNT, normalizePricingTerms } from "@/config/pricing-rules"
+import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, normalizePricingTerms } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { computeQuote, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, usd, type QuoteAppetizer } from "./quote-tool"
 
@@ -264,7 +264,7 @@ export function LeadDialog({
     try {
       const link = await depositLink()
       const tpl = settings.quick_replies.find((q) => q.body.includes("{deposit_link}"))
-      const text = tpl ? await fillTemplate(tpl.body) : `To lock in your date it's a $${DEPOSIT_AMOUNT.toFixed(2)} deposit and takes a minute: ${link}`
+      const text = tpl ? await fillTemplate(tpl.body) : `Here's the link to lock in your date - it saves a card and nothing is charged today: ${link}`
       setInsert({ text, nonce: Date.now() })
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "押金链接失败")

@@ -78,7 +78,13 @@ export const EXTRA_PROTEIN_PRICE = 10
 export const MINIMUM_SPEND = 599
 
 /** Fixed deposit. Auto-applied — never hand-entered on an invoice. */
+/** Historic $19.90 deposit. Since 2026-10-06 (D-1006-04) the date is locked with a card on file and
+ *  nothing is charged; this stays for v1 ledger math only. Customer-facing copy must not quote it. */
 export const DEPOSIT_AMOUNT = 19.9
+/** Lock-the-date terms (D-1006-04): free to change or cancel up to this many hours before the party. */
+export const FREE_CHANGE_HOURS = 48
+/** Charged to the card on file when a party is cancelled inside FREE_CHANGE_HOURS. Not a selling point. */
+export const LATE_CANCEL_FEE = 99
 
 /**
  * Card surcharge — v1 terms only (orders created through 2026-10-05). Charged

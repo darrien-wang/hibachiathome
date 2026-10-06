@@ -14,7 +14,7 @@ description: >-
 
 # Real Hibachi · 线索成单 SOP
 
-目标只有一个：**把线索变成付了 $19.90 押金的派对**。所有话术、节奏、心理学都服务于此。
+目标只有一个：**把线索变成锁了日期的派对**。所有话术、节奏、心理学都服务于此。**2026-10-06 起锁日期 = 留卡、不收钱**（D-1006-04，取代 $19.90 押金）：下文的"押金链接 / 押金页 / 付押金"都指同一条 `/deposit/pay` 链接——客人在 Stripe 存一张卡，当天 $0，webhook 照样建单、标 paid_verified。
 
 ## 0. 四条铁律（违反任何一条就是做错）
 
@@ -143,7 +143,7 @@ description: >-
 | What's the address? | Could you send me the address when you have a moment? |
 | Text me the list. | Whenever you have a minute, could you send me everyone's proteins? Happy to load them in for you. |
 | Pick a time - 6 or 7? | Would 6 or 7 work better for you? |
-| Pay the $19.90 to lock it. | Whenever you're ready, the $19.90 locks it in. |
+| Pay now to lock it. | Whenever you're ready, this link locks it in - nothing is charged today. |
 
 **必备的几个词**：`could you` / `please` / `thank you` / `whenever you have a minute` / `no rush` / `happy to` / `whichever is easier` / `if you prefer`。早上第一条加一句 `Good morning`，客户帮了忙就说 `thank you`。
 
@@ -225,7 +225,7 @@ description: >-
 | **C 主动来短信** | Twilio 收件箱有客户消息 | 先答他的问题（≤2 句），再收口一个问题。5 分钟内 |
 | **D 主动来邮件 / contact 表单** | Gmail `support@` / `lead_source=contact` | 邮件回 + 若有手机同步一条短信 "just emailed you the details" |
 | **E 大单 61+** | `guest_count ≥ 61` 或客户说 "70-80 people" | **不报总价**。报人均 + "3-chef party" + "exact number tonight" + 问一个信息（晚上还是白天 / 大概几个小孩）。**31–60 人不走这条** — 阶梯已经盖到 60，照 B/C 直接报引擎价 |
-| **F 已付押金** | status won / 订单工作台有押金 | 转成交后阶梯：planner → 实名确认 → 邀评 → 晒图 |
+| **F 已锁日期** | status won / 订单工作台有单 | 转成交后阶梯：planner → 实名确认 → 邀评 → 晒图 |
 | **G 骚扰/无效** | 用户标注、470 号那种、空手机 | 不回，`set_status disqualified` |
 
 
@@ -257,7 +257,7 @@ We do! Temecula's inside our area — travel's usually $20–40 depending on the
 **L · 等人数定了再订（"先锁日期、人数之后再调"）**（用户 2026-10-01 定为模板，直发）
 客人说 "getting a final headcount / still making our guest list / will get back to you once I confirm the list"——他以为要等人数定了才能订。这句解掉的就是这个误会：
 ```
-You don't need the final number to lock [Mon D] - $19.90 holds it, and the headcount can change later[, even last minute]: <link>
+You don't need the final number to lock [Mon D] - the link holds it (it just saves a card, nothing is charged today), and the headcount can change later[, even last minute]: <link>
 ```
 - 人数在涨就先接一句他的话（"Love that it's growing!"），有回头客 / 让步就点一句（"with your $60 off"）。
 - 链接用他手上那条（预填人数不对就按新人数重铸一条，`desk link deposit`），发完挂起 3–5 天，**之后不追**——他说了等名单，名单就是下一步。
@@ -415,7 +415,7 @@ Real Hibachi · (213) 770-7788
 6. 他手上已经有能用的链接时，**说"我之前发的那个链接还有效"，不要再铸一条新的**——每次给新链接会显得我们在反复催。
 
 **递的时候怎么写**：说它**消掉了什么**，不要说我们**需要什么**。
-- ✅ "$19.90 locks it, and the headcount can change up to the day before."
+- ✅ "The link locks it - nothing's charged today, and the headcount can change up to the day before."
 - ✅ "Lock it and I'll assign your chef and start the shopping list."
 - ❌ "Please pay the deposit to confirm your booking."
 - ❌ "Just need the deposit to hold this for you."（听起来像我们在讨）
@@ -461,7 +461,7 @@ Real Hibachi · (213) 770-7788
 
 | 步 | 何时 | 内容 |
 |---|---|---|
-| **w_planner** | 押金到账立刻 | 专属 planner 链接（`booked:true`）+ 要地址 / 门禁。**发链接的同一条里必须写"也可以直接把名单发给我，我来填"**（见下） |
+| **w_planner** | 锁完日期（webhook 建单）立刻 | 专属 planner 链接（`booked:true`）+ 要地址 / 门禁。**发链接的同一条里必须写"也可以直接把名单发给我，我来填"**（见下） |
 | **w_confirm48** | 开席前 1–2 天，师傅定下来就发（网站承诺实名确认，**不写小时数**，用户 09-18 定） | "Confirming your hibachi party 🎊 Your chef is [name], arriving 10–30 min before start (earlier for bigger parties) with the grill and fresh ingredients. Reply to confirm you're all set!" |
 | **w_invoice** | **开席前 2 天**（用户 2026-09-29 定） | 发票 PDF 邮件 + 一条短信，让客人回 **"confirm"**。**发前自查，再给用户看过才能发**（见下） |
 | **w_review / w_ugc** | 派对次日 | 邀评 → 晒图 |
@@ -530,7 +530,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
   → 阶梯就是**每十个成人让 $30**（= 5%，因为十个成人正好开 $599），所以跳档那个客人只按半价 $29.90 算。**31–60 人是自动档，不是定制档**（2026-10-03 用户定）：直接报 `calcSimpleEstimate()` 算出来的数，**不准自己再加任何让价**（比如给周末单用周中价、或在阶梯之外再减一笔）——让价只走 §7.1。
   ⚠️ 10-03 Whitney（35 人、周日、Brentwood）就是这么错的：agent 看到“31+ 定制”便即兴给了 $54.90/人 + 额外 $90，报 $1,831.50；按新阶梯应为 **$1,976.50**，白让 $145。
 - **路费**：从基地起算（`config/home-base.ts`，现为 91744），**驾车里程前 50 英里免费，之后 $1/英里**；里程以站内 `/api/quote/travel-fee` 为准（发票工具用的同一个服务），别自己用别的起点手算。服务范围：南加州、单程 ≤ 2.5h。
-- **押金 $19.90** 锁日期，尾款派对当天付；**≥72h 取消/改期免费**。押金**只在私聊里提**，公开页面不提（规则 D-0913-01）。
+- **锁日期 = 留卡、不收钱**（2026-10-06 起，D-1006-04，取代 $19.90 押金）：`/deposit/pay` 链接走 Stripe 保存卡，当天 $0；尾款派对当天付（刷卡的从留存卡扣）。**≥48h 取消/改期免费，48h 内 $99**（从留存卡扣）。**不当卖点**：公开页面不写 "no deposit"，私聊只在递链接时说一句它做什么（"saves a card, nothing charged today"），不拿它做开场或促单理由；押金/锁日期的事**只在私聊里提**（规则 D-0913-01）。
 - **税与付款方式（2026-10-06 晚定稿，决策日志 D-1006-05，取代 D-1006-03 的 ×1.10 呈现；生效 = 发票系统切到 D-1006-05 当天，之前的老单见下一条）**：标价 = **现金价，含税**（发票页脚法定句 "All prices include sales tax reimbursement computed to the nearest mill."）。**定下来之前——报价、跟进、确认档期——一个字都不提税和付款方式**（老板 10-06："没定之前都不需要提"），只报标价，如 `For 15 adults it's $838.50 Fri–Sun or $763.50 Mon–Thu`。**菜单、人数都定了、算总账时**（发票 / 48h 确认 / 前一天提醒）才给账单，三种付法三张账，数字全由系统算（发票工具 / /pay / `desk price`），客服不心算：现金（当天给师傅）= 标价；信用卡（留存卡，当天扣）= 标价 + **该派对地址的实际销售税** + **Stripe 手续费 2.9% + $0.30**（借记卡不加）+ 可选 20% 小费，四行分列；Venmo / Zelle = **标价 × 1.04，含税**，发票上一行 `Venmo/Zelle price`，**不叫手续费**（Zelle 零成本、Venmo 商家号约 1.9%，叫 fee 站不住；老板 10-06 定 4%），**Zelle 不算现金**。算总账那条短信把行列出来，并固定问一句：`Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?` 客人选了就按选的来，不劝。**锁日期/留卡页上有「How you can pay」说明块**（三档价、为什么不同、小费、48h/$99 政策，文案见决策日志 D-1006-05），对话里仍不主动提，页面替我们说；客人看了页面来问就按 §8 答，答完不展开。**铁律：不说 "no tax / tax-free / 走批发"；不报 ×1.10 的整数；手续费只按 Stripe 实际成本列、不多收；税按派对地址列实数**（季报同一个数）。
   - **老单（10-05 及之前建的订单）按原口径走完**：含税价、刷卡 +4%；发票上 `pricingTerms = v1_tax_included`，系统按订单创建时间自动判，别手改。
 - **支付**：现金优先（当天现金给师傅 = 标价）；信用卡 = 标价 + 实际税 + Stripe 手续费，**派对当天从留存卡扣**；Venmo / Zelle = 标价 × 1.04 含税（叫价不叫费）。**尾款一律派对当天付，卡也一样**（用户 2026-09-23 改口径，原来的"刷卡需提前 72h 结清"作废）。
@@ -569,7 +569,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - 报价按人均（用户定的大单价，如 $55.90/adult 含税）× 两个人数档，+ 路费；小孩 5–12 $29.90、5 岁以下免费；厨师数 = ⌈人数/28⌉。
 - **桌椅+餐具可免费**作为大单让利（用户当场决定，不主动给）。
 - **菜单 + planner 专属链接**单独一条发：客户要提前收齐每位客人的选择，"easiest way is our party planner"，`POST /api/admin/planner-link {email,phone,booked:false}` 生成带身份的链接。
-- **押金 $100**（不是 $19.90）：押金页金额固定，用 `POST /api/admin/pay-link {amount:100, amountIsFinal:true, customerName, note, phone, email}` 铸 Stripe Checkout 链接。**付了不会自动进订单表，要手动建单。**
+- **押金 $100**（61+ 大单的老规矩；10-06 起小单不收押金只留卡，**大单这 $100 要不要也改留卡待老板定**）：押金页金额固定，用 `POST /api/admin/pay-link {amount:100, amountIsFinal:true, customerName, note, phone, email}` 铸 Stripe Checkout 链接。**付了不会自动进订单表，要手动建单。**
 - 尾款口径："The balance is paid on the day of the party - $X in cash to your chef, or $Y by card, Venmo or Zelle."（$Y = $X × 1.10；不提税、不提手续费，D-1006-03）
 - 三条分开发：① 报价 ② 菜单+planner ③ 押金+尾款。
 
@@ -632,14 +632,14 @@ Or just text me the list and I will fill it in for you - whichever is easier.
   - **常规牛排是 top sirloin，不冷冻、提前一天买**（用户 2026-09-28 口述）。客人问肉好不好就说这两件事，别用形容词。想再上一档：**ribeye +$5/人**，filet +$8。“再好的牛肉冷冻过都不好了”只讲我们自己怎么做，**不写成普世真理**（客人抬杠就尴尬）；也不要说成“我们什么都不冻”——虾是 16/20 冻袋买的。
   - **ribeye 是隐藏项（用户 2026-09-28 定）**：只在**员工发票工具**里选得到（发票仓库 `STAFF_ONLY_PROTEINS`），**客户的派对页 planner 里永远不显示**，官网、FAQ、`/api/invoice/schema` 也都不写。**不主动告诉客户**；只有客人问“你们带什么牛肉/能不能更好”时才报。客人要了就员工在发票里加，份量按 4.5 oz（同西冷/菲力），备料单已同步（`lib/prep-bom.ts`）。
   - **报分量必须同时说“每人选 2 种”**（用户 2026-09-28 抓到）。把几种蛋白并排列出来——“5 oz chicken, 4.5 oz steak, 5 jumbo shrimp a person”——客人会读成**三样都给**，当天才发现只有两样。正确写法：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo, salmon 4 oz.`判据：句子里出现两个以上蛋白，就必须有“picks 2 / choose 2”这个词。（首例：Judy Fridman 09-28，已发出去没更正，下一次开口时自然带入。）
-- **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**。客户担心"会不会放鸽子"时第一时间亮这条。
+- **到场承诺（P0，我们的最大差异化）**：厨师开席前**实名**确认（不承诺小时数，09-18 用户定：有时要临时排师傅）；厨师是自己团队不是平台派单；**若我们取消，双倍退款 + 优先补档**（⚠️ 10-06 起锁日期不收钱，"双倍退款"没了基数——新形式待老板定，这期间只讲实名确认 + 自有团队 + 优先补档）。客户担心"会不会放鸽子"时第一时间亮这条。
 - **厨师到达**：开席前 10–30 分钟（人多提前多），卸货、铺防水防油垫、架铁板、接丙烷，不用插座不用电。
-- **改人数**（用户 09-19 认定）：押金锁日期不锁人数，**派对前一天都能改**，总价跟着人数走，$599 最低消费不变；72 小时外取消 / 改期押金全退。
+- **改人数**（用户 09-19 认定）：押金锁日期不锁人数，**派对前一天都能改**，总价跟着人数走，$599 最低消费不变；48 小时外取消 / 改期免费，48 小时内 $99。
 - **场地**：**只在户外**做（patio / balcony / deck / 帐篷或雨棚下），座位可以在室内。铺防油布，走前清理，"your patio looks the way we found it"。持证 + 有保险。
 - **桌布颜色**：**只有黑色**（用户 09-17 确认）。`config/table-studio.ts` 里白色标着 available、/rentals 页写着 "various colors"，都不是真实库存，别照着答。
 - **灶台占地**：每个灶台需要约 **6 × 8 英尺**的平地（用户 09-18 确认），厨师站一侧操作，客人坐对面；patio、balcony 都做得了。客户担心放不下 → 让他发一张场地照片来确认。
-- **下雨**：10'×10' 弹出帐篷罩厨师站，**客户自备**；要取消请 ≥72h。
-- **取消/改期**：≥72h 免费；72h 内可能无法全退。
+- **下雨**：10'×10' 弹出帐篷罩厨师站，**客户自备**；要取消/改期请 ≥48h。
+- **取消/改期**：≥48h 免费；48h 内从留存卡扣 $99。
 - **过敏**：**不承诺无坚果/无芝麻**——饺子含芝麻、一种酱在处理花生的厂做、两种酱含蛋。口径是"告诉我具体过敏，我核对当天用料标签，诚实告诉你能不能安全招待"。
 - **无麸质**：可以，客户自带 GF 酱油/照烧，单独灶位。
 - **素/纯素**：tofu + 蔬菜 / 植物基，**同价**。
@@ -649,8 +649,8 @@ Or just text me the list and I will fill it in for you - whichever is easier.
   - **喷酒枪是真有的**（用户 2026-09-30 确认）：师傅会用 sake gun 往客人嘴里喷清酒，**客人自己提起来或问起来就可以认**（“your chef brings the sake gun”）。单身派对/生日这种场合答好了特别加分。边界和 sake 一样：**只在回答里说，不写进首条/跟进/群发**，也不主动向带小孩的派对提。头一例：Frank Musso（10/3 La Quinta 单身派对）自己说 “feel free to bring some sake water guns”。
 
 - **软饮**：卖，**$5/位**（可乐、健怡、雪碧、水；网站菜单 `config/menu-items.ts` 上挂着 Soft Drinks Package，另有 Premium $12/位：软饮+果汁+无酒精鸡尾酒）。客人问"饮料包不包" → sake 包含，软饮 $5/位要就带，或者自备。**发票工具里没有饮料 SKU**，客人要了得手动加一行并告诉用户。
-- **押金退不退**：≥72h 取消全退。
-- **押金也能走 Zelle / Venmo**（用户 2026-10-01 定）：卡被拒时提供（比如 `transaction_not_allowed` 是发卡行拦的，不是我们的问题）。**Zelle 562-713-4832，Venmo @realhibachiathome**，$19.90。让客人付完发条短信说一声——这两条路**系统不会自动建单**，老板确认到账后手动建单（订单上要写清日期、时间、人数、价格）。尾款当天付 Venmo/Zelle 按刷卡价（含 10% 税，10-06 起；老单 +4%），押金这 $19.90 不加税不加费。
+- **押金退不退 / 取消收不收钱**：锁日期时没收钱，没有押金可退；≥48h 取消不收钱，48h 内 $99。
+- **卡在锁日期页被拒**（10-06 起没有押金可改付 Zelle/Venmo，这条取代 2026-10-01 的"押金走 Zelle/Venmo"）：先让客人换一张卡再试（`transaction_not_allowed` 这类是发卡行拦的，不是我们的问题）；还不行就报给用户，由用户决定要不要人工建单（工作台「线下押金」入口要求金额 >0，纯留卡的手工建单路径待补）。**Zelle 562-713-4832 / Venmo @realhibachiathome** 仍是尾款（和 10-05 前老单押金）的收款方式。
 - **是真人吗**："Yes — Bling, I run Real Hibachi."
 
 ## 7. 销售心理学 → 具体怎么用（每条话术至少用到两条）
@@ -658,9 +658,9 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | 原理 | 在我们这儿的具体动作 | 例句 |
 |---|---|---|
 | **先到先得（首响效应）** | 5 分钟内回；客户回复也 5 分钟内接。别等"想好完美话术" | — |
-| **互惠** | 先给、不索取：A 型直接给精确价；免押金占位；专属 planner 工具 | "I'll pencil your date in — no deposit needed until you confirm" |
+| **互惠** | 先给、不索取：A 型直接给精确价；先占位不要动作；专属 planner 工具 | "I'll pencil your date in — nothing to do on your end until you confirm" |
 | **微承诺 / 二选一** | 永远不问开放式 "when?"；问 "4 or 7?" "Sat or Sun?" "12 or 15 guests?"。每次只要一个 yes | "Which works better — a 4 PM or a 7 PM start?" |
-| **损失厌恶** | hold 必须带期限（"until tomorrow evening"），到期还能名正言顺再跟一次；72h 免费取消 = 零风险 | "Just don't want you to lose it while you're deciding" |
+| **损失厌恶** | hold 必须带期限（"until tomorrow evening"），到期还能名正言顺再跟一次；48h 免费取消 = 零风险 | "Just don't want you to lose it while you're deciding" |
 | **确定性 / 权威** | 到场承诺写在纸上、分量写在纸上、持证有保险、自己的厨师。客户买的是"这事一定成"，不是最低价 | "Your chef is confirmed by name before your party" |
 | **真实稀缺** | 只说能兑现的：具体日期开着、"weekends fill up first"（真的）。**不说** "only 1 slot left" | "Saturday's still open on our end" |
 | **锚定** | 先总价后人均；人均对标餐厅 hibachi（"about what a hibachi restaurant costs — at your house, with the show"）；升级项在基础价谈妥后再提 | — |
@@ -668,7 +668,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | **社会认同（只用真的）** | "Most of our parties are birthdays" "Most hosts pick 7pm"。**禁止**编评分/单量（全站真实好评只有 4 条） | — |
 | **标签 + 镜像（Voss）** | 卡住时先说出对方状态再给台阶："Sounds like you're still lining up headcount — totally normal" | 然后递 planner |
 | **一致性** | 复述对方说过的信息（人数/日期/场合），让他沿着自己的话往前走 | "You mentioned 15 on Dec 5 —" |
-| **小门槛** | $19.90 押金 = "less than a pizza"；只在私聊提 | — |
+| **小门槛** | 锁日期只是留一张卡、当天不扣钱；只在递链接时说一句，不当卖点（D-1006-04） | — |
 | **减少决策疲劳** | 不甩菜单；给默认（"most people go chicken + shrimp"），让他改而不是让他选 | — |
 | **给体面的犹豫理由** | "while you finalize headcount" 把"还没决定"说成正常流程，同时引导报人数（20+ 触发免费前菜） | — |
 | **吸引而非追逐（恋爱心态，1.1）** | 每条像"日程排得不错的人在发邀请"；不用乞求词（第 9 节）；描绘他的派对，不讲我们多想要这单 | "Want me to pencil it in?" |
@@ -691,14 +691,14 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | **钳子策略** | 客户报数后："I'd need you closer to $X" 然后闭嘴 | — | 一次谈判最多用一次 |
 | **更高权威** | 可以说"要和厨师团队/后厨核一下"再回来，哪怕其实是自己拍板——厨师团队真实存在，拆不穿，还给双方一个体面的缓冲 | "Let me run 35 by the chef team and come back tonight" | 不编具体的假人（"my partner Mike"） |
 | **反制对方的更高权威** | 对方说"要和未婚夫/经理商量" → 一句把决策权钉住 + 问内部时间表 | "If it were just you, is this a go?" / "When do you two decide?" | — |
-| **索取回报** | **每一次让步都换一样东西**：周中日期、人数定死、当天现金、今天付押金、派对后好评、转介绍 | "I can do $55.90 if we lock 60 as the minimum count today" | 免费给=互惠失效，永远不白给 |
+| **索取回报** | **每一次让步都换一样东西**：周中日期、人数定死、当天现金、今天锁日期、派对后好评、转介绍 | "I can do $55.90 if we lock 60 as the minimum count today" | 免费给=互惠失效，永远不白给 |
 | **服务价值递减** | 让步当场换回报，不留到以后（事后没人记得你让过） | 同上 | — |
 | **绝不折中** | 客户提"中间价"不接，换成有条件的让步 | "I can't do halfway, but I can do $X if you can Y" | — |
 | **让步递减** | 三步、越来越小、数字不整：$59.90 → $55.90 → $53.90 → $52.99；最后一步小到让人觉得到底了 | — | 第一步不能就给到底 |
 | **收回条件** | 被反复加码时把上一个让步收回 | "That rate was tied to the 60-count; at 45 it goes back to standard" | 只在被蚕食时用 |
 | **欣然接受** | 最后留一个看得见的小赢：免桌椅、送前菜、"I'll take care of it" | Natalie 的 $50 医护 | 不能是主要让步 |
 | **蚕食（防）** | 成交后要东西 → 报价或换条件，不白给 | "Happy to add tables - $10/guest" | — |
-| **蚕食（用，只用正向）** | 付完押金立刻让他在 planner 选菜（锁承诺）；派对结束当场邀评 | — | 不用来多收钱 |
+| **蚕食（用，只用正向）** | 锁完日期立刻让他在 planner 选菜（锁承诺）；派对结束当场邀评 | — | 不用来多收钱 |
 | **黑脸白脸** | Bling 当白脸，**后厨/成本/排班当黑脸**——客户对着一个抽象的坏人，不会对 Bling 有情绪 | "I'd love to, but the kitchen won't let me go below $52.99 for two chefs" | 黑脸只能是后厨/成本/排班这类抽象的东西，不是另一个人 |
 
 **三个压力点**
@@ -713,7 +713,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | 竞品价（可能是虚的） | "另一家报 $45"，说不出包含什么 | "Send me their quote and I'll match what's apples to apples" |
 | 折中 | "咱们 $50 怎么样" | 不接，换有条件的让步 |
 | 更高权威 | "要问未婚夫/老板" | 钉住决策权 + 问内部决定时间 |
-| 蚕食 | 付押金后要免费桌椅 | 报价，或换回报 |
+| 蚕食 | 锁日期后要免费桌椅 | 报价，或换回报 |
 | 假的时间压力 | "今天定不了就找别家" | 平静报期限，不加价不降价 |
 
 **让步的记账**：每次让价在工作台记 `[NEGO] 让了什么 / 换了什么 / 第几步`，超出 §5.1 带宽的先问用户。
@@ -737,11 +737,11 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 | **有没有灯 / 后院太暗** | **我们不带灯**；师傅自己戴头灯，烤台那边不受影响。客人那边太暗要客人自己准备（串灯、落地灯）（用户 2026-10-01 定，Palm Springs 760-880-0057 问的）。答法："We don't bring lights - your chef wears a headlamp, so the grill is covered. For your guests, a few string lights or a lamp near the tables will do it." 被问到才答（§1.05）；派对在日落后开场的可以顺带提醒开场时间更早一点天还亮着。 |
 | **当天要准备什么 / 要不要插座** | 这类问题是担心，答案要是一个轻松具体的场景（用户 09-19 定），拆两条："Here's the day: your chef arrives 10–30 min before start (earlier for bigger parties), lays a waterproof mat, sets the grill and hooks up the propane — no outlet, no power needed." "Tables, chairs & dishes: if you booked them, we set them and you just host — when the chef's ready, bring everyone over. If you're using your own, have them set before we arrive. Anything specific you want — a birthday plate, a seating idea — tell me and if we can do it, we will." |
 | **要多大地方 / 我家院子够不够** | 永远用比喻不报尺寸（用户 09-19 定，免得客户真去量）："A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill — a patio, deck, driveway or yard all work. Send me a photo if you're not sure." |
-| **下雨怎么办** | 10×10 帐篷客户自备；≥72h 改期免费 |
+| **下雨怎么办** | 10×10 帐篷客户自备；≥48h 改期免费 |
 | **坚果/芝麻过敏** | 第 6 节诚实口径，不承诺 |
 | **能自带牛排吗** | 不行，一句话带过 |
 | **厨师不来怎么办** | 到场承诺（实名确认、自己团队、双倍退） |
-| **押金能退吗** | ≥72h 全退 |
+| **押金能退吗 / 取消怎么算** | 没收押金；≥48h 免费，48h 内 $99 |
 | **只想要报价别打电话** | 尊重，只邮件；工作台 note 记 "email only" |
 | **你们去 X 城市吗** | 基地起 2.5h 内都去；50 英里免费后 $1/英里，报一个区间（用 `/api/quote/travel-fee?destination=` 查里程） |
 | **能便宜点吗（回头客）** | 客户自己提"上次订过" → $60/每 10 人 |
@@ -760,7 +760,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - 不猜客户名字；不编评分、单量、"500+ parties"。
 - 61+ 人不报固定总价（31–60 照阶梯直接报）。
 - 短信不**主动**提酒（30955）；客人问饮料时可以说 sake（§6，用户 2026-09-29 定），泛称 alcohol/liquor 仍然不写。
-- 不在公开页面 / 公开评论提押金；私聊可以。
+- 不在公开页面 / 公开评论提押金或 "no deposit"；私聊递链接时说一句它做什么即可。
 - **谈判红线（§7.1）**：姿态可以演（不急、请示后厨、后厨当黑脸），**事实不能编**（假档期、假竞争客户、假到期）；不白给让步——每一次让步都要换回报。
 - 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 送前菜（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
 - 不说桌椅周中免费（09-14 已撤）。和 §8「订前问桌椅就让」不冲突：那是对话里挂条件的一次让步，不是公开的免费政策——不上网站、不进自动报价、客人没问不主动提。
@@ -925,8 +925,8 @@ https://www.realhibachi.com/deposit/pay?source=workbench&lead_id=<id>&event_date
 A: ¡Hola! Soy Bling de Real Hibachi — nuestro sistema debió enviarte el precio y no lo hizo, disculpa. Para 15 adultos son $838.50 vie–dom, o $763.50 lun–jue (2 proteínas por persona + arroz frito, verduras, ensalada y el show del chef). ¿Qué fecha tienes en mente?
 B: ¡Hola! Soy Bling de Real Hibachi 👋 Vi tu cotización para [N] el [fecha] — esa fecha está disponible. Las fiestas suelen empezar a las 7 o 7:30. ¿Cuál te conviene más?
 f45: [Fecha] está disponible. Te la aparto hasta mañana por la noche mientras confirmas cuántos van — ¿a las 7 o a las 7:30?
-f_night: ¡Sin prisa! Te aparto la fecha por ahora — sin depósito hasta que confirmes. Solo no quiero que la pierdas 🙌
-f_morning: ¡Buenos días! Sigo apartando [fecha] para tu fiesta de [N]. Tu chef se confirma por nombre antes de la fiesta — y si nosotros cancelamos, te devolvemos el doble del depósito. Asegúrala con el depósito de $19.90 aquí: <link>
+f_night: ¡Sin prisa! Te aparto la fecha por ahora — sin compromiso hasta que confirmes. Solo no quiero que la pierdas 🙌
+f_morning: ¡Buenos días! Sigo apartando [fecha] para tu fiesta de [N]. Tu chef se confirma por nombre antes de la fiesta. Asegúrala aquí — solo se guarda una tarjeta, hoy no se cobra nada: <link>
 ```
 工作台里的 `ES_SCRIPTS` 有更多西语模板可直接用。
 

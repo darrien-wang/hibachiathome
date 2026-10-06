@@ -21,7 +21,6 @@
 
 import {
   calcSimpleEstimate,
-  DEPOSIT_AMOUNT,
   earnsLargePartyAppetizer,
   GUEST_TIERS,
   MINIMUM_SPEND,
@@ -241,7 +240,9 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
   // nothing is said about tax or payment method - the itemised bills appear on
   // the invoice and the pay page, and are answered when asked (leads skill §8).
   lines.push(`Total: ${usd(b.total)}${travel}`)
-  if (opts.depositLink) lines.push(`${usd(DEPOSIT_AMOUNT)} locks the date: ${opts.depositLink}`)
+  // D-1006-04: the link saves a card, nothing is charged. One clause says so to avoid a
+  // surprise on the Stripe page; it is not pitched as a selling point.
+  if (opts.depositLink) lines.push(`Lock the date here (saves a card, nothing charged today): ${opts.depositLink}`)
   return lines.join("\n")
 }
 

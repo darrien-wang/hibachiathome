@@ -333,7 +333,10 @@ export function SettingsTab({
               ["大人 / 周中", `$${code.adult} / $${code.adult_weekday}`],
               ["小孩 / 周中", `$${code.child} / $${code.child_weekday}`],
               ["起订", `$${code.minimum_spend}`],
-              ["押金", `$${code.deposit}`],
+              [
+                "锁日期（10-06 起 · 留卡不收钱）",
+                `${Number(code.free_change_hours ?? 48)}h 外改期/取消免费 · ${Number(code.free_change_hours ?? 48)}h 内从留存卡扣 $${Number(code.late_cancel_fee ?? 99)}`,
+              ],
               ["卡费（只对 v1 · 10-05 及之前建的单）", `${Number(code.card_surcharge_rate) * 100}%`],
               [
                 "付款方式（10-06 起 · 一个标价三张账）",

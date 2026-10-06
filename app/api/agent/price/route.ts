@@ -3,8 +3,9 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getDrivingMiles } from "@/lib/travel-distance"
 import { homeBaseOrigin } from "@/config/home-base"
 import {
-  DEPOSIT_AMOUNT,
+  FREE_CHANGE_HOURS,
   GUEST_TIERS,
+  LATE_CANCEL_FEE,
   MINIMUM_SPEND,
   PARTY_SIZE_CUSTOM_FROM,
   TRAVEL_FREE_RADIUS_MILES,
@@ -143,8 +144,8 @@ export async function GET(request: Request) {
     ],
     minimum: MINIMUM_SPEND,
     deposit: {
-      amount: DEPOSIT_AMOUNT,
-      note: "Locks the date, fully refundable with 72+ hours notice. The customer pays it through the link we text and email them.",
+      amount: 0,
+      note: `The customer locks the date through the link we text and email them: a card is saved with Stripe and nothing is charged before the party. Changes and cancellations are free up to ${FREE_CHANGE_HOURS} hours before; inside ${FREE_CHANGE_HOURS} hours a $${LATE_CANCEL_FEE} fee applies.`,
     },
     next: "To book, ask the customer for permission and their name, mobile and email, then POST /api/agent/quote-request.",
   })
