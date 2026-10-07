@@ -145,7 +145,7 @@ export async function GET(request: Request) {
     minimum: MINIMUM_SPEND,
     deposit: {
       amount: 0,
-      note: `The customer locks the date through the link we text and email them: a card is saved with Stripe and nothing is charged before the party. Changes and cancellations are free up to ${FREE_CHANGE_HOURS} hours before; inside ${FREE_CHANGE_HOURS} hours a $${LATE_CANCEL_FEE} fee applies.`,
+      note: `The customer locks the date through the link we text and email them: a card is saved with Stripe and nothing is charged today; the total is settled after the party. Changes and cancellations are free up to ${FREE_CHANGE_HOURS} hours before; inside ${FREE_CHANGE_HOURS} hours a $${LATE_CANCEL_FEE} late-change fee applies.`,
     },
     next: "To book, ask the customer for permission and their name, mobile and email, then POST /api/agent/quote-request.",
   })

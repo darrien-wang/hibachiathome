@@ -11,7 +11,7 @@ import { splitCardPayment, V1_TERMS, type PayTerms } from "@/lib/pay-link-math"
 // 说清楚小费付的是师傅哪些活；已经现金给过小费的直接付，真有不满意的可以留话。
 //
 // 口径（D-1006-05/06，2026-10-06）：10-06 起的单一个标价两张账。页面大数仍是刷卡账
-// （现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢ + 选的小费），大数下面
+// （现金尾款 + 派对地址的销售税 + 刷卡手续费 3% + 选的小费），大数下面
 // 列税和手续费两行，再给一行 "Other ways to pay"：现金给师傅 $X（含税）。
 // 数全由 /api/pay/summary 从发票引擎搬来，页面不算税。老单（v1）文案不变。
 //
@@ -40,7 +40,7 @@ type Summary = {
     taxRateLabel: string
     /** 发票还没按派对地址定税率：数是估的 */
     taxEstimated: boolean
-    /** 只付尾款时的手续费（2.9% + 30¢，按实刷算） */
+    /** 只付尾款时的手续费（3%，按实刷算） */
     processingFee: number
     /** 派对本身的现金尾款（不含发票上已选的小费），拆账用 */
     cashBalance: number
@@ -345,7 +345,7 @@ export default function PayClient() {
                 <span className="tabular-nums">{usd(v2.taxDue)}</span>
               </span>
               <span className="flex justify-between gap-3">
-                <span>Card processing (2.9% + 30¢)</span>
+                <span>Card processing (3%)</span>
                 <span className="tabular-nums">{usd(shownFee)}</span>
               </span>
               <span className="mt-1">Add your chef&apos;s gratuity here, or tip them in person on the day.</span>

@@ -271,7 +271,7 @@ export function ChefDialog({
   // 刷卡：先按 pi_ 查这单的实刷（总额 / 税 / 手续费 / 净额），
   // 小费 = 净额 − 应收尾款，算好了给老板确认，不用再去后台导表。
   // v1 单扣 4%；v2 单（10-06 起，D-1006-05）扣派对地址的销售税（发票引擎给）和
-  // Stripe 手续费 2.9% + 30¢——税率还是默认值时提醒先在发票里 Re-rate。
+  // 刷卡手续费 3%——税率还是默认值时提醒先在发票里 Re-rate。
   const cardFlow = async (s: ShiftRow) => {
     setBusy(`m:${s.assignmentId}`)
     setMsg(null)
@@ -287,7 +287,7 @@ export function ChefDialog({
     const lines = look?.found
       ? [
           v2
-            ? `实刷 ${money(look.grossCents ?? 0)} − 消费税${look.taxRateLabel ? ` ${look.taxRateLabel}` : ""} ${money(look.taxCents ?? 0)} − 刷卡手续费（2.9% + 30¢）${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`
+            ? `实刷 ${money(look.grossCents ?? 0)} − 消费税${look.taxRateLabel ? ` ${look.taxRateLabel}` : ""} ${money(look.taxCents ?? 0)} − 刷卡手续费（3%）${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`
             : `实刷 ${money(look.grossCents ?? 0)} − 手续费 4% ${money(look.feeCents ?? 0)} = 净额 ${money(look.netCents ?? 0)}`,
           v2 && look.taxRateSource !== "address" ? "⚠ 税率是估的（发票还没按派对地址定税率）——先在发票里 Re-rate，再记这笔" : null,
           `应收尾款 ${money(look.balanceRefCents ?? 0)}`,

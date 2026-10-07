@@ -43,7 +43,7 @@ import { DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, type Pr
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 
 // 尾款口径（决策日志 D-1006-05/06，2026-10-06）：10-06 起建的单一个标价两张账——现金 =
-// 标价含税；刷卡 = 标价 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢。两张账全由
+// 标价含税；刷卡 = 标价 + 派对地址的销售税 + 刷卡手续费 3%。两张账全由
 // 发票引擎算（/api/admin/pay-link 的
 // quote → 发票 balance 接口），工作台不拿常数税率重算；之前的单含税、刷卡 +4%。
 // 对客话术按口径分两套；定下来之前（线索期）一个字不提税和付款方式。
@@ -177,7 +177,7 @@ function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings, bills: 
         ? [
             "Your remaining balance is due on the day of the party. Two ways to pay:",
             `- Cash to your chef: ${money(bills.cashCents)}`,
-            `- Card: ${money(bills.cardCents)} (${money(bills.cashCents)} + sales tax (${bills.taxRateLabel}) ${money(bills.taxCents)} + card processing (2.9% + 30¢) ${money(bills.feeCents)}) - ${payUrl}`,
+            `- Card: ${money(bills.cardCents)} (${money(bills.cashCents)} + sales tax (${bills.taxRateLabel}) ${money(bills.taxCents)} + card processing (3%) ${money(bills.feeCents)}) - ${payUrl}`,
             "",
             GRATUITY_QUESTION,
           ].join("\n")
@@ -696,7 +696,7 @@ export function OrderDialog({
                       rows={[
                         { label: "现金给师傅（含税）", value: money(bills.cashCents) },
                         { label: "客人问起 Zelle/Venmo 才说：直接给师傅（×1.04）", value: money(Math.round(zelleVenmoPriceOf(bills.cashCents / 100) * 100)) },
-                        { label: `刷卡 · 消费税 ${bills.taxRateLabel} ${money(bills.taxCents)} + 手续费 2.9%+30¢ ${money(bills.feeCents)}`, value: money(bills.cardCents) },
+                        { label: `刷卡 · 消费税 ${bills.taxRateLabel} ${money(bills.taxCents)} + 手续费 3% ${money(bills.feeCents)}`, value: money(bills.cardCents) },
                       ]}
                     />
                   ) : (

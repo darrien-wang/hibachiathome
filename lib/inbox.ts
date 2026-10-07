@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { loadQuiet } from "@/lib/lead-hold"
+import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
+import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
 // small. It started life inside /api/admin/mobile/inbox (the Android shell
@@ -25,10 +27,12 @@ const MAX_EVENT_AGE_MIN = 180
 const DEPOSIT_LOOKBACK_MS = 2 * 3600_000
 const CHANGE_LOOKBACK_MS = 24 * 3600_000
 const PLANNER_LIVE_MS = 3 * 60_000
+const EMAIL_LOOKBACK_MS = 7 * 24 * 3600_000
+const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "deposit" | "order_change" | "reddit"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact"
   title: string
   body: string
   url: string
@@ -62,12 +66,20 @@ export type InboxOptions = {
    * reached the owner before it reached the desk on 2026-09-30.
    */
   includeFresh?: boolean
+  /** How far back an unanswered text still counts (default 24 h for the phone; the desk reads a week). */
+  smsLookbackMs?: number
   /** Skip the 60-second Twilio cache; the desk polls on demand and wants the truth. */
   noCache?: boolean
 }
 
 export type InboxCounts = {
   unreplied: number
+  /** Customer emails (support@, via the Gmail script) newer than our last reply to that lead. */
+  emailNew: number
+  /** Website forms (Book Now, planner claim, contact form) newer than anything we sent that lead. */
+  formNew: number
+  /** Booked parties inside 48h whose customer has not answered the pre-party confirmation text (lead-watch). */
+  unreachedParties: number
   newLeads: number
   changedOrders: number
   plannerLive: number
@@ -153,18 +165,25 @@ export async function computeInbox(
   // cached answer there is a blind spot rather than a saving.
   const byPeer = await fetchLastByPeer(800, opts.noCache ? 0 : undefined).catch(() => new Map())
   const unanswered: Array<{ peer: string; at: string; body: string }> = []
+  const smsLookback = opts.smsLookbackMs ?? SMS_LOOKBACK_MS
   for (const [peer, v] of byPeer) {
     if (!v.lastInAt || v.last.direction !== "inbound") continue
     if (v.lastOutAt && v.lastOutAt >= v.lastInAt) continue
-    const atMs = Date.parse(v.lastInAt)
-    if (now - atMs > SMS_LOOKBACK_MS) continue
+    // Judge the newest inbound that says something, not a reaction or a
+    // "thanks" that followed it: "Loved …" 30 s after three patio photos hid
+    // the photos for two days (909-268-7235, 2026-10-05). A photo has no
+    // body, and an empty body must not read as courtesy.
+    const real = v.lastRealIn && (!v.lastOutAt || v.lastRealIn.at > v.lastOutAt) ? v.lastRealIn : null
+    const judged = real ?? { at: v.lastInAt, body: v.last.body, media: v.last.media }
+    const atMs = Date.parse(judged.at)
+    if (now - atMs > smsLookback) continue
     if (now - atMs < SMS_GRACE_MS && !opts.includeFresh) continue
     if (isTestNumber(peer)) continue
-    const body = (v.last.body ?? "").trim()
+    const body = (judged.body ?? "").trim()
     // 一条规则管三件事：挂起中、老板标过「不用回」、这条本来就不是问题（点赞
     // 回执 / STOP / 光道谢）。见 lib/lead-hold.ts loadQuiet。
-    if (quiet.quiet(peer, atMs, body)) continue
-    unanswered.push({ peer, at: v.lastInAt, body })
+    if (quiet.quiet(peer, atMs, judged.media > 0 ? undefined : body)) continue
+    unanswered.push({ peer, at: judged.at, body: body || (judged.media > 0 ? `[${judged.media} 张图片]` : "") })
   }
   const unrepliedTotal = unanswered.length
   if (unanswered.length) {
@@ -287,10 +306,193 @@ export async function computeInbox(
   const { data: live } = await supabase.from("planner_events").select("sid").gte("created_at", new Date(now - PLANNER_LIVE_MS).toISOString()).limit(500)
   const plannerLive = new Set(((live ?? []) as Array<{ sid: string | null }>).map((r) => r.sid).filter(Boolean)).size
 
+  // ---- customer emails nobody answered ----------------------------------------
+  // support@ mail is filed on the lead by /api/admin/email-inbound (Gmail
+  // script, 2026-10-07). An inbound newer than anything we sent that lead -
+  // an email from the desk or a text - is waiting, under the same hold /
+  // "no reply needed" rules as a text.
+  const emailSince = new Date(now - EMAIL_LOOKBACK_MS).toISOString()
+  const { data: mailRows } = await supabase
+    .from("lead_touchpoints")
+    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+    .in("touchpoint_type", ["email_inbound", "email_outbound", "sms_outbound"])
+    .gte("occurred_at", emailSince)
+    .order("occurred_at", { ascending: false })
+    .limit(400)
+  const mailByLead = new Map<string, { lastIn: { at: string; subject: string; snippet: string } | null; lastOutAt: string | null }>()
+  for (const r of (mailRows ?? []) as Array<{ lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }>) {
+    const m = mailByLead.get(r.lead_id) ?? { lastIn: null, lastOutAt: null }
+    if (r.touchpoint_type === "email_inbound") {
+      if (!m.lastIn) m.lastIn = { at: r.occurred_at, subject: String(r.raw_payload_json?.subject ?? ""), snippet: String(r.raw_payload_json?.snippet ?? "") }
+    } else if (!m.lastOutAt) m.lastOutAt = r.occurred_at
+    mailByLead.set(r.lead_id, m)
+  }
+  const mailWaiting = Array.from(mailByLead).filter(([, m]) => m.lastIn && (!m.lastOutAt || m.lastOutAt < m.lastIn.at))
+  let emailNew = 0
+  if (mailWaiting.length) {
+    const { data: mailLeads } = await supabase
+      .from("leads")
+      .select("id, full_name, phone, email, acked_until, hold_until")
+      .in("id", mailWaiting.map(([id]) => id))
+    type MailLead = { id: string; full_name: string | null; phone: string | null; email: string | null; acked_until: string | null; hold_until: string | null }
+    const leadById = new Map(((mailLeads ?? []) as MailLead[]).map((l) => [l.id, l]))
+    for (const [leadId, m] of mailWaiting) {
+      const l = leadById.get(leadId)
+      const atMs = Date.parse(m.lastIn!.at)
+      if (quiet.quiet(l?.phone ?? null, atMs)) continue
+      // Email-only leads have no phone for the quiet lookup, so apply the same
+      // watermark and hold by lead: "不用回" up to acked_until, held = silent.
+      if (l?.acked_until && Date.parse(l.acked_until) >= atMs) continue
+      if (l?.hold_until && Date.parse(l.hold_until) > now) continue
+      emailNew += 1
+      const waited = minutesSince(m.lastIn!.at, now)
+      if (waited > MAX_EVENT_AGE_MIN * 24) continue
+      const who = (l?.full_name ?? "").trim() || l?.email || "邮件"
+      events.push({
+        key: `email:${leadId}:${m.lastIn!.at}`,
+        kind: "email",
+        title: `${who} 来邮件 等了 ${waited > MAX_EVENT_AGE_MIN ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}`,
+        body: `${m.lastIn!.subject} — ${m.lastIn!.snippet}`.slice(0, 80),
+        url: `/admin?tab=leads&lead=${leadId}`,
+        at: m.lastIn!.at,
+        waitedMinutes: waited,
+        ring: waited <= MAX_EVENT_AGE_MIN,
+        urgent: waited >= URGENT_MIN,
+        leadId,
+        phone: toE164(l?.phone ?? null),
+      })
+    }
+  }
+
+  // ---- customers who answered through the website -----------------------------
+  // "Book Now" on the quote page, a claimed planner party, a second contact
+  // form: the customer talking back (lib/customer-forms.ts). Newer than
+  // anything we sent that lead - a text on the 213 line, an email - and after
+  // our first response (the first form is the lead itself, listed above) =
+  // waiting, under the same hold / "no reply needed" rules.
+  const formSince = new Date(now - FORM_LOOKBACK_MS).toISOString()
+  const { data: formRows } = await supabase
+    .from("lead_touchpoints")
+    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+    .in("touchpoint_type", [...CUSTOMER_FORM_TYPES, "sms_outbound", "email_outbound"])
+    .gte("occurred_at", formSince)
+    .order("occurred_at", { ascending: false })
+    .limit(800)
+  type FormRow = { lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+  const formByLead = new Map<string, { lastForm: FormRow | null; lastOutAt: string | null }>()
+  for (const r of (formRows ?? []) as FormRow[]) {
+    const m = formByLead.get(r.lead_id) ?? { lastForm: null, lastOutAt: null }
+    if ((CUSTOMER_FORM_TYPES as readonly string[]).includes(r.touchpoint_type)) {
+      if (!m.lastForm) m.lastForm = r
+    } else if (!m.lastOutAt) m.lastOutAt = r.occurred_at
+    formByLead.set(r.lead_id, m)
+  }
+  const formCandidates = Array.from(formByLead).filter(([, m]) => m.lastForm && (!m.lastOutAt || m.lastOutAt < m.lastForm.occurred_at))
+  let formNew = 0
+  if (formCandidates.length) {
+    const { data: formLeads } = await supabase
+      .from("leads")
+      .select("id, full_name, phone, email, status, acked_until, hold_until, first_response_at")
+      .in("id", formCandidates.map(([id]) => id))
+    type FormLead = { id: string; full_name: string | null; phone: string | null; email: string | null; status: string | null; acked_until: string | null; hold_until: string | null; first_response_at: string | null }
+    const formLeadById = new Map(((formLeads ?? []) as FormLead[]).map((l) => [l.id, l]))
+    for (const [leadId, m] of formCandidates) {
+      const l = formLeadById.get(leadId)
+      const form = m.lastForm!
+      if (!l || l.status === "won" || l.status === "lost" || l.status === "disqualified") continue
+      // The form that created the lead is the lead (handled above); only a form after our first reply is a reply.
+      if (!l.first_response_at || form.occurred_at <= l.first_response_at) continue
+      const peer = toE164(l.phone)
+      if (peer && isTestNumber(peer)) continue
+      // Twilio is the truth for texts: a text after the form answered it.
+      const tw = peer ? byPeer.get(peer) : undefined
+      if (tw?.lastOutAt && tw.lastOutAt >= form.occurred_at) continue
+      const atMs = Date.parse(form.occurred_at)
+      if (quiet.quiet(l.phone ?? null, atMs)) continue
+      if (l.acked_until && Date.parse(l.acked_until) >= atMs) continue
+      if (l.hold_until && Date.parse(l.hold_until) > now) continue
+      formNew += 1
+      const waited = minutesSince(form.occurred_at, now)
+      const who = (l.full_name ?? "").trim() || (peer ? prettyPhone(peer) : l.email || "网站")
+      events.push({
+        key: `form:${leadId}:${form.occurred_at}`,
+        kind: "form",
+        title: `${who} 在网站回了 等了 ${waited > MAX_EVENT_AGE_MIN ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}`,
+        body: `${FORM_LABELS[form.touchpoint_type] ?? form.touchpoint_type}：${formSummary(form.touchpoint_type, form.raw_payload_json)}`.slice(0, 100),
+        url: `/admin?tab=leads&lead=${leadId}`,
+        at: form.occurred_at,
+        waitedMinutes: waited,
+        ring: waited <= MAX_EVENT_AGE_MIN,
+        urgent: waited >= URGENT_MIN,
+        leadId,
+        phone: peer,
+      })
+    }
+  }
+
+  // ---- booked parties nobody has reached (lead-watch pre-party contact) -------
+  // lead-watch texts a booked customer 72h out; silence at 48h / the day
+  // before leaves pcf:48 / pcf:24 in lead_watch_notified (pc:ok once they
+  // answer), so this list and the sweep can never disagree. The day-before
+  // one rings: the owner has to reach them by phone (owner 2026-10-07).
+  const { data: pcMarks } = await supabase
+    .from("lead_watch_notified")
+    .select("key, notified_at")
+    .or("key.like.pcf:%,key.like.pc:ok:%")
+    .gte("notified_at", new Date(now - 7 * 86400_000).toISOString())
+    .limit(200)
+  const pcByOrder = new Map<string, { ok: boolean; flag24: string | null; flag48: string | null }>()
+  for (const r of (pcMarks ?? []) as Array<{ key: string; notified_at: string }>) {
+    const m = /^(?:pcf:(48|24)|pc:(ok)):(.+)$/.exec(r.key)
+    if (!m) continue
+    const id = m[3]
+    const s = pcByOrder.get(id) ?? { ok: false, flag24: null, flag48: null }
+    if (m[2] === "ok") s.ok = true
+    else if (m[1] === "24") s.flag24 = r.notified_at
+    else s.flag48 = r.notified_at
+    pcByOrder.set(id, s)
+  }
+  const unreachedIds = Array.from(pcByOrder)
+    .filter(([, s]) => !s.ok && (s.flag24 || s.flag48))
+    .map(([id]) => id)
+  let unreachedParties = 0
+  if (unreachedIds.length) {
+    const { data: pcOrders } = await supabase
+      .from("orders")
+      .select("id, order_no, customer_name, customer_phone, event_start")
+      .in("id", unreachedIds)
+      .eq("order_status", "active")
+      .gte("event_start", instantToWallIso(now - 3 * 3600_000))
+    for (const o of (pcOrders ?? []) as Array<{ id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string }>) {
+      const s = pcByOrder.get(o.id)
+      if (!s) continue
+      const dayBefore = Boolean(s.flag24)
+      const since = s.flag48 ?? s.flag24!
+      unreachedParties += 1
+      const when = `${shortDate(o.event_start.slice(0, 10))} ${wallTime(o.event_start)}`
+      events.push({
+        key: `pc:${o.id}:${dayBefore ? "24" : "48"}`,
+        kind: "party_contact",
+        title: `派对前联系不上 · ${(o.customer_name ?? "").trim() || o.order_no || "客户"}`,
+        body: dayBefore ? `${when} · 确认短信两条都没回，明天的派对，打电话` : `${when} · 72 小时前的确认短信没回`,
+        url: `/admin?tab=orders&order=${o.id}`,
+        at: since,
+        waitedMinutes: minutesSince(since, now),
+        ring: dayBefore,
+        urgent: dayBefore,
+        orderId: o.id,
+        phone: toE164(o.customer_phone),
+      })
+    }
+  }
+
   events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
       unreplied: unrepliedTotal,
+      emailNew,
+      formNew,
+      unreachedParties,
       newLeads: newLeadsTotal,
       changedOrders: changeRows.length,
       plannerLive,

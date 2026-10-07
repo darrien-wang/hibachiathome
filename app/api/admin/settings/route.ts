@@ -15,8 +15,7 @@ import {
   PARTY_SIZE_DISCOUNT_TIERS,
   PRICING_RULES_VERSION,
   PRICING_TERMS_V2_FROM,
-  STRIPE_FEE_FIXED,
-  STRIPE_FEE_RATE,
+  CARD_PROCESSING_RATE,
   ZELLE_VENMO_RATE,
   TABLES_CHAIRS_PER_GUEST,
   TRAVEL_FREE_RADIUS_MILES,
@@ -53,11 +52,10 @@ function codeConfig() {
     card_surcharge_rate: CARD_SURCHARGE_RATE,
     card_surcharge_scope: "v1_tax_included",
     // v2 "by method" (D-1006-05/06, two bills): cash = listed price (tax in);
-    // card = listed + sales tax at the party address + Stripe's cost. The default rate is only
+    // card = listed + sales tax at the party address + a flat 3% card processing. The default rate is only
     // what an invoice shows before the address is rated, flagged as an estimate.
     pricing_terms_v2_from: PRICING_TERMS_V2_FROM,
-    stripe_fee_rate: STRIPE_FEE_RATE,
-    stripe_fee_fixed: STRIPE_FEE_FIXED,
+    card_processing_rate: CARD_PROCESSING_RATE,
     // Zelle / Venmo paid to the chef directly = listed x (1 + rate); a one-line mention (D-1006-07).
     zelle_venmo_rate: ZELLE_VENMO_RATE,
     default_sales_tax_rate: DEFAULT_SALES_TAX_RATE,

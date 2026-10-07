@@ -28,7 +28,7 @@
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link asking them to reply "confirm" (the normal way)
-  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: balance + "cash to your chef is easiest, no fees"
+  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: the balance by how they pay (cash to the chef / card)
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
                                    local faster-whisper, customer/us on separate channels; --note files it on the lead
@@ -66,6 +66,13 @@ def is_tapback(body: str) -> bool:
     return bool(TAPBACK.match(b) or THUMB.match(b))
 
 
+def desk_session() -> str:
+    """This desk's identity for the just-answered brake: the Claude session when
+    run from one, else the machine and the parent shell."""
+    import os, socket
+    return (os.environ.get("DESK_SESSION") or os.environ.get("CLAUDE_CODE_SESSION_ID") or f"{socket.gethostname()}:{os.getppid()}")[:80]
+
+
 def money(v) -> str:
     try:
         return f"${float(v):,.2f}"
@@ -77,6 +84,11 @@ def money(v) -> str:
 def fmt_msg(m: dict) -> str:
     who = "客" if m.get("direction") == "inbound" else "我"
     body = (m.get("body") or "").replace("\n", " ").strip()
+    media = int(m.get("media") or 0)  # an MMS has no text; three patio photos printed as blank lines once (10-05)
+    if media and not body:
+        body = f"[{media} 张图片]"
+    elif media:
+        body = f"{body}  [+{media} 张图片]"
     tag = "  [tapback·不用回]" if m.get("tapback") or (m.get("direction") == "inbound" and is_tapback(body)) else ""
     return f"   {who} {pt(m.get('at'))}  {body}{tag}"
 
@@ -137,6 +149,13 @@ def render_card(c: dict) -> None:
         print(f"   ⋯ {pt(t.get('at'))} {t.get('note', '')[:160]}")
     for at in c.get("calls") or []:
         print(f"   ☎ 来电 {pt(at)}")
+    # support@ emails filed on the lead (in via the Gmail script, out via `desk email`).
+    for e in c.get("emails") or []:
+        who = "客" if e.get("direction") == "inbound" else "我"
+        print(f"   ✉ {who} {pt(e.get('at'))}  {e.get('subject') or '(no subject)'} — {(e.get('snippet') or '')[:120]}")
+    # Pre-party contact flags (lead-watch): the customer has not answered the confirmation text.
+    for al in c.get("alerts") or []:
+        print(f"   ⚑ {al.get('title') or ''} — {al.get('body') or ''}")
     for o in c.get("orders") or []:
         when = (o.get("event_start") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
         bal = o.get("balance_due_cents")
@@ -146,8 +165,12 @@ def render_card(c: dict) -> None:
               f"  {o.get('guest_adult_count') or '?'}大{o.get('guest_child_count') or 0}小"
               f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}")
     thread = c.get("thread") or []
-    print(f"   对话 ({len(thread)}):")
-    for m in thread[-14:]:
+    # Forms the customer filled on the site are their lines in the conversation
+    # ("客 … [网站·报价页点了在线订] …"): a reply through the site is a reply.
+    forms = [{"direction": "inbound", "at": f.get("at"), "body": f"[网站·{f.get('label') or f.get('type')}] {f.get('summary') or ''}"} for f in (c.get("forms") or [])]
+    merged = sorted(thread + forms, key=lambda m: m.get("at") or "")
+    print(f"   对话 ({len(thread)}{f' + 网站 {len(forms)}' if forms else ''}):")
+    for m in merged[-14:]:
         print(fmt_msg(m))
     print("   刹车: " + brake_line(stats))
 
@@ -156,7 +179,7 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 新线索 {counts.get('newLeads', 0)}"
+    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
     if not cards:
@@ -328,7 +351,10 @@ def cmd_send(a):
         if a.lead:
             site_get("/api/admin/sms-thread", {"leadId": a.lead})  # reconcile into the timeline
         return
-    payload = {"phone": e164(a.phone), "body": body}
+    # Which desk is sending: the server refuses a text when another session
+    # answered this number minutes ago and the customer has not spoken since
+    # (brake just_answered, 2026-10-07 - two desks answered Eileen 17 s apart).
+    payload = {"phone": e164(a.phone), "body": body, "session": desk_session()}
     if a.lead:
         payload["leadId"] = a.lead
     if a.force:
@@ -494,7 +520,7 @@ def _print_totals(inv: dict) -> None:
         print(f"   v2 · 现金 BALANCE {money(inv.get('cashBalanceDue'))}"
               f" · Zelle/Venmo 给师傅 {money(round(cash_due * 1.04, 2))}"
               f" · 刷卡 {money(inv.get('cardBalanceDue'))} = 现金 + 消费税 {rate_s}{est} {money(inv.get('salesTax'))}"
-              f" + 手续费 2.9%+30¢ {money(inv.get('cardProcessingFee'))}")
+              f" + 手续费 3% {money(inv.get('cardProcessingFee'))}")
     else:
         print("   v1 含税价 · 刷卡 +4%")
 

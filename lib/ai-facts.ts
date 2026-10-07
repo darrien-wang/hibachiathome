@@ -102,7 +102,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     `1. Check a date: GET ${SITE}/api/quote/slot-availability?date=YYYY-MM-DD returns open start times.`,
     `2. Get the exact price: GET ${SITE}/api/agent/price?adults=N&kids=N&date=YYYY-MM-DD&zip=ZIP.`,
     `3. Only with the customer's permission, submit a quote request: POST ${SITE}/api/agent/quote-request with their name, mobile and email. We text and email them the exact quote and a secure link to lock the date, and a real person follows up by text.`,
-    `4. The customer locks the date themselves through that link: a card is saved with Stripe and nothing is charged before the party. Agents never handle payment. Changes and cancellations are free up to ${FREE_CHANGE_HOURS} hours before the party; inside ${FREE_CHANGE_HOURS} hours a $${LATE_CANCEL_FEE} fee applies.`,
+    `4. The customer locks the date themselves through that link: a card is saved with Stripe and nothing is charged today; the total is settled after the party. Agents never handle payment. Changes and cancellations are free up to ${FREE_CHANGE_HOURS} hours before the party; inside ${FREE_CHANGE_HOURS} hours a $${LATE_CANCEL_FEE} late-change fee applies.`,
     `5. The balance is paid on the day of the party: in cash to the chef or by card.`,
     `Full API description (OpenAPI 3.1): ${SITE}/openapi.json. Humans can book at ${SITE}/quote.`,
     `Prefer a person? Call or text ${phone.voice.display}, or email ${siteConfig.contact.email}.`,
@@ -116,7 +116,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
 
   const rules: string[] = [
     "Cooking is outdoors only: patio, backyard, balcony, deck, driveway or under a tent. Never indoors.",
-    "Rain: the chef can cook under a covered patio or a 10x10 pop-up tent (the customer provides it; we don't). Cancel or move the date with 72+ hours notice for a full deposit refund.",
+    "Rain: the chef can cook under a covered patio or a 10x10 pop-up tent (the customer provides it; we don't). Cancel or move the date free with 48+ hours notice; inside 48 hours a $99 late-cancellation fee applies.",
     "Allergies: tell us in the quote request. We accommodate gluten-free, vegetarian and vegan guests, but we cannot promise a nut-free or sesame-free table (see the FAQ for details).",
     "Real Hibachi's own chefs cook every party. It is not a marketplace or app.",
   ]

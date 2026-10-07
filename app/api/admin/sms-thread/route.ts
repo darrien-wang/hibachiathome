@@ -3,6 +3,7 @@ import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 import { loadLeadEventHint } from "@/lib/lead-event-hint"
+import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
@@ -92,6 +93,10 @@ const MENTIONS_A_DATE =
 // is a sweep, not a conversation.
 const SWEEP_WINDOW_MS = 10 * 60_000
 const SWEEP_CAP = 6
+// Just-answered brake (2026-10-07): two desks on one inbox answered the same
+// customer 17 s apart. Our own last text younger than this, unanswered, and
+// sent by a different session = a duplicate.
+const JUST_ANSWERED_MS = 3 * 60_000
 
 // Answering is not pestering. A customer who asks three things in one text
 // gets three short answers, and the follow-up caps must not count them as
@@ -104,7 +109,7 @@ export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (!can(actor, "sms")) return NextResponse.json({ error: "你的账号没有发短信权限，找管理员开" }, { status: 403 })
-  let payload: { phone?: string; body?: string; leadId?: string; force?: boolean }
+  let payload: { phone?: string; body?: string; leadId?: string; force?: boolean; session?: string }
   try {
     payload = await request.json()
   } catch {
@@ -116,6 +121,13 @@ export async function POST(request: NextRequest) {
   if (!body) return NextResponse.json({ error: "empty message" }, { status: 400 })
   if (body.length > 1200) return NextResponse.json({ error: "message too long" }, { status: 400 })
   const leadIdParam = typeof payload.leadId === "string" && /^[0-9a-f-]{36}$/i.test(payload.leadId) ? payload.leadId : null
+  // Who is sending: the desk CLI passes its Claude session id, the workbench
+  // UI is the signed-in member. Written on the touchpoint so the next send
+  // can tell "I answered a minute ago" from "someone else did".
+  const session =
+    (typeof payload.session === "string" && payload.session.trim().slice(0, 80)) ||
+    request.headers.get("x-desk-session")?.trim().slice(0, 80) ||
+    `ui:${actor.alias ?? actor.name ?? "staff"}`
 
   // The conversation, read once from Twilio (the source of truth, whoever sent
   // what): the context lint and the brakes below both work from it.
@@ -243,14 +255,44 @@ export async function POST(request: NextRequest) {
           .map((c) => new Date(c.occurred_at).getTime())
           .filter((t) => Number.isFinite(t))
       }
+      // A form on the site is the customer talking too (lib/customer-forms.ts):
+      // Antheyty answered "7 PM, with tables" through the quote page 20 s after
+      // our text (2026-10-06) and the reply to that was refused as a third
+      // unprompted text. Only forms after our first text count - the first
+      // form is the lead, and the auto quote answering it is still unprompted.
+      let formTimes: number[] = []
+      const firstOut = thread.find((m) => m.direction === "outbound")
+      if (supabase && firstOut) {
+        const firstOutAt = new Date(firstOut.at).getTime()
+        const { data: leadRows } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
+          .limit(5)
+        const ids = ((leadRows ?? []) as Array<{ id: string }>).map((r) => r.id)
+        if (leadIdParam && !ids.includes(leadIdParam)) ids.push(leadIdParam)
+        if (ids.length) {
+          const { data: forms } = await supabase
+            .from("lead_touchpoints")
+            .select("occurred_at")
+            .in("lead_id", ids)
+            .in("touchpoint_type", [...CUSTOMER_FORM_TYPES])
+            .order("occurred_at", { ascending: false })
+            .limit(10)
+          formTimes = ((forms ?? []) as Array<{ occurred_at: string }>)
+            .map((f) => new Date(f.occurred_at).getTime())
+            .filter((t) => Number.isFinite(t) && t > firstOutAt)
+        }
+      }
       const last = thread[thread.length - 1]
-      const lastCallAt = callTimes.length > 0 ? Math.max(...callTimes) : null
+      const touchTimes = [...callTimes, ...formTimes]
+      const lastTouchAt = touchTimes.length > 0 ? Math.max(...touchTimes) : null
       const customerSpokeLast =
-        last?.direction === "inbound" || (lastCallAt !== null && (!last || lastCallAt > new Date(last.at).getTime()))
+        last?.direction === "inbound" || (lastTouchAt !== null && (!last || lastTouchAt > new Date(last.at).getTime()))
       const now = Date.now()
       const inboundTimes = [
         ...thread.filter((m) => m.direction === "inbound").map((m) => new Date(m.at).getTime()),
-        ...callTimes,
+        ...touchTimes,
       ]
       const lastInbound = inboundTimes.length > 0 ? Math.max(...inboundTimes) : null
       // Still answering the customer's last message.
@@ -313,6 +355,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ---- Just answered by someone else (2026-10-07) ----------------------------
+  // Two desks on one inbox answered Eileen's sake question 17 s apart. When
+  // our own last text to this number is minutes old, the customer has not
+  // spoken since, and it came from a different session (another agent, the
+  // workbench UI, the phone), this send is a duplicate: refuse it and show
+  // what already went out. The same session answering in two lines passes;
+  // automated texts (the instant quote) never count; force overrides.
+  const lastMsg = thread[thread.length - 1]
+  if (!payload.force && lastMsg && lastMsg.direction === "outbound" && !isAutomatedText(lastMsg.body)) {
+    const ageMs = Date.now() - new Date(lastMsg.at).getTime()
+    if (ageMs >= 0 && ageMs < JUST_ANSWERED_MS) {
+      const supabase = createServerSupabaseClient()
+      let by: string | null = null
+      if (supabase) {
+        const { data: prev } = await supabase
+          .from("lead_touchpoints")
+          .select("raw_payload_json")
+          .eq("touchpoint_type", "sms_outbound")
+          .eq("external_touchpoint_id", lastMsg.sid)
+          .limit(1)
+          .maybeSingle()
+        const s = (prev?.raw_payload_json as Record<string, unknown> | null)?.session
+        by = typeof s === "string" ? s : null
+      }
+      if (by !== session) {
+        return NextResponse.json(
+          {
+            error: `这个号码 ${Math.round(ageMs / 1000)} 秒前刚有人回过（${by ?? "不知道是谁"}），客人还没再说话——先读对话再决定要不要再发：「${lastMsg.body.slice(0, 160)}」`,
+            brake: "just_answered",
+            said: { at: lastMsg.at, body: lastMsg.body.slice(0, 300), by },
+          },
+          { status: 409 },
+        )
+      }
+    }
+  }
+
   const sent = await sendSms(phone, body)
   if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 502 })
 
@@ -327,7 +406,7 @@ export async function POST(request: NextRequest) {
         touchpoint_type: "sms_outbound",
         touchpoint_source: "workbench",
         external_touchpoint_id: sent.sid,
-        raw_payload_json: { to: phone, body, status: sent.status, actor: "workbench", unprompted },
+        raw_payload_json: { to: phone, body, status: sent.status, actor: "workbench", unprompted, session },
         occurred_at: now,
       })
       await supabase

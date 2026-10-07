@@ -92,11 +92,11 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
   {
     question: "¿Puedo cambiar el número de invitados después de reservar?",
     answer:
-      "Sí. Tu depósito reserva la fecha, no un número — puedes cambiar la cantidad de invitados hasta el día antes de tu fiesta y el total se ajusta (el mínimo de $599 sigue aplicando). ¿Necesitas cancelar o reagendar? Avísanos con al menos 72 horas de anticipación y te devolvemos el depósito completo.",
+      "Sí. Al reservar aseguras la fecha, no un número — puedes cambiar la cantidad de invitados hasta el día antes de tu fiesta y el total se ajusta (el mínimo de $599 sigue aplicando). ¿Necesitas cancelar o reagendar? Avísanos con al menos 48 horas de anticipación y no hay ningún cargo.",
   },
   {
     question: "¿Cuál es la política de cancelación?",
     answer:
-      "Nuestra política de cancelación incluye estos términos:\n\n- Se requieren 72 horas de anticipación para cancelar o reagendar con reembolso completo\n- Dentro de las 72 horas es posible que no podamos reembolsar el total\n- Para días de lluvia, considera una carpa de 10'x10' sobre la estación del chef — la pones tú, nosotros no suministramos carpas\n- Si necesitas cancelar por clima, avísanos con al menos 72 horas de anticipación",
+      "Nuestra política de cancelación incluye estos términos:\n\n- Con 48 horas de anticipación puedes cancelar o reagendar sin ningún costo\n- Dentro de las 48 horas se cobra un cargo de $99 por cancelación tardía a la tarjeta registrada\n- Para días de lluvia, considera una carpa de 10'x10' sobre la estación del chef — la pones tú, nosotros no suministramos carpas\n- Si necesitas cancelar por clima, avísanos con al menos 48 horas de anticipación",
   },
 ]

@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { sendEmail } from "@/lib/email/send-email"
 import { createServerSupabaseClient } from "@/lib/supabase"
@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
     if (leadId) {
       try {
         const supabase = createServerSupabaseClient()
+        if (!supabase) throw new Error("supabase not configured")
         const { data: existing } = await supabase
           .from("lead_touchpoints")
           .select("id")
@@ -96,6 +97,14 @@ export async function POST(request: NextRequest) {
           touchpoint_type: "agent_note",
           touchpoint_source: "admin_dashboard",
           raw_payload_json: { note: `✉️ 邮件已发送：${subject}` },
+        })
+        // The email itself, so an inbound email (email-inbound route) newer
+        // than this shows as waiting and the desk card lists both directions.
+        await supabase.from("lead_touchpoints").insert({
+          lead_id: leadId,
+          touchpoint_type: "email_outbound",
+          touchpoint_source: "admin_dashboard",
+          raw_payload_json: { to, subject, snippet: text.replace(/\s+/g, " ").trim().slice(0, 200), text: text.slice(0, 4000) },
         })
         await supabase
           .from("leads")

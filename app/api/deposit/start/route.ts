@@ -827,7 +827,8 @@ async function createCheckoutSession(
     custom_text: {
       submit: {
         message:
-          "Nothing is charged today. Your card stays on file for the balance after your party - free to change or cancel up to 48 hours before, $99 inside 48 hours.",
+          // "total", not "balance": nothing has been paid (owner 2026-10-07).
+          "Nothing is charged today. Your card stays on file for the total after your party - free to change or cancel up to 48 hours before, $99 inside 48 hours.",
       },
     },
   })
