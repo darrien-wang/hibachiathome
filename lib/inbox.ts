@@ -317,13 +317,18 @@ export async function computeInbox(
   if (mailWaiting.length) {
     const { data: mailLeads } = await supabase
       .from("leads")
-      .select("id, full_name, phone, email")
+      .select("id, full_name, phone, email, acked_until, hold_until")
       .in("id", mailWaiting.map(([id]) => id))
-    const leadById = new Map(((mailLeads ?? []) as Array<{ id: string; full_name: string | null; phone: string | null; email: string | null }>).map((l) => [l.id, l]))
+    type MailLead = { id: string; full_name: string | null; phone: string | null; email: string | null; acked_until: string | null; hold_until: string | null }
+    const leadById = new Map(((mailLeads ?? []) as MailLead[]).map((l) => [l.id, l]))
     for (const [leadId, m] of mailWaiting) {
       const l = leadById.get(leadId)
       const atMs = Date.parse(m.lastIn!.at)
       if (quiet.quiet(l?.phone ?? null, atMs)) continue
+      // Email-only leads have no phone for the quiet lookup, so apply the same
+      // watermark and hold by lead: "不用回" up to acked_until, held = silent.
+      if (l?.acked_until && Date.parse(l.acked_until) >= atMs) continue
+      if (l?.hold_until && Date.parse(l.hold_until) > now) continue
       emailNew += 1
       const waited = minutesSince(m.lastIn!.at, now)
       if (waited > MAX_EVENT_AGE_MIN * 24) continue
