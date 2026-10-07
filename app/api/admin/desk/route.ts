@@ -154,7 +154,7 @@ async function buildCard(
           .from("lead_touchpoints")
           .select("touchpoint_type, occurred_at, raw_payload_json")
           .eq("lead_id", lead.id)
-          .in("touchpoint_type", ["agent_note", "agent_first_response", "call_inbound", "call_recording"])
+          .in("touchpoint_type", ["agent_note", "agent_first_response", "call_inbound", "call_recording", "email_inbound", "email_outbound"])
           .order("occurred_at", { ascending: false })
           .limit(60)
           .then((r) => (r.data ?? []) as Touchpoint[])
@@ -172,6 +172,19 @@ async function buildCard(
     .filter((t) => TAG.test(t.note))
     .slice(0, 8)
   const calls = touchpoints.filter((t) => t.touchpoint_type === "call_inbound").map((t) => t.occurred_at).slice(0, 3)
+  // Emails on the lead (support@ in via the Gmail script, out via desk email), newest last.
+  const emails = touchpoints
+    .filter((t) => t.touchpoint_type === "email_inbound" || t.touchpoint_type === "email_outbound")
+    .map((t) => ({
+      at: t.occurred_at,
+      direction: t.touchpoint_type === "email_inbound" ? "inbound" : "outbound",
+      subject: String(t.raw_payload_json?.subject ?? ""),
+      snippet: String(t.raw_payload_json?.snippet ?? t.raw_payload_json?.text ?? "").replace(/\s+/g, " ").slice(0, 160),
+      from: String(t.raw_payload_json?.from ?? t.raw_payload_json?.to ?? ""),
+      gmailUrl: typeof t.raw_payload_json?.gmailUrl === "string" ? (t.raw_payload_json.gmailUrl as string) : null,
+    }))
+    .reverse()
+    .slice(-12)
   const firstResponseAt = touchpoints.find((t) => t.touchpoint_type === "agent_first_response")?.occurred_at ?? null
 
   const last = thread[thread.length - 1] ?? null
@@ -212,6 +225,7 @@ async function buildCard(
     phone,
     tags,
     calls,
+    emails,
     thread: thread.map((m) => ({ sid: m.sid, direction: m.direction, at: m.at, body: m.body, status: m.status, tapback: m.direction === "inbound" && isTapback(m.body ?? "") })),
     quoted: quotedFrom(thread),
     price: lead ? await priceFor(lead, hint) : null,

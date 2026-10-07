@@ -137,6 +137,10 @@ def render_card(c: dict) -> None:
         print(f"   ⋯ {pt(t.get('at'))} {t.get('note', '')[:160]}")
     for at in c.get("calls") or []:
         print(f"   ☎ 来电 {pt(at)}")
+    # support@ emails filed on the lead (in via the Gmail script, out via `desk email`).
+    for e in c.get("emails") or []:
+        who = "客" if e.get("direction") == "inbound" else "我"
+        print(f"   ✉ {who} {pt(e.get('at'))}  {e.get('subject') or '(no subject)'} — {(e.get('snippet') or '')[:120]}")
     for o in c.get("orders") or []:
         when = (o.get("event_start") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
         bal = o.get("balance_due_cents")
@@ -156,7 +160,7 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 新线索 {counts.get('newLeads', 0)}"
+    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
     if not cards:

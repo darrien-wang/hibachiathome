@@ -223,7 +223,7 @@ description: >-
 | **A 断在留资** | `Landing contact (…): gave mobile + email, quote step pending · card default 15 adults` | 他们交了手机+邮箱却什么都没收到（43% 的落地页线索卡在这）。**先认错、直接给精确价**（用卡片默认 15 大人算，同时给周末/周中两档），再问一个问题 |
 | **B 报价已发** | `Landing quote (…): N adults · plan · date · est. $X` 或 quote_unlock | 已经收到自动短信+押金链接。首条不重复价格：**确认日期开着 + 时间选择题** |
 | **C 主动来短信** | Twilio 收件箱有客户消息 | 先答他的问题（≤2 句），再收口一个问题。5 分钟内 |
-| **D 主动来邮件 / contact 表单** | Gmail `support@` / `lead_source=contact` | 邮件回 + 若有手机同步一条短信 "just emailed you the details" |
+| **D 主动来邮件 / contact 表单** | `desk next` 里的 `[email]` 卡片（2026-10-07 起 support@ 的信由 Gmail 脚本推进工作台，标题栏"邮件 N"，卡片里 `✉ 客` 行；平台通知如 Zola 也走这里）/ `lead_source=contact` | 邮件回：`desk email <to> --subject ... --body-file ... --lead <id>`（从 support@ 发、记 `email_outbound`，卡片"邮件"计数归零）+ 若有手机同步一条短信 "just emailed you the details"。**不再去 Gmail 里翻**——没进卡片的邮件才去查 |
 | **E 大单 61+** | `guest_count ≥ 61` 或客户说 "70-80 people" | **不报总价**。报人均 + "3-chef party" + "exact number tonight" + 问一个信息（晚上还是白天 / 大概几个小孩）。**31–60 人不走这条** — 阶梯已经盖到 60，照 B/C 直接报引擎价 |
 | **F 已锁日期** | status won / 订单工作台有单 | 转成交后阶梯：planner → 实名确认 → 邀评 → 晒图 |
 | **G 骚扰/无效** | 用户标注、470 号那种、空手机 | 不回，`set_status disqualified` |

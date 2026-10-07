@@ -25,10 +25,11 @@ const MAX_EVENT_AGE_MIN = 180
 const DEPOSIT_LOOKBACK_MS = 2 * 3600_000
 const CHANGE_LOOKBACK_MS = 24 * 3600_000
 const PLANNER_LIVE_MS = 3 * 60_000
+const EMAIL_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "deposit" | "order_change" | "reddit"
+  kind: "lead" | "call" | "sms" | "email" | "deposit" | "order_change" | "reddit"
   title: string
   body: string
   url: string
@@ -68,6 +69,8 @@ export type InboxOptions = {
 
 export type InboxCounts = {
   unreplied: number
+  /** Customer emails (support@, via the Gmail script) newer than our last reply to that lead. */
+  emailNew: number
   newLeads: number
   changedOrders: number
   plannerLive: number
@@ -288,9 +291,63 @@ export async function computeInbox(
   const plannerLive = new Set(((live ?? []) as Array<{ sid: string | null }>).map((r) => r.sid).filter(Boolean)).size
 
   events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
+  // ---- customer emails nobody answered ----------------------------------------
+  // support@ mail is filed on the lead by /api/admin/email-inbound (Gmail
+  // script, 2026-10-07). An inbound newer than anything we sent that lead -
+  // an email from the desk or a text - is waiting, under the same hold /
+  // "no reply needed" rules as a text.
+  const emailSince = new Date(now - EMAIL_LOOKBACK_MS).toISOString()
+  const { data: mailRows } = await supabase
+    .from("lead_touchpoints")
+    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+    .in("touchpoint_type", ["email_inbound", "email_outbound", "sms_outbound"])
+    .gte("occurred_at", emailSince)
+    .order("occurred_at", { ascending: false })
+    .limit(400)
+  const mailByLead = new Map<string, { lastIn: { at: string; subject: string; snippet: string } | null; lastOutAt: string | null }>()
+  for (const r of (mailRows ?? []) as Array<{ lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }>) {
+    const m = mailByLead.get(r.lead_id) ?? { lastIn: null, lastOutAt: null }
+    if (r.touchpoint_type === "email_inbound") {
+      if (!m.lastIn) m.lastIn = { at: r.occurred_at, subject: String(r.raw_payload_json?.subject ?? ""), snippet: String(r.raw_payload_json?.snippet ?? "") }
+    } else if (!m.lastOutAt) m.lastOutAt = r.occurred_at
+    mailByLead.set(r.lead_id, m)
+  }
+  const mailWaiting = Array.from(mailByLead).filter(([, m]) => m.lastIn && (!m.lastOutAt || m.lastOutAt < m.lastIn.at))
+  let emailNew = 0
+  if (mailWaiting.length) {
+    const { data: mailLeads } = await supabase
+      .from("leads")
+      .select("id, full_name, phone, email")
+      .in("id", mailWaiting.map(([id]) => id))
+    const leadById = new Map(((mailLeads ?? []) as Array<{ id: string; full_name: string | null; phone: string | null; email: string | null }>).map((l) => [l.id, l]))
+    for (const [leadId, m] of mailWaiting) {
+      const l = leadById.get(leadId)
+      const atMs = Date.parse(m.lastIn!.at)
+      if (quiet.quiet(l?.phone ?? null, atMs)) continue
+      emailNew += 1
+      const waited = minutesSince(m.lastIn!.at, now)
+      if (waited > MAX_EVENT_AGE_MIN * 24) continue
+      const who = (l?.full_name ?? "").trim() || l?.email || "邮件"
+      events.push({
+        key: `email:${leadId}:${m.lastIn!.at}`,
+        kind: "email",
+        title: `${who} 来邮件 等了 ${waited > MAX_EVENT_AGE_MIN ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}`,
+        body: `${m.lastIn!.subject} — ${m.lastIn!.snippet}`.slice(0, 80),
+        url: `/admin?tab=leads&lead=${leadId}`,
+        at: m.lastIn!.at,
+        waitedMinutes: waited,
+        ring: waited <= MAX_EVENT_AGE_MIN,
+        urgent: waited >= URGENT_MIN,
+        leadId,
+        phone: toE164(l?.phone ?? null),
+      })
+    }
+  }
+
   return {
     counts: {
       unreplied: unrepliedTotal,
+      emailNew,
       newLeads: newLeadsTotal,
       changedOrders: changeRows.length,
       plannerLive,
