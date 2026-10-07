@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { loadQuiet } from "@/lib/lead-hold"
+import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 
@@ -31,7 +32,7 @@ const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact"
   title: string
   body: string
   url: string
@@ -77,6 +78,8 @@ export type InboxCounts = {
   emailNew: number
   /** Website forms (Book Now, planner claim, contact form) newer than anything we sent that lead. */
   formNew: number
+  /** Booked parties inside 48h whose customer has not answered the pre-party confirmation text (lead-watch). */
+  unreachedParties: number
   newLeads: number
   changedOrders: number
   plannerLive: number
@@ -427,12 +430,69 @@ export async function computeInbox(
     }
   }
 
+  // ---- booked parties nobody has reached (lead-watch pre-party contact) -------
+  // lead-watch texts a booked customer 72h out; silence at 48h / the day
+  // before leaves pcf:48 / pcf:24 in lead_watch_notified (pc:ok once they
+  // answer), so this list and the sweep can never disagree. The day-before
+  // one rings: the owner has to reach them by phone (owner 2026-10-07).
+  const { data: pcMarks } = await supabase
+    .from("lead_watch_notified")
+    .select("key, notified_at")
+    .or("key.like.pcf:%,key.like.pc:ok:%")
+    .gte("notified_at", new Date(now - 7 * 86400_000).toISOString())
+    .limit(200)
+  const pcByOrder = new Map<string, { ok: boolean; flag24: string | null; flag48: string | null }>()
+  for (const r of (pcMarks ?? []) as Array<{ key: string; notified_at: string }>) {
+    const m = /^(?:pcf:(48|24)|pc:(ok)):(.+)$/.exec(r.key)
+    if (!m) continue
+    const id = m[3]
+    const s = pcByOrder.get(id) ?? { ok: false, flag24: null, flag48: null }
+    if (m[2] === "ok") s.ok = true
+    else if (m[1] === "24") s.flag24 = r.notified_at
+    else s.flag48 = r.notified_at
+    pcByOrder.set(id, s)
+  }
+  const unreachedIds = Array.from(pcByOrder)
+    .filter(([, s]) => !s.ok && (s.flag24 || s.flag48))
+    .map(([id]) => id)
+  let unreachedParties = 0
+  if (unreachedIds.length) {
+    const { data: pcOrders } = await supabase
+      .from("orders")
+      .select("id, order_no, customer_name, customer_phone, event_start")
+      .in("id", unreachedIds)
+      .eq("order_status", "active")
+      .gte("event_start", instantToWallIso(now - 3 * 3600_000))
+    for (const o of (pcOrders ?? []) as Array<{ id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string }>) {
+      const s = pcByOrder.get(o.id)
+      if (!s) continue
+      const dayBefore = Boolean(s.flag24)
+      const since = s.flag48 ?? s.flag24!
+      unreachedParties += 1
+      const when = `${shortDate(o.event_start.slice(0, 10))} ${wallTime(o.event_start)}`
+      events.push({
+        key: `pc:${o.id}:${dayBefore ? "24" : "48"}`,
+        kind: "party_contact",
+        title: `派对前联系不上 · ${(o.customer_name ?? "").trim() || o.order_no || "客户"}`,
+        body: dayBefore ? `${when} · 确认短信两条都没回，明天的派对，打电话` : `${when} · 72 小时前的确认短信没回`,
+        url: `/admin?tab=orders&order=${o.id}`,
+        at: since,
+        waitedMinutes: minutesSince(since, now),
+        ring: dayBefore,
+        urgent: dayBefore,
+        orderId: o.id,
+        phone: toE164(o.customer_phone),
+      })
+    }
+  }
+
   events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
       unreplied: unrepliedTotal,
       emailNew,
       formNew,
+      unreachedParties,
       newLeads: newLeadsTotal,
       changedOrders: changeRows.length,
       plannerLive,

@@ -248,6 +248,12 @@ export function SettingsTab({
           <label className="check">
             <input type="checkbox" checked={w.auto_first_response} disabled={!canEdit} onChange={(e) => set("lead_watch", { auto_first_response: e.target.checked })} /> 允许自动发首响（只对 A 型落地页线索）
           </label>
+          <label className="check">
+            <input type="checkbox" checked={w.auto_quote_follow_up} disabled={!canEdit} onChange={(e) => set("lead_watch", { auto_quote_follow_up: e.target.checked })} /> 报价已发的线索，2 分钟后机器发模板 B（日期开着，4 点还是 7 点）
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={w.party_contact_check} disabled={!canEdit} onChange={(e) => set("lead_watch", { party_contact_check: e.target.checked })} /> 派对前联系确认（72 小时自动短信，48 小时没回提醒，前一天再发一条并催打电话）
+          </label>
           {numField("留资后等", w.grace_minutes, (n) => set("lead_watch", { grace_minutes: n }), { suffix: "分钟再动（让第二步先落地）" })}
           {numField("同一条再提醒间隔", w.renotify_minutes, (n) => set("lead_watch", { renotify_minutes: n }), { suffix: "分钟", min: 10 })}
           <Field label="派对时段转接">

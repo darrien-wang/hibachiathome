@@ -4,6 +4,20 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, calcSimpleEstimate } from "@/config/pricing-rules"
 import { escapeHtml } from "@/lib/escape-html"
 import { notAQuestion } from "@/lib/courtesy-text"
+import {
+  PARTY_CONTACT_FIRST_TEXT_H,
+  PARTY_CONTACT_MIN_ORDER_AGE_MS,
+  PARTY_CONTACT_URGENT_H,
+  instantToWallIso,
+  partyContactFirstText,
+  partyContactSecondText,
+  partyContactStage,
+  ptDate,
+  quoteFollowUpPlan,
+  shortDate,
+  wallTime,
+  wallToInstant,
+} from "@/lib/first-response"
 import { loadQuiet } from "@/lib/lead-hold"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
@@ -43,6 +57,15 @@ const MISSED_CALL_GRACE_MS = 2 * 60_000
 // of every renotify_minutes (2026-09-27 audit: p90 reply time was 103 min).
 const URGENT_AFTER_MIN = 15
 const URGENT_RENOTIFY_MS = 10 * 60_000
+// Template B after the site's automatic quote (owner 2026-10-07 "交给机器"):
+// sent a couple of minutes later so it reads as the person following up, not
+// the same robot twice. A per-minute cron (stage=first_response) makes that
+// latency real; the wording and the hand-to-a-person rules live in
+// lib/first-response.ts.
+const QUOTE_FOLLOW_UP_GRACE_MIN = 2
+// Pre-party contact: the 48h flag comes back every renotify_minutes like any
+// other item; the day-before one is re-pushed hourly until someone reaches them.
+const PARTY_CONTACT_RENOTIFY_24H_MS = 60 * 60_000
 // The desktop task only ever ran 07:00-23:59 PT, so the automatic texts
 // (first response, missed-call backstop) keep those hours now that a server
 // cron calls this around the clock. The backup person is texted in a
@@ -71,14 +94,22 @@ async function callerOf(request: NextRequest): Promise<string | null> {
   return provided === cronKey ? "cron" : null
 }
 
+// full = the 10-minute sweep; first_response = the per-minute cron that only
+// runs the leads section (template A / B) and records a run only when it sent.
+type WatchStage = "full" | "first_response"
+
+type Candidate = { key: string; item: Record<string, unknown>; urgent: boolean; renotifyMs?: number }
+
 type WatchResult = {
   ok: true
   dryRun: boolean
+  stage?: WatchStage
   checkedAt: string
   disabled?: boolean
   quietHours?: boolean
   autoSent: unknown[]
   missedCallTexts?: unknown[]
+  partyContact?: unknown[]
   needsHuman: unknown[]
   escalated?: unknown[]
   stillOpen: number
@@ -131,10 +162,28 @@ async function partyInProgress(supabase: AnySupabase, now: number): Promise<bool
     .from("orders")
     .select("id, event_start")
     .eq("deposit_status", "paid_verified")
-    .gte("event_start", new Date(now - PARTY_AFTER_MS).toISOString())
-    .lte("event_start", new Date(now + PARTY_BEFORE_MS).toISOString())
+    // event_start is the PT wall clock stored as UTC (lib/first-response.ts);
+    // comparing it with a real instant was seven hours off until 2026-10-07.
+    .gte("event_start", instantToWallIso(now - PARTY_AFTER_MS))
+    .lte("event_start", instantToWallIso(now + PARTY_BEFORE_MS))
     .limit(1)
   return (data ?? []).length > 0
+}
+
+/** File an automatic text on the lead behind a phone number (bare SID as the id, the same key sms reconcile uses). */
+async function logAutoSms(supabase: AnySupabase, phone: string, sid: string, body: string, source: string, extra: Record<string, unknown>) {
+  const digits = phone.replace(/\D/g, "").slice(-10)
+  const { data: leadRow } = await supabase.from("leads").select("id").eq("normalized_phone", digits).order("created_at", { ascending: false }).limit(1).maybeSingle()
+  const lead = leadRow as { id: string } | null
+  if (!lead) return
+  await supabase.from("lead_touchpoints").insert({
+    lead_id: lead.id,
+    touchpoint_type: "sms_outbound",
+    touchpoint_source: source,
+    external_touchpoint_id: sid,
+    raw_payload_json: { to: phone, body, sid, auto: true, via: "lead_watch", ...extra },
+    occurred_at: new Date().toISOString(),
+  })
 }
 
 const fmtPhone = (e164: string | null | undefined) => {
@@ -251,10 +300,14 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const dryRun = request.nextUrl.searchParams.get("dry") === "1"
+  // stage=first_response is the per-minute cron: only the leads section runs
+  // (no Twilio sweeps, no escalation), and a run that sent nothing leaves no
+  // row in lead_watch_runs - 1,440 silent rows a day would drown the panel.
+  const stage: WatchStage = request.nextUrl.searchParams.get("stage") === "first_response" ? "first_response" : "full"
   const t0 = Date.now()
   try {
-    const out = await runWatch(supabase, dryRun, caller === "cron")
-    if (!dryRun) await recordRun(supabase, caller, t0, out)
+    const out = await runWatch(supabase, dryRun, caller === "cron", stage)
+    if (!dryRun && (stage === "full" || out.autoSent.length > 0)) await recordRun(supabase, caller, t0, out)
     return NextResponse.json(out)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -311,21 +364,22 @@ export async function GET(request: NextRequest) {
 // cronCaller: nobody reads that response, so the "reported once" marks for
 // plain items are left alone - otherwise the server run at :05 would swallow
 // the push the desktop task sends at :10. Escalation keeps its own marks.
-async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: boolean): Promise<WatchResult> {
+async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: boolean, stage: WatchStage = "full"): Promise<WatchResult> {
   const now = Date.now()
   const watch = (await getWorkbenchSettings()).lead_watch
   if (!watch.enabled) {
-    return { ok: true, dryRun, disabled: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 }
+    return { ok: true, dryRun, stage, disabled: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 }
   }
   if (!withinPt(now, ACTIVE_HOURS_PT)) {
-    return { ok: true, dryRun, quietHours: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 }
+    return { ok: true, dryRun, stage, quietHours: true, checkedAt: new Date(now).toISOString(), autoSent: [], needsHuman: [], stillOpen: 0 }
   }
+  const ours = ourSmsNumber()
 
   // ---- open leads with no first response --------------------------------
   const since = new Date(now - MAX_LEAD_AGE_HOURS * 3600_000).toISOString()
   const { data: leads, error } = await supabase
     .from("leads")
-    .select("id, created_at, full_name, phone, email, status, lead_source, city_or_zip, guest_count, latest_message")
+    .select("id, created_at, full_name, phone, email, status, lead_source, city_or_zip, guest_count, latest_message, sms_blocked_at, adult_count, child_count")
     .eq("status", "new")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
@@ -406,12 +460,107 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       continue
     }
 
+    const human = (why: string) =>
+      humanLeads.push({ kind: "lead", leadId: lead.id, name: lead.full_name, phone, email: lead.email, city: lead.city_or_zip, source: lead.lead_source, guests: lead.guest_count, minutesWaiting: ageMin, summary: lead.latest_message, why })
+
+    // Got the site's automatic quote (price + lock link already texted):
+    // template B - the date is open, 4 PM or 7 PM? Owner-approved wording,
+    // machine-sent since 2026-10-07; anything the template does not fit goes
+    // to a person with the reason attached.
+    if (gotQuote) {
+      if (ageMin < QUOTE_FOLLOW_UP_GRACE_MIN) continue
+      if (!watch.auto_quote_follow_up) {
+        human("auto_quote_follow_up off")
+        continue
+      }
+      if (!phone || lead.sms_blocked_at) {
+        human(phone ? "sms blocked" : "no phone")
+        continue
+      }
+      const quoteTp = tps.filter((t) => t.touchpoint_type === "landing_quote_text").sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+      const payload = (quoteTp?.raw_payload_json ?? {}) as { adults?: number; kids?: number; eventDate?: string }
+      const plan = quoteFollowUpPlan({
+        adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
+        kids: Number(payload.kids ?? lead.child_count ?? 0) || 0,
+        eventDate: payload.eventDate ?? null,
+        todayPt: ptDate(now),
+      })
+      if (!plan.send) {
+        human(plan.reason)
+        continue
+      }
+      // The conversation may already be under way - the customer texted first,
+      // or a person already sent something after the quote. Twilio is the truth
+      // for both (the desk and the app both send through it); the quote itself
+      // is the one outbound that starts "Real Hibachi:".
+      const createdMs = new Date(lead.created_at).getTime()
+      const sinceDay = new Date(createdMs - 86400_000).toISOString().slice(0, 10)
+      const [inbound, outbound] = await Promise.all([
+        listTwilio(`From=${encodeURIComponent(phone)}&To=${encodeURIComponent(ours)}&DateSent%3E=${sinceDay}`),
+        listTwilio(`From=${encodeURIComponent(ours)}&To=${encodeURIComponent(phone)}&DateSent%3E=${sinceDay}`),
+      ])
+      const humanOut = outbound.find((m) => when(m) >= createdMs && !/^Real Hibachi:/.test(m.body ?? ""))
+      if (humanOut) {
+        // Someone already answered by hand: file that as the first response so
+        // this lead is not re-examined every minute.
+        if (!dryRun) {
+          await supabase.from("lead_touchpoints").insert({
+            lead_id: lead.id,
+            touchpoint_type: "agent_first_response",
+            touchpoint_source: "lead_watch",
+            raw_payload_json: { via: "sms", auto: false, inferred_from: "twilio_outbound", sms_sid: humanOut.sid },
+          })
+        }
+        continue
+      }
+      if (inbound.some((m) => when(m) >= createdMs)) {
+        human("customer texted first")
+        continue
+      }
+      if (dryRun) {
+        autoSent.push({ leadId: lead.id, phone, template: "B", minutesWaiting: ageMin, dryRun: true, sms: plan.text })
+        continue
+      }
+      const sms = await sendSms(phone, plan.text)
+      if (sms.ok) {
+        const at = new Date().toISOString()
+        await supabase.from("lead_touchpoints").insert([
+          {
+            lead_id: lead.id,
+            touchpoint_type: "agent_first_response",
+            touchpoint_source: "lead_watch",
+            raw_payload_json: { via: "sms", auto: true, template: "B", sms_sid: sms.sid },
+          },
+          {
+            lead_id: lead.id,
+            touchpoint_type: "sms_outbound",
+            touchpoint_source: "lead_watch",
+            external_touchpoint_id: sms.sid,
+            raw_payload_json: { to: phone, body: plan.text, status: sms.status, sid: sms.sid, auto: true, via: "lead_watch", template: "B" },
+            occurred_at: at,
+          },
+          {
+            lead_id: lead.id,
+            touchpoint_type: "agent_note",
+            touchpoint_source: "lead_watch",
+            raw_payload_json: { note: `[SOP:first_response] AUTO template B (lead-watch, ${ageMin} min after the quote): ${plan.text}`.slice(0, 1900) },
+          },
+        ])
+        await supabase.from("leads").update({ status: "qualified", updated_at: at }).eq("id", lead.id).eq("status", "new")
+      }
+      autoSent.push({ leadId: lead.id, phone, template: "B", dated: plan.dated, minutesWaiting: ageMin, sms: sms.ok ? "sent" : sms.error, reached: sms.ok })
+      continue
+    }
+
     // Any other uncontacted lead needs a person.
-    humanLeads.push({ kind: "lead", leadId: lead.id, name: lead.full_name, phone, email: lead.email, city: lead.city_or_zip, source: lead.lead_source, guests: lead.guest_count, minutesWaiting: ageMin, summary: lead.latest_message })
+    human("no template fits")
+  }
+
+  if (stage === "first_response") {
+    return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, needsHuman: [], stillOpen: humanLeads.length }
   }
 
   // ---- customer texts nobody answered ------------------------------------
-  const ours = ourSmsNumber()
   const cutoff = now - SMS_LOOKBACK_HOURS * 3600_000
   const [inbound, outbound] = await Promise.all([listTwilio(`To=${encodeURIComponent(ours)}`), listTwilio(`From=${encodeURIComponent(ours)}`)])
 
@@ -516,10 +665,97 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     missedCallTexts.push({ from, callSid: c.sid, callStatus: c.status, sms: sms.ok ? "sent" : sms.error })
   }
 
+  // ---- pre-party contact (owner 2026-10-07) --------------------------------
+  // A booked customer we have not heard from must be reached before the party
+  // - the day before at the latest; a party nobody confirmed may not happen.
+  // 72h out: a confirmation text. Still silent at 48h: flagged to a person.
+  // Still silent the day before: one more text, then an hourly push until
+  // someone reaches them by phone. Any inbound text since the window opened
+  // counts as reached and ends it. Steps are marked in lead_watch_notified
+  // (pc:sent / pc:sent24 / pc:ok), which the inbox reads to show the flags.
+  const partyContact: Array<Record<string, unknown>> = []
+  const partyCandidates: Candidate[] = []
+  if (watch.party_contact_check) {
+    type Upcoming = { id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string; event_address: string | null; source_metadata: Record<string, unknown> | null; created_at: string }
+    const { data: upcoming } = await supabase
+      .from("orders")
+      .select("id, order_no, customer_name, customer_phone, event_start, event_address, source_metadata, created_at")
+      .eq("order_status", "active")
+      .eq("deposit_status", "paid_verified")
+      .gte("event_start", instantToWallIso(now))
+      .lte("event_start", instantToWallIso(now + (PARTY_CONTACT_FIRST_TEXT_H + 1) * 3600_000))
+      .order("event_start", { ascending: true })
+      .limit(30)
+    const rows = (upcoming ?? []) as Upcoming[]
+    const { data: marks } = rows.length
+      ? await supabase
+          .from("lead_watch_notified")
+          .select("key, notified_at")
+          .in("key", rows.flatMap((o) => [`pc:ok:${o.id}`, `pc:sent:${o.id}`, `pc:sent24:${o.id}`]))
+      : { data: [] as Array<{ key: string; notified_at: string }> }
+    const mark = new Map((marks ?? []).map((r) => [r.key as string, new Date(r.notified_at).getTime()]))
+    const setMark = async (key: string) => {
+      if (dryRun) return
+      await supabase.from("lead_watch_notified").upsert({ key, kind: "pc", notified_at: new Date().toISOString() }, { onConflict: "key" })
+    }
+    for (const o of rows) {
+      const phone = toE164(o.customer_phone)
+      const start = wallToInstant(o.event_start)
+      if (!phone || isTestNumber(phone) || Number.isNaN(start) || mark.has(`pc:ok:${o.id}`)) continue
+      const hoursLeft = (start - now) / 3600_000
+      const base = { kind: "party_contact", orderId: o.id, orderNo: o.order_no, name: o.customer_name, phone, when: `${shortDate(o.event_start.slice(0, 10))} ${wallTime(o.event_start)}`, hoursLeft: Math.round(hoursLeft) }
+      const meta = (o.source_metadata ?? {}) as Record<string, unknown>
+      if (meta.event_time_tbd) {
+        // No start time on file: the text cannot say when and the day cannot be
+        // planned - a person settles it with the customer.
+        partyCandidates.push({ key: `pc:tbd:${o.id}`, item: { ...base, stage: "time_tbd", minutesWaiting: 0, summary: "派对时间待定，派对前要和客人定下来" }, urgent: hoursLeft <= PARTY_CONTACT_URGENT_H })
+        continue
+      }
+      const windowStart = start - PARTY_CONTACT_FIRST_TEXT_H * 3600_000
+      const inbound = await listTwilio(`From=${encodeURIComponent(phone)}&To=${encodeURIComponent(ours)}&DateSent%3E=${new Date(windowStart).toISOString().slice(0, 10)}`)
+      const reached = inbound.some((m) => when(m) >= windowStart)
+      const sentFirstAt = mark.get(`pc:sent:${o.id}`)
+      const step = partyContactStage({ hoursLeft, sentFirst: sentFirstAt !== undefined, sentSecond: mark.has(`pc:sent24:${o.id}`), reached })
+      if (reached) {
+        await setMark(`pc:ok:${o.id}`)
+        partyContact.push({ ...base, stage: "reached" })
+        continue
+      }
+      if (step === "wait" || step === "past") continue
+      // A brand-new order just got the lock confirmation; let that land first.
+      if (step === "first_text" && now - new Date(o.created_at).getTime() < PARTY_CONTACT_MIN_ORDER_AGE_MS) continue
+      const minutesWaiting = sentFirstAt !== undefined ? Math.round((now - sentFirstAt) / 60_000) : 0
+      const text =
+        step === "first_text"
+          ? partyContactFirstText({ customerName: o.customer_name, eventStart: o.event_start, address: o.event_address, now })
+          : step === "urgent_24h" && !mark.has(`pc:sent24:${o.id}`)
+            ? partyContactSecondText({ customerName: o.customer_name, eventStart: o.event_start, address: o.event_address, now })
+            : null
+      if (text) {
+        const sms = dryRun ? ({ ok: true, sid: "dry", status: "dry" } as const) : await sendSms(phone, text)
+        if (sms.ok) {
+          await setMark(step === "first_text" ? `pc:sent:${o.id}` : `pc:sent24:${o.id}`)
+          if (!dryRun) await logAutoSms(supabase, phone, sms.sid, text, "party_contact", { order_id: o.id, order_no: o.order_no, stage: step })
+        }
+        partyContact.push({ ...base, stage: step, sms: sms.ok ? (dryRun ? "dry" : "sent") : sms.error, text })
+      }
+      // The flag itself (pcf:*) is written by every caller, cron included, so
+      // the inbox / desk can show it; pc:48 / pc:24 are the reported-once keys.
+      if (step === "flag_48h") {
+        await setMark(`pcf:48:${o.id}`)
+        partyCandidates.push({ key: `pc:48:${o.id}`, item: { ...base, stage: "flag_48h", minutesWaiting, summary: "72 小时前的确认短信没回，再发一条或打个电话" }, urgent: false })
+      } else if (step === "urgent_24h") {
+        await setMark(`pcf:24:${o.id}`)
+        partyCandidates.push({ key: `pc:24:${o.id}`, item: { ...base, stage: "urgent_24h", minutesWaiting, summary: "明天的派对还没联系上，打电话" }, urgent: true, renotifyMs: PARTY_CONTACT_RENOTIFY_24H_MS })
+      }
+    }
+  }
+
   // ---- report each open item once (again after two hours; urgent ones every 10 min)
-  const candidates = [
+  const candidates: Candidate[] = [
     ...humanLeads.map((h) => ({ key: `lead:${h.leadId}`, item: h, urgent: false })),
     ...humanSms.map((h) => ({ key: `sms:${h.sid}`, item: h, urgent: Number(h.minutesWaiting) >= URGENT_AFTER_MIN })),
+    ...partyCandidates,
   ]
   let needsHuman = candidates.map((c) => ({ ...c.item, urgent: c.urgent }))
   if (candidates.length > 0) {
@@ -534,7 +770,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     const fresh = candidates.filter((c) => {
       const last = notifiedAt.get(c.key)
       if (last === undefined) return true
-      return now - last >= (c.urgent ? URGENT_RENOTIFY_MS : watch.renotify_minutes * 60_000)
+      return now - last >= (c.renotifyMs ?? (c.urgent ? URGENT_RENOTIFY_MS : watch.renotify_minutes * 60_000))
     })
     needsHuman = fresh.map((c) => ({ ...c.item, urgent: c.urgent }))
     if (!dryRun && !cronCaller && fresh.length > 0) {
@@ -567,6 +803,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         const lines = fresh.slice(0, 3).map((c, i) => {
           const it = c.item as Record<string, unknown>
           const wait = `等 ${Number(it.minutesWaiting)} 分`
+          if (c.key.startsWith("pc:")) return `${i + 1}. 派对前联系不上 ${String(it.name ?? "") || fmtPhone(String(it.phone ?? ""))}（${String(it.when ?? "")}，确认短信没回）`
           if (c.key.startsWith("sms:")) {
             const body = String(it.body ?? "").replace(/\s+/g, " ").slice(0, 60)
             return `${i + 1}. ${fmtPhone(String(it.from ?? ""))} 问“${body}”（${wait}）`
@@ -587,5 +824,5 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     }
   }
 
-  return { ok: true, dryRun, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, needsHuman, escalated, stillOpen: candidates.length }
+  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, needsHuman, escalated, stillOpen: candidates.length }
 }

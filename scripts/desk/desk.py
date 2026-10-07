@@ -146,6 +146,9 @@ def render_card(c: dict) -> None:
     for e in c.get("emails") or []:
         who = "客" if e.get("direction") == "inbound" else "我"
         print(f"   ✉ {who} {pt(e.get('at'))}  {e.get('subject') or '(no subject)'} — {(e.get('snippet') or '')[:120]}")
+    # Pre-party contact flags (lead-watch): the customer has not answered the confirmation text.
+    for al in c.get("alerts") or []:
+        print(f"   ⚑ {al.get('title') or ''} — {al.get('body') or ''}")
     for o in c.get("orders") or []:
         when = (o.get("event_start") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
         bal = o.get("balance_due_cents")
@@ -169,7 +172,7 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 新线索 {counts.get('newLeads', 0)}"
+    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
     if not cards:

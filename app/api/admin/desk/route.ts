@@ -242,6 +242,8 @@ async function buildCard(
     tags,
     calls,
     emails,
+    // Lines that are not a message: pre-party contact flags from lead-watch.
+    alerts: (input.events ?? []).filter((e) => e.kind === "party_contact").map((e) => ({ kind: e.kind, title: e.title, body: e.body })),
     forms,
     thread: thread.map((m) => ({ sid: m.sid, direction: m.direction, at: m.at, body: m.body, status: m.status, media: m.media, tapback: m.direction === "inbound" && isTapback(m.body ?? "") })),
     quoted: quotedFrom(thread),
