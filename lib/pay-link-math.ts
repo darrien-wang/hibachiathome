@@ -14,7 +14,7 @@
 //   再按实刷金额算手续费。税是派对的（发票引擎按地址算好给过来，这里不用常数
 //   重算），小费不含税。拆账：先扣手续费和税，再抵尾款，剩下的是小费。
 
-import { cardProcessingFeeOn } from "@/config/pricing-rules"
+import { cardProcessingFeeOn, STRIPE_FEE_FIXED, STRIPE_FEE_RATE } from "@/config/pricing-rules"
 
 /** v1 的 4%（含税价上加）。v2 不用它。 */
 export const CARD_FEE_RATE = 0.04
@@ -83,10 +83,13 @@ export function splitCardPayment(amountDollars: number, cashBalanceDollars: numb
   let feeCents: number
   let taxCents: number
   if (terms.version === "v2") {
-    // Fee on the actual charge; the tax comes off the top (it is owed on the
-    // party, not on the tip); a payment smaller than tax + fee buys nothing
-    // toward the balance.
-    feeCents = Math.round(cardProcessingFeeOn(chargeCents / 100) * 100)
+    // The fee is what Stripe takes on THIS charge: 2.9% + 30c of the gross.
+    // The bill was grossed up with the same rule (cardProcessingFeeOn), so a
+    // customer paying the full card balance covers the cash balance to the
+    // cent and the rest is the tip; the tax comes off the top (it is owed on
+    // the party, not on the tip); a payment smaller than tax + fee buys
+    // nothing toward the balance.
+    feeCents = Math.round(chargeCents * STRIPE_FEE_RATE + STRIPE_FEE_FIXED * 100)
     taxCents = Math.round(Math.max(0, terms.taxDollars) * 100)
   } else {
     feeCents = chargeCents - Math.round(chargeCents / (1 + CARD_FEE_RATE))

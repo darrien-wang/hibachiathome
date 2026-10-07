@@ -51,7 +51,7 @@ RULES = [
     # name, pattern, scope (mkt globs, inv globs), allow-if-regex, why
     ("19.90", r"\$\s?19\.90|\b19\.9\b", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(V1_HINTS.pattern + r"|DEPOSIT_AMOUNT", re.I), "押金已改留卡 $0（D-1006-04）；$19.90 只能出现在 v1 历史说明里"),
     ("refundable-deposit", r"refundable deposit|deposit is refundable|full refund|refund(ed)? (the )?deposit|reembols|devolvemos el dep", (CUSTOMER_MKT, CUSTOMER_INV), V1_HINTS, "没有押金就没有退押金；取消政策是 48h 免费 / 48h 内 $99"),
-    ("72h", r"\b72\s?(h|hours|hrs|horas)\b|72-hour", (CUSTOMER_MKT, CUSTOMER_INV), V1_HINTS, "改期/取消窗口是 48 小时（D-1006-04）"),
+    ("72h", r"\b72\+?\s?(h|hours|hrs|horas)\b|72-hour|72\+ hours", (CUSTOMER_MKT, CUSTOMER_INV), V1_HINTS, "改期/取消窗口是 48 小时（D-1006-04）"),
     ("all-inclusive", r"all[- ]inclusive", (CUSTOMER_MKT, CUSTOMER_INV), None, "刷卡要加税和手续费，不能说全包（10-06 广告也下架了）"),
     ("cash-discount", r"cash discount|现金折扣", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(r"底线|floor|让价|concession", re.I), "D-1006-05 起不说 cash discount；现金价 = 标价含税"),
     ("no-fees", r"\bno (hidden )?fees?\b|no processing fee|no surcharge|zero fees", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(V1_HINTS.pattern + r"|add more grills|\+4%|cash has no fee|cash to your chef at the end is easiest", re.I), "刷卡列 Stripe 手续费，不能承诺 no fees（desk v1 分支那句除外）"),

@@ -152,13 +152,17 @@ export function salesTaxOn(cashTotal: number, rate: number): number {
 
 /**
  * Card processing passed through at Stripe's cost on what runs through the
- * card (balance incl. tax, plus gratuity on the card, deposit out). Zero for
- * debit / prepaid cards and when nothing is charged.
+ * card (balance incl. tax, plus gratuity on the card, deposit out). Mirrors
+ * the invoice engine: Stripe takes 2.9% + 30c of the amount CHARGED, so the
+ * charge is (B + 0.30) / (1 - 0.029) and the fee is the difference - the old
+ * B x 2.9% + 30c left every card payment ~2.9% of the fee short (audit
+ * 2026-10-06 item 3). Zero for debit / prepaid cards and when nothing is charged.
  */
 export function cardProcessingFeeOn(chargedAmount: number, funding: CardFunding | null | undefined = "unknown"): number {
   if (chargedAmount <= 0) return 0
   if (funding === "debit" || funding === "prepaid") return 0
-  return roundCurrency(chargedAmount * STRIPE_FEE_RATE + STRIPE_FEE_FIXED)
+  const charge = roundCurrency((chargedAmount + STRIPE_FEE_FIXED) / (1 - STRIPE_FEE_RATE))
+  return roundCurrency(charge - chargedAmount)
 }
 
 /**

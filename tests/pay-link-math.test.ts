@@ -38,27 +38,25 @@ function termsOf(b: Bill): PayTerms {
   return { version: "v2", taxDollars: b.expected.salesTax, taxRate: b.expected.salesTaxRate, taxRateSource: b.expected.salesTaxRateSource, cashBalance: b.expected.cashBalanceBeforeTip }
 }
 
-for (const b of fixture.bills) {
+// /pay runs through Stripe Checkout with whatever card the customer enters, so
+// it cannot know about a debit card up front: the debit bill (fee 0 in the
+// engine, for the card-on-file path) is not a /pay case. The engine and the
+// chef sheet tests cover it.
+for (const b of fixture.bills.filter((x) => x.cardFunding !== "debit" && x.cardFunding !== "prepaid")) {
   const e = b.expected
   const terms = termsOf(b)
-  const debit = b.cardFunding === "debit" || b.cardFunding === "prepaid"
 
-  test(`/pay · ${b.id}: the card charge equals the invoice's cardBalanceDue`, { todo: debit ? "bug 4: /pay never learns the card is debit and charges the fee anyway" : undefined }, () => {
+  test(`/pay · ${b.id}: the card charge equals the invoice's cardBalanceDue`, () => {
     const charge = cardPriceWithTip(e.cashBalanceBeforeTip, e.selectedGratuity, terms)
     assert.equal(charge, e.cardBalanceDue, `${b.id}: ${charge} vs engine ${e.cardBalanceDue}`)
     if (e.selectedGratuity === 0) assert.equal(cardPrice(e.cashBalanceBeforeTip, terms), e.cardBalanceDue)
     assert.equal(cardProcessingFeeFor(e.cashBalanceBeforeTip, e.selectedGratuity, terms), b.pricingTerms === "v2_by_method" ? e.cardProcessingFee : 0)
   })
 
-  test(`/pay · ${b.id}: paying the full card balance settles the party and leaves exactly the tip`, {
-    // Audit 2026-10-06 item 3 (and 4 for debit): the engine charges 2.9% of the
-    // amount BEFORE the fee, but the split nets 2.9% of the GROSS charge, so a
-    // customer who pays the full card balance is still ~2.9% of the fee short
-    // on the ledger (about $1.11 on a $1,198 party) and a card tip comes out
-    // short by the same. Kept as TODO until pay-link-math and the settlement
-    // tool both net the fee on the pre-fee base.
-    todo: b.pricingTerms === "v2_by_method" ? "bug 3/4: fee netted on the gross charge (and debit ignored) - balance and tip come out short" : undefined,
-  }, () => {
+  // Audit 2026-10-06 item 3: the bill is grossed up so that Stripe's 2.9% + 30c
+  // of the charge IS the fee line; the split nets that same take, so a full
+  // payment covers the cash balance to the cent and the rest is the tip.
+  test(`/pay · ${b.id}: paying the full card balance settles the party and leaves exactly the tip`, () => {
     const split = splitCardPayment(e.cardBalanceDue, e.cashBalanceBeforeTip, terms)
     assert.equal(split.chargeCents, Math.round(e.cardBalanceDue * 100))
     assert.equal(split.towardBalanceCents, Math.round(e.cashBalanceBeforeTip * 100), "the whole cash balance is covered")

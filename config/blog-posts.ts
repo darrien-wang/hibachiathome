@@ -41,7 +41,7 @@ Want your number? The [instant quote tool](/quote) shows your price range in 30 
 
 We audited this market carefully. The advertised per-person price is rarely the whole story. Four patterns show up again and again in Los Angeles hibachi catering, as published on competitor sites:
 
-**1. Big deposits.** Several services ask $150 or more up front to hold a date. We hold yours with a card on file and charge nothing until after the party — free to change or cancel up to 48 hours before.
+**1. Big deposits.** Several services ask $150 or more up front to hold a date. Ours is a card on file — free to change or cancel up to 48 hours before, $99 inside 48 hours.
 
 **2. Per-guest setup fees.** Some services add $8–$10 per guest for table and chair setup — that's $200 hidden dollars on a 25-person party. Our setup and cleanup are in the price. (Tables and chairs themselves are your call: bring your own or add our tableware rental at $15/person.)
 
@@ -120,7 +120,7 @@ The show *is* the entertainment — you genuinely need nothing else. Hosts who w
 
 ## What about weather?
 
-Southern California is the best hibachi climate in America, but if rain shows up: a 10'×10' pop-up tent over the chef's station saves the party (you provide the tent), and guests eat indoors while the chef cooks outside. Reschedule 72+ hours out and the deposit refunds in full.
+Southern California is the best hibachi climate in America, but if rain shows up: a 10'×10' pop-up tent over the chef's station saves the party (you provide the tent), and guests eat indoors while the chef cooks outside. Reschedule 48+ hours out and there's no charge.
 
 ## The day-of timeline
 
@@ -159,8 +159,8 @@ What we can give you is better: **the exact checklist we'd use to compare any at
 **1. Is the price on the website?**
 Several SoCal hibachi services won't show a single number until you fill in a form. Our rates are published everywhere: **$59.90/adult, $29.90/child 5–12, $599 event minimum** — and an [instant calculator](/quote) shows your price range before you type a thing. The exact total and your party size discount code come by text.
 
-**2. Is there a deposit?**
-$150+ deposits are common in this market. We don't take one: a card on file holds your date and nothing is charged until after the party. Change or cancel free up to 48 hours before.
+**2. What does it take to hold a date?**
+A card on file. You can change or cancel free up to 48 hours before the party; inside 48 hours there's a $99 late-cancellation charge.
 
 **3. Is setup and cleanup included, or per guest?**
 Some services add $8–$10 per guest for setup. Ours is included — the quote is the price.
@@ -186,7 +186,7 @@ Fairness requires saying it: the core show — the onion volcano, the egg toss, 
 Run any hibachi service through those seven questions — including us. If someone beats us on all seven for your date, book them and have a great party. We publish our numbers because we win that comparison more often than not:
 
 - Published price: **$59.90/adult**, calculator with no gate
-- Deposit: **none — card on file, free changes up to 48h before**
+- Holding the date: **a card on file; free changes up to 48h before**
 - Setup/cleanup: **included**
 - Travel: **first 50 miles free**
 - Quote = price: **yes**
@@ -497,11 +497,11 @@ So if your place is a haul, the tip is where that lands — and if it isn't, no 
 
 **And if the party was poor, don't tip.** I mean that. If something went wrong, say so, and we'll look into it on our side too. A tip you feel obligated to leave isn't worth anything to either of us.
 
-## The deposit
+## Holding the date
 
-**There isn't one.** A card on file holds your date and nothing is charged until after the party; change or cancel free up to 48 hours before.
+A card on file holds your date; you can change or cancel free up to 48 hours before, and inside 48 hours there's a $99 late-cancellation charge.
 
-I mention it because deposits in this market run much higher — $150 is a number you'll see. If you're comparing services and one wants $150 before you've met the chef, that's a real difference in what you're risking to hold a Saturday.
+I mention it because deposits in this market run much higher — $150 is a number you'll see. If you're comparing services and one wants $150 before you've met the chef, ask what happens to it if your plans change.
 
 ## What's included that you might expect to pay for
 
@@ -553,7 +553,7 @@ For a 20-adult party in Los Angeles with no upgrades:
 | Food & chef (20 × $59.90) | $1,198 |
 | Travel (inside 50 miles) | $0 |
 | Tip at 20% | ~$240 |
-| Deposit | None — card on file, nothing charged until after the party |
+| Holding the date | A card on file; free changes up to 48 hours before |
 | **Realistic total** | **~$1,440** |
 
 Add roughly $160 if everyone upgrades to filet. Subtract about $280 if you move it to a Tuesday.

@@ -28,7 +28,7 @@
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link asking them to reply "confirm" (the normal way)
-  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: balance + "cash to your chef is easiest, no fees"
+  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: the balance by how they pay (cash to the chef / card)
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
                                    local faster-whisper, customer/us on separate channels; --note files it on the lead
