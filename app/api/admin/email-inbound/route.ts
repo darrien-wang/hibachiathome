@@ -29,6 +29,23 @@ const SNIPPET = 200
 // Thumbtack, ...) DO - that is how corporate inquiries arrive - so nothing else
 // is filtered; a person triages.
 const SYSTEM_SENDER = /(^|[<\s])(mailer-daemon|postmaster|no-?reply@stripe\.com|[^@\s<>]+@(?:[a-z0-9-]+\.)*realhibachi\.com)(?=[>\s]|$)/i
+// Bulk mail and account notices are not customers either: the first run on
+// 2026-10-07 filed a Walmart Business newsletter and a Google "new sign-in"
+// alert as leads. Marketing senders by local part / domain, plus anything
+// carrying a List-Unsubscribe header - except the lead platforms, whose
+// notifications are real inquiries even when they are bulk-sent.
+const BULK_LOCAL = /^(newsletter|news|newsletters|marketing|promo|promotions?|offers?|deals|digest|updates?|notifications?|hello|team|info|donotreply|do-not-reply|no-?reply|noreply)$/i
+const SYSTEM_DOMAIN = /(^|\.)(accounts\.google\.com|google\.com|googlemail\.com|em\.business\.walmart\.com|walmart\.com|amazon\.com|costco\.com|intuit\.com|quickbooks\.com|vercel\.com|twilio\.com|cloudflare\.com|godaddy\.com|squarespace\.com|yelp\.com|facebookmail\.com|instagram\.com|linkedin\.com|x\.com|twitter\.com)$/i
+const LEAD_PLATFORM = /(zola|thumbtack|theknot|weddingwire|bark\.com|eventective|peerspace|giggster|gigsalad|thebash|partyslate|airbnb|vrbo)/i
+
+function isBulkOrSystem(email: string, listUnsubscribe: boolean): string | null {
+  const [local = "", domain = ""] = email.split("@")
+  if (LEAD_PLATFORM.test(domain)) return null
+  if (SYSTEM_DOMAIN.test(domain)) return "system_domain"
+  if (listUnsubscribe) return "bulk_list_unsubscribe"
+  if (BULK_LOCAL.test(local)) return "bulk_sender"
+  return null
+}
 
 function callerOf(request: NextRequest): Promise<"actor" | "script" | null> {
   return resolveAdminActor(request).then((actor) => {
@@ -72,6 +89,8 @@ export async function POST(request: NextRequest) {
   const from = parseFrom(fromRaw)
   if (!from) return NextResponse.json({ ok: true, skipped: "unparseable_sender" })
   if (SYSTEM_SENDER.test(fromRaw) || SYSTEM_SENDER.test(from.email)) return NextResponse.json({ ok: true, skipped: "system_sender" })
+  const bulk = isBulkOrSystem(from.email, body.listUnsubscribe === true)
+  if (bulk) return NextResponse.json({ ok: true, skipped: bulk })
 
   const subject = str(body.subject, 500) || "(no subject)"
   const text = str(body.text, MAX_TEXT)

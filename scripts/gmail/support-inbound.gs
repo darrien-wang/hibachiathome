@@ -34,6 +34,8 @@ function ingestSupportInbox() {
         text: (m.getPlainBody() || "").slice(0, 20000),
         receivedAt: m.getDate().toISOString(),
         gmailUrl: "https://mail.google.com/mail/u/0/#inbox/" + thread.getId(),
+        // 群发邮件（newsletter 之类）带这个头；服务端据此过滤，平台询盘除外。
+        listUnsubscribe: Boolean(m.getHeader("List-Unsubscribe")),
       };
       const res = UrlFetchApp.fetch(API_URL, {
         method: "post",
