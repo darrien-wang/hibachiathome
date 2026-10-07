@@ -239,7 +239,7 @@ export const UTENSILS_PER_GUEST = 5
 export const FULL_SETUP_PER_GUEST = TABLES_CHAIRS_PER_GUEST + UTENSILS_PER_GUEST // $15
 
 // ---------------------------------------------------------------
-// Negotiation floor (owner 2026-10-06, D-1006-03): the least we take in per
+// Negotiation floor (owner 2026-10-06, D-1006-06): the least we take in per
 // head after every discount - food only, travel and rentals aside. Fri–Sun
 // $50, Mon–Thu $45. Kids 5–12 count as half a head (their list price is
 // half). Free tables & chairs count as a $4/guest concession (what they cost

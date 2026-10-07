@@ -106,7 +106,7 @@ export function LeadDialog({
   const [appTrays, setAppTrays] = useState("")
   const [freeTables, setFreeTables] = useState(false)
   const [freeUtensils, setFreeUtensils] = useState(false)
-  // Below the owner's floor (D-1006-03) the quote only goes out once the owner has said yes.
+  // Below the owner's floor (D-1006-06) the quote only goes out once the owner has said yes.
   const [floorOk, setFloorOk] = useState(false)
   // The last generated quote: it goes into 承诺 only once a text carrying its link is sent.
   const [pendingQuote, setPendingQuote] = useState<{ link: string; note: string } | null>(null)

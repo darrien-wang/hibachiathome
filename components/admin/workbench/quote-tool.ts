@@ -141,7 +141,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const travelFee = q.travelFee == null ? 0 : Math.max(0, Math.round(q.travelFee))
   const total = r2(food + travelFee)
 
-  // Owner's floor (D-1006-03): per-head take after every discount, food only.
+  // Owner's floor (D-1006-06): per-head take after every discount, food only.
   const floorRate = q.weekdaySpecial ? PRICE_FLOOR_PER_HEAD.weekday : PRICE_FLOOR_PER_HEAD.weekend
   const floorHeads = adults + PRICE_FLOOR_KID_WEIGHT * kids
   const receivable = food - (q.freeTables && heads > 0 ? TABLES_CONCESSION_PER_GUEST * heads : 0)
