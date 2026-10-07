@@ -122,8 +122,8 @@ export const STRIPE_FEE_RATE = 0.029
 export const STRIPE_FEE_FIXED = 0.3
 /**
  * Zelle / Venmo paid to the chef directly on the day = listed price x 1.04
- * (owner 2026-10-06 night, D-1006-07). A price, never a "fee"; mentioned in
- * one line beside the cash price, not a third itemised bill. The business
+ * (owner 2026-10-06 night, D-1006-07). A price, never a "fee"; said only when a
+ * customer asks - never printed or offered unprompted. The business
  * accounts are internal payout rails and are never handed to a customer.
  */
 export const ZELLE_VENMO_RATE = 0.04
