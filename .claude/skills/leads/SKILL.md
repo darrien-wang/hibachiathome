@@ -248,6 +248,10 @@ Hi! Bling from Real Hibachi 👋 Saw your quote for [N] on [Weekday, Month D] �
 ```
 （没日期时把最后一句换成 "Which date are you looking at?"。**问 4 点还是 7 点，不再问 7 点还是 7:30**——用户 2026-10-06 定：4 点场和 7 点场同一个师傅接得上，6 点场把整个晚上占死；见 §5 开场时间那段。）
 
+**2026-10-07 起 B 由 lead-watch 自动发**（老板"交给机器"）：报价后 2 分钟，每分钟一次的 cron（`lead-watch?stage=first_response`），记 `agent_first_response` + `[SOP:first_response] AUTO template B` 备注、线索转 qualified。**人工不再手发 B。** 机器让给人的情况（`desk next` 里仍是新线索，needsHuman 的 `why` 写原因）：61+ 大人（走 E）、日期在 48 小时内或已过、客人先发了短信（走 C）、短信打不通、没人数。设置页「线索巡检」可关。A 型照旧由巡检在 grace 后自动发。
+
+**派对前联系确认（机器，2026-10-07 起，老板定"派对前一天一定要联系上，否则可能跑单"）**：已锁日期的单，派对前 72 小时机器发一条确认短信（"Your hibachi party is Sat, Oct 17 at 6 PM at 123 Main St. Reply YES if everything's still set, or let me know if anything's changed."）；到 48 小时还没回 → `desk next` 头部「联系不上 N」+ 卡片 ⚑ 行 → 人工再发一条或打电话；前一天还没回 → 机器再发一条（"just making sure we're all set for tomorrow…"）+ 每小时提醒 → **必须打电话**。客人窗口内任何一条短信都算联系上，不再打扰。不是取消流程：不扣钱、不放档期、不提候补。
+
 **C · 主动来短信**
 ```
 [≤2 句直接回答] + [一个选择题]
