@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { resolveAdminActor } from "@/lib/admin-auth"
-import { isTapback } from "@/lib/courtesy-text"
+import { isTapback, notAQuestion } from "@/lib/courtesy-text"
+import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { computeInbox, type InboxEvent } from "@/lib/inbox"
 import { loadLeadEventHint, type LeadEventHint } from "@/lib/lead-event-hint"
 import { loadQuiet } from "@/lib/lead-hold"
@@ -154,7 +155,7 @@ async function buildCard(
           .from("lead_touchpoints")
           .select("touchpoint_type, occurred_at, raw_payload_json")
           .eq("lead_id", lead.id)
-          .in("touchpoint_type", ["agent_note", "agent_first_response", "call_inbound", "call_recording", "email_inbound", "email_outbound"])
+          .in("touchpoint_type", ["agent_note", "agent_first_response", "call_inbound", "call_recording", "email_inbound", "email_outbound", ...CUSTOMER_FORM_TYPES])
           .order("occurred_at", { ascending: false })
           .limit(60)
           .then((r) => (r.data ?? []) as Touchpoint[])
@@ -188,11 +189,26 @@ async function buildCard(
   const firstResponseAt = touchpoints.find((t) => t.touchpoint_type === "agent_first_response")?.occurred_at ?? null
 
   const last = thread[thread.length - 1] ?? null
+  // Forms the customer filled on the site after our first response are their
+  // lines too (lib/customer-forms.ts): newer than the last text = they spoke last.
+  const forms = touchpoints
+    .filter((t) => (CUSTOMER_FORM_TYPES as readonly string[]).includes(t.touchpoint_type))
+    .map((t) => ({ at: t.occurred_at, type: t.touchpoint_type, label: FORM_LABELS[t.touchpoint_type] ?? t.touchpoint_type, summary: formSummary(t.touchpoint_type, t.raw_payload_json) }))
+    .reverse()
+    .slice(-6)
+  const lastForm = forms.length ? forms[forms.length - 1] : null
+  const formSpokeLast = Boolean(lastForm && firstResponseAt && lastForm.at > firstResponseAt && (!last || lastForm.at > last.at))
   let unansweredRun = 0
   for (let i = thread.length - 1; i >= 0 && thread[i].direction === "outbound"; i--) unansweredRun++
+  if (formSpokeLast) unansweredRun = 0
   const dayAgo = now - 24 * 3600_000
   const ourLast24h = thread.filter((m) => m.direction === "outbound" && Date.parse(m.at) >= dayAgo && !/^Real Hibachi:/.test(m.body ?? "")).length
   const lastInbound = [...thread].reverse().find((m) => m.direction === "inbound") ?? null
+  // What "needs an answer" judges: the newest inbound with content (photos
+  // count), not a "Loved …" or "thanks" that followed it.
+  const lastOutbound = [...thread].reverse().find((m) => m.direction === "outbound") ?? null
+  const lastRealInbound = [...thread].reverse().find((m) => m.direction === "inbound" && (m.media > 0 || !notAQuestion(m.body ?? ""))) ?? null
+  const judged = lastRealInbound && (!lastOutbound || lastRealInbound.at > lastOutbound.at) ? lastRealInbound : lastInbound
 
   return {
     key: lead ? `lead:${lead.id}` : phone ? `phone:${phone}` : `order:${input.orderId}`,
@@ -226,17 +242,18 @@ async function buildCard(
     tags,
     calls,
     emails,
-    thread: thread.map((m) => ({ sid: m.sid, direction: m.direction, at: m.at, body: m.body, status: m.status, tapback: m.direction === "inbound" && isTapback(m.body ?? "") })),
+    forms,
+    thread: thread.map((m) => ({ sid: m.sid, direction: m.direction, at: m.at, body: m.body, status: m.status, media: m.media, tapback: m.direction === "inbound" && isTapback(m.body ?? "") })),
     quoted: quotedFrom(thread),
     price: lead ? await priceFor(lead, hint) : null,
     orders,
     stats: {
-      lastSpeaker: last ? (last.direction === "inbound" ? "customer" : "us") : null,
-      lastAt: last?.at ?? null,
+      lastSpeaker: formSpokeLast ? "customer" : last ? (last.direction === "inbound" ? "customer" : "us") : null,
+      lastAt: formSpokeLast ? lastForm!.at : last?.at ?? null,
       unansweredRun,
       ourLast24h,
       onHold: Boolean(lead?.hold_until && Date.parse(lead.hold_until) > now && !(lastInbound && lead.hold_set_at && Date.parse(lastInbound.at) > Date.parse(lead.hold_set_at))),
-      quiet: lastInbound ? quiet.quiet(phone, Date.parse(lastInbound.at), lastInbound.body) : false,
+      quiet: judged ? quiet.quiet(phone, Date.parse(judged.at), judged.media > 0 ? undefined : judged.body) : false,
     },
   }
 }
@@ -266,7 +283,9 @@ export async function GET(request: NextRequest) {
   // A person is reading this, so show texts that are still inside the grace
   // window (flagged, so the card can say they may still be typing) and skip
   // the Twilio cache - the desk is asked on demand, not polled.
-  const { counts, events } = await computeInbox(supabase, now, { includeFresh: true, noCache: true })
+  // A week back for texts: the phone stops ringing after a day, but a text
+  // that waited 25 hours is still owed an answer and must stay on the desk.
+  const { counts, events } = await computeInbox(supabase, now, { includeFresh: true, noCache: true, smsLookbackMs: 7 * 24 * 3600_000 })
   const groups = new Map<string, { leadId: string | null; phone: string | null; orderId: string | null; events: InboxEvent[] }>()
   for (const ev of events) {
     if (ev.kind === "reddit") continue

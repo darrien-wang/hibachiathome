@@ -1,4 +1,5 @@
 import { phone } from "@/config/site"
+import { notAQuestion } from "@/lib/courtesy-text"
 
 /**
  * The SMS conversation with one customer, read straight from Twilio.
@@ -41,7 +42,7 @@ export function ourSmsNumber(): string {
   return process.env.TWILIO_CALLER_ID ?? phone.sms.e164
 }
 
-type TwilioMessage = {
+export type TwilioMessage = {
   sid: string
   direction: string
   body: string
@@ -118,34 +119,51 @@ export async function fetchSmsThreads(peers: string[], limit = 80): Promise<SmsM
 export type LastByPeer = {
   lastInAt: string | null
   lastOutAt: string | null
-  last: { at: string; direction: "inbound" | "outbound"; body: string }
+  last: { at: string; direction: "inbound" | "outbound"; body: string; media: number }
+  /**
+   * The newest inbound that says something: text that is not a tapback or a
+   * bare "thanks", or any photo. `last` can be a "Loved …" reaction that came
+   * 30 s after three patio photos; the photos were what needed an answer, and
+   * for two days nothing rang for them (909-268-7235, 2026-10-05).
+   */
+  lastRealIn: { at: string; body: string; media: number } | null
 }
-let lastByPeerCache: { at: number; map: Map<string, LastByPeer> } | null = null
 
+/** Fold Twilio's two lists into one record per customer number. Pure, so the self-test can feed it. */
+export function foldLastByPeer(outbound: TwilioMessage[], inbound: TwilioMessage[]): Map<string, LastByPeer> {
+  const map = new Map<string, LastByPeer>()
+  const consider = (m: TwilioMessage, direction: "inbound" | "outbound", peer: string) => {
+    const when = new Date(m.date_sent ?? m.date_created)
+    if (Number.isNaN(when.getTime()) || !peer) return
+    const at = when.toISOString()
+    const body = m.body ?? ""
+    const media = Number(m.num_media ?? 0) || 0
+    const cur = map.get(peer) ?? { lastInAt: null, lastOutAt: null, last: { at, direction, body, media }, lastRealIn: null }
+    if (direction === "inbound") {
+      cur.lastInAt = !cur.lastInAt || at > cur.lastInAt ? at : cur.lastInAt
+      if ((media > 0 || !notAQuestion(body)) && (!cur.lastRealIn || at > cur.lastRealIn.at)) cur.lastRealIn = { at, body, media }
+    } else cur.lastOutAt = !cur.lastOutAt || at > cur.lastOutAt ? at : cur.lastOutAt
+    if (at >= cur.last.at) cur.last = { at, direction, body, media }
+    map.set(peer, cur)
+  }
+  for (const m of outbound) consider(m, "outbound", m.to)
+  for (const m of inbound) consider(m, "inbound", m.from)
+  return map
+}
+
+let lastByPeerCache: { at: number; map: Map<string, LastByPeer> } | null = null
 export async function fetchLastByPeer(limit = 800, maxAgeMs = 60_000): Promise<Map<string, LastByPeer>> {
   if (lastByPeerCache && Date.now() - lastByPeerCache.at < maxAgeMs) return lastByPeerCache.map
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const token = process.env.TWILIO_AUTH_TOKEN
   const ours = ourSmsNumber()
-  const map = new Map<string, LastByPeer>()
-  if (!accountSid || !token || !ours) return map
+  if (!accountSid || !token || !ours) return new Map<string, LastByPeer>()
   const auth = Buffer.from(`${accountSid}:${token}`).toString("base64")
   const [outbound, inbound] = await Promise.all([
     listMessages(auth, accountSid, `From=${encodeURIComponent(ours)}`, Math.min(1000, limit)),
     listMessages(auth, accountSid, `To=${encodeURIComponent(ours)}`, Math.min(1000, limit)),
   ])
-  const consider = (m: TwilioMessage, direction: "inbound" | "outbound", peer: string) => {
-    const when = new Date(m.date_sent ?? m.date_created)
-    if (Number.isNaN(when.getTime()) || !peer) return
-    const at = when.toISOString()
-    const cur = map.get(peer) ?? { lastInAt: null, lastOutAt: null, last: { at, direction, body: m.body ?? "" } }
-    if (direction === "inbound") cur.lastInAt = !cur.lastInAt || at > cur.lastInAt ? at : cur.lastInAt
-    else cur.lastOutAt = !cur.lastOutAt || at > cur.lastOutAt ? at : cur.lastOutAt
-    if (at >= cur.last.at) cur.last = { at, direction, body: m.body ?? "" }
-    map.set(peer, cur)
-  }
-  for (const m of outbound) consider(m, "outbound", m.to)
-  for (const m of inbound) consider(m, "inbound", m.from)
+  const map = foldLastByPeer(outbound, inbound)
   lastByPeerCache = { at: Date.now(), map }
   return map
 }

@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { courtesyOnly, isTapback } from "@/lib/courtesy-text"
 import { HINT_TYPES, hintFromRows, type HintRow } from "@/lib/lead-event-hint"
 import { loadQuiet } from "@/lib/lead-hold"
-import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
+import { fetchLastByPeer, toE164, type LastByPeer } from "@/lib/sms-thread"
+import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { getCityTravel } from "@/config/city-travel"
 
 // The lead scan (线索扫描 skill, 2026-10-01): every open lead sorted into one
@@ -170,7 +171,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
         .range(from, to),
     ),
     loadQuiet(supabase, now),
-    fetchLastByPeer(1000, 0).catch(() => new Map<string, { lastInAt: string | null; lastOutAt: string | null; last: { at: string; direction: "inbound" | "outbound"; body: string } }>()),
+    fetchLastByPeer(1000, 0).catch(() => new Map<string, LastByPeer>()),
     fetchAll<OrderRow>((from, to) =>
       supabase
         .from("orders")
@@ -234,12 +235,26 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     if (tw?.last.direction === "inbound" && tw.lastInAt && (!inbound.length || tw.lastInAt > inbound[inbound.length - 1].at)) lastInBody = tw.last.body
     const dbLastOut = outbound.length ? outbound[outbound.length - 1].at : null
     const lastOutAt = later(dbLastOut, tw?.lastOutAt ?? null)
+    // A reaction or a "thanks" after a real message (or photos) is not the
+    // thing to judge: "Loved …" 30 s after three patio photos put 909-268-7235
+    // in H "最后一条是点赞" for two days (2026-10-05). When the newest inbound
+    // with content came after our last text, judge that one. An MMS has an
+    // empty body: say so instead of reading it as courtesy.
+    if (tw?.lastRealIn && (!lastOutAt || tw.lastRealIn.at > lastOutAt) && (isTapback(lastInBody) || courtesyOnly(lastInBody))) {
+      lastInBody = tw.lastRealIn.body.trim() || (tw.lastRealIn.media > 0 ? `[${tw.lastRealIn.media} photo(s)]` : lastInBody)
+    }
     const manualOut = outbound.filter((m) => !AUTOMATED.test(m.body))
     const lastManualOutAt = manualOut.length ? manualOut[manualOut.length - 1].at : null
     const lastCallAt = calls.length ? calls[calls.length - 1] : null
-    const lastCustomerAt = later(lastInAt, lastCallAt)
+    // Forms on the site after our first text are the customer talking too
+    // (lib/customer-forms.ts); the first form is the lead itself.
+    const firstOutAt = outbound.length ? outbound[0].at : null
+    const forms = tps.filter((t) => (CUSTOMER_FORM_TYPES as readonly string[]).includes(t.touchpoint_type) && firstOutAt && t.occurred_at > firstOutAt)
+    const lastForm = forms.length ? forms[forms.length - 1] : null
+    const lastFormAt = lastForm?.occurred_at ?? null
+    const lastCustomerAt = later(later(lastInAt, lastCallAt), lastFormAt)
 
-    let run = outbound.filter((m) => !lastInAt || m.at > lastInAt).length
+    let run = outbound.filter((m) => !lastCustomerAt || m.at > lastCustomerAt).length
     // Compared straight, the carrier's stamp counted every desk / workbench text
     // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04).
     if (tw?.lastOutAt && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
@@ -283,6 +298,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     let nextActionAt: string | null = new Date(now).toISOString()
     const customerLast = Boolean(lastCustomerAt && (!lastOutAt || lastCustomerAt > lastOutAt))
     const lastIsCall = Boolean(lastCallAt && (!lastInAt || lastCallAt > lastInAt))
+    const lastIsForm = Boolean(lastFormAt && lastFormAt === lastCustomerAt)
     const lastInIsTapback = !lastIsCall && isTapback(lastInBody)
     const lastInIsCourtesy = !lastIsCall && !lastInIsTapback && courtesyOnly(lastInBody)
 
@@ -297,6 +313,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     } else if (!lastOutAt && !lastCustomerAt) {
       bucket = "A"
       reason = "从没联系过，走首条（T0）"
+    } else if (customerLast && lastIsForm) {
+      bucket = "A"
+      reason = `客人在网站回了：${FORM_LABELS[lastForm!.touchpoint_type] ?? lastForm!.touchpoint_type} ${formSummary(lastForm!.touchpoint_type, lastForm!.raw_payload_json)}`.slice(0, 160)
     } else if (customerLast && lastInIsTapback) {
       bucket = "H"
       reason = "最后一条是点赞，不用回"

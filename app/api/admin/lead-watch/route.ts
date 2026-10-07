@@ -3,6 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, calcSimpleEstimate } from "@/config/pricing-rules"
 import { escapeHtml } from "@/lib/escape-html"
+import { notAQuestion } from "@/lib/courtesy-text"
 import { loadQuiet } from "@/lib/lead-hold"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
@@ -201,7 +202,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
   return { sms, emailSubject: `Your hibachi quote${city ? ` for ${city}` : ""}`, emailText }
 }
 
-type TwilioMessage = { sid: string; from: string; to: string; body: string | null; date_sent: string | null; date_created: string }
+type TwilioMessage = { sid: string; from: string; to: string; body: string | null; date_sent: string | null; date_created: string; num_media?: string }
 
 async function listTwilio(query: string): Promise<TwilioMessage[]> {
   const sid = process.env.TWILIO_ACCOUNT_SID
@@ -421,19 +422,30 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
 
   const lastOut = new Map<string, number>()
   for (const m of outbound) if (!lastOut.has(m.to)) lastOut.set(m.to, when(m))
-  const humanSms: Array<Record<string, unknown>> = []
-  const seen = new Set<string>()
+  // Per number: the newest inbound, and the newest one that says something.
+  // A "Loved …" reaction or a bare "thanks" after a real question (or photos)
+  // must not hide it - same rule as the inbox, lib/sms-thread.ts foldLastByPeer.
+  const mediaCount = (m: TwilioMessage) => Number(m.num_media ?? 0) || 0
+  const newest = new Map<string, TwilioMessage>()
+  const newestReal = new Map<string, TwilioMessage>()
   for (const m of inbound) {
-    if (seen.has(m.from)) continue
-    seen.add(m.from)
-    const at = when(m)
-    if (at < cutoff || isTestNumber(m.from)) continue
-    if ((lastOut.get(m.from) ?? 0) >= at) continue
+    if (!newest.has(m.from)) newest.set(m.from, m)
+    if (!newestReal.has(m.from) && (mediaCount(m) > 0 || !notAQuestion(m.body ?? ""))) newestReal.set(m.from, m)
+  }
+  const humanSms: Array<Record<string, unknown>> = []
+  for (const [from, n] of newest) {
+    const at = when(n)
+    if (at < cutoff || isTestNumber(from)) continue
+    if ((lastOut.get(from) ?? 0) >= at) continue
+    const real = newestReal.get(from)
+    const m = real && when(real) > (lastOut.get(from) ?? 0) ? real : n
+    const mAt = when(m)
+    const media = mediaCount(m)
     const body = (m.body ?? "").trim()
     // 挂起中、老板标过「不用回」、或者这条本来就不是问题 —— 一条规则，见
-    // lib/lead-hold.ts loadQuiet（老板 2026-09-24：免得一直提醒）。
-    if (quiet.quiet(m.from, at, body)) continue
-    humanSms.push({ kind: "sms", sid: m.sid, from: m.from, minutesWaiting: Math.round((now - at) / 60_000), body: body.slice(0, 400) })
+    // lib/lead-hold.ts loadQuiet（老板 2026-09-24：免得一直提醒）。图片没有正文，不走"不是问题"那条。
+    if (quiet.quiet(from, mAt, media > 0 ? undefined : body)) continue
+    humanSms.push({ kind: "sms", sid: m.sid, from, minutesWaiting: Math.round((now - mAt) / 60_000), body: (body || (media > 0 ? `[${media} image(s)]` : "")).slice(0, 400) })
   }
 
   // ---- missed calls nobody texted back (2026-09-27 audit) -----------------

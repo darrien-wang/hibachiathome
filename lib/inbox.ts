@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { loadQuiet } from "@/lib/lead-hold"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
+import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
 // small. It started life inside /api/admin/mobile/inbox (the Android shell
@@ -26,10 +27,11 @@ const DEPOSIT_LOOKBACK_MS = 2 * 3600_000
 const CHANGE_LOOKBACK_MS = 24 * 3600_000
 const PLANNER_LIVE_MS = 3 * 60_000
 const EMAIL_LOOKBACK_MS = 7 * 24 * 3600_000
+const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "email" | "deposit" | "order_change" | "reddit"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit"
   title: string
   body: string
   url: string
@@ -63,6 +65,8 @@ export type InboxOptions = {
    * reached the owner before it reached the desk on 2026-09-30.
    */
   includeFresh?: boolean
+  /** How far back an unanswered text still counts (default 24 h for the phone; the desk reads a week). */
+  smsLookbackMs?: number
   /** Skip the 60-second Twilio cache; the desk polls on demand and wants the truth. */
   noCache?: boolean
 }
@@ -71,6 +75,8 @@ export type InboxCounts = {
   unreplied: number
   /** Customer emails (support@, via the Gmail script) newer than our last reply to that lead. */
   emailNew: number
+  /** Website forms (Book Now, planner claim, contact form) newer than anything we sent that lead. */
+  formNew: number
   newLeads: number
   changedOrders: number
   plannerLive: number
@@ -156,18 +162,25 @@ export async function computeInbox(
   // cached answer there is a blind spot rather than a saving.
   const byPeer = await fetchLastByPeer(800, opts.noCache ? 0 : undefined).catch(() => new Map())
   const unanswered: Array<{ peer: string; at: string; body: string }> = []
+  const smsLookback = opts.smsLookbackMs ?? SMS_LOOKBACK_MS
   for (const [peer, v] of byPeer) {
     if (!v.lastInAt || v.last.direction !== "inbound") continue
     if (v.lastOutAt && v.lastOutAt >= v.lastInAt) continue
-    const atMs = Date.parse(v.lastInAt)
-    if (now - atMs > SMS_LOOKBACK_MS) continue
+    // Judge the newest inbound that says something, not a reaction or a
+    // "thanks" that followed it: "Loved …" 30 s after three patio photos hid
+    // the photos for two days (909-268-7235, 2026-10-05). A photo has no
+    // body, and an empty body must not read as courtesy.
+    const real = v.lastRealIn && (!v.lastOutAt || v.lastRealIn.at > v.lastOutAt) ? v.lastRealIn : null
+    const judged = real ?? { at: v.lastInAt, body: v.last.body, media: v.last.media }
+    const atMs = Date.parse(judged.at)
+    if (now - atMs > smsLookback) continue
     if (now - atMs < SMS_GRACE_MS && !opts.includeFresh) continue
     if (isTestNumber(peer)) continue
-    const body = (v.last.body ?? "").trim()
+    const body = (judged.body ?? "").trim()
     // 一条规则管三件事：挂起中、老板标过「不用回」、这条本来就不是问题（点赞
     // 回执 / STOP / 光道谢）。见 lib/lead-hold.ts loadQuiet。
-    if (quiet.quiet(peer, atMs, body)) continue
-    unanswered.push({ peer, at: v.lastInAt, body })
+    if (quiet.quiet(peer, atMs, judged.media > 0 ? undefined : body)) continue
+    unanswered.push({ peer, at: judged.at, body: body || (judged.media > 0 ? `[${judged.media} 张图片]` : "") })
   }
   const unrepliedTotal = unanswered.length
   if (unanswered.length) {
@@ -290,7 +303,6 @@ export async function computeInbox(
   const { data: live } = await supabase.from("planner_events").select("sid").gte("created_at", new Date(now - PLANNER_LIVE_MS).toISOString()).limit(500)
   const plannerLive = new Set(((live ?? []) as Array<{ sid: string | null }>).map((r) => r.sid).filter(Boolean)).size
 
-  events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   // ---- customer emails nobody answered ----------------------------------------
   // support@ mail is filed on the lead by /api/admin/email-inbound (Gmail
   // script, 2026-10-07). An inbound newer than anything we sent that lead -
@@ -349,10 +361,78 @@ export async function computeInbox(
     }
   }
 
+  // ---- customers who answered through the website -----------------------------
+  // "Book Now" on the quote page, a claimed planner party, a second contact
+  // form: the customer talking back (lib/customer-forms.ts). Newer than
+  // anything we sent that lead - a text on the 213 line, an email - and after
+  // our first response (the first form is the lead itself, listed above) =
+  // waiting, under the same hold / "no reply needed" rules.
+  const formSince = new Date(now - FORM_LOOKBACK_MS).toISOString()
+  const { data: formRows } = await supabase
+    .from("lead_touchpoints")
+    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+    .in("touchpoint_type", [...CUSTOMER_FORM_TYPES, "sms_outbound", "email_outbound"])
+    .gte("occurred_at", formSince)
+    .order("occurred_at", { ascending: false })
+    .limit(800)
+  type FormRow = { lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+  const formByLead = new Map<string, { lastForm: FormRow | null; lastOutAt: string | null }>()
+  for (const r of (formRows ?? []) as FormRow[]) {
+    const m = formByLead.get(r.lead_id) ?? { lastForm: null, lastOutAt: null }
+    if ((CUSTOMER_FORM_TYPES as readonly string[]).includes(r.touchpoint_type)) {
+      if (!m.lastForm) m.lastForm = r
+    } else if (!m.lastOutAt) m.lastOutAt = r.occurred_at
+    formByLead.set(r.lead_id, m)
+  }
+  const formCandidates = Array.from(formByLead).filter(([, m]) => m.lastForm && (!m.lastOutAt || m.lastOutAt < m.lastForm.occurred_at))
+  let formNew = 0
+  if (formCandidates.length) {
+    const { data: formLeads } = await supabase
+      .from("leads")
+      .select("id, full_name, phone, email, status, acked_until, hold_until, first_response_at")
+      .in("id", formCandidates.map(([id]) => id))
+    type FormLead = { id: string; full_name: string | null; phone: string | null; email: string | null; status: string | null; acked_until: string | null; hold_until: string | null; first_response_at: string | null }
+    const formLeadById = new Map(((formLeads ?? []) as FormLead[]).map((l) => [l.id, l]))
+    for (const [leadId, m] of formCandidates) {
+      const l = formLeadById.get(leadId)
+      const form = m.lastForm!
+      if (!l || l.status === "won" || l.status === "lost" || l.status === "disqualified") continue
+      // The form that created the lead is the lead (handled above); only a form after our first reply is a reply.
+      if (!l.first_response_at || form.occurred_at <= l.first_response_at) continue
+      const peer = toE164(l.phone)
+      if (peer && isTestNumber(peer)) continue
+      // Twilio is the truth for texts: a text after the form answered it.
+      const tw = peer ? byPeer.get(peer) : undefined
+      if (tw?.lastOutAt && tw.lastOutAt >= form.occurred_at) continue
+      const atMs = Date.parse(form.occurred_at)
+      if (quiet.quiet(l.phone ?? null, atMs)) continue
+      if (l.acked_until && Date.parse(l.acked_until) >= atMs) continue
+      if (l.hold_until && Date.parse(l.hold_until) > now) continue
+      formNew += 1
+      const waited = minutesSince(form.occurred_at, now)
+      const who = (l.full_name ?? "").trim() || (peer ? prettyPhone(peer) : l.email || "网站")
+      events.push({
+        key: `form:${leadId}:${form.occurred_at}`,
+        kind: "form",
+        title: `${who} 在网站回了 等了 ${waited > MAX_EVENT_AGE_MIN ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}`,
+        body: `${FORM_LABELS[form.touchpoint_type] ?? form.touchpoint_type}：${formSummary(form.touchpoint_type, form.raw_payload_json)}`.slice(0, 100),
+        url: `/admin?tab=leads&lead=${leadId}`,
+        at: form.occurred_at,
+        waitedMinutes: waited,
+        ring: waited <= MAX_EVENT_AGE_MIN,
+        urgent: waited >= URGENT_MIN,
+        leadId,
+        phone: peer,
+      })
+    }
+  }
+
+  events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
       unreplied: unrepliedTotal,
       emailNew,
+      formNew,
       newLeads: newLeadsTotal,
       changedOrders: changeRows.length,
       plannerLive,

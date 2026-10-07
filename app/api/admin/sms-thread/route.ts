@@ -3,6 +3,7 @@ import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 import { loadLeadEventHint } from "@/lib/lead-event-hint"
+import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
@@ -243,14 +244,44 @@ export async function POST(request: NextRequest) {
           .map((c) => new Date(c.occurred_at).getTime())
           .filter((t) => Number.isFinite(t))
       }
+      // A form on the site is the customer talking too (lib/customer-forms.ts):
+      // Antheyty answered "7 PM, with tables" through the quote page 20 s after
+      // our text (2026-10-06) and the reply to that was refused as a third
+      // unprompted text. Only forms after our first text count - the first
+      // form is the lead, and the auto quote answering it is still unprompted.
+      let formTimes: number[] = []
+      const firstOut = thread.find((m) => m.direction === "outbound")
+      if (supabase && firstOut) {
+        const firstOutAt = new Date(firstOut.at).getTime()
+        const { data: leadRows } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
+          .limit(5)
+        const ids = ((leadRows ?? []) as Array<{ id: string }>).map((r) => r.id)
+        if (leadIdParam && !ids.includes(leadIdParam)) ids.push(leadIdParam)
+        if (ids.length) {
+          const { data: forms } = await supabase
+            .from("lead_touchpoints")
+            .select("occurred_at")
+            .in("lead_id", ids)
+            .in("touchpoint_type", [...CUSTOMER_FORM_TYPES])
+            .order("occurred_at", { ascending: false })
+            .limit(10)
+          formTimes = ((forms ?? []) as Array<{ occurred_at: string }>)
+            .map((f) => new Date(f.occurred_at).getTime())
+            .filter((t) => Number.isFinite(t) && t > firstOutAt)
+        }
+      }
       const last = thread[thread.length - 1]
-      const lastCallAt = callTimes.length > 0 ? Math.max(...callTimes) : null
+      const touchTimes = [...callTimes, ...formTimes]
+      const lastTouchAt = touchTimes.length > 0 ? Math.max(...touchTimes) : null
       const customerSpokeLast =
-        last?.direction === "inbound" || (lastCallAt !== null && (!last || lastCallAt > new Date(last.at).getTime()))
+        last?.direction === "inbound" || (lastTouchAt !== null && (!last || lastTouchAt > new Date(last.at).getTime()))
       const now = Date.now()
       const inboundTimes = [
         ...thread.filter((m) => m.direction === "inbound").map((m) => new Date(m.at).getTime()),
-        ...callTimes,
+        ...touchTimes,
       ]
       const lastInbound = inboundTimes.length > 0 ? Math.max(...inboundTimes) : null
       // Still answering the customer's last message.

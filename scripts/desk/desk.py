@@ -77,6 +77,11 @@ def money(v) -> str:
 def fmt_msg(m: dict) -> str:
     who = "客" if m.get("direction") == "inbound" else "我"
     body = (m.get("body") or "").replace("\n", " ").strip()
+    media = int(m.get("media") or 0)  # an MMS has no text; three patio photos printed as blank lines once (10-05)
+    if media and not body:
+        body = f"[{media} 张图片]"
+    elif media:
+        body = f"{body}  [+{media} 张图片]"
     tag = "  [tapback·不用回]" if m.get("tapback") or (m.get("direction") == "inbound" and is_tapback(body)) else ""
     return f"   {who} {pt(m.get('at'))}  {body}{tag}"
 
@@ -150,8 +155,12 @@ def render_card(c: dict) -> None:
               f"  {o.get('guest_adult_count') or '?'}大{o.get('guest_child_count') or 0}小"
               f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}")
     thread = c.get("thread") or []
-    print(f"   对话 ({len(thread)}):")
-    for m in thread[-14:]:
+    # Forms the customer filled on the site are their lines in the conversation
+    # ("客 … [网站·报价页点了在线订] …"): a reply through the site is a reply.
+    forms = [{"direction": "inbound", "at": f.get("at"), "body": f"[网站·{f.get('label') or f.get('type')}] {f.get('summary') or ''}"} for f in (c.get("forms") or [])]
+    merged = sorted(thread + forms, key=lambda m: m.get("at") or "")
+    print(f"   对话 ({len(thread)}{f' + 网站 {len(forms)}' if forms else ''}):")
+    for m in merged[-14:]:
         print(fmt_msg(m))
     print("   刹车: " + brake_line(stats))
 
@@ -160,7 +169,7 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 新线索 {counts.get('newLeads', 0)}"
+    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
     if not cards:
