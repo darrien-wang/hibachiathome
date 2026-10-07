@@ -558,6 +558,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - **加菜**：第 3 个蛋白 +$10；升级 **ribeye +$5**（用户 2026-09-28 定；**小孩同价 +$5**，升级蛋白按份收、不分大小孩）/ filet +$8 / scallops +$6 / lobster tail +$12；gyoza $15、edamame $10、spring rolls $15、noodles $5；炒饭 DIY 加料（虾/鸡）$10、加蛋 $1；饮料 $5/$12。炒饭和蔬菜**加量免费**（提前说）。
 - **Appreciation $50**：轮换致敬（现在 **教师 2026-09-01→10-15**；老兵 10-16→11-30；医护 12-01→01-15；消防/急救 01-16→02-28）。$599+、一单一次、只按职业、**只与 Weekday Special 叠加**，不与人数折扣叠。
 - **回头客** $60/每 10 人（隐形福利，客户提到"上次订过"才给）。
+- **订了全套桌椅餐具（$15/人，桌椅 + 餐具都要）的单送 1 份前菜（三选一）**（老板 2026-10-07 定，D-1007-06；Christine 10/11 第一单）。只订桌椅或只订餐具不送；和 Weekday / 20+ 不叠，都是一份。不是卖点：网站广告不写、首条不提；客人订了全套、或在犹豫要不要全套时说一句 "and the full setup comes with a free appetizer tray on me"。发票：员工工具 Current Promos 里的 Full setup appetizer 一键加（标签带前菜名），别签进 freeExtraIds。
 - **20+ 免费前菜 1 份（三选一，同上表）**（按活动日期 **10/31 前**有效；planner 自动加，员工工具在 Add Promotion 里手动加；与 Weekday Special 不叠，因为周中本来就送）。**桌椅 −$100** 是关单专用（closer-only），首条不提，只在最后一步犹豫时放。
 - **09-22 前订的单照旧送三拼**（用户 09-22 定新规则时的保护）：Sergio 9/23、Joshua Tree 10/3、Christine Toy 12/15 发票里已带三拼，系统按行上的标签自动保持，金额不变；Aryan 10/27 还没开发票，第一次打开时自动带三拼。Eileen 10/17、Susan Bell 11/24、Jane Yusim 11/25 如果开发票时有送前菜那一行，在那一行的下拉里选 **All 3 (booked before 9/22)**。之后的新单一律一份自选，客人在 planner 里点选，员工工具在同一个下拉里改。
 - **Weekday Special 黑名单**：Labor Day、感恩节周（11/23–29）、12/20–1/3、Memorial Day、7/3–5。这些日子按周末价。
@@ -779,7 +780,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - 短信不**主动**提酒（30955）；客人问饮料时可以说 sake（§6，用户 2026-09-29 定），泛称 alcohol/liquor 仍然不写。
 - 不在公开页面 / 公开评论提押金或 "no deposit"；私聊递链接时说一句它做什么即可。
 - **谈判红线（§7.1）**：姿态可以演（不急、请示后厨、后厨当黑脸），**事实不能编**（假档期、假竞争客户、假到期）；不白给让步——每一次让步都要换回报。
-- 不**主动**发明折扣；默认杠杆 5 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 送前菜（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
+- 不**主动**发明折扣；默认杠杆 6 个：Weekday Special、人数折扣、Appreciation $50、回头客 $60/10 人、20+ 送前菜、全套桌椅餐具送前菜（桌椅 −$100 关单用）。Appreciation 不与人数折扣叠。竞争场景按 §5.1 带宽让价，超带宽先问用户。
 - 不说桌椅周中免费（09-14 已撤）。和 §8「订前问桌椅就让」不冲突：那是对话里挂条件的一次让步，不是公开的免费政策——不上网站、不进自动报价、客人没问不主动提。
 - 不承诺室内烹饪、不承诺无坚果、不接自带蛋白。
 - 不淡化小费。
