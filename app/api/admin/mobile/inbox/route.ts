@@ -20,7 +20,15 @@ export async function GET(request: NextRequest) {
   const { counts, events } = await computeInbox(supabase, now)
   // The extra ids and the desk-only grace flag ride on the desk response; the
   // app keys off `key`/`url` and its payload stays exactly as it was.
-  const slim = events.map(({ leadId: _l, phone: _p, orderId: _o, justArrived: _j, ...rest }) => rest)
+  // The app knows three channels: lead / sms (both loud) / everything else
+  // (quiet). A customer answering by email or through the website, a message
+  // the rules missed, a text that never arrived - all of it is a customer
+  // waiting on us, so it rides the loud replies channel (2026-10-07).
+  const LOUD_AS_SMS = new Set(["email", "form", "audit", "undelivered"])
+  const slim = events.map(({ leadId: _l, phone: _p, orderId: _o, justArrived: _j, ...rest }) => ({
+    ...rest,
+    kind: LOUD_AS_SMS.has(rest.kind) ? "sms" : rest.kind,
+  }))
   return NextResponse.json({
     ok: true,
     serverTime: new Date(now).toISOString(),

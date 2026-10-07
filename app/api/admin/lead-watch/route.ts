@@ -77,6 +77,10 @@ const ESCALATE_HOURS_PT: [number, number] = [8, 23]
 const PARTY_BEFORE_MS = 90 * 60_000
 const PARTY_AFTER_MS = 150 * 60_000
 const ESCALATE_RENOTIFY_MS = 60 * 60_000
+// 越等越响 (owner 2026-10-07): a customer still waiting after three hours goes
+// to the backup person even when no party is on, again every three hours.
+const ESCALATE_LONG_WAIT_MIN = 180
+const ESCALATE_LONG_RENOTIFY_MS = 3 * 3600_000
 
 // Two callers: the workbench / desktop task (admin actor) and the Supabase
 // pg_cron job, which carries its own single-purpose key (LEAD_WATCH_CRON_KEY,
@@ -794,14 +798,15 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   const escalateTo = watch.escalate_mode !== "off" ? toE164(watch.escalate_phone) : null
   if (escalateTo && !isTestNumber(escalateTo) && candidates.length > 0 && withinPt(now, ESCALATE_HOURS_PT)) {
     const busy = watch.escalate_mode === "always" ? true : await partyInProgress(supabase, now)
-    const due = busy ? candidates.filter((c) => Number(c.item.minutesWaiting) >= watch.escalate_after_minutes) : []
+    const longWait = (c: Candidate) => (c.key.startsWith("sms:") || c.key.startsWith("lead:")) && Number(c.item.minutesWaiting) >= ESCALATE_LONG_WAIT_MIN
+    const due = candidates.filter((c) => (busy && Number(c.item.minutesWaiting) >= watch.escalate_after_minutes) || longWait(c))
     if (due.length > 0) {
       const keys = due.map((c) => `esc:${c.key}`)
       const { data: already } = await supabase.from("lead_watch_notified").select("key, notified_at").in("key", keys)
       const lastAt = new Map((already ?? []).map((r) => [r.key as string, new Date(r.notified_at).getTime()]))
       const fresh = due.filter((c) => {
         const last = lastAt.get(`esc:${c.key}`)
-        return last === undefined || now - last >= ESCALATE_RENOTIFY_MS
+        return last === undefined || now - last >= (busy ? ESCALATE_RENOTIFY_MS : ESCALATE_LONG_RENOTIFY_MS)
       })
       if (fresh.length > 0) {
         const lines = fresh.slice(0, 3).map((c, i) => {
@@ -816,7 +821,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
           return `${i + 1}. 新线索 ${who || fmtPhone(String(it.phone ?? ""))}（${wait}）`
         })
         const more = fresh.length > 3 ? ` 还有 ${fresh.length - 3} 条。` : ""
-        const text = `Real Hibachi 值班：${watch.escalate_mode === "always" ? "" : "老板在场上，"}${fresh.length} 位客人等回复。${lines.join(" ")}${more} 工作台：https://www.realhibachi.com/admin/leads`
+        const text = `Real Hibachi 值班：${!busy ? "等了 3 小时以上没人回，" : watch.escalate_mode === "always" ? "" : "老板在场上，"}${fresh.length} 位客人等回复。${lines.join(" ")}${more} 工作台：https://www.realhibachi.com/admin/leads`
         const sms = dryRun ? ({ ok: true } as const) : await sendSms(escalateTo, text)
         escalated.push({ to: fmtPhone(escalateTo), items: fresh.map((c) => c.key), sms: sms.ok ? (dryRun ? "dry" : "sent") : ("error" in sms ? sms.error : "failed"), text })
         if (!dryRun && sms.ok) {

@@ -59,3 +59,22 @@ test("we answered after the photos: not waiting", () => {
   assert.equal(v.last.direction, "outbound")
   assert.ok(v.lastRealIn!.at < v.lastOutAt!)
 })
+
+test("delivery · three texts that never got a receipt: no delivered time, status sent", () => {
+  const sent = (sid: string, at: string): TwilioMessage => ({ ...out(sid, at, "Got your booking request"), to: "+16265589648", status: "sent" })
+  const map = foldLastByPeer([sent("SM3", "2026-10-07T22:35:34Z"), sent("SM2", "2026-10-06T23:33:28Z"), sent("SM1", "2026-10-06T23:32:53Z")], [])
+  const v = map.get("+16265589648")!
+  assert.equal(v.deliveredOutAt, null)
+  assert.equal(v.lastOutStatus, "sent")
+  assert.equal(v.lastOutAt, "2026-10-07T22:35:34.000Z")
+})
+
+test("delivery · a number that received earlier texts keeps its delivered time even if the newest is still sending", () => {
+  const map = foldLastByPeer(
+    [{ ...out("SM2", "2026-10-07T10:00:00Z", "On our way"), status: "sent" }, out("SM1", "2026-10-06T10:00:00Z", "Confirmed for Saturday")],
+    [],
+  )
+  const v = map.get(THEM)!
+  assert.equal(v.deliveredOutAt, "2026-10-06T10:00:00.000Z")
+  assert.equal(v.lastOutStatus, "sent")
+})

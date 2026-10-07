@@ -3,6 +3,7 @@ import { loadQuiet } from "@/lib/lead-hold"
 import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
+import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
 // small. It started life inside /api/admin/mobile/inbox (the Android shell
@@ -20,7 +21,12 @@ import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-fo
 // effects.
 
 const LEAD_LOOKBACK_MS = 24 * 3600_000
+/** A text from a number with no lead (spam, platform notifications) drops off after a day... */
 const SMS_LOOKBACK_MS = 24 * 3600_000
+/** ...a customer's text stays until someone answers it or marks it 不用回 (2026-10-07: it used to vanish after a day). */
+const SMS_CUSTOMER_LOOKBACK_MS = 7 * 24 * 3600_000
+/** Our newest text to a number still has no delivery receipt after this long = it did not arrive. */
+const UNDELIVERED_AFTER_MS = 30 * 60_000
 const SMS_GRACE_MS = 2 * 60_000
 /** Older than this is still counted, but the phone does not ring for it (no burst of stale alerts on install). */
 const MAX_EVENT_AGE_MIN = 180
@@ -32,7 +38,7 @@ const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered"
   title: string
   body: string
   url: string
@@ -66,7 +72,7 @@ export type InboxOptions = {
    * reached the owner before it reached the desk on 2026-09-30.
    */
   includeFresh?: boolean
-  /** How far back an unanswered text still counts (default 24 h for the phone; the desk reads a week). */
+  /** How far back an unanswered text from a known customer still counts (default a week; numbers with no lead: a day). */
   smsLookbackMs?: number
   /** Skip the 60-second Twilio cache; the desk polls on demand and wants the truth. */
   noCache?: boolean
@@ -80,6 +86,10 @@ export type InboxCounts = {
   formNew: number
   /** Booked parties inside 48h whose customer has not answered the pre-party confirmation text (lead-watch). */
   unreachedParties: number
+  /** Open customer messages the inbox rules did not show - the content-blind check in lib/reply-audit.ts. */
+  silenced: number
+  /** Customers whose texts from us never got a delivery receipt. */
+  undelivered: number
   newLeads: number
   changedOrders: number
   plannerLive: number
@@ -164,8 +174,8 @@ export async function computeInbox(
   // asks on demand, usually right after the owner says "anything new?", and a
   // cached answer there is a blind spot rather than a saving.
   const byPeer = await fetchLastByPeer(800, opts.noCache ? 0 : undefined).catch(() => new Map())
-  const unanswered: Array<{ peer: string; at: string; body: string }> = []
-  const smsLookback = opts.smsLookbackMs ?? SMS_LOOKBACK_MS
+  let unanswered: Array<{ peer: string; at: string; body: string }> = []
+  const smsLookback = opts.smsLookbackMs ?? SMS_CUSTOMER_LOOKBACK_MS
   for (const [peer, v] of byPeer) {
     if (!v.lastInAt || v.last.direction !== "inbound") continue
     if (v.lastOutAt && v.lastOutAt >= v.lastInAt) continue
@@ -184,6 +194,13 @@ export async function computeInbox(
     // 回执 / STOP / 光道谢）。见 lib/lead-hold.ts loadQuiet。
     if (quiet.quiet(peer, atMs, judged.media > 0 ? undefined : body)) continue
     unanswered.push({ peer, at: judged.at, body: body || (judged.media > 0 ? `[${judged.media} 张图片]` : "") })
+  }
+  // Past a day, only numbers we know as customers stay: spam and platform
+  // notifications have no lead (the inbound webhook files every customer text on one).
+  const stale = unanswered.filter((u) => now - Date.parse(u.at) > SMS_LOOKBACK_MS)
+  if (stale.length) {
+    const known = await leadsByPhones(supabase, stale.map((u) => u.peer))
+    unanswered = unanswered.filter((u) => now - Date.parse(u.at) <= SMS_LOOKBACK_MS || (known.get(u.peer) && known.get(u.peer)!.status !== "disqualified"))
   }
   const unrepliedTotal = unanswered.length
   if (unanswered.length) {
@@ -215,7 +232,7 @@ export async function computeInbox(
         url: lead ? `/admin?tab=leads&lead=${lead.id}` : "/admin?tab=leads&filter=unreplied",
         at: u.at,
         waitedMinutes: waited,
-        ring: waited <= MAX_EVENT_AGE_MIN,
+        ring: shouldRing(waited, now),
         urgent: waited >= URGENT_MIN,
         justArrived: now - Date.parse(u.at) < SMS_GRACE_MS,
         leadId: lead?.id ?? null,
@@ -346,7 +363,6 @@ export async function computeInbox(
       if (l?.hold_until && Date.parse(l.hold_until) > now) continue
       emailNew += 1
       const waited = minutesSince(m.lastIn!.at, now)
-      if (waited > MAX_EVENT_AGE_MIN * 24) continue
       const who = (l?.full_name ?? "").trim() || l?.email || "邮件"
       events.push({
         key: `email:${leadId}:${m.lastIn!.at}`,
@@ -356,7 +372,7 @@ export async function computeInbox(
         url: `/admin?tab=leads&lead=${leadId}`,
         at: m.lastIn!.at,
         waitedMinutes: waited,
-        ring: waited <= MAX_EVENT_AGE_MIN,
+        ring: shouldRing(waited, now),
         urgent: waited >= URGENT_MIN,
         leadId,
         phone: toE164(l?.phone ?? null),
@@ -422,7 +438,7 @@ export async function computeInbox(
         url: `/admin?tab=leads&lead=${leadId}`,
         at: form.occurred_at,
         waitedMinutes: waited,
-        ring: waited <= MAX_EVENT_AGE_MIN,
+        ring: shouldRing(waited, now),
         urgent: waited >= URGENT_MIN,
         leadId,
         phone: peer,
@@ -486,10 +502,82 @@ export async function computeInbox(
     }
   }
 
+  // ---- texts that never arrived (2026-10-07) -----------------------------------
+  // Three texts to one lead sat at "sent" for a day - no delivery receipt, so
+  // she never saw them - while every list counted her as answered. 874 of 880
+  // texts in two weeks came back "delivered", so a number with none is a real
+  // signal: email or call instead.
+  const notDelivered: Array<{ peer: string; at: string; status: string }> = []
+  for (const [peer, v] of byPeer) {
+    if (!v.lastOutAt || v.deliveredOutAt || !v.lastOutStatus) continue
+    if (!["sent", "undelivered", "failed"].includes(v.lastOutStatus)) continue
+    const age = now - Date.parse(v.lastOutAt)
+    if (age < UNDELIVERED_AFTER_MS || age > SMS_CUSTOMER_LOOKBACK_MS || isTestNumber(peer)) continue
+    notDelivered.push({ peer, at: v.lastOutAt, status: v.lastOutStatus })
+  }
+  let undelivered = 0
+  if (notDelivered.length) {
+    const known = await leadsByPhones(supabase, notDelivered.map((n) => n.peer))
+    for (const n of notDelivered) {
+      const lead = known.get(n.peer)
+      if (!lead || lead.status === "lost" || lead.status === "disqualified") continue
+      undelivered += 1
+      const who = (lead.full_name ?? "").trim() || prettyPhone(n.peer)
+      events.push({
+        key: `undelivered:${n.peer}:${n.at}`,
+        kind: "undelivered",
+        title: `短信没送达 · ${who}`,
+        body: `给这个号码发的短信一直没有送达回执（最后一条 ${ptStamp(n.at)}，${n.status}），换邮件或打电话`,
+        url: `/admin?tab=leads&lead=${lead.id}`,
+        at: n.at,
+        waitedMinutes: minutesSince(n.at, now),
+        ring: false,
+        leadId: lead.id,
+        phone: n.peer,
+      })
+    }
+  }
+
+  // ---- the content-blind check (lib/reply-audit.ts) ----------------------------
+  // Every customer message on the timeline that needs an answer, 15+ minutes
+  // old, nothing from us after it, not silenced by a person - and not on this
+  // list already. Anything left is a blind spot of the rules above.
+  let silenced = 0
+  const shownLeads = new Set(events.map((e) => e.leadId).filter(Boolean))
+  const shownPhones = new Set(events.map((e) => e.phone).filter(Boolean))
+  for (const t of await findOpenTurns(supabase, now, byPeer, opts.noCache ? 0 : undefined).catch(() => [])) {
+    const phone = toE164(t.lead.phone)
+    if (shownLeads.has(t.lead.id) || (phone && shownPhones.has(phone))) continue
+    silenced += 1
+    const waited = minutesSince(t.first.at, now)
+    const who = (t.lead.full_name ?? "").trim() || (phone ? prettyPhone(phone) : t.lead.email || "客人")
+    const what =
+      t.first.kind === "sms"
+        ? `短信：${t.first.body.trim() || ""}${t.first.media ? ` [${t.first.media} 张图片]` : ""}`
+        : t.first.kind === "email"
+          ? `邮件：${t.first.body}`
+          : `${FORM_LABELS[t.first.type] ?? t.first.type}`
+    events.push({
+      key: `audit:${t.lead.id}:${t.first.at}`,
+      kind: "audit",
+      title: `漏网 · ${who} 等了 ${waited > 120 ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}`,
+      body: `${what}${t.count > 1 ? `（共 ${t.count} 条没回）` : ""}`.slice(0, 100),
+      url: `/admin?tab=leads&lead=${t.lead.id}`,
+      at: t.first.at,
+      waitedMinutes: waited,
+      ring: shouldRing(waited, now),
+      urgent: true,
+      leadId: t.lead.id,
+      phone,
+    })
+  }
+
   events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
       unreplied: unrepliedTotal,
+      silenced,
+      undelivered,
       emailNew,
       formNew,
       unreachedParties,
@@ -501,3 +589,27 @@ export async function computeInbox(
     events,
   }
 }
+
+/** The newest lead on each of these numbers (any age), by the 10-digit normalized_phone. */
+async function leadsByPhones(
+  supabase: SupabaseClient,
+  peers: string[],
+): Promise<Map<string, { id: string; full_name: string | null; status: string | null }>> {
+  const digits = Array.from(new Set(peers.map((p) => p.replace(/\D/g, "").slice(-10)).filter((d) => d.length === 10)))
+  const out = new Map<string, { id: string; full_name: string | null; status: string | null }>()
+  if (!digits.length) return out
+  const { data } = await supabase
+    .from("leads")
+    .select("id, full_name, status, normalized_phone, created_at")
+    .in("normalized_phone", digits)
+    .order("created_at", { ascending: false })
+    .limit(500)
+  for (const r of (data ?? []) as Array<{ id: string; full_name: string | null; status: string | null; normalized_phone: string | null }>) {
+    const e164 = r.normalized_phone ? `+1${r.normalized_phone}` : null
+    if (e164 && !out.has(e164)) out.set(e164, { id: r.id, full_name: r.full_name, status: r.status })
+  }
+  return out
+}
+
+const PT_STAMP = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+const ptStamp = (iso: string) => PT_STAMP.format(Date.parse(iso)).replace(",", "")

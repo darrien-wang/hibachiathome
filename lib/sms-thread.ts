@@ -127,6 +127,10 @@ export type LastByPeer = {
    * for two days nothing rang for them (909-268-7235, 2026-10-05).
    */
   lastRealIn: { at: string; body: string; media: number } | null
+  /** Carrier status of our newest text to this number (queued / sent / delivered / undelivered / failed). */
+  lastOutStatus: string | null
+  /** Our newest text that the carrier confirmed delivered; null = none of them (2026-10-07: three texts to one lead sat at "sent" for a day). */
+  deliveredOutAt: string | null
 }
 
 /** Fold Twilio's two lists into one record per customer number. Pure, so the self-test can feed it. */
@@ -138,11 +142,17 @@ export function foldLastByPeer(outbound: TwilioMessage[], inbound: TwilioMessage
     const at = when.toISOString()
     const body = m.body ?? ""
     const media = Number(m.num_media ?? 0) || 0
-    const cur = map.get(peer) ?? { lastInAt: null, lastOutAt: null, last: { at, direction, body, media }, lastRealIn: null }
+    const cur = map.get(peer) ?? { lastInAt: null, lastOutAt: null, last: { at, direction, body, media }, lastRealIn: null, lastOutStatus: null, deliveredOutAt: null }
     if (direction === "inbound") {
       cur.lastInAt = !cur.lastInAt || at > cur.lastInAt ? at : cur.lastInAt
       if ((media > 0 || !notAQuestion(body)) && (!cur.lastRealIn || at > cur.lastRealIn.at)) cur.lastRealIn = { at, body, media }
-    } else cur.lastOutAt = !cur.lastOutAt || at > cur.lastOutAt ? at : cur.lastOutAt
+    } else {
+      if (!cur.lastOutAt || at >= cur.lastOutAt) {
+        cur.lastOutAt = at
+        cur.lastOutStatus = m.status ?? null
+      }
+      if ((m.status === "delivered" || m.status === "read") && (!cur.deliveredOutAt || at > cur.deliveredOutAt)) cur.deliveredOutAt = at
+    }
     if (at >= cur.last.at) cur.last = { at, direction, body, media }
     map.set(peer, cur)
   }
