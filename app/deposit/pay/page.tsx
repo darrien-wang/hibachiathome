@@ -853,7 +853,7 @@ function DepositPaymentPageInner() {
             </li>
             <li>
               <span className="font-semibold">Credit card</span> — {money(cashEstimate)} + sales tax for your address + card processing
-              (2.9% + 30¢). We&apos;ll show the exact total once your menu is set and charge your card after the party.
+              (3%). We&apos;ll show the exact total once your menu is set and charge your card after the party.
             </li>
           </ul>
           <p className="mt-2 text-xs text-clay-600">

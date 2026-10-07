@@ -107,7 +107,7 @@ export function reviewBonusCents(plain: number, photo: number): number {
 
 /**
  * **只用于 v1 口径（2026-10-05 及之前建的单）。** 10-06 起的单（D-1006-05）刷卡
- * 按 Stripe 实际成本 2.9% + 30¢ 列（config/pricing-rules.ts cardProcessingFeeOn），
+ * 按 Stripe 实际成本 3% 列（config/pricing-rules.ts cardProcessingFeeOn），
  * 税按派对地址另列——见 app/api/admin/chefs/route.ts card_lookup。
  *
  * 结算口径的刷卡手续费：一律按 4% 算，不看 Stripe 实扣（2026-09-28 用户定）。

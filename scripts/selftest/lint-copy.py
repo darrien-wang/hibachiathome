@@ -56,6 +56,7 @@ RULES = [
     ("cash-discount", r"cash discount|现金折扣", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(r"底线|floor|让价|concession", re.I), "D-1006-05 起不说 cash discount；现金价 = 标价含税"),
     ("no-fees", r"\bno (hidden )?fees?\b|no processing fee|no surcharge|zero fees", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(V1_HINTS.pattern + r"|add more grills|\+4%|cash has no fee|cash to your chef at the end is easiest", re.I), "刷卡列 Stripe 手续费，不能承诺 no fees（desk v1 分支那句除外）"),
     ("x1.10", r"[×x]\s?1\.10\b|\* ?1\.1\b|1\.10 ?[×x]", (CUSTOMER_MKT, CUSTOMER_INV), None, "×1.10 的刷卡价是 10-06 上午的旧 v2，已被 D-1006-05 取代"),
+    ("stripe-2.9", r"2\.9 ?%|30 ?¢|\b30c\b|\$0\.30|STRIPE_FEE", (CUSTOMER_MKT, CUSTOMER_INV), None, "刷卡手续费 10-07 起是固定 3%（老板定），不再写 2.9% + 30¢"),
     ("4pct-v2", r"\b4%|0\.04\b|1\.04\b", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(r"\bv1\b|v1_tax_included|CARD_SURCHARGE|CARD_FEE_RATE|legacy|through 2026-10-05|老单|ZELLE_VENMO|zelleVenmo|Zelle|Venmo|给师傅|to your chef|1\.04", re.I), "4% 手续费只属于 v1；v2 刷卡是 2.9%+30¢，Zelle/Venmo ×1.04 另有规则"),
     ("tax-before-commit", r"sales tax|\btax(es)?\b", ([
         "app/quote/**/*.tsx", "components/city/**/*.tsx", "components/menu/**/*.tsx", "components/occasion/**/*.tsx",

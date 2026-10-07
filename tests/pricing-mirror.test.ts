@@ -13,8 +13,7 @@ import {
   PRICING_TERMS_V2_FROM,
   pricingTermsFor,
   salesTaxOn,
-  STRIPE_FEE_FIXED,
-  STRIPE_FEE_RATE,
+  CARD_PROCESSING_RATE,
   ZELLE_VENMO_RATE,
   zelleVenmoPriceOf,
 } from "../config/pricing-rules"
@@ -27,8 +26,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100
 
 test("mirror · the constants are the invoice engine's", () => {
   const c = fixture.constants
-  assert.equal(STRIPE_FEE_RATE, c.STRIPE_FEE_RATE)
-  assert.equal(STRIPE_FEE_FIXED, c.STRIPE_FEE_FIXED)
+  assert.equal(CARD_PROCESSING_RATE, c.CARD_PROCESSING_RATE)
   assert.equal(DEFAULT_SALES_TAX_RATE, c.DEFAULT_SALES_TAX_RATE)
   assert.equal(ZELLE_VENMO_RATE, c.ZELLE_VENMO_RATE)
   assert.equal(MINIMUM_SPEND, c.MINIMUM_SPEND)

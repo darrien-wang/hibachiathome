@@ -107,7 +107,7 @@ export const CARD_SURCHARGE_LABEL = "Credit Card"
 //   credit card (card on file,    = listed price + the sales tax for the party's
 //   charged on the day)             own address (CDTFA rate, lib/sales-tax-rate.ts)
 //                                   + card processing at Stripe's real cost
-//                                   (2.9% + 30c; waived for debit) + the gratuity
+//                                   (3%; waived for debit) + the gratuity
 //                                   when the customer puts it on the card.
 // A flat "10% sales tax" line is not a lawful rate anywhere we serve and a card
 // surcharge above cost breaks the Visa 3% cap - so both are itemised at their
@@ -117,9 +117,8 @@ export const CARD_SURCHARGE_LABEL = "Credit Card"
 export type PricingTerms = "v1_tax_included" | "v2_by_method"
 /** 2026-10-06 00:00 Pacific. */
 export const PRICING_TERMS_V2_FROM = "2026-10-06T07:00:00.000Z"
-/** Stripe's card cost, passed through at cost on card payments. */
-export const STRIPE_FEE_RATE = 0.029
-export const STRIPE_FEE_FIXED = 0.3
+/** Card processing on card payments: a flat 3% of what runs through the card (owner 2026-10-07). Mirrors the invoice engine. */
+export const CARD_PROCESSING_RATE = 0.03
 /**
  * Zelle / Venmo paid to the chef directly on the day = listed price x 1.04
  * (owner 2026-10-06 night, D-1006-07). A price, never a "fee"; said only when a
@@ -151,18 +150,22 @@ export function salesTaxOn(cashTotal: number, rate: number): number {
 }
 
 /**
- * Card processing passed through at Stripe's cost on what runs through the
- * card (balance incl. tax, plus gratuity on the card, deposit out). Mirrors
- * the invoice engine: Stripe takes 2.9% + 30c of the amount CHARGED, so the
- * charge is (B + 0.30) / (1 - 0.029) and the fee is the difference - the old
- * B x 2.9% + 30c left every card payment ~2.9% of the fee short (audit
- * 2026-10-06 item 3). Zero for debit / prepaid cards and when nothing is charged.
+ * Card processing on what runs through the card (balance incl. tax, plus
+ * gratuity on the card, deposit out): a flat 3% (owner 2026-10-07). Mirrors
+ * the invoice engine; the charge is B x 1.03 and cardProcessingFeeInside
+ * takes the fee back out of a charge. Zero for debit / prepaid cards and
+ * when nothing is charged.
  */
 export function cardProcessingFeeOn(chargedAmount: number, funding: CardFunding | null | undefined = "unknown"): number {
   if (chargedAmount <= 0) return 0
   if (funding === "debit" || funding === "prepaid") return 0
-  const charge = roundCurrency((chargedAmount + STRIPE_FEE_FIXED) / (1 - STRIPE_FEE_RATE))
-  return roundCurrency(charge - chargedAmount)
+  return roundCurrency(chargedAmount * CARD_PROCESSING_RATE)
+}
+
+/** The 3% inside a card charge that was built with cardProcessingFeeOn (charge = base x 1.03). */
+export function cardProcessingFeeInside(chargedGross: number): number {
+  if (chargedGross <= 0) return 0
+  return roundCurrency(chargedGross - chargedGross / (1 + CARD_PROCESSING_RATE))
 }
 
 /**

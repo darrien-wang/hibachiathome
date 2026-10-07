@@ -494,7 +494,7 @@ def _print_totals(inv: dict) -> None:
         print(f"   v2 · 现金 BALANCE {money(inv.get('cashBalanceDue'))}"
               f" · Zelle/Venmo 给师傅 {money(round(cash_due * 1.04, 2))}"
               f" · 刷卡 {money(inv.get('cardBalanceDue'))} = 现金 + 消费税 {rate_s}{est} {money(inv.get('salesTax'))}"
-              f" + 手续费 2.9%+30¢ {money(inv.get('cardProcessingFee'))}")
+              f" + 手续费 3% {money(inv.get('cardProcessingFee'))}")
     else:
         print("   v1 含税价 · 刷卡 +4%")
 

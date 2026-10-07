@@ -9,12 +9,12 @@
 //
 //   v2 "by method"（2026-10-06 起，决策日志 D-1006-05/06）：一个标价，两张账。
 //   现金 = 标价（含税）；
-//   刷卡 = 标价 + 派对地址的实际销售税 + Stripe 手续费 2.9% + 30¢ + 放在卡上的小费。
+//   刷卡 = 标价 + 派对地址的实际销售税 + 刷卡手续费 3% + 放在卡上的小费。
 //   /pay 走的是 Stripe，所以页面上的大数是刷卡账：现金尾款 + 这单的税 + 小费，
 //   再按实刷金额算手续费。税是派对的（发票引擎按地址算好给过来，这里不用常数
 //   重算），小费不含税。拆账：先扣手续费和税，再抵尾款，剩下的是小费。
 
-import { cardProcessingFeeOn, STRIPE_FEE_FIXED, STRIPE_FEE_RATE } from "@/config/pricing-rules"
+import { cardProcessingFeeInside, cardProcessingFeeOn } from "@/config/pricing-rules"
 
 /** v1 的 4%（含税价上加）。v2 不用它。 */
 export const CARD_FEE_RATE = 0.04
@@ -66,7 +66,7 @@ export type PaymentSplit = {
   towardBalanceCents: number
   /** 其中归师傅的小费（分，现金口径；v1 已扣掉手续费，v2 已扣掉税和手续费） */
   tipCents: number
-  /** 其中的手续费（分）：v1 是 4% 那块，v2 是 Stripe 2.9% + 30¢。 */
+  /** 其中的手续费（分）：v1 是 4% 那块，v2 是固定 3%（老板 2026-10-07 定）。 */
   feeCents: number
   /** 其中的销售税（分）：v2 这单的税，v1 为 0（含在价里）。 */
   taxCents: number
@@ -83,13 +83,12 @@ export function splitCardPayment(amountDollars: number, cashBalanceDollars: numb
   let feeCents: number
   let taxCents: number
   if (terms.version === "v2") {
-    // The fee is what Stripe takes on THIS charge: 2.9% + 30c of the gross.
-    // The bill was grossed up with the same rule (cardProcessingFeeOn), so a
-    // customer paying the full card balance covers the cash balance to the
-    // cent and the rest is the tip; the tax comes off the top (it is owed on
-    // the party, not on the tip); a payment smaller than tax + fee buys
-    // nothing toward the balance.
-    feeCents = Math.round(chargeCents * STRIPE_FEE_RATE + STRIPE_FEE_FIXED * 100)
+    // The bill was built as base x 1.03 (cardProcessingFeeOn), so the fee
+    // inside this charge is charge - charge / 1.03 and a customer paying the
+    // full card balance covers the cash balance to the cent; the rest is the
+    // tip. The tax comes off the top (it is owed on the party, not on the
+    // tip); a payment smaller than tax + fee buys nothing toward the balance.
+    feeCents = Math.round(cardProcessingFeeInside(chargeCents / 100) * 100)
     taxCents = Math.round(Math.max(0, terms.taxDollars) * 100)
   } else {
     feeCents = chargeCents - Math.round(chargeCents / (1 + CARD_FEE_RATE))

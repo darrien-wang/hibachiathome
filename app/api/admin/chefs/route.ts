@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
-import { DEFAULT_SALES_TAX_RATE, cardProcessingFeeOn, normalizePricingTerms, pricingTermsFor, salesTaxOn, STRIPE_FEE_FIXED, STRIPE_FEE_RATE, type PricingTerms } from "@/config/pricing-rules"
+import { CARD_PROCESSING_RATE, cardProcessingFeeInside, DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, salesTaxOn, type PricingTerms } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 
 export const dynamic = "force-dynamic"
@@ -660,7 +660,7 @@ export async function POST(request: NextRequest) {
         // 口径），所以 4% 要从实刷里 ÷1.04 拿掉，不是 ×0.96——后者多扣一点，
         // 师傅拿到的就比 /pay 上告诉客人的"$X for your chef"少（$1,213.87 少 $1.86）。
         // 那是 v1（10-05 及之前的单）。v2 "by method"（D-1006-05，10-06 起）：刷卡账 =
-        // 现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢ + 小费。拆回来和
+        // 现金尾款 + 派对地址的销售税 + 刷卡手续费 3% + 小费。拆回来和
         // /pay 记账同一套：手续费按实刷算，税是发票引擎给的这单的税（不用常数税率
         // 重算），剩下的抵尾款，再剩下的是小费。公司净得 = 实刷 − 税 − 手续费 − 小费。
         const terms = termsOfOrder(ord ?? {})
@@ -668,7 +668,7 @@ export async function POST(request: NextRequest) {
         const grossCents = card.amount_cents ?? 0
         const tax = v2 ? await invoiceTaxFor(String(asn.order_id), ord ?? null) : null
         const taxCents = tax?.taxCents ?? 0
-        const feeCents = v2 ? Math.round(cardProcessingFeeOn(grossCents / 100) * 100) : grossCents - Math.round(grossCents / (1 + CARD_FEE_RATE))
+        const feeCents = v2 ? Math.round(cardProcessingFeeInside(grossCents / 100) * 100) : grossCents - Math.round(grossCents / (1 + CARD_FEE_RATE))
         const netCents = Math.max(0, grossCents - taxCents - feeCents)
         return NextResponse.json({
           ok: true,
@@ -685,8 +685,8 @@ export async function POST(request: NextRequest) {
           // "default" = the invoice has not been rated by the party address yet; the
           // tax above is an estimate and the owner should re-rate before booking it.
           taxRateSource: tax?.source ?? "none",
-          feeRatePct: v2 ? STRIPE_FEE_RATE * 100 : CARD_FEE_RATE * 100,
-          feeFixedCents: v2 ? Math.round(STRIPE_FEE_FIXED * 100) : 0,
+          feeRatePct: v2 ? CARD_PROCESSING_RATE * 100 : CARD_FEE_RATE * 100,
+          feeFixedCents: 0,
           // What the customer typed on /pay as the chef's gratuity (the split at payment time).
           chosenTipCents: typeof ord?.chosen_gratuity_cents === "number" ? ord.chosen_gratuity_cents : null,
           tipCents: Math.max(0, netCents - balanceRefCents),
