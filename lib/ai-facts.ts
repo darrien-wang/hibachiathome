@@ -116,7 +116,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
 
   const rules: string[] = [
     "Cooking is outdoors only: patio, backyard, balcony, deck, driveway or under a tent. Never indoors.",
-    "Rain: the chef can cook under a covered patio or a 10x10 pop-up tent (the customer provides it; we don't). Cancel or move the date with 72+ hours notice for a full deposit refund.",
+    "Rain: the chef can cook under a covered patio or a 10x10 pop-up tent (the customer provides it; we don't). Cancel or move the date free with 48+ hours notice; inside 48 hours a $99 late-cancellation fee applies.",
     "Allergies: tell us in the quote request. We accommodate gluten-free, vegetarian and vegan guests, but we cannot promise a nut-free or sesame-free table (see the FAQ for details).",
     "Real Hibachi's own chefs cook every party. It is not a marketplace or app.",
   ]
