@@ -116,10 +116,10 @@ def main():
     ap.add_argument("--rule")
     a = ap.parse_args()
     hits = scan(a.rule)
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # the console is GBK on the desk
     if a.json:
         print(json.dumps(hits, ensure_ascii=False, indent=1))
     else:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         by_rule: dict[str, list[dict]] = {}
         for h in hits:
             by_rule.setdefault(h["rule"], []).append(h)
