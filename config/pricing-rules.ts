@@ -99,9 +99,9 @@ export const CARD_SURCHARGE_LABEL = "Credit Card"
 // Pricing terms (owner 2026-10-05 / 2026-10-06; decision log D-1005-01 -> D-1006-05)
 // ---------------------------------------------------------------
 // v1, through 2026-10-05: prices tax-included; card +4%.
-// v2 "by method", from 2026-10-06: one listed price, two bills (D-1006-06: the
-// Zelle / Venmo tier shipped earlier that night was withdrawn the same night -
-// those accounts only pay chef wages now and never appear to a customer).
+// v2 "by method", from 2026-10-06: one listed price, two bills (D-1006-07: Zelle / Venmo
+// go to the chef directly at listed x 1.04 - one line beside the cash price, not a
+// third bill; the business accounts only pay chef wages and never appear to a customer).
 //   cash (to the chef on the day) = listed price, sales tax included
 //                                   (Reg 1700 footer on the invoice).
 //   credit card (card on file,    = listed price + the sales tax for the party's
@@ -120,6 +120,16 @@ export const PRICING_TERMS_V2_FROM = "2026-10-06T07:00:00.000Z"
 /** Stripe's card cost, passed through at cost on card payments. */
 export const STRIPE_FEE_RATE = 0.029
 export const STRIPE_FEE_FIXED = 0.3
+/**
+ * Zelle / Venmo paid to the chef directly on the day = listed price x 1.04
+ * (owner 2026-10-06 night, D-1006-07). A price, never a "fee"; mentioned in
+ * one line beside the cash price, not a third itemised bill. The business
+ * accounts are internal payout rails and are never handed to a customer.
+ */
+export const ZELLE_VENMO_RATE = 0.04
+export function zelleVenmoPriceOf(cash: number): number {
+  return Math.round(cash * (1 + ZELLE_VENMO_RATE) * 100) / 100
+}
 /** Until the party address is rated by CDTFA: LA County base rate, flagged as a default. */
 export const DEFAULT_SALES_TAX_RATE = 0.095
 

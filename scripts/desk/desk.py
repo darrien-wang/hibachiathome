@@ -490,7 +490,9 @@ def _print_totals(inv: dict) -> None:
         rate = inv.get("salesTaxRate")
         rate_s = f"{float(rate) * 100:g}%" if isinstance(rate, (int, float)) else "?"
         est = "（估，发票里按地址 Re-rate）" if inv.get("salesTaxRateSource") != "address" else ""
+        cash_due = float(inv.get("cashBalanceDue") or 0)
         print(f"   v2 · 现金 BALANCE {money(inv.get('cashBalanceDue'))}"
+              f" · Zelle/Venmo 给师傅 {money(round(cash_due * 1.04, 2))}"
               f" · 刷卡 {money(inv.get('cardBalanceDue'))} = 现金 + 消费税 {rate_s}{est} {money(inv.get('salesTax'))}"
               f" + 手续费 2.9%+30¢ {money(inv.get('cardProcessingFee'))}")
     else:

@@ -17,6 +17,7 @@ import {
   PRICING_TERMS_V2_FROM,
   STRIPE_FEE_FIXED,
   STRIPE_FEE_RATE,
+  ZELLE_VENMO_RATE,
   TABLES_CHAIRS_PER_GUEST,
   TRAVEL_FREE_RADIUS_MILES,
   TRAVEL_RATE_PER_MILE,
@@ -57,6 +58,8 @@ function codeConfig() {
     pricing_terms_v2_from: PRICING_TERMS_V2_FROM,
     stripe_fee_rate: STRIPE_FEE_RATE,
     stripe_fee_fixed: STRIPE_FEE_FIXED,
+    // Zelle / Venmo paid to the chef directly = listed x (1 + rate); a one-line mention (D-1006-07).
+    zelle_venmo_rate: ZELLE_VENMO_RATE,
     default_sales_tax_rate: DEFAULT_SALES_TAX_RATE,
     travel_free_miles: TRAVEL_FREE_RADIUS_MILES,
     travel_rate_per_mile: TRAVEL_RATE_PER_MILE,

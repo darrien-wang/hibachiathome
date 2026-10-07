@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
-import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
+import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel, zelleVenmoPriceOf } from "@/config/pricing-rules"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate, formatUiDateShort } from "@/lib/date-display"
@@ -852,13 +852,16 @@ function DepositPaymentPageInner() {
               <span className="font-semibold">Cash on the day</span> — {money(cashEstimate)}
             </li>
             <li>
+              <span className="font-semibold">Zelle or Venmo to your chef on the day</span> — {money(zelleVenmoPriceOf(cashEstimate))}
+            </li>
+            <li>
               <span className="font-semibold">Credit card</span> — {money(cashEstimate)} + sales tax for your address + card processing
               (2.9% + 30¢). We&apos;ll show the exact total once your menu is set and charge your card after the party.
             </li>
           </ul>
           <p className="mt-2 text-xs text-clay-600">
-            Why the two differ: we quote one cash price instead of building everyone&apos;s tax and card costs into a higher
-            price; paying by card just shows the costs that come with it.
+            Why the totals differ: we quote one cash price instead of building everyone&apos;s tax and card costs into a higher
+            price; the other ways just show the costs that come with them.
           </p>
           <p className="mt-1 text-xs text-clay-600">
             Gratuity isn&apos;t included — 20–25% is customary and all of it goes to your chef. Add it to the card or tip in person.

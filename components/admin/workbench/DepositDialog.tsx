@@ -11,12 +11,12 @@ import { digits10, displayName, isPlaceholderName, type LeadRow } from "./helper
 // 2026-10-06 (D-1006-04) the online flow saves a card and charges nothing, so
 // the amount here is whatever actually arrived offline - no default.
 
-// "venmo" / "zelle" are legacy-only (D-1006-06, 2026-10-06): not customer rails any more,
-// kept so a late entry for an old order still fits the ledger. New money is cash (or Stripe).
+// "venmo" / "zelle" = paid to the chef directly (D-1006-07, 2026-10-06) or an old order;
+// the business accounts themselves are internal payout rails and are never given to a customer.
 const CHANNELS = [
   ["cash", "现金"],
-  ["venmo", "Venmo（老单）"],
-  ["zelle", "Zelle（老单）"],
+  ["venmo", "Venmo（给师傅）"],
+  ["zelle", "Zelle（给师傅）"],
   ["other", "其他"],
 ] as const
 
@@ -91,7 +91,7 @@ export function DepositDialog({
     <Dialog onClose={onClose} width={560}>
       <DialogHead
         title="押金已付 → 转入订单"
-        lines={[lead ? `${displayName(lead.full_name, lead.phone)} · 线索会自动标为已成单，对话和承诺跟着进订单` : "线下收到的押金（现金；老单的 Venmo / Zelle）。Stripe 付的不用登记，webhook 自动建单。"]}
+        lines={[lead ? `${displayName(lead.full_name, lead.phone)} · 线索会自动标为已成单，对话和承诺跟着进订单` : "线下收到的押金（现金 / 给师傅的 Venmo、Zelle）。Stripe 付的不用登记，webhook 自动建单。"]}
         onClose={onClose}
       />
       <div className="dialog-col" style={{ gap: 12 }}>

@@ -54,7 +54,7 @@ export default function OccasionTemplate({ page, title, breadcrumb, intro, sourc
   const hero = page.photos[0]
   const second = page.photos[1]
   const label = page.occasion.toLowerCase()
-  const chips = [`From $${GUEST_TIERS.adult.price.toFixed(2)}/adult`, "500+ parties", "Full refund up to 72h", "SoCal only — a local team"]
+  const chips = [`From $${GUEST_TIERS.adult.price.toFixed(2)}/adult`, "500+ parties", "Free to cancel 48h+", "SoCal only — a local team"]
 
   const crumbs = (
     <nav aria-label="Breadcrumb">

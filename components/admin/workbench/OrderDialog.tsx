@@ -39,7 +39,7 @@ import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
 import { describeSetup, findTheme, findVariant } from "@/config/table-themes"
 import { ORDER_SOP_STEPS } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
-import { DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, type PricingTerms } from "@/config/pricing-rules"
+import { DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, type PricingTerms, zelleVenmoPriceOf } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 
 // 尾款口径（决策日志 D-1006-05/06，2026-10-06）：10-06 起建的单一个标价两张账——现金 =
@@ -175,8 +175,9 @@ function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings, bills: 
       ? `Your remaining balance is ${money(bal)}, due on the day of the party - cash to your chef or card both work (card adds 4%).`
       : bills
         ? [
-            "Your remaining balance is due on the day of the party. Two ways to pay:",
+            "Your remaining balance is due on the day of the party. How you can pay:",
             `- Cash to your chef: ${money(bills.cashCents)}`,
+            `- Zelle or Venmo to your chef: ${money(Math.round(zelleVenmoPriceOf(bills.cashCents / 100) * 100))}`,
             `- Card: ${money(bills.cardCents)} (${money(bills.cashCents)} + sales tax (${bills.taxRateLabel}) ${money(bills.taxCents)} + card processing (2.9% + 30¢) ${money(bills.feeCents)}) - ${payUrl}`,
             "",
             GRATUITY_QUESTION,
@@ -690,11 +691,12 @@ export function OrderDialog({
               />
               {v2Terms ? (
                 <div style={{ marginTop: 10 }}>
-                  <Kicker>两种付法（发票引擎算的）</Kicker>
+                  <Kicker>怎么付（发票引擎算的；Zelle/Venmo 直接给师傅 = 现金 ×1.04）</Kicker>
                   {bills ? (
                     <Lines
                       rows={[
                         { label: "现金给师傅（含税）", value: money(bills.cashCents) },
+                        { label: "Zelle/Venmo 直接给师傅（×1.04）", value: money(Math.round(zelleVenmoPriceOf(bills.cashCents / 100) * 100)) },
                         { label: `刷卡 · 消费税 ${bills.taxRateLabel} ${money(bills.taxCents)} + 手续费 2.9%+30¢ ${money(bills.feeCents)}`, value: money(bills.cardCents) },
                       ]}
                     />

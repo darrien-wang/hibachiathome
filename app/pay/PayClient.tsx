@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { zelleVenmoPriceOf } from "@/config/pricing-rules"
 import { splitCardPayment, V1_TERMS, type PayTerms } from "@/lib/pay-link-math"
 
 // 付款页。
@@ -475,6 +476,9 @@ export default function PayClient() {
             <span className="text-[15px] font-bold">Other ways to pay</span>
             <span className="text-[15px]">
               Cash to your chef on the day — <span className="font-bold tabular-nums">{usd(v2.cashDue)}</span> (tax included)
+            </span>
+            <span className="text-[15px]">
+              Zelle or Venmo to your chef on the day — <span className="font-bold tabular-nums">{usd(zelleVenmoPriceOf(v2.cashDue))}</span>
             </span>
           </div>
         ) : null}

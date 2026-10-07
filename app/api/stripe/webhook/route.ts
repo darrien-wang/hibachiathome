@@ -364,7 +364,7 @@ async function sendDepositConfirmationEmail(params: {
     ? `Real Hibachi: your date is locked (booking ${bookingId})`
     : `Real Hibachi deposit confirmed for booking number ${bookingId}`
   const lead = params.cardOnFile
-    ? "Your date is locked with Real Hibachi. Your card is on file with Stripe and nothing was charged today - the balance is settled after your party."
+    ? "Your date is locked with Real Hibachi. Your card is on file with Stripe and nothing was charged today. You pay on the day: cash or Zelle/Venmo to your chef, or the card on file after the party."
     : "Thanks for your deposit payment with Real Hibachi."
   const text = [
     lead,
