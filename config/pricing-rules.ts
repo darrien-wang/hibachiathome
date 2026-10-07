@@ -93,17 +93,17 @@ export const LATE_CANCEL_FEE = 99
  * carries it; see the pricing terms below.
  */
 export const CARD_SURCHARGE_RATE = 0.04
-export const CARD_SURCHARGE_LABEL = "Venmo, Zelle, Credit Card"
+export const CARD_SURCHARGE_LABEL = "Credit Card"
 
 // ---------------------------------------------------------------
 // Pricing terms (owner 2026-10-05 / 2026-10-06; decision log D-1005-01 -> D-1006-05)
 // ---------------------------------------------------------------
-// v1, through 2026-10-05: prices tax-included; card / Venmo / Zelle +4%.
-// v2 "by method", from 2026-10-06: one listed price, three bills.
+// v1, through 2026-10-05: prices tax-included; card +4%.
+// v2 "by method", from 2026-10-06: one listed price, two bills (D-1006-06: the
+// Zelle / Venmo tier shipped earlier that night was withdrawn the same night -
+// those accounts only pay chef wages now and never appear to a customer).
 //   cash (to the chef on the day) = listed price, sales tax included
 //                                   (Reg 1700 footer on the invoice).
-//   Venmo / Zelle                 = listed price x 1.04 - a PRICE, printed as
-//                                   "Venmo/Zelle price", never a "fee".
 //   credit card (card on file,    = listed price + the sales tax for the party's
 //   charged on the day)             own address (CDTFA rate, lib/sales-tax-rate.ts)
 //                                   + card processing at Stripe's real cost
@@ -117,8 +117,6 @@ export const CARD_SURCHARGE_LABEL = "Venmo, Zelle, Credit Card"
 export type PricingTerms = "v1_tax_included" | "v2_by_method"
 /** 2026-10-06 00:00 Pacific. */
 export const PRICING_TERMS_V2_FROM = "2026-10-06T07:00:00.000Z"
-/** Venmo / Zelle price = listed price x (1 + this). */
-export const ZELLE_VENMO_RATE = 0.04
 /** Stripe's card cost, passed through at cost on card payments. */
 export const STRIPE_FEE_RATE = 0.029
 export const STRIPE_FEE_FIXED = 0.3
@@ -140,11 +138,6 @@ export function normalizePricingTerms(value: string | null | undefined): Pricing
 /** Sales tax at the party's rate on a listed (cash) total - v2 card bills. */
 export function salesTaxOn(cashTotal: number, rate: number): number {
   return roundCurrency(cashTotal * rate)
-}
-
-/** Venmo / Zelle price for a listed (cash) amount under v2. */
-export function zelleVenmoPriceOf(cashTotal: number): number {
-  return roundCurrency(cashTotal * (1 + ZELLE_VENMO_RATE))
 }
 
 /**

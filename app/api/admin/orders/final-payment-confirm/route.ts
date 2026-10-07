@@ -7,7 +7,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 // Staff-only: record a balance payment the pipeline did not book itself —
-// cash / Venmo / Zelle taken at the party, or a card payment that needs
+// cash taken at the party, or a card payment that needs
 // entering by hand. The payment rides as type "final" onto the EXISTING order
 // (matched by its source_ref), so the payments projection and balance snapshot
 // settle and the order advances to 已办完. Audit-first: operator + proof
@@ -22,6 +22,7 @@ async function isAuthorized(request: NextRequest): Promise<boolean> {
   return (await resolveAdminActor(request)) !== null
 }
 
+// "venmo" / "zelle": legacy rows only - not customer rails since 2026-10-06 (D-1006-06).
 const CHANNELS = ["cash", "venmo", "zelle", "stripe", "other"] as const
 
 // pi_ (payment intent), ch_/py_ (charge), cs_ (checkout session).

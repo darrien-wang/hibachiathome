@@ -42,16 +42,15 @@ import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, type PricingTerms } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 
-// 尾款口径（决策日志 D-1006-05，2026-10-06）：10-06 起建的单一个标价三张账——现金 =
-// 标价含税；Venmo/Zelle = 标价 ×1.04（一个价，不叫手续费）；刷卡 = 标价 + 派对地址的
-// 销售税 + Stripe 手续费 2.9% + 30¢。三张账全由发票引擎算（/api/admin/pay-link 的
+// 尾款口径（决策日志 D-1006-05/06，2026-10-06）：10-06 起建的单一个标价两张账——现金 =
+// 标价含税；刷卡 = 标价 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢。两张账全由
+// 发票引擎算（/api/admin/pay-link 的
 // quote → 发票 balance 接口），工作台不拿常数税率重算；之前的单含税、刷卡 +4%。
 // 对客话术按口径分两套；定下来之前（线索期）一个字不提税和付款方式。
 export type OrderBills = {
   terms: PricingTerms
   /** 现金尾款（分）：押金已扣，含发票上已选的小费 */
   cashCents: number
-  zelleVenmoCents: number
   cardCents: number
   taxCents: number
   feeCents: number
@@ -67,24 +66,22 @@ function termsOfOrder(o: OrderRow): PricingTerms {
   return typeof stored === "string" ? normalizePricingTerms(stored) : pricingTermsFor(o.created_at)
 }
 
-/** 发票 balance 接口的回包 → 三张账。字段缺一个就当没算出来（宁可不说，不能说错）。 */
+/** 发票 balance 接口的回包 → 两张账。字段缺一个就当没算出来（宁可不说，不能说错）。 */
 function billsFromQuote(q: Record<string, unknown>): OrderBills | null {
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null)
   if (!q.ok || !q.found) return null
   const terms = normalizePricingTerms(typeof q.pricingTerms === "string" ? q.pricingTerms : null)
   if (terms !== "v2_by_method") return null
   const cash = n(q.cashBalanceDue)
-  const zv = n(q.zelleVenmoBalanceDue)
   const card = n(q.cardBalanceDue)
   const tax = n(q.salesTax)
   const fee = n(q.cardProcessingFee)
-  if (cash == null || zv == null || card == null || tax == null || fee == null) return null
+  if (cash == null || card == null || tax == null || fee == null) return null
   const rate = n(q.salesTaxRate)
   const c = (d: number) => Math.round(d * 100)
   return {
     terms,
     cashCents: c(cash),
-    zelleVenmoCents: c(zv),
     cardCents: c(card),
     taxCents: c(tax),
     feeCents: c(fee),
@@ -95,7 +92,6 @@ function billsFromQuote(q: Record<string, unknown>): OrderBills | null {
 
 /** Asked once, when the bill is itemised (owner 2026-10-06). */
 const GRATUITY_QUESTION = "Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?"
-const ZELLE_VENMO_LINE = "Zelle 562-713-4832 or Venmo @realhibachiathome"
 
 // 订单弹窗 · 售后：金额·收款 / Planner·派单 / 短信 / 记录.
 // Orders are owned by the invoice app; this dialog reads them and acts
@@ -172,21 +168,20 @@ function buildEmail(o: OrderRow, t: EmailTemplate, s: WorkbenchSettings, bills: 
   const line = when ? `Your hibachi party is set for ${when}${where}${guests ? ` for ${guests} guests` : ""}.` : `Your hibachi party is confirmed${where}.`
   const bal = o.balance_due_cents ?? 0
   const payUrl = `https://www.realhibachi.com/pay?o=${o.id}`
-  // v2: the three bills itemised, from the invoice engine; until they load (or
+  // v2: the two bills itemised, from the invoice engine; until they load (or
   // when the engine is unreachable) the cash figure alone, never a guess.
   const balanceLine =
     termsOfOrder(o) !== "v2_by_method"
-      ? `Your remaining balance is ${money(bal)}, due on the day of the party - cash, Zelle, Venmo or card all work (card adds 4%).`
+      ? `Your remaining balance is ${money(bal)}, due on the day of the party - cash to your chef or card both work (card adds 4%).`
       : bills
         ? [
-            "Your remaining balance is due on the day of the party. Three ways to pay:",
+            "Your remaining balance is due on the day of the party. Two ways to pay:",
             `- Cash to your chef: ${money(bills.cashCents)}`,
-            `- ${ZELLE_VENMO_LINE}: ${money(bills.zelleVenmoCents)}`,
             `- Card: ${money(bills.cardCents)} (${money(bills.cashCents)} + sales tax (${bills.taxRateLabel}) ${money(bills.taxCents)} + card processing (2.9% + 30¢) ${money(bills.feeCents)}) - ${payUrl}`,
             "",
             GRATUITY_QUESTION,
           ].join("\n")
-        : `Your remaining balance is ${money(bal)} in cash to your chef on the day of the party. If you'd rather pay by Zelle, Venmo or card, text us and we'll send the exact figures.`
+        : `Your remaining balance is ${money(bal)} in cash to your chef on the day of the party. If you'd rather pay by card, text us and we'll send the exact figure.`
   const sign = `\n\n${s.business.agent_name}\n${s.business.brand} · www.realhibachi.com\n${s.business.support_email} · ${s.business.support_phone}`
   if (t === "details")
     return {
@@ -301,7 +296,7 @@ export function OrderDialog({
       all: ordered,
     }
   }, [openReqs])
-  // v2 单的三张账（现金 / Venmo-Zelle / 刷卡），发票引擎现算：对客的尾款邮件、
+  // v2 单的两张账（现金 / 刷卡），发票引擎现算：对客的尾款邮件、
   // 提醒短信、固定金额链接的默认数都从这里拿，工作台自己不算税。
   const [bills, setBills] = useState<OrderBills | null>(null)
   useEffect(() => {
@@ -459,7 +454,7 @@ export function OrderDialog({
   const selfPayUrl = `https://www.realhibachi.com/pay?o=${o.id}`
   const v2Terms = termsOfOrder(o) === "v2_by_method"
   // /pay is a Stripe card checkout, so the v2 text says "by card" only; the
-  // page itself lists the cash and Zelle/Venmo figures.
+  // page itself lists the cash figure.
   const selfPaySms = v2Terms
     ? `${settings.business.brand}: here's the secure link to pay your party balance by card - it shows your balance with sales tax and card processing. You can add your chef's gratuity there (100% goes to them) or tip them in person on the day: ${selfPayUrl}`
     : `${settings.business.brand}: here's the secure link to settle the balance for your party - enter the total you agreed with your chef, plus a 4% card processing fee. Anything above the balance goes to your chef as their tip, 100%: ${selfPayUrl}`
@@ -570,10 +565,10 @@ export function OrderDialog({
       id: "balance",
       label: "尾款提醒",
       body: !v2Terms
-        ? `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - the balance is ${money(o.balance_due_cents)} and is due on the day (cash, Zelle, Venmo, or card with 4%). Text here if you'd like a card link.`
+        ? `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - the balance is ${money(o.balance_due_cents)} and is due on the day (cash to your chef, or card with 4%). Text here if you'd like a card link.`
         : bills
-          ? `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - your balance is ${money(bills.cashCents)} cash to your chef, ${money(bills.zelleVenmoCents)} by Zelle (562-713-4832) or Venmo (@realhibachiathome), or ${money(bills.cardCents)} by card (${money(bills.cashCents)} + ${money(bills.taxCents)} sales tax + ${money(bills.feeCents)} card processing). ${GRATUITY_QUESTION}`
-          : `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - your balance is ${money(o.balance_due_cents)} in cash to your chef, due on the day. Text here if you'd like the Zelle/Venmo or card figures.`,
+          ? `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - your balance is ${money(bills.cashCents)} cash to your chef, or ${money(bills.cardCents)} by card (${money(bills.cashCents)} + ${money(bills.taxCents)} sales tax + ${money(bills.feeCents)} card processing). ${GRATUITY_QUESTION}`
+          : `${settings.business.brand}: quick reminder for ${ev ? md(ev.ymd) : "your party"} - your balance is ${money(o.balance_due_cents)} in cash to your chef, due on the day. Text here if you'd like the card figure.`,
     },
     { id: "review", label: "邀评", body: ORDER_SOP_STEPS.find((s) => s.id === "w_review")!.build({ firstName: first || undefined, reviewUrl: settings.business.review_url || undefined }) },
     { id: "ugc", label: "晒图邀请", body: ORDER_SOP_STEPS.find((s) => s.id === "w_ugc")!.build({ firstName: first || undefined }) },
@@ -695,12 +690,11 @@ export function OrderDialog({
               />
               {v2Terms ? (
                 <div style={{ marginTop: 10 }}>
-                  <Kicker>三种付法（发票引擎算的）</Kicker>
+                  <Kicker>两种付法（发票引擎算的）</Kicker>
                   {bills ? (
                     <Lines
                       rows={[
                         { label: "现金给师傅（含税）", value: money(bills.cashCents) },
-                        { label: "Venmo / Zelle 价", value: money(bills.zelleVenmoCents) },
                         { label: `刷卡 · 消费税 ${bills.taxRateLabel} ${money(bills.taxCents)} + 手续费 2.9%+30¢ ${money(bills.feeCents)}`, value: money(bills.cardCents) },
                       ]}
                     />

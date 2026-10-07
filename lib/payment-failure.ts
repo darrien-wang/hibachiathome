@@ -277,7 +277,7 @@ export async function handlePaymentFailure(
 
     const verdict = alreadyPaid
       ? `ALREADY PAID - ${order?.order_no ?? "this order"} has its deposit. This is a retry of a payment we do not need. Do not send another payment link. Stripe Link retries a backup card within 24h; if a duplicate ${amount} lands, refund it.`
-      : "NOT PAID - they were trying to pay and could not. Text them while they are still on the page and offer another way."
+      : "NOT PAID - they were trying to pay and could not. Text them while they are still on the page and ask them to try another card. Card only: no valid card, no booking (owner 2026-10-06) - do not book by hand or take the money another way."
 
     await sendSupportNotificationEmail({
       subject: `Payment declined: ${who} · ${amount}${alreadyPaid ? " (already paid)" : ""}`,

@@ -23,7 +23,6 @@ import {
   UTENSILS_PER_GUEST,
   WEEKDAY_SPECIAL,
   WEEKDAY_SPECIAL_BLACKOUTS,
-  ZELLE_VENMO_RATE,
 } from "@/config/pricing-rules"
 import { HOME_BASE_ZIP } from "@/config/home-base"
 
@@ -49,14 +48,13 @@ function codeConfig() {
     deposit: 0,
     free_change_hours: FREE_CHANGE_HOURS,
     late_cancel_fee: LATE_CANCEL_FEE,
-    // v1 terms only (orders created before pricing_terms_v2_from): the 4% on card / Venmo / Zelle.
+    // v1 terms only (orders created before pricing_terms_v2_from): the 4% on card.
     card_surcharge_rate: CARD_SURCHARGE_RATE,
     card_surcharge_scope: "v1_tax_included",
-    // v2 "by method" (D-1006-05): cash = listed price (tax in); Venmo/Zelle = listed x (1 + rate);
+    // v2 "by method" (D-1006-05/06, two bills): cash = listed price (tax in);
     // card = listed + sales tax at the party address + Stripe's cost. The default rate is only
     // what an invoice shows before the address is rated, flagged as an estimate.
     pricing_terms_v2_from: PRICING_TERMS_V2_FROM,
-    zelle_venmo_rate: ZELLE_VENMO_RATE,
     stripe_fee_rate: STRIPE_FEE_RATE,
     stripe_fee_fixed: STRIPE_FEE_FIXED,
     default_sales_tax_rate: DEFAULT_SALES_TAX_RATE,

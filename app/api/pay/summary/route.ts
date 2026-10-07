@@ -15,10 +15,10 @@ export const dynamic = "force-dynamic"
 // 得自己算 4%、算小费，Daria 那单的 4% 就被记成了小费。链接里是订单的 UUID，
 // 猜不到；转给别人看到的也只是尾款和小费档位。
 //
-// 口径（D-1006-05，2026-10-06）：v1（10-05 及之前的单）刷卡尾款 = 现金尾款 ×1.04。
-// v2 一个标价三张账：刷卡 = 现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢
-// + 选的小费；另给现金数和 Venmo/Zelle 数让页面列成 "Other ways to pay"。税、税率、
-// Venmo/Zelle 数都由发票引擎算好（lib/pay-balance.ts），这里只搬。
+// 口径（D-1006-05/06，2026-10-06）：v1（10-05 及之前的单）刷卡尾款 = 现金尾款 ×1.04。
+// v2 一个标价两张账：刷卡 = 现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢
+// + 选的小费；另给现金数让页面列成 "Other ways to pay" 那一行。税、税率都由发票
+// 引擎算好（lib/pay-balance.ts），这里只搬。
 //
 // 发票上已经选好小费的单子（很少，一年一两单）：尾款里本来就含小费，直接回
 // 含小费的刷卡价，不再给小费档位，免得客人付两遍小费。
@@ -92,7 +92,6 @@ export async function GET(request: NextRequest) {
             processingFee: cardProcessingFeeFor(owed, 0, ctx.terms),
             cashBalance: ctx.cashBalance,
             cashDue: round2(owed),
-            zelleVenmoDue: round2(v2.zelleVenmoBalance + ctx.includedGratuity),
           },
         }
       : {}),

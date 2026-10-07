@@ -10,9 +10,9 @@ import { splitCardPayment, V1_TERMS, type PayTerms } from "@/lib/pay-link-math"
 // 就付，客人不用算也算不错。4% 只用一行小字带过。选"只付尾款"时先弹一个框，
 // 说清楚小费付的是师傅哪些活；已经现金给过小费的直接付，真有不满意的可以留话。
 //
-// 口径（D-1006-05，2026-10-06）：10-06 起的单一个标价三张账。页面大数仍是刷卡账
+// 口径（D-1006-05/06，2026-10-06）：10-06 起的单一个标价两张账。页面大数仍是刷卡账
 // （现金尾款 + 派对地址的销售税 + Stripe 手续费 2.9% + 30¢ + 选的小费），大数下面
-// 列税和手续费两行，再给一块 "Other ways to pay"：现金给师傅 $X、Zelle/Venmo $Y。
+// 列税和手续费两行，再给一行 "Other ways to pay"：现金给师傅 $X（含税）。
 // 数全由 /api/pay/summary 从发票引擎搬来，页面不算税。老单（v1）文案不变。
 //
 // 通用链接（/pay 不带订单号）：客人自己填名字、手机和金额，不变。
@@ -30,9 +30,9 @@ type Summary = {
   guests?: number | null
   /** 刷卡尾款（v1 已含 4%；v2 = 现金尾款 + 税 + 手续费）。已结清或没有金额时为 null。 */
   cardBalance?: number | null
-  /** v1 = 含税价 + 4%（10-05 及之前的单）；v2 = 一个标价三张账（10-06 起，D-1006-05）。 */
+  /** v1 = 含税价 + 4%（10-05 及之前的单）；v2 = 一个标价两张账（10-06 起，D-1006-05/06）。 */
   terms?: "v1" | "v2"
-  /** v2 的三张账和刷卡账下面的两行，发票引擎算好给的；v1 没有。 */
+  /** v2 的两张账和刷卡账下面的两行，发票引擎算好给的；v1 没有。 */
   v2?: {
     taxDue: number
     taxRate: number
@@ -46,8 +46,6 @@ type Summary = {
     cashBalance: number
     /** 现金给师傅的数（含已选小费） */
     cashDue: number
-    /** Zelle / Venmo 的数（含已选小费） */
-    zelleVenmoDue: number
   }
   /** 发票上已经选好小费时，尾款里含的那份小费（现金口径）；此时没有小费档位。 */
   gratuityIncluded?: number | null
@@ -274,11 +272,11 @@ export default function PayClient() {
               ? amountNumber
               : 0
     // v1：刷卡尾款 = 现金尾款 × 1.04 取到分，÷1.04 再取到分正好还原现金尾款；
-    // v2：现金尾款、税、Venmo/Zelle 数都是接口给的。用它跑和服务端同一个拆账，
+    // v2：现金尾款、税都是接口给的。用它跑和服务端同一个拆账，
     // "Other amount" 下面显示的小费和手续费才和记账一致。
     const v2 = data.terms === "v2" && data.v2 ? data.v2 : null
     const terms: PayTerms = v2
-      ? { version: "v2", taxDollars: Math.max(0, v2.taxDue), taxRate: v2.taxRate, taxRateSource: v2.taxEstimated ? "default" : "address", zelleVenmoBalance: v2.zelleVenmoDue, cashBalance: v2.cashBalance }
+      ? { version: "v2", taxDollars: Math.max(0, v2.taxDue), taxRate: v2.taxRate, taxRateSource: v2.taxEstimated ? "default" : "address", cashBalance: v2.cashBalance }
       : V1_TERMS
     const cashBalance = v2 ? v2.cashBalance : Math.round(Math.round(cardBalance * 100) / 1.04) / 100
     const otherSplit = choice === "other" && amountNumber > 0 ? splitCardPayment(amountNumber, cashBalance, terms) : null
@@ -467,7 +465,7 @@ export default function PayClient() {
           ) : null}
           {err && <span className="text-[13px] leading-snug text-flame-800">{err}</span>}
           <span className="text-center text-xs text-clay-700">
-            {v2 ? "Cash and Zelle/Venmo prices include sales tax reimbursement computed to the nearest mill." : "Prices include the 4% card processing fee."}
+            {v2 ? "The cash price includes sales tax reimbursement computed to the nearest mill." : "Prices include the 4% card processing fee."}
           </span>
           <span className="text-center text-xs text-clay-700">Card payment handled by Stripe. We never see your card.</span>
         </div>
@@ -475,17 +473,8 @@ export default function PayClient() {
         {v2 ? (
           <div className="mt-5 flex flex-col gap-2.5 rounded-[28px] border-2 border-line bg-white p-6">
             <span className="text-[15px] font-bold">Other ways to pay</span>
-            <span className="flex items-baseline justify-between gap-3 text-[15px]">
-              <span>Cash to your chef on the day</span>
-              <span className="font-bold tabular-nums">{usd(v2.cashDue)}</span>
-            </span>
-            <span className="flex items-baseline justify-between gap-3 text-[15px]">
-              <span>Zelle 562-713-4832 or Venmo @realhibachiathome</span>
-              <span className="font-bold tabular-nums">{usd(v2.zelleVenmoDue)}</span>
-            </span>
-            <span className="flex items-baseline justify-between gap-3 text-[15px]">
-              <span>Card (this page)</span>
-              <span className="font-bold tabular-nums">{usd(cardBalance)}</span>
+            <span className="text-[15px]">
+              Cash to your chef on the day — <span className="font-bold tabular-nums">{usd(v2.cashDue)}</span> (tax included)
             </span>
           </div>
         ) : null}

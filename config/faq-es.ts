@@ -14,7 +14,7 @@ Propina: lo habitual es 20–25% de la cuenta final
 
 Cargo por traslado: las primeras 50 millas son gratis, después $1 por milla — lo ves en tu cotización antes de pagar
 
-Formas de pago: efectivo, tarjeta, Venmo o Zelle — el saldo se paga el día de tu fiesta.`,
+Formas de pago: efectivo o tarjeta — el saldo se paga el día de tu fiesta.`,
   },
   {
     question: "¿Tienen descuentos para militares, enfermeras, maestros o socorristas?",

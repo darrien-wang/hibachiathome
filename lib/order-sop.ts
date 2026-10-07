@@ -36,7 +36,7 @@ export const ORDER_SOP_STEPS: OrderSopStep[] = [
     stage: "booked",
     emoji: "🎪",
     title: "发派对布置工具(专属链接)",
-    when: "订金确认后立刻发(Stripe/Venmo/Zelle 都算)",
+    when: "锁日期/订金确认后立刻发(Stripe 留卡、线下登记都算)",
     build: ({ plannerLink }) =>
       plannerLink
         ? `You're booked 🎉 Here's your personal party planner: ${plannerLink} — your party's already linked to it. Set up your tables and share the same link with your guests so everyone picks their own proteins. Takes 2 minutes and makes party day seamless!`

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
-import { DEFAULT_SALES_TAX_RATE, ZELLE_VENMO_RATE, normalizePricingTerms } from "@/config/pricing-rules"
+import { DEFAULT_SALES_TAX_RATE, normalizePricingTerms } from "@/config/pricing-rules"
 import type { PayTerms } from "@/lib/pay-link-math"
 
 // /pay 的两个接口（summary 读、session 写）共用的"这单现在还欠多少"。
@@ -16,10 +16,10 @@ import type { PayTerms } from "@/lib/pay-link-math"
 // 那件事同一天在 handleChargeRefunded 里补上了。
 //
 // 口径（config/pricing-rules.ts PricingTerms）：
-//   v1（10-05 及之前的单）= 含税价，刷卡 / Venmo / Zelle +4%。
-//   v2 "by method"（10-06 起，D-1006-05）= 一个标价三张账：现金 = 标价含税；
-//   Venmo / Zelle = 标价 ×1.04；刷卡 = 标价 + 派对地址的销售税 + Stripe 手续费。
-//   三张账、税额、税率全由发票接口算好给过来（跨仓库契约见 spec），这里只搬
+//   v1（10-05 及之前的单）= 含税价，刷卡 +4%。
+//   v2 "by method"（10-06 起，D-1006-05/06）= 一个标价两张账：现金 = 标价含税；
+//   刷卡 = 标价 + 派对地址的销售税 + Stripe 手续费。
+//   两张账、税额、税率全由发票接口算好给过来（跨仓库契约见 spec），这里只搬
 //   不算——绝不用一个常数税率重算。
 
 const INVOICE_BALANCE_API = "https://invoice.realhibachi.com/api/self-service/orders/balance"
@@ -39,7 +39,7 @@ export type PayContext = {
   includedGratuity: number
   /** 发票本身是不是按刷卡报的价。 */
   invoiceIsCard: boolean
-  /** 这单的口径和 v2 下发票给的税 / 税率 / Venmo-Zelle 尾款。settled 时金额全为 0。 */
+  /** 这单的口径和 v2 下发票给的税 / 税率 / 现金尾款。settled 时金额全为 0。 */
   terms: PayTerms
   clientName: string
   eventDate: string | null
@@ -63,7 +63,7 @@ type BalanceResponse = {
   deposit?: number
   pricingTerms?: string
   cashBalanceDue?: number
-  zelleVenmoBalanceDue?: number
+  // 发票老版本的回包还可能带 zelleVenmoBalanceDue（D-1006-06 前的第三张账）：不读、不用。
   salesTax?: number
   salesTaxRate?: number
   salesTaxRateSource?: "address" | "default" | "none"
@@ -120,20 +120,12 @@ export async function loadPayContext(orderId: string): Promise<PayContext | null
 
   let terms: PayTerms = { version: "v1" }
   if (v2) {
-    // Venmo / Zelle 尾款：发票给的含已选小费，拿掉小费和现金尾款同口径。接口还
-    // 没给这个字段时按 标价 ×1.04 自己凑一个（标价 = 现金尾款 + 押金 + 已选小费
-    // 之前的数）——这是过渡期的兜底，不是算法。
-    const zvFromApi = num(data.zelleVenmoBalanceDue)
-    const deposit = Math.max(0, num(data.deposit) ?? 0)
-    const listed = Math.max(0, cashBalance + deposit)
-    const zelleVenmoBalance = round2(Math.max(0, zvFromApi != null ? zvFromApi - includedGratuity : cashBalance + listed * ZELLE_VENMO_RATE))
     const taxRate = num(data.salesTaxRate)
     terms = {
       version: "v2",
       taxDollars: settled ? 0 : round2(Math.max(0, num(data.salesTax) ?? 0)),
       taxRate: taxRate ?? DEFAULT_SALES_TAX_RATE,
       taxRateSource: data.salesTaxRateSource ?? (taxRate != null ? "address" : "default"),
-      zelleVenmoBalance: settled ? 0 : zelleVenmoBalance,
       cashBalance: settled ? 0 : cashBalance,
     }
   }

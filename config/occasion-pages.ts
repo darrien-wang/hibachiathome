@@ -875,7 +875,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "How do payment and paperwork work for a company?",
         answer:
-          "You get an itemized quote with your company name on it. A company card is fine, and so are Zelle and Venmo — the balance is paid on the day of the event. If accounting needs a W-9, just ask. We handle headcount changes gracefully, and cancelling or rescheduling is free with 48 hours' notice.",
+          "You get an itemized quote with your company name on it. A company card is fine, and so is cash — the balance is paid on the day of the event. If accounting needs a W-9, just ask. We handle headcount changes gracefully, and cancelling or rescheduling is free with 48 hours' notice.",
       },
       {
         question: "What does it cost for a team?",

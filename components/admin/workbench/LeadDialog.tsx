@@ -318,7 +318,7 @@ export function LeadDialog({
         const cash = Number(q.cashBalanceDue ?? q.balanceDue)
         const v2 = normalizePricingTerms(typeof q.pricingTerms === "string" ? q.pricingTerms : null) === "v2_by_method"
         const detail = v2
-          ? `含消费税${typeof q.salesTaxRate === "number" ? ` ${formatTaxRate(q.salesTaxRate)}` : ""} $${Number(q.salesTax ?? 0).toFixed(2)} + 刷卡手续费 $${Number(q.cardProcessingFee ?? 0).toFixed(2)}；现金尾款 $${cash.toFixed(2)}${typeof q.zelleVenmoBalanceDue === "number" ? ` · Venmo/Zelle $${q.zelleVenmoBalanceDue.toFixed(2)}` : ""}${q.salesTaxRateSource !== "address" ? "\n⚠ 税率是估的——先在发票里按派对地址 Re-rate" : ""}`
+          ? `含消费税${typeof q.salesTaxRate === "number" ? ` ${formatTaxRate(q.salesTaxRate)}` : ""} $${Number(q.salesTax ?? 0).toFixed(2)} + 刷卡手续费 $${Number(q.cardProcessingFee ?? 0).toFixed(2)}；现金尾款 $${cash.toFixed(2)}${q.salesTaxRateSource !== "address" ? "\n⚠ 税率是估的——先在发票里按派对地址 Re-rate" : ""}`
           : `含 4%；现金尾款 $${cash.toFixed(2)}`
         if (!(await askConfirm({ title: "生成收款链接", message: `已联动最新发票（${q.clientName ?? "客户"} · ${q.eventDate ?? "日期未填"} · ${q.guests ?? "?"} 人）\n刷卡尾款 $${bal.toFixed(2)}（${detail}），链接就收这个数\n\n生成这个金额的收款链接？`, okLabel: "生成" }))) return
         amount = bal

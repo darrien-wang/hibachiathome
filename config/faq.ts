@@ -17,7 +17,7 @@ Gratuity: 20–25% of the final bill is customary
 
 Travel fee: first 50 miles free, then $1 per mile — shown in your quote before you pay
 
-Payment: cash, card, Venmo or Zelle — the balance is paid on the day of your party.`,
+Payment: cash or card — the balance is paid on the day of your party.`,
   },
   {
     question: "Do you offer military, nurse, teacher, or first-responder discounts?",

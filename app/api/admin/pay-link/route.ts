@@ -11,8 +11,8 @@ const INVOICE_BALANCE_API = "https://invoice.realhibachi.com/api/self-service/or
 //
 //   action:"quote"  { orderId? | phone?, email? } -> live balance from the invoice
 //                                                system: the single source of truth
-//                                                for the three bills (cash / Venmo-Zelle
-//                                                / card with the party's sales tax and
+//                                                for the two bills (cash / card with the
+//                                                party's sales tax and
 //                                                card processing under the by-method
 //                                                terms, +4% under v1), gratuity tier
 //                                                and deposit - so texted links and the

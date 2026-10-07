@@ -394,7 +394,7 @@ export function SoftphoneMobileDrawer() {
                   value={dialDraft}
                   onChange={(e) => setDialDraft(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && live.kind === "none") void dial(dialDraft) }}
-                  placeholder="562-713-4832"
+                  placeholder="213-555-0100"
                   inputMode="tel"
                   style={{ flex: 1, minWidth: 0, border: 0, background: "transparent", fontFamily: FONT, fontSize: 32, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums", padding: 0, outline: "none" }}
                 />

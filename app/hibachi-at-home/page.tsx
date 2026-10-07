@@ -44,7 +44,7 @@ const faqs = [
   },
   {
     question: "How do I pay?",
-    answer: "Zelle, Venmo, or cash, with the balance due on the day of service.",
+    answer: "Cash to your chef or card, with the balance due on the day of service.",
   },
   {
     question: "What if it rains?",

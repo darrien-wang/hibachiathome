@@ -8,7 +8,7 @@ import { isPlaceholderName } from "@/lib/leads"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-// Staff-only: confirm an off-Stripe deposit (Venmo / Zelle / cash) and promote
+// Staff-only: confirm an off-Stripe deposit (cash; Venmo / Zelle only on legacy orders) and promote
 // the lead to a real order. Deposit is THE promotion event regardless of
 // channel, so this emits the same order.deposit_paid envelope the Stripe
 // webhook emits — same ingest, same RH- number minting, same audit trail.
@@ -18,6 +18,7 @@ async function isAuthorized(request: NextRequest): Promise<boolean> {
   return (await resolveAdminActor(request)) !== null
 }
 
+// "venmo" / "zelle": legacy rows only - not customer rails since 2026-10-06 (D-1006-06).
 const CHANNELS = ["venmo", "zelle", "cash", "other"] as const
 type Channel = (typeof CHANNELS)[number]
 

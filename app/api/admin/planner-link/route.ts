@@ -11,8 +11,9 @@ const PLANNER_HOST = "https://party.realhibachi.com"
 // to their identity: the anchor registry reconnects any session they started
 // earlier (under email OR phone, any formatting), or starts a fresh one that
 // future visits will converge on. `booked:true` (won leads) additionally tells
-// the planner the deposit is confirmed - regardless of channel (Stripe, Venmo,
-// Zelle) - so the customer never sees an "unpaid deposit" warning.
+// the planner the deposit is confirmed - regardless of channel (Stripe card on
+// file, or an offline deposit staff registered) - so the customer never sees an
+// "unpaid deposit" warning.
 async function isAuthorized(request: NextRequest): Promise<boolean> {
   return (await resolveAdminActor(request)) !== null
 }

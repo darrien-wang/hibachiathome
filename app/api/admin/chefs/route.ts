@@ -768,7 +768,7 @@ export async function POST(request: NextRequest) {
         if (error) throw error
         // 订单侧同步（2026-09-28 用户定：手动"登记尾款已收"卡已删，这里是唯一入口）：
         //   cash    -> 师傅代收里抵尾款的部分记成 cash 已收（超出部分是小费，不进订单）
-        //   prepaid -> 老板说钱早到了（Zelle/转账），把还挂着的尾款记成已收
+        //   prepaid -> 老板说钱早到了（老单的 Zelle/转账；10-06 起客人不再走这些渠道，D-1006-06），把还挂着的尾款记成已收
         //   card    -> /pay 的 webhook 自己会记，这里不动
         let orderSync: string | null = null
         if (method === "cash" || method === "prepaid") {

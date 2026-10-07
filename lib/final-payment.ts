@@ -8,6 +8,9 @@ import { buildBalancePaidEventEnvelope, sendCrmEventEnvelope } from "@/lib/crm-i
 //
 // 幂等：externalPaymentId 由 渠道+订单号+金额 决定，重复提交合并成同一行。
 
+// "venmo" / "zelle" are legacy-only (D-1006-06, 2026-10-06): those accounts stopped being
+// customer rails that night and now only pay chef wages. The values stay so historical rows
+// keep rendering; a legacy transfer nets to the business like cash (tax inside, no processing).
 export type FinalPaymentChannel = "cash" | "venmo" | "zelle" | "stripe" | "other"
 
 export async function registerFinalPayment(

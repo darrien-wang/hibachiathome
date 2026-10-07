@@ -1001,7 +1001,7 @@ function SoftphoneDrawer() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !busy) void dial(dialDraft)
                   }}
-                  placeholder="562-713-4832"
+                  placeholder="213-555-0100"
                   inputMode="tel"
                   style={{
                     flex: 1, padding: "9px 10px", border: "1px solid #d1d5db",

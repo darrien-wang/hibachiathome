@@ -27,18 +27,8 @@ export const paymentMethodsConfig = {
       enabled: true,
     },
   ],
+  // Zelle / Venmo were dropped 2026-10-06 (D-1006-06): not customer payment methods any more.
   digitalWallets: [
-    {
-      name: "Zelle",
-      logo: "/zelle-logo.png",
-      qrCode: "/zelle-qrcode.png",
-      enabled: true,
-    },
-    {
-      name: "Venmo",
-      qrCode: "/venmo-qrcode.png",
-      enabled: true,
-    },
     {
       name: "Square",
       logo: "/square-logo.png",

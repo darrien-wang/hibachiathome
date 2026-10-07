@@ -32,6 +32,7 @@ export const RefundConfirmationEmail = ({
         return "Credit Card (Stripe)"
       case "square":
         return "Square"
+      // "venmo" / "zelle": legacy rows only - not customer rails since 2026-10-06 (D-1006-06).
       case "venmo":
         return "Venmo"
       case "zelle":

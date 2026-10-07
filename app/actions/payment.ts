@@ -66,6 +66,7 @@ export async function processPayment(request: PaymentRequest): Promise<PaymentRe
         transactionId = `square_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
         break
 
+      // "venmo" / "zelle": legacy only (D-1006-06, 2026-10-06) - not customer rails any more, kept for old records.
       case "venmo":
         // Venmo typically requires manual confirmation
         transactionId = `venmo_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
