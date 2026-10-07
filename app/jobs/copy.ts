@@ -82,7 +82,7 @@ export const COPY: Record<JobsLocale, Copy> = {
     lede: "开车到客人后院支起铁板，边做边表演，一场 90 分钟。不是餐厅后厨。只做周五、周六、周日，平时完全不占用。",
     points: [
       { k: "铁板炉公司提供", v: "不用自己先买炉子。这行别家都要。" },
-      { k: "零基础，两三周出师", v: "前面跟 1–3 台在旁边学（不给钱），上手炒的那台起 $10／位。" },
+      { k: "零基础，两三周出师", v: "跟场、半独立那几台是学本事（不给钱），能自己炒整台起 $10／位。" },
       { k: "英语不用很好", v: "全场就那几句固定的话，我们给一整张话术表，背熟就行。" },
       { k: "10 人的场约 $220", v: "工钱＋小费。出师后 $11–13／位，客人点名 $15–20／位。" },
       { k: "小费 100% 归你", v: "公司一分不碰。每场保底 $100，每周六结账。" },
@@ -143,7 +143,7 @@ export const COPY: Record<JobsLocale, Copy> = {
     lede: "You drive to the customer's backyard, set up the griddle, and run a 90-minute show. Not a restaurant kitchen. Fridays, Saturdays and Sundays only.",
     points: [
       { k: "We supply the griddle", v: "You don't buy a grill to start. Everyone else in this business makes you." },
-      { k: "Zero experience, solo in 2–3 weeks", v: "First 1–3 events you ride along unpaid, then $10/guest from your first hands-on event." },
+      { k: "Zero experience, solo in 2–3 weeks", v: "Ride-alongs and mentored practice events are unpaid; $10/guest from the first event you cook on your own." },
       { k: "Your English doesn't need to be great", v: "The night runs on a short, fixed set of lines. We give you the whole script." },
       { k: "About $220 for a 10-guest party", v: "Pay plus tips. After you're cleared: $11–13/guest, $15–20 when requested by name." },
       { k: "100% of tips are yours", v: "We never touch them. $100 minimum per event, paid every Saturday." },
@@ -204,7 +204,7 @@ export const COPY: Record<JobsLocale, Copy> = {
     lede: "Manejas al patio del cliente, montas la plancha y haces un show de 90 minutos. No es cocina de restaurante. Solo viernes, sábado y domingo.",
     points: [
       { k: "La plancha la ponemos nosotros", v: "No compras el equipo para empezar. Los demás en este negocio te obligan." },
-      { k: "De cero a trabajar solo en 2–3 semanas", v: "Los primeros 1–3 eventos acompañas sin pago; desde el primero que cocinas, $10 por invitado." },
+      { k: "De cero a trabajar solo en 2–3 semanas", v: "Los eventos de acompañamiento y de práctica con mentor no se pagan; desde el primero que cocinas solo, $10 por invitado." },
       { k: "No necesitas un inglés perfecto", v: "La noche corre sobre unas pocas frases fijas. Te damos el guion completo." },
       { k: "Unos $220 en una fiesta de 10", v: "Pago más propinas. Ya aprobado: $11–13 por invitado, $15–20 si te piden por nombre." },
       { k: "Las propinas son 100% tuyas", v: "No tocamos nada. Mínimo $100 por evento, pago cada sábado." },
