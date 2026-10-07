@@ -577,7 +577,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 - 报价按人均（用户定的大单价，如 $55.90/adult 含税）× 两个人数档，+ 路费；小孩 5–12 $29.90、5 岁以下免费；厨师数 = ⌈人数/28⌉。
 - **桌椅+餐具可免费**作为大单让利（用户当场决定，不主动给）。
 - **菜单 + planner 专属链接**单独一条发：客户要提前收齐每位客人的选择，"easiest way is our party planner"，`POST /api/admin/planner-link {email,phone,booked:false}` 生成带身份的链接。
-- **押金 $100**（61+ 大单的老规矩；10-06 起小单不收押金只留卡，**大单这 $100 要不要也改留卡待老板定**）：押金页金额固定，用 `POST /api/admin/pay-link {amount:100, amountIsFinal:true, customerName, note, phone, email}` 铸 Stripe Checkout 链接。**付了不会自动进订单表，要手动建单。**
+- **61+ 大单也是留卡锁日期，不收 $100 押金**（老板 2026-10-06 定，原"大单 $100 押金"作废）：用同一条 `/deposit/pay` 链接（`desk link deposit`，或报价工具签好 61+ 规则的那条），**不再用 `POST /api/admin/pay-link` 铸 $100 Checkout**；留卡后 webhook 自动建单，不用手动。
 - 尾款口径："The balance is paid on the day of the party - $X in cash to your chef, or $Y by card, Venmo or Zelle."（$Y = $X × 1.10；不提税、不提手续费，D-1006-03）
 - 三条分开发：① 报价 ② 菜单+planner ③ 押金+尾款。
 
@@ -658,7 +658,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 
 - **软饮**：卖，**$5/位**（可乐、健怡、雪碧、水；网站菜单 `config/menu-items.ts` 上挂着 Soft Drinks Package，另有 Premium $12/位：软饮+果汁+无酒精鸡尾酒）。客人问"饮料包不包" → sake 包含，软饮 $5/位要就带，或者自备。**发票工具里没有饮料 SKU**，客人要了得手动加一行并告诉用户。
 - **押金退不退 / 取消收不收钱**：锁日期时没收钱，没有押金可退；≥48h 取消不收钱，48h 内 $99。
-- **卡在锁日期页被拒**（10-06 起没有押金可改付 Zelle/Venmo，这条取代 2026-10-01 的"押金走 Zelle/Venmo"）：先让客人换一张卡再试（`transaction_not_allowed` 这类是发卡行拦的，不是我们的问题）；还不行就报给用户，由用户决定要不要人工建单（工作台「线下押金」入口要求金额 >0，纯留卡的手工建单路径待补）。**Zelle 562-713-4832 / Venmo @realhibachiathome** 仍是尾款（和 10-05 前老单押金）的收款方式。
+- **卡在锁日期页被拒就不锁**（老板 2026-10-06 定；取代 2026-10-01 的"押金走 Zelle/Venmo"）：让客人换一张卡再试（`transaction_not_allowed` 这类是发卡行拦的，不是我们的问题）；换卡也不行就不建单——没有有效的卡，客人爽约时我们就没有扣款的权利，**不人工建单、不改收 Zelle/Venmo、不口头占位当成已锁**。**Zelle 562-713-4832 / Venmo @realhibachiathome** 只用于尾款（和 10-05 前老单的押金）。
 - **是真人吗**："Yes — Bling, I run Real Hibachi."
 
 ## 7. 销售心理学 → 具体怎么用（每条话术至少用到两条）
