@@ -836,7 +836,20 @@ async function handleCheckoutSessionCompleted(
   if (updatedBookingId) {
     const realEmail = asRealEmail(session.customer_details?.email) ?? asRealEmail(session.customer_email)
     const realName = asRealName(session.customer_details?.name)
-    const realPhone = asRealPhone(session.customer_details?.phone)
+    let realPhone = asRealPhone(session.customer_details?.phone)
+    // Setup-mode sessions (card on file, D-1006-04) collect no phone at Stripe
+    // and the placeholder booking says "TBD", so the lead the link came from is
+    // the only place the number lives. Without it the booking, the CRM order,
+    // the ops email and - worst - the customer's confirmation text with the
+    // planner link were all phone-less on every card-on-file lock
+    // (RH-20261007-9885, 2026-10-06: "Customer Phone: N/A", SMS skipped).
+    if (!realPhone) {
+      const leadId = asNonEmptyString(session.metadata?.lead_id)
+      if (leadId) {
+        const { data: lead } = await supabase.from("leads").select("phone").eq("id", leadId).maybeSingle()
+        realPhone = asRealPhone(lead?.phone)
+      }
+    }
     if (realEmail || realName || realPhone) {
       const { data: current } = await supabase
         .from("bookings")
