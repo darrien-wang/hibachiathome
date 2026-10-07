@@ -16,7 +16,7 @@ const spec = {
     version: "1.0.0",
     description: [
       "Private hibachi chef at home in Southern California. Use these endpoints to check a date, get an exact price, and, with the customer's permission, request a quote that we text and email to them.",
-      "Agents never take payment: the customer locks the date through the link we send them (a card is saved, nothing is charged before the party).",
+      "Agents never take payment: the customer locks the date through the link we send them (a card is saved, nothing is charged today; the total is settled after the party).",
       `Business facts in plain text: ${SITE}/llms.txt. People can also call or text (213) 770-7788.`,
     ].join("\n\n"),
     contact: { name: "Real Hibachi", email: "support@realhibachi.com", url: SITE },

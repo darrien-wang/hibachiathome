@@ -93,7 +93,7 @@ Not sure? Send a photo with your quote request and the team will confirm the spo
 ## Step 2: Pick your date and time
 
 - **Golden hour is the move.** Start the chef about an hour before sunset — the fire show runs straight into the string-light hours.
-- **Weekends book first.** Two to three weeks ahead is comfortable for a Saturday; a card on file locks it, nothing charged until after the party.
+- **Weekends book first.** Two to three weeks ahead is comfortable for a Saturday; a card on file locks it — nothing is charged today, and the total is settled after the party. Change or cancel free up to 48 hours before; inside 48 hours a $99 late-change fee applies.
 - **Monday–Thursday saves real money** — $54.90/adult instead of $59.90, plus a free appetizer of your choice (gyoza, edamame or spring rolls), at any party size.
 
 ## Step 3: Count your people, then quote it
