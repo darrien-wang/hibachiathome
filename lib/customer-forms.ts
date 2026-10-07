@@ -27,7 +27,9 @@ export function formSummary(type: string, payload: Record<string, unknown> | nul
   if (date) bits.push(`${date.slice(0, 10)}${time ? ` ${time}` : ""}`)
   const adults = s("adults") || s("adultCount") || s("guestAdults")
   const kids = s("kids") || s("childCount") || s("guestKids")
-  if (adults) bits.push(`${adults} 大人${kids && kids !== "0" ? ` ${kids} 小孩` : ""}`)
+  // The landing form's own adults/kids are a stale default (15 when the quote said 5, 2026-10-07);
+  // the automatic quote right after it carries the real count, so do not repeat the form's.
+  if (adults && type !== "landing_contact") bits.push(`${adults} 大人${kids && kids !== "0" ? ` ${kids} 小孩` : ""}`)
   else if (s("guests") || s("guestCount")) bits.push(`${s("guests") || s("guestCount")} 人`)
   const loc = s("location") || s("city") || s("cityOrZip") || s("zip")
   if (loc) bits.push(loc)
