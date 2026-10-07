@@ -106,6 +106,8 @@ export function LeadDialog({
   const [appTrays, setAppTrays] = useState("")
   const [freeTables, setFreeTables] = useState(false)
   const [freeUtensils, setFreeUtensils] = useState(false)
+  // Below the owner's floor (D-1006-03) the quote only goes out once the owner has said yes.
+  const [floorOk, setFloorOk] = useState(false)
   // The last generated quote: it goes into 承诺 only once a text carrying its link is sent.
   const [pendingQuote, setPendingQuote] = useState<{ link: string; note: string } | null>(null)
   const [travel, setTravel] = useState<{ miles: number | null; fee: number } | null>(null)
@@ -662,6 +664,19 @@ export function LeadDialog({
                   .join(" · ") || "没有折扣"}
                 {quote.minApplied ? " → 不到 $599，按 $599 起订" : ""}
               </div>
+              {quote.adults + quote.kids > 0 ? (
+                <div style={{ color: quote.belowFloor ? "var(--color-danger-600, #b91c1c)" : undefined, fontWeight: quote.belowFloor ? 600 : undefined }}>
+                  人均实收 ${quote.effectivePerHead.toFixed(2)}（底线 {weekday ? "周一–四" : "周五–日"} ${quote.floorRate}
+                  {quote.kids ? "，小孩算半个" : ""}
+                  {freeTables ? "，桌椅按 $4/人计入" : ""}）
+                  {quote.belowFloor ? (
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 8 }}>
+                      <input type="checkbox" checked={floorOk} onChange={(e) => setFloorOk(e.target.checked)} />
+                      低于底线，老板已点头
+                    </label>
+                  ) : null}
+                </div>
+              ) : null}
               {quote.freebiesZh.length ? <div>送：{quote.freebiesZh.join("、")}，共值 ${quote.freeValue}，不进总价</div> : null}
               {appId ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>前菜不签进押金链接，付押金后发票里按盘数加上（发出后记在承诺里）</div> : null}
             </div>
@@ -679,10 +694,10 @@ export function LeadDialog({
               type="button"
               className="btn btn-primary btn-left"
               style={{ width: "100%", marginTop: 8 }}
-              disabled={!!busy || !lead.phone || quote.adults + quote.kids === 0}
+              disabled={!!busy || !lead.phone || quote.adults + quote.kids === 0 || (quote.belowFloor && !floorOk)}
               onClick={() => void pushQuote()}
             >
-              {busy === "quote" ? "生成中…" : "生成报价短信（带押金链接）"}
+              {busy === "quote" ? "生成中…" : quote.belowFloor && !floorOk ? "低于底线 — 先问老板" : "生成报价短信（带押金链接）"}
             </button>
           </div>
 

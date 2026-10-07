@@ -238,6 +238,18 @@ export const TABLES_CHAIRS_PER_GUEST = 10
 export const UTENSILS_PER_GUEST = 5
 export const FULL_SETUP_PER_GUEST = TABLES_CHAIRS_PER_GUEST + UTENSILS_PER_GUEST // $15
 
+// ---------------------------------------------------------------
+// Negotiation floor (owner 2026-10-06, D-1006-03): the least we take in per
+// head after every discount - food only, travel and rentals aside. Fri–Sun
+// $50, Mon–Thu $45. Kids 5–12 count as half a head (their list price is
+// half). Free tables & chairs count as a $4/guest concession (what they cost
+// us); free appetizers and noodles cost us nothing and never move the floor;
+// place settings are never given away. The leads skill §4.3 has the prose.
+// ---------------------------------------------------------------
+export const PRICE_FLOOR_PER_HEAD = { weekend: 50, weekday: 45 } as const
+export const PRICE_FLOOR_KID_WEIGHT = 0.5
+export const TABLES_CONCESSION_PER_GUEST = 4
+
 /**
  * White tablecloths cost more than black (owner, 2026-09-23): they are a
  * separate stock, and one party's red wine retires a cloth that black would

@@ -27,6 +27,9 @@ import {
   PARTY_SIZE_CUSTOM_FROM,
   PARTY_SIZE_DISCOUNT_TIERS,
   partySizeDiscount,
+  PRICE_FLOOR_KID_WEIGHT,
+  PRICE_FLOOR_PER_HEAD,
+  TABLES_CONCESSION_PER_GUEST,
   tierHeadcount,
 } from "@/config/pricing-rules"
 
@@ -86,6 +89,15 @@ export type QuoteBreakdown = {
    */
   total: number
   perPerson: number
+  /** Owner's floor for this day type (Fri–Sun $50, Mon–Thu $45), per head. */
+  floorRate: number
+  /**
+   * What we actually take in per head after every discount: food only (travel
+   * aside), kids weighted half, free tables & chairs counted as $4/guest.
+   */
+  effectivePerHead: number
+  /** Below the owner's floor - the owner has to say yes before this goes out. */
+  belowFloor: boolean
   /** The party already gets a free appetizer (Weekday Special or 20+). */
   autoAppetizer: boolean
   /** How many trays of it: one per 10 paying guests, at least one; 0 when none. */
@@ -128,6 +140,13 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const food = Math.max(afterDiscounts, MINIMUM_SPEND)
   const travelFee = q.travelFee == null ? 0 : Math.max(0, Math.round(q.travelFee))
   const total = r2(food + travelFee)
+
+  // Owner's floor (D-1006-03): per-head take after every discount, food only.
+  const floorRate = q.weekdaySpecial ? PRICE_FLOOR_PER_HEAD.weekday : PRICE_FLOOR_PER_HEAD.weekend
+  const floorHeads = adults + PRICE_FLOOR_KID_WEIGHT * kids
+  const receivable = food - (q.freeTables && heads > 0 ? TABLES_CONCESSION_PER_GUEST * heads : 0)
+  const effectivePerHead = floorHeads > 0 ? r2(receivable / floorHeads) : 0
+  const belowFloor = floorHeads > 0 && effectivePerHead < floorRate
 
   const today = new Date().toISOString().slice(0, 10)
   const autoAppetizer =
@@ -197,6 +216,9 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     travelKnown: q.travelFee != null,
     total,
     perPerson: heads > 0 ? r2(total / heads) : 0,
+    floorRate,
+    effectivePerHead,
+    belowFloor,
     autoAppetizer,
     autoAppetizerTrays,
     freeValue,
