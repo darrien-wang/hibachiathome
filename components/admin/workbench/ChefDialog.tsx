@@ -310,7 +310,11 @@ export function ChefDialog({
         assignment_id: s.assignmentId,
         method: "card",
         card_gross: look?.found ? (look.grossCents ?? 0) / 100 : undefined,
-        card_fee: look?.found ? (look.feeCents ?? 0) / 100 : undefined,
+        // card_fee_cents is "what comes off the card before the tip" on the
+        // statement (components/chef/statement.tsx): v1 the 4%; v2 the sales
+        // tax plus the 3% processing. Sending the fee alone made the v2
+        // statement print the after-tax figure a whole tax too high.
+        card_fee: look?.found ? ((look.feeCents ?? 0) + (v2 ? (look.taxCents ?? 0) : 0)) / 100 : undefined,
         card_tip: raw.trim() === "" ? 0 : Number(raw),
         ref: look?.paymentId,
       },

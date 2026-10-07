@@ -18,12 +18,18 @@ import { sendSupportNotificationEmail } from "@/lib/ops-notifications"
 //
 // Stripe only delivers these if the endpoint subscribes to them in the
 // dashboard: payment_intent.payment_failed, charge.failed,
-// checkout.session.async_payment_failed.
+// checkout.session.async_payment_failed, setup_intent.setup_failed.
+//
+// 2026-10-07: since the date is locked with a card on file (D-1006-04,
+// setup-mode Checkout) a decline at the lock step is a setup_intent failure,
+// not a payment failure - and "no valid card, no booking" was a rule nobody
+// could act on because the decline never reached anyone.
 
 export const FAILURE_EVENT_TYPES = [
   "payment_intent.payment_failed",
   "charge.failed",
   "checkout.session.async_payment_failed",
+  "setup_intent.setup_failed",
 ] as const
 
 export type FailureEventType = (typeof FAILURE_EVENT_TYPES)[number]
@@ -47,6 +53,8 @@ interface FailureFacts {
   leadId: string | null
   orderId: string | null
   objectId: string
+  /** The card was being saved to lock the date (setup mode), not charged. */
+  setup?: boolean
 }
 
 function str(value: unknown): string | null {
@@ -93,6 +101,29 @@ export function readFailure(event: Stripe.Event): FailureFacts | null {
       leadId: str(metadata.lead_id),
       orderId: str(metadata.order_id),
       objectId: pi.id,
+    }
+  }
+
+  if (event.type === "setup_intent.setup_failed") {
+    const si = object as unknown as Stripe.SetupIntent
+    const err = si.last_setup_error
+    const card = err?.payment_method?.card
+    return {
+      amountCents: null,
+      currency: null,
+      message: str(err?.message),
+      code: str(err?.code),
+      declineCode: str(err?.decline_code),
+      brand: str(card?.brand),
+      last4: str(card?.last4),
+      wallet: str((card as { wallet?: { type?: string } } | undefined)?.wallet?.type),
+      email: str(metadata.customer_email) ?? str(metadata.email),
+      phone: str(metadata.customer_phone) ?? str(metadata.phone),
+      // /api/deposit/start puts lead_id (and booking_id) on the SetupIntent.
+      leadId: str(metadata.lead_id),
+      orderId: str(metadata.order_id),
+      objectId: si.id,
+      setup: true,
     }
   }
 
@@ -270,19 +301,27 @@ export async function handlePaymentFailure(
     }
 
     const who = (lead?.full_name ?? "").trim() || order?.customer_name || prettyPhone(facts.phone)
-    const amount = money(facts.amountCents, facts.currency)
+    const amount = facts.setup ? "the card save (lock the date, $0)" : money(facts.amountCents, facts.currency)
     const reason = facts.message ?? facts.declineCode ?? facts.code ?? "no reason given"
     const appBase = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
     const link = lead ? `${appBase}/admin?tab=leads&lead=${lead.id}` : `${appBase}/admin?tab=orders`
 
-    const verdict = alreadyPaid
-      ? `ALREADY PAID - ${order?.order_no ?? "this order"} has its deposit. This is a retry of a payment we do not need. Do not send another payment link. Stripe Link retries a backup card within 24h; if a duplicate ${amount} lands, refund it.`
-      : "NOT PAID - they were trying to pay and could not. Text them while they are still on the page and ask them to try another card. Card only: no valid card, no booking (owner 2026-10-06) - do not book by hand or take the money another way."
+    // A setup failure is a decline at the lock step: the order does not exist
+    // yet unless an earlier card already went through (alreadyPaid = locked).
+    const verdict = facts.setup
+      ? alreadyPaid
+        ? `ALREADY LOCKED - ${order?.order_no ?? "this order"} already has a card on file. Nothing to do unless they say they are changing cards.`
+        : "CARD NOT SAVED - their card was declined while locking the date, so there is no booking. Text them while they are still on the page and ask them to try another card: the same lock link works (every click opens a fresh Stripe page). No valid card, no booking (owner 2026-10-06) - do not book by hand or take the money another way."
+      : alreadyPaid
+        ? `ALREADY PAID - ${order?.order_no ?? "this order"} has its deposit. This is a retry of a payment we do not need. Do not send another payment link. Stripe Link retries a backup card within 24h; if a duplicate ${amount} lands, refund it.`
+        : "NOT PAID - they were trying to pay and could not. Text them while they are still on the page and ask them to try another card. Card only: no valid card, no booking (owner 2026-10-06) - do not book by hand or take the money another way."
 
     await sendSupportNotificationEmail({
-      subject: `Payment declined: ${who} · ${amount}${alreadyPaid ? " (already paid)" : ""}`,
+      subject: facts.setup
+        ? `Card declined at lock: ${who}${alreadyPaid ? " (already locked)" : ""}`
+        : `Payment declined: ${who} · ${amount}${alreadyPaid ? " (already paid)" : ""}`,
       text: [
-        `${who} had ${amount} declined.`,
+        facts.setup ? `${who}'s card was declined while locking the date.` : `${who} had ${amount} declined.`,
         `Reason: ${reason}`,
         `Card: ${describeCard(facts)}`,
         `Phone: ${prettyPhone(facts.phone ?? lead?.phone ?? null)}`,
@@ -294,7 +333,7 @@ export async function handlePaymentFailure(
         link,
       ].join("\n"),
       html: [
-        `<p><strong>${who}</strong> had <strong>${amount}</strong> declined.</p>`,
+        facts.setup ? `<p><strong>${who}</strong>'s card was declined while locking the date.</p>` : `<p><strong>${who}</strong> had <strong>${amount}</strong> declined.</p>`,
         `<p>Reason: ${reason}<br/>Card: ${describeCard(facts)}<br/>`,
         `Phone: ${prettyPhone(facts.phone ?? lead?.phone ?? null)}<br/>`,
         `Email: ${facts.email ?? lead?.email ?? "unknown"}<br/>`,
