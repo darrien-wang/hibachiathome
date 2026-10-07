@@ -468,7 +468,12 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     // machine-sent since 2026-10-07; anything the template does not fit goes
     // to a person with the reason attached.
     if (gotQuote) {
-      if (ageMin < QUOTE_FOLLOW_UP_GRACE_MIN) continue
+      // The grace counts from the quote text, not from the contact step: a
+      // visitor who leaves contact details and then finishes step 2 two
+      // minutes later got B 33 seconds after the quote on the first live run.
+      const quoteTp = tps.filter((t) => t.touchpoint_type === "landing_quote_text").sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+      const quoteAgeMin = quoteTp ? Math.round((now - new Date(quoteTp.created_at).getTime()) / 60_000) : ageMin
+      if (quoteAgeMin < QUOTE_FOLLOW_UP_GRACE_MIN) continue
       if (!watch.auto_quote_follow_up) {
         human("auto_quote_follow_up off")
         continue
@@ -477,7 +482,6 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         human(phone ? "sms blocked" : "no phone")
         continue
       }
-      const quoteTp = tps.filter((t) => t.touchpoint_type === "landing_quote_text").sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
       const payload = (quoteTp?.raw_payload_json ?? {}) as { adults?: number; kids?: number; eventDate?: string }
       const plan = quoteFollowUpPlan({
         adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
