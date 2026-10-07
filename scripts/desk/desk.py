@@ -66,6 +66,13 @@ def is_tapback(body: str) -> bool:
     return bool(TAPBACK.match(b) or THUMB.match(b))
 
 
+def desk_session() -> str:
+    """This desk's identity for the just-answered brake: the Claude session when
+    run from one, else the machine and the parent shell."""
+    import os, socket
+    return (os.environ.get("DESK_SESSION") or os.environ.get("CLAUDE_CODE_SESSION_ID") or f"{socket.gethostname()}:{os.getppid()}")[:80]
+
+
 def money(v) -> str:
     try:
         return f"${float(v):,.2f}"
@@ -344,7 +351,10 @@ def cmd_send(a):
         if a.lead:
             site_get("/api/admin/sms-thread", {"leadId": a.lead})  # reconcile into the timeline
         return
-    payload = {"phone": e164(a.phone), "body": body}
+    # Which desk is sending: the server refuses a text when another session
+    # answered this number minutes ago and the customer has not spoken since
+    # (brake just_answered, 2026-10-07 - two desks answered Eileen 17 s apart).
+    payload = {"phone": e164(a.phone), "body": body, "session": desk_session()}
     if a.lead:
         payload["leadId"] = a.lead
     if a.force:
