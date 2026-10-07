@@ -39,7 +39,7 @@ Formas de pago: efectivo, tarjeta, Venmo o Zelle — el saldo se paga el día de
   {
     question: "¿Qué pasa si el chef no llega?",
     answer:
-      "Esta es nuestra promesa de asistencia, por escrito: tu chef queda confirmado por nombre antes del evento, y nuestros chefs son parte de nuestro propio equipo — no repartidores de una app. Si Real Hibachi alguna vez tuviera que cancelarte, te devolvemos el doble de lo que hayas pagado y te damos prioridad para reagendar. En otras palabras: llegamos, o nos cuesta.",
+      "Esta es nuestra promesa de asistencia, por escrito: tu chef queda confirmado por nombre antes del evento, y nuestros chefs son parte de nuestro propio equipo — no repartidores de una app. En el raro caso de que tuviéramos que cancelar, te lo decimos nosotros directamente y te damos prioridad para reagendar.",
   },
   {
     question: "¿Cuánta comida recibe cada invitado?",

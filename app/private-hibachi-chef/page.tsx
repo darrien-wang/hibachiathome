@@ -46,7 +46,7 @@ const chefPromises = [
   {
     title: "Confirmed by name before your party",
     description:
-      "Two days before your party you know exactly which chef is coming. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook.",
+      "Two days before your party you know exactly which chef is coming. If anything ever changes on our side, you hear it from us first and get first priority to rebook.",
   },
   {
     title: "Our own team, not an app",
@@ -99,7 +99,7 @@ const faqs = [
   {
     question: "Can I cancel or reschedule my chef?",
     answer:
-      "Yes. Cancel or reschedule at least 48 hours before your event at no cost. Inside 48 hours there's a $99 late-cancellation charge. And the promise runs both ways — if Real Hibachi ever cancels on you, you get double your money back.",
+      "Yes. Cancel or reschedule at least 48 hours before your event at no cost. Inside 48 hours there's a $99 late-cancellation charge.",
   },
 ]
 

@@ -37,7 +37,7 @@ const FAQ = [
   },
   {
     q: "Cancellation policy",
-    a: "Cancel or reschedule free with 48 hours' notice. Your chef is confirmed by name before your party, and if we ever cancel on you we refund double what you have paid.",
+    a: "Cancel or reschedule free with 48 hours' notice. Your chef is confirmed by name before your party.",
   },
 ] as const
 

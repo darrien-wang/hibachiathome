@@ -42,7 +42,7 @@ Payment: cash, card, Venmo or Zelle — the balance is paid on the day of your p
   {
     question: "What if the chef doesn't show up?",
     answer:
-      "This is our show-up promise, in writing: your chef is confirmed by name before your event, and our chefs are our own team - not gig workers dispatched from an app. If Real Hibachi ever has to cancel on you, we refund double what you have paid and give you first priority to rebook. In other words: we show up, or it costs us.",
+      "This is our show-up promise, in writing: your chef is confirmed by name before your event, and our chefs are our own team - not gig workers dispatched from an app. In the rare case we ever have to cancel, you hear it from us directly and get first priority to rebook.",
   },
   {
     question: "How much food does each guest get?",
