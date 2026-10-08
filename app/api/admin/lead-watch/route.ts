@@ -475,7 +475,17 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       // The grace counts from the quote text, not from the contact step: a
       // visitor who leaves contact details and then finishes step 2 two
       // minutes later got B 33 seconds after the quote on the first live run.
-      const quoteTp = tps.filter((t) => t.touchpoint_type === "landing_quote_text").sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+      // The quote the customer actually received. A leave-beacon (auto:
+      // "leave") after an earlier quote still writes a touchpoint, but
+      // /api/landing-quote skips its text ("already_sent") - and it carries
+      // the card's defaults. 2026-10-07 626-367-4367: quoted 14 + 2 for Sun
+      // Oct 18, then a skipped beacon for 15 / no date, and B said "your quote
+      // for 15 - which date?". So: newest quote that is not a repeat beacon.
+      const quotes = tps.filter((t) => t.touchpoint_type === "landing_quote_text").sort((a, b) => a.created_at.localeCompare(b.created_at))
+      const quoteTp = [...quotes].reverse().find((t, i, rev) => {
+        const isFirst = i === rev.length - 1
+        return isFirst || ((t.raw_payload_json ?? {}) as { auto?: string }).auto !== "leave"
+      })
       const quoteAgeMin = quoteTp ? Math.round((now - new Date(quoteTp.created_at).getTime()) / 60_000) : ageMin
       if (quoteAgeMin < QUOTE_FOLLOW_UP_GRACE_MIN) continue
       if (!watch.auto_quote_follow_up) {
