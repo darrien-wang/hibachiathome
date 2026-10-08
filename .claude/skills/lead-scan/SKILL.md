@@ -39,7 +39,7 @@ python scripts/desk/desk.py scan --no-write   # 只看不写
 | **F 隐性异议** | D/E 里带 tables_asked / budget_words / at_minimum / headcount_down | 跟进就是那一次让步：桌椅换锁日期（leads §8）、周中 $500 底线（§4.3）、先问数再让 | 带宽内直发，超带宽问老板 |
 | **E 派对临近** | 日期 7 天内，没付押金 | 真时钟 + 开门句（§4.2 f_deadline）；已满 3 条的要 force，**先给老板看** | 拟稿 |
 | **D 到期跟进** | 我们最后说话、≥20 小时、未满 3 条、无挂起无 callback | 台阶句 + 一个真理由 + 一个好答的问题（§4.2 f_one）。**这是这条线索的最后一条** | **一批一次批** |
-| **H 停** | 挂起中 / 满 3 条 / 打不通 / 刚发过不到 20 小时 / 最后一条是点赞 | 不发。`needs_hold` 的挂 14 天；点赞的 `ack` | — |
+| **H 停** | 挂起中 / 满 3 条 / 打不通 / 刚发过不到 20 小时 / 最后一条是点赞 | 不发。`needs_hold` 的挂 14 天；点赞的 `ack`。**派对日期已过、客人一直没回，或客人明说取消 → 直接 `desk status <id> lost` + `[lost]` 备注写原因，不用问老板**（2026-10-08，D-1008-03） | — |
 
 旗标（挂在任何桶上，是数据修的清单）：`name_unknown`、`city_default`、`travel_underquoted:$N`（报价说免路费但路费表有费用）、`has_paid_order`（状态该是 won）、`tapback_last`、`cap_reached`。
 
