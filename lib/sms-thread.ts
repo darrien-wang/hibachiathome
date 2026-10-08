@@ -186,7 +186,7 @@ export async function fetchLastByPeer(limit = 800, maxAgeMs = 60_000): Promise<M
 export type SendSmsResult = { ok: true; sid: string; status: string } | { ok: false; error: string }
 
 /** Send from the business line (Messaging Service when configured). */
-export async function sendSms(peer: string, body: string): Promise<SendSmsResult> {
+export async function sendSms(peer: string, body: string, mediaUrl?: string | null): Promise<SendSmsResult> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const token = process.env.TWILIO_AUTH_TOKEN
   const e164 = toE164(peer)
@@ -195,6 +195,9 @@ export async function sendSms(peer: string, body: string): Promise<SendSmsResult
   const text = body.trim()
   if (!text) return { ok: false, error: "empty_body" }
   const form = new URLSearchParams({ To: e164, Body: text })
+  // A picture rides along when given (an https link Twilio can fetch: a signed
+  // storage URL from the desk). Same route, same brakes as a plain text.
+  if (mediaUrl && /^https:\/\//.test(mediaUrl)) form.set("MediaUrl", mediaUrl)
   const serviceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   if (serviceSid) form.set("MessagingServiceSid", serviceSid)
   else form.set("From", ourSmsNumber())

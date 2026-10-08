@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
 import { loadLeadEventHint } from "@/lib/lead-event-hint"
 import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
+import { otherSenderJustAnswered } from "@/lib/duplicate-brake"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
@@ -98,10 +99,6 @@ const MENTIONS_A_DATE =
 // is a sweep, not a conversation.
 const SWEEP_WINDOW_MS = 10 * 60_000
 const SWEEP_CAP = 6
-// Just-answered brake (2026-10-07): two desks on one inbox answered the same
-// customer 17 s apart. Our own last text younger than this, unanswered, and
-// sent by a different session = a duplicate.
-const JUST_ANSWERED_MS = 3 * 60_000
 
 // Answering is not pestering. A customer who asks three things in one text
 // gets three short answers, and the follow-up caps must not count them as
@@ -114,7 +111,7 @@ export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (!can(actor, "sms")) return NextResponse.json({ error: "你的账号没有发短信权限，找管理员开" }, { status: 403 })
-  let payload: { phone?: string; body?: string; leadId?: string; force?: boolean; session?: string }
+  let payload: { phone?: string; body?: string; leadId?: string; force?: boolean; session?: string; mediaUrl?: string }
   try {
     payload = await request.json()
   } catch {
@@ -421,44 +418,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ---- Just answered by someone else (2026-10-07) ----------------------------
-  // Two desks on one inbox answered Eileen's sake question 17 s apart. When
-  // our own last text to this number is minutes old, the customer has not
-  // spoken since, and it came from a different session (another agent, the
-  // workbench UI, the phone), this send is a duplicate: refuse it and show
-  // what already went out. The same session answering in two lines passes;
-  // automated texts (the instant quote) never count; force overrides.
-  const lastMsg = thread[thread.length - 1]
-  if (!payload.force && lastMsg && lastMsg.direction === "outbound" && !isAutomatedText(lastMsg.body)) {
-    const ageMs = Date.now() - new Date(lastMsg.at).getTime()
-    if (ageMs >= 0 && ageMs < JUST_ANSWERED_MS) {
-      const supabase = createServerSupabaseClient()
-      let by: string | null = null
-      if (supabase) {
-        const { data: prev } = await supabase
-          .from("lead_touchpoints")
-          .select("raw_payload_json")
-          .eq("touchpoint_type", "sms_outbound")
-          .eq("external_touchpoint_id", lastMsg.sid)
-          .limit(1)
-          .maybeSingle()
-        const s = (prev?.raw_payload_json as Record<string, unknown> | null)?.session
-        by = typeof s === "string" ? s : null
+  // ---- One customer, one answer (2026-10-07, widened 2026-10-08) -------------
+  // Two desks answered Eileen's sake question 17 s apart. Once anyone has
+  // texted this customer since their last message, a different sender cannot
+  // add to it for the whole reply window (15 min) unless the customer speaks
+  // again (lib/duplicate-brake.ts). The same session can keep going; automated
+  // texts never count; force overrides. Refused with what already went out.
+  if (!payload.force && thread.length) {
+    const windowMs = (await getWorkbenchSettings()).sms_brakes.reply_window_minutes * 60_000
+    const sids = thread.filter((m) => m.direction === "outbound").slice(-10).map((m) => m.sid)
+    const senders = new Map<string, string | null>()
+    const supabase = createServerSupabaseClient()
+    if (supabase && sids.length) {
+      const { data: prev } = await supabase
+        .from("lead_touchpoints")
+        .select("external_touchpoint_id, raw_payload_json")
+        .eq("touchpoint_type", "sms_outbound")
+        .in("external_touchpoint_id", sids)
+      for (const r of (prev ?? []) as Array<{ external_touchpoint_id: string | null; raw_payload_json: Record<string, unknown> | null }>) {
+        const s = r.raw_payload_json?.session
+        if (r.external_touchpoint_id && typeof s === "string") senders.set(r.external_touchpoint_id, s)
       }
-      if (by !== session) {
-        return NextResponse.json(
-          {
-            error: `这个号码 ${Math.round(ageMs / 1000)} 秒前刚有人回过（${by ?? "不知道是谁"}），客人还没再说话——先读对话再决定要不要再发：「${lastMsg.body.slice(0, 160)}」`,
-            brake: "just_answered",
-            said: { at: lastMsg.at, body: lastMsg.body.slice(0, 300), by },
-          },
-          { status: 409 },
-        )
-      }
+    }
+    const hit = otherSenderJustAnswered(thread, (sid) => senders.get(sid) ?? null, session, Date.now(), windowMs)
+    if (hit) {
+      return NextResponse.json(
+        {
+          error: `${Math.round(hit.ageMs / 60_000)} 分钟前已经有人回过这位客人（${hit.by ?? "机器或手机"}），客人还没再说话——先读对话，确实要补再说：「${hit.body.slice(0, 160)}」`,
+          brake: "just_answered",
+          said: { at: hit.at, body: hit.body.slice(0, 300), by: hit.by },
+        },
+        { status: 409 },
+      )
     }
   }
 
-  const sent = await sendSms(phone, body)
+  const mediaUrl = typeof payload.mediaUrl === "string" && /^https:\/\//.test(payload.mediaUrl) ? payload.mediaUrl : null
+  const sent = await sendSms(phone, body, mediaUrl)
   if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 502 })
 
   const leadId = leadIdParam
@@ -472,7 +468,7 @@ export async function POST(request: NextRequest) {
         touchpoint_type: "sms_outbound",
         touchpoint_source: "workbench",
         external_touchpoint_id: sent.sid,
-        raw_payload_json: { to: phone, body, status: sent.status, actor: "workbench", unprompted, session },
+        raw_payload_json: { to: phone, body, status: sent.status, actor: "workbench", unprompted, session, ...(mediaUrl ? { media: 1 } : {}) },
         occurred_at: now,
       })
       await supabase
