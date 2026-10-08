@@ -82,9 +82,9 @@ export default function OccasionEstimator({
           </p>
         </div>
         <p className="text-right text-xs font-semibold leading-snug text-gold-700">
-          Setup &amp; cleanup
+          2 proteins, veggies,
           <br />
-          included
+          fried rice &amp; salad
         </p>
       </div>
       {sizeOff > 0 ? (
@@ -97,7 +97,7 @@ export default function OccasionEstimator({
       ) : null}
       <div className="hidden flex-col gap-1.5 text-[13px] leading-snug text-clay-700 lg:flex">
         <span className="flex gap-2"><span className="font-bold text-gold-700">✓</span>Chef, grill, 2 proteins per guest, rice, veggies, salad</span>
-        <span className="flex gap-2"><span className="font-bold text-gold-700">✓</span>Live fire show, games, setup and cleanup</span>
+        <span className="flex gap-2"><span className="font-bold text-gold-700">✓</span>Live fire show and games</span>
       </div>
       <Link href={quoteHref} onClick={onQuote("occasion_card")} className="flex h-[52px] items-center justify-center rounded-full bg-flame text-base font-bold text-white transition hover:bg-flame-600">
         Get my quote

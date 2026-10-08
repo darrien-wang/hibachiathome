@@ -39,7 +39,6 @@ const included = [
   "2 proteins per guest: chicken, steak, shrimp, salmon or tofu",
   "Garlic butter fried rice, vegetables & salad — refills free",
   "Live show — fire tricks, onion volcano, egg toss, crowd games",
-  "Complete setup and cleanup",
 ]
 
 const chefPromises = [
@@ -74,7 +73,7 @@ const faqs = [
   {
     question: "How much does a private hibachi chef cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, food, show, setup, and cleanup all included. Monday–Thursday parties get the Weekday Special at any size: $54.90 per adult plus a free appetizer of your choice (gyoza, edamame or spring rolls). Parties of 10–14 adults save $30, 15–24 save $60, 25–30 save $90, 31–40 save $120, 41–50 save $150, 51–60 save $180 — any day, applied automatically. Gratuity (20–25%) is separate.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum — chef, grill, 2 proteins per guest, veggies, fried rice, salad and the show included. Monday–Thursday parties get the Weekday Special at any size: $54.90 per adult plus a free appetizer of your choice (gyoza, edamame or spring rolls). Parties of 10–14 adults save $30, 15–24 save $60, 25–30 save $90, 31–40 save $120, 41–50 save $150, 51–60 save $180 — any day, applied automatically. Gratuity (20–25%) is separate.",
   },
   {
     question: "Who are your chefs?",
@@ -94,7 +93,7 @@ const faqs = [
   {
     question: "What does the chef need from me?",
     answer:
-      "A flat outdoor spot about the size of a king-size bed with 10 ft of overhead clearance, plus tables and place settings for your guests (or rent them from us). The chef brings everything else, arrives about 10 minutes early, and handles setup and cleanup.",
+      "A flat outdoor spot about the size of a king-size bed with 10 ft of overhead clearance, plus tables and place settings for your guests (or rent them from us). The chef brings everything else, arrives about 10 minutes early, and cleans up the cooking area when the show is done.",
   },
   {
     question: "Can I cancel or reschedule my chef?",
@@ -165,7 +164,7 @@ export default function PrivateHibachiChefPage() {
     "@id": `${URL}#package`,
     name: "Private Hibachi Chef Experience — Southern California",
     description:
-      "A private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad, setup and cleanup — at your home or venue in Southern California.",
+      "A private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad — at your home or venue in Southern California.",
     image: `${BASE_URL}/images/hibachi-flame-og.png`,
     brand: { "@type": "Brand", name: "Real Hibachi" },
     offers: {

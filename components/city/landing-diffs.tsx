@@ -10,14 +10,16 @@ export default function LandingDiffs({ distanceLine }: { distanceLine: string })
   const diffs = [
     { big: "15 min", label: "text reply", body: "A real person, not a bot", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
-    { big: "$0", label: "setup surcharge", body: "Tarp, setup and cleanup in the price" },
+    // "$0 setup surcharge · setup and cleanup in the price" until 2026-10-08: customers read it as
+    // free tables and chairs (owner). The food is what the price covers, so say that.
+    { big: "$0", label: "for kids under 5", body: "Little ones eat free" },
     // Was "2× back if we ever cancel" until 2026-10-06. It was the only card
     // about us failing, so it raised a doubt the visitor had not had, and the
     // multiple is of what they have paid so far - which before the party is the
     // deposit. Two proteins each is the thing competitors actually shortchange
     // (single protein, shrimp as an upcharge), it is checkable, and it makes
-    // all four cards one set: fast reply, free travel, no setup fee, the food.
-    { big: "2", label: "proteins per guest", body: "Steak, shrimp, salmon, chicken or tofu — all included" },
+    // all four cards one set: fast reply, free travel, little kids free, the food.
+    { big: "2", label: "proteins per guest", body: "Steak, shrimp, salmon, chicken or tofu, with veggies, fried rice & salad" },
   ]
   return (
     <section className="flex flex-col gap-3.5">

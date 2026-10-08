@@ -58,7 +58,6 @@ const included = [
   "2 proteins per guest: chicken, steak, shrimp, salmon or tofu",
   "Garlic butter fried rice, vegetables & salad — refills free",
   "Onion volcano, egg toss, fire tricks, crowd games",
-  "Complete setup and cleanup",
 ]
 
 // 2026-09-08: the page now follows the "Realhibachi Landing Page" board —
@@ -156,7 +155,7 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
     "@type": "Product",
     "@id": `${url}#package`,
     name: `Hibachi at Home Party Package — ${page.city}, CA`,
-    description: `Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad, setup and cleanup — at your home in ${page.city}, CA.`,
+    description: `Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad — at your home in ${page.city}, CA.`,
     image: `${BASE_URL}/images/hibachi-flame-og.png`,
     brand: { "@type": "Brand", name: "Real Hibachi" },
     offers: {

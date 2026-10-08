@@ -21,7 +21,6 @@ const INCLUDED = [
   "2 proteins per guest (chicken, steak, shrimp, salmon, or tofu)",
   "Garlic butter fried rice, fresh vegetables & house salad",
   "Live fire show, games, and chef entertainment",
-  "Complete setup and cleanup",
 ]
 
 const CITY_LINKS = [

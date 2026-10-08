@@ -47,7 +47,6 @@ const included = [
   "2 regular proteins per guest (chicken, steak, shrimp, salmon, or tofu)",
   "Garlic butter fried rice, fresh vegetables & house salad",
   "Live cooking show — fire tricks, egg toss, chef entertainment",
-  "Complete setup and cleanup at your home or venue",
 ]
 
 const faqs = [
@@ -165,7 +164,7 @@ export default function HibachiCateringHubPage() {
           </>
         }
         subhead={INTRO[0]}
-        chips={["Free to cancel up to 48h", "1 Chef & Grill per 28 Guests", "Our Own Chefs", "Setup & Cleanup Included"]}
+        chips={["Free to cancel up to 48h", "1 Chef & Grill per 28 Guests", "Our Own Chefs", "2 Proteins, Veggies, Fried Rice & Salad"]}
         imageAlt="Hibachi catering event in Southern California - live teppanyaki fire show"
         estimator={{
           citySlug: "socal",
@@ -199,7 +198,7 @@ export default function HibachiCateringHubPage() {
                 Weekday Special: <strong>$54.90/adult</strong> for Mon–Thu events, any size, with a free appetizer of your choice (gyoza, edamame or spring rolls).
               </p>
               <p className="text-xs leading-relaxed text-clay-600 lg:text-[13px]">
-                No per-guest setup surcharge and no fee to add more grills — the per-person price is the price at 10 guests or 100. The first 50 miles of travel are free, then $1 per additional mile, shown in your quote before you pay. Gratuity (20–25%) is separate.
+                No fee to add more grills — the per-person price is the price at 10 guests or 100. The first 50 miles of travel are free, then $1 per additional mile, shown in your quote before you pay. Gratuity (20–25%) is separate.
               </p>
             </div>
             <div className="flex flex-col gap-3 rounded-[28px] border border-ink/10 bg-surface p-5 shadow-organic">

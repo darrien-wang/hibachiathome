@@ -144,7 +144,7 @@ export default function Home() {
             </p>
             <div className="flex items-baseline gap-2 pt-1">
               <span className="font-serif text-[34px] font-extrabold leading-none text-flame-300 lg:text-[44px]">${fmt(GUEST_TIERS.adult.price)}</span>
-              <span className="text-[13px] text-white/75 lg:text-sm">per adult · chef, food, live show, setup &amp; cleanup — all included</span>
+              <span className="text-[13px] text-white/75 lg:text-sm">per adult · chef, live show, 2 proteins, veggies, fried rice &amp; salad</span>
             </div>
             <p className="hidden max-w-[520px] text-sm text-white/75 lg:block">
               Kids 5–12 ${fmt(GUEST_TIERS.child.price)}, under 5 free. ${MINIMUM_SPEND} minimum per event, no travel fee within 50 miles.

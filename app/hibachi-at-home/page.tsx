@@ -36,7 +36,7 @@ const faqs = [
   },
   {
     question: "Is cleanup included?",
-    answer: "Yes. We leave your space as clean as it was. Complete setup and cleanup included.",
+    answer: "Yes. The chef cleans up the cooking area and takes the grill and all the cooking gear when the show is done.",
   },
   {
     question: "Can you cook for kids or vegetarians?",

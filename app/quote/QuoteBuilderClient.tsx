@@ -1599,7 +1599,7 @@ export default function QuoteBuilderClient() {
         <span className="font-serif text-[52px] font-extrabold leading-none lg:text-[56px]">{shownPriceLabel}</span>
       </div>
       <p className="text-[13px] leading-relaxed opacity-90">
-        Food, chef, live show, setup &amp; cleanup, travel within 50 mi. Gratuity not included.
+        Chef, live show, 2 proteins per guest, veggies, fried rice &amp; salad, travel within 50 mi. Gratuity not included.
       </p>
       {isWeekdaySaverTier ? (
         <p className="text-[12px] opacity-90">{WEEKDAY_SAVER_MENU_DETAIL}</p>

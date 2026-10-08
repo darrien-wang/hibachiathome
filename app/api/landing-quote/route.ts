@@ -374,7 +374,7 @@ export async function POST(request: NextRequest) {
       "",
       `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
       "",
-      "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup and cleanup.",
+      "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.",
       RENTALS_LINE,
       "Questions? Reply to this email or text (213) 770-7788.",
     ]

@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     "Your private party link - open it on any device, keep designing, or send it to your guests so everyone grabs a seat and picks their own proteins:",
     plannerUrl,
     "",
-    "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad, the live show, setup and cleanup.",
+    "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.",
     "Questions? Reply to this email or text (213) 770-7788 - a real person answers.",
     "",
     "Real Hibachi",

@@ -43,7 +43,7 @@ We audited this market carefully. The advertised per-person price is rarely the 
 
 **1. Big deposits.** Several services ask $150 or more up front to hold a date. Ours is a card on file — free to change or cancel up to 48 hours before, $99 inside 48 hours.
 
-**2. Per-guest setup fees.** Some services add $8–$10 per guest for table and chair setup — that's $200 hidden dollars on a 25-person party. Our setup and cleanup are in the price. (Tables and chairs themselves are your call: bring your own or add our tableware rental at $15/person.)
+**2. One protein, or shrimp as an upcharge.** Some services quote a per-person price that covers a single protein, then charge extra for a second one or for shrimp. Ours is two proteins per guest — chicken, steak, shrimp, salmon or tofu — with grilled veggies, fried rice and salad.
 
 **3. Travel fees that start early.** Some start charging at 20 miles, or add a flat ~$75. **Our first 50 miles are free**, which covers most of LA and Orange County; beyond that it's $1/mile, calculated from your address and shown in your quote before you pay anything.
 
@@ -162,8 +162,8 @@ Several SoCal hibachi services won't show a single number until you fill in a fo
 **2. What does it take to hold a date?**
 A card on file. You can change or cancel free up to 48 hours before the party; inside 48 hours there's a $99 late-cancellation charge.
 
-**3. Is setup and cleanup included, or per guest?**
-Some services add $8–$10 per guest for setup. Ours is included — the quote is the price.
+**3. How many proteins per guest?**
+Some services include one and charge extra for a second or for shrimp. Ours is two per guest, with veggies, fried rice and salad.
 
 **4. When do travel fees start?**
 Charging from mile 20, or a flat ~$75, is a common pattern. Our **first 50 miles are free** (that's most of LA and OC), then $1/mile, shown in the quote before you pay.
@@ -187,7 +187,7 @@ Run any hibachi service through those seven questions — including us. If someo
 
 - Published price: **$59.90/adult**, calculator with no gate
 - Holding the date: **a card on file; free changes up to 48h before**
-- Setup/cleanup: **included**
+- Proteins: **2 per guest**, with veggies, fried rice & salad
 - Travel: **first 50 miles free**
 - Quote = price: **yes**
 - Local: **SGV-based, 213 number, SoCal-only**
@@ -308,7 +308,7 @@ I've cooked in a Beverly Hills estate and in a yard the size of a parking space,
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
+*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). 2 proteins per guest, veggies, fried rice and salad, first 50 miles free. [Get an instant quote](/quoteA), or see [hibachi at home in Beverly Hills](/hibachi-at-home/beverly-hills), [Inglewood](/hibachi-at-home/inglewood), and [everywhere else we cook](/hibachi-at-home).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-los-angeles-backyard-event-02.jpg",
     date: "2026-08-26",
@@ -410,7 +410,7 @@ And if you're not sure — tell us your date, your city, and roughly who's comin
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). Setup and cleanup included, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
+*$59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). 2 proteins per guest, veggies, fried rice and salad, first 50 miles free. [Get an instant quote](/quoteA) or see [where we cook](/hibachi-at-home).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-orange-county-family-event-04.jpg",
     date: "2026-08-26",
@@ -455,7 +455,7 @@ Those are the numbers for an address inside our free 50-mile radius, which
 is most of Los Angeles and Orange County. Travel is the only thing that moves
 them, and it moves them less than you'd think — see below.
 
-The math is simple because the rate is flat: it is about $60 a head, and it scales in a straight line. There is no "event fee," no per-guest setup charge, and no minimum you have to buy your way up to once you're past ten people.
+The math is simple because the rate is flat: it is about $60 a head, and it scales in a straight line. There is no "event fee" and no minimum you have to buy your way up to once you're past ten people.
 
 Two things move those numbers:
 
@@ -509,15 +509,12 @@ I mention it because deposits in this market run much higher — $150 is a numbe
 - Two proteins per guest — chicken, steak, shrimp, salmon, or tofu
 - Garlic butter fried rice, grilled vegetables, house salad, and sauces
 - The full live show
-- **Complete setup and cleanup**, with no per-guest surcharge
-
-That last one matters more than it sounds. Some services in this market charge $8 to $10 *per guest* for table and chair setup. On a 20-person party that's $160 to $200 that never appears in the per-person price you compared.
 
 You do provide the tables, chairs, plates, and utensils — or you can rent them from us.
 
 ## The Weekday Special: $54.90 an adult, plus a free appetizer (your pick)
 
-Monday through Thursday, at any party size, the rate is **$54.90 per adult** instead of $59.90, and a free appetizer of your choice — gyoza, edamame or spring rolls, one tray for the table — comes with it. Same chef, same grill, same show, same setup and cleanup, same full menu, premium upgrades included. That's the whole difference.
+Monday through Thursday, at any party size, the rate is **$54.90 per adult** instead of $59.90, and a free appetizer of your choice — gyoza, edamame or spring rolls, one tray for the table — comes with it. Same chef, same grill, same show, same full menu, premium upgrades included. That's the whole difference.
 
 What it saves, in real numbers:
 
@@ -673,7 +670,7 @@ So if you've been holding off because your space feels too small, or too plain, 
 
 *Chef Bling trained on the teppanyaki line at a Benihana-style restaurant and has since cooked in California, Illinois, and Florida. Over the last three years he has run more than three hundred private hibachi parties, and now cooks exclusively across Southern California.*
 
-*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). Setup and cleanup included. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
+*Real Hibachi brings a private hibachi chef, the grill, the food, and the full teppanyaki show to homes across Southern California — $59.90 per adult, or $54.90 with the Weekday Special (Mon–Thu, free appetizer of your choice included). 2 proteins per guest, veggies, fried rice and salad. See [hibachi at home in Inglewood](/hibachi-at-home/inglewood), [Long Beach](/hibachi-at-home/long-beach), or [anywhere else we cook](/hibachi-at-home), or [get an instant quote](/quoteA).*
 `,
     coverImage: "/gallery/blog/real-hibachi-party-los-angeles-chef-show-07.jpg",
     date: "2026-08-26",

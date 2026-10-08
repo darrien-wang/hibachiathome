@@ -377,10 +377,6 @@ const PackageCard: React.FC<PackageCardProps> = function PackageCard({
                       <span className="text-amber-500 mr-2">•</span>
                       <span>Serving equipment</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="text-amber-500 mr-2">•</span>
-                      <span>Setup & cleanup</span>
-                    </li>
                   </>
                 ) : pkg.id === "basic" ? (
                   <>
@@ -392,10 +388,6 @@ const PackageCard: React.FC<PackageCardProps> = function PackageCard({
                       <span className="text-amber-500 mr-2">•</span>
                       <span>Serving equipment</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="text-amber-500 mr-2">•</span>
-                      <span>Setup & cleanup</span>
-                    </li>
                   </>
                 ) : (
                   <>
@@ -406,10 +398,6 @@ const PackageCard: React.FC<PackageCardProps> = function PackageCard({
                     <li className="flex items-start">
                       <span className="text-amber-500 mr-2">•</span>
                       <span>Serving equipment</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-amber-500 mr-2">•</span>
-                      <span>Setup & cleanup</span>
                     </li>
                   </>
                 )}

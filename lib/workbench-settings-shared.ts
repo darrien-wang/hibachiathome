@@ -211,7 +211,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     {
       id: "pricing",
       label: "报价说明",
-      body: "It's $59.90 per adult and $29.90 per kid (5-12), kids under 5 eat free, $599 minimum. That covers the chef, grill, all the food, the show, setup and cleanup. Mon-Thu parties are $54.90 per adult and come with a free appetizer of your choice (gyoza, edamame or spring rolls).",
+      body: "It's $59.90 per adult and $29.90 per kid (5-12), kids under 5 eat free, $599 minimum. That covers the chef, grill, the show, 2 proteins per guest, veggies, fried rice and salad. Mon-Thu parties are $54.90 per adult and come with a free appetizer of your choice (gyoza, edamame or spring rolls).",
     },
     {
       id: "deposit",

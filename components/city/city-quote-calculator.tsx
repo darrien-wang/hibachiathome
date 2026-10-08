@@ -198,8 +198,8 @@ export default function CityQuoteCalculator({
         <p className="text-base font-bold text-gray-900 sm:text-lg">Your {shownCity} party</p>
         <InfoTip label="What's included in the price?" title="What's included">
           <ul className="list-disc space-y-1 pl-4">
-            <li>Chef, grill, food &amp; live show</li>
-            <li>Setup &amp; cleanup</li>
+            <li>Chef, grill &amp; live show</li>
+            <li>2 proteins per guest, veggies, fried rice &amp; salad</li>
             <li>Kids under 5 eat free</li>
             <li>First 50 miles of travel free — any travel fee shows before you pay</li>
             <li>

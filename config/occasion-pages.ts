@@ -282,7 +282,7 @@ export const occasionPages: OccasionPage[] = [
       },
       {
         title: "Nothing to clean",
-        description: "Setup and cleanup are in the price. When the chef leaves, your kitchen doesn't know a party happened.",
+        description: "The chef cooks outside on our own grill and takes it all away. When the chef leaves, your kitchen doesn't know a party happened.",
       },
     ],
     photos: [
@@ -602,7 +602,7 @@ export const occasionPages: OccasionPage[] = [
     moments: [
       {
         title: "The cook, retired for a night",
-        description: "The family cook's actual holiday gift: sitting down. The chef handles all of it, cleanup included.",
+        description: "The family cook's actual holiday gift: sitting down. The chef handles all of the cooking.",
       },
       {
         title: "Fire for the countdown",

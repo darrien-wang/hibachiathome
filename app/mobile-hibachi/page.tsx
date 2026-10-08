@@ -12,7 +12,7 @@ const URL = `${BASE_URL}/mobile-hibachi`
 export const metadata: Metadata = {
   title: "Mobile Hibachi Los Angeles & SoCal | Chef & Grill Come to You from $59.90",
   description:
-    "Mobile hibachi catering across Los Angeles, Orange County, San Diego & all of Southern California. A private chef and teppanyaki grill travel to your backyard or venue. $59.90/adult, setup and cleanup included.",
+    "Mobile hibachi catering across Los Angeles, Orange County, San Diego & all of Southern California. A private chef and teppanyaki grill travel to your backyard or venue. $59.90/adult: 2 proteins per guest, veggies, fried rice and salad.",
   alternates: { canonical: URL },
   openGraph: {
     title: "Mobile Hibachi Los Angeles & SoCal | Real Hibachi",
@@ -38,7 +38,7 @@ const included = [
   "2 proteins per guest: chicken, steak, shrimp, salmon or tofu",
   "Garlic butter fried rice, vegetables & salad — refills free",
   "Onion volcano, egg toss, fire tricks, crowd games",
-  "Complete setup and cleanup — tarp under the grill, spotless when we leave",
+  "Tarp under the grill — spotless when we leave",
 ]
 
 const showActs = [
@@ -52,7 +52,7 @@ const faqs = [
   {
     question: "What does 'mobile hibachi' include — do you really bring everything?",
     answer:
-      "Yes. Our mobile hibachi setup means the chef arrives with the teppanyaki grill, propane, fresh ingredients, utensils for cooking, and a protective tarp. You provide the space, tables, and plates — or rent tables, chairs, and place settings from us. Setup and cleanup are included in the price.",
+      "Yes. Our mobile hibachi setup means the chef arrives with the teppanyaki grill, propane, fresh ingredients, utensils for cooking, and a protective tarp. You provide the space, tables, and plates — or rent tables, chairs, and place settings from us.",
   },
   {
     question: "Where can a mobile hibachi grill set up?",
@@ -143,7 +143,7 @@ export default function MobileHibachiPage() {
     "@id": `${URL}#package`,
     name: "Mobile Hibachi Party Package — Southern California",
     description:
-      "Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad, setup and cleanup — anywhere in Southern California.",
+      "Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, fried rice, vegetables, salad — anywhere in Southern California.",
     image: `${BASE_URL}/images/hibachi-flame-og.png`,
     brand: { "@type": "Brand", name: "Real Hibachi" },
     offers: {

@@ -29,7 +29,7 @@ export default function PriceTransparency() {
     <section className="my-10 rounded-xl border border-amber-200 bg-amber-50/40 p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Total Price Examples (Fast Estimate)</h2>
       <p className="text-sm text-gray-700 mb-6">
-        The big number is the price for most parties — chef, grill, food, live show, setup and cleanup,
+        The big number is the price for most parties — chef, grill, 2 proteins per guest, veggies, fried rice, salad and the live show,
         with free travel within 50 miles. Add-ons are optional and listed separately.
       </p>
 
@@ -41,7 +41,7 @@ export default function PriceTransparency() {
             </CardHeader>
             <CardContent className="space-y-1 text-sm text-gray-700">
               <p className="text-2xl font-bold text-gray-900">${example.baseTotal.toFixed(0)}</p>
-              <p className="text-xs text-gray-500">Chef, grill, food, show, setup and cleanup — no travel fee within 50 miles.</p>
+              <p className="text-xs text-gray-500">Chef, grill, 2 proteins per guest, veggies, fried rice, salad and the show — no travel fee within 50 miles.</p>
               <div className="pt-2 border-t border-amber-100 text-xs text-gray-600 space-y-0.5">
                 <p>Optional: tables, chairs &amp; utensils +${example.setupIfNeeded} (skip it if you have your own)</p>
                 <p>Optional: premium upgrades, appetizers, DIY fried rice add-ins</p>

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | Real Hibachi",
   },
   description:
-    "Private hibachi chef at your home in Los Angeles, Orange County, San Diego & all of Southern California. $59.90 per adult flat rate — chef, grill, food, show, setup & cleanup included. Get an instant quote!",
+    "Private hibachi chef at your home in Los Angeles, Orange County, San Diego & all of Southern California. $59.90 per adult flat rate — chef, grill, 2 proteins per guest, veggies, fried rice, salad and the show included. Get an instant quote!",
   keywords:
     "hibachi at home, hibachi at home Los Angeles, private hibachi chef, mobile hibachi catering, hibachi party Orange County, teppanyaki at home Southern California, Real Hibachi",
   robots: "index,follow",

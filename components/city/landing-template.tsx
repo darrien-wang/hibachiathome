@@ -135,7 +135,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
         title={title}
         subhead={
           <>
-            {subhead} Setup &amp; cleanup included, {travelLine}.
+            {subhead} 2 proteins, veggies, fried rice &amp; salad, {travelLine}.
           </>
         }
         chips={chips ?? HERO_CHIPS}

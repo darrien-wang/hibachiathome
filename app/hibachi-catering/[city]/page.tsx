@@ -62,7 +62,6 @@ const included = [
   "2 proteins per guest: chicken, steak, shrimp, salmon or tofu",
   "Garlic butter fried rice, vegetables & salad — refills free",
   "Live fire show, games and chef entertainment",
-  "Complete setup and cleanup — your venue stays spotless",
 ]
 
 const eventTypes = [
@@ -104,7 +103,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
   const faqs = [
     {
       question: `How much does hibachi catering cost in ${page.city}?`,
-      answer: `$59.90 per adult and $29.90 per child (5–12), with a $599 event minimum — food, chef, live show, setup, and cleanup included. Monday–Thursday events get the $54.90/adult Weekday Special at any size, with a free appetizer of your choice (gyoza, edamame or spring rolls). The first 50 miles of travel are free; anything beyond is $1/mile, shown upfront in your quote.`,
+      answer: `$59.90 per adult and $29.90 per child (5–12), with a $599 event minimum — chef, 2 proteins per guest, veggies, fried rice, salad and the live show included. Monday–Thursday events get the $54.90/adult Weekday Special at any size, with a free appetizer of your choice (gyoza, edamame or spring rolls). The first 50 miles of travel are free; anything beyond is $1/mile, shown upfront in your quote.`,
     },
     {
       question: "How many guests can you cater?",
@@ -180,7 +179,7 @@ export default async function CateringCityPage({ params }: { params: Promise<{ c
     "@type": "Product",
     "@id": `${url}#package`,
     name: `Hibachi Catering Package — ${page.city}, CA`,
-    description: `Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest, sides, setup and cleanup — catered at your ${page.city} event.`,
+    description: `Private hibachi chef, mobile teppanyaki grill, live fire show, 2 proteins per guest and sides — catered at your ${page.city} event.`,
     image: `${BASE_URL}/images/hibachi-flame-og.png`,
     brand: { "@type": "Brand", name: "Real Hibachi" },
     offers: {
