@@ -32,14 +32,30 @@ function tidy(value: string): string {
   return value.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").trim().replace(/[.,]$/, "")
 }
 
+// Words that never sit between a house number and the street name. "add the
+// $110 for the place setting" was filed as a booked customer's address on
+// 2026-10-08 ("place" is a street type); a price, a headcount or a duration in
+// front of a street word is a sentence, not an address.
+const NOT_A_STREET = /\b(?:for|per|guests?|people|adults?|kids?|persons?|minutes?|mins?|hours?|hrs?|each|total)\b/i
+
+function plausible(body: string, index: number, found: string): boolean {
+  if (found.length < 10) return false // "2 proteins per guest" style: short and suffix-less
+  if (/\$\s*$/.test(body.slice(0, index))) return false // "$110 ..." is a price
+  const firstLine = found.split(",")[0]
+  return !NOT_A_STREET.test(firstLine.replace(/^\d+\s+/, ""))
+}
+
 /** A street address written in the message itself, or null. */
 export function extractStreetAddress(text: string): string | null {
   const body = text ?? ""
-  const match = body.match(WITH_SUFFIX) ?? body.match(WITH_CITY_STATE_ZIP)
-  if (!match) return null
-  const found = tidy(match[0])
-  // "2 proteins per guest" style false positives are short and suffix-less.
-  return found.length >= 10 ? found : null
+  for (const pattern of [WITH_SUFFIX, WITH_CITY_STATE_ZIP]) {
+    const all = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g")
+    for (const match of body.matchAll(all)) {
+      const found = tidy(match[0])
+      if (plausible(body, match.index ?? 0, found)) return found
+    }
+  }
+  return null
 }
 
 /** A Google Maps link in the message, or null. */
