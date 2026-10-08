@@ -330,26 +330,29 @@ def cmd_send(a):
     # also come as --body / --body-file (the file is the safe path on Windows).
     body = read_text_arg(a.body_opt or a.body, a.body_file)
     if a.media:
-        # A picture: Twilio directly (the workbench endpoint is text-only), so
-        # the brakes and the context lint do not run - use it for REPLIES, a
-        # customer who spoke last, never for an unprompted follow-up. The
-        # timeline is healed right after by opening the thread.
-        from _api import signed_sales_media_url, twilio_send, upload_sales_media
+        # A picture goes through the same send route as a text (2026-10-08): the
+        # duplicate brake, the follow-up caps and the timeline all apply. Upload
+        # it, sign a link Twilio can fetch, hand the link to the route.
+        from _api import signed_sales_media_url, upload_sales_media
         import datetime
         src = pathlib.Path(a.media)
         dest = f"sent/{datetime.date.today().isoformat()}/{re.sub(r'[^A-Za-z0-9._-]', '_', src.name)}"
         ctype = "image/png" if src.suffix.lower() == ".png" else "image/jpeg"
         upload_sales_media(str(src), dest, ctype)
-        url = signed_sales_media_url(dest)
-        try:
-            out = twilio_send(e164(a.phone), body, url)
-        except ApiError as e:
-            print(f"FAIL  {e164(a.phone)} {e.status}\n      {e.payload}")
-            sys.exit(2)
-        print(f"OK    {e164(a.phone)}  {out.get('sid', '')}  {out.get('status', '')}  +1 media ({src.name})")
-        print(f"      {body}")
+        payload = {"phone": e164(a.phone), "body": body, "session": desk_session(), "mediaUrl": signed_sales_media_url(dest)}
         if a.lead:
-            site_get("/api/admin/sms-thread", {"leadId": a.lead})  # reconcile into the timeline
+            payload["leadId"] = a.lead
+        if a.force:
+            payload["force"] = True
+        try:
+            out = site_post("/api/admin/sms-thread", payload)
+        except ApiError as e:
+            tag = "BRAKE" if e.status == 409 else "FAIL "
+            print(f"{tag} {payload['phone']} {e.status}")
+            print("      " + (e.payload.get("error") if isinstance(e.payload, dict) else str(e.payload))[:400])
+            sys.exit(2)
+        print(f"OK    {payload['phone']}  {out.get('sid', '')}  {out.get('status', '')}  +1 media ({src.name})")
+        print(f"      {body}")
         return
     # Which desk is sending: the server refuses a text when another session
     # answered this number minutes ago and the customer has not spoken since
@@ -904,7 +907,7 @@ def main(argv=None):
     p = sp.add_parser("travel"); p.add_argument("destination"); p.set_defaults(fn=cmd_travel)
     p = sp.add_parser("send"); p.add_argument("phone"); p.add_argument("body", nargs="?"); p.add_argument("--lead")
     p.add_argument("--body", dest="body_opt"); p.add_argument("--body-file"); p.add_argument("--force", action="store_true")
-    p.add_argument("--media", help="a local jpg/png to attach (MMS via Twilio; replies only)"); p.set_defaults(fn=cmd_send)
+    p.add_argument("--media", help="a local jpg/png to attach (MMS; same route and brakes as a text)"); p.set_defaults(fn=cmd_send)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
