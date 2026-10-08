@@ -415,7 +415,8 @@ export async function computeInbox(
     for (const [leadId, m] of formCandidates) {
       const l = formLeadById.get(leadId)
       const form = m.lastForm!
-      if (!l || l.status === "won" || l.status === "lost" || l.status === "disqualified") continue
+      // A booked customer re-quoting, or a lost one coming back, is talking to us too (2026-10-08).
+      if (!l || l.status === "disqualified") continue
       // The form that created the lead is the lead (handled above); only a form after our first reply is a reply.
       if (!l.first_response_at || form.occurred_at <= l.first_response_at) continue
       const peer = toE164(l.phone)

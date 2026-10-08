@@ -132,7 +132,7 @@ export default function LandingEstimator({
   const [emailErr, setEmailErr] = useState(false)
   const [contactBusy, setContactBusy] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null; discountCode: string | null; discount: number }>(null)
+  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null; discountCode: string | null; discount: number; personal?: boolean }>(null)
   const [serverErr, setServerErr] = useState<string | null>(null)
   const startedRef = useRef(false)
   const leadSentRef = useRef(false)
@@ -375,7 +375,7 @@ export default function LandingEstimator({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...quotePayload(), stage: "quote" }),
       })
-      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string; discountCode?: string | null; discount?: number } | null
+      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string; discountCode?: string | null; discount?: number; personal?: boolean } | null
       if (!res.ok || !p?.ok) {
         setServerErr(
           p?.error === "phone_invalid"
@@ -386,7 +386,7 @@ export default function LandingEstimator({
         )
         return
       }
-      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null, discountCode: p.discountCode ?? null, discount: p.discount ?? 0 })
+      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null, discountCode: p.discountCode ?? null, discount: p.discount ?? 0, personal: p.personal === true })
       trackEvent("quote_sent", {
         contact_surface: "landing_estimator",
         quote_surface: attribution,
@@ -559,12 +559,13 @@ export default function LandingEstimator({
                 <div className="min-w-0 flex-1 text-sm leading-snug">
                   {/* Twilio "accepted" is not "delivered" (T-Mobile rejected every text
                       on 2026-09-12), so the quote is repeated on screen too. */}
-                  <p className="font-bold">{sent.smsDelivered ? `Texted to ${prettyPhone(phoneValue)}` : `We have your number: ${prettyPhone(phoneValue)}`}</p>
+                  <p className="font-bold">{sent.personal ? `Got it: ${prettyPhone(phoneValue)}` : sent.smsDelivered ? `Texted to ${prettyPhone(phoneValue)}` : `We have your number: ${prettyPhone(phoneValue)}`}</p>
                   <p className="mt-0.5 text-clay-700">
-                    {sent.smsDelivered
-                      ? `If the text${sent.emailed ? " or email" : ""} hasn't landed in a minute, everything is right here.`
-                      : "The text is delayed, so here is everything it would have said."}{" "}
-                    A real person follows up within 15 min by text or email.
+                    {sent.personal
+                      ? "We'll text you about these numbers within 15 min. Here's the estimate in the meantime."
+                      : sent.smsDelivered
+                        ? `If the text${sent.emailed ? " or email" : ""} hasn't landed in a minute, everything is right here. A real person follows up within 15 min by text or email.`
+                        : "The text is delayed, so here is everything it would have said. A real person follows up within 15 min by text or email."}
                   </p>
                   <p className="mt-2 font-serif text-2xl font-extrabold leading-none">{fmt(sent.total)}</p>
                   {sent.discountCode ? (

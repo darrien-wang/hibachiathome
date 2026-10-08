@@ -2,7 +2,8 @@ import { createShortLink } from "@/lib/short-link"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName, readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
-import { sendSms, toE164 } from "@/lib/sms-thread"
+import { fetchSmsThread, sendSms, toE164 } from "@/lib/sms-thread"
+import { customerInConversation } from "@/lib/customer-forms"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
@@ -153,6 +154,21 @@ export async function POST(request: NextRequest) {
   const dateLine = eventDate ? describeDate(eventDate) : "date TBD"
 
   const supabase = createServerSupabaseClient()
+  // A customer we are already talking to (texted us in the last two weeks, or
+  // booked) gets no automatic quote when they fill the form again (owner
+  // 2026-10-08). The form is filed as the customer talking (landing_contact,
+  // stage "quote"), so the inbox puts it in front of a person, who answers with
+  // the right numbers; the card's untouched default of 15 never goes out as a
+  // price. A leave-beacon from such a customer is dropped: they asked for nothing.
+  let talking = false
+  if (!contactOnly && supabase) {
+    const [thread, { data: known }] = await Promise.all([
+      fetchSmsThread(phoneE164, 40).catch(() => []),
+      supabase.from("leads").select("status").eq("normalized_phone", phoneE164.replace(/\D/g, "").slice(-10)).limit(10),
+    ])
+    talking = customerInConversation(thread, ((known ?? []) as Array<{ status: string | null }>).map((l) => l.status), Date.now())
+    if (talking && body.auto === "leave") return NextResponse.json({ ok: true, stage: "quote", skipped: "in_conversation" })
+  }
   let leadId: string | null = null
   if (supabase) {
     try {
@@ -161,7 +177,9 @@ export async function POST(request: NextRequest) {
         phone: phoneE164,
         email,
         reason: "Booking Request",
-        message: contactOnly
+        message: talking
+          ? `Re-quoted on the site (${cityName}) while we are talking: card says ${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)} - no automatic text, answer by hand`
+          : contactOnly
           ? `Landing contact (${cityName}): gave mobile + email, quote step pending · card default ${guestsLine} · ${planLabel}`
           : `${surfaceLabel} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}${notes ? ` · ${notes}` : ""}`,
         leadSource: source,
@@ -169,11 +187,12 @@ export async function POST(request: NextRequest) {
         leadType: "booking_inquiry",
         cityOrZip: cityName,
         // The contact step has no real party yet (the card's default), so
-        // store no guest count; the quote step writes the real one.
-        guestCount: contactOnly ? undefined : adults + kids,
-        adultCount: contactOnly ? undefined : adults,
-        childCount: contactOnly ? undefined : kids,
-        touchpointType: contactOnly ? "landing_contact" : "landing_quote_text",
+        // store no guest count; the quote step writes the real one. A customer
+        // we are talking to keeps the count the conversation settled.
+        guestCount: contactOnly || talking ? undefined : adults + kids,
+        adultCount: contactOnly || talking ? undefined : adults,
+        childCount: contactOnly || talking ? undefined : kids,
+        touchpointType: contactOnly || talking ? "landing_contact" : "landing_quote_text",
         touchpointSource: source,
         sourcePage: pagePath,
         attribution,
@@ -201,7 +220,7 @@ export async function POST(request: NextRequest) {
   // The quote step carries the real party. The contact step saved the card's
   // default (15 adults), and the shared upsert only fills empty fields, so the
   // workbench kept showing 15 guests for an 8-person quote (2026-09-13).
-  if (!contactOnly && supabase && leadId) {
+  if (!contactOnly && !talking && supabase && leadId) {
     const { error: partyError } = await supabase
       .from("leads")
       .update({ guest_count: adults + kids, adult_count: adults, child_count: kids, city_or_zip: cityName, updated_at: new Date().toISOString() })
@@ -263,6 +282,25 @@ export async function POST(request: NextRequest) {
   // Step 1 stops here: the lead exists, nothing has been sent. If the visitor
   // never reaches step 2 the daily unanswered-leads report still lists them.
   if (contactOnly) return NextResponse.json({ ok: true, stage: "contact", leadId })
+
+  // A customer we are talking to: nothing automatic goes out. Ops hears about
+  // it, and the inbox lists the form as the customer's turn.
+  if (talking) {
+    const workbench = leadId ? `${BASE_URL}/admin/leads?lead=${leadId}` : `${BASE_URL}/admin/leads`
+    await sendSupportNotificationEmail({
+      subject: `🔁 Re-quote from a customer we're talking to · ${cityName} · ${guestsLine} · ${phoneE164}`,
+      text: [
+        `${phoneE164}${name ? ` · ${name}` : ""} filled the price card again while we are in a conversation (texted us in the last 14 days, or booked).`,
+        `Card says: ${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)} - an untouched card says 15 adults.`,
+        "No automatic text or email went out. Answer by hand with the numbers from the conversation.",
+        `Workbench: ${workbench}`,
+      ].join("\n"),
+      html: `<p><strong>${escapeHtml(phoneE164)}</strong>${name ? ` · ${escapeHtml(name)}` : ""} filled the price card again while we are in a conversation.</p>
+<p>Card says: ${escapeHtml(guestsLine)} · ${escapeHtml(planLabel)} · ${escapeHtml(dateLine)} · ${money(total)} (an untouched card says 15 adults).</p>
+<p>No automatic text or email went out. <a href="${workbench}">Answer by hand</a> with the numbers from the conversation.</p>`,
+    })
+    return NextResponse.json({ ok: true, leadId, personal: true, smsDelivered: false, emailed: false, total, weekday, depositUrl: null, discountCode, discount: est.partySizeDiscountApplied })
+  }
 
   // Deposit link: the same prefilled /deposit/pay the quote page uses, with
   // the lead id so the paid order links back to this text.
