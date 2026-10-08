@@ -276,6 +276,37 @@ export async function computeInbox(
       phone: toE164(o?.customer_phone ?? null),
     })
   }
+  // ---- dates locked with a card on file (2026-10-08) ---------------------------
+  // Since 10-06 a date is locked by saving a card ($0, D-1006-04): the order is
+  // created paid_verified but no payment row is written, so the deposit list
+  // above never saw a lock and the phone went quiet on new bookings (Craig 10-06,
+  // Tonia 10-08). Same notification as a deposit used to be: once, quiet channel.
+  const paidOrderIds = new Set(payRows.map((p) => p.order_id).filter(Boolean))
+  const { data: locks } = await supabase
+    .from("orders")
+    .select("id, order_no, customer_name, customer_phone, created_at, event_start, guest_adult_count, guest_child_count")
+    .eq("deposit_status", "paid_verified")
+    .gte("created_at", new Date(now - DEPOSIT_LOOKBACK_MS).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(20)
+  type LockRow = { id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; created_at: string; event_start: string | null; guest_adult_count: number | null; guest_child_count: number | null }
+  for (const o of (locks ?? []) as LockRow[]) {
+    if (paidOrderIds.has(o.id)) continue
+    const when = o.event_start ? `${shortDate(o.event_start.slice(0, 10))} ${wallTime(o.event_start)}` : null
+    const guests = o.guest_adult_count ? `${o.guest_adult_count} 大${o.guest_child_count ? ` ${o.guest_child_count} 小` : ""}` : null
+    events.push({
+      key: `lock:${o.id}`,
+      kind: "deposit",
+      title: `锁日期 · ${(o.customer_name ?? "").trim() || "客户"}`,
+      body: [o.order_no, when, guests, "留卡，没扣钱"].filter(Boolean).join(" · "),
+      url: `/admin?tab=orders&order=${o.id}`,
+      at: o.created_at,
+      waitedMinutes: minutesSince(o.created_at, now),
+      ring: false,
+      orderId: o.id,
+      phone: toE164(o.customer_phone ?? null),
+    })
+  }
   for (const c of changeRows) {
     const o = c.order_id ? orderById.get(c.order_id) : undefined
     events.push({
