@@ -25,6 +25,11 @@ export type SmsMessage = {
 /** "9512070523", "(951) 207-0523", "+19512070523" -> "+19512070523". */
 export function toE164(raw: string | null | undefined): string | null {
   const trimmed = (raw ?? "").trim()
+  // "+6503022660" is a US number missing its 1, not Singapore: a Palm Springs
+  // lead typed it that way on 2026-10-07, the price text failed (Twilio 21211)
+  // and she got nothing. A "+" with exactly ten digits shaped like a US number
+  // (area code and exchange both start 2-9) gets the 1.
+  if (/^\+[2-9]\d{2}[2-9]\d{6}$/.test(trimmed)) return `+1${trimmed.slice(1)}`
   if (/^\+\d{8,15}$/.test(trimmed)) return trimmed
   const digits = trimmed.replace(/\D/g, "")
   if (digits.length === 10) return `+1${digits}`
