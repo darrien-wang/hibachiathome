@@ -72,14 +72,22 @@ export function wallTime(wallIso: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Template B - after the automatic quote (leads skill §3.1, owner-approved
-// wording; 4 PM vs 7 PM per the owner's 2026-10-06 rule).
+// Template B - after the automatic quote (leads skill §3.1).
+//
+// 2026-10-08 (owner, D-1008-02): the question is the occasion, not the date or
+// the start time. Leads 10-01~07 answered the machine's "which date are you
+// looking at?" at 20% inside 24 h against 52% the week before, across Google,
+// Meta and free alike; the handwritten first lines that worked asked what the
+// party was for. One fact (the date is open, when they gave one) + one easy
+// question. The 4 PM / 7 PM choice comes later, from a person.
 
 export type QuoteFollowUpInput = {
   adults: number
   kids: number
   /** YYYY-MM-DD the customer picked on the page, if any. */
   eventDate?: string | null
+  /** cityName from the quote card ("Palm Springs", "92270", "LA & Orange County"...). */
+  city?: string | null
   /** Today's PT date, YYYY-MM-DD. */
   todayPt: string
 }
@@ -105,11 +113,25 @@ export function quoteFollowUpPlan(i: QuoteFollowUpInput): QuoteFollowUpPlan {
     if (days < 0) return { send: false, reason: "date_past" }
     if (days < QUOTE_FOLLOW_UP_MIN_DAYS) return { send: false, reason: "date_within_48h" }
   }
-  const head = `Hi! Bling from Real Hibachi 👋 Saw your quote for ${guests}`
+  const place = placeName(i.city)
+  const head = "Hi! Bling from Real Hibachi 👋"
   const text = date
-    ? `${head} on ${shortDate(date)} — that date's open on our end. Would a 4 PM or a 7 PM start work better for you?`
-    : `${head} — which date are you looking at?`
+    ? `${head} ${shortDate(date)} is open on our end for your ${guests}${place ? ` in ${place}` : ""} — what's the celebration?`
+    : place
+      ? `${head} ${guests} in ${place} — what's the celebration?`
+      : `${head} Saw your quote for ${guests} — what's the celebration?`
   return { send: true, text, dated: Boolean(date) }
+}
+
+/**
+ * A town the customer would say themselves, or "" - the quote card's cityName
+ * is sometimes a ZIP, a region label or lower case ("irvine").
+ */
+export function placeName(city: string | null | undefined): string {
+  const c = (city ?? "").trim()
+  if (!c || !/^[A-Za-z][A-Za-z .'-]*$/.test(c)) return ""
+  if (/^(southern california|socal|california|los angeles county|orange county)$/i.test(c)) return ""
+  return c.replace(/(^|[\s'-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase())
 }
 
 // ---------------------------------------------------------------------------

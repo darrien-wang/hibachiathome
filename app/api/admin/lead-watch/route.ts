@@ -468,8 +468,8 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       humanLeads.push({ kind: "lead", leadId: lead.id, name: lead.full_name, phone, email: lead.email, city: lead.city_or_zip, source: lead.lead_source, guests: lead.guest_count, minutesWaiting: ageMin, summary: lead.latest_message, why })
 
     // Got the site's automatic quote (price + lock link already texted):
-    // template B - the date is open, 4 PM or 7 PM? Owner-approved wording,
-    // machine-sent since 2026-10-07; anything the template does not fit goes
+    // template B - what's the celebration? (D-1008-02; was "4 PM or 7 PM?" /
+    // "which date?"), machine-sent since 2026-10-07; anything the template does not fit goes
     // to a person with the reason attached.
     if (gotQuote) {
       // The grace counts from the quote text, not from the contact step: a
@@ -486,11 +486,12 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         human(phone ? "sms blocked" : "no phone")
         continue
       }
-      const payload = (quoteTp?.raw_payload_json ?? {}) as { adults?: number; kids?: number; eventDate?: string }
+      const payload = (quoteTp?.raw_payload_json ?? {}) as { adults?: number; kids?: number; eventDate?: string; cityName?: string }
       const plan = quoteFollowUpPlan({
         adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
         kids: Number(payload.kids ?? lead.child_count ?? 0) || 0,
         eventDate: payload.eventDate ?? null,
+        city: payload.cityName ?? null,
         todayPt: ptDate(now),
       })
       if (!plan.send) {

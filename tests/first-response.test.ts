@@ -46,18 +46,31 @@ test("shortDate / wallTime formatting", () => {
 
 const today = "2026-10-07"
 
-test("template B, dated: owner-approved wording with the 4 PM / 7 PM question", () => {
-  const plan = quoteFollowUpPlan({ adults: 12, kids: 3, eventDate: "2026-10-18", todayPt: today })
+test("template B, dated: the date is open + what's the celebration (D-1008-02)", () => {
+  const plan = quoteFollowUpPlan({ adults: 12, kids: 3, eventDate: "2026-10-18", city: "Palm Springs", todayPt: today })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Bling from Real Hibachi 👋 Saw your quote for 15 on Sun, Oct 18 — that date's open on our end. Would a 4 PM or a 7 PM start work better for you?")
+  assert.equal(plan.text, "Hi! Bling from Real Hibachi 👋 Sun, Oct 18 is open on our end for your 15 in Palm Springs — what's the celebration?")
   assert.equal(plan.dated, true)
 })
 
-test("template B, no date: asks which date", () => {
-  const plan = quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: null, todayPt: today })
+test("template B, no date: asks the occasion, never the date or the start time", () => {
+  const plan = quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: null, city: "Temecula", todayPt: today })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Bling from Real Hibachi 👋 Saw your quote for 10 — which date are you looking at?")
+  assert.equal(plan.text, "Hi! Bling from Real Hibachi 👋 10 in Temecula — what's the celebration?")
   assert.equal(plan.dated, false)
+  assert.doesNotMatch(plan.text, /which date|4 PM|7 PM/)
+})
+
+test("template B: ZIPs, region labels and missing cities fall back to the plain line", () => {
+  const plain = "Hi! Bling from Real Hibachi 👋 Saw your quote for 15 — what's the celebration?"
+  for (const city of [null, "", "92270", "LA & Orange County", "Southern California"]) {
+    const plan = quoteFollowUpPlan({ adults: 15, kids: 0, city, todayPt: today })
+    assert.ok(plan.send)
+    assert.equal(plan.text, plain, String(city))
+  }
+  const lower = quoteFollowUpPlan({ adults: 10, kids: 0, city: "irvine", todayPt: today })
+  assert.ok(lower.send)
+  assert.equal(lower.text, "Hi! Bling from Real Hibachi 👋 10 in Irvine — what's the celebration?")
 })
 
 test("template B hands edge cases to a person", () => {

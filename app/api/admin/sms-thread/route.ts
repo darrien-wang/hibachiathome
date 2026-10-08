@@ -84,6 +84,11 @@ function isAutomatedText(body: string): boolean {
 // "Saturday 12/12 at 6pm", "the 13th Tuesday", "Dec 26-30", "Sunday 2/21").
 const ASKS_FOR_DATE =
   /\b(which|what)\s+(weekend|date|dates|day|night|evening)\b|\bwhich\s+(saturday|sunday|friday)\b|\bdid\s+(you|the\s+group|it|the\s+birthday|the\s+date)\s+(land|settle)\s+on\b|\bwhen\s+(is|are)\s+(it|you|the\s+party)\b|\bdid\s+(a|any)\s+(weekend|date|day|night)\s+(win|land|stick)\b/i
+// Template A, "our system should've texted you a price and didn't" (leads
+// skill §3.1), and how long after the contact step it may go out by hand -
+// the same 5 minutes as lead-watch's grace_minutes default.
+const SAYS_NO_PRICE_WAS_SENT = /should(?:'|’)?ve texted you a price|should have texted you a price/i
+const TEMPLATE_A_MIN_AGE_MIN = 5
 const MENTIONS_A_DATE =
   /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(st|nd|rd|th)?\b|\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b|\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\.?,?\s+(the\s+)?\d{1,2}(st|nd|rd|th)?\b|\bthe\s+\d{1,2}(st|nd|rd|th)\b/i
 
@@ -178,6 +183,67 @@ export async function POST(request: NextRequest) {
         },
         { status: 409 },
       )
+    }
+  }
+
+  // ---- Same text twice (2026-10-08) -----------------------------------------
+  // 10-07 17:51 a customer got the identical quote text twice, two minutes
+  // apart, from two senders. Twilio is the truth for what went out.
+  if (!payload.force) {
+    const dupe = thread.find((m) => m.direction !== "inbound" && m.body.trim() === body && Date.now() - Date.parse(m.at) < 30 * 60_000)
+    if (dupe) {
+      return NextResponse.json(
+        { error: `同一条短信 ${dupe.at.slice(11, 16)} 已经发过了，不重发`, brake: "duplicate_text" },
+        { status: 409 },
+      )
+    }
+  }
+
+  // ---- "Our system didn't text you a price" (D-1008-02) --------------------
+  // Template A is for a customer who left contact details and never reached
+  // the quote step. Sent ~50 s after the contact step (10-06/07, 11 leads,
+  // 1 reply) it lands while they are still filling in step 2: an apology, a
+  // price for the card's default 15 adults, and a minute later the real quote
+  // for a different number. The server lead-watch already sends A itself
+  // after its grace period; by hand it is only allowed after that, and never
+  // once the quote is on the timeline. force does not override the second.
+  if (SAYS_NO_PRICE_WAS_SENT.test(body)) {
+    const supabase = createServerSupabaseClient()
+    if (supabase) {
+      let leadId = leadIdParam
+      if (!leadId) {
+        const { data } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
+          .is("merged_into", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        leadId = (data as { id: string } | null)?.id ?? null
+      }
+      if (leadId) {
+        const [{ data: leadRow }, { data: quoted }] = await Promise.all([
+          supabase.from("leads").select("created_at").eq("id", leadId).maybeSingle(),
+          supabase.from("lead_touchpoints").select("occurred_at").eq("lead_id", leadId).eq("touchpoint_type", "landing_quote_text").limit(1),
+        ])
+        if ((quoted ?? []).length > 0) {
+          return NextResponse.json(
+            { error: "系统已经给这个客人发过报价了，这条「系统没发价格」的道歉是错的——改发模板 B 或直接聊", brake: "template_a_after_quote" },
+            { status: 409 },
+          )
+        }
+        const ageMin = leadRow ? (Date.now() - Date.parse((leadRow as { created_at: string }).created_at)) / 60_000 : Infinity
+        if (!payload.force && ageMin < TEMPLATE_A_MIN_AGE_MIN) {
+          return NextResponse.json(
+            {
+              error: `客人留资才 ${Math.max(0, Math.round(ageMin))} 分钟，多半还在填第二步（人数/日期）——${TEMPLATE_A_MIN_AGE_MIN} 分钟内不发模板 A，巡检到时会自己补发`,
+              brake: "template_a_too_early",
+            },
+            { status: 409 },
+          )
+        }
+      }
     }
   }
 

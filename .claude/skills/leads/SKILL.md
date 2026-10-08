@@ -225,8 +225,8 @@ description: >-
 
 | 型 | 识别特征（工作台 `latest_message` / 来源） | 首条要干什么 |
 |---|---|---|
-| **A 断在留资** | `Landing contact (…): gave mobile + email, quote step pending · card default 15 adults` | 他们交了手机+邮箱却什么都没收到（43% 的落地页线索卡在这）。**先认错、直接给精确价**（用卡片默认 15 大人算，同时给周末/周中两档），再问一个问题 |
-| **B 报价已发** | `Landing quote (…): N adults · plan · date · est. $X` 或 quote_unlock | 已经收到自动短信+押金链接。首条不重复价格：**确认日期开着 + 时间选择题** |
+| **A 断在留资** | `Landing contact (…): gave mobile + email, quote step pending · card default 15 adults` | 他们交了手机+邮箱却什么都没收到（43% 的落地页线索卡在这）。**先认错、直接给精确价**（用卡片默认 15 大人算，同时给周末/周中两档），再问一个问题。**留资不到 5 分钟不碰——客人多半还在填第二步；A 由巡检在 5 分钟后自动发，人不手发**（D-1008-02，见 §3.1 A 下的说明） |
+| **B 报价已发** | `Landing quote (…): N adults · plan · date · est. $X` 或 quote_unlock | 已经收到自动短信+锁日期链接。首条不重复价格：**有日期就说日期开着 + 问场合**（D-1008-02 起不再问几点、不再问哪天） |
 | **C 主动来短信** | Twilio 收件箱有客户消息 | 先答他的问题（≤2 句），再收口一个问题。5 分钟内 |
 | **D 主动来邮件 / contact 表单** | `desk next` 里的 `[email]` 卡片（2026-10-07 起 support@ 的信由 Gmail 脚本推进工作台，标题栏"邮件 N"，卡片里 `✉ 客` 行；平台通知如 Zola 也走这里）/ `lead_source=contact` | 邮件回：`desk email <to> --subject ... --body-file ... --lead <id>`（从 support@ 发、记 `email_outbound`，卡片"邮件"计数归零）+ 若有手机同步一条短信 "just emailed you the details"。**不再去 Gmail 里翻**——没进卡片的邮件才去查 |
 | **D3 漏网 `[audit]`** | 收件箱规则没显示、但时间线上客人的话后面一直没有我们的回复（2026-10-07 起的第二道检查：读时间线里每一条短信/邮件/网站表单，点赞和"谢谢"遮不住前面的问题或照片）。标题栏"漏网 N" | 先答客人；再把这条**为什么规则没抓到**报给老板——每一条漏网都是一个新盲区，要修规则。确实不用回才 `desk ack` |
@@ -246,14 +246,17 @@ description: >-
 ```
 Hi! Bling from Real Hibachi — our system should've texted you a price and didn't, sorry about that. For 15 adults it's $838.50 Fri–Sun, or $763.50 Mon–Thu (2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?
 ```
+**A 不手发（D-1008-02，老板 2026-10-08 "两个都改"）**：落地页是两步表单，第一步留手机就建线索，第二步（人数/日期）通常 1–2 分钟后才到、系统报价随之发出。10-06/07 有人在留资后 **50 秒**就手发了 A——客人还在填第二步，先收到"系统没给你发价格，抱歉"+ 一个按默认 15 人算的价，一分钟后又收到真实报价（不同人数、不同价格）。10-01 以来 11 条线索收到过这种 A，只有 1 条回话。**A 只由巡检在留资 5 分钟后、确认没有 `landing_quote_text` 时自动发**；发送接口会拦：留资不到 5 分钟 409 `template_a_too_early`，已有系统报价 409 `template_a_after_quote`（force 也不放行）。同一条短信 30 分钟内重发也会 409 `duplicate_text`。
 
-**B · 报价已发**
+**B · 报价已发（2026-10-08 起问场合，D-1008-02）**
 ```
-Hi! Bling from Real Hibachi 👋 Saw your quote for [N] on [Weekday, Month D] — that date's open on our end. Would a 4 PM or a 7 PM start work better for you?
+Hi! Bling from Real Hibachi 👋 [Sat, Oct 18] is open on our end for your [N] in [City] — what's the celebration?
+Hi! Bling from Real Hibachi 👋 [N] in [City] — what's the celebration?          ← 没日期
+Hi! Bling from Real Hibachi 👋 Saw your quote for [N] — what's the celebration?  ← 没日期也没像样的城市名（ZIP、"LA & Orange County"、"Southern California"）
 ```
-（没日期时把最后一句换成 "Which date are you looking at?"。**问 4 点还是 7 点，不再问 7 点还是 7:30**——用户 2026-10-06 定：4 点场和 7 点场同一个师傅接得上，6 点场把整个晚上占死；见 §5 开场时间那段。）
+**为什么改**：机器发的旧版 B（"which date are you looking at?" / "4 PM or 7 PM?"）上线后，10-01~07 的 60 条线索 24 小时内回话 20%，前一周 52%；Google、Meta、免费渠道一起掉，短信送达率 96–100%，不是渠道和送达问题。9 月底成交最好的几天，第一句大多是手写的、问派对是为什么办的。场合是最好答的问题，答了就有 `[occasion]` 可以接着聊；日期和几点开场留到第二、三句，由人问。**4 点还是 7 点的规则不变**（老板 2026-10-06：4 点场和 7 点场同一个师傅接得上，6 点场把整晚占死），只是不再放在第一句。
 
-**2026-10-07 起 B 由 lead-watch 自动发**（老板"交给机器"）：报价后 2 分钟，每分钟一次的 cron（`lead-watch?stage=first_response`），记 `agent_first_response` + `[SOP:first_response] AUTO template B` 备注、线索转 qualified。**人工不再手发 B。** 机器让给人的情况（`desk next` 里仍是新线索，needsHuman 的 `why` 写原因）：61+ 大人（走 E）、日期在 48 小时内或已过、客人先发了短信（走 C）、短信打不通、没人数。设置页「线索巡检」可关。A 型照旧由巡检在 grace 后自动发。
+**2026-10-07 起 B 由 lead-watch 自动发**（老板"交给机器"；10-08 措辞改成问场合，`lib/first-response.ts` `quoteFollowUpPlan`）：报价后 2 分钟，每分钟一次的 cron（`lead-watch?stage=first_response`），记 `agent_first_response` + `[SOP:first_response] AUTO template B` 备注、线索转 qualified。**人工不再手发 B。** 机器让给人的情况（`desk next` 里仍是新线索，needsHuman 的 `why` 写原因）：61+ 大人（走 E）、日期在 48 小时内或已过、客人先发了短信（走 C）、短信打不通、没人数。设置页「线索巡检」可关。A 型照旧由巡检在 grace 后自动发。
 
 **派对前联系确认（机器，2026-10-07 起，老板定"派对前一天一定要联系上，否则可能跑单"）**：已锁日期的单，派对前 72 小时机器发一条确认短信（"Your hibachi party is Sat, Oct 17 at 6 PM at 123 Main St. Reply YES if everything's still set, or let me know if anything's changed."）；到 48 小时还没回 → `desk next` 头部「联系不上 N」+ 卡片 ⚑ 行 → 人工再发一条或打电话；前一天还没回 → 机器再发一条（"just making sure we're all set for tomorrow…"）+ 每小时提醒 → **必须打电话**。客人窗口内任何一条短信都算联系上，不再打扰。不是取消流程：不扣钱、不放档期、不提候补。
 
