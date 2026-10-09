@@ -761,6 +761,29 @@ def cmd_order(a):
             for x in (data.get("promotions") or []):
                 if re.search(r"party size", str(x.get("label") or ""), re.I):
                     print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
+        if a.free_item:
+            # Appetizer trays promised free (20+ guests, the full setup, a
+            # concession): the trays go into partyExtras and a fixed "FREE:"
+            # line refunds exactly those trays (skill 10, 2026-09-28) - not a
+            # freeExtraIds rule, which would refund every tray of that kind the
+            # customer adds in the planner and double up with the auto promos.
+            stamp = int(time.time())
+            extras = data.setdefault("partyExtras", [])
+            promos = data.setdefault("promotions", [])
+            for pair in a.free_item:
+                m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
+                if not m or m.group(1) not in APPETIZER_PRICES:
+                    raise SystemExit(f"--free-item {pair!r}: use id=N with id in {sorted(APPETIZER_PRICES)}")
+                app_id, n = m.group(1), int(m.group(2))
+                row = next((e for e in extras if e.get("id") == app_id), None)
+                if row:
+                    row["qty"] = int(row.get("qty") or 0) + n
+                else:
+                    extras.append({"id": app_id, "qty": n})
+                label = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10 pcs)", "edamame": "Edamame (feeds 3)"}[app_id]
+                amount = round(APPETIZER_PRICES[app_id] * n, 2)
+                promos.append({"id": f"{app_id}_{stamp}", "label": f"FREE: {label} x{n}", "amount": amount})
+                changes.append(f"free item: {app_id} +{n} in partyExtras, promo 'FREE: {label} x{n}' {money(amount)}")
         if a.drop_deal:
             # Take a signed deal back off an order: the customDeal rule and the
             # deal_* lines it wrote. Taegan 10-09: the 10-02 flatOff $90 was the
@@ -862,7 +885,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1087,6 +1110,7 @@ def main(argv=None):
     p.add_argument("--replace-guests", action="store_true", help="allow --guests-file to overwrite rows that already have picks")
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
+    p.add_argument("--free-item", nargs="+", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
     p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
     p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
                    "Promotions are frozen numbers on the invoice, not rules, so any per-head one (the Weekday Special, a free-extras deal) "
