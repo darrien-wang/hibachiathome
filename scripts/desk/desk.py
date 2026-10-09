@@ -761,6 +761,19 @@ def cmd_order(a):
             for x in (data.get("promotions") or []):
                 if re.search(r"party size", str(x.get("label") or ""), re.I):
                     print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
+        if a.drop_deal:
+            # Take a signed deal back off an order: the customDeal rule and the
+            # deal_* lines it wrote. Taegan 10-09: the 10-02 flatOff $90 was the
+            # stand-in party-size discount from before the tiers reached 31+, and
+            # the deposit order also got the official $120 line - $210 off.
+            gone = [x for x in (data.get("promotions") or []) if str(x.get("id", "")).startswith("deal_")]
+            if not gone and not data.get("customDeal"):
+                raise SystemExit("--drop-deal: this order has no deal to drop")
+            for x in gone:
+                changes.append(f"promo {x.get('id')} removed: {x.get('label')} {money(x.get('amount'))}")
+            data["promotions"] = [x for x in (data.get("promotions") or []) if not str(x.get("id", "")).startswith("deal_")]
+            changes.append(f"customDeal: {data.get('customDeal')} -> None")
+            data["customDeal"] = None
         if a.deal_free:
             # A setup item promised free (tables for locking the date, skill 8)
             # is billed as usual and refunded on its own line, so the loading
@@ -849,7 +862,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1073,6 +1086,7 @@ def main(argv=None):
                    "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows.")
     p.add_argument("--replace-guests", action="store_true", help="allow --guests-file to overwrite rows that already have picks")
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
+    p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
     p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
                    "Promotions are frozen numbers on the invoice, not rules, so any per-head one (the Weekday Special, a free-extras deal) "
