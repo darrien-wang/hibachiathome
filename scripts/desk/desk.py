@@ -468,8 +468,25 @@ def cmd_link(a):
     if a.lead:
         q["lead_id"] = a.lead
     long_url = "https://www.realhibachi.com/deposit/pay?" + urllib.parse.urlencode(q)
+    # A concession rides on the link as a signed rule (custom-deal, skill §10):
+    # free tables for locking the date, a flat amount off. Rules, never a frozen
+    # total, so a changed headcount still prices right.
+    deal = {}
+    if a.free:
+        deal["freeExtraIds"] = [x.strip() for x in a.free.split(",") if x.strip()]
+    if a.flat_off:
+        deal["flatOff"] = a.flat_off
+    if deal:
+        if not a.lead:
+            raise SystemExit("a deal (--free / --flat-off) is signed per lead: give --lead")
+        signed = site_post("/api/admin/custom-deal", {"leadId": a.lead, **deal, **({"note": a.deal_note} if a.deal_note else {})})
+        if not signed.get("ok") or not signed.get("query"):
+            raise SystemExit(dump(signed))
+        long_url += "&" + signed["query"]
     out = site_post("/api/admin/short-link", {"url": long_url, **({"leadId": a.lead} if a.lead else {})})
     print(out.get("shortUrl") or dump(out))
+    if deal:
+        print(f"   deal: {deal}")
     print(f"   {a.adults} 大人 + {a.kids} 小孩 · {a.city} · {a.date or '日期待定'}{' ' + a.time if a.time else ''}"
           f" · 估 ${est if est is not None else '?'} · 有效至 {pt(out.get('expiresAt'))}")
     if a.verbose:
@@ -923,6 +940,9 @@ def main(argv=None):
     p.add_argument("--lead"); p.add_argument("--adults", type=int); p.add_argument("--kids", type=int, default=0); p.add_argument("--city")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--email"); p.add_argument("--name"); p.add_argument("--phone")
     p.add_argument("--zip"); p.add_argument("--est", type=int); p.add_argument("--booked", action="store_true"); p.add_argument("--verbose", action="store_true")
+    p.add_argument("--free", help="comma list of extras the deal gives free, e.g. tables_chairs (deposit only)")
+    p.add_argument("--flat-off", type=float, help="deal: dollars off the total (deposit only)")
+    p.add_argument("--deal-note", help="deal: why, shown on the order")
     p.set_defaults(fn=cmd_link)
     # Calls: recordings on the lead, transcribed locally with the speakers
     # known (scripts/desk/calls.py). Imported lazily - faster-whisper is slow to load.
