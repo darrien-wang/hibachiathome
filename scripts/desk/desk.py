@@ -1089,6 +1089,14 @@ def main(argv=None):
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*"); p.set_defaults(fn=cmd_email)
+    # Sales daily report, numbers half (docs/销售日志/README.md): read-only selects.
+    def _report(a):
+        import datetime as _dt
+        import report
+        day = _dt.date.fromisoformat(a.date) if a.date else _dt.date.today()
+        print(report.day_report(day))
+    p = sp.add_parser("report"); p.add_argument("kind", choices=["day"]); p.add_argument("--date", help="YYYY-MM-DD (Pacific), default today")
+    p.set_defaults(fn=_report)
     p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind"]); p.add_argument("ident")
     p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
