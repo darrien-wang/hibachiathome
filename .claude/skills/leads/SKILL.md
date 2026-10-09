@@ -407,7 +407,7 @@ Real Hibachi · (213) 770-7788
 3. **底线之上我直接定、当场发，事后在汇报里告诉用户**——为成交抢速度；底线之下、破 $599 底线 → 一句话问用户。
 
    **让价底线（用户 2026-10-06 定，替代旧的"每人 ≤$5 / 每单 ≤$100"带宽）**
-   - 底线是**人均实收**：食物部分扣完所有折扣（阶梯、特价、flatOff）后 ÷ 人头，不含路费、不含租赁。**周五/六/日 ≥ $50，周一至周四 ≥ $45。** 小孩按半个成人折算（不折算的话按标价小孩多的单就已经在线下）。
+   - 底线是**人均实收**：食物部分扣完所有折扣（阶梯、特价、flatOff）后 ÷ 人头，不含路费、不含租赁。**周五/六/日 ≥ $50，周一至周四 ≥ $45。****节假日也 ≥ $50**（节假日 = `config/pricing-rules.ts` 的 `WEEKDAY_SPECIAL_BLACKOUTS`：Thanksgiving 那周、12/20–1/3 圣诞到新年、7/4、劳动节、阵亡将士纪念日；不在表里的如 10/12 哥伦布日按平日算）；**40 人以上的大单可以低于 $50**（老板 2026-10-09："周六的均价不能低于50 周一到周四 不能低于45 节假日也不能低于50 除非特别大的订单 均价可以低于50"、"比如40人以上的"，D-1009-03）——我给的建议最低到 $45，再低先问老板。 小孩按半个成人折算（不折算的话按标价小孩多的单就已经在线下）。
    - **送桌椅 = 每人 $4 计入让价**（桌椅成本 $4/人）：周六标价 $59.90 送了桌椅视同实收 $55.90。
    - **送前菜、送面条（butter noodles / yakisoba）不计成本**，可以随便送，不动底线。
    - **餐具（plates & silverware $5/位）不送、不打折。**
@@ -473,6 +473,8 @@ Real Hibachi · (213) 770-7788
 - **每周看两个数**（周报固定项）：回 STOP 的比例、未送达比例。STOP 超过 2% 或出现一次垃圾短信投诉 → 上限砍到 4 条并告诉用户。09-19 基线：池子 20 个号码 0 个 STOP。
 
 **状态进库**：`leads.segment`（self / talk / swing_open / swing_silent / dormant）、`leads.ladder_step`（t0 / f_morning / f_planner / f_deadline / f_last / done）、`leads.next_action_at`、`leads.hold_until`、`leads.sms_blocked_at`。工作台 localStorage 里的提醒和"已发"勾作废不看。
+
+**老板半小时没回 = 按我的建议做**（老板 2026-10-09："如果我超过半小时 没有回复你 你就按照你建议的决定来做 我们的目标就是成交足够多的订单"，D-1009-02）：凡是要老板批的事（改了措辞的跟进、满 3 条要 force、31 人以上的价、超带宽让价、平台询价回复……），每条都写清**我的建议**和稿子；从发出那一刻起 30 分钟老板没回，就照建议执行，事后报一行"按建议做了：…"。只有老板本人能做的（打电话、签 W-9、开保险证明、登录平台后台、改设置）不在此列，照旧等他。目标是成交单数，建议要往"能成交"那边给。
 
 | 我不问直接做 | 起草等用户说"发" | 永远不做 |
 |---|---|---|
@@ -611,7 +613,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 **竞争让价流程**
 1. **先问清对方包含什么**（一句话）："Happy to look at it - does that price include 2 proteins per person, travel, and setup?" 同行常见套路：单蛋白、路费另算、桌椅另算、押金不退、无保险。
 2. **先亮差异，不先降价**：到场承诺（实名确认、自己团队、优先补档）、分量白纸黑字、持证有保险。很多"便宜"在这里就被抵消。
-3. **还要价 → 让**：**人均实收不低于底线（周五–日 $50 / 周一–四 $45，小孩算半个，桌椅按 $4/人计入，前菜面条不计，餐具不让）我可以直接定**；要低于底线、或要破 **$599 底线** → 先问用户，一句话说清竞品价和包含项。底线全文见 §4.3「让价底线」。
+3. **还要价 → 让**：**人均实收不低于底线（周五–日和节假日 $50 / 周一–四 $45 / 40 人以上可低于 $50、建议不低于 $45，小孩算半个，桌椅按 $4/人计入，前菜面条不计，餐具不让）我可以直接定**；要低于底线、或要破 **$599 底线** → 先问用户，一句话说清竞品价和包含项。底线全文见 §4.3「让价底线」。
    - 带宽依据：单场成本约 $20–25/人（食材 $10 + 厨师 $10–15），$50 仍有 ~50% 毛利。底线是用户 2026-10-06 定的。
 4. **怎么让**：按 §7.1 谈判模块——先问再让、每步换回报、三步递减、最后留小赢；带宽只是上限，不是一次给完的数。
 5. **让价的说法**：主动、干脆、带条件，不求人。"I'll match that - $54.90/adult for your Saturday, and you still get the show-up promise in writing. Want me to pencil it in?" 不说 "please"，不说 "we really want your business"，不让第二次。
@@ -750,7 +752,7 @@ Or just text me the list and I will fill it in for you - whichever is easier.
 |---|---|
 | **太贵 / 超预算** | 先给合法杠杆：周一–周四省 $5/成人 + 送一份自选前菜（gyoza / edamame / spring rolls 三选一）；10+ 人自动人数折扣；5 岁以下免费。**不说 cheapest**。然后按 §7.1 先问再让："What number were you hoping to land at?" 客户提了竞品 → §5.1 竞争让价流程 + §7.1 |
 | **要跟朋友商量** | 标签 + planner 工具 + 占位："Totally — I'll pencil in Sat so it's there when they say yes. Want the planner link so they can each grab a seat?" 这是对方的"更高权威"——顺手钉一句："If it were just you, is this a go?"（§7.1） |
-| **X 日期有空吗** | 一律按开着回（"open on our end"）。用户 09-18 定：档期都有、兼职厨师充足，容量不是瓶颈；只有 <3 天的临时单或订单表里当天已经明显堆满时才问用户 |
+| **X 日期有空吗** | 一律按开着回（"open on our end"），**直接接，不问老板**——明天、后天的临时单，同一天好几场、开场时间撞在一起，都一样（老板 2026-10-09："你尽管接单子 不用考虑时间 我现在找到了足够多的师傅了"，D-1009-01；取代 09-18 "<3 天或当天堆满才问"）。临时单照常要时间、地址和菜单，接下来马上在汇报里写一行"明天又多一场"，派哪位师傅归老板。唯一还要先问的是半夜 12 点以后开场（问师傅，见下面"最晚几点"那行） |
 | **小费怎么算** | "Not included - 20-25% is customary, and 100% of it goes to the chefs." 不多说。**算总账时固定问一句**："Would you like to add the 20% gratuity to the card, or tip them in person on the day?"（D-1006-05） |
 | **含税吗 / 有没有隐藏费用** | "Tax is included - $X is the cash price, paid to your chef on the day. The only other thing is gratuity - 20-25% is customary, and all of it goes to the chefs." 客人追问刷卡才补："By card it's $X plus your local sales tax and the card processing fee - I'll send the exact line-by-line once your menu is set."（2026-10-06 D-1006-05；**不报 ×1.10 的整数**；不说 "no tax / tax-free"） |
 | **付现金 / 刷卡有什么区别**（D-1006-05，2026-10-06 晚） | **定之前不提**。菜单人数定了、算总账时系统出两张账：现金 = 标价；信用卡 = 标价 + 该地址实际销售税 + Stripe 3%（借记卡不加）+ 可选 20% 小费，当天从留存卡扣（Zelle/Venmo 不主动提，客人问了才说，见 §5「支付」）。总账短信把行贴出来 + 问小费先付还是现场给。派对前一天 `desk order remind <单号>`："See you tomorrow at 6! Your balance is $X cash to your chef, or $Y by card ($X + $T sales tax + $F card processing). Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?" **不说** "no tax / tax-free / 走批发"——老板 10-05 提过没采用：税含在现金价里、刷卡按地址列实数、季报同一个数。 |
