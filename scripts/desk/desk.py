@@ -294,8 +294,12 @@ def cmd_search(a):
                   f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}  id {o.get('id')}")
 
 
-def price_for(adults: int, kids: int, date: str | None, zipcode: str | None) -> dict | None:
+def price_for(adults: int, kids: int, date: str | None, zipcode: str | None, tables: int = 0, utensils: int = 0) -> dict | None:
     params = {"adults": adults, "kids": kids}
+    if tables:
+        params["tables"] = tables
+    if utensils:
+        params["utensils"] = utensils
     if date:
         params["date"] = date
     if zipcode:
@@ -308,7 +312,7 @@ def price_for(adults: int, kids: int, date: str | None, zipcode: str | None) -> 
 
 def cmd_price(a):
     for date in [a.date] + ([a.alt_date] if a.alt_date else []):
-        p = price_for(a.adults, a.kids, date, a.zip)
+        p = price_for(a.adults, a.kids, date, a.zip, a.tables or 0, a.utensils or 0)
         if not p or not p.get("ok"):
             print(f"{date or '(no date)'}: 引擎没算出来（zip 对吗？）")
             continue
@@ -317,7 +321,7 @@ def cmd_price(a):
         # part of a quote. The two bills come from the invoice engine once the
         # menu and headcount are set (`desk order totals` / /pay).
         print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
-              f"食 ${pr['foodSubtotal']:,.2f} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
+              f"食 ${pr['foodSubtotal']:,.2f}{f" + 租赁 ${pr['rentals']['amount']:,.2f}" if pr.get('rentals') else ''} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
         if a.json:
             print(dump(p))
@@ -1009,7 +1013,10 @@ def main(argv=None):
     p = sp.add_parser("thread"); p.add_argument("ident"); p.set_defaults(fn=cmd_thread)
     p = sp.add_parser("search"); p.add_argument("text"); p.set_defaults(fn=cmd_search)
     p = sp.add_parser("price"); p.add_argument("--adults", type=int, required=True); p.add_argument("--kids", type=int, default=0)
-    p.add_argument("--date"); p.add_argument("--alt-date"); p.add_argument("--zip"); p.add_argument("--json", action="store_true"); p.set_defaults(fn=cmd_price)
+    p.add_argument("--date"); p.add_argument("--alt-date"); p.add_argument("--zip"); p.add_argument("--json", action="store_true")
+    p.add_argument("--tables", type=int, help="guests getting tables & chairs ($10 each) - priced inside the $599 minimum, as the invoice does")
+    p.add_argument("--utensils", type=int, help="guests getting plates & cutlery ($5 each)")
+    p.set_defaults(fn=cmd_price)
     p = sp.add_parser("travel"); p.add_argument("destination"); p.set_defaults(fn=cmd_travel)
     p = sp.add_parser("send"); p.add_argument("phone"); p.add_argument("body", nargs="?"); p.add_argument("--lead")
     p.add_argument("--body", dest="body_opt"); p.add_argument("--body-file"); p.add_argument("--force", action="store_true")

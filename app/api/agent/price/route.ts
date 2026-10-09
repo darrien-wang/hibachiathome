@@ -8,7 +8,9 @@ import {
   LATE_CANCEL_FEE,
   MINIMUM_SPEND,
   PARTY_SIZE_CUSTOM_FROM,
+  TABLES_CHAIRS_PER_GUEST,
   TRAVEL_FREE_RADIUS_MILES,
+  UTENSILS_PER_GUEST,
   WEEKDAY_SPECIAL,
   calcSimpleEstimate,
   calcTravelFee,
@@ -49,6 +51,10 @@ export async function GET(request: Request) {
   const adults = int(q.get("adults"), 0, 200)
   const kids = int(q.get("kids"), 0, 100)
   const under5 = int(q.get("under5"), 0, 100)
+  // Optional rentals: how many guests get tables & chairs / plates & cutlery.
+  const tables = int(q.get("tables"), 0, 300)
+  const utensils = int(q.get("utensils"), 0, 300)
+  const rentals = tables * TABLES_CHAIRS_PER_GUEST + utensils * UTENSILS_PER_GUEST
   const date = (q.get("date") ?? "").trim()
   const zip = (q.get("zip") ?? "").trim()
 
@@ -93,7 +99,7 @@ export async function GET(request: Request) {
   }
 
   const quote = (weekday: boolean) => {
-    const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee: travel.fee })
+    const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee: travel.fee, rentals })
     // Paying heads only (owner 2026-09-28): adults 1, half-price kids 0.5,
     // free under-5s 0. This line used to add under5 in, which handed an
     // appetizer to parties well short of the bar.
@@ -104,6 +110,7 @@ export async function GET(request: Request) {
       childRate: weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price,
       under5Rate: 0,
       foodSubtotal: est.subtotal,
+      ...(rentals > 0 ? { rentals: { tablesChairsGuests: tables, tablewareGuests: utensils, amount: rentals } } : {}),
       partySizeDiscount: est.partySizeDiscountApplied,
       minimumApplied: est.minApplied,
       travelFee: est.travelFee,

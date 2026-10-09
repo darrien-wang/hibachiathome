@@ -434,14 +434,19 @@ export type SimpleEstimate = {
  * menu bar, landing-quote text) all agree on. /quote's builder carries the
  * same rules plus upgrades and loyalty.
  */
-export function calcSimpleEstimate(args: { adults: number; kids: number; weekdaySpecial: boolean; travelFee?: number }): SimpleEstimate {
+export function calcSimpleEstimate(args: { adults: number; kids: number; weekdaySpecial: boolean; travelFee?: number; rentals?: number }): SimpleEstimate {
   const adults = Math.max(0, Math.floor(args.adults))
   const kids = Math.max(0, Math.floor(args.kids))
   const subtotal = roundCurrency(adults * getTierPrice("adult", args.weekdaySpecial) + kids * getTierPrice("child", args.weekdaySpecial))
+  // Rented tables / tableware sit in the subtotal before the party-size
+  // discount and the $599 floor, as the invoice (calcInvoiceTotal) and /quote
+  // bill them. Adding them after the floor quoted 10 adults with the full
+  // setup at $749 against the invoice's $719 (audit item 18, D-1009-04).
+  const rentals = roundCurrency(Math.max(0, args.rentals ?? 0))
   const partySize = partySizeDiscount({ adults, kids })
-  const afterDiscount = Math.max(0, subtotal - partySize)
+  const afterDiscount = Math.max(0, subtotal + rentals - partySize)
   const base = Math.max(afterDiscount, MINIMUM_SPEND)
-  const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotal - base))
+  const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotal + rentals - base))
   const travelFee = Math.max(0, Math.round(args.travelFee ?? 0))
   const total = roundCurrency(base + travelFee)
   return {
