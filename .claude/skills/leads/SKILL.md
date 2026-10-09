@@ -823,6 +823,7 @@ python scripts/desk/desk.py contacted <leadId>          # 首响标记（幂等�
 python scripts/desk/desk.py ack    <leadId> [--clear]    # 「不用回」水位线：只用于 tapback
 python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip="Long Beach"
 python scripts/desk/desk.py link deposit --lead <id> --adults 24 --kids 0 --city "Long Beach" --date 2026-10-13 --email <e>   # 预填押金页 → 短链
+python scripts/desk/desk.py link deposit ... --free tables_chairs [--flat-off 60] --deal-note "why"   # 让步签成 custom-deal 规则再缩短（2026-10-09 起，不用再手写 curl）
 python scripts/desk/desk.py link planner --email <e> --phone <p> [--booked] --lead <id>
 python scripts/desk/desk.py link short  <长链> --lead <id>
 python scripts/desk/desk.py scan [--bucket D] [--no-write]   # 全池分桶：谁该动、什么时候动（lead-scan skill）；措辞仍按本 skill
