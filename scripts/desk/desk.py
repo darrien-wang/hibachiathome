@@ -317,11 +317,12 @@ def cmd_price(a):
             print(f"{date or '(no date)'}: 引擎没算出来（zip 对吗？）")
             continue
         pr = p["price"]
+        rent = f" + 租赁 ${pr['rentals']['amount']:,.2f}" if pr.get("rentals") else ""
         # The listed price only (owner 2026-10-06): tax and payment method are not
         # part of a quote. The two bills come from the invoice engine once the
         # menu and headcount are set (`desk order totals` / /pay).
         print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
-              f"食 ${pr['foodSubtotal']:,.2f}{f" + 租赁 ${pr['rentals']['amount']:,.2f}" if pr.get('rentals') else ''} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
+              f"食 ${pr['foodSubtotal']:,.2f}{rent} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
         if a.json:
             print(dump(p))
