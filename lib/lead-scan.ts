@@ -132,6 +132,12 @@ const AUTOMATED = /^Real Hibachi:/
 const DAY_MS = 86400_000
 
 const str = (v: unknown) => (typeof v === "string" ? v : "")
+
+/** The page's auto "leave" quote carrying the untouched defaults: a revisit, not a re-quote. */
+export function isDefaultLeaveQuote(p: Record<string, unknown> | null | undefined): boolean {
+  const q = p ?? {}
+  return q.auto === "leave" && Number(q.adults) === 15 && !Number(q.kids) && !q.eventDate
+}
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : Number(v) || 0)
 const slug = (city: string) => city.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 const later = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b)
@@ -225,6 +231,13 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const calls = tps.filter((t) => t.touchpoint_type === "call_inbound").map((t) => t.occurred_at)
     const notes = tps.filter((t) => t.touchpoint_type === "agent_note").map((t) => ({ at: t.occurred_at, note: str(t.raw_payload_json?.note) }))
     const quotes = tps.filter((t) => t.touchpoint_type === "landing_quote_text")
+    // Only quotes the customer shaped say anything about the party: a revisit
+    // that leaves without touching the estimator still fires the page's auto
+    // "leave" quote with the defaults (15 adults, no date). Read as a re-quote
+    // it made 912-944-5781 (entered 30 for 10/17) "headcount_down" and
+    // 626-818-0077 a C signal, and follow-ups were written to a 15 nobody chose
+    // (2026-10-09).
+    const shapedQuotes = quotes.filter((t) => !isDefaultLeaveQuote(t.raw_payload_json))
     const signals = tps.filter((t) => SIGNAL_TYPES.has(t.touchpoint_type))
 
     // Twilio is the truth for who spoke last; the timeline can lag a text sent
@@ -266,6 +279,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const daysToEvent = daysUntil(eventDate, now)
 
     const latestQuote = quotes.length ? quotes[quotes.length - 1] : null
+    const latestShaped = shapedQuotes.length ? shapedQuotes[shapedQuotes.length - 1] : null
     const qp = latestQuote?.raw_payload_json ?? {}
     const computed = (qp.computed ?? {}) as Record<string, unknown>
     const quoted = latestQuote
@@ -285,10 +299,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     if (inbound.some((m) => TABLES_RE.test(m.body))) flags.push("tables_asked")
     if (inbound.some((m) => BUDGET_RE.test(m.body))) flags.push("budget_words")
     if (quoted && quoted.total === 599 && quoted.adults + quoted.kids <= 8) flags.push("at_minimum")
-    if (quotes.length >= 2) {
-      const first = num(quotes[0].raw_payload_json?.adults) + num(quotes[0].raw_payload_json?.kids)
-      const last = quoted ? quoted.adults + quoted.kids : first
-      if (last < first) flags.push("headcount_down")
+    if (shapedQuotes.length >= 2) {
+      const heads = (t: TP) => num(t.raw_payload_json?.adults) + num(t.raw_payload_json?.kids)
+      if (heads(shapedQuotes[shapedQuotes.length - 1]) < heads(shapedQuotes[0])) flags.push("headcount_down")
     }
     const objectionWords = flags.some((f) => f === "tables_asked" || f === "budget_words" || f === "at_minimum" || f === "headcount_down")
 
@@ -344,11 +357,11 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       reason = lastInIsCourtesy ? "客气话，回一句收尾" : "客人最后说话，欠回复"
     } else if (
       signals.some((s) => now - Date.parse(s.occurred_at) < SIGNAL_WINDOW_MS && (!lastManualOutAt || s.occurred_at > lastManualOutAt)) ||
-      (quotes.length >= 2 && latestQuote && now - Date.parse(latestQuote.occurred_at) < SIGNAL_WINDOW_MS && (!lastManualOutAt || latestQuote.occurred_at > lastManualOutAt))
+      (shapedQuotes.length >= 2 && latestShaped && now - Date.parse(latestShaped.occurred_at) < SIGNAL_WINDOW_MS && (!lastManualOutAt || latestShaped.occurred_at > lastManualOutAt))
     ) {
       bucket = "C"
       const sig = [...signals].reverse().find((s) => !lastManualOutAt || s.occurred_at > lastManualOutAt)
-      reason = sig ? `${sig.touchpoint_type} ${sig.occurred_at.slice(0, 16)}` : `重算了报价 ${latestQuote!.occurred_at.slice(0, 16)}（${quoted?.adults ?? "?"} 人 $${quoted?.total ?? "?"}）`
+      reason = sig ? `${sig.touchpoint_type} ${sig.occurred_at.slice(0, 16)}` : `重算了报价 ${latestShaped!.occurred_at.slice(0, 16)}（${num(latestShaped!.raw_payload_json?.adults)} 人 $${num(((latestShaped!.raw_payload_json?.computed ?? {}) as Record<string, unknown>).total)}）`
     } else if (holdActive) {
       bucket = "H"
       reason = `挂起到 ${lead.hold_until!.slice(0, 10)}${callbackNote ? "（客人自设节奏）" : ""}`
