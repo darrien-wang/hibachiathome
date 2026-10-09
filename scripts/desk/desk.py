@@ -45,6 +45,7 @@ import json
 import pathlib
 import re
 import sys
+import time
 import urllib.parse
 
 from _api import ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
@@ -55,6 +56,7 @@ THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
 
 # Protein ids the invoice engine knows (v0 invoice repo, lib/pricing.ts).
 PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"}
+SETUP_PRICES = {"tables_chairs": 10.0, "utensils": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 # Menu price of the appetizers a free-appetizer promo can bring, so changing
 # how many trays it brings moves the discount by the same amount and the
 # customer is never charged for what we gave them.
@@ -705,6 +707,88 @@ def cmd_order(a):
             expected = 2 * int(data.get("adultCount") or 0)
             if adult_servings != expected:
                 print(f"   ! {adult_servings} adult servings for {data.get('adultCount')} adults - two each would be {expected}; extras are billed")
+        if a.guests_file:
+            # The whole list texted (or photographed) by the customer: one row
+            # per guest with their own picks. Until 10-09 only the planner could
+            # enter that; Shaunae sent 17 names with filet / lobster / scallop
+            # picks as a photo of her notes. Upgrades and third proteins are
+            # just protein ids here - the engine bills them (premium fee each,
+            # +$10 per protein past two), so nothing is priced by hand.
+            rows = json.loads(pathlib.Path(a.guests_file).read_bytes().decode("utf-8"))
+            if not isinstance(rows, list) or not rows:
+                raise SystemExit("--guests-file: a JSON list of {name, child?, little?, proteins: [ids], tables?, utensils?, noodles?, allergy?, note?}")
+            had = [g for g in (data.get("guests") or []) if g.get("proteins")]
+            if had and not a.replace_guests:
+                raise SystemExit(f"this order already has {len(had)} guest rows with picks - pass --replace-guests to overwrite them")
+            stamp = int(time.time())
+            new_rows = []
+            for i, r in enumerate(rows):
+                prots = [str(x).strip() for x in (r.get("proteins") or [])]
+                bad = [x for x in prots if x not in PROTEIN_IDS]
+                if bad:
+                    raise SystemExit(f"guest {i + 1} {r.get('name')!r}: unknown protein {bad} - ids are {sorted(PROTEIN_IDS)}")
+                if len(prots) < 2:
+                    raise SystemExit(f"guest {i + 1} {r.get('name')!r}: needs at least 2 proteins")
+                row = {
+                    "id": f"g{i + 1}_{stamp}",
+                    "name": str(r.get("name") or f"Guest {i + 1}").strip(),
+                    "isChild": bool(r.get("child")),
+                    "proteins": prots,
+                    "noodles": bool(r.get("noodles")),
+                    "tablesChairs": bool(r.get("tables")),
+                    "utensils": bool(r.get("utensils")),
+                    "foodAllergy": str(r.get("allergy") or ""),
+                    "note": str(r.get("note") or ""),
+                }
+                if r.get("little"):
+                    row["isLittle"] = True
+                new_rows.append(row)
+            adults = sum(1 for g in new_rows if not g["isChild"])
+            kids = len(new_rows) - adults
+            changes.append(f"guests: {len(data.get('guests') or [])} rows -> {len(new_rows)} ({adults} adults + {kids} kids)")
+            changes.append(f"adultCount/childCount: {data.get('adultCount')}/{data.get('childCount')} -> {adults}/{kids}")
+            data["guests"] = new_rows
+            data["adultCount"], data["childCount"] = adults, kids
+            if data.get("mode") != "detailed":
+                changes.append(f"mode: {data.get('mode')!r} -> 'detailed'")
+                data["mode"] = "detailed"
+                data["quickCountItems"] = [q for q in (data.get("quickCountItems") or []) if q.get("category") != "protein"]
+            for x in (data.get("promotions") or []):
+                if re.search(r"party size", str(x.get("label") or ""), re.I):
+                    print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
+        if a.deal_free:
+            # A setup item promised free (tables for locking the date, skill 8)
+            # is billed as usual and refunded on its own line, so the loading
+            # list still carries the tables. Saved invoices do not re-derive
+            # deal lines (self-service-invoice.ts leaves stored promotions
+            # alone), so the line is written here, at the rows' current count.
+            deal = dict(data.get("customDeal") or {})
+            ids = sorted(set((deal.get("freeExtraIds") or []) + [x.strip() for x in a.deal_free.split(",") if x.strip()]))
+            unknown = [x for x in ids if x not in SETUP_PRICES]
+            if unknown:
+                raise SystemExit(f"--deal-free: only {sorted(SETUP_PRICES)} are priced here, not {unknown}")
+            deal["freeExtraIds"] = ids
+            if a.deal_note:
+                deal["note"] = a.deal_note[:80]
+            changes.append(f"customDeal: {data.get('customDeal')} -> {deal}")
+            data["customDeal"] = deal
+            guests_now = data.get("guests") or []
+            value = 0.0
+            for x in ids:
+                flag = "tablesChairs" if x == "tables_chairs" else "utensils"
+                if data.get("mode") == "detailed":
+                    n = sum(1 for g in guests_now if g.get(flag))
+                else:
+                    n = next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
+                value += n * SETUP_PRICES[x]
+            promos = [x for x in (data.get("promotions") or []) if x.get("id") != "deal_free_extras"]
+            if value > 0:
+                label = " + ".join({"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}[x] for x in ids) + " on us"
+                promos.append({"id": "deal_free_extras", "label": label, "amount": round(value, 2)})
+                changes.append(f"promo deal_free_extras: {label} {money(value)}")
+            else:
+                print("   ⚠ no guest row has that item - nothing to refund; set tables/utensils on the rows first")
+            data["promotions"] = promos
         # "Can I add one more?" the day of. order set used to have no answer for
         # a detailed-mode party: --proteins refuses one (and would wipe every
         # guest's picks), so the only route was the planner. The new rows copy
@@ -760,7 +844,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -976,6 +1060,12 @@ def main(argv=None):
                    "the last adult's proteins and their tables/utensils flags, so a late 'can I bring one more' keeps billing the same way "
                    "as everyone else. Check the printed rows before sending - proteins are a guess until the guest says otherwise.")
     p.add_argument("--add-child", type=int, metavar="N", help="same as --add-adult for children 5-12.")
+    p.add_argument("--guests-file", help="JSON list of guests the customer sent, one per row: "
+                   '[{"name": "Mom", "proteins": ["filet_mignon", "steak", "lobster_tail"], "tables": true}, {"name": "Tyson", "child": true, ...}]. '
+                   "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows.")
+    p.add_argument("--replace-guests", action="store_true", help="allow --guests-file to overwrite rows that already have picks")
+    p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
+    p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
     p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
                    "Promotions are frozen numbers on the invoice, not rules, so any per-head one (the Weekday Special, a free-extras deal) "
                    "has to be re-stated by hand when the headcount moves - see the warning --add-adult prints.")
