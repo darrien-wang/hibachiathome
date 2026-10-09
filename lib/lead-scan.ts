@@ -310,6 +310,13 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = "同号已有付押金订单，状态该是 won"
       nextActionAt = null
+    } else if (!phone && !str(lead.email).trim()) {
+      // A "Text us" tap leaves a placeholder lead that waits for the text; when
+      // the text never comes there is no number and no email to answer. The
+      // 10-05 one (92315, 12/28) sat in A "从没联系过" for four days (2026-10-09).
+      bucket = "H"
+      reason = "没留电话也没留邮箱，联系不上（点了发短信但没发出来）"
+      nextActionAt = null
     } else if (!lastOutAt && !lastCustomerAt) {
       bucket = "A"
       reason = "从没联系过，走首条（T0）"
