@@ -788,6 +788,11 @@ def cmd_order(a):
             _print_totals(_totals(data))
         except ApiError as e:
             print(f"   totals: 引擎暂时算不了（{(e.payload.get('errors') if isinstance(e.payload, dict) else e.payload)}）- 菜单录进来后再看")
+        # --dry used to be ignored here: `order set ... --dry` saved for real
+        # (Stacy's notes, 2026-10-09). It is a preview now, like `remind --dry`.
+        if a.dry:
+            print("DRY   not saved (--dry)")
+            return
         res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data})
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
         return
