@@ -815,6 +815,7 @@ python scripts/desk/desk.py card   <手机|leadId>       # 同上，单条
 python scripts/desk/desk.py thread <手机|leadId>       # 只看对话（Twilio 为准，旧→新，tapback 已标）
 python scripts/desk/desk.py search <姓名|手机|邮箱|单号>
 python scripts/desk/desk.py price  --adults 24 --kids 0 --date 2026-10-13 --zip 90802 [--alt-date 2026-10-17]   # 引擎价，禁止手算
+python scripts/desk/desk.py price  ... --tables 10 --utensils 10   # 带桌椅/餐具的总价：租赁算进 $599 最低消费和人数折扣之前，跟发票、网站一样（10 大人全套 = $719，不是 $749；D-1009-04），别在引擎价上再手加租赁
 python scripts/desk/desk.py travel "<地址或 zip>"
 python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt [--force]   # 走 sms-thread，进时间线；非 ASCII 一律 --body-file
 python scripts/desk/desk.py send   <手机> --lead <id> --body "..." --media photo.jpg   # 发图（MMS）：走 Twilio 直发不过刹车，**只用于回复**；图传 sales-media 桶签名 1 小时；发完自动补进时间线
