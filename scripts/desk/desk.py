@@ -1097,6 +1097,12 @@ def cmd_order(a):
     if a.op in ("email", "send"):
         _print_invoice(order_no, prefill)
         _print_totals(_totals(prefill))
+        # --dry used to be ignored here: on 2026-10-10 "order send --dry" emailed and texted two
+        # customers for real (the owner had said send, so no harm - but a preview must never send).
+        if a.dry:
+            print(f"DRY   would email the invoice PDF to {prefill.get('contactInfo', {}).get('email') or '?'}"
+                  + (" and text the invoice link + 'reply confirm'" if a.op == "send" else "") + " - nothing sent")
+            return
         payload = {"invoiceData": prefill, "orderNo": order_no}
         if a.notes_reviewed:
             payload["notesReviewed"] = True

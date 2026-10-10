@@ -74,7 +74,8 @@ const RULES: Array<[HeardChannel, RegExp]> = [
   ["party_guest", /\bsaw you (?:at|guys at)\b|\b(?:at|went to|attended|been to) (?:a|an|my|his|her|their|our|the|someone'?s?) [\w' ]{0,30}\b(?:party|birthday|event|wedding|shower|celebration)\b/i],
   ["returning", /\b(?:used you|booked you|had you guys|you (?:did|cooked|catered) (?:our|my|for us)|last (?:year|time)|again)\b/i],
   ["friend", /\b(?:friend|family|cousin|sister|brother|mom|dad|aunt|uncle|cowork\w*|co-work\w*|neighbou?r|referr\w*|recommend\w*|word of mouth)s?\b/i],
-  ["google", /\bgoogl\w*\b|\bsearch\w*\b|\bonline\b|\binternet\b|\bweb ?site\b/i],
+  // "on line" / "on-line" too - Matthew's first answer (10-10) was "Found you on line".
+  ["google", /\bgoogl\w*\b|\bsearch\w*\b|\bon[- ]?line\b|\binternet\b|\bweb ?site\b/i],
 ]
 
 /** Bucket a customer's answer. The desk prints the guess; a human can override with --as. */

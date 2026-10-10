@@ -16,6 +16,8 @@ test("heard · our question is recognised in a sent text, however it's worded", 
 test("heard · answers land in the right bucket", () => {
   assert.equal(classifyHeard("Google"), "google")
   assert.equal(classifyHeard("just searched hibachi at home"), "google")
+  assert.equal(classifyHeard("Found you on line"), "google") // Matthew, 10-10 - the first real answer
+  assert.equal(classifyHeard("found you on-line"), "google")
   assert.equal(classifyHeard("Found you on google maps"), "google_maps")
   assert.equal(classifyHeard("your Google reviews"), "google_maps")
   assert.equal(classifyHeard("Yelp!"), "yelp")
