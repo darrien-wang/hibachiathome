@@ -17,7 +17,7 @@
  */
 const API_URL = "https://www.realhibachi.com/api/admin/email-inbound";
 const LABEL_NAME = "rh-ingested";
-const QUERY = '(to:support@realhibachi.com OR from:member.theknot.com OR from:member.weddingwire.com OR (from:zola.com subject:inquiry)) -subject:"waiting to hear back"';
+const QUERY = '(to:support@realhibachi.com OR from:member.theknot.com OR from:member.weddingwire.com OR (from:zola.com subject:"New Zola inquiry")) -subject:"waiting to hear back"';
 const MAX_THREADS = 40; const OVERLAP_MS = 10 * 60 * 1000;
 
 function ingestSupportInbox() {
