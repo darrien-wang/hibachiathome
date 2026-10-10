@@ -345,7 +345,7 @@ export default function PayClient() {
                 <span className="tabular-nums">{usd(v2.taxDue)}</span>
               </span>
               <span className="flex justify-between gap-3">
-                <span>Card processing (3%)</span>
+                <span>Card processing fee (charged by Stripe)</span>
                 <span className="tabular-nums">{usd(shownFee)}</span>
               </span>
               <span className="mt-1">Add your chef&apos;s gratuity here, or tip them in person on the day.</span>

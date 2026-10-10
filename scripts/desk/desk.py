@@ -994,7 +994,7 @@ def cmd_order(a):
             tax = float(inv.get("salesTax") or 0)
             fee = float(inv.get("cardProcessingFee") or 0)
             body = (f"See you {when} at {at}! Your balance is {money(cash)} cash to your chef, "
-                    f"or {money(card)} by card ({money(cash)} + {money(tax)} sales tax + {money(fee)} card processing). "
+                    f"or {money(card)} by card ({money(cash)} + {money(tax)} sales tax + {money(fee)} card processing fee charged by Stripe). "
                     f"Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?")
         else:
             body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
