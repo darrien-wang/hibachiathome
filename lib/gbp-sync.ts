@@ -273,7 +273,7 @@ export async function disconnect(supabase: SB) {
 
 // ------------------------------------------------------------ sync
 
-type LedgerFull = {
+export type LedgerFull = {
   id: string
   external_key: string
   gbp_review_id: string | null
@@ -286,6 +286,8 @@ type LedgerFull = {
   photo_urls: string[] | null
   bonus_id: string | null
   reply_comment: string | null
+  reply_updated_at: string | null
+  reply_state: string | null
 }
 
 const mediaThumbs = (v: GbpReview | undefined) => (v?.reviewMediaItems ?? []).map((m) => m.thumbnailUrl).filter((u): u is string => !!u)
@@ -311,6 +313,41 @@ function truncatedOf(rowBody: string, full: string): boolean {
   return head.length >= 10 && normText(full).startsWith(head) && normText(full).length > head.length
 }
 
+const sameInstant = (a: string | null | undefined, b: string | null | undefined) => (!a && !b) || (!!a && !!b && Date.parse(a) === Date.parse(b))
+
+/**
+ * 对上的一行这次要改什么——只放真变了的字段，没变就是空对象（不写库）。
+ * 自动同步每 15 分钟跑一次，不能每次把几十行全改一遍。
+ *   · 只补空字段：没评分/没日期/没正文补上，正文是 "…" 截断的换全文；人工改过的不碰
+ *   · 回复以 Google 为准（老板也可能在商家后台直接回）；回复内容变了 reply_by 清空
+ *   · Google 上带图、台账还没存图：存照片地址（"有图"标记和 $2→$3 由调用方走 setPhoto）
+ */
+export function linkPatch(r: LedgerFull, v: GbpReview, reviewId: string): Record<string, unknown> {
+  const patch: Record<string, unknown> = {}
+  if (r.gbp_review_id !== reviewId) patch.gbp_review_id = reviewId
+  const rating = starNumber(v.starRating)
+  if (r.rating == null && rating != null) patch.rating = rating
+  const date = ptDate(v.createTime)
+  if (!r.review_date && date) patch.review_date = date
+  const comment = (v.comment ?? "").trim()
+  if (comment && (!r.body || truncatedOf(r.body, comment))) patch.body = comment
+  const reply = (v.reviewReply?.comment ?? "").trim() || null
+  const replyAt = reply ? (v.reviewReply?.updateTime ?? null) : null
+  const replyState = reply ? (v.reviewReply?.reviewReplyState ?? null) : null
+  if (reply !== ((r.reply_comment ?? "").trim() || null)) {
+    patch.reply_comment = reply
+    patch.reply_by = null
+  }
+  if (!sameInstant(replyAt, r.reply_updated_at)) patch.reply_updated_at = replyAt
+  if (replyState !== (r.reply_state ?? null)) patch.reply_state = replyState
+  const pics = cleanPhotoUrls(mediaThumbs(v))
+  if (pics.length && !(r.photo_urls ?? []).length) {
+    patch.photo_urls = pics
+    patch.photo_count = Math.max(Number(r.photo_count) || 0, pics.length)
+  }
+  return patch
+}
+
 export type SyncSummary = {
   ok: true
   dry: boolean
@@ -328,6 +365,8 @@ export type SyncSummary = {
   // 写库之后才有
   added?: number
   linked?: number
+  /** 这次真改了几行（没变化的行不写库） */
+  changed?: number
   photos?: number
   have?: number
   errors?: string[]
@@ -340,7 +379,7 @@ export async function syncFromGbp(supabase: SB, alias: string, opts: { dry: bool
 
   const { data, error } = await supabase
     .from("business_reviews")
-    .select("id, external_key, gbp_review_id, reviewer, review_date, body, rating, has_photo, photo_count, photo_urls, bonus_id, reply_comment")
+    .select("id, external_key, gbp_review_id, reviewer, review_date, body, rating, has_photo, photo_count, photo_urls, bonus_id, reply_comment, reply_updated_at, reply_state")
     .eq("platform", "google")
     .limit(2000)
   if (error) throw error
@@ -376,41 +415,30 @@ export async function syncFromGbp(supabase: SB, alias: string, opts: { dry: bool
   let linked = 0
   let photos = 0
 
+  let changed = 0
   for (const l of plan.links) {
     const v = byId.get(l.reviewId)
     const r = rowById.get(l.rowId)
     if (!v || !r) continue
-    const patch: Record<string, unknown> = { last_seen_at: now }
-    if (r.gbp_review_id !== l.reviewId) patch.gbp_review_id = l.reviewId
-    const rating = starNumber(v.starRating)
-    if (r.rating == null && rating != null) patch.rating = rating
-    const date = ptDate(v.createTime)
-    if (!r.review_date && date) patch.review_date = date
-    const comment = (v.comment ?? "").trim()
-    if (comment && (!r.body || truncatedOf(r.body, comment))) patch.body = comment
-    // 回复以 Google 上的为准（老板也可能直接在商家后台回）
-    const reply = (v.reviewReply?.comment ?? "").trim() || null
-    patch.reply_comment = reply
-    patch.reply_updated_at = reply ? (v.reviewReply?.updateTime ?? null) : null
-    patch.reply_state = reply ? (v.reviewReply?.reviewReplyState ?? null) : null
-    if (reply !== (r.reply_comment ?? null)) patch.reply_by = null
-    const pics = cleanPhotoUrls(mediaThumbs(v))
-    if (pics.length && !(r.photo_urls ?? []).length) {
-      patch.photo_urls = pics
-      patch.photo_count = Math.max(Number(r.photo_count) || 0, pics.length)
+    const patch = linkPatch(r, v, l.reviewId)
+    if (Object.keys(patch).length) {
+      const { error: e1 } = await supabase.from("business_reviews").update(patch).eq("id", r.id)
+      if (e1) {
+        errors.push(`${r.reviewer ?? r.id}: ${e1.message}`)
+        continue
+      }
+      changed += 1
+      if (patch.gbp_review_id) linked += 1
     }
-    const { error: e1 } = await supabase.from("business_reviews").update(patch).eq("id", r.id)
-    if (e1) {
-      errors.push(`${r.reviewer ?? r.id}: ${e1.message}`)
-      continue
-    }
-    if (patch.gbp_review_id) linked += 1
     // 没图 → 有图会动钱（没结算的 $2 → $3），走 setPhoto；结算过的它会拒，照片照样挂上
-    if (pics.length && !r.has_photo) {
+    if (mediaThumbs(v).length && !r.has_photo) {
       const res = await setPhoto(supabase, r.id, true, alias)
       if (res.ok) photos += 1
     }
   }
+  // "Google 上还在"的时间戳一条语句盖完，不逐行写
+  const seenIds = plan.links.map((l) => l.rowId)
+  if (seenIds.length) await supabase.from("business_reviews").update({ last_seen_at: now }).in("id", seenIds)
 
   const freshRows = plan.fresh
     .map((id) => byId.get(id))
@@ -452,10 +480,10 @@ export async function syncFromGbp(supabase: SB, alias: string, opts: { dry: bool
   const have = await linkedCount(supabase)
   await saveConn(supabase, {
     last_sync_at: now,
-    last_sync: { added, linked, photos, onGoogle: reviews.length, total, unreplied: summary.unreplied, missing: summary.missing.length, by: alias, errors: errors.length },
+    last_sync: { added, linked, changed, photos, onGoogle: reviews.length, total, unreplied: summary.unreplied, missing: summary.missing.length, by: alias, errors: errors.length },
     ...(errors.length ? { last_error: `同步有 ${errors.length} 处没写进去：${errors[0]}`.slice(0, 500), last_error_at: now } : { last_error: null, last_error_at: null }),
   })
-  return { ...summary, added, linked, photos, have, errors }
+  return { ...summary, added, linked, changed, photos, have, errors }
 }
 
 // ------------------------------------------------------------ reply

@@ -23,7 +23,7 @@ export type GbpStatus = {
   connectedAt: string | null
   connectedBy: string | null
   lastSyncAt: string | null
-  lastSync: { added?: number; linked?: number; photos?: number; onGoogle?: number; total?: number | null; unreplied?: number; missing?: number } | null
+  lastSync: { added?: number; linked?: number; changed?: number; photos?: number; onGoogle?: number; total?: number | null; unreplied?: number; missing?: number; by?: string } | null
   lastError: string | null
   lastErrorAt: string | null
   firstSyncDone: boolean
@@ -51,6 +51,9 @@ type SyncResult = {
   photos?: number
   errors?: string[]
 }
+
+/** 自动同步每 15 分钟一次（Supabase pg_cron reviews-gbp-sync）；超过这么久没同步就提醒 */
+const AUTO_SYNC_STALE_MS = 50 * 60000
 
 const RULE_LABEL: Record<string, string> = { key: "同一个 id", body: "评价人 + 正文", date: "评价人 + 日期", name: "名字唯一（请核对）" }
 const who = (s: string | null) => s ?? "匿名"
@@ -195,12 +198,19 @@ export default function GbpCard({ adminKey, status, onChanged, cardStyle }: { ad
 
       {status.connected && status.lastSyncAt ? (
         <div style={{ ...muted, marginTop: 4 }}>
-          上次同步 {stamp(status.lastSyncAt)} · Google {status.lastSync?.onGoogle ?? "?"} 条 · 台账已对上 {status.linked} 条 · 未回复 {status.lastSync?.unreplied ?? "?"} 条
+          {status.firstSyncDone ? "每 15 分钟自动同步 · " : ""}上次同步 {stamp(status.lastSyncAt)}
+          {status.lastSync?.by === "cron" ? "（自动）" : status.lastSync?.by ? `（${status.lastSync.by} 手动）` : ""} · Google {status.lastSync?.onGoogle ?? "?"} 条 · 台账已对上 {status.linked} 条 · 未回复{" "}
+          {status.lastSync?.unreplied ?? "?"} 条
           {status.lastSync?.missing ? ` · 台账有、Google 上没有 ${status.lastSync.missing} 条` : ""}
         </div>
       ) : null}
+      {status.connected && status.firstSyncDone && status.lastSyncAt && Date.now() - Date.parse(status.lastSyncAt) > AUTO_SYNC_STALE_MS ? (
+        <div className="notice notice-accent" style={{ fontSize: 12, marginTop: 6 }}>
+          自动同步 {Math.round((Date.now() - Date.parse(status.lastSyncAt)) / 60000)} 分钟没跑了（应该每 15 分钟一次）——先点「全量同步」看会不会报错，再告诉开发。
+        </div>
+      ) : null}
       {status.connected && status.location && !status.firstSyncDone ? (
-        <div style={{ ...muted, marginTop: 4 }}>第一次同步要把台账里几十条老记录和 Google 一条条对上：先点「全量同步（先预演）」看清楚哪些对上、哪些是新的，再写入。之后「手动刷新」就直接全量同步。</div>
+        <div style={{ ...muted, marginTop: 4 }}>第一次同步要把台账里几十条老记录和 Google 一条条对上：先点「全量同步（先预演）」看清楚哪些对上、哪些是新的，再写入。之后每 15 分钟自动同步，不用再点。</div>
       ) : null}
 
       {!status.connected && !authUrl ? (

@@ -8,6 +8,7 @@ import { cleanPhotoUrls } from "@/lib/review-photos"
 import { bodySig, nearDays, normText } from "@/lib/review-merge"
 import { GbpError } from "@/lib/gbp"
 import { disconnect, finishConnect, gbpStatus, locate, recordGbpError, replyToReview, startConnect, syncFromGbp } from "@/lib/gbp-sync"
+import { CRON_PURPOSE_REVIEWS_SYNC, isCronCall } from "@/lib/cron-key"
 import { createHash, randomBytes } from "node:crypto"
 
 export const dynamic = "force-dynamic"
@@ -30,6 +31,8 @@ export const runtime = "nodejs"
 //                  老板：连接 Google 商家资料（OAuth，见 lib/gbp.ts）
 //     gbp_sync     老板：从商家后台全量同步（dry=true 只预演不写；第一次必须先预演）
 //     gbp_reply    老板：回复一条 Google 评价（公开可见）
+//   POST ?consumer=cron（Supabase pg_cron 每 15 分钟，派生钥匙见 lib/cron-key.ts）
+//                -> 只跑商家资料全量同步（cronSync），别的动作不认
 // 防重是硬规矩：(platform, external_key) 唯一 => 同一条评价只存一行；
 // 一行最多挂一个 bonus_id => 同一条评价只算一次钱；gbp_review_id 也唯一。
 //
@@ -248,9 +251,31 @@ export async function GET(request: NextRequest) {
   })
 }
 
+// 自动同步（老板 2026-10-09："以后新评价进来自动同步，不用我点刷新"）：
+// Supabase pg_cron 每 15 分钟 POST ?consumer=cron，带派生的专用钥匙（lib/cron-key.ts）。
+// 只做商家资料全量同步——不拉 Places/Yelp，别的动作一概不认。没连上、或第一次同步
+// 还没人确认过，就什么都不做（第一次必须先预演）。
+async function cronSync() {
+  const supabase = createServerSupabaseClient()
+  if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
+  const st = await gbpStatus(supabase)
+  if (!st.connected || !st.location) return NextResponse.json({ ok: true, skipped: "not connected" })
+  if (!st.firstSyncDone) return NextResponse.json({ ok: true, skipped: "first sync not confirmed yet" })
+  try {
+    const r = await syncFromGbp(supabase, "cron", { dry: false })
+    return NextResponse.json({ ok: true, added: r.added ?? 0, changed: r.changed ?? 0, onGoogle: r.onGoogle, unreplied: r.unreplied, errors: r.errors?.length ?? 0 })
+  } catch (e) {
+    await recordGbpError(supabase, e)
+    return NextResponse.json({ ok: false, error: e instanceof GbpError ? e.hint : e instanceof Error ? e.message : "sync failed" }, { status: 502 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
-  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!actor) {
+    if (isCronCall(request, CRON_PURPOSE_REVIEWS_SYNC)) return cronSync()
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  }
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
   let body: Body
