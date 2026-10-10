@@ -27,6 +27,7 @@ import {
   PARTY_SIZE_CUSTOM_FROM,
   PARTY_SIZE_DISCOUNT_TIERS,
   partySizeDiscount,
+  LARGE_PARTY_FLOOR,
   PRICE_FLOOR_KID_WEIGHT,
   PRICE_FLOOR_PER_HEAD,
   TABLES_CONCESSION_PER_GUEST,
@@ -89,8 +90,16 @@ export type QuoteBreakdown = {
    */
   total: number
   perPerson: number
-  /** Owner's floor for this day type (Fri–Sun $50, Mon–Thu $45), per head. */
+  /** Owner's floor for this party, per head: Fri–Sun $50, Mon–Thu $45; 40+ guests $45 any day. */
   floorRate: number
+  /**
+   * 40+ guests priced below the usual floor (but not below $45): fine, and the
+   * party runs semi-buffet - full show, food in trays on the table, one chef
+   * per 50 guests (owner 2026-10-10, D-1010-03).
+   */
+  semiBuffet: boolean
+  /** Chefs for the semi-buffet format (one per 50 guests); 0 when not semi-buffet. */
+  semiBuffetChefs: number
   /**
    * What we actually take in per head after every discount: food only (travel
    * aside), kids weighted half, free tables & chairs counted as $4/guest.
@@ -142,11 +151,17 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const total = r2(food + travelFee)
 
   // Owner's floor (D-1006-06): per-head take after every discount, food only.
-  const floorRate = q.weekdaySpecial ? PRICE_FLOOR_PER_HEAD.weekday : PRICE_FLOOR_PER_HEAD.weekend
+  // 40+ guests may go to $45 on any day; under the usual floor that means
+  // semi-buffet (D-1010-03).
+  const usualFloor = q.weekdaySpecial ? PRICE_FLOOR_PER_HEAD.weekday : PRICE_FLOOR_PER_HEAD.weekend
+  const largeParty = count >= LARGE_PARTY_FLOOR.minGuests
+  const floorRate = largeParty ? Math.min(usualFloor, LARGE_PARTY_FLOOR.perHead) : usualFloor
   const floorHeads = adults + PRICE_FLOOR_KID_WEIGHT * kids
   const receivable = food - (q.freeTables && heads > 0 ? TABLES_CONCESSION_PER_GUEST * heads : 0)
   const effectivePerHead = floorHeads > 0 ? r2(receivable / floorHeads) : 0
   const belowFloor = floorHeads > 0 && effectivePerHead < floorRate
+  const semiBuffet = largeParty && floorHeads > 0 && !belowFloor && effectivePerHead < usualFloor
+  const semiBuffetChefs = semiBuffet ? Math.ceil(heads / LARGE_PARTY_FLOOR.semiBuffetGuestsPerChef) : 0
 
   const today = new Date().toISOString().slice(0, 10)
   const autoAppetizer =
@@ -217,6 +232,8 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     total,
     perPerson: heads > 0 ? r2(total / heads) : 0,
     floorRate,
+    semiBuffet,
+    semiBuffetChefs,
     effectivePerHead,
     belowFloor,
     autoAppetizer,
@@ -262,6 +279,9 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
   // nothing is said about tax or payment method - the itemised bills appear on
   // the invoice and the pay page, and are answered when asked (leads skill §8).
   lines.push(`Total: ${usd(b.total)}${travel}`)
+  // A large party under the usual floor is served semi-buffet (D-1010-03) - the
+  // customer has to know the format the price comes with.
+  if (b.semiBuffet) lines.push("Served family-style: the chef does the full show, then the food goes in trays on the table and everyone helps themselves to seconds.")
   // D-1006-04: the link saves a card, nothing is charged. One clause says so to avoid a
   // surprise on the Stripe page; it is not pitched as a selling point.
   if (opts.depositLink) lines.push(`Lock the date here (saves a card, nothing charged today): ${opts.depositLink}`)

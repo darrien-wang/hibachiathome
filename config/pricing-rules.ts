@@ -258,6 +258,12 @@ export const FULL_SETUP_PER_GUEST = TABLES_CHAIRS_PER_GUEST + UTENSILS_PER_GUEST
 // ---------------------------------------------------------------
 export const PRICE_FLOOR_PER_HEAD = { weekend: 50, weekday: 45 } as const
 export const PRICE_FLOOR_KID_WEIGHT = 0.5
+// Large parties (owner D-1009-03 / D-1010-03): 40+ paying guests may go below
+// the Fri–Sun floor, down to $45 a head; below the usual floor the party runs
+// semi-buffet - the chef still does the whole show, then the food goes out in
+// trays on the table and guests help themselves - one chef per 50 guests.
+// Mon–Thu stays $45 (no extra room). Below $45 is the owner's call.
+export const LARGE_PARTY_FLOOR = { minGuests: 40, perHead: 45, semiBuffetGuestsPerChef: 50 } as const
 export const TABLES_CONCESSION_PER_GUEST = 4
 
 /**

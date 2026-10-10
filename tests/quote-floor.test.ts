@@ -3,26 +3,56 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { computeQuote } from "../components/admin/workbench/quote-tool"
-import { PRICE_FLOOR_PER_HEAD } from "../config/pricing-rules"
+import { computeQuote, quoteSms } from "../components/admin/workbench/quote-tool"
+import { LARGE_PARTY_FLOOR, PRICE_FLOOR_PER_HEAD } from "../config/pricing-rules"
 
 const r2 = (n: number) => Math.round(n * 100) / 100
 
-test("floor · Whitney 60 on a Sunday at $54.90: $3,114, $51.90 a head, above the $50 floor", () => {
+test("floor · Whitney 60 on a Sunday at $54.90: $3,114, $51.90 a head, full service", () => {
   const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 54.9 })
   assert.equal(q.total, 3114)
   assert.equal(q.partySize, 180)
-  assert.equal(q.floorRate, PRICE_FLOOR_PER_HEAD.weekend)
+  assert.equal(q.floorRate, LARGE_PARTY_FLOOR.perHead, "40+ guests: the floor is $45 any day (D-1010-03)")
   assert.equal(q.effectivePerHead, 51.9)
   assert.equal(q.belowFloor, false)
+  assert.equal(q.semiBuffet, false, "above the usual $50 the party stays full service")
   assert.deepEqual(q.deal, { adultRate: 54.9 }, "the per-adult rate is what gets signed into the link")
 })
 
-test("floor · the same party with free tables counts $4 a head and drops below the floor", () => {
+test("floor · the same party with free tables counts $4 a head: $47.90 is under $50, so it runs semi-buffet", () => {
   const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 54.9, freeTables: true })
   assert.equal(q.effectivePerHead, 47.9)
-  assert.equal(q.belowFloor, true)
+  assert.equal(q.belowFloor, false)
+  assert.equal(q.semiBuffet, true)
+  assert.equal(q.semiBuffetChefs, 2, "one chef per 50 guests")
   assert.ok(q.deal?.freeExtraIds?.includes("tables_chairs"))
+  assert.match(quoteSms(q, {}), /family-style/, "the customer is told the format the price comes with")
+})
+
+test("floor · 40+ guests: $45 a head is the floor (semi-buffet), $44 needs the owner; under 40 the weekend floor stays $50", () => {
+  const at45 = computeQuote({ adults: 150, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 46.2 })
+  assert.ok(at45.effectivePerHead >= 45 && at45.effectivePerHead < 50, `got ${at45.effectivePerHead}`)
+  assert.equal(at45.belowFloor, false)
+  assert.equal(at45.semiBuffet, true)
+  assert.equal(at45.semiBuffetChefs, 3)
+  const at44 = computeQuote({ adults: 150, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 45.1 })
+  assert.ok(at44.effectivePerHead < 45, `got ${at44.effectivePerHead}`)
+  assert.equal(at44.belowFloor, true)
+  assert.equal(at44.semiBuffet, false)
+  const small = computeQuote({ adults: 30, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 50.9 })
+  assert.ok(small.effectivePerHead < 50, `got ${small.effectivePerHead}`)
+  assert.equal(small.floorRate, PRICE_FLOOR_PER_HEAD.weekend)
+  assert.equal(small.belowFloor, true, "30 guests: no large-party room")
+  assert.doesNotMatch(quoteSms(small, {}), /family-style/)
+})
+
+test("floor · weekday 40+ gets no extra room: $45 is already the floor and stays full service", () => {
+  // 45 x $48.50 - $150 (41-50 tier) = $2,032.50 -> $45.17 a head
+  const q = computeQuote({ adults: 45, kids: 0, weekdaySpecial: true, travelFee: 0, adultRate: 48.5 })
+  assert.equal(q.floorRate, PRICE_FLOOR_PER_HEAD.weekday)
+  assert.ok(q.effectivePerHead >= 45, `got ${q.effectivePerHead}`)
+  assert.equal(q.belowFloor, false)
+  assert.equal(q.semiBuffet, false)
 })
 
 test("floor · list price is always above the floor, weekend and weekday, with or without kids", () => {
