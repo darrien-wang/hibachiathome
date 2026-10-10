@@ -62,6 +62,13 @@ test("template B, no date: asks the occasion, never the date or the start time",
   assert.doesNotMatch(plan.text, /which date|4 PM|7 PM/)
 })
 
+test("template B on the page's default leave-quote: no count (10-10 the real 13 + 4 arrived the same minute)", () => {
+  const plan = quoteFollowUpPlan({ adults: 15, kids: 0, city: "Palm Springs", todayPt: today, numberUnknown: true })
+  assert.ok(plan.send)
+  assert.equal(plan.text, "Hi! Rowling from Real Hibachi 👋 Saw your quote — what's the celebration?")
+  assert.doesNotMatch(plan.text, /15/)
+})
+
 test("template B: ZIPs, region labels and missing cities fall back to the plain line", () => {
   const plain = "Hi! Rowling from Real Hibachi 👋 Saw your quote for 15 — what's the celebration?"
   for (const city of [null, "", "92270", "LA & Orange County", "Southern California"]) {

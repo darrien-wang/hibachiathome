@@ -20,6 +20,7 @@ import {
   wallToInstant,
 } from "@/lib/first-response"
 import { ringOpenCallbacks } from "@/lib/callback-ring"
+import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { loadQuiet } from "@/lib/lead-hold"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
@@ -65,6 +66,9 @@ const URGENT_RENOTIFY_MS = 10 * 60_000
 // latency real; the wording and the hand-to-a-person rules live in
 // lib/first-response.ts.
 const QUOTE_FOLLOW_UP_GRACE_MIN = 2
+// A leave-beacon with the card's defaults (visitor left the page before step 2) often comes back
+// with real numbers a minute or two later; give them time before B (10-09 and 10-10 races).
+const DEFAULT_QUOTE_GRACE_MIN = 10
 // Pre-party contact: the 48h flag comes back every renotify_minutes like any
 // other item; the day-before one is re-pushed hourly until someone reaches them.
 const PARTY_CONTACT_RENOTIFY_24H_MS = 60 * 60_000
@@ -490,7 +494,8 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         return isFirst || ((t.raw_payload_json ?? {}) as { auto?: string }).auto !== "leave"
       })
       const quoteAgeMin = quoteTp ? Math.round((now - new Date(quoteTp.created_at).getTime()) / 60_000) : ageMin
-      if (quoteAgeMin < QUOTE_FOLLOW_UP_GRACE_MIN) continue
+      const defaultLeave = isDefaultLeaveQuote((quoteTp?.raw_payload_json ?? null) as Record<string, unknown> | null)
+      if (quoteAgeMin < (defaultLeave ? DEFAULT_QUOTE_GRACE_MIN : QUOTE_FOLLOW_UP_GRACE_MIN)) continue
       if (!watch.auto_quote_follow_up) {
         human("auto_quote_follow_up off")
         continue
@@ -506,6 +511,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         eventDate: payload.eventDate ?? null,
         city: payload.cityName ?? null,
         todayPt: ptDate(now),
+        numberUnknown: defaultLeave,
       })
       if (!plan.send) {
         human(plan.reason)

@@ -90,6 +90,10 @@ export type QuoteFollowUpInput = {
   city?: string | null
   /** Today's PT date, YYYY-MM-DD. */
   todayPt: string
+  /** The quote is the page's leave-beacon with the card defaults (15 adults, no date): the count is
+   *  the page's, not the customer's, so the text must not repeat it (10-10 310-480-5898 got "your
+   *  quote for 15" the same minute their real 13 + 4 for Dec 26 arrived). */
+  numberUnknown?: boolean
 }
 
 export type QuoteFollowUpPlan = { send: true; text: string; dated: boolean } | { send: false; reason: string }
@@ -115,6 +119,7 @@ export function quoteFollowUpPlan(i: QuoteFollowUpInput): QuoteFollowUpPlan {
   }
   const place = placeName(i.city)
   const head = "Hi! Rowling from Real Hibachi 👋"
+  if (i.numberUnknown) return { send: true, text: `${head} Saw your quote — what's the celebration?`, dated: false }
   const text = date
     ? `${head} ${shortDate(date)} is open on our end for your ${guests}${place ? ` in ${place}` : ""} — what's the celebration?`
     : place
