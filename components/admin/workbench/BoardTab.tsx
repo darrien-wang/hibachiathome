@@ -182,7 +182,9 @@ export function BoardTab({
       return { ...c, leads: ls.length, won }
     })
   }, [spend, inWindow, depositsWindow])
-  const lastSync = spend.reduce<string | null>((a, r) => (r.source === "api" && r.updated_at && (!a || r.updated_at > a) ? r.updated_at : a), null)
+  const lastSyncOf = (ch: string) => spend.reduce<string | null>((a, r) => (r.channel === ch && r.source === "api" && r.updated_at && (!a || r.updated_at > a) ? r.updated_at : a), null)
+  const lastSync = lastSyncOf("google_ads")
+  const lastMetaSync = lastSyncOf("meta_ads")
 
   // Daily list: up to 7 days before `since`, then everything after.
   const daily = useMemo(() => {
@@ -216,9 +218,21 @@ export function BoardTab({
       setBusy(action)
       try {
         if (action === "sync") {
+          // Google and Meta together: until 2026-10-09 this button pulled
+          // Google only, Meta spend stopped at 10-04 when the desktop sync
+          // hung, and the board showed Meta at $78 / $39 a booking for a week
+          // that really cost ~$330.
           const days = Math.min(400, Math.max(1, span + 8))
-          const d = await adminJson<{ ok: boolean; rows?: number; costCents?: number; error?: string }>(adminKey, `/api/admin/ad-spend?action=sync_google&days=${days}`, { method: "POST", body: {} })
-          setMsg(d.ok ? `Google 花费已同步：${d.rows ?? 0} 行 · ${money0(d.costCents ?? 0)}` : `同步失败：${d.error ?? "unknown"}（多半是 OAuth 令牌过期，去 设置 → 数据同步 看说明）`)
+          type SyncResp = { ok: boolean; rows?: number; costCents?: number; error?: string }
+          const call = (a: string) =>
+            adminJson<SyncResp>(adminKey, `/api/admin/ad-spend?action=${a}&days=${days}`, { method: "POST", body: {} }).catch((e): SyncResp => ({ ok: false, error: e instanceof Error ? e.message : "unknown" }))
+          const [g, m] = await Promise.all([call("sync_google"), call("sync_meta")])
+          setMsg(
+            [
+              g.ok ? `Google 已同步：${g.rows ?? 0} 行 · ${money0(g.costCents ?? 0)}` : `Google 同步失败：${g.error ?? "unknown"}（多半是 OAuth 令牌过期，去 设置 → 数据同步 看说明）`,
+              m.ok ? `Meta 已同步：${m.rows ?? 0} 行 · ${money0(m.costCents ?? 0)}` : `Meta 同步失败：${m.error ?? "unknown"}`,
+            ].join("；"),
+          )
         } else {
           const d = await adminJson<{ ok: boolean; resolved?: unknown[]; error?: string }>(adminKey, "/api/admin/channels?action=sweep", { method: "POST", body: {} })
           setMsg(d.ok ? `归因扫描完成：${Array.isArray(d.resolved) ? d.resolved.length : 0} 单` : `扫描失败：${d.error ?? "unknown"}`)
@@ -389,7 +403,7 @@ export function BoardTab({
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12 }}>
                 <h4>广告系列 · 花费</h4>
-                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>留资按 utm_campaign 对上的算 · {lastSync ? `Google 最近同步 ${ptDateOf(lastSync)}` : "未同步过"}</span>
+                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>留资按 utm_campaign 对上的算 · {lastSync ? `Google 最近同步 ${ptDateOf(lastSync)}` : "Google 未同步过"} · {lastMetaSync ? `Meta 最近同步 ${ptDateOf(lastMetaSync)}` : "Meta 本期无同步"}</span>
               </div>
               <table className="table">
                 <thead>
@@ -505,8 +519,8 @@ export function BoardTab({
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: "var(--color-neutral-600)" }}>
             <span>数据：</span>
-            <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void sync("sync")} title={viewerRole === "owner" ? undefined : "坐席也可以点：只是把 Google 的花费拉进来"}>
-              {busy === "sync" ? "同步中…" : `同步 Google 花费${lastSync ? "" : " · 未同步过"}`}
+            <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void sync("sync")} title={viewerRole === "owner" ? undefined : "坐席也可以点：只是把 Google 和 Meta 的花费拉进来"}>
+              {busy === "sync" ? "同步中…" : `同步广告花费${lastSync ? "" : " · 未同步过"}`}
             </button>
             <button type="button" className="wb-chip wb-chip-sm" disabled={!!busy} onClick={() => void sync("sweep")}>
               {busy === "sweep" ? "扫描中…" : `归因扫描${cur?.unresolvedOrders ? ` (${cur.unresolvedOrders} 单未归因)` : ""}`}
