@@ -8,6 +8,7 @@ import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { forwardMmsToInbox } from "@/lib/mms-forward"
 import { classifySmsKeyword, OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { addressFromMessage, looksLikeStreetAddress } from "@/lib/address-detect"
+import { requestCallback, wantsCall } from "@/lib/callback-ring"
 
 export const dynamic = "force-dynamic"
 
@@ -145,6 +146,16 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       console.error("[twilio-sms] opt-out block failed", error)
+    }
+  }
+
+  // 请回电 (owner 2026-10-09 "加响铃"): a customer asking for a phone call rings the owner's App
+  // now - Jose asked for one while driving on 10-09 and waited 16 minutes for anyone to notice.
+  if (leadId && supabase && !keyword && wantsCall(body)) {
+    try {
+      await requestCallback(supabase, { leadId, phone: from, name: leadName, why: body, source: "sms" })
+    } catch (error) {
+      console.error("[twilio-sms] callback ring failed", error)
     }
   }
 

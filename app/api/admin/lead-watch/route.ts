@@ -19,6 +19,7 @@ import {
   wallTime,
   wallToInstant,
 } from "@/lib/first-response"
+import { ringOpenCallbacks } from "@/lib/callback-ring"
 import { loadQuiet } from "@/lib/lead-hold"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
@@ -117,6 +118,7 @@ type WatchResult = {
   partyContact?: unknown[]
   needsHuman: unknown[]
   escalated?: unknown[]
+  callbackRings?: unknown[]
   stillOpen: number
 }
 
@@ -854,5 +856,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     }
   }
 
-  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, needsHuman, escalated, stillOpen: candidates.length }
+  // ---- 请回电 (2026-10-09) ------------------------------------------------
+  // A customer who asked for a phone call rang the owner's App when they asked; until he presses 1
+  // (put through) or 3 (no call needed), ring again every ten minutes, three rings at most.
+  const callbackRings = dryRun ? [] : await ringOpenCallbacks(supabase, now)
+
+  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, needsHuman, escalated, callbackRings, stillOpen: candidates.length }
 }

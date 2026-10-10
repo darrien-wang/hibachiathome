@@ -428,6 +428,18 @@ def cmd_ack(a):
     _patch({"action": "ack_replies", "leadId": a.lead, "clear": bool(a.clear)})
 
 
+def cmd_callback(a):
+    """请回电 (2026-10-09): the customer wants a phone call - ring the owner's App now. He presses 1 to
+    be put through from the 213 line, 2 for a reminder in 10 minutes, 3 if no call is needed; until
+    then lead-watch rings again every 10 minutes, 3 rings at most, 8 AM-10 PM. Texts that say
+    "call me" ring by themselves; this is for the ones that don't ("I'm driving", an email)."""
+    out = site_post("/api/admin/callback-ring", {"leadId": a.lead, "why": a.why or ""})
+    if out.get("rang"):
+        print(f"OK    rang the owner's App (ring {out.get('attempt')} of 3)  {' '.join(out.get('callSids') or [])}")
+    else:
+        print(f"--    not rung: {out.get('skipped') or out.get('error')}")
+
+
 def cmd_fields(a):
     fields = {}
     for kv in a.pairs:
@@ -1082,6 +1094,7 @@ def main(argv=None):
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
     p = sp.add_parser("contacted"); p.add_argument("lead"); p.set_defaults(fn=cmd_contacted)
     p = sp.add_parser("ack"); p.add_argument("lead"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_ack)
+    p = sp.add_parser("callback", help="ring the owner's App: this customer wants a phone call"); p.add_argument("lead"); p.add_argument("--why"); p.set_defaults(fn=cmd_callback)
     p = sp.add_parser("fields"); p.add_argument("lead"); p.add_argument("pairs", nargs="+"); p.set_defaults(fn=cmd_fields)
     p = sp.add_parser("link"); p.add_argument("kind", choices=["deposit", "planner", "short"]); p.add_argument("url", nargs="?")
     p.add_argument("--lead"); p.add_argument("--adults", type=int); p.add_argument("--kids", type=int, default=0); p.add_argument("--city")
