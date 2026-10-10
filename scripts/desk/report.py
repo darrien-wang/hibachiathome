@@ -235,6 +235,9 @@ def _locks(start: dt.datetime, end: dt.datetime) -> list[dict]:
         o["at"] = _ts(o["created_at"])
         o["phone"] = _digits(o.get("customer_phone"))
         o["total"] = (o.get("quoted_total_cents") or o.get("balance_due_cents") or 0) / 100  # invoice total; a finished party owes $0
+        # A lock whose invoice was never saved has invoice_data {"total_cost": 0} and no total yet
+        # (Hardeep 10-09: locked at 22:09, menu to come) - show it as pending, not as $0.
+        o["money"] = f"${o['total']:,.2f}" if o["total"] else "总价待算（发票还没生成）"
         o["when"] = (o.get("event_start") or "")[:16].replace("T", " ") or "日期待定"
     return rows
 
@@ -349,6 +352,7 @@ def day_report(day: dt.date) -> str:
     tagged = _tagged(notes, every)
     locks = _locks(start, end)
     lock_total = sum(o["total"] for o in locks)
+    pending = sum(1 for o in locks if not o["total"])
 
     lines = [
         f"## 1. 今天的数（desk report day {day.isoformat()}，短信以 Twilio 为准）",
@@ -361,7 +365,7 @@ def day_report(day: dt.date) -> str:
         f"超 15 分钟 {sum(1 for w in waits if w > 15)} 条，没回 {len(open_)} 条 |",
         f"| 来电 | {calls} 通 |",
         "| 带标签的外发 | " + ("、".join(f"{k} {v}" for k, v in sorted(sop.items(), key=lambda kv: -kv[1])) or "0") + " |",
-        f"| 锁单 | {len(locks)} 单，发票总额 ${lock_total:,.2f}（菜单、租赁、路费没定的按当前数） |",
+        f"| 锁单 | {len(locks)} 单，发票总额 ${lock_total:,.2f}" + (f"，另 {pending} 单总价待算" if pending else "") + "（菜单、租赁、路费没定的按当前数） |",
         f"| 流失 | {len(tagged['lost'])} 条（按当天 [lost] 备注） |",
         "| 判断标签 | " + " · ".join(f"{k} {len(tagged[k])}" for k in ("owner", "default30", "concession", "tipped", "miss")) + " |",
         "",
@@ -377,7 +381,7 @@ def day_report(day: dt.date) -> str:
         lines += ["**锁单**", ""]
         for o in locks:
             lines.append(f"- {o['order_no']} · {o.get('customer_name') or '-'} · 派对 {o['when']} · "
-                         f"{o.get('guest_adult_count') or 0} 大 {o.get('guest_child_count') or 0} 小 · ${o['total']:,.2f} · {_hm(o['at'])} 锁")
+                         f"{o.get('guest_adult_count') or 0} 大 {o.get('guest_child_count') or 0} 小 · {o['money']} · {_hm(o['at'])} 锁")
         lines.append("")
     for k, title in (("lost", "流失"), ("miss", "失误"), ("tipped", "成交那一下"), ("concession", "让价"), ("owner", "老板拍板"), ("default30", "半小时默认执行")):
         if tagged[k]:
@@ -586,11 +590,12 @@ def week_report(week_start: dt.date) -> str:
     for ch, (n, e, k) in sorted(by_ch.items(), key=lambda kv: -kv[1][0]):
         lines.append(f"| {CHANNEL_LABELS.get(ch, ch)} | {n} | {_rate(e, n)} | {_rate(k, n)} |")
     total = sum(o["total"] for o in week_locks)
-    lines += ["", f"本周锁单（按锁单时间，不管线索哪周来的）：{len(week_locks)} 单，发票总额 ${total:,.2f}。The Knot / Zola 的询价不进线索表，手动补。", ""]
+    pending = sum(1 for o in week_locks if not o["total"])
+    lines += ["", f"本周锁单（按锁单时间，不管线索哪周来的）：{len(week_locks)} 单，发票总额 ${total:,.2f}" + (f"，另 {pending} 单总价待算" if pending else "") + "。The Knot / Zola 的询价不进线索表，手动补。", ""]
     for o in week_locks:
         lead = every.get(o.get("lead_id") or "") or next((l for l in counted if o["phone"] and l["phone"] == o["phone"]), None)
         lines.append(f"- {_mdhm(o['at'])} {o['order_no']} · {o.get('customer_name') or '-'} · 派对 {o['when'][:10]} · "
-                     f"${o['total']:,.2f} · {CHANNEL_LABELS.get(lead['channel'], lead['channel']) if lead else '找不到线索'}")
+                     f"{o['money']} · {CHANNEL_LABELS.get(lead['channel'], lead['channel']) if lead else '找不到线索'}")
     lines.append("")
 
     # 7. decisions to check
