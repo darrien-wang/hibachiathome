@@ -7,6 +7,7 @@ import { askConfirm, askPrompt, tell } from "./ask"
 import type { PrepGroup } from "@/lib/prep-bom"
 import { bulkName, isBulkItem } from "@/lib/pantry"
 import { SauceCalc } from "./SauceCalc"
+import BuyListTab from "./BuyListTab"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -67,7 +68,7 @@ const INK = "var(--color-text)"
 const MUTED = "var(--color-neutral-700)"
 const fmt = (n: number) => String(Math.round(n * 10) / 10)
 
-type Tab = "stock" | "prep" | "sauce" | "in" | "out" | "chef" | "re" | "kit"
+type Tab = "stock" | "prep" | "buy" | "sauce" | "in" | "out" | "chef" | "re" | "kit"
 type Layout = "A" | "B" | "C"
 
 /* ---------- 小件 ---------- */
@@ -315,6 +316,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
   const tabs: Array<[Tab, string, string]> = [
     ["prep", "备货", ""],
+    ["buy", "下单", ""],
     ["sauce", "自制酱", ""],
     ["stock", "库存 · 只读", ""],
     ["in", "入库记录", ""],
@@ -548,6 +550,8 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
       ) : null}
 
       {tab === "prep" ? <PrepPlanner adminKey={adminKey} events={d.events} /> : null}
+
+      {tab === "buy" ? <BuyListTab adminKey={adminKey} /> : null}
 
       {tab === "sauce" ? <SauceCalc events={d.events} /> : null}
 
