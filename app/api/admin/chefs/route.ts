@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
-import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
+import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
@@ -36,7 +36,7 @@ const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSou
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
 const STAFF_COLUMNS =
   "id, full_name, display_name, staff_type, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
-const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data, created_at"
+const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data, created_at, source_metadata"
 
 type Staff = Record<string, unknown> & { id: string }
 type Assignment = {
@@ -84,6 +84,9 @@ type OrderLite = {
   balance_due_cents: number | null
   quoted_total_cents: number | null
   invoice_data?: Record<string, unknown> | null
+  source_metadata?: Record<string, unknown> | null
+  /** Special head rule from the order's lead (leads.chef_pay_rule), attached by loadWorld. */
+  chef_pay_rule?: ChefPayRule | null
 }
 
 /** Which pricing terms a party bills under: what the invoice recorded, else the order's age. */
@@ -160,6 +163,18 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
   const { data: orders } = orderIds.length ? await supabase.from("orders").select(ORDER_COLUMNS).in("id", orderIds) : { data: [] as OrderLite[] }
   const orderMap = new Map<string, OrderLite>()
   for (const o of (orders ?? []) as OrderLite[]) orderMap.set(o.id, o)
+  // 谈价时定在线索上的特殊人头规则（lib/chef-pay.ts ChefPayRule），顺着订单的
+  // lead_id 带过来 —— 派师傅、结账的人不用记得手改工钱（老板 2026-10-10）。
+  const leadOf = (o: OrderLite) => String(o.source_metadata?.lead_id ?? "")
+  const leadIds = Array.from(new Set([...orderMap.values()].map(leadOf).filter((id) => /^[0-9a-f-]{36}$/i.test(id))))
+  if (leadIds.length) {
+    const { data: ruled } = await supabase.from("leads").select("id, chef_pay_rule").in("id", leadIds).not("chef_pay_rule", "is", null)
+    const byLead = new Map((ruled ?? []).map((r) => [String(r.id), normalizeChefPayRule(r.chef_pay_rule)]))
+    for (const o of orderMap.values()) {
+      const rule = byLead.get(leadOf(o))
+      if (rule) o.chef_pay_rule = rule
+    }
+  }
   // Cash the chef reported on the prep sheet, latest per order+chef.
   const cashReported = new Map<string, number>()
   for (const s of sheets ?? []) {
@@ -227,9 +242,11 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const share = a.guest_share ?? Math.round(guests / n)
   // 明细三件套。多位师傅同场：人头和桌椅按份平分，路费每人全额（各开各的车）。
   const comp = partyComp(o)
+  // 特殊规则（发票按大人备料、工钱按小孩算）只改计钱的人头，不改发票。
+  const counts = applyChefPayRule(comp.counts, o.chef_pay_rule)
   const hasTables = a.has_tables_override ?? comp.tableHeads > 0
   const tableHeads = hasTables ? (comp.tableHeads > 0 ? comp.tableHeads : guests) : 0
-  const heads = payableHeads(comp.counts) / n
+  const heads = payableHeads(counts) / n
   const pay = a.pay_cents ?? (s ? chefPayCentsFrac(rateOf(s), heads) : 0)
   const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads) / n)
   // 发票上量过、而且超过 50 mi：客人就是按这个数付的路费，师傅照这个数。发票没量，
@@ -255,7 +272,8 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     payCents: pay,
     tablesCents: tables,
     travelCents: travel,
-    counts: comp.counts,
+    counts,
+    chefRule: o.chef_pay_rule ? { ...o.chef_pay_rule, label: describeChefPayRule(o.chef_pay_rule) } : null,
     tableHeads,
     hasTables,
     miles,
@@ -861,6 +879,7 @@ export async function POST(request: NextRequest) {
               customer: (x.customer ?? "").trim().split(/\s+/)[0] || "Guest",
               city: (x.address ?? "").split(",").slice(-3, -2).join("").trim() || null,
               counts: x.counts,
+              ...(x.chefRule ? { chefRule: x.chefRule.label } : {}),
               teamSize: x.team.length,
               method: x.method,
               prepaidOnly: !x.method,
@@ -917,7 +936,7 @@ export async function POST(request: NextRequest) {
               guest_share: x.share,
               tables_cents: x.tablesCents,
               travel_cents: x.travelCents,
-              comp_breakdown: { counts: x.counts, tableHeads: x.tableHeads, miles: x.miles },
+              comp_breakdown: { counts: x.counts, tableHeads: x.tableHeads, miles: x.miles, ...(x.chefRule ? { chefRule: x.chefRule } : {}) },
               pay_settled_at: x.paySettledAt ?? now,
               pay_settled_cents: x.paySettledAt ? x.paySettledCents : x.payCents,
               updated_at: now,

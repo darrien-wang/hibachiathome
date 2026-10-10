@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic"
 // No rules live here - what to say is the leads skill's job.
 
 const LEAD_COLUMNS =
-  "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, merged_into, heard_from, heard_channel, heard_asked_at"
+  "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, merged_into, heard_from, heard_channel, heard_asked_at, chef_pay_rule"
 const ORDER_COLUMNS =
   "id, order_no, customer_name, customer_phone, customer_email, event_start, event_address, guest_adult_count, guest_child_count, order_status, deposit_status, details_status, quoted_total_cents, balance_due_cents, source_metadata, created_at"
 const TAG = /\[(callback|occasion|why|data|SOP:[^\]]+)\]/i
@@ -63,6 +63,7 @@ type LeadRow = {
   heard_from: string | null
   heard_channel: string | null
   heard_asked_at: string | null
+  chef_pay_rule: Record<string, unknown> | null
 }
 type OrderRow = Record<string, unknown> & { id: string; order_no: string | null }
 type Touchpoint = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
@@ -269,6 +270,7 @@ async function buildCard(
           sms_blocked_at: lead.sms_blocked_at,
           event_hint: hint,
           source,
+          chef_pay_rule: lead.chef_pay_rule,
         }
       : null,
     phone,

@@ -855,6 +855,11 @@ export function ChefDialog({
                         <span title="人头费：大人整头，收费小孩半头，免费小孩不算">
                           {s.counts.adults}大{s.counts.kids ? `+${s.counts.kids}小×½` : ""}{s.counts.littles ? `+${s.counts.littles}免` : ""}
                         </span>
+                        {s.chefRule ? (
+                          <span title={`${s.chefRule.label}${s.chefRule.note ? `：${s.chefRule.note}` : ""}（谈价时定在线索上，人头已按它算）`} style={{ color: "var(--color-warning-700, #b45309)" }}>
+                            · 特殊规则
+                          </span>
+                        ) : null}
                         <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `桌椅 ${s.tableHeads} 人 × $4，点击改成不带` : "点击改成带桌椅"}>
                           · 桌椅 {s.hasTables ? money(s.tablesCents) : "无"}
                         </button>

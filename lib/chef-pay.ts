@@ -81,6 +81,39 @@ export function payableHeads(c: HeadCounts): number {
   return Math.max(0, c.adults) + KID_HEAD_FACTOR * Math.max(0, c.kids)
 }
 
+/**
+ * 特殊人头规则（老板 2026-10-10，April：35 个 12–13 岁男孩）：发票按大人记，
+ * 备料单才会按成人份量做菜；但师傅工钱按小孩算半个人头。谈价时定在线索上
+ * （leads.chef_pay_rule），算工钱时顺着订单的 source_metadata.lead_id 读出来，
+ * 派师傅、结账的人不用记得手改。adultsAsKids：发票上的大人里有几位按小孩算，
+ * "all" = 全部。
+ */
+export type ChefPayRule = { adultsAsKids: number | "all"; note?: string }
+
+export function normalizeChefPayRule(value: unknown): ChefPayRule | null {
+  if (!value || typeof value !== "object") return null
+  const v = value as Record<string, unknown>
+  const raw = v.adultsAsKids
+  const note = typeof v.note === "string" && v.note.trim() ? v.note.trim().slice(0, 200) : undefined
+  if (raw === "all") return { adultsAsKids: "all", ...(note ? { note } : {}) }
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n <= 0) return null
+  return { adultsAsKids: Math.floor(n), ...(note ? { note } : {}) }
+}
+
+/** 按规则把发票上的一部分大人挪成收费小孩；规则比现有大人多就全挪（人数后来少了也对）。 */
+export function applyChefPayRule(c: HeadCounts, rule: ChefPayRule | null | undefined): HeadCounts {
+  if (!rule) return c
+  const adults = Math.max(0, c.adults)
+  const moved = rule.adultsAsKids === "all" ? adults : Math.min(adults, Math.max(0, Math.floor(rule.adultsAsKids)))
+  return { adults: adults - moved, kids: Math.max(0, c.kids) + moved, littles: c.littles }
+}
+
+/** 一句话："35 位大人按小孩算" / "全部大人按小孩算"。 */
+export function describeChefPayRule(rule: ChefPayRule): string {
+  return rule.adultsAsKids === "all" ? "发票上的大人全部按小孩（半个人头）算" : `发票上 ${rule.adultsAsKids} 位大人按小孩（半个人头）算`
+}
+
 /** 人头费，允许半个人头（13大+1小 = 13.5 头）。底价 = head_from 个头的钱。 */
 export function chefPayCentsFrac(rate: ChefRate, heads: number): number {
   const extra = Math.max(0, heads - rate.head_from)

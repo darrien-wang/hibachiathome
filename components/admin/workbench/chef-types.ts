@@ -17,6 +17,8 @@ export type ShiftRow = {
   tablesCents: number
   travelCents: number
   counts: { adults: number; kids: number; littles: number }
+  /** 谈价时定在线索上的特殊人头规则（发票按大人备料、工钱按小孩算），counts 已经按它算过。 */
+  chefRule?: { adultsAsKids: number | "all"; note?: string; label: string } | null
   tableHeads: number
   hasTables: boolean
   miles: number | null

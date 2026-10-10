@@ -138,6 +138,11 @@ def render_card(c: dict) -> None:
         line = source_line(lead.get("source") or {}, lead.get("id"))
         if line:
             print(line)
+        rule = lead.get("chef_pay_rule")
+        if rule:
+            who = "全部大人" if rule.get("adultsAsKids") == "all" else f"{rule.get('adultsAsKids')} 位大人"
+            print(f"   师傅工钱特殊规则：发票上{who}按小孩（半个人头）算{('（' + rule['note'] + '）') if rule.get('note') else ''}"
+                  " → 派师傅、结账自动用，不用手改")
     quoted = c.get("quoted")
     price = c.get("price")
     if quoted:
@@ -437,6 +442,19 @@ def cmd_heard(a):
     if a.as_channel:
         payload["channel"] = a.as_channel
     _patch(payload)
+
+
+def cmd_chef_rule(a):
+    """Chef-pay head rule decided while negotiating (owner 2026-10-10): the invoice keeps adults
+    (adult portions on the prep sheet), the chef is paid kids' half heads. Read automatically
+    wherever chef pay is worked out, through the order's lead."""
+    if a.clear:
+        _patch({"action": "set_chef_rule", "leadId": a.lead, "adultsAsKids": None})
+        return
+    if not a.kids:
+        raise SystemExit("give --kids all|N (or --clear)")
+    kids = "all" if a.kids == "all" else int(a.kids)
+    _patch({"action": "set_chef_rule", "leadId": a.lead, "adultsAsKids": kids, **({"note": a.note} if a.note else {})})
 
 
 def cmd_note(a):
@@ -1138,6 +1156,10 @@ def main(argv=None):
     p.add_argument("--media", help="a local jpg/png to attach (MMS; same route and brakes as a text)"); p.set_defaults(fn=cmd_send)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)
+    p = sp.add_parser("chef-rule", help="chef pay counts invoice adults as kids (half heads) for this lead's party")
+    p.add_argument("lead"); p.add_argument("--kids", help="all, or how many of the invoice adults count as kids")
+    p.add_argument("--note"); p.add_argument("--clear", action="store_true")
+    p.set_defaults(fn=cmd_chef_rule)
     p = sp.add_parser("heard", help="record how an unattributed customer says they found us (D-1010)")
     p.add_argument("lead"); p.add_argument("words", help="their own words")
     p.add_argument("--as", dest="as_channel", choices=["google", "google_maps", "yelp", "instagram", "facebook", "tiktok", "nextdoor", "ai_assistant",

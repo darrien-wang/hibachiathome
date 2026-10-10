@@ -699,6 +699,7 @@ python scripts/desk/desk.py heard <lead> "原话" --as friend   # 归错了就�
 ## 6. 政策口径（客户问什么答什么；来源 `config/faq.ts` + 决策日志）
 
 - **包含什么**：每位成人 2 种蛋白（chicken / steak / shrimp / salmon / tofu 任选）+ 炒饭 8oz + 烤蔬菜 4oz + 姜汁沙拉；小孩半份。分量白纸黑字：chicken 5oz · steak 4.5oz · salmon 4oz · shrimp **5 jumbo, tail-off**（09-16 起新口径；faq.ts 还写着 5 colossal 16/22 ct，待改）· scallops 4oz · filet 4.5oz · lobster 6oz。
+- **发票人头和师傅工钱人头不一样时，谈价当下就登记规则**（老板 2026-10-10，April 35 个 12–13 岁男孩：发票按大人记才会按成人份量备菜，师傅工钱按小孩算半个人头）：`desk chef-rule <lead> --kids all --note "…"`（只挪一部分就 `--kids 10`，撤销 `--clear`）。规则记在线索上，锁单后订单顺着 lead_id 自动带上，工作台派师傅、结账都按它算，工钱明细标「特殊规则」——**不要靠事后手改工钱**，手改容易忘。
   - **常规牛排是 top sirloin，不冷冻、提前一天买**（用户 2026-09-28 口述）。客人问肉好不好就说这两件事，别用形容词。想再上一档：**ribeye +$5/人**，filet +$8。“再好的牛肉冷冻过都不好了”只讲我们自己怎么做，**不写成普世真理**（客人抬杠就尴尬）；也不要说成“我们什么都不冻”——虾是 16/20 冻袋买的。
   - **ribeye 是隐藏项（用户 2026-09-28 定）**：只在**员工发票工具**里选得到（发票仓库 `STAFF_ONLY_PROTEINS`），**客户的派对页 planner 里永远不显示**，官网、FAQ、`/api/invoice/schema` 也都不写。**不主动告诉客户**；只有客人问“你们带什么牛肉/能不能更好”时才报。客人要了就员工在发票里加，份量按 4.5 oz（同西冷/菲力），备料单已同步（`lib/prep-bom.ts`）。
   - **报分量必须同时说“每人选 2 种”**（用户 2026-09-28 抓到）。把几种蛋白并排列出来——“5 oz chicken, 4.5 oz steak, 5 jumbo shrimp a person”——客人会读成**三样都给**，当天才发现只有两样。正确写法：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo, salmon 4 oz.`判据：句子里出现两个以上蛋白，就必须有“picks 2 / choose 2”这个词。（首例：Judy Fridman 09-28，已发出去没更正，下一次开口时自然带入。）

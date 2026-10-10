@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
+import { describeChefPayRule, normalizeChefPayRule } from "@/lib/chef-pay"
 
 export const dynamic = "force-dynamic"
 
@@ -325,6 +326,8 @@ export async function PATCH(request: NextRequest) {
     /** set_heard：客人自己说的来源（原话），channel 不传就按 lib/heard-from.ts 归类。 */
     heard?: string
     channel?: string
+    /** set_chef_rule：发票上几位大人按小孩算师傅工钱（"all" = 全部），null 或 clear:true 撤销。 */
+    adultsAsKids?: number | "all" | null
   }
   try {
     body = await request.json()
@@ -653,6 +656,27 @@ export async function PATCH(request: NextRequest) {
     }
     await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: `[heard] ${heard} → ${channel}（${HEARD_LABELS[channel]}）` })
     return NextResponse.json({ ok: true, channel, label: HEARD_LABELS[channel] })
+  }
+
+  // 师傅工钱的特殊人头规则（老板 2026-10-10，April 35 个 12–13 岁男孩）：谈价时
+  // 定在线索上，算工钱时顺着订单的 lead_id 自动用（app/api/admin/chefs），
+  // 派师傅、结账的人不用记得手改。发票照常按大人记（备料按成人份量）。
+  if (body.action === "set_chef_rule") {
+    const clearing = body.adultsAsKids === null || body.clear === true
+    const rule = clearing ? null : normalizeChefPayRule({ adultsAsKids: body.adultsAsKids, note: body.note })
+    if (!clearing && !rule) {
+      return NextResponse.json({ error: 'adultsAsKids must be a positive number or "all"' }, { status: 400 })
+    }
+    const now = new Date().toISOString()
+    const stored = rule ? { ...rule, setAt: now, setBy: actor.name ?? actor.alias } : null
+    const { error } = await supabase.from("leads").update({ chef_pay_rule: stored, updated_at: now }).eq("id", leadId)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    await logEvent(supabase, leadId, NOTE_TYPE, actor, {
+      note: rule ? `[data] 师傅工钱特殊规则：${describeChefPayRule(rule)}${rule.note ? `（${rule.note}）` : ""}` : "[data] 撤销师傅工钱特殊规则",
+    })
+    return NextResponse.json({ ok: true, rule: stored })
   }
 
   if (body.action === "add_note") {

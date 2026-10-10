@@ -140,7 +140,7 @@ export type PartyStage = "not_booked" | "booked" | "party_day" | "after_party" |
  * the day the lead came in: a party before it means they came back.
  */
 export function partyStage(
-  orders: Array<{ order_status?: unknown; event_start?: unknown }>,
+  orders: ReadonlyArray<{ [key: string]: unknown }>,
   todayPt: string,
   leadDayPt?: string | null,
 ): PartyStage {
