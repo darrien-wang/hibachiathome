@@ -1563,10 +1563,10 @@ export default function QuoteBuilderClient() {
         })
         pushToast("success", "Sent", "Your exact price is on its way by text and email — it's also right here.")
       } else {
-        pushToast("error", "Text didn't go out", "Your price is on screen and a real person will text you shortly.")
+        pushToast("error", "Text didn't go out", "Your price is on screen and we'll text you shortly.")
       }
     } catch {
-      pushToast("error", "Text didn't go out", "Your price is on screen and a real person will text you shortly.")
+      pushToast("error", "Text didn't go out", "Your price is on screen and we'll text you shortly.")
     } finally {
       setUnlockBusy(false)
     }
@@ -1640,8 +1640,8 @@ export default function QuoteBuilderClient() {
               </h2>
               <p className="mt-2 text-base text-clay-700">
                 {bookingConfirmation.customerEmailDelivered
-                  ? "Confirmation email sent. A real person texts you back shortly."
-                  : "Details received. A real person texts you back shortly."}
+                  ? "Confirmation email sent. We'll text you back shortly."
+                  : "Details received. We'll text you back shortly."}
               </p>
 
               {/* One line of facts: date · zip · guests · estimate. */}

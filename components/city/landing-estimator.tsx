@@ -476,7 +476,7 @@ export default function LandingEstimator({
                   ? "Enter a 10-digit mobile number so we can text the price."
                   : emailErr
                     ? "Add a valid email — the exact price goes there too."
-                    : "Exact price + your party discount code on the next screen and by text · a real person follows up within 15 min · no spam")}
+                    : "Exact price + your party discount code on the next screen and by text · we follow up within 15 min · no spam")}
             </p>
           </form>
         ) : (
@@ -564,8 +564,8 @@ export default function LandingEstimator({
                     {sent.personal
                       ? "We'll text you about these numbers within 15 min. Here's the estimate in the meantime."
                       : sent.smsDelivered
-                        ? `If the text${sent.emailed ? " or email" : ""} hasn't landed in a minute, everything is right here. A real person follows up within 15 min by text or email.`
-                        : "The text is delayed, so here is everything it would have said. A real person follows up within 15 min by text or email."}
+                        ? `If the text${sent.emailed ? " or email" : ""} hasn't landed in a minute, everything is right here. We follow up within 15 min by text or email.`
+                        : "The text is delayed, so here is everything it would have said. We follow up within 15 min by text or email."}
                   </p>
                   <p className="mt-2 font-serif text-2xl font-extrabold leading-none">{fmt(sent.total)}</p>
                   {sent.discountCode ? (
@@ -590,7 +590,7 @@ export default function LandingEstimator({
                   {busy ? "Sending…" : "Text me this quote"}
                 </button>
                 <p className={`text-center text-xs ${serverErr ? "font-semibold text-flame-700" : "text-clay-600"}`}>
-                  {serverErr ?? `Goes to ${prettyPhone(phoneValue)} and ${email.trim()} · a real person follows up within 15 min`}
+                  {serverErr ?? `Goes to ${prettyPhone(phoneValue)} and ${email.trim()} · we follow up within 15 min`}
                 </p>
               </div>
             )}

@@ -317,7 +317,7 @@ async function sendCustomerAcknowledgement(params: {
   const text = [
     greeting,
     "",
-    "Thanks for reaching out to Real Hibachi - your message is in, and a real person will get back to you within one business day.",
+    "Thanks for reaching out to Real Hibachi - your message is in, and we'll get back to you within one business day.",
     ...(details.length > 0 ? ["", "Here's what we have:", ...details.map(([k, v]) => `${k}: ${v}`)] : []),
     "",
     `Need us sooner? Text or call ${phone.sms.dashed} - that reaches us fastest.`,
@@ -339,7 +339,7 @@ async function sendCustomerAcknowledgement(params: {
   const html = `
     <div style="font-family: Arial, sans-serif; color:#0f172a; line-height:1.6;">
       <p>${escapeHtml(greeting)}</p>
-      <p>Thanks for reaching out to Real Hibachi &mdash; your message is in, and a real person will get back to you within one business day.</p>
+      <p>Thanks for reaching out to Real Hibachi &mdash; your message is in, and we'll get back to you within one business day.</p>
       ${
         details.length > 0
           ? `<div style="margin:20px 0;padding:16px;border:1px solid #d1d5db;border-radius:16px;background:#f8fafc;">

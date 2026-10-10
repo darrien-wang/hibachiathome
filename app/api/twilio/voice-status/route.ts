@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   const from = toE164(params.From)
   const callSid = params.CallSid ?? ""
   if (!from || !callSid || /^\+1\d{3}555\d{4}$/.test(from)) {
-    return twiml("<Say>Sorry we missed you. Please text us at this number and a real person will answer right away.</Say>")
+    return twiml("<Say>Sorry we missed you. Please text us at this number and we'll answer right away.</Say>")
   }
 
   const supabase = createServerSupabaseClient()
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Opted out or unreachable: the voice prompt still asks them to text us,
     // but we do not text a number that told us to stop.
     if (row?.sms_blocked_at) {
-      return twiml("<Say>Sorry we missed you. Please text us at this number and a real person will answer right away.</Say>")
+      return twiml("<Say>Sorry we missed you. Please text us at this number and we'll answer right away.</Say>")
     }
     // Already handled this call (the lead-watch backstop may have won the race).
     if (leadId) {
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 
   return twiml(
     sms.ok
-      ? "<Say>Sorry we missed you. We just sent you a text - reply there and a real person answers right away.</Say>"
-      : "<Say>Sorry we missed you. Please text us at this number and a real person will answer right away.</Say>",
+      ? "<Say>Sorry we missed you. We just sent you a text - reply there and we'll answer right away.</Say>"
+      : "<Say>Sorry we missed you. Please text us at this number and we'll answer right away.</Say>",
   )
 }

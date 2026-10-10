@@ -89,7 +89,7 @@ export default function FAQClientPage() {
         <a href={phone.voice.tel} className="font-bold">
           {phone.voice.display}
         </a>{" "}
-        — a real person, 9am–9pm. Or skip the reading: a quote takes 30 seconds, and the exact total lands on your phone before you pay anything.
+        — we answer 9am–9pm. Or skip the reading: a quote takes 30 seconds, and the exact total lands on your phone before you pay anything.
       </p>
       <Link
         href="/quote?source=faq"
@@ -179,7 +179,7 @@ export default function FAQClientPage() {
       {visible === 0 ? (
         <div className="flex flex-col gap-2 rounded-[28px] border border-ink/10 bg-white p-[18px] shadow-organic lg:max-w-[520px] lg:p-[22px]">
           <p className="text-base font-bold lg:text-lg">Nothing matches &ldquo;{q}&rdquo;</p>
-          <p className="text-sm leading-relaxed text-clay-700">Text us and a real person answers within minutes, 9am–9pm.</p>
+          <p className="text-sm leading-relaxed text-clay-700">Text us and we answer within minutes, 9am–9pm.</p>
           <a href={sms} onClick={onSms("faq_empty")} className="inline-flex h-[46px] items-center justify-center rounded-full bg-flame px-6 text-[15px] font-bold text-white lg:self-start">
             Text {phone.sms.display}
           </a>

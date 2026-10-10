@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
           // The travel line is only repeated when it did not just get explained.
           previous && previous.travelFee !== travelFee ? null : travelLine,
           `Same deposit link locks your date: ${depositUrl}`,
-          "Reply here with questions - a real person answers. Reply STOP to opt out.",
+          "Reply here with questions - we answer fast. Reply STOP to opt out.",
         ]
       : [
           // The listed price. Nothing about tax or payment method is brought up
@@ -353,7 +353,7 @@ export async function POST(request: NextRequest) {
           // and the one that cost a corporate customer his plates on the day: say it
           // before they have to ask. Numbers come from config/pricing-rules.
           RENTALS_LINE,
-          "Reply here with questions - a real person answers. Reply STOP to opt out.",
+          "Reply here with questions - we answer fast. Reply STOP to opt out.",
         ]
   )
     .filter((line): line is string => Boolean(line))

@@ -74,7 +74,7 @@ const spec = {
         operationId: "requestQuote",
         summary: "Send the customer their exact quote and a deposit link",
         description:
-          "Only call this when the customer asked you to and agreed to be contacted. We text and email them the exact price and a secure deposit link, and a real person follows up by text. Limited to 2 requests per phone number per hour.",
+          "Only call this when the customer asked you to and agreed to be contacted. We text and email them the exact price and a secure deposit link, and we follow up by text. Limited to 2 requests per phone number per hour.",
         requestBody: {
           required: true,
           content: {

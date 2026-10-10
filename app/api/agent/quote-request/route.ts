@@ -167,6 +167,6 @@ export async function POST(request: NextRequest) {
     depositUrl: data.depositUrl,
     message: `Sent. The customer now has the exact price and a secure deposit link by ${
       data.smsDelivered ? "text and email" : "email (the text to that number did not go through, so check it with them)"
-    }, and a real person will follow up. Share depositUrl only with the customer; they pay it themselves.`,
+    }, and we follow up by text. Share depositUrl only with the customer; they pay it themselves.`,
   })
 }

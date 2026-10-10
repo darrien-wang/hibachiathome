@@ -8,7 +8,7 @@ import { TRAVEL_FREE_RADIUS_MILES } from "@/config/pricing-rules"
 // facts, not buttons.
 export default function LandingDiffs({ distanceLine }: { distanceLine: string }) {
   const diffs = [
-    { big: "15 min", label: "text reply", body: "A real person, not a bot", action: true },
+    { big: "15 min", label: "text reply", body: "Specific answers, fast", action: true },
     { big: `${TRAVEL_FREE_RADIUS_MILES} mi`, label: "of travel free", body: distanceLine },
     // "$0 setup surcharge · setup and cleanup in the price" until 2026-10-08: customers read it as
     // free tables and chairs (owner). The food is what the price covers, so say that.
