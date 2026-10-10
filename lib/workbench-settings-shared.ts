@@ -148,7 +148,7 @@ export const QUICK_REPLY_PLACEHOLDERS = ["{first_name}", "{deposit_link}", "{pla
 export const DEFAULT_SETTINGS: WorkbenchSettings = {
   business: {
     brand: "Real Hibachi",
-    agent_name: "Rowling",
+    agent_name: "Bling",
     chef_default_name: "Bling",
     support_phone: sitePhone.sms.dashed,
     backup_phone: sitePhone.backup.dashed,

@@ -147,7 +147,20 @@ export const PARTY_CONTACT_URGENT_H = 24
 /** A brand-new order just got the lock confirmation; do not text it again within this long. */
 export const PARTY_CONTACT_MIN_ORDER_AGE_MS = 2 * 3600_000
 
+// Texts and email are signed Rowling from 2026-10-09 17:20 PT (owner: "接下来所有的新订单");
+// customers who were already talking to us know the texts as Bling and keep
+// that name - the owner: "之前跟进的就还是保持原样". The lead's first contact
+// decides, not the order date: an old conversation that books next week is
+// still Bling's.
+export const ROWLING_FROM = "2026-10-10T00:20:00Z"
+export function textSignerFor(firstContactAt: string | null | undefined): "Bling" | "Rowling" {
+  const t = firstContactAt ? Date.parse(firstContactAt) : NaN
+  return Number.isFinite(t) && t < Date.parse(ROWLING_FROM) ? "Bling" : "Rowling"
+}
+
 export type PartyContactInput = {
+  /** Who the texts are signed by for this customer (textSignerFor); Rowling when unknown. */
+  signer?: "Bling" | "Rowling"
   customerName?: string | null
   /** orders.event_start (wall clock stored as UTC). */
   eventStart: string
@@ -173,7 +186,7 @@ export function partyContactFirstText(i: PartyContactInput): string {
   const when = `${shortDate(i.eventStart.slice(0, 10))} at ${wallTime(i.eventStart)}`
   const where = shortAddress(i.address)
   return (
-    `Hi${name ? ` ${name}` : ""}, Rowling from Real Hibachi 👋 Your hibachi party is ${when}${where ? ` at ${where}` : ""}. ` +
+    `Hi${name ? ` ${name}` : ""}, ${i.signer ?? "Rowling"} from Real Hibachi 👋 Your hibachi party is ${when}${where ? ` at ${where}` : ""}. ` +
     `Reply YES if everything's still set, or let me know if anything's changed.`
   )
 }
@@ -184,7 +197,7 @@ export function partyContactSecondText(i: PartyContactInput): string {
   const sameDay = ptDate(i.now) === i.eventStart.slice(0, 10)
   const where = shortAddress(i.address)
   return (
-    `Hi${name ? ` ${name}` : ""}, Rowling here - just making sure we're all set for ${sameDay ? "today" : "tomorrow"} at ${wallTime(i.eventStart)}${where ? ` at ${where}` : ""}. ` +
+    `Hi${name ? ` ${name}` : ""}, ${i.signer ?? "Rowling"} here - just making sure we're all set for ${sameDay ? "today" : "tomorrow"} at ${wallTime(i.eventStart)}${where ? ` at ${where}` : ""}. ` +
     `Could you reply so I know you got this? 🙏`
   )
 }

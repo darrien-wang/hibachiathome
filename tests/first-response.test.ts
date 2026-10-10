@@ -11,6 +11,7 @@ import {
   shortDate,
   wallTime,
   wallToInstant,
+  textSignerFor,
 } from "../lib/first-response"
 
 // ---- wall clock stored as UTC ------------------------------------------------
@@ -88,12 +89,13 @@ test("template B hands edge cases to a person", () => {
 
 test("first party-contact text: name, day, wall time, street only", () => {
   const text = partyContactFirstText({
+    signer: "Bling",
     customerName: "Ellen  Vallee",
     eventStart: "2026-10-10T18:30:00+00:00",
     address: "452 North Monterey Road, Palm Springs, CA 92262",
     now: Date.parse("2026-10-07T20:00:00Z"),
   })
-  assert.equal(text, "Hi Ellen, Rowling from Real Hibachi 👋 Your hibachi party is Sat, Oct 10 at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or let me know if anything's changed.")
+  assert.equal(text, "Hi Ellen, Bling from Real Hibachi 👋 Your hibachi party is Sat, Oct 10 at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or let me know if anything's changed.")
 })
 
 test("first party-contact text without a usable name or address", () => {
@@ -125,4 +127,12 @@ test("partyContactStage ladder", () => {
   assert.equal(s(-1, true), "past")
   // Reached customers are never texted, whatever the clock says.
   assert.equal(s(50, false, false, true), "wait")
+})
+
+test("text signer · customers who first wrote before 10-09 17:20 PT keep Bling, new ones get Rowling", () => {
+  assert.equal(textSignerFor("2026-09-28T19:26:00Z"), "Bling")
+  assert.equal(textSignerFor("2026-10-10T00:19:59Z"), "Bling")
+  assert.equal(textSignerFor("2026-10-10T00:20:00Z"), "Rowling")
+  assert.equal(textSignerFor(null), "Rowling")
+  assert.equal(textSignerFor("not a date"), "Rowling")
 })

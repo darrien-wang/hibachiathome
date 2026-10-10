@@ -13,6 +13,7 @@ import {
   partyContactSecondText,
   partyContactStage,
   ptDate,
+  textSignerFor,
   quoteFollowUpPlan,
   shortDate,
   wallTime,
@@ -706,6 +707,15 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       .order("event_start", { ascending: true })
       .limit(30)
     const rows = (upcoming ?? []) as Upcoming[]
+    // Whose name the confirmation is signed with follows the customer's first
+    // contact (textSignerFor): their lead's creation, else the order's.
+    const leadIds = rows.map((o) => String(((o.source_metadata ?? {}) as Record<string, unknown>).lead_id ?? "")).filter(Boolean)
+    const { data: leadRows } = leadIds.length
+      ? await supabase.from("leads").select("id, created_at").in("id", leadIds)
+      : { data: [] as Array<{ id: string; created_at: string }> }
+    const leadCreated = new Map((leadRows ?? []).map((l) => [l.id as string, l.created_at as string]))
+    const signerOf = (o: Upcoming) =>
+      textSignerFor(leadCreated.get(String(((o.source_metadata ?? {}) as Record<string, unknown>).lead_id ?? "")) ?? (o as { created_at?: string }).created_at)
     const { data: marks } = rows.length
       ? await supabase
           .from("lead_watch_notified")
@@ -746,9 +756,9 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       const minutesWaiting = sentFirstAt !== undefined ? Math.round((now - sentFirstAt) / 60_000) : 0
       const text =
         step === "first_text"
-          ? partyContactFirstText({ customerName: o.customer_name, eventStart: o.event_start, address: o.event_address, now })
+          ? partyContactFirstText({ signer: signerOf(o), customerName: o.customer_name, eventStart: o.event_start, address: o.event_address, now })
           : step === "urgent_24h" && !mark.has(`pc:sent24:${o.id}`)
-            ? partyContactSecondText({ customerName: o.customer_name, eventStart: o.event_start, address: o.event_address, now })
+            ? partyContactSecondText({ signer: signerOf(o), customerName: o.customer_name, eventStart: o.event_start, address: o.event_address, now })
             : null
       if (text) {
         const sms = dryRun ? ({ ok: true, sid: "dry", status: "dry" } as const) : await sendSms(phone, text)
