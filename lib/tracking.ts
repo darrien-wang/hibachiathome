@@ -286,6 +286,14 @@ export function captureAttributionOnLanding(search: string): void {
     }
   }
 
+  // Microsoft Ads (Bing) campaigns were imported from Google on 2026-10-09
+  // (D-1009-08) and their final URLs may still say utm_source=google. A Bing
+  // click carries msclkid and never a gclid, so that is what decides it.
+  if (query.get("msclkid") && !query.get("gclid")) {
+    incoming.utm_source = "bing"
+    incoming.utm_medium = "cpc"
+  }
+
   // A landing that carries any attribution params is a new touch: replace the
   // stored set wholesale so sources never mix (e.g. an old QR utm_source kept
   // alongside a new Google gclid). Landings without params keep the last touch.
