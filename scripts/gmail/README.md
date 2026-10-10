@@ -14,7 +14,7 @@ vercel env add EMAIL_INBOUND_KEY production
 ```
 粘贴那一行 → 回车。然后让生产重部署一次（空提交推 main，或 Vercel 后台 Redeploy）。
 
-## 二、Gmail 里装脚本（在收 support@ 来信的那个 Google 账号里做，现在是 darrien.wang@gmail.com）
+## 二、Gmail 里装脚本（装在 support@realhibachi.com 自己的 Google 账号里——10-09 核实；darrien.wang@gmail.com 里同名项目是空的）
 
 1. 打开 https://script.google.com → 新建项目，命名 `rh-support-inbound`。
 2. 把 `scripts/gmail/support-inbound.gs` 的内容整个贴进编辑器，保存。
@@ -32,7 +32,7 @@ vercel env add EMAIL_INBOUND_KEY production
 
 - 服务端按 Gmail message id 去重，脚本重复推送不会重复入库。
 - 自己域名（notify@、support@ 发出的）和退信（mailer-daemon）不入库；平台通知（Zola 等）**会**入库——企业询盘就是这么来的，由人判断。
-- 2026-10-09 起脚本也收平台询价（The Knot / WeddingWire 客人消息 `member.theknot.com`、Zola 标题带 inquiry 的通知），它们直接进这个 Gmail、不经过 support@。员工表里有的邮箱（老板个人 Gmail）发的信服务端跳过（`staff_sender`），因为平台询价是从这个邮箱回的。回完平台的信跑 `desk ack <lead>`，不然那条线索会一直显示"邮件待回"。
+- 2026-10-09 起脚本也收平台询价（The Knot / WeddingWire 客人消息 `member.theknot.com`、Zola 标题带 inquiry 的通知）。它们只发到 darrien.wang@gmail.com，要在那边设一条 Gmail 过滤转发到 support@（转发地址要先验证，Gmail 会弹小窗，内置浏览器弹不出来）；support@ 本身把所有来信抄转回 darrien.wang@gmail.com，同一个 Message-ID 的回流 Gmail 会去重，不会绕圈。员工表里有的邮箱（老板个人 Gmail）发的信服务端跳过（`staff_sender`），因为平台询价是从这个邮箱回的。回完平台的信跑 `desk ack <lead>`，不然那条线索会一直显示"邮件待回"。
 - **改了 `QUERY` 要同步改 Gmail 里的脚本**（script.google.com → rh-support-inbound，只换 `const QUERY = ...` 那一行，保存即可，定时器不用重装）。
 - 线索匹配：按发件人邮箱找最近的线索（不限时间）；没有就建新线索（lead_source `email_inbound`，渠道 `email`）。
 - "待回"判定：该线索最近一封入站邮件晚于我们最近一次外发（邮件或短信）。挂起 / 标过"不用回"的照旧不响。
