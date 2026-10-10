@@ -5,6 +5,9 @@ import { REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS } from "@/lib/chef-pay"
 import { type ChefLite, soleMatch } from "@/lib/review-board"
 import { creditReview, resolveClaims, setPhoto } from "@/lib/review-claims-server"
 import { cleanPhotoUrls } from "@/lib/review-photos"
+import { bodySig, nearDays, normText } from "@/lib/review-merge"
+import { GbpError } from "@/lib/gbp"
+import { disconnect, finishConnect, gbpStatus, locate, recordGbpError, replyToReview, startConnect, syncFromGbp } from "@/lib/gbp-sync"
 import { createHash, randomBytes } from "node:crypto"
 
 export const dynamic = "force-dynamic"
@@ -23,18 +26,25 @@ export const runtime = "nodejs"
 //     auto_name    老板：正文点到名的一批自动归类（只归"只提到一个人"的）
 //     issue_link / revoke_link       老板：发/收回师傅的榜单链接
 //     set_aliases  老板：改师傅的名字别名（"Mr. Blue" -> Blu）
+//     gbp_connect_start / gbp_connect_finish / gbp_locate / gbp_disconnect
+//                  老板：连接 Google 商家资料（OAuth，见 lib/gbp.ts）
+//     gbp_sync     老板：从商家后台全量同步（dry=true 只预演不写；第一次必须先预演）
+//     gbp_reply    老板：回复一条 Google 评价（公开可见）
 // 防重是硬规矩：(platform, external_key) 唯一 => 同一条评价只存一行；
-// 一行最多挂一个 bonus_id => 同一条评价只算一次钱。
+// 一行最多挂一个 bonus_id => 同一条评价只算一次钱；gbp_review_id 也唯一。
 //
-// 平台侧现实（2026-09-28 实测）：
-// - Google 走 Places API (New)（GOOGLE_PLACES_API_KEY，real-hibachi 项目，
+// 平台侧现实：
+// - 2026-10-09 起 Google 首选商家资料 API（全量、带回复状态和照片，能回复）。
+//   连上并做完第一次同步之后，refresh 的 Google 部分走它；没连上/第一次还没做/
+//   出错时退回下面的 Places API。
+// - Places API (New)（GOOGLE_PLACES_API_KEY，real-hibachi 项目，
 //   key 限定 Places 两个 API）：一次给"最相关"5 条（非最新），但带精确
 //   publishTime 和每条的 googleMapsUri。旧版 API 对这个 Place ID 报
 //   NOT_FOUND（id 过期），别再试。
 // - Yelp Fusion /reviews 一次只给 3 条节选，需要 YELP_API_KEY（免费申请）。
-// - API 只是增量哨兵：全量仍靠 agent 打开页面拉取走 import。
 // - API 行和 agent 行的 external_key 体系不同，靠 fuzzyFilter 按
-//   评价人+正文前缀（或 ±3 天）合并，否则同一条会两行。
+//   评价人+正文前缀（或 ±3 天）合并，否则同一条会两行（规则在 lib/review-merge.ts，
+//   商家资料同步用同一套）。
 
 const GOOGLE_PLACE_ID = "ChIJkxNMr8pbkkARqHR_D2YBK6E"
 const GOOGLE_ALL_REVIEWS_URL = `https://search.google.com/local/reviews?placeid=${GOOGLE_PLACE_ID}`
@@ -49,7 +59,29 @@ const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}
 const ptToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
 const hash10 = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 10)
 const PLATFORMS = new Set(["google", "yelp", "other"])
-const OWNER_ACTIONS = new Set(["import", "link_chef", "unlink_chef", "set_photo", "delete_row", "approve_claim", "reject_claim", "auto_name", "issue_link", "revoke_link", "set_aliases"])
+const OWNER_ACTIONS = new Set([
+  "import",
+  "link_chef",
+  "unlink_chef",
+  "set_photo",
+  "delete_row",
+  "approve_claim",
+  "reject_claim",
+  "auto_name",
+  "issue_link",
+  "revoke_link",
+  "set_aliases",
+  "gbp_connect_start",
+  "gbp_connect_finish",
+  "gbp_locate",
+  "gbp_disconnect",
+  "gbp_sync",
+  "gbp_reply",
+])
+// 我们自己判的错（贴错、过期、没连上……）原样回；Google 那边回的错一律 502，免得和"不是老板"的 403 混在一起
+const OWN_GBP_REASONS = new Set(["bad_paste", "state_mismatch", "state_expired", "verifier_unreadable", "scope_missing", "no_refresh_token", "not_connected", "token_unreadable", "no_location", "unknown_location", "bad_reply", "not_found", "not_linked"])
+/** Google 那边出的错才记到状态卡上（贴错、没连上这种不记）。 */
+const upstreamGbp = (e: unknown) => !(e instanceof GbpError) || !OWN_GBP_REASONS.has(e.reason)
 
 type ReviewInsert = {
   platform: string
@@ -80,10 +112,10 @@ async function fuzzyFilter(supabase: SB, rows: ReviewInsert[]) {
   const { data: existing } = await supabase.from("business_reviews").select("id, platform, external_key, reviewer, review_date, body, has_photo, photo_count").limit(1000)
   const all = (existing ?? []) as Array<ExistingReview & { platform: string; external_key: string; reviewer: string | null; review_date: string | null; body: string | null }>
   const exact = new Set(all.map((e) => `${e.platform}|${e.external_key}`))
-  const norm = (v: string | null | undefined) => (v ?? "").toLowerCase().replace(/\s+/g, " ").trim()
-  const sigOf = (platform: string, reviewer: string | null, body: string | null) => `${platform}|${norm(reviewer)}|${norm(body).slice(0, 25)}`
+  const norm = normText
+  const sigOf = (platform: string, reviewer: string | null, body: string | null) => `${platform}|${bodySig(reviewer, body)}`
   const sigs = new Map(all.filter((e) => e.body).map((e) => [sigOf(e.platform, e.reviewer, e.body), e]))
-  const near = (a: string | null, b: string | null) => !!a && !!b && Math.abs(Date.parse(a) - Date.parse(b)) <= 3 * 86400000
+  const near = (a: string | null, b: string | null) => nearDays(a, b)
   const keep: ReviewInsert[] = []
   let merged = 0
   for (const r of rows) {
@@ -183,7 +215,9 @@ export async function GET(request: NextRequest) {
   const [{ data: reviews, error: e1 }, { data: staff }, { data: bonuses }, { data: claims }] = await Promise.all([
     supabase
       .from("business_reviews")
-      .select("id, platform, external_key, reviewer, rating, review_date, body, url, has_photo, photo_count, staff_member_id, bonus_id, source, first_seen_at, last_seen_at")
+      .select(
+        "id, platform, external_key, reviewer, rating, review_date, body, url, has_photo, photo_count, staff_member_id, bonus_id, source, first_seen_at, last_seen_at, gbp_review_id, reply_comment, reply_updated_at, reply_state, reply_by",
+      )
       .order("review_date", { ascending: false })
       .order("first_seen_at", { ascending: false })
       .limit(500),
@@ -195,6 +229,8 @@ export async function GET(request: NextRequest) {
   ])
   if (e1) return NextResponse.json({ error: e1.message }, { status: 500 })
   type StaffRow = { id: string; display_name: string | null; full_name: string | null; review_token: string | null; review_aliases: string[] | null }
+  // 商家资料连接状态只给老板（坐席用不上，也不该看到连的是谁的账号）
+  const gbp = actor.role === "owner" ? await gbpStatus(supabase).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) })) : null
   return NextResponse.json({
     ok: true,
     reviews: reviews ?? [],
@@ -208,6 +244,7 @@ export async function GET(request: NextRequest) {
     claims: claims ?? [],
     links: { google: GOOGLE_ALL_REVIEWS_URL, yelp: YELP_ALL_REVIEWS_URL, board: BOARD_BASE },
     providers: { google: !!process.env.GOOGLE_PLACES_API_KEY, yelp: !!process.env.YELP_API_KEY },
+    gbp,
   })
 }
 
@@ -229,8 +266,39 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "refresh": {
         const out: Record<string, unknown> = {}
+        // 商家资料连上了、第一次同步也确认过了：Google 这边直接全量同步，不再拉 Places 那 5 条
+        let googleDone = false
+        const gs = await gbpStatus(supabase).catch(() => null)
+        if (gs?.connected) {
+          if (!gs.firstSyncDone) {
+            out.gbp = { ok: false, reason: "Google 商家资料已连上，第一次全量同步要在工作台「好评」页签先预演再写入（这次先按老办法拉 5 条）" }
+          } else {
+            try {
+              const r = await syncFromGbp(supabase, actor.alias, { dry: false })
+              out.google = {
+                ok: true,
+                source: "gbp",
+                added: r.added ?? 0,
+                seen: r.onGoogle,
+                merged: r.newlyLinked.length,
+                total: r.total ?? r.onGoogle,
+                have: r.have ?? null,
+                unreplied: r.unreplied,
+                missing: r.missing.length,
+                photos: r.photos ?? 0,
+                note: "商家资料 API：全量（含回复状态和照片）",
+              }
+              googleDone = true
+            } catch (e) {
+              await recordGbpError(supabase, e)
+              out.gbp = { ok: false, reason: e instanceof GbpError ? e.hint : e instanceof Error ? e.message : "同步失败" }
+            }
+          }
+        }
         const gKey = process.env.GOOGLE_PLACES_API_KEY
-        if (!gKey) {
+        if (googleDone) {
+          // 已经全量了
+        } else if (!gKey) {
           out.google = { ok: false, reason: "没配 GOOGLE_PLACES_API_KEY；先由 agent 人工拉取导入" }
         } else {
           try {
@@ -473,10 +541,65 @@ export async function POST(request: NextRequest) {
         if (error) throw error
         return NextResponse.json({ ok: true })
       }
+      // ---- Google 商家资料（2026-10-09）----
+      case "gbp_connect_start": {
+        // 生成授权页地址。老板在新标签页里授权，最后那页"无法访问此网站"的地址贴回来走 finish。
+        const r = await startConnect(supabase, actor.alias)
+        return NextResponse.json({ ok: true, ...r })
+      }
+      case "gbp_connect_finish": {
+        const r = await finishConnect(supabase, actor.alias, body.pasted)
+        return NextResponse.json({ ok: true, ...r, status: await gbpStatus(supabase) })
+      }
+      case "gbp_locate": {
+        // 重新找门店（API 刚启用、或者多家要选一家：带 location）
+        const chosen = typeof body.location === "string" && /^locations\/\d+$/.test(body.location) ? body.location : undefined
+        try {
+          const r = await locate(supabase, chosen)
+          return NextResponse.json({ ok: true, found: r.found, picked: r.picked ? { name: r.picked.name, title: r.picked.title } : null, status: await gbpStatus(supabase) })
+        } catch (e) {
+          if (upstreamGbp(e)) await recordGbpError(supabase, e)
+          throw e
+        }
+      }
+      case "gbp_disconnect": {
+        await disconnect(supabase)
+        return NextResponse.json({ ok: true, status: await gbpStatus(supabase) })
+      }
+      case "gbp_sync": {
+        // dry=true 只预演（不写库）。第一次（还没有任何一行和 Google 对上）不许跳过预演。
+        const dry = body.dry !== false
+        if (!dry) {
+          const st = await gbpStatus(supabase)
+          if (!st.firstSyncDone && body.confirmed !== true) return NextResponse.json({ error: "第一次全量同步要先预演、看过再写入" }, { status: 409 })
+        }
+        try {
+          const r = await syncFromGbp(supabase, actor.alias, { dry })
+          return NextResponse.json({ ...r, status: dry ? undefined : await gbpStatus(supabase) })
+        } catch (e) {
+          if (upstreamGbp(e)) await recordGbpError(supabase, e)
+          throw e
+        }
+      }
+      case "gbp_reply": {
+        // 公开回复客人的评价——只能老板在工作台上看着点。
+        if (!isUuid(body.review_id)) return NextResponse.json({ error: "review_id required" }, { status: 400 })
+        try {
+          const reply = await replyToReview(supabase, actor.alias || "owner", body.review_id, body.comment)
+          return NextResponse.json({ ok: true, reply })
+        } catch (e) {
+          if (upstreamGbp(e)) await recordGbpError(supabase, e)
+          throw e
+        }
+      }
       default:
         return NextResponse.json({ error: "unknown action" }, { status: 400 })
     }
   } catch (e) {
+    if (e instanceof GbpError) {
+      const status = OWN_GBP_REASONS.has(e.reason) ? e.status : 502
+      return NextResponse.json({ error: e.hint, reason: e.reason }, { status })
+    }
     return NextResponse.json({ error: e instanceof Error ? e.message : "server error" }, { status: 500 })
   }
 }

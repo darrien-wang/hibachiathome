@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
-import { md, money } from "./helpers"
+import { md, money, stamp } from "./helpers"
 import { matchChefs } from "@/lib/review-board"
+import GbpCard, { type GbpStatus } from "./GbpCard"
 
 // 好评台账（2026-09-28）——独立模块，以后长成历史看板。
 // 三件事：
@@ -14,6 +15,7 @@ import { matchChefs } from "@/lib/review-board"
 //   2. 提到师傅名字的评价一键记给他（无图 $2 · 带图 $3），进他的
 //      月结账本；同一条评价永远只算一次（防重在数据库层）。
 //   3. 师傅 × 月 的好评汇总——以后的绩效就从这里长出来。
+// 2026-10-09：接上 Google 商家后台（GbpCard）——全量同步 + 每条评价下面直接回复。
 
 type ReviewRow = {
   id: string
@@ -31,6 +33,13 @@ type ReviewRow = {
   source: string
   first_seen_at: string
   last_seen_at: string
+  /** 和 Google 商家后台对上了才有；有它才能在这里回复 */
+  gbp_review_id: string | null
+  reply_comment: string | null
+  reply_updated_at: string | null
+  /** Google 的审核状态：APPROVED / PENDING / REJECTED */
+  reply_state: string | null
+  reply_by: string | null
 }
 type BonusRow = { id: string; staff_member_id: string; platform: string; review_date: string; cents: number; has_photo: boolean; settlement_id: string | null; review_id: string | null }
 type ClaimRow = { id: string; review_id: string; staff_member_id: string; state: string; source: string; claimed_at: string; decided_at: string | null }
@@ -43,9 +52,14 @@ type Resp = {
   claims: ClaimRow[]
   links: { google: string; yelp: string; board: string }
   providers: { google: boolean; yelp: boolean }
+  /** 只有老板拿得到；读失败时是 { error } */
+  gbp: GbpStatus | { error: string } | null
 }
 
 const PLATFORM_LABEL: Record<string, string> = { google: "Google", yelp: "Yelp", other: "其它" }
+const SOURCE_LABEL: Record<string, string> = { api: "API", agent: "agent 拉取", gbp: "商家后台" }
+const REPLY_MAX_BYTES = 4096
+const utf8Bytes = (s: string) => new TextEncoder().encode(s).length
 
 export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKey: string; isMobile: boolean; viewerRole: string | null }) {
   const owner = viewerRole === "owner"
@@ -85,16 +99,54 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
   )
 
   // 手动刷新：拉已接的平台 API；没接 key 的平台把原因摆出来。
+  // 商家后台连上并做完第一次同步后，Google 这边是全量（gbp），否则还是 Places 那 5 条。
   const refresh = async () => {
     const r = await post("refresh", { action: "refresh" })
     if (!r) return
-    const p = (r.providers ?? {}) as Record<string, { ok?: boolean; added?: number; seen?: number; reason?: string }>
+    const p = (r.providers ?? {}) as Record<string, { ok?: boolean; source?: string; added?: number; seen?: number; unreplied?: number; reason?: string }>
     const part = (k: string) => {
       const v = p[k]
       if (!v) return `${PLATFORM_LABEL[k]}：—`
-      return v.ok ? `${PLATFORM_LABEL[k]}：新 ${v.added ?? 0} 条（已有 ${v.seen ?? 0}）` : `${PLATFORM_LABEL[k]}：${v.reason ?? "失败"}`
+      if (!v.ok) return `${PLATFORM_LABEL[k]}：${v.reason ?? "失败"}`
+      if (v.source === "gbp") return `${PLATFORM_LABEL[k]}（商家后台全量）：新 ${v.added ?? 0} 条，共 ${v.seen ?? 0} 条，${v.unreplied ?? 0} 条没回复`
+      return `${PLATFORM_LABEL[k]}：新 ${v.added ?? 0} 条（已有 ${v.seen ?? 0}）`
     }
-    setMsg(`${part("google")} · ${part("yelp")}`)
+    const gbpNote = (r.providers as Record<string, { ok?: boolean; reason?: string }> | undefined)?.gbp
+    setMsg(`${part("google")} · ${part("yelp")}${gbpNote && !gbpNote.ok ? ` · 商家后台：${gbpNote.reason ?? "失败"}` : ""}`)
+  }
+
+  // ---- 回复评价（Google 商家后台，公开可见）----
+  const [replyFor, setReplyFor] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState("")
+  const [replyErr, setReplyErr] = useState<string | null>(null)
+  const [onlyUnreplied, setOnlyUnreplied] = useState(false)
+  const openReply = (r: ReviewRow) => {
+    setReplyFor(r.id)
+    setReplyDraft(r.reply_comment ?? "")
+    setReplyErr(null)
+  }
+  const publishReply = async (r: ReviewRow) => {
+    const text = replyDraft.trim()
+    if (!text) return
+    const ok = await askConfirm({
+      title: r.reply_comment ? "改 Google 上的回复" : "发布到 Google",
+      message: `发到 ${r.reviewer ?? "这位客人"} 的评价下面——所有人都看得到，客人会收到通知。${r.reply_comment ? "原来那条回复会被换掉。" : ""}\n\n${text}`,
+      okLabel: "发布",
+    })
+    if (!ok) return
+    setBusy(`reply:${r.id}`)
+    setReplyErr(null)
+    try {
+      await adminJson(adminKey, "/api/admin/reviews", { body: { action: "gbp_reply", review_id: r.id, comment: text } })
+      setReplyFor(null)
+      setReplyDraft("")
+      setMsg(`已回复 ${r.reviewer ?? "这位客人"}`)
+      await load()
+    } catch (e) {
+      setReplyErr(e instanceof Error ? e.message : "发布失败")
+    } finally {
+      setBusy(null)
+    }
   }
 
   const staffById = useMemo(() => new Map((d?.staff ?? []).map((s) => [s.id, s.name])), [d])
@@ -111,11 +163,16 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
   )
 
   const monthOf = (r: ReviewRow) => (r.review_date ?? r.first_seen_at.slice(0, 10)).slice(0, 7)
+  // 只有和商家后台对上的行才知道回没回过
+  const unreplied = (r: ReviewRow) => r.platform === "google" && !!r.gbp_review_id && !r.reply_comment
   const groups = useMemo(() => {
     const g = new Map<string, ReviewRow[]>()
-    for (const r of d?.reviews ?? []) (g.get(monthOf(r)) ?? g.set(monthOf(r), []).get(monthOf(r))!).push(r)
+    for (const r of d?.reviews ?? []) {
+      if (onlyUnreplied && !unreplied(r)) continue
+      ;(g.get(monthOf(r)) ?? g.set(monthOf(r), []).get(monthOf(r))!).push(r)
+    }
     return Array.from(g.entries()).sort((a, b) => b[0].localeCompare(a[0]))
-  }, [d])
+  }, [d, onlyUnreplied])
 
   const stats = useMemo(() => {
     const all = d?.reviews ?? []
@@ -127,6 +184,8 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
       month: all.filter((r) => monthOf(r) === nowMonth).length,
       google: all.filter((r) => r.platform === "google").length,
       yelp: all.filter((r) => r.platform === "yelp").length,
+      linked: all.filter((r) => !!r.gbp_review_id).length,
+      unreplied: all.filter(unreplied).length,
     }
   }, [d])
 
@@ -297,7 +356,13 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
         <h5 style={{ margin: 0 }}>好评台账</h5>
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
           共 {stats.total} 条 · 平均 {stats.avg} ★ · 本月 {stats.month} 条 · Google {stats.google} / Yelp {stats.yelp}
+          {stats.linked ? ` · Google 未回复 ${stats.unreplied} 条` : ""}
         </span>
+        {stats.linked ? (
+          <button type="button" className={onlyUnreplied ? "btn btn-secondary btn-sm" : "btn btn-ghost btn-sm"} onClick={() => setOnlyUnreplied((v) => !v)}>
+            {onlyUnreplied ? "看全部" : "只看未回复"}
+          </button>
+        ) : null}
         <span style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
           <a className="btn btn-ghost btn-sm" href={d.links.google} target="_blank" rel="noreferrer">
             Google 全部 ↗
@@ -321,6 +386,8 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
         </span>
       </div>
       {msg ? <div className="notice" style={{ fontSize: 12.5 }}>{msg}</div> : null}
+      {owner && d.gbp && "error" in d.gbp ? <div className="notice notice-accent" style={{ fontSize: 12 }}>Google 商家后台状态读不出来：{d.gbp.error}</div> : null}
+      {owner && d.gbp && !("error" in d.gbp) ? <GbpCard adminKey={adminKey} status={d.gbp} onChanged={load} cardStyle={cardStyle} /> : null}
       {!d.providers.google && !d.providers.yelp ? (
         <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
           平台 API 还没接（Google 要 GCP 开 Places API + 计费，Yelp Fusion 免费申请 key）——接上之前"手动刷新"拉不到新评价，由 agent 打开平台页面拉全量导入。重复导入会自动合并，不会多行。
@@ -512,6 +579,56 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
                   ) : (
                     <div style={{ fontSize: 12, marginTop: 6, color: "var(--color-neutral-500)" }}>（没存正文——点"查看原文"）</div>
                   )}
+                  {/* Google 上我们的回复（和商家后台对上的才知道回没回过） */}
+                  {r.platform === "google" && (r.reply_comment || r.gbp_review_id) ? (
+                    <div style={{ marginTop: 8, borderLeft: "3px solid var(--color-line)", paddingLeft: 8 }}>
+                      {r.reply_comment ? (
+                        <>
+                          <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                            <span>
+                              我们的回复{r.reply_updated_at ? ` · ${stamp(r.reply_updated_at)}` : ""}
+                              {r.reply_by ? ` · ${r.reply_by} 在工作台发的` : ""}
+                            </span>
+                            {r.reply_state === "PENDING" ? <Tag cls="tag-outline">Google 审核中</Tag> : null}
+                            {r.reply_state === "REJECTED" ? <Tag cls="tag-accent">被 Google 拒了，改一下再发</Tag> : null}
+                          </div>
+                          {replyFor !== r.id ? <div style={{ fontSize: 12.5, lineHeight: 1.5, whiteSpace: "pre-wrap", marginTop: 2 }}>{r.reply_comment}</div> : null}
+                        </>
+                      ) : (
+                        <Tag cls="tag-outline">还没回复</Tag>
+                      )}
+                      {owner && r.gbp_review_id && replyFor !== r.id ? (
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize: 11, marginLeft: r.reply_comment ? 0 : 6, marginTop: r.reply_comment ? 4 : 0 }} disabled={!!busy} onClick={() => openReply(r)}>
+                          {r.reply_comment ? "改回复" : "回复"}
+                        </button>
+                      ) : null}
+                      {replyFor === r.id ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                          <textarea className="input" rows={4} value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="写给这位客人的回复（发出去所有人都看得到）" style={{ fontSize: 13, lineHeight: 1.5 }} autoFocus />
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                            <button type="button" className="btn btn-primary btn-sm" disabled={!!busy || !replyDraft.trim() || utf8Bytes(replyDraft.trim()) > REPLY_MAX_BYTES} onClick={() => void publishReply(r)}>
+                              {busy === `reply:${r.id}` ? "发布中…" : "发布到 Google"}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              disabled={!!busy}
+                              onClick={() => {
+                                setReplyFor(null)
+                                setReplyErr(null)
+                              }}
+                            >
+                              取消
+                            </button>
+                            <span style={{ fontSize: 11, color: utf8Bytes(replyDraft.trim()) > REPLY_MAX_BYTES ? "var(--color-accent-700)" : "var(--color-neutral-500)" }}>
+                              {utf8Bytes(replyDraft.trim())} / {REPLY_MAX_BYTES} 字节
+                            </span>
+                          </div>
+                          {replyErr ? <div className="notice notice-accent" style={{ fontSize: 12 }}>{replyErr}</div> : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                     {linked || linkedName ? (
                       <>
@@ -550,7 +667,7 @@ export default function ReviewsTab({ adminKey, isMobile, viewerRole }: { adminKe
                         ) : null}
                       </>
                     )}
-                    <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-neutral-500)" }}>{r.source === "api" ? "API" : r.source === "agent" ? "agent 拉取" : "手动"}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-neutral-500)" }}>{SOURCE_LABEL[r.source] ?? "手动"}</span>
                   </div>
                 </div>
               )
