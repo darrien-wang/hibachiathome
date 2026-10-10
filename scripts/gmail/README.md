@@ -33,6 +33,7 @@ vercel env add EMAIL_INBOUND_KEY production
 - 服务端按 Gmail message id 去重，脚本重复推送不会重复入库。
 - 自己域名（notify@、support@ 发出的）和退信（mailer-daemon）不入库；平台通知（Zola 等）**会**入库——企业询盘就是这么来的，由人判断。
 - 2026-10-09 起脚本也收平台询价（The Knot / WeddingWire 客人消息 `member.theknot.com`、Zola 标题带 inquiry 的通知）。它们只发到 darrien.wang@gmail.com，要在那边设一条 Gmail 过滤转发到 support@（转发地址要先验证，Gmail 会弹小窗，内置浏览器弹不出来）；support@ 本身把所有来信抄转回 darrien.wang@gmail.com，同一个 Message-ID 的回流 Gmail 会去重，不会绕圈。员工表里有的邮箱（老板个人 Gmail）发的信服务端跳过（`staff_sender`），因为平台询价是从这个邮箱回的。回完平台的信跑 `desk ack <lead>`，不然那条线索会一直显示"邮件待回"。
-- **改了 `QUERY` 要同步改 Gmail 里的脚本**（script.google.com → rh-support-inbound，只换 `const QUERY = ...` 那一行，保存即可，定时器不用重装）。
+- **改了脚本要同步改 Gmail 里那份**（support@ 账号 → script.google.com → rh-support-inbound，保存即可，定时器不用重装）。线上那份是 10-09 用编辑器"查找替换"逐行改的，和这里功能一致；**别在 Apps Script 编辑器里直接打字或全选**（Monaco 会自动补括号/引号；10-09 一次查找框没打开，全选+输入把整个文件替换成了两个字符，靠没保存、撤销+放弃改动救回来）。
+- **Gmail 每日额度**：2026-10-09 发现脚本每分钟重读两天的邮件，把 Gmail 额度用光（执行记录里一整排 Failed："Service invoked too many times for one day: gmail"），support@ 的信要等额度重置才进工作台（April 晚了 10 小时）。现在只读上次成功之后的邮件（脚本属性 `LAST_OK_MS`，第一次跑回补 3 天），没新邮件时每次只调一次搜索。看健康状况：Apps Script → Executions，应该是一排 Completed。
 - 线索匹配：按发件人邮箱找最近的线索（不限时间）；没有就建新线索（lead_source `email_inbound`，渠道 `email`）。
 - "待回"判定：该线索最近一封入站邮件晚于我们最近一次外发（邮件或短信）。挂起 / 标过"不用回"的照旧不响。
