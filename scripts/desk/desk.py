@@ -815,6 +815,22 @@ def cmd_order(a):
                 amount = round(APPETIZER_PRICES[app_id] * n, 2)
                 promos.append({"id": f"{app_id}_{stamp}", "label": f"FREE: {label} x{n}", "amount": amount})
                 changes.append(f"free item: {app_id} +{n} in partyExtras, promo 'FREE: {label} x{n}' {money(amount)}")
+        if a.add_extra:
+            # Trays the customer buys (Heather 10-09: gyoza for 11 on a Sunday - no
+            # free-appetizer promo applies). partyExtras at menu price, no promo line;
+            # the engine bills them.
+            extras = data.setdefault("partyExtras", [])
+            for pair in a.add_extra:
+                m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
+                if not m or m.group(1) not in APPETIZER_PRICES:
+                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted(APPETIZER_PRICES)}")
+                app_id, n = m.group(1), int(m.group(2))
+                row = next((e for e in extras if e.get("id") == app_id), None)
+                if row:
+                    row["qty"] = int(row.get("qty") or 0) + n
+                else:
+                    extras.append({"id": app_id, "qty": n})
+                changes.append(f"paid extra: {app_id} +{n} tray(s) at {money(APPETIZER_PRICES[app_id])} each")
         if a.drop_deal:
             # Take a signed deal back off an order: the customDeal rule and the
             # deal_* lines it wrote. Taegan 10-09: the 10-02 flatOff $90 was the
@@ -916,7 +932,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1156,6 +1172,7 @@ def main(argv=None):
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--free-item", nargs="+", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
+    p.add_argument("--add-extra", nargs="+", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1")
     p.add_argument("--remove-promo", nargs="+", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
