@@ -8,6 +8,7 @@ import { otherSenderJustAnswered } from "@/lib/duplicate-brake"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
+import { ASKS_SOURCE } from "@/lib/heard-from"
 
 export const dynamic = "force-dynamic"
 
@@ -476,6 +477,11 @@ export async function POST(request: NextRequest) {
         .from("leads")
         .update({ latest_message: `我方 ${now.slice(0, 10)} 短信已回（213 线）：${summary}`, last_seen_at: now, updated_at: now })
         .eq("id", leadId)
+      // "How did you find us?" is asked once per lead (lib/heard-from.ts) -
+      // whoever sent it, from the desk or the App.
+      if (ASKS_SOURCE.test(body)) {
+        await supabase.from("leads").update({ heard_asked_at: now }).eq("id", leadId).is("heard_asked_at", null)
+      }
       // A text from here is a real response, same as an email from
       // send-followup: record the first response once and move 待联系 to
       // 跟进中. Until 2026-09-21 only the email path did this, so a lead we

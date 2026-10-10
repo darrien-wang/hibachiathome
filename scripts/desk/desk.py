@@ -135,6 +135,9 @@ def render_card(c: dict) -> None:
         if stats.get("quiet"):
             flags.append("不响铃(致谢/挂起/已标不用回)")
         print(f"   日期线索: {hint.get('date') or '-'} | 首响: {pt(lead.get('first_response_at'))} | {' | '.join(flags) or '无挂起'} | id {lead.get('id')}")
+        line = source_line(lead.get("source") or {}, lead.get("id"))
+        if line:
+            print(line)
     quoted = c.get("quoted")
     price = c.get("price")
     if quoted:
@@ -406,6 +409,31 @@ def _patch(payload: dict):
         print(f"FAIL  {payload.get('action')} {e.status} {e.payload}")
         sys.exit(2)
     print(f"OK    {payload.get('action')}  {out}")
+
+
+def source_line(src: dict, lead_id) -> str | None:
+    """How did they find us - only for leads the system can't place (lib/heard-from.ts, D-1010)."""
+    ask = src.get("ask")
+    if ask == "answered":
+        return f"   来源（客人说）：{src.get('heard_label') or src.get('heard_channel')} ·「{src.get('heard_from') or ''}」"
+    if ask == "returning":
+        return "   来源：老客人（以前办过派对，不问）"
+    if ask == "asked":
+        return (f"   🔎 来源未知 · {pt(src.get('heard_asked_at'))} 问过了，不再问 → 客人答了就"
+                f" desk heard {lead_id} \"原话\"")
+    if ask == "ask_now":
+        return (f"   🔎 来源未知 · 已锁单 → 这次回复如果只是一句客气话，结尾加 \"{src.get('question')}\""
+                f"（只问一次；答了 desk heard {lead_id} \"原话\"）")
+    if ask == "after_booking":
+        return "   来源未知（锁单后再问，现在不问）"
+    return None
+
+
+def cmd_heard(a):
+    payload = {"action": "set_heard", "leadId": a.lead, "heard": a.words}
+    if a.as_channel:
+        payload["channel"] = a.as_channel
+    _patch(payload)
 
 
 def cmd_note(a):
@@ -1107,6 +1135,12 @@ def main(argv=None):
     p.add_argument("--media", help="a local jpg/png to attach (MMS; same route and brakes as a text)"); p.set_defaults(fn=cmd_send)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)
+    p = sp.add_parser("heard", help="record how an unattributed customer says they found us (D-1010)")
+    p.add_argument("lead"); p.add_argument("words", help="their own words")
+    p.add_argument("--as", dest="as_channel", choices=["google", "google_maps", "yelp", "instagram", "facebook", "tiktok", "nextdoor", "ai_assistant",
+                                                     "platform", "party_guest", "returning", "friend", "other"],
+                   help="override the automatic bucket")
+    p.set_defaults(fn=cmd_heard)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
     p = sp.add_parser("contacted"); p.add_argument("lead"); p.set_defaults(fn=cmd_contacted)
     p = sp.add_parser("ack"); p.add_argument("lead"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_ack)

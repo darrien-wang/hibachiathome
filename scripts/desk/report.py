@@ -59,6 +59,11 @@ CHANNEL_LABELS = {  # display only - lib/channels.ts CHANNEL_LABELS
     "fb_marketplace": "FB Marketplace", "yelp_organic": "Yelp 自然", "marketplace_referral": "平台转介", "other_referral": "其他来源",
     "word_of_mouth": "口碑转介绍", "partner": "合作伙伴", "ai_agent": "AI 代理代订", "organic_direct": "直接/未追踪", "unresolved": "未归因",
 }
+HEARD_LABELS = {  # display only - lib/heard-from.ts HEARD_LABELS (what an unattributed customer told us, D-1010)
+    "google": "Google 搜索", "google_maps": "Google 地图/商家页", "yelp": "Yelp", "instagram": "Instagram", "facebook": "Facebook",
+    "tiktok": "TikTok", "nextdoor": "Nextdoor", "ai_assistant": "ChatGPT 等 AI", "platform": "The Knot / Zola 等平台",
+    "party_guest": "在别人派对上见过", "returning": "老客人", "friend": "朋友家人推荐", "other": "其他",
+}
 LOST_KINDS = (  # first match wins; anything else is "其他"
     ("选了别家", re.compile(r"found someone|someone else|(another|alternate|alternative|other) (company|caterer|vendor|place)|went with|booked (someone|another|with)|competitor", re.I)),
     ("价格/预算", re.compile(r"price|expensive|budget|too much|cheaper|afford|cost", re.I)),
@@ -195,9 +200,17 @@ def _staff_phones() -> set[str]:
     return s
 
 
+def _channel_text(lead: dict) -> str:
+    """System channel, plus what the customer said when the system could not tell."""
+    text = CHANNEL_LABELS.get(lead["channel"], lead["channel"])
+    if lead["channel"] == "organic_direct" and lead.get("heard"):
+        text += f"（客人说：{HEARD_LABELS.get(lead['heard'], lead['heard'])}）"
+    return text
+
+
 def _leads() -> tuple[list[dict], dict[str, dict]]:
     """(leads that count, oldest first; every lead by id - notes can sit on any of them)."""
-    attr = {r["id"]: r for r in _rows("lead_attribution", [("select", "id,channel,counts_as_lead")])}
+    attr = {r["id"]: r for r in _rows("lead_attribution", [("select", "id,channel,counts_as_lead,heard_channel")])}
     staff = _staff_phones()
     every: dict[str, dict] = {}
     counted = []
@@ -205,6 +218,7 @@ def _leads() -> tuple[list[dict], dict[str, dict]]:
         a = attr.get(l["id"]) or {}
         l["phone"] = _digits(l.get("normalized_phone"))
         l["channel"] = a.get("channel") or "unresolved"
+        l["heard"] = a.get("heard_channel")  # their own answer, only ever asked when channel is organic_direct
         l["at"] = _ts(l["created_at"])
         l["name"] = (l.get("full_name") or "").strip() or (l["phone"] and f"{l['phone'][:3]}-{l['phone'][3:6]}-{l['phone'][6:]}") or (l.get("email") or "?")
         every[l["id"]] = l
@@ -561,7 +575,7 @@ def week_report(week_start: dt.date) -> str:
     lines.append("")
 
     # 5. why we lost: [lost] notes, and [why] notes of leads that were lost ([why] also records why people buy)
-    gone = re.compile(r"lost|passed|pass on|declin|not interested|other plans|found someone|booked (with|another)|cancel", re.I)
+    gone = re.compile(r"\blost\b|passed|pass on|declin|not interested|other plans|found someone|booked (with|another)|cancel", re.I)
     by_lead: dict[str, list[dict]] = {}
     for n in notes:
         l = every.get(n["lead_id"]) or {}
@@ -589,13 +603,21 @@ def week_report(week_start: dt.date) -> str:
     lines += ["## 6. 来源（本周进来的线索）", "", "| 渠道 | 线索 | 客人回话 | 锁单 |", "|---|---|---|---|"]
     for ch, (n, e, k) in sorted(by_ch.items(), key=lambda kv: -kv[1][0]):
         lines.append(f"| {CHANNEL_LABELS.get(ch, ch)} | {n} | {_rate(e, n)} | {_rate(k, n)} |")
+    unknown = [l for l in target if l["channel"] == "organic_direct"]
+    if unknown:
+        said: dict[str, int] = {}
+        for l in unknown:
+            k = HEARD_LABELS.get(l.get("heard") or "", "还没说（锁单后才问）")
+            said[k] = said.get(k, 0) + 1
+        lines += ["", f"直接/未追踪的 {len(unknown)} 条，客人自己说的来源（D-1010：只问系统归不了因的、锁单后问一次）：" +
+                  "、".join(f"{k} {v}" for k, v in sorted(said.items(), key=lambda kv: -kv[1]))]
     total = sum(o["total"] for o in week_locks)
     pending = sum(1 for o in week_locks if not o["total"])
-    lines += ["", f"本周锁单（按锁单时间，不管线索哪周来的）：{len(week_locks)} 单，发票总额 ${total:,.2f}" + (f"，另 {pending} 单总价待算" if pending else "") + "。The Knot / Zola 的询价不进线索表，手动补。", ""]
+    lines += ["", f"本周锁单（按锁单时间，不管线索哪周来的）：{len(week_locks)} 单，发票总额 ${total:,.2f}" + (f"，另 {pending} 单总价待算" if pending else "") + "。The Knot / Zola 等平台询价 10-10 起经 support@ 自动进线索表（渠道=平台转介），之前的手动补。", ""]
     for o in week_locks:
         lead = every.get(o.get("lead_id") or "") or next((l for l in counted if o["phone"] and l["phone"] == o["phone"]), None)
         lines.append(f"- {_mdhm(o['at'])} {o['order_no']} · {o.get('customer_name') or '-'} · 派对 {o['when'][:10]} · "
-                     f"{o['money']} · {CHANNEL_LABELS.get(lead['channel'], lead['channel']) if lead else '找不到线索'}")
+                     f"{o['money']} · {_channel_text(lead) if lead else '找不到线索'}")
     lines.append("")
 
     # 7. decisions to check

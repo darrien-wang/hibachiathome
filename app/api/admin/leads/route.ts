@@ -3,6 +3,7 @@ import { resolveAdminActor, publicActor, type AdminActor } from "@/lib/admin-aut
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
+import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
 
 export const dynamic = "force-dynamic"
 
@@ -321,6 +322,9 @@ export async function PATCH(request: NextRequest) {
     days?: number
     /** ack_replies：true = 撤销「不用回」。 */
     clear?: boolean
+    /** set_heard：客人自己说的来源（原话），channel 不传就按 lib/heard-from.ts 归类。 */
+    heard?: string
+    channel?: string
   }
   try {
     body = await request.json()
@@ -619,6 +623,36 @@ export async function PATCH(request: NextRequest) {
     }
     await logEvent(supabase, leadId, EDIT_TYPE, actor, { before, after: updates })
     return NextResponse.json({ ok: true })
+  }
+
+  // 客人自己说的来源（老板 2026-10-10）：只记在 heard_*，不改系统渠道——
+  // 客人说的 "Google" 分不出是广告还是自然搜索。
+  if (body.action === "set_heard") {
+    const heard = String(body.heard ?? "").trim().slice(0, 300)
+    if (!heard) {
+      return NextResponse.json({ error: "heard required" }, { status: 400 })
+    }
+    if (body.channel !== undefined && !isHeardChannel(body.channel)) {
+      return NextResponse.json({ error: `channel must be one of ${HEARD_CHANNELS.join(", ")}` }, { status: 400 })
+    }
+    const channel = isHeardChannel(body.channel) ? body.channel : classifyHeard(heard)
+    const now = new Date().toISOString()
+    const { data: row } = await supabase.from("leads").select("heard_asked_at").eq("id", leadId).maybeSingle()
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        heard_from: heard,
+        heard_channel: channel,
+        heard_at: now,
+        heard_asked_at: (row as { heard_asked_at?: string | null } | null)?.heard_asked_at ?? now,
+        updated_at: now,
+      })
+      .eq("id", leadId)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: `[heard] ${heard} → ${channel}（${HEARD_LABELS[channel]}）` })
+    return NextResponse.json({ ok: true, channel, label: HEARD_LABELS[channel] })
   }
 
   if (body.action === "add_note") {

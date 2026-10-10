@@ -9,6 +9,7 @@ import { forwardMmsToInbox } from "@/lib/mms-forward"
 import { classifySmsKeyword, OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { addressFromMessage, looksLikeStreetAddress } from "@/lib/address-detect"
 import { requestCallback, wantsCall } from "@/lib/callback-ring"
+import { platformOfText } from "@/lib/heard-from"
 
 export const dynamic = "force-dynamic"
 
@@ -78,12 +79,15 @@ export async function POST(request: NextRequest) {
     }
   } catch {}
   try {
+    // Zola / The Knot sometimes text the inquiry instead of emailing it
+    // (Taegan, 10-02): that lead came from the platform, not "direct" (D-1010).
+    const platform = platformOfText(body)
     const upserted = await upsertLeadFromContact(supabase, {
       name: from,
       phone: from,
       message: body,
-      leadSource: "sms_inbound",
-      leadChannel: "sms",
+      leadSource: platform ?? "sms_inbound",
+      leadChannel: platform ? "platform" : "sms",
       touchpointType: "sms_inbound",
       touchpointSource: "twilio",
       externalTouchpointId: messageSid,

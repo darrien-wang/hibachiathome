@@ -10,6 +10,7 @@ import { reconcileThread } from "@/lib/sms-reconcile"
 import { fetchSmsThreads, toE164, type SmsMessage } from "@/lib/sms-thread"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getDrivingMiles } from "@/lib/travel-distance"
+import { HEARD_LABELS, SOURCE_QUESTION, isHeardChannel, sourceAsk } from "@/lib/heard-from"
 import { homeBaseOrigin } from "@/config/home-base"
 import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekdayEligibility } from "@/config/pricing-rules"
 
@@ -32,7 +33,7 @@ export const dynamic = "force-dynamic"
 // No rules live here - what to say is the leads skill's job.
 
 const LEAD_COLUMNS =
-  "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, merged_into"
+  "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, merged_into, heard_from, heard_channel, heard_asked_at"
 const ORDER_COLUMNS =
   "id, order_no, customer_name, customer_phone, customer_email, event_start, event_address, guest_adult_count, guest_child_count, order_status, deposit_status, details_status, quoted_total_cents, balance_due_cents, source_metadata, created_at"
 const TAG = /\[(callback|occasion|why|data|SOP:[^\]]+)\]/i
@@ -59,6 +60,9 @@ type LeadRow = {
   acked_until: string | null
   sms_blocked_at: string | null
   merged_into: string | null
+  heard_from: string | null
+  heard_channel: string | null
+  heard_asked_at: string | null
 }
 type OrderRow = Record<string, unknown> & { id: string; order_no: string | null }
 type Touchpoint = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
@@ -148,7 +152,7 @@ async function buildCard(
   const lead = input.lead
   const phone = toE164(lead?.phone ?? input.phone)
   const phones = phone ? [phone] : []
-  const [thread, touchpoints, hint, orders] = await Promise.all([
+  const [thread, touchpoints, hint, orders, channel] = await Promise.all([
     phones.length ? fetchSmsThreads(phones, 80).catch(() => [] as SmsMessage[]) : Promise.resolve([] as SmsMessage[]),
     lead
       ? supabase
@@ -162,6 +166,16 @@ async function buildCard(
       : Promise.resolve([] as Touchpoint[]),
     lead ? loadLeadEventHint(supabase, lead.id) : Promise.resolve(null),
     ordersFor(supabase, phone, lead?.email ?? null, input.orderId ?? null),
+    // The system's channel (rh_resolve_channel via the view). organic_direct =
+    // it can't place this lead - the one case we ask (lib/heard-from.ts).
+    lead
+      ? supabase
+          .from("lead_attribution")
+          .select("channel")
+          .eq("id", lead.id)
+          .maybeSingle()
+          .then((r) => ((r.data as { channel?: string | null } | null)?.channel ?? null))
+      : Promise.resolve(null),
   ])
   thread.sort((a, b) => a.at.localeCompare(b.at))
   // Opening the conversation heals its timeline, exactly as the workbench does.
@@ -187,6 +201,25 @@ async function buildCard(
     .reverse()
     .slice(-12)
   const firstResponseAt = touchpoints.find((t) => t.touchpoint_type === "agent_first_response")?.occurred_at ?? null
+
+  // Booked = a live order whose party is still ahead (or has no date yet);
+  // a party that already happened makes them a returning customer.
+  const dayMs = 86400_000
+  const liveOrders = orders.filter((o) => !/^cancel/i.test(String(o.order_status ?? "")))
+  const partyDay = (o: OrderRow) => Date.parse(String(o.event_start ?? "").slice(0, 10))
+  const booked = liveOrders.some((o) => Number.isNaN(partyDay(o)) || partyDay(o) >= now - dayMs)
+  const returning = liveOrders.some((o) => !Number.isNaN(partyDay(o)) && partyDay(o) < now - dayMs)
+  const source = lead
+    ? {
+        channel,
+        heard_from: lead.heard_from,
+        heard_channel: lead.heard_channel,
+        heard_label: isHeardChannel(lead.heard_channel) ? HEARD_LABELS[lead.heard_channel] : null,
+        heard_asked_at: lead.heard_asked_at,
+        ask: sourceAsk({ channel, heardChannel: lead.heard_channel, heardAskedAt: lead.heard_asked_at, booked, returning }),
+        question: SOURCE_QUESTION,
+      }
+    : null
 
   const last = thread[thread.length - 1] ?? null
   // Forms the customer filled on the site after our first response are their
@@ -236,6 +269,7 @@ async function buildCard(
           acked_until: lead.acked_until,
           sms_blocked_at: lead.sms_blocked_at,
           event_hint: hint,
+          source,
         }
       : null,
     phone,

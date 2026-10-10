@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
+import { platformOf } from "@/lib/heard-from"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -152,12 +153,16 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", leadId)
   } else {
+    // The Knot / Zola / Thumbtack ... say where they came from in the sender's
+    // domain: lead_channel "platform" resolves to marketplace_referral, so the
+    // lead is attributed and never asked "how did you find us" (D-1010).
+    const platform = platformOf(from.email)
     const result = await upsertLeadFromContact(supabase, {
       name: from.name || from.email.split("@")[0],
       email: from.email,
       message: latestMessage,
-      leadSource: "email_inbound",
-      leadChannel: "email",
+      leadSource: platform ?? "email_inbound",
+      leadChannel: platform ? "platform" : "email",
       touchpointType: "email_inbound",
       touchpointSource: "gmail_script",
       externalTouchpointId: externalId,
