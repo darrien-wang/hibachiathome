@@ -69,6 +69,9 @@ const asInt = (v: unknown, min: number, max: number) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min
 }
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// A discount is whole dollars in the texts ("the $60 party-size discount"); a
+// fractional one keeps its cents - "$29.9" went out on 2026-10-10.
+const dollars = (n: number) => (Number.isInteger(n) ? `$${n}` : money(n))
 
 function describeDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
   // to ask why it kept changing (2026-09-27).
   const tierRange = (partySizeDiscountLabel({ adults, kids }) ?? "").split(" · ")[0] || null
   const discountLine = discountCode
-    ? `Includes the $${est.partySizeDiscountApplied} party-size discount${tierRange ? ` (${tierRange})` : ""}.`
+    ? `Includes the ${dollars(est.partySizeDiscountApplied)} party-size discount${tierRange ? ` (${tierRange})` : ""}.`
     : null
 
   const attribution = readAttributionFromCookieHeader(request.headers.get("cookie"))
@@ -264,8 +267,8 @@ export async function POST(request: NextRequest) {
     if (previous.discount !== est.partySizeDiscountApplied) {
       whyLines.push(
         est.partySizeDiscountApplied > 0
-          ? `The party-size discount is $${est.partySizeDiscountApplied} at ${tierRange ?? `${adults + kids} guests`} (it was $${previous.discount} for ${previous.guests}).`
-          : `Under 10 guests there is no party-size discount (it was $${previous.discount} for ${previous.guests}).`,
+          ? `The party-size discount is ${dollars(est.partySizeDiscountApplied)} at ${tierRange ?? `${adults + kids} guests`} (it was ${dollars(previous.discount)} for ${previous.guests}).`
+          : `Under 10 guests there is no party-size discount (it was ${dollars(previous.discount)} for ${previous.guests}).`,
       )
     }
     if (previous.travelFee !== travelFee) {
