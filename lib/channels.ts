@@ -5,15 +5,18 @@
 
 export type ChannelGroup = "paid" | "organic" | "referral" | "direct" | "unresolved"
 
-export type PaidChannel = "google_ads" | "chatgpt_ads" | "meta_ads" | "yelp_ads" | "other_ads"
+export type PaidChannel = "google_ads" | "chatgpt_ads" | "meta_ads" | "yelp_ads" | "microsoft_ads" | "other_ads"
 
-export const PAID_CHANNELS: PaidChannel[] = ["google_ads", "chatgpt_ads", "meta_ads", "yelp_ads", "other_ads"]
+export const PAID_CHANNELS: PaidChannel[] = ["google_ads", "chatgpt_ads", "meta_ads", "yelp_ads", "microsoft_ads", "other_ads"]
 
 export const CHANNEL_LABELS: Record<string, string> = {
   google_ads: "Google Ads",
   chatgpt_ads: "ChatGPT Ads",
   meta_ads: "Meta Ads",
   yelp_ads: "Yelp Ads",
+  // Bing / Microsoft Advertising (2026-10-09, D-1009-08): the imported
+  // campaigns tag every final URL utm_source=bing&utm_medium=cpc.
+  microsoft_ads: "Microsoft Ads (Bing)",
   other_ads: "其他付费",
   google_organic: "Google 自然",
   search_organic: "其他搜索自然",
