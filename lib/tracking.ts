@@ -274,6 +274,32 @@ export function recordLandingPage(pathname: string): void {
   writeCookie(LANDING_COOKIE, JSON.stringify({ p: landing, t: now }), 1)
 }
 
+// The referring site as utm_source/utm_medium, in the shapes rh_resolve_channel
+// already understands: a search engine -> "google"/"bing"/... + "organic"
+// (google_organic / search_organic), anything else -> its host + "referral"
+// (chatgpt.com -> chatgpt_referral, facebook.com -> meta_organic, yelp.com ->
+// yelp_organic, the rest other_referral). Our own pages and Stripe's checkout
+// coming back are not a source.
+const SEARCH_ENGINES: Array<[RegExp, string]> = [
+  [/^(www\.)?google\.[a-z.]+$/, "google"],
+  [/(^|\.)bing\.com$/, "bing"],
+  [/(^|\.)duckduckgo\.com$/, "duckduckgo"],
+  [/(^|\.)search\.yahoo\.com$|^(www\.)?yahoo\.com$/, "yahoo"],
+  [/(^|\.)ecosia\.org$/, "ecosia"],
+]
+
+export function referrerSource(referrer: string): { source: string; medium: string } | null {
+  let host = ""
+  try {
+    host = new URL(referrer).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+  if (!host || host === "localhost" || /(^|\.)realhibachi\.com$/.test(host) || /(^|\.)stripe\.com$/.test(host)) return null
+  for (const [re, name] of SEARCH_ENGINES) if (re.test(host)) return { source: name, medium: "organic" }
+  return { source: host.replace(/^www\./, ""), medium: "referral" }
+}
+
 export function captureAttributionOnLanding(search: string): void {
   if (typeof window === "undefined") return
 
@@ -292,6 +318,19 @@ export function captureAttributionOnLanding(search: string): void {
   if (query.get("msclkid") && !query.get("gclid")) {
     incoming.utm_source = "bing"
     incoming.utm_medium = "cpc"
+  }
+
+  // No tags at all: fall back to where the visitor came from, but only for a
+  // first touch (nothing stored yet), so an organic return never overwrites an
+  // ad click. Until 2026-10-10 these visitors had no source and every one of
+  // them - Google organic search included - landed in "直接/未追踪" (that week
+  // 2 of 11 deposits came in this way).
+  if (Object.keys(incoming).length === 0 && Object.keys(readStoredAttribution()).length === 0) {
+    const ref = referrerSource(typeof document === "undefined" ? "" : document.referrer)
+    if (ref) {
+      incoming.utm_source = ref.source
+      incoming.utm_medium = ref.medium
+    }
   }
 
   // A landing that carries any attribution params is a new touch: replace the
