@@ -153,12 +153,12 @@ export function salesTaxOn(cashTotal: number, rate: number): number {
  * Card processing on what runs through the card (balance incl. tax, plus
  * gratuity on the card, deposit out): a flat 3% (owner 2026-10-07). Mirrors
  * the invoice engine; the charge is B x 1.03 and cardProcessingFeeInside
- * takes the fee back out of a charge. Zero for debit / prepaid cards and
- * when nothing is charged.
+ * takes the fee back out of a charge. Zero only when nothing is charged -
+ * debit / prepaid pay it too (owner 2026-10-09, mirrors the invoice engine).
  */
 export function cardProcessingFeeOn(chargedAmount: number, funding: CardFunding | null | undefined = "unknown"): number {
+  void funding
   if (chargedAmount <= 0) return 0
-  if (funding === "debit" || funding === "prepaid") return 0
   return roundCurrency(chargedAmount * CARD_PROCESSING_RATE)
 }
 

@@ -38,11 +38,9 @@ function termsOf(b: Bill): PayTerms {
   return { version: "v2", taxDollars: b.expected.salesTax, taxRate: b.expected.salesTaxRate, taxRateSource: b.expected.salesTaxRateSource, cashBalance: b.expected.cashBalanceBeforeTip }
 }
 
-// /pay runs through Stripe Checkout with whatever card the customer enters, so
-// it cannot know about a debit card up front: the debit bill (fee 0 in the
-// engine, for the card-on-file path) is not a /pay case. The engine and the
-// chef sheet tests cover it.
-for (const b of fixture.bills.filter((x) => x.cardFunding !== "debit" && x.cardFunding !== "prepaid")) {
+// Every card pays the 3%, debit and prepaid included (owner 2026-10-09), so
+// /pay must agree with every bill in the fixture.
+for (const b of fixture.bills) {
   const e = b.expected
   const terms = termsOf(b)
 

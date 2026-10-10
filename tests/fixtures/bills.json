@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07T15:35:55.573Z",
+  "generatedAt": "2026-10-10T01:03:30.913Z",
   "source": "v0-real-hibachi-invoice-generator lib/pricing.ts",
   "constants": {
     "CREDIT_CARD_FEE_RATE": 0.04,
@@ -103,7 +103,7 @@
     },
     {
       "id": "v2-debit-20",
-      "note": "debit card on file: no processing fee",
+      "note": "debit card on file: 3% like any card (owner 2026-10-09)",
       "adults": 20,
       "kids": 0,
       "paymentMethod": "credit_card",
@@ -121,9 +121,9 @@
         "salesTax": 119.8,
         "salesTaxRate": 0.1,
         "salesTaxRateSource": "address",
-        "cardProcessingFee": 0,
-        "cardTotal": 1317.8,
-        "cardBalanceDue": 1317.8,
+        "cardProcessingFee": 39.53,
+        "cardTotal": 1357.33,
+        "cardBalanceDue": 1357.33,
         "creditCardFee": 0,
         "finalTotal": 1198,
         "balanceDue": 1198,
