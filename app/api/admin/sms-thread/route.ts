@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
  */
 // Automated texts (the instant quote, deposit confirmation, planner notices)
 // all open with the house signature "Real Hibachi:" - planner-notify refuses
-// anything else. Personal messages open with "Hi, it's Bling" / "It's Bling".
+// anything else. Personal messages open with "Hi, it's Rowling" / "It's Rowling"
+// (texts and email are signed Rowling from 2026-10-09; Bling is the owner on the phone).
 function isAutomatedText(body: string): boolean {
   return body.trimStart().startsWith("Real Hibachi:")
 }

@@ -114,7 +114,7 @@ export function quoteFollowUpPlan(i: QuoteFollowUpInput): QuoteFollowUpPlan {
     if (days < QUOTE_FOLLOW_UP_MIN_DAYS) return { send: false, reason: "date_within_48h" }
   }
   const place = placeName(i.city)
-  const head = "Hi! Bling from Real Hibachi 👋"
+  const head = "Hi! Rowling from Real Hibachi 👋"
   const text = date
     ? `${head} ${shortDate(date)} is open on our end for your ${guests}${place ? ` in ${place}` : ""} — what's the celebration?`
     : place
@@ -173,7 +173,7 @@ export function partyContactFirstText(i: PartyContactInput): string {
   const when = `${shortDate(i.eventStart.slice(0, 10))} at ${wallTime(i.eventStart)}`
   const where = shortAddress(i.address)
   return (
-    `Hi${name ? ` ${name}` : ""}, Bling from Real Hibachi 👋 Your hibachi party is ${when}${where ? ` at ${where}` : ""}. ` +
+    `Hi${name ? ` ${name}` : ""}, Rowling from Real Hibachi 👋 Your hibachi party is ${when}${where ? ` at ${where}` : ""}. ` +
     `Reply YES if everything's still set, or let me know if anything's changed.`
   )
 }
@@ -184,7 +184,7 @@ export function partyContactSecondText(i: PartyContactInput): string {
   const sameDay = ptDate(i.now) === i.eventStart.slice(0, 10)
   const where = shortAddress(i.address)
   return (
-    `Hi${name ? ` ${name}` : ""}, Bling here - just making sure we're all set for ${sameDay ? "today" : "tomorrow"} at ${wallTime(i.eventStart)}${where ? ` at ${where}` : ""}. ` +
+    `Hi${name ? ` ${name}` : ""}, Rowling here - just making sure we're all set for ${sameDay ? "today" : "tomorrow"} at ${wallTime(i.eventStart)}${where ? ` at ${where}` : ""}. ` +
     `Could you reply so I know you got this? 🙏`
   )
 }

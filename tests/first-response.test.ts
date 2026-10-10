@@ -49,20 +49,20 @@ const today = "2026-10-07"
 test("template B, dated: the date is open + what's the celebration (D-1008-02)", () => {
   const plan = quoteFollowUpPlan({ adults: 12, kids: 3, eventDate: "2026-10-18", city: "Palm Springs", todayPt: today })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Bling from Real Hibachi 👋 Sun, Oct 18 is open on our end for your 15 in Palm Springs — what's the celebration?")
+  assert.equal(plan.text, "Hi! Rowling from Real Hibachi 👋 Sun, Oct 18 is open on our end for your 15 in Palm Springs — what's the celebration?")
   assert.equal(plan.dated, true)
 })
 
 test("template B, no date: asks the occasion, never the date or the start time", () => {
   const plan = quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: null, city: "Temecula", todayPt: today })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Bling from Real Hibachi 👋 10 in Temecula — what's the celebration?")
+  assert.equal(plan.text, "Hi! Rowling from Real Hibachi 👋 10 in Temecula — what's the celebration?")
   assert.equal(plan.dated, false)
   assert.doesNotMatch(plan.text, /which date|4 PM|7 PM/)
 })
 
 test("template B: ZIPs, region labels and missing cities fall back to the plain line", () => {
-  const plain = "Hi! Bling from Real Hibachi 👋 Saw your quote for 15 — what's the celebration?"
+  const plain = "Hi! Rowling from Real Hibachi 👋 Saw your quote for 15 — what's the celebration?"
   for (const city of [null, "", "92270", "LA & Orange County", "Southern California"]) {
     const plan = quoteFollowUpPlan({ adults: 15, kids: 0, city, todayPt: today })
     assert.ok(plan.send)
@@ -70,7 +70,7 @@ test("template B: ZIPs, region labels and missing cities fall back to the plain 
   }
   const lower = quoteFollowUpPlan({ adults: 10, kids: 0, city: "irvine", todayPt: today })
   assert.ok(lower.send)
-  assert.equal(lower.text, "Hi! Bling from Real Hibachi 👋 10 in Irvine — what's the celebration?")
+  assert.equal(lower.text, "Hi! Rowling from Real Hibachi 👋 10 in Irvine — what's the celebration?")
 })
 
 test("template B hands edge cases to a person", () => {
@@ -93,12 +93,12 @@ test("first party-contact text: name, day, wall time, street only", () => {
     address: "452 North Monterey Road, Palm Springs, CA 92262",
     now: Date.parse("2026-10-07T20:00:00Z"),
   })
-  assert.equal(text, "Hi Ellen, Bling from Real Hibachi 👋 Your hibachi party is Sat, Oct 10 at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or let me know if anything's changed.")
+  assert.equal(text, "Hi Ellen, Rowling from Real Hibachi 👋 Your hibachi party is Sat, Oct 10 at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or let me know if anything's changed.")
 })
 
 test("first party-contact text without a usable name or address", () => {
   const text = partyContactFirstText({ customerName: "+1 (310) 555-0100", eventStart: "2026-10-11T17:00:00+00:00", address: "", now: 0 })
-  assert.equal(text, "Hi, Bling from Real Hibachi 👋 Your hibachi party is Sun, Oct 11 at 5 PM. Reply YES if everything's still set, or let me know if anything's changed.")
+  assert.equal(text, "Hi, Rowling from Real Hibachi 👋 Your hibachi party is Sun, Oct 11 at 5 PM. Reply YES if everything's still set, or let me know if anything's changed.")
 })
 
 test("second text says tomorrow or today by the PT calendar", () => {
@@ -106,7 +106,7 @@ test("second text says tomorrow or today by the PT calendar", () => {
   // Oct 12, 7 PM PDT = Oct 13 02:00Z
   assert.equal(
     partyContactSecondText({ ...base, now: Date.parse("2026-10-13T02:00:00Z") }),
-    "Hi Carlos, Bling here - just making sure we're all set for tomorrow at 6:30 PM at 5556 Myrtle Ave. Could you reply so I know you got this? 🙏",
+    "Hi Carlos, Rowling here - just making sure we're all set for tomorrow at 6:30 PM at 5556 Myrtle Ave. Could you reply so I know you got this? 🙏",
   )
   // Oct 13, 8 AM PDT = 15:00Z
   assert.match(partyContactSecondText({ ...base, now: Date.parse("2026-10-13T15:00:00Z") }), /set for today at 6:30 PM/)

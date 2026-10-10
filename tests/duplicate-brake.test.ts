@@ -40,7 +40,7 @@ test("dup · outside the window or an automated quote does not block", () => {
 })
 
 test("dup · an unknown sender (the machine's first response) counts as someone else", () => {
-  const thread = [line("OUT1", "outbound", 2, "Hi! Bling from Real Hibachi 👋 Saw your quote for 15 - which date?")]
+  const thread = [line("OUT1", "outbound", 2, "Hi! Rowling from Real Hibachi 👋 Saw your quote for 15 - which date?")]
   const hit = otherSenderJustAnswered(thread, senders({}), ME, now, WINDOW)
   assert.ok(hit)
   assert.equal(hit!.by, null)

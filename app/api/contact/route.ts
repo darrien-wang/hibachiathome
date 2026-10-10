@@ -324,7 +324,7 @@ async function sendCustomerAcknowledgement(params: {
     "",
     "Want numbers right now? Our instant quote prices your party in about a minute: https://www.realhibachi.com/quote",
     "",
-    "Bling",
+    "Rowling",
     "Real Hibachi",
     "www.realhibachi.com",
   ].join("\n")
@@ -350,7 +350,7 @@ async function sendCustomerAcknowledgement(params: {
       }
       <p>Need us sooner? Text or call <a href="tel:${escapeHtml(phone.sms.e164)}">${escapeHtml(phone.sms.dashed)}</a> &mdash; that reaches us fastest.</p>
       <p>Want numbers right now? Our <a href="https://www.realhibachi.com/quote">instant quote</a> prices your party in about a minute.</p>
-      <p>Bling<br>Real Hibachi<br><a href="https://www.realhibachi.com">www.realhibachi.com</a></p>
+      <p>Rowling<br>Real Hibachi<br><a href="https://www.realhibachi.com">www.realhibachi.com</a></p>
     </div>
   `
 

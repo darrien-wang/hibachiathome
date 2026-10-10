@@ -229,7 +229,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
   const where = city ? ` in ${city}` : ""
   const travelSms = travel > 0 ? `, plus about $${travel} travel` : ", no travel fee"
   const sms =
-    `Hi! Bling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
+    `Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
     // Listed price only: nothing about tax or payment method is brought up
     // before the booking is confirmed (owner 2026-10-06); the invoice and the
     // pay page carry the itemised bills.
@@ -238,7 +238,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
   const emailText = [
     "Hi there,",
     "",
-    "Bling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:",
+    "Rowling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:",
     "",
     `- ${guests}, Fri-Sun: ${money(weekend)} total`,
     `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
@@ -248,7 +248,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
     "",
     "What date are you thinking?",
     "",
-    "Bling",
+    "Rowling",
     "Real Hibachi - (213) 770-7788",
     "",
   ].join("\n")
