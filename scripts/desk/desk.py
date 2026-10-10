@@ -135,6 +135,13 @@ def render_card(c: dict) -> None:
         if stats.get("quiet"):
             flags.append("不响铃(致谢/挂起/已标不用回)")
         print(f"   日期线索: {hint.get('date') or '-'} | 首响: {pt(lead.get('first_response_at'))} | {' | '.join(flags) or '无挂起'} | id {lead.get('id')}")
+        # 61+ never gets the machine's second text (lib/first-response.ts large_party): until a
+        # person texts, nobody has spoken to them. 10-10 a 150-guest lead sat 62 minutes because
+        # the desk assumed the machine had it.
+        spoke = any(m.get("direction") == "outbound" and not (m.get("body") or "").startswith("Real Hibachi:")
+                    for m in (c.get("thread") or []))
+        if int(lead.get("guest_count") or 0) >= 61 and not spoke:
+            print("   ⚠️ 61+ 大单：机器不发问场合那条（first-response large_party），首条要人工发（leads §3.1 E）")
         line = source_line(lead.get("source") or {}, lead.get("id"))
         if line:
             print(line)
