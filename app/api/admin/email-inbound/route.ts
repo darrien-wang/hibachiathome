@@ -91,6 +91,11 @@ export async function POST(request: NextRequest) {
   if (SYSTEM_SENDER.test(fromRaw) || SYSTEM_SENDER.test(from.email)) return NextResponse.json({ ok: true, skipped: "system_sender" })
   const bulk = isBulkOrSystem(from.email, body.listUnsubscribe === true)
   if (bulk) return NextResponse.json({ ok: true, skipped: bulk })
+  // Our own people writing from personal addresses. Since 10-09 the script also files The Knot /
+  // Zola inquiries, which arrive in the owner's Gmail and are answered from it, so those threads
+  // carry our replies - they are not a customer writing in.
+  const { data: staff } = await supabase.from("staff_members").select("id").ilike("email", from.email.replace(/[\\%_]/g, (c) => `\\${c}`)).limit(1).maybeSingle()
+  if (staff) return NextResponse.json({ ok: true, skipped: "staff_sender" })
 
   const subject = str(body.subject, 500) || "(no subject)"
   const text = str(body.text, MAX_TEXT)

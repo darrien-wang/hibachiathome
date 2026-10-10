@@ -4,13 +4,16 @@
  * 装在"收到 support@realhibachi.com 来信"的那个 Google 账号里（现在是 darrien.wang@gmail.com）。
  * 每分钟跑一次：把最近两天发到 support@ 的每封邮件 POST 给工作台的
  * /api/admin/email-inbound；工作台按 Gmail message id 去重并挂到对应线索上。
+ * 10-09 起也收平台询价：The Knot / WeddingWire 的客人消息、Zola 的询价通知直接发到这个邮箱，
+ * 不经过 support@，以前要有人翻 Gmail 才看得到（The Knot 一个 150 人婚礼 45 小时没人回）。
+ * 平台的营销邮件和"某某在等你回复"的催促信不收；我们从这个邮箱回的信由服务端按员工邮箱跳过。
  * 处理过的会话打标签 rh-ingested（只是标记，查重在服务端，所以老会话里的新回信也会进）。
  *
  * 安装：见同目录 README.md。脚本属性里要有 EMAIL_INBOUND_KEY（和 Vercel 里同一个值）。
  */
 const API_URL = "https://www.realhibachi.com/api/admin/email-inbound";
 const LABEL_NAME = "rh-ingested";
-const QUERY = "to:support@realhibachi.com newer_than:2d";
+const QUERY = '(to:support@realhibachi.com OR from:member.theknot.com OR from:member.weddingwire.com OR (from:zola.com subject:inquiry)) -subject:"waiting to hear back" newer_than:2d';
 const MAX_THREADS = 40;
 
 function ingestSupportInbox() {
