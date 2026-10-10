@@ -57,7 +57,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: `accountId must be ${ACCOUNT_ID}` }, { status: 400 })
   }
   const rows = Array.isArray(body.rows) ? (body.rows as Row[]) : []
-  if (!rows.length) return NextResponse.json({ ok: true, rows: 0, costCents: 0 })
+  // last_used_at doubles as the script's heartbeat, so an empty run counts too
+  // (before Bing spends anything every run is empty).
+  if (!rows.length) {
+    await supabase.from("integration_push_keys").update({ last_used_at: new Date().toISOString() }).eq("name", KEY_NAME)
+    return NextResponse.json({ ok: true, rows: 0, costCents: 0 })
+  }
   if (rows.length > 500) return NextResponse.json({ ok: false, error: "max 500 rows" }, { status: 400 })
 
   const now = new Date().toISOString()
