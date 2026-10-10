@@ -1108,13 +1108,18 @@ def main(argv=None):
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*"); p.set_defaults(fn=cmd_email)
-    # Sales daily report, numbers half (docs/销售日志/README.md): read-only selects.
+    # Sales daily / weekly report, numbers half (docs/销售日志/README.md): read-only.
     def _report(a):
         import datetime as _dt
         import report
-        day = _dt.date.fromisoformat(a.date) if a.date else _dt.date.today()
-        print(report.day_report(day))
-    p = sp.add_parser("report"); p.add_argument("kind", choices=["day"]); p.add_argument("--date", help="YYYY-MM-DD (Pacific), default today")
+        if a.kind == "day":
+            print(report.day_report(_dt.date.fromisoformat(a.date) if a.date else _dt.date.today()))
+            return
+        start = _dt.date.fromisoformat(a.date) if a.date else report.last_full_week(_dt.date.today())
+        start -= _dt.timedelta(days=(start.weekday() + 1) % 7)  # any day -> the Sunday that starts its week
+        print(report.week_report(start))
+    p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
+    p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
     p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind"]); p.add_argument("ident")
     p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
