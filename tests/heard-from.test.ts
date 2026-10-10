@@ -57,19 +57,22 @@ test("heard · ask only unknown leads, only after booking, only once", () => {
   assert.equal(sourceAsk({ channel: "organic_direct", stage: "booked", heardAskedAt: "2026-10-10T18:00:00Z", heardChannel: "google" }), "answered")
   // A view that could not be read is treated as unknown, not as known.
   assert.equal(sourceAsk({ channel: null, stage: "booked" }), "ask_now")
-  // Not on the party day, never after a party (they know us; that text is the review ask).
+  // Not on the party day. After their own party it's fine (review asks are the chef's job since
+  // 10-10, so a thank-you text from them is a free moment); a returning customer is never asked.
   assert.equal(sourceAsk({ channel: "organic_direct", stage: "party_day" }), "party_day")
-  assert.equal(sourceAsk({ channel: "organic_direct", stage: "after_party" }), "after_party")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "after_party" }), "ask_now")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "returning" }), "returning")
 })
 
 test("heard · party stage from the contact's orders, by wall date in PT", () => {
   const today = "2026-10-10"
-  assert.equal(partyStage([], today), "not_booked")
-  assert.equal(partyStage([{ order_status: "active", event_start: "2026-11-15T19:00:00+00:00" }], today), "booked")
-  assert.equal(partyStage([{ order_status: "active", event_start: null }], today), "booked") // date on hold
-  assert.equal(partyStage([{ order_status: "active", event_start: "2026-10-10T19:00:00+00:00" }], today), "party_day")
-  assert.equal(partyStage([{ order_status: "active", event_start: "2026-10-09T19:00:00+00:00" }], today), "after_party")
-  // A returning customer who booked again still knows us.
-  assert.equal(partyStage([{ event_start: "2026-06-01T18:00:00+00:00" }, { event_start: "2026-12-01T18:00:00+00:00" }], today), "after_party")
-  assert.equal(partyStage([{ order_status: "cancelled", event_start: "2026-06-01T18:00:00+00:00" }], today), "not_booked")
+  const lead = "2026-09-20"
+  assert.equal(partyStage([], today, lead), "not_booked")
+  assert.equal(partyStage([{ order_status: "active", event_start: "2026-11-15T19:00:00+00:00" }], today, lead), "booked")
+  assert.equal(partyStage([{ order_status: "active", event_start: null }], today, lead), "booked") // date on hold
+  assert.equal(partyStage([{ order_status: "active", event_start: "2026-10-10T19:00:00+00:00" }], today, lead), "party_day")
+  assert.equal(partyStage([{ order_status: "active", event_start: "2026-10-09T19:00:00+00:00" }], today, lead), "after_party")
+  // A party before this lead came in = they came back.
+  assert.equal(partyStage([{ event_start: "2026-06-01T18:00:00+00:00" }, { event_start: "2026-12-01T18:00:00+00:00" }], today, lead), "returning")
+  assert.equal(partyStage([{ order_status: "cancelled", event_start: "2026-06-01T18:00:00+00:00" }], today, lead), "not_booked")
 })

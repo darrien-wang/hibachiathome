@@ -202,9 +202,11 @@ async function buildCard(
     .slice(-12)
   const firstResponseAt = touchpoints.find((t) => t.touchpoint_type === "agent_first_response")?.occurred_at ?? null
 
-  // Ask "how did you find us" only when the system can't place them, they
-  // have a party ahead, and it isn't the party day (lib/heard-from.ts).
-  const stage = partyStage(orders, new Date(now).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }))
+  // Ask "how did you find us" only when the system can't place them, they have
+  // booked (or their party is done), it isn't the party day, and they are not
+  // back after an earlier party (lib/heard-from.ts).
+  const ptDay = (ms: number) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
+  const stage = partyStage(orders, ptDay(now), lead ? ptDay(Date.parse(lead.created_at)) : null)
   const source = lead
     ? {
         channel,

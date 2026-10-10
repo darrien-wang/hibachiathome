@@ -416,15 +416,16 @@ def source_line(src: dict, lead_id) -> str | None:
     ask = src.get("ask")
     if ask == "answered":
         return f"   来源（客人说）：{src.get('heard_label') or src.get('heard_channel')} ·「{src.get('heard_from') or ''}」"
-    if ask == "after_party":
-        return "   来源未知 · 派对办过了，不问（派对后那条留给邀评；他顺口说了就 desk heard）"
+    if ask == "returning":
+        return "   来源：老客人（这条线索之前办过派对），不问"
     if ask == "party_day":
         return "   来源未知 · 今天是派对日，不问（改天搭在客气话后问）"
     if ask == "asked":
         return (f"   🔎 来源未知 · {pt(src.get('heard_asked_at'))} 问过了，不再问 → 客人答了就"
                 f" desk heard {lead_id} \"原话\"")
     if ask == "ask_now":
-        return (f"   🔎 来源未知 · 已锁单 → 这次回复如果只是一句客气话，结尾加 \"{src.get('question')}\""
+        done = "派对办完了" if src.get("stage") == "after_party" else "已锁单"
+        return (f"   🔎 来源未知 · {done} → 这次回复如果只是一句客气话，结尾加 \"{src.get('question')}\""
                 f"（只问一次；答了 desk heard {lead_id} \"原话\"）")
     if ask == "after_booking":
         return "   来源未知（锁单后再问，现在不问）"

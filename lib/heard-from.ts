@@ -125,21 +125,30 @@ export function platformOf(email: string): string | null {
   return null
 }
 
-export type SourceAsk = "known" | "answered" | "after_party" | "party_day" | "asked" | "ask_now" | "after_booking"
+export type SourceAsk = "known" | "answered" | "returning" | "party_day" | "asked" | "ask_now" | "after_booking"
 
-/** Where the customer is with us: no booking, a party ahead, the party is today, or one already happened. */
-export type PartyStage = "not_booked" | "booked" | "party_day" | "after_party"
+/**
+ * Where the customer is with us: not booked, a party ahead, the party is
+ * today, their party is done, or a party of theirs happened before this lead
+ * even started (a returning customer).
+ */
+export type PartyStage = "not_booked" | "booked" | "party_day" | "after_party" | "returning"
 
 /**
  * A contact's stage from its live orders, by the party's wall date (event_start
- * is stored as wall time - compare its date part to today's date in PT).
- * Any party already behind them wins: they know us.
+ * is stored as wall time - compare its date part to dates in PT). leadDayPt is
+ * the day the lead came in: a party before it means they came back.
  */
-export function partyStage(orders: Array<{ order_status?: unknown; event_start?: unknown }>, todayPt: string): PartyStage {
+export function partyStage(
+  orders: Array<{ order_status?: unknown; event_start?: unknown }>,
+  todayPt: string,
+  leadDayPt?: string | null,
+): PartyStage {
   const live = orders.filter((o) => !/^cancel/i.test(String(o.order_status ?? "")))
-  const days = live.map((o) => String(o.event_start ?? "").slice(0, 10))
-  if (days.some((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < todayPt)) return "after_party"
+  const days = live.map((o) => String(o.event_start ?? "").slice(0, 10)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+  if (leadDayPt && days.some((d) => d < leadDayPt)) return "returning"
   if (days.some((d) => d === todayPt)) return "party_day"
+  if (days.some((d) => d < todayPt)) return "after_party"
   return live.length ? "booked" : "not_booked"
 }
 
@@ -147,11 +156,13 @@ export function partyStage(orders: Array<{ order_status?: unknown; event_start?:
  * Where this lead stands on the question.
  *   known          the system has a channel - never ask
  *   answered       they told us
- *   after_party    a party of theirs already happened - they know us; the
- *                  text after a party is the review ask, never ask
+ *   returning      a party of theirs happened before this lead - they came
+ *                  back, that is the answer; never ask
  *   party_day      the party is today - not now
  *   asked          we asked, no answer yet - never ask again
- *   ask_now        unknown and booked - ask on the next plain thank-you
+ *   ask_now        unknown and booked, or their party is done - ask on the
+ *                  next plain thank-you (after a party: when they write to say
+ *                  thanks; review asks are the chef's job since 2026-10-10)
  *   after_booking  unknown, not booked yet - wait
  */
 export function sourceAsk(input: {
@@ -162,8 +173,8 @@ export function sourceAsk(input: {
 }): SourceAsk {
   if (input.heardChannel) return "answered"
   if ((input.channel ?? UNKNOWN_CHANNEL) !== UNKNOWN_CHANNEL) return "known"
-  if (input.stage === "after_party") return "after_party"
+  if (input.stage === "returning") return "returning"
   if (input.heardAskedAt) return "asked"
   if (input.stage === "party_day") return "party_day"
-  return input.stage === "booked" ? "ask_now" : "after_booking"
+  return input.stage === "booked" || input.stage === "after_party" ? "ask_now" : "after_booking"
 }
