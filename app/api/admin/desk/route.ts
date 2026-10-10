@@ -10,7 +10,7 @@ import { reconcileThread } from "@/lib/sms-reconcile"
 import { fetchSmsThreads, toE164, type SmsMessage } from "@/lib/sms-thread"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getDrivingMiles } from "@/lib/travel-distance"
-import { HEARD_LABELS, SOURCE_QUESTION, isHeardChannel, sourceAsk } from "@/lib/heard-from"
+import { HEARD_LABELS, SOURCE_QUESTION, isHeardChannel, partyStage, sourceAsk } from "@/lib/heard-from"
 import { homeBaseOrigin } from "@/config/home-base"
 import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekdayEligibility } from "@/config/pricing-rules"
 
@@ -202,21 +202,18 @@ async function buildCard(
     .slice(-12)
   const firstResponseAt = touchpoints.find((t) => t.touchpoint_type === "agent_first_response")?.occurred_at ?? null
 
-  // Booked = a live order whose party is still ahead (or has no date yet);
-  // a party that already happened makes them a returning customer.
-  const dayMs = 86400_000
-  const liveOrders = orders.filter((o) => !/^cancel/i.test(String(o.order_status ?? "")))
-  const partyDay = (o: OrderRow) => Date.parse(String(o.event_start ?? "").slice(0, 10))
-  const booked = liveOrders.some((o) => Number.isNaN(partyDay(o)) || partyDay(o) >= now - dayMs)
-  const returning = liveOrders.some((o) => !Number.isNaN(partyDay(o)) && partyDay(o) < now - dayMs)
+  // Ask "how did you find us" only when the system can't place them, they
+  // have a party ahead, and it isn't the party day (lib/heard-from.ts).
+  const stage = partyStage(orders, new Date(now).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }))
   const source = lead
     ? {
         channel,
+        stage,
         heard_from: lead.heard_from,
         heard_channel: lead.heard_channel,
         heard_label: isHeardChannel(lead.heard_channel) ? HEARD_LABELS[lead.heard_channel] : null,
         heard_asked_at: lead.heard_asked_at,
-        ask: sourceAsk({ channel, heardChannel: lead.heard_channel, heardAskedAt: lead.heard_asked_at, booked, returning }),
+        ask: sourceAsk({ channel, heardChannel: lead.heard_channel, heardAskedAt: lead.heard_asked_at, stage }),
         question: SOURCE_QUESTION,
       }
     : null

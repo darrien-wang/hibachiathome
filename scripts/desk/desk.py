@@ -416,8 +416,10 @@ def source_line(src: dict, lead_id) -> str | None:
     ask = src.get("ask")
     if ask == "answered":
         return f"   来源（客人说）：{src.get('heard_label') or src.get('heard_channel')} ·「{src.get('heard_from') or ''}」"
-    if ask == "returning":
-        return "   来源：老客人（以前办过派对，不问）"
+    if ask == "after_party":
+        return "   来源未知 · 派对办过了，不问（派对后那条留给邀评；他顺口说了就 desk heard）"
+    if ask == "party_day":
+        return "   来源未知 · 今天是派对日，不问（改天搭在客气话后问）"
     if ask == "asked":
         return (f"   🔎 来源未知 · {pt(src.get('heard_asked_at'))} 问过了，不再问 → 客人答了就"
                 f" desk heard {lead_id} \"原话\"")

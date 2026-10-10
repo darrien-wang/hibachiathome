@@ -4,7 +4,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { ASKS_SOURCE, SOURCE_QUESTION, classifyHeard, platformOf, platformOfText, sourceAsk } from "../lib/heard-from"
+import { ASKS_SOURCE, SOURCE_QUESTION, classifyHeard, partyStage, platformOf, platformOfText, sourceAsk } from "../lib/heard-from"
 
 test("heard · our question is recognised in a sent text, however it's worded", () => {
   assert.equal(ASKS_SOURCE.test(`Got it, thank you! ${SOURCE_QUESTION}`), true)
@@ -49,14 +49,27 @@ test("heard · a platform's notification text on the 213 line is the platform, a
 })
 
 test("heard · ask only unknown leads, only after booking, only once", () => {
-  assert.equal(sourceAsk({ channel: "google_ads", booked: true }), "known")
-  assert.equal(sourceAsk({ channel: "marketplace_referral", booked: true }), "known")
-  assert.equal(sourceAsk({ channel: "organic_direct", booked: false }), "after_booking")
-  assert.equal(sourceAsk({ channel: "organic_direct", booked: true }), "ask_now")
-  assert.equal(sourceAsk({ channel: "organic_direct", booked: true, heardAskedAt: "2026-10-10T18:00:00Z" }), "asked")
-  assert.equal(sourceAsk({ channel: "organic_direct", booked: true, heardAskedAt: "2026-10-10T18:00:00Z", heardChannel: "google" }), "answered")
+  assert.equal(sourceAsk({ channel: "google_ads", stage: "booked" }), "known")
+  assert.equal(sourceAsk({ channel: "marketplace_referral", stage: "booked" }), "known")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "not_booked" }), "after_booking")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "booked" }), "ask_now")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "booked", heardAskedAt: "2026-10-10T18:00:00Z" }), "asked")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "booked", heardAskedAt: "2026-10-10T18:00:00Z", heardChannel: "google" }), "answered")
   // A view that could not be read is treated as unknown, not as known.
-  assert.equal(sourceAsk({ channel: null, booked: true }), "ask_now")
-  // A customer whose earlier party already happened knows us - asking would be odd.
-  assert.equal(sourceAsk({ channel: "organic_direct", booked: true, returning: true }), "returning")
+  assert.equal(sourceAsk({ channel: null, stage: "booked" }), "ask_now")
+  // Not on the party day, never after a party (they know us; that text is the review ask).
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "party_day" }), "party_day")
+  assert.equal(sourceAsk({ channel: "organic_direct", stage: "after_party" }), "after_party")
+})
+
+test("heard · party stage from the contact's orders, by wall date in PT", () => {
+  const today = "2026-10-10"
+  assert.equal(partyStage([], today), "not_booked")
+  assert.equal(partyStage([{ order_status: "active", event_start: "2026-11-15T19:00:00+00:00" }], today), "booked")
+  assert.equal(partyStage([{ order_status: "active", event_start: null }], today), "booked") // date on hold
+  assert.equal(partyStage([{ order_status: "active", event_start: "2026-10-10T19:00:00+00:00" }], today), "party_day")
+  assert.equal(partyStage([{ order_status: "active", event_start: "2026-10-09T19:00:00+00:00" }], today), "after_party")
+  // A returning customer who booked again still knows us.
+  assert.equal(partyStage([{ event_start: "2026-06-01T18:00:00+00:00" }, { event_start: "2026-12-01T18:00:00+00:00" }], today), "after_party")
+  assert.equal(partyStage([{ order_status: "cancelled", event_start: "2026-06-01T18:00:00+00:00" }], today), "not_booked")
 })

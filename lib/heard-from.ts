@@ -125,13 +125,31 @@ export function platformOf(email: string): string | null {
   return null
 }
 
-export type SourceAsk = "known" | "answered" | "returning" | "asked" | "ask_now" | "after_booking"
+export type SourceAsk = "known" | "answered" | "after_party" | "party_day" | "asked" | "ask_now" | "after_booking"
+
+/** Where the customer is with us: no booking, a party ahead, the party is today, or one already happened. */
+export type PartyStage = "not_booked" | "booked" | "party_day" | "after_party"
+
+/**
+ * A contact's stage from its live orders, by the party's wall date (event_start
+ * is stored as wall time - compare its date part to today's date in PT).
+ * Any party already behind them wins: they know us.
+ */
+export function partyStage(orders: Array<{ order_status?: unknown; event_start?: unknown }>, todayPt: string): PartyStage {
+  const live = orders.filter((o) => !/^cancel/i.test(String(o.order_status ?? "")))
+  const days = live.map((o) => String(o.event_start ?? "").slice(0, 10))
+  if (days.some((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < todayPt)) return "after_party"
+  if (days.some((d) => d === todayPt)) return "party_day"
+  return live.length ? "booked" : "not_booked"
+}
 
 /**
  * Where this lead stands on the question.
  *   known          the system has a channel - never ask
  *   answered       they told us
- *   returning      a party of theirs already happened - they know us, never ask
+ *   after_party    a party of theirs already happened - they know us; the
+ *                  text after a party is the review ask, never ask
+ *   party_day      the party is today - not now
  *   asked          we asked, no answer yet - never ask again
  *   ask_now        unknown and booked - ask on the next plain thank-you
  *   after_booking  unknown, not booked yet - wait
@@ -140,12 +158,12 @@ export function sourceAsk(input: {
   channel: string | null | undefined
   heardChannel?: string | null
   heardAskedAt?: string | null
-  booked: boolean
-  returning?: boolean
+  stage: PartyStage
 }): SourceAsk {
   if (input.heardChannel) return "answered"
   if ((input.channel ?? UNKNOWN_CHANNEL) !== UNKNOWN_CHANNEL) return "known"
-  if (input.returning) return "returning"
+  if (input.stage === "after_party") return "after_party"
   if (input.heardAskedAt) return "asked"
-  return input.booked ? "ask_now" : "after_booking"
+  if (input.stage === "party_day") return "party_day"
+  return input.stage === "booked" ? "ask_now" : "after_booking"
 }
