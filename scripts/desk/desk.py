@@ -761,6 +761,25 @@ def cmd_order(a):
             for x in (data.get("promotions") or []):
                 if re.search(r"party size", str(x.get("label") or ""), re.I):
                     print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
+        if a.remove_promo or a.add_promo:
+            # A published offer that replaces another (teacher appreciation $50
+            # in place of the party-size discount - they do not stack, skill 5):
+            # drop one stored line, add one with a label the customer reads.
+            promos = data.setdefault("promotions", [])
+            for pid in (a.remove_promo or []):
+                hit = next((x for x in promos if x.get("id") == pid), None)
+                if hit is None:
+                    raise SystemExit(f"--remove-promo {pid}: no such line ({[x.get('id') for x in promos]})")
+                promos.remove(hit)
+                changes.append(f"promo removed: {pid} {hit.get('label')} {money(hit.get('amount'))}")
+            if a.add_promo:
+                m = re.fullmatch(r"([A-Za-z0-9_]+)=(\d+(?:\.\d{1,2})?)", a.add_promo)
+                if not m or not a.promo_label:
+                    raise SystemExit("--add-promo ID=AMOUNT needs --promo-label \"what the customer sees\"")
+                if any(x.get("id") == m.group(1) for x in promos):
+                    raise SystemExit(f"--add-promo {m.group(1)}: that line already exists - use --promo to change its amount")
+                promos.append({"id": m.group(1), "label": a.promo_label[:80], "amount": float(m.group(2))})
+                changes.append(f"promo added: {m.group(1)} '{a.promo_label[:80]}' {money(float(m.group(2)))}")
         if a.free_item:
             # Appetizer trays promised free (20+ guests, the full setup, a
             # concession): the trays go into partyExtras and a fixed "FREE:"
@@ -885,7 +904,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1119,6 +1138,9 @@ def main(argv=None):
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--free-item", nargs="+", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
+    p.add_argument("--remove-promo", nargs="+", metavar="ID", help="drop stored promotion lines by id")
+    p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
+    p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
     p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
     p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
                    "Promotions are frozen numbers on the invoice, not rules, so any per-head one (the Weekday Special, a free-extras deal) "
