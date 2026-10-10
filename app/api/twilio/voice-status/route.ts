@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { isValidTwilioSignature } from "@/lib/twilio-signature"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
+import { whisperAttribute } from "@/lib/call-whisper"
 import { escapeXml } from "@/lib/twilio-identity"
 import { recordingAttributes } from "@/lib/twilio-recording"
 
@@ -58,9 +59,10 @@ export async function POST(request: NextRequest) {
   const forwardTo = process.env.TWILIO_FORWARD_TO
   if (request.nextUrl.searchParams.get("stage") === "app" && forwardTo) {
     // The recording notice already played to the caller before stage one, so
-    // it covers this leg too - do not play it twice.
+    // it covers this leg too - do not play it twice. The 来电耳语 rides on this
+    // leg as on the App legs: whoever answers the backup phone hears it.
     return twiml(
-      `<Dial timeout="25" answerOnBridge="true" action="${escapeXml(`${base}/api/twilio/voice-status`)}" method="POST"${recordingAttributes()}><Number>${escapeXml(forwardTo)}</Number></Dial>`,
+      `<Dial timeout="25" answerOnBridge="true" action="${escapeXml(`${base}/api/twilio/voice-status`)}" method="POST"${recordingAttributes()}><Number${whisperAttribute(base, params.From)}>${escapeXml(forwardTo)}</Number></Dial>`,
     )
   }
 
