@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Chip, Dialog, DialogHead, Field } from "./ui"
 import { addDays, dowZh, md, money, prettyPhone, ptToday } from "./helpers"
-import { shiftNet, weekStartOf, type ChefSummary, type MediaItem } from "./chef-types"
+import { ROLE_LABELS, shiftNet, weekStartOf, type ChefSummary, type MediaItem, type StaffRole } from "./chef-types"
 import { BILLING_LABELS, rateLabel } from "@/lib/chef-pay"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
-// 厨师 · 名单（按周看场次、工价、评价、结余）+ 素材库（按天看所有师傅传的照片视频）.
+// 员工（厨师 / 后勤）· 名单（按周看场次、工价、评价、结余）+ 素材库（按天看所有师傅传的照片视频）.
 
 export type ChefTabKey = "shifts" | "profile" | "perf" | "docs" | "settle" | "files"
 
@@ -38,13 +38,17 @@ export function ChefsTab({
   const thisWeekStart = weekStartOf(today)
   const [week, setWeek] = useState(thisWeekStart)
   const [showAdd, setShowAdd] = useState(false)
+  const [roleFilter, setRoleFilter] = useState<"all" | StaffRole>("all")
+  const hasLogistics = chefs.some((c) => c.role === "logistics")
   const weekEnd = addDays(week, 6)
   const weekTitle = week === thisWeekStart ? "本周" : week === addDays(thisWeekStart, -7) ? "上周" : week === addDays(thisWeekStart, 7) ? "下周" : `${md(week)} 那周`
   const weekLabel = `${md(week)} – ${md(weekEnd)}`
 
   const rows = useMemo(
     () =>
-      chefs.map((c) => {
+      chefs.filter((c) => roleFilter === "all" || (c.role ?? "chef") === roleFilter).map((c) => {
+        // 后勤不派单：场次列放待结的单数和人头，结余列放待结的钱。
+        if (c.role === "logistics") return { c, weekCount: c.logi?.openParties ?? 0, weekGuests: c.logi?.openHeads ?? 0, net: c.logi?.openCents ?? 0 }
         const ws = c.shifts.filter((s) => s.date >= week && s.date <= weekEnd && s.orderStatus !== "cancelled")
         // Same sum as the 结算 tab (shiftNet: 人头费 + 桌椅 + 路费 + 卡上小费 − 代收) over the
         // same shifts the server counts as open. It used to be pay + tip − cash, so a
@@ -52,9 +56,9 @@ export function ChefsTab({
         const net = c.shifts.filter((s) => !s.settledAt && s.orderStatus !== "cancelled" && s.partyOver && !!s.method).reduce((a, s) => a + shiftNet(s), 0)
         return { c, weekCount: ws.length, weekGuests: ws.reduce((a, s) => a + s.share, 0), net }
       }),
-    [chefs, week, weekEnd],
+    [chefs, week, weekEnd, roleFilter],
   )
-  const weekTotal = rows.reduce((a, r) => a + r.weekCount, 0)
+  const weekTotal = rows.reduce((a, r) => a + (r.c.role === "logistics" ? 0 : r.weekCount), 0)
   const alerts = useMemo(() => {
     const out: Array<{ who: string; kind: string; text: string; id: string; tab: ChefTabKey }> = []
     if (!sensitive) return out
@@ -72,7 +76,7 @@ export function ChefsTab({
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ fontSize: 22 }}>厨师</h2>
+        <h2 style={{ fontSize: 22 }}>员工</h2>
         <div style={{ display: "flex" }}>
           <Chip active={view === "list"} onClick={() => setView("list")}>
             名单
@@ -99,7 +103,7 @@ export function ChefsTab({
             ) : null}
             {sensitive ? (
               <button type="button" className="btn btn-secondary" style={{ whiteSpace: "nowrap" }} onClick={() => setShowAdd(true)}>
-                + 添加厨师
+                + 添加员工
               </button>
             ) : null}
           </div>
@@ -122,12 +126,21 @@ export function ChefsTab({
               ))}
             </div>
           ) : null}
-          {chefs.length === 0 ? <div className="empty">还没有厨师。点右上角"添加厨师"。</div> : null}
+          {hasLogistics ? (
+            <div style={{ display: "flex" }}>
+              {(["all", "chef", "logistics"] as const).map((k) => (
+                <Chip key={k} small active={roleFilter === k} onClick={() => setRoleFilter(k)} style={{ marginLeft: k === "all" ? 0 : -1 }}>
+                  {k === "all" ? "全部" : ROLE_LABELS[k]} {k === "all" ? chefs.length : chefs.filter((c) => (c.role ?? "chef") === k).length}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+          {chefs.length === 0 ? <div className="empty">还没有员工。点右上角"添加员工"。</div> : null}
           {!isMobile ? (
             <table className="table">
               <thead>
                 <tr style={{ whiteSpace: "nowrap" }}>
-                  <th>厨师</th>
+                  <th>员工</th>
                   <th className="r">{weekTitle}场次</th>
                   <th>{sensitive ? "工价 · 能力" : "能力"}</th>
                   <th>评价 · 准时</th>
@@ -140,28 +153,29 @@ export function ChefsTab({
                     <td style={{ whiteSpace: "nowrap" }}>
                       <div style={{ fontWeight: 600 }}>
                         {c.name}
+                        {c.role === "logistics" ? <span className="tag tag-neutral" style={{ marginLeft: 6 }}>后勤</span> : null}
                         {c.status !== "active" ? <span className="tag tag-faint" style={{ marginLeft: 6 }}>停用</span> : null}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{prettyPhone(c.phone)}</div>
-                      <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{c.areas.join(" / ") || "区域未填"}</div>
+                      <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{c.role === "logistics" ? "备货" : c.areas.join(" / ") || "区域未填"}</div>
                     </td>
                     <td
                       className="r"
                       style={{ whiteSpace: "nowrap" }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        onOpenChef(c.id, "shifts")
+                        onOpenChef(c.id, c.role === "logistics" ? "settle" : "shifts")
                       }}
                     >
                       <div className="num" style={{ fontSize: 18, color: weekCount ? "var(--color-text)" : "var(--color-neutral-500)" }}>
                         {weekCount}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{weekGuests} 人</div>
+                      <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{c.role === "logistics" ? `待结单 · ${weekGuests} 人头` : `${weekGuests} 人`}</div>
                     </td>
                     <td style={{ maxWidth: 0, width: "36%", minWidth: 150 }}>
-                      {sensitive && c.rate ? <div className="clamp1">{rateLabel(c.rate)}</div> : null}
+                      {sensitive && c.rate ? <div className="clamp1">{c.role === "logistics" ? `每人头 ${money(c.rate.per_head_cents)} · 大人 1 / 小孩 0.5` : rateLabel(c.rate)}</div> : null}
                       <div className="clamp1" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-                        {c.skills.join(" · ") || "能力未填"}
+                        {c.role === "logistics" ? "按办了的单结 · 每周日" : c.skills.join(" · ") || "能力未填"}
                       </div>
                     </td>
                     <td
@@ -185,9 +199,9 @@ export function ChefsTab({
                         onOpenChef(c.id, "settle")
                       }}
                     >
-                      <div style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{balanceLabel(net)}</div>
+                      <div style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{c.role === "logistics" ? (net ? `待结 ${money(net)}` : "已结清") : balanceLabel(net)}</div>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-                        {BILLING_LABELS[c.billing_cycle] ?? c.billing_cycle} · 上次 {c.last_settled_at ? md(c.last_settled_at) : "—"}
+                        {c.role === "logistics" ? "每周日结" : BILLING_LABELS[c.billing_cycle] ?? c.billing_cycle} · 上次 {c.last_settled_at ? md(c.last_settled_at) : "—"}
                         {c.openShifts ? ` · 可结 ${c.openShifts} 场` : ""}
                         {c.awaitingMethod ? <span style={{ color: "var(--color-accent-700)" }}> · 待确认收款 {c.awaitingMethod} 场</span> : null}
                       </div>
@@ -200,13 +214,13 @@ export function ChefsTab({
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
               {rows.map(({ c, weekCount, weekGuests, net }) => (
-                <article key={c.id} className="card wb-row" onClick={() => onOpenChef(c.id, "profile")} style={{ gap: 8, padding: 14 }}>
+                <article key={c.id} className="card wb-row" onClick={() => onOpenChef(c.id, c.role === "logistics" ? "settle" : "profile")} style={{ gap: 8, padding: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                     <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 17 }}>{c.name}</div>
-                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{c.areas.join(" / ")}</span>
+                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{c.role === "logistics" ? "后勤" : c.areas.join(" / ")}</span>
                   </div>
                   <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>{prettyPhone(c.phone)}</div>
-                  {sensitive && c.rate ? <div style={{ fontSize: 13 }}>{rateLabel(c.rate)}</div> : null}
+                  {sensitive && c.rate ? <div style={{ fontSize: 13 }}>{c.role === "logistics" ? `每人头 ${money(c.rate.per_head_cents)} · 大人 1 / 小孩 0.5` : rateLabel(c.rate)}</div> : null}
                   <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{c.skills.join(" · ")}</div>
                   <div style={{ fontSize: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <span>
@@ -216,9 +230,9 @@ export function ChefsTab({
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderTop: "1px solid var(--color-line)", paddingTop: 8 }}>
                     <span>
-                      {weekTitle} <strong>{weekCount}</strong> 场 · {weekGuests} 人
+                      {c.role === "logistics" ? "待结" : weekTitle} <strong>{weekCount}</strong> {c.role === "logistics" ? "单" : "场"} · {weekGuests} 人
                     </span>
-                    {sensitive ? <span style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{balanceLabel(net)}</span> : null}
+                    {sensitive ? <span style={{ fontWeight: 600, color: net < 0 ? "var(--color-accent-700)" : undefined }}>{c.role === "logistics" ? (net ? `待结 ${money(net)}` : "已结清") : balanceLabel(net)}</span> : null}
                   </div>
                 </article>
               ))}
@@ -246,7 +260,8 @@ export function ChefsTab({
 
 function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: string; settings: WorkbenchSettings; onClose: () => void; onDone: (id: string) => void }) {
   const d = settings.chefs
-  const [form, setForm] = useState({ name: "", phone: "", wechat: "", base: String(d.default_base_pay_cents / 100), headFrom: String(d.default_head_from), perHead: String(d.default_per_head_cents / 100), billing: "weekly", areas: [] as string[], skills: [] as string[] })
+  const [form, setForm] = useState({ name: "", phone: "", wechat: "", base: String(d.default_base_pay_cents / 100), headFrom: String(d.default_head_from), perHead: String(d.default_per_head_cents / 100), billing: "weekly", areas: [] as string[], skills: [] as string[], role: "chef" as StaffRole, logiPerHead: "1", payStart: ptToday() })
+  const logi = form.role === "logistics"
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const toggle = (k: "areas" | "skills", v: string) => setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] }))
@@ -258,7 +273,9 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
     setBusy(true)
     try {
       const r = await adminJson<{ ok: boolean; id?: string; error?: string }>(adminKey, "/api/admin/chefs", {
-        body: { action: "create", name: form.name.trim(), phone: form.phone.trim(), wechat: form.wechat.trim(), base_pay_cents: Math.round(Number(form.base) * 100) || 0, head_from: Number(form.headFrom) || 0, per_head_cents: Math.round(Number(form.perHead) * 100) || 0, billing_cycle: form.billing, areas: form.areas, skills: form.skills },
+        body: logi
+          ? { action: "create", role: "logistics", name: form.name.trim(), phone: form.phone.trim(), wechat: form.wechat.trim(), per_head_cents: Math.round(Number(form.logiPerHead) * 100) || 0, pay_start_date: form.payStart }
+          : { action: "create", name: form.name.trim(), phone: form.phone.trim(), wechat: form.wechat.trim(), base_pay_cents: Math.round(Number(form.base) * 100) || 0, head_from: Number(form.headFrom) || 0, per_head_cents: Math.round(Number(form.perHead) * 100) || 0, billing_cycle: form.billing, areas: form.areas, skills: form.skills },
       })
       if (r.ok && r.id) onDone(r.id)
       else setMsg(r.error ?? "添加失败")
@@ -270,8 +287,15 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
   }
   return (
     <Dialog onClose={onClose} width={560}>
-      <DialogHead title="添加厨师" lines={["名字和电话先填，工价用默认值，之后在资料页改。"]} onClose={onClose} />
+      <DialogHead title="添加员工" lines={[logi ? "后勤按订单人头结：大人 1、小孩 0.5，每周日结一次。" : "名字和电话先填，工价用默认值，之后在资料页改。"]} onClose={onClose} />
       <div className="dialog-col" style={{ gap: 12 }}>
+        <div style={{ display: "flex" }}>
+          {(["chef", "logistics"] as const).map((k) => (
+            <Chip key={k} active={form.role === k} onClick={() => setForm({ ...form, role: k })} style={{ marginLeft: k === "chef" ? 0 : -1 }}>
+              {ROLE_LABELS[k]}
+            </Chip>
+          ))}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Field label="名字 *">
             <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -282,6 +306,17 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
           <Field label="微信">
             <input className="input" value={form.wechat} onChange={(e) => setForm({ ...form, wechat: e.target.value })} />
           </Field>
+          {logi ? (
+            <>
+              <Field label="每人头 $">
+                <input className="input" type="number" value={form.logiPerHead} onChange={(e) => setForm({ ...form, logiPerHead: e.target.value })} />
+              </Field>
+              <Field label="从哪天的单开始算">
+                <input className="input" type="date" value={form.payStart} onChange={(e) => setForm({ ...form, payStart: e.target.value })} />
+              </Field>
+            </>
+          ) : null}
+          {logi ? null : (<>
           <Field label="结算周期">
             <select className="input" value={form.billing} onChange={(e) => setForm({ ...form, billing: e.target.value })}>
               {Object.entries(BILLING_LABELS).map(([k, l]) => (
@@ -300,7 +335,9 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
           <Field label="每加一人 $">
             <input className="input" type="number" value={form.perHead} onChange={(e) => setForm({ ...form, perHead: e.target.value })} />
           </Field>
+          </>)}
         </div>
+        {logi ? null : (<>
         <div>
           <div className="kicker" style={{ marginBottom: 6 }}>区域</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -321,6 +358,7 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
             ))}
           </div>
         </div>
+        </>)}
         {msg ? <div className="notice danger">{msg}</div> : null}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>

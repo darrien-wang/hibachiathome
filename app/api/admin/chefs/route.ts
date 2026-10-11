@@ -4,6 +4,7 @@ import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { partyHeadCounts } from "@/lib/party-heads"
+import { logisticsOpenRows, sumCents, sumHeads, type LogisticsOrder } from "@/lib/logistics-pay"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
@@ -13,7 +14,9 @@ import { formatTaxRate } from "@/lib/sales-tax-rate"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-// 厨师 · 名单、派单、表现、文件、结算。
+// 员工（厨师 + 后勤）· 名单、派单、表现、文件、结算。
+// staff_members.role：chef 走下面这一整套；logistics（备货）不派单，工钱按
+// 起算日之后每一场办了的派对的人头算（lib/logistics-pay.ts），每周日结。
 //   GET                    -> { chefs: ChefSummary[], assignments: {orderId: [...]}, alertsCount }
 //   GET ?id=<staff uuid>   -> { chef, shifts, performance, files, settlements, assets }
 //   GET ?file=<file uuid>  -> 302 to a signed URL (1 h) of the stored file
@@ -36,7 +39,7 @@ function publicStaff(s: Staff): Staff {
 const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, payCents: 0, cashCents: 0, cardTipCents: 0, cardGrossCents: 0, cardFeeCents: 0, cashTipCents: 0, paySettledCents: 0, tablesCents: 0, travelCents: 0, reviewCents: 0, cashSource: "none", settledAt: null })
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
 const STAFF_COLUMNS =
-  "id, full_name, display_name, staff_type, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
+  "id, full_name, display_name, staff_type, role, pay_start_date, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
 const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data, created_at, source_metadata"
 
 type Staff = Record<string, unknown> & { id: string }
@@ -196,6 +199,30 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
   return { staff: (staff ?? []) as Staff[], assignments: (assignments ?? []) as Assignment[], orderMap, cashReported, drive }
 }
 
+// ---- 后勤：按订单人头结 ----
+const LOGI_ORDER_COLUMNS = "id, order_no, customer_name, event_start, guest_adult_count, guest_child_count, order_status, invoice_data"
+const isLogistics = (s: Staff) => s.role === "logistics"
+const logiStart = (s: Staff) => String(s.pay_start_date ?? s.created_at ?? "").slice(0, 10) || ptToday()
+const logiRate = (s: Staff) => Math.max(0, Number(s.per_head_cents ?? 100))
+/** Sunday that ends the Mon-Sun week containing ymd. */
+const weekEndOf = (ymd: string) => {
+  const d = new Date(`${ymd}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 6)
+  return d.toISOString().slice(0, 10)
+}
+/** 待结（到今天为止办了的）+ 这周还没办的预告。结过的单在 staff_order_pay 里，不再出现。 */
+async function loadLogistics(supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>, s: Staff, today: string) {
+  const startDate = logiStart(s)
+  const until = weekEndOf(today)
+  const [{ data: orders }, { data: paid }] = await Promise.all([
+    supabase.from("orders").select(LOGI_ORDER_COLUMNS).gte("event_start", startDate).lte("event_start", `${until}T23:59:59`).limit(3000),
+    supabase.from("staff_order_pay").select("order_id").eq("staff_member_id", s.id).limit(10000),
+  ])
+  const perHeadCents = logiRate(s)
+  const { open, upcoming } = logisticsOpenRows((orders ?? []) as unknown as LogisticsOrder[], { perHeadCents, startYmd: startDate, throughYmd: today, untilYmd: until, paidOrderIds: (paid ?? []).map((p) => String(p.order_id)) })
+  return { perHeadCents, startDate, open, upcoming }
+}
+
 /**
  * 一场派对的计钱要素，全部来自发票（和发票工具同一套判定）：
  *   大人/收费小孩/免费小孩 —— detailed 按 guests 行数；免费小孩以 under5 促销
@@ -338,7 +365,8 @@ export async function GET(request: NextRequest) {
       const assetsSafe = assets.map((a) => ({ ...a, unit_cost_cents: null }))
       return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, reviews: [], today, sensitive: false })
     }
-    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, reviews: reviewRows ?? [], today, sensitive: true })
+    const logistics = isLogistics(chef) ? await loadLogistics(supabase, chef, today) : undefined
+    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, reviews: reviewRows ?? [], logistics, today, sensitive: true })
   }
 
   // List: everything the 名单 table and the nav badge need.
@@ -347,6 +375,13 @@ export async function GET(request: NextRequest) {
     ids.length ? supabase.from("chef_performance").select("staff_member_id, review, late_minutes").in("staff_member_id", ids).limit(5000) : { data: [] },
     ids.length ? supabase.from("chef_files").select("staff_member_id, amount_cents").eq("kind", "receipt").eq("status", "pending").in("staff_member_id", ids) : { data: [] },
   ])
+  const logiBy = new Map<string, { openCents: number; openParties: number; openHeads: number }>()
+  if (can(actor, "chef_sensitive")) {
+    for (const s of world.staff.filter(isLogistics)) {
+      const l = await loadLogistics(supabase, s, today)
+      logiBy.set(s.id, { openCents: sumCents(l.open), openParties: l.open.length, openHeads: sumHeads(l.open) })
+    }
+  }
   const chefs = world.staff.map((s) => {
     const mine = world.assignments.filter((a) => a.staff_member_id === s.id && world.orderMap.has(a.order_id))
     const shifts = mine.map((a) => shiftOf(a, world.orderMap.get(a.order_id)!, byOrder.get(a.order_id) ?? [a], staffById, world.cashReported, world.drive))
@@ -364,6 +399,8 @@ export async function GET(request: NextRequest) {
       name: nameOf(s),
       phone: s.phone ?? null,
       status: s.status,
+      role: isLogistics(s) ? ("logistics" as const) : ("chef" as const),
+      logi: logiBy.get(s.id) ?? null,
       rate: rateOf(s),
       skills: (s.skills as string[]) ?? [],
       areas: (s.areas as string[]) ?? [],
@@ -391,7 +428,7 @@ export async function GET(request: NextRequest) {
     assignments[orderId] = list.map((a) => ({ assignmentId: a.id, staffId: a.staff_member_id, name: staffById.get(a.staff_member_id) ? nameOf(staffById.get(a.staff_member_id)!) : "?", share: a.guest_share }))
   }
   if (!can(actor, "chef_sensitive")) {
-    const safe = chefs.map((c) => ({ ...c, rate: null, billing_cycle: "", last_settled_at: null, shifts: c.shifts.map(hideShiftMoney), openPayCents: 0, openCashCents: 0, openTipCents: 0, approvedReimbCents: 0, pendingReceipts: 0, pendingReceiptCents: 0, doc: { ...c.doc, level: "ok" as const, label: "" }, taxMissing: false }))
+    const safe = chefs.map((c) => ({ ...c, logi: null, rate: null, billing_cycle: "", last_settled_at: null, shifts: c.shifts.map(hideShiftMoney), openPayCents: 0, openCashCents: 0, openTipCents: 0, approvedReimbCents: 0, pendingReceipts: 0, pendingReceiptCents: 0, doc: { ...c.doc, level: "ok" as const, label: "" }, taxMissing: false }))
     return NextResponse.json({ ok: true, chefs: safe, assignments, alertsCount: 0, today, sensitive: false })
   }
   const alertsCount = chefs.reduce((n, c) => n + c.pendingReceipts + (c.status === "active" && c.doc.level === "bad" ? 1 : 0) + (c.status === "active" && c.taxMissing ? 1 : 0), 0)
@@ -405,7 +442,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -427,6 +464,7 @@ export async function POST(request: NextRequest) {
       case "create": {
         const name = str(body.name, 80)
         if (!name) return NextResponse.json({ error: "name required" }, { status: 400 })
+        const logi = body.role === "logistics"
         const { data, error } = await supabase
           .from("staff_members")
           .insert({
@@ -435,17 +473,21 @@ export async function POST(request: NextRequest) {
             // The column's check constraint allows employee / contractor_individual / freelancer / other;
             // "contractor" (the old default) made every create fail with a 500.
             staff_type: str(body.staff_type, 30) || "contractor_individual",
+            role: logi ? "logistics" : "chef",
+            // 后勤从这天起的单开始算人头；不填就是今天。
+            pay_start_date: logi ? dateOrNull(body.pay_start_date) ?? ptToday() : null,
             status: "active",
             phone: str(body.phone, 30) || null,
             email: str(body.email, 120) || null,
             wechat: str(body.wechat, 60) || null,
-            base_pay_cents: int(body.base_pay_cents, 0),
-            head_from: int(body.head_from, 16),
-            per_head_cents: int(body.per_head_cents, 0),
+            base_pay_cents: logi ? 0 : int(body.base_pay_cents, 0),
+            head_from: logi ? 0 : int(body.head_from, 16),
+            per_head_cents: int(body.per_head_cents, logi ? 100 : 0),
             skills: Array.isArray(body.skills) ? body.skills.map((x) => str(x, 40)).filter(Boolean).slice(0, 20) : [],
             areas: Array.isArray(body.areas) ? body.areas.map((x) => str(x, 20)).filter(Boolean).slice(0, 10) : [],
             billing_cycle: str(body.billing_cycle, 20) || "weekly",
-            is_bookable: true,
+            // 后勤不上派单名单（日历排班、订单派单都认 is_bookable）。
+            is_bookable: !logi,
             allow_customer_request: false,
           })
           .select("id")
@@ -473,6 +515,11 @@ export async function POST(request: NextRequest) {
         if ("billing_cycle" in f) patch.billing_cycle = str(f.billing_cycle, 20) || "weekly"
         if ("status" in f && ["active", "inactive"].includes(String(f.status))) patch.status = String(f.status)
         if ("is_bookable" in f) patch.is_bookable = Boolean(f.is_bookable)
+        if ("role" in f && ["chef", "logistics"].includes(String(f.role))) {
+          patch.role = String(f.role)
+          patch.is_bookable = f.role !== "logistics"
+        }
+        if ("pay_start_date" in f) patch.pay_start_date = dateOrNull(f.pay_start_date)
         const { error } = await supabase.from("staff_members").update(patch).eq("id", body.id)
         if (error) throw error
         return NextResponse.json({ ok: true })
@@ -967,6 +1014,59 @@ export async function POST(request: NextRequest) {
           netCents: net,
         })
       }
+      case "settle_logistics": {
+        // 后勤周结（每周日）：到今天为止办了、还没结过的单 × 人头单价，加上已批准的
+        // 报销。一单只结一次——staff_order_pay 的唯一键兜底，重复点不会付两遍。
+        if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
+        const { data: stRow } = await supabase.from("staff_members").select(STAFF_COLUMNS).eq("id", body.id).maybeSingle()
+        const st = stRow as unknown as Staff | null
+        if (!st || !isLogistics(st)) return NextResponse.json({ error: "这位不是后勤员工" }, { status: 400 })
+        const todayL = ptToday()
+        const ledger = await loadLogistics(supabase, st, todayL)
+        const { data: reimbRows } = await supabase.from("chef_files").select("id, amount_cents").eq("staff_member_id", body.id).eq("kind", "receipt").eq("status", "approved")
+        const reimb = reimbRows ?? []
+        if (!ledger.open.length && !reimb.length) return NextResponse.json({ error: "没有待结的单" }, { status: 400 })
+        const pay = sumCents(ledger.open)
+        const reimbCents = reimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
+        const net = pay + reimbCents
+        const { data: settlement, error } = await supabase
+          .from("chef_settlements")
+          .insert({
+            staff_member_id: body.id,
+            period_start: ledger.open[0]?.date ?? null,
+            period_end: ledger.open[ledger.open.length - 1]?.date ?? null,
+            shifts: ledger.open.length,
+            pay_cents: pay,
+            reimb_cents: reimbCents,
+            cash_cents: 0,
+            tip_cents: 0,
+            tables_cents: 0,
+            travel_cents: 0,
+            review_cents: 0,
+            lines: { v: 1, kind: "logistics", staff: nameOf(st), generatedAt: now, perHeadCents: ledger.perHeadCents, kidFactor: KID_HEAD_FACTOR, parties: ledger.open, reimb: { count: reimb.length, cents: reimbCents }, totals: { heads: sumHeads(ledger.open), payCents: pay, reimbCents, netCents: net } },
+            token: null,
+            net_cents: net,
+            method: str(body.method, 30) || null,
+            note: `后勤周结 · ${ledger.open.length} 单 · ${sumHeads(ledger.open)} 人头`,
+            created_by: actor.alias,
+          })
+          .select("id")
+          .single()
+        if (error) throw error
+        if (ledger.open.length) {
+          const { error: e1 } = await supabase.from("staff_order_pay").insert(ledger.open.map((r) => ({ staff_member_id: body.id, order_id: r.orderId, settlement_id: settlement.id, event_date: r.date, heads: r.heads, cents: r.cents })))
+          if (e1) {
+            await supabase.from("chef_settlements").delete().eq("id", settlement.id)
+            throw e1
+          }
+        }
+        if (reimb.length) {
+          const { error: e2 } = await supabase.from("chef_files").update({ status: "paid", settled_at: now, settlement_id: settlement.id }).in("id", reimb.map((f) => f.id))
+          if (e2) throw e2
+        }
+        await supabase.from("staff_members").update({ last_settled_at: todayL, updated_at: now }).eq("id", body.id)
+        return NextResponse.json({ ok: true, settlementId: settlement.id, parties: ledger.open.length, heads: sumHeads(ledger.open), payCents: pay, reimbCents, netCents: net })
+      }
       case "settle_reviews": {
         // 好评奖励每月一结（2026-09-28 用户定）：把没结过的逐条扫成一张
         // 独立对账单，不掺工钱和代收。月底点一次；每条都带原文链接可查。
@@ -1033,6 +1133,8 @@ export async function POST(request: NextRequest) {
           await supabase.from("chef_settlements").update({ token: null, note: "已撤销（链接已作废）" }).eq("id", sid)
           await supabase.from("chef_review_bonuses").update({ settlement_id: null, settled_at: null }).eq("settlement_id", sid)
           await supabase.from("chef_files").update({ status: "approved", settled_at: null, settlement_id: null }).eq("settlement_id", sid).eq("status", "paid")
+          // 后勤周结：那批单回到待结。
+          await supabase.from("staff_order_pay").delete().eq("settlement_id", sid)
           return NextResponse.json({ ok: true })
         }
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
@@ -1111,11 +1213,11 @@ export async function POST(request: NextRequest) {
         // so a chef with settled shifts or settlements is refused: 停用 instead.
         if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
         const { data: s } = await supabase.from("staff_members").select("id").eq("id", body.id).maybeSingle()
-        if (!s) return NextResponse.json({ error: "厨师不存在" }, { status: 404 })
+        if (!s) return NextResponse.json({ error: "员工不存在" }, { status: 404 })
         const { count: settledShifts } = await supabase.from("order_staff_assignments").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id).not("settled_at", "is", null)
         const { count: settlements } = await supabase.from("chef_settlements").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id)
         if ((settledShifts ?? 0) > 0 || (settlements ?? 0) > 0) {
-          return NextResponse.json({ error: "这位厨师有结算记录，不能删除；把状态改成「停用」即可" }, { status: 409 })
+          return NextResponse.json({ error: "这位员工有结算记录，不能删除；把状态改成「停用」即可" }, { status: 409 })
         }
         const { data: files } = await supabase.from("chef_files").select("storage_path").eq("staff_member_id", s.id)
         const paths = (files ?? []).map((f) => f.storage_path as string | null).filter((p): p is string => !!p)

@@ -34,7 +34,7 @@ import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnrepl
 // The old /admin/leads, /admin/orders, /admin/channels URLs redirect here.
 
 type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "customers" | "reviews" | "warehouse" | "cal" | "settings"
-const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "厨师", customers: "客户", reviews: "好评", warehouse: "仓库", cal: "日历", settings: "设置" }
+const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "员工", customers: "客户", reviews: "好评", warehouse: "仓库", cal: "日历", settings: "设置" }
 const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files"])
 
 type SearchHit = {
@@ -224,7 +224,7 @@ export default function Workbench() {
     ["leads", <>线索{pendingCount ? <span className="wb-badge">{pendingCount}</span> : null}</>],
     ["orders", <>订单{changedCount ? <span className="wb-badge">{changedCount}</span> : null}</>],
     ["planner", <>Planner{data.planner.liveCount ? <span className="wb-live" title={`${data.planner.liveCount} 人正在操作 Planner`} /> : null}</>],
-    ["chefs", <>厨师{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
+    ["chefs", <>员工{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
     ["customers", "客户"],
     ["reviews", "好评"],
     ["warehouse", "仓库"],

@@ -55,11 +55,21 @@ export function shiftNet(s: ShiftRow): number {
   return (s.paySettledAt ? 0 : s.payCents) + s.tablesCents + s.travelCents + s.cardTipCents - s.cashCents
 }
 
+/** 员工分类：厨师上门做饭，后勤备货（按订单人头结，不派单）。 */
+export type StaffRole = "chef" | "logistics"
+export const ROLE_LABELS: Record<StaffRole, string> = { chef: "厨师", logistics: "后勤" }
+/** 后勤的一单：人头 = 大人 + 收费小孩 × 0.5（免费小孩不计）。 */
+export type LogisticsRow = { orderId: string; orderNo: string | null; date: string; customer: string | null; adults: number; kids: number; littles: number; heads: number; cents: number }
+export type LogisticsLedger = { perHeadCents: number; startDate: string; open: LogisticsRow[]; upcoming: LogisticsRow[] }
+
 export type ChefSummary = {
   id: string
   name: string
   phone: string | null
   status: string
+  role: StaffRole
+  /** 只有后勤有：到今天为止办了、还没结的单。 */
+  logi: { openCents: number; openParties: number; openHeads: number } | null
   rate: ChefRate | null
   skills: string[]
   areas: string[]
@@ -90,6 +100,8 @@ export type ChefRecord = {
   full_name: string | null
   display_name: string | null
   staff_type: string | null
+  role?: StaffRole | null
+  pay_start_date?: string | null
   status: string
   email: string | null
   phone: string | null
@@ -121,7 +133,7 @@ export type Settlement = { id: string; period_start: string | null; period_end: 
 export type AssetRow = { id: string; item_key: string; label: string; qty: number; size: string | null; issued_on: string; returned_on: string | null; condition: string | null; unit_cost_cents: number | null; note: string | null; created_by: string | null }
 /** 客人在 Google/Yelp 留的好评（搜师傅名字搜到的），一条一档：无图 $2、带图 $3。 */
 export type ReviewBonus = { id: string; platform: "google" | "yelp" | "other"; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url: string | null; review_id?: string | null; cents: number; settlement_id: string | null; settled_at: string | null; created_at: string }
-export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; reviews?: ReviewBonus[]; today: string; sensitive?: boolean }
+export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; reviews?: ReviewBonus[]; logistics?: LogisticsLedger; today: string; sensitive?: boolean }
 
 export type MediaItem = {
   id: string

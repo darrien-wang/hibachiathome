@@ -883,7 +883,7 @@ export function OrderDialog({
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 {chefs
-                  .filter((c) => c.status === "active" || (team ?? []).includes(c.id))
+                  .filter((c) => (c.status === "active" && c.role !== "logistics") || (team ?? []).includes(c.id))
                   .map((c) => {
                     const on = (team ?? []).includes(c.id)
                     const dayLoad = ev ? c.shifts.filter((s) => s.date === ev.ymd && s.orderId !== o.id).length : 0
@@ -894,7 +894,7 @@ export function OrderDialog({
                       </Chip>
                     )
                   })}
-                {chefs.length === 0 ? <span style={{ color: "var(--color-neutral-600)" }}>还没有厨师，去"厨师"页添加。</span> : null}
+                {chefs.length === 0 ? <span style={{ color: "var(--color-neutral-600)" }}>还没有厨师，去"员工"页添加。</span> : null}
               </div>
               {teamDirty ? (
                 <div style={{ display: "flex", gap: 6 }}>

@@ -7,11 +7,12 @@ import { askConfirm, askPrompt } from "./ask"
 import { addDays, copyText, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
 import { FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
+import { LogisticsSettle } from "./LogisticsSettle"
 import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
 import { assetRank } from "@/lib/staff-assets"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
-// 厨师弹窗 · 场次 / 资料·工价 / 评价·准时 / 证件·报税 / 结算 / 文件.
+// 员工弹窗（厨师；后勤只有 资料 / 证件 / 结算 / 文件，结算页是 LogisticsSettle）· 场次 / 资料·工价 / 评价·准时 / 证件·报税 / 结算 / 文件.
 // Reads /api/admin/chefs?id=, writes through its POST actions. 净额 = 工钱 +
 // 报销 − 代收；正数我们欠他，负数他欠我们。
 
@@ -88,7 +89,9 @@ export function ChefDialog({
       const r = await adminJson<ChefDetail & { ok: boolean }>(adminKey, `/api/admin/chefs?id=${encodeURIComponent(chefId)}`)
       setD(r)
       const c = r.chef
-      setProfile({ display_name: c.display_name ?? c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String((c.base_pay_cents ?? 0) / 100), head_from: String(c.head_from ?? 0), per_head: String((c.per_head_cents ?? 0) / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status })
+      setProfile({ display_name: c.display_name ?? c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String((c.base_pay_cents ?? 0) / 100), head_from: String(c.head_from ?? 0), per_head: String((c.per_head_cents ?? 0) / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status, role: c.role ?? "chef", pay_start_date: c.pay_start_date ?? "" })
+      // 后勤没有场次和评价这两页。
+      if (c.role === "logistics") setTab((t) => (t === "shifts" || t === "perf" ? (r.sensitive === false ? "profile" : "settle") : t))
       setSkills(c.skills ?? [])
       setAreas(c.areas ?? [])
       setDocs({ food_handler_no: c.food_handler_no ?? "", food_handler_exp: c.food_handler_exp ?? "", id_type: c.id_type ?? "", id_last4: c.id_last4 ?? "", id_exp: c.id_exp ?? "", tax_form: c.tax_form ?? "W-9", tax_legal_name: c.tax_legal_name ?? "", tax_id_last4: c.tax_id_last4 ?? "", tax_address: c.tax_address ?? "" })
@@ -118,6 +121,7 @@ export function ChefDialog({
   }
 
   const c = d?.chef
+  const isLogi = c?.role === "logistics"
   const name = c ? (c.display_name ?? c.full_name ?? "").trim() || "未命名" : "…"
   const shifts = useMemo(() => (d?.shifts ?? []).filter((s) => s.orderStatus !== "cancelled"), [d])
   const upcoming = shifts.filter((s) => s.date >= today).length
@@ -176,12 +180,12 @@ export function ChefDialog({
     post("profile", {
       action: "update_profile",
       id: chefId,
-      fields: { display_name: profile.display_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas },
+      fields: { display_name: profile.display_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas, role: profile.role, ...(profile.role === "logistics" ? { pay_start_date: profile.pay_start_date } : {}) },
     }, "已保存")
   const saveDocs = () => post("docs", { action: "update_docs", id: chefId, fields: docs }, "已保存")
   // Not through post(): the dialog has nothing to reload once the chef is gone.
   const deleteChef = async () => {
-    if (!(await askConfirm({ title: "删除厨师", message: `删掉「${name}」？派单、文件、评价会一起删除，不可恢复。有结算记录的厨师删不了，只能停用。`, okLabel: "删除", danger: true }))) return
+    if (!(await askConfirm({ title: "删除员工", message: `删掉「${name}」？派单、文件、评价会一起删除，不可恢复。有结算记录的员工删不了，只能停用。`, okLabel: "删除", danger: true }))) return
     setBusy("delete")
     setMsg(null)
     try {
@@ -203,6 +207,19 @@ export function ChefDialog({
     if (method === null) return
     const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
+  }
+  // 后勤周结：到今天为止办了的单 × 人头单价 + 已批准的报销。
+  const settleLogistics = async () => {
+    const open = d?.logistics?.open ?? []
+    if (open.length === 0 && approvedReimb.length === 0) return
+    const total = open.reduce((a, r) => a + r.cents, 0) + reimbTotal
+    const method = await askPrompt({ title: "结清本期", message: `付给 ${name} ${money(total)}：${open.length} 单${approvedReimb.length ? ` + ${approvedReimb.length} 张报销` : ""}。`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "现金", okLabel: "结清" })
+    if (method === null) return
+    await post("settle", { action: "settle_logistics", id: chefId, method }, "本期已结清")
+  }
+  const unsettleLogistics = async (sid: string) => {
+    if (!(await askConfirm({ title: "撤销这次结算", message: "这批单（和跟着结掉的报销）回到待结。钱要是已经付了，自己记得对一下。", okLabel: "撤销", danger: true }))) return
+    await post("settle", { action: "unsettle", settlement_id: sid }, "已撤销——这批单回到待结")
   }
   // 好评奖励每月一结：单独出一张对账单，不掺周结的工钱代收。
   const settleReviews = async () => {
@@ -430,7 +447,7 @@ export function ChefDialog({
         tags={
           c ? (
             <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-              {(c.areas ?? []).join(" / ") || "区域未填"} · 接下来 {upcoming} 场 · 本月已办 {monthDone} 场{c.status !== "active" ? " · 已停用" : ""}
+              {isLogi ? <>后勤 · 按订单人头结{d?.logistics ? ` · 待结 ${d.logistics.open.length} 单` : ""}</> : <>{(c.areas ?? []).join(" / ") || "区域未填"} · 接下来 {upcoming} 场 · 本月已办 {monthDone} 场</>}{c.status !== "active" ? " · 已停用" : ""}
             </span>
           ) : null
         }
@@ -445,7 +462,7 @@ export function ChefDialog({
         onClose={onClose}
       />
       <div style={{ display: "flex", padding: "0 20px", borderBottom: "2px solid var(--color-divider)", overflowX: "auto" }}>
-        {TABS.filter(([k]) => !hiddenTab(k)).map(([k, label]) => (
+        {TABS.filter(([k]) => !hiddenTab(k) && !(isLogi && (k === "shifts" || k === "perf"))).map(([k, label]) => (
           <button key={k} type="button" className="wb-tab" aria-current={tab === k ? "page" : undefined} onClick={() => setTab(k)} style={{ marginRight: 20 }}>
             {k === "profile" && !sensitive ? "资料" : label}
             {k === "files" && pendingReceipts.length ? <span className="wb-badge">{pendingReceipts.length}</span> : null}
@@ -525,7 +542,21 @@ export function ChefDialog({
                 </Field>
               </div>
             </div>
-{sensitive ? (
+{sensitive && isLogi ? (
+            <div>
+              <Kicker>工价配置 · 按订单人头</Kicker>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Field label="每人头 $">
+                  <input className="input" type="number" value={profile.per_head ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, per_head: e.target.value })} />
+                </Field>
+                <Field label="从哪天的单开始算">
+                  <input className="input" type="date" value={profile.pay_start_date ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, pay_start_date: e.target.value })} />
+                </Field>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>每一场办了的派对：大人算 1、收费小孩算 0.5、免费小孩不计。27 个大人的单 = {money(27 * (Math.round(Number(profile.per_head) * 100) || 0))}。每周日结一次。</div>
+            </div>
+) : null}
+{sensitive && !isLogi ? (
             <div>
               <Kicker>工价配置</Kicker>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
@@ -545,7 +576,7 @@ export function ChefDialog({
             </div>
 ) : null}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-{sensitive ? (
+{sensitive && !isLogi ? (
               <Field label="结算周期">
                 <select className="input" value={profile.billing_cycle ?? "weekly"} disabled={!owner} onChange={(e) => setProfile({ ...profile, billing_cycle: e.target.value })}>
                   {Object.entries(BILLING_LABELS).map(([k, l]) => (
@@ -560,6 +591,12 @@ export function ChefDialog({
                 <select className="input" value={profile.status ?? "active"} disabled={!owner} onChange={(e) => setProfile({ ...profile, status: e.target.value })}>
                   <option value="active">在职</option>
                   <option value="inactive">停用</option>
+                </select>
+              </Field>
+              <Field label="岗位">
+                <select className="input" value={profile.role ?? "chef"} disabled={!owner} onChange={(e) => setProfile({ ...profile, role: e.target.value })}>
+                  <option value="chef">厨师</option>
+                  <option value="logistics">后勤</option>
                 </select>
               </Field>
             </div>
@@ -605,7 +642,7 @@ export function ChefDialog({
                   {busy === "profile" ? "保存中…" : "保存修改"}
                 </button>
                 <button type="button" className="btn btn-ghost btn-sm" style={{ marginLeft: "auto", color: "var(--color-accent-700)" }} disabled={!!busy} onClick={() => void deleteChef()}>
-                  {busy === "delete" ? "删除中…" : "删除厨师"}
+                  {busy === "delete" ? "删除中…" : "删除员工"}
                 </button>
               </div>
             ) : null}
@@ -775,7 +812,10 @@ export function ChefDialog({
           </>
         ) : null}
 
-        {d && c && tab === "settle" ? (
+        {d && c && tab === "settle" && isLogi && d.logistics ? (
+          <LogisticsSettle ledger={d.logistics} settlements={d.settlements ?? []} approvedReimb={approvedReimb} lastSettledAt={c.last_settled_at} owner={owner} busy={!!busy} onSettle={() => void settleLogistics()} onUnsettle={(sid) => void unsettleLogistics(sid)} onOpenOrder={onOpenOrder} />
+        ) : null}
+        {d && c && tab === "settle" && !isLogi ? (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <Kicker style={{ margin: 0 }}>本期结算 · {BILLING_LABELS[c.billing_cycle] ?? c.billing_cycle}</Kicker>
