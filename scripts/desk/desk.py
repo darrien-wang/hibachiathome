@@ -135,6 +135,13 @@ def render_card(c: dict) -> None:
         if stats.get("quiet"):
             flags.append("不响铃(致谢/挂起/已标不用回)")
         print(f"   日期线索: {hint.get('date') or '-'} | 首响: {pt(lead.get('first_response_at'))} | {' | '.join(flags) or '无挂起'} | id {lead.get('id')}")
+        # Our hold ran out and they never spoke since: dormant, not due (leads §4.2). 10-11 two
+        # leads the 09-27 review had stopped got one more text each because the card said nothing.
+        if stats.get("hold") == "dormant":
+            print(f"   💤 休眠：挂起 {pt(lead.get('hold_until'))} 已到期，之后客人没说过话 → 不再主动发（leads §4.2 停），他开口立即接")
+        if stats.get("hold") in ("active", "dormant"):
+            for t in c.get("holdNotes") or []:
+                print(f"   ⏸ 挂起理由 {pt(t.get('at'))} {t.get('note', '')[:160]}")
         # 61+ never gets the machine's second text (lib/first-response.ts large_party): until a
         # person texts, nobody has spoken to them. 10-10 a 150-guest lead sat 62 minutes because
         # the desk assumed the machine had it.

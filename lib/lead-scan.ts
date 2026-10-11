@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { courtesyOnly, isTapback } from "@/lib/courtesy-text"
 import { HINT_TYPES, hintFromRows, type HintRow } from "@/lib/lead-event-hint"
-import { loadQuiet } from "@/lib/lead-hold"
+import { holdState, loadQuiet } from "@/lib/lead-hold"
 import { fetchLastByPeer, toE164, type LastByPeer } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { getCityTravel } from "@/config/city-travel"
@@ -272,7 +272,8 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04).
     if (tw?.lastOutAt && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
 
-    const holdActive = Boolean(lead.hold_until && Date.parse(lead.hold_until) > now && !(lastCustomerAt && lead.hold_set_at && lastCustomerAt > lead.hold_set_at))
+    const hold = holdState(lead, lastCustomerAt, now)
+    const holdActive = hold === "active"
     const callbackNote = [...notes].reverse().find((n) => /^\s*\[callback\]/i.test(n.note)) ?? null
     const hint = hintFromRows([...tps].reverse().filter((t) => HINT_TYPES.includes(t.touchpoint_type)) as HintRow[])
     const eventDate = hint && /^\d{4}-\d{2}-\d{2}$/.test(hint.date) ? hint.date : null
@@ -369,6 +370,14 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     } else if (callbackNote && (!lastCustomerAt || lastCustomerAt <= callbackNote.at)) {
       bucket = "B"
       reason = `承诺到期：${callbackNote.note.replace(/^\s*\[callback\]\s*/i, "").slice(0, 90)}`
+    } else if (hold === "dormant") {
+      // Our own hold ran out and they never spoke since: dormant, not due
+      // (lib/lead-hold.ts holdState). Before E too - a party date getting close
+      // is not news from them (f_deadline needs some). A revisit or a deposit
+      // page open still lands in C above.
+      bucket = "H"
+      reason = `休眠：挂起 ${lead.hold_until!.slice(0, 10)} 到期，之后客人没说过话——不再主动发，他开口立即接`
+      nextActionAt = null
     } else if (daysToEvent !== null && daysToEvent >= 0 && daysToEvent <= 7) {
       bucket = "E"
       reason = `派对 ${eventDate} 还有 ${daysToEvent} 天，没付押金${run >= CAP ? "（已满 3 条，要 force，先给老板看）" : ""}`

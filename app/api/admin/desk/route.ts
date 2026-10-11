@@ -5,7 +5,7 @@ import { isTapback, notAQuestion } from "@/lib/courtesy-text"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { computeInbox, type InboxEvent } from "@/lib/inbox"
 import { loadLeadEventHint, type LeadEventHint } from "@/lib/lead-event-hint"
-import { loadQuiet } from "@/lib/lead-hold"
+import { holdState, loadQuiet } from "@/lib/lead-hold"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { fetchSmsThreads, toE164, type SmsMessage } from "@/lib/sms-thread"
 import { createServerSupabaseClient } from "@/lib/supabase"
@@ -188,6 +188,18 @@ async function buildCard(
     .filter((t) => TAG.test(t.note))
     .slice(0, 8)
   const calls = touchpoints.filter((t) => t.touchpoint_type === "call_inbound").map((t) => t.occurred_at).slice(0, 3)
+  // Why we held it: the notes written with the hold (the 09-27 pool review put
+  // "don't chase" there, untagged, so the card never showed it and two of those
+  // leads got one more text when the hold ran out, 2026-10-11). The hold
+  // dialog's stock line says nothing and is left out.
+  const setAt = lead?.hold_set_at ? Date.parse(lead.hold_set_at) : NaN
+  const holdNotes = Number.isFinite(setAt)
+    ? touchpoints
+        .filter((t) => t.touchpoint_type === "agent_note" && Math.abs(Date.parse(t.occurred_at) - setAt) <= 5 * 60_000)
+        .map((t) => ({ at: t.occurred_at, note: String(t.raw_payload_json?.note ?? "") }))
+        .filter((t) => t.note && !/^等客户回 · /.test(t.note))
+        .slice(0, 3)
+    : []
   // Emails on the lead (support@ in via the Gmail script, out via desk email), newest last.
   const emails = touchpoints
     .filter((t) => t.touchpoint_type === "email_inbound" || t.touchpoint_type === "email_outbound")
@@ -242,6 +254,12 @@ async function buildCard(
   const lastOutbound = [...thread].reverse().find((m) => m.direction === "outbound") ?? null
   const lastRealInbound = [...thread].reverse().find((m) => m.direction === "inbound" && (m.media > 0 || !notAQuestion(m.body ?? ""))) ?? null
   const judged = lastRealInbound && (!lastOutbound || lastRealInbound.at > lastOutbound.at) ? lastRealInbound : lastInbound
+  // Their latest word in any form - a text, a call, a form after our first reply.
+  const lastCustomerAt =
+    [lastInbound?.at ?? null, calls[0] ?? null, lastForm && firstResponseAt && lastForm.at > firstResponseAt ? lastForm.at : null]
+      .filter((x): x is string => Boolean(x))
+      .sort((a, b) => Date.parse(a) - Date.parse(b))
+      .pop() ?? null
 
   return {
     key: lead ? `lead:${lead.id}` : phone ? `phone:${phone}` : `order:${input.orderId}`,
@@ -266,6 +284,7 @@ async function buildCard(
           created_at: lead.created_at,
           first_response_at: firstResponseAt,
           hold_until: lead.hold_until,
+          hold_set_at: lead.hold_set_at,
           acked_until: lead.acked_until,
           sms_blocked_at: lead.sms_blocked_at,
           event_hint: hint,
@@ -275,6 +294,7 @@ async function buildCard(
       : null,
     phone,
     tags,
+    holdNotes,
     calls,
     emails,
     // Lines that are not a message: pre-party contact flags from lead-watch.
@@ -290,6 +310,8 @@ async function buildCard(
       unansweredRun,
       ourLast24h,
       onHold: Boolean(lead?.hold_until && Date.parse(lead.hold_until) > now && !(lastInbound && lead.hold_set_at && Date.parse(lastInbound.at) > Date.parse(lead.hold_set_at))),
+      // dormant = our hold ran out and they have not spoken since (lib/lead-hold.ts).
+      hold: lead ? holdState(lead, lastCustomerAt, now) : "none",
       quiet: judged ? quiet.quiet(phone, Date.parse(judged.at), judged.media > 0 ? undefined : judged.body) : false,
     },
   }

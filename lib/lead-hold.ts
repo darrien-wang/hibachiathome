@@ -118,3 +118,38 @@ export async function loadQuiet(supabase: SupabaseClient, now = Date.now()): Pro
     },
   }
 }
+
+// ============================================================
+// 挂起到期之后算什么（leads skill §4.2「停」：第 3 条之后挂 2 周 → dormant，不再
+// 主动发，他一开口立即接）。
+//
+// 以前到期就当没挂过：扫描按"沉默 N 小时、第 N 条到期"把它放回 D，模板句直发。
+// 10-11 就这么给两条 09-27 全池梳理已经停掉的线索各多发了一条——323-627-8188
+// （电话型客人，"按自己节奏回来，不追"）和 780-289-7363（已发 7 条）；第二天
+// 650-823-0090 也要到期，备注里是老板 09-28 的"不管了"。
+//
+// 客人自设节奏（[callback]）到期是另一回事：那是"他说的那天到了，接着问"，扫描在
+// 这之前就分进 B。这里只管我们自己挂的。
+// ============================================================
+
+export type HoldState = "active" | "dormant" | "none"
+
+/**
+ * - active：还挂着
+ * - dormant：挂过、已到期、客人从挂起那一刻起没再说过话 → 休眠，不再主动发
+ * - none：没挂过，或者客人挂起之后说过话（挂起作废，水位线同 onHold）
+ * 没有 hold_set_at 的老数据判不出客人后来说没说过话，按 none 走。
+ */
+export function holdState(
+  lead: { hold_until: string | null; hold_set_at: string | null },
+  lastCustomerAt: string | null,
+  now = Date.now(),
+): HoldState {
+  const until = lead.hold_until ? Date.parse(lead.hold_until) : NaN
+  if (!Number.isFinite(until)) return "none"
+  const setAt = lead.hold_set_at ? Date.parse(lead.hold_set_at) : NaN
+  const spoke = lastCustomerAt ? Date.parse(lastCustomerAt) : NaN
+  if (Number.isFinite(setAt) && Number.isFinite(spoke) && spoke > setAt) return "none"
+  if (until > now) return "active"
+  return Number.isFinite(setAt) ? "dormant" : "none"
+}
