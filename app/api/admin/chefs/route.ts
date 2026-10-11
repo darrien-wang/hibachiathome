@@ -342,6 +342,14 @@ export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
 
+  // 订单弹窗的"备货负责人"：这一单勾给了哪位后勤，结过没有。
+  const logiOrder = request.nextUrl.searchParams.get("logi_order")
+  if (logiOrder) {
+    if (!/^[0-9a-f-]{36}$/i.test(logiOrder)) return NextResponse.json({ error: "bad order id" }, { status: 400 })
+    const { data: marks } = await supabase.from("staff_order_pay").select("staff_member_id, settlement_id").eq("order_id", logiOrder)
+    return NextResponse.json({ ok: true, owners: (marks ?? []).map((m) => ({ staffId: String(m.staff_member_id), settled: !!m.settlement_id })) })
+  }
+
   const fileId = request.nextUrl.searchParams.get("file")
   if (fileId) {
     const { data: f } = await supabase.from("chef_files").select("storage_path, kind").eq("id", fileId).maybeSingle()
@@ -457,7 +465,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -1028,6 +1036,28 @@ export async function POST(request: NextRequest) {
           tipCents: tip,
           netCents: net,
         })
+      }
+      case "set_logistics_owner": {
+        // 订单弹窗里选"这单谁备货"：一单一个负责人。换人 = 把别人没结的勾去掉、给新的人勾上；
+        // 选"未定" = 全去掉。已经结给别人的不动（钱付过了），直接拒绝。
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        const next = isUuid(body.staff_member_id) ? body.staff_member_id : null
+        const { data: cur } = await supabase.from("staff_order_pay").select("staff_member_id, settlement_id").eq("order_id", body.order_id)
+        const paidElse = (cur ?? []).find((m) => m.settlement_id && m.staff_member_id !== next)
+        if (paidElse) return NextResponse.json({ error: "这一单的备货工钱已经结给别人了，先到那位员工的结算记录里撤销再换人。" }, { status: 409 })
+        if (next) {
+          const { data: st } = await supabase.from("staff_members").select("id, role").eq("id", next).maybeSingle()
+          if (!st || st.role !== "logistics") return NextResponse.json({ error: "选的不是后勤员工" }, { status: 400 })
+        }
+        let del = supabase.from("staff_order_pay").delete().eq("order_id", body.order_id).is("settlement_id", null)
+        if (next) del = del.neq("staff_member_id", next)
+        const { error: e0 } = await del
+        if (e0) throw e0
+        if (next) {
+          const { error } = await supabase.from("staff_order_pay").upsert({ staff_member_id: next, order_id: body.order_id }, { onConflict: "staff_member_id,order_id", ignoreDuplicates: true })
+          if (error) throw error
+        }
+        return NextResponse.json({ ok: true })
       }
       case "mark_logistics": {
         // 勾 / 取消"这一单是她做的"。结过的单不动。

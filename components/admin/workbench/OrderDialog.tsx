@@ -270,6 +270,25 @@ export function OrderDialog({
     return () => { alive = false }
   }, [adminKey, orderId, detail?.order?.event_address])
 
+  // （hooks 要在下面 `if (!o) return` 之前。）
+  // 备货负责人：这一单哪位后勤备货。和员工 → 结算页的勾是同一份数据（staff_order_pay），
+  // 备货单上印这个名字，人头工钱也算给他。
+  const logiStaff = chefs.filter((c) => c.role === "logistics" && c.status === "active")
+  const [logiOwner, setLogiOwner] = useState<{ staffId: string; settled: boolean } | null | undefined>(undefined)
+  useEffect(() => {
+    let dead = false
+    setLogiOwner(undefined)
+    void adminJson<{ owners: Array<{ staffId: string; settled: boolean }> }>(adminKey, `/api/admin/chefs?logi_order=${orderId}`)
+      .then((r) => {
+        if (!dead) setLogiOwner(r.owners[0] ?? null)
+      })
+      .catch(() => {
+        if (!dead) setLogiOwner(null)
+      })
+    return () => {
+      dead = true
+    }
+  }, [adminKey, orderId])
   const o = detail?.order ?? orders.find((x) => x.id === orderId) ?? null
   const openReqs = (detail?.updateRequests ?? []).filter((r) => OPEN_REQUEST.has(r.status))
   // One card, not one per edit (owner 2026-09-28). A customer who opens the
@@ -469,6 +488,20 @@ export function OrderDialog({
   // 备料单：给后勤（张阿姨）打印的那张——只有这一单要放进保温箱的东西，大字中文，
   // 没有客户信息和价格（老板 2026-10-11：不要单独一个页签，一个按钮点开就能打印）。
   // 窗口要在点击当下就开，等接口回来再开会被浏览器当弹窗拦掉。
+  const saveLogiOwner = async (staffId: string) => {
+    setBusy("logi")
+    setMsg(null)
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "set_logistics_owner", order_id: orderId, staff_member_id: staffId || null } })
+      if (!r.ok) throw new Error(r.error ?? "没存上")
+      setLogiOwner(staffId ? { staffId, settled: false } : null)
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "备货负责人没存上")
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const openCoolerSheet = async () => {
     const w = window.open("", "_blank")
     setBusy("cooler")
@@ -745,6 +778,22 @@ export function OrderDialog({
               <button type="button" className="btn btn-secondary btn-left" disabled={busy === "cooler"} onClick={() => void openCoolerSheet()} title="给后勤打印：这一单要放进保温箱的东西，大字中文，没有客户信息和价格">
                 {busy === "cooler" ? "打开中…" : "备料单（打印）"}
               </button>
+              {logiStaff.length > 0 || logiOwner ? (
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, whiteSpace: "nowrap" }} title="这一单哪位后勤备货：备料单上印这个名字，人头工钱也算给他">
+                  备货负责人
+                  <select className="input" style={{ width: "auto", minWidth: 110, padding: "6px 8px" }} value={logiOwner?.staffId ?? ""} disabled={viewerRole !== "owner" || logiOwner === undefined || !!logiOwner?.settled || busy === "logi"} onChange={(e) => void saveLogiOwner(e.target.value)}>
+                    <option value="">未定</option>
+                    {chefs
+                      .filter((c) => c.role === "logistics" && (c.status === "active" || c.id === logiOwner?.staffId))
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
+                  {logiOwner?.settled ? <span style={{ color: "var(--color-neutral-600)" }}>已结</span> : null}
+                </label>
+              ) : null}
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、路费、报价一律在专业表单里算和改，保存后这里自动同步。</div>
           </div>
