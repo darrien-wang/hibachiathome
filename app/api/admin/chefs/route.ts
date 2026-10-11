@@ -129,7 +129,9 @@ async function invoiceTaxFor(orderId: string, ord: { quoted_total_cents?: number
 const ptToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
 
 // event_start 是墙上时间按 UTC 存的，所以"现在"也要换成 PT 墙上时间再比，
-// 否则会差 7 小时。派对结束 = 开席 + 时长（没填按 2 小时）+ 30 分钟收拾。
+// 否则会差 7 小时。"办了" = 开席满 1 小时（2026-10-10 老板：7 点的台 8:45 已经
+// 炒完收了钱，页面还按"开席 + 时长 + 30 分钟"= 9:30 之前都叫"还没办 / 提前结算"）。
+// 开席一小时后这台就是当天的场，怎么收的钱老板已经知道了。
 const ptNowWall = () => {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
@@ -142,7 +144,7 @@ function partyEndedAt(o: OrderLite): string | null {
   if (!o.event_start) return null
   const ms = Date.parse(o.event_start)
   if (!Number.isFinite(ms)) return null
-  return new Date(ms + ((o.service_duration_minutes ?? 120) + 30) * 60_000).toISOString().slice(0, 16)
+  return new Date(ms + 60 * 60_000).toISOString().slice(0, 16)
 }
 const eventYmd = (iso: string | null) => (iso ? iso.slice(0, 10) : "")
 const rateOf = (s: Staff): ChefRate => ({ base_pay_cents: Number(s.base_pay_cents ?? 0), head_from: Number(s.head_from ?? 16), per_head_cents: Number(s.per_head_cents ?? 0) })

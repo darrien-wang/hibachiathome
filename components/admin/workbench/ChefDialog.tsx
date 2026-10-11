@@ -230,8 +230,13 @@ export function ChefDialog({
   // 周六晚结账时师傅明天还有一台：提前结算 = 按"师傅代收现金"把整场
   // 结进本期（工钱+桌椅+路费 − 代收尾款），2026-09-28 用户定。办完如果
   // 实际是刷卡，回来撤销这场重记。
+  // 这场师傅该代收多少：订单还挂着尾款就是尾款；尾款已经登记过了（点过一次
+  // 现金代收、又改回待确认——订单那头的"已收"不会跟着撤），就是上次记的那个数。
+  // 2026-10-10：Gary / Maribel 那台第二次点时尾款是 0，页面反过来问老板收了多少。
+  const cashDueOf = (s: ShiftRow) => ((s.balanceDueCents ?? 0) > 0 ? (s.balanceDueCents ?? 0) : s.cashCents ?? 0)
+
   const settleAhead = async (s: ShiftRow) => {
-    const due = s.balanceDueCents ?? 0
+    const due = cashDueOf(s)
     let cash: number
     if (due > 0) {
       if (!(await askConfirm({ title: "提前结算", message: `${s.customer ?? ""} ${md(s.date)} 还没办，按“师傅代收现金 ${money(due)}”确认，并入本期和其它场一起结清互抵。订单同步登记为已收；办完若实际是刷卡，点行里的方式改回。`, okLabel: "并入本期" }))) return
@@ -249,7 +254,7 @@ export function ChefDialog({
     if (m === "cash") {
       // 师傅代收的就是尾款，不用问金额（2026-09-28 用户定）。尾款未知才手输；
       // 事后要改数点"代收"那一格。
-      const due = s.balanceDueCents ?? 0
+      const due = cashDueOf(s)
       let cash: number
       if (due > 0) {
         if (!(await askConfirm({ title: METHOD_LABELS.cash, message: `${s.customer ?? ""} ${md(s.date)}：代收 = 应收尾款 $${(due / 100).toFixed(2)}，记录？订单会同步登记为已收。`, okLabel: "记录" }))) return
