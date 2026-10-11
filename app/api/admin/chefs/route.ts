@@ -4,7 +4,7 @@ import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { partyHeadCounts } from "@/lib/party-heads"
-import { logisticsOpenRows, sumCents, sumHeads, type LogisticsOrder } from "@/lib/logistics-pay"
+import { logisticsLedgerRows, sumCents, sumHeads, type LogisticsOrder } from "@/lib/logistics-pay"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 // 员工（厨师 + 后勤）· 名单、派单、表现、文件、结算。
-// staff_members.role：chef 走下面这一整套；logistics（备货）不派单，工钱按
-// 起算日之后每一场办了的派对的人头算（lib/logistics-pay.ts），每周日结。
+// staff_members.role：chef 走下面这一整套；logistics（备货，兼职）不派单，
+// 她做了哪几单逐单勾（mark_logistics），勾上的单按人头算（lib/logistics-pay.ts），每周日结。
 //   GET                    -> { chefs: ChefSummary[], assignments: {orderId: [...]}, alertsCount }
 //   GET ?id=<staff uuid>   -> { chef, shifts, performance, files, settlements, assets }
 //   GET ?file=<file uuid>  -> 302 to a signed URL (1 h) of the stored file
@@ -210,17 +210,32 @@ const weekEndOf = (ymd: string) => {
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 6)
   return d.toISOString().slice(0, 10)
 }
-/** 待结（到今天为止办了的）+ 这周还没办的预告。结过的单在 staff_order_pay 里，不再出现。 */
+const addDaysYmd = (ymd: string, n: number) => {
+  const d = new Date(`${ymd}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+/**
+ * 她做的单（staff_order_pay 里有行、还没结）分成可结 / 还没办，外加没勾的候选单
+ * （两周前到下周日）给老板勾。结过的（settlement_id 有值）不再出现。
+ */
 async function loadLogistics(supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>, s: Staff, today: string) {
   const startDate = logiStart(s)
-  const until = weekEndOf(today)
-  const [{ data: orders }, { data: paid }] = await Promise.all([
-    supabase.from("orders").select(LOGI_ORDER_COLUMNS).gte("event_start", startDate).lte("event_start", `${until}T23:59:59`).limit(3000),
-    supabase.from("staff_order_pay").select("order_id").eq("staff_member_id", s.id).limit(10000),
+  const until = addDaysYmd(weekEndOf(today), 7)
+  const since = addDaysYmd(today, -14)
+  const { data: marks } = await supabase.from("staff_order_pay").select("order_id, settlement_id").eq("staff_member_id", s.id).limit(10000)
+  const unpaid = (marks ?? []).filter((m) => !m.settlement_id).map((m) => String(m.order_id))
+  const paid = (marks ?? []).filter((m) => m.settlement_id).map((m) => String(m.order_id))
+  // 候选单按日期窗口取；勾过的单不管多久以前都要带上（忘了结的不能丢）。
+  const [{ data: windowOrders }, { data: markedOrders }] = await Promise.all([
+    supabase.from("orders").select(LOGI_ORDER_COLUMNS).gte("event_start", since).lte("event_start", `${until}T23:59:59`).limit(2000),
+    unpaid.length ? supabase.from("orders").select(LOGI_ORDER_COLUMNS).in("id", unpaid) : Promise.resolve({ data: [] as unknown[] }),
   ])
+  const byId = new Map<string, LogisticsOrder>()
+  for (const o of [...((windowOrders ?? []) as unknown as LogisticsOrder[]), ...((markedOrders ?? []) as unknown as LogisticsOrder[])]) byId.set(o.id, o)
   const perHeadCents = logiRate(s)
-  const { open, upcoming } = logisticsOpenRows((orders ?? []) as unknown as LogisticsOrder[], { perHeadCents, startYmd: startDate, throughYmd: today, untilYmd: until, paidOrderIds: (paid ?? []).map((p) => String(p.order_id)) })
-  return { perHeadCents, startDate, open, upcoming }
+  const { open, upcoming, candidates } = logisticsLedgerRows([...byId.values()], { perHeadCents, todayYmd: today, sinceYmd: since, untilYmd: until, markedOrderIds: unpaid, paidOrderIds: paid })
+  return { perHeadCents, startDate, open, upcoming, candidates }
 }
 
 /**
@@ -442,7 +457,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -1014,9 +1029,21 @@ export async function POST(request: NextRequest) {
           netCents: net,
         })
       }
+      case "mark_logistics": {
+        // 勾 / 取消"这一单是她做的"。结过的单不动。
+        if (!isUuid(body.id) || !isUuid(body.order_id)) return NextResponse.json({ error: "id and order_id required" }, { status: 400 })
+        if (body.on === false) {
+          const { error } = await supabase.from("staff_order_pay").delete().eq("staff_member_id", body.id).eq("order_id", body.order_id).is("settlement_id", null)
+          if (error) throw error
+        } else {
+          const { error } = await supabase.from("staff_order_pay").upsert({ staff_member_id: body.id, order_id: body.order_id }, { onConflict: "staff_member_id,order_id", ignoreDuplicates: true })
+          if (error) throw error
+        }
+        return NextResponse.json({ ok: true })
+      }
       case "settle_logistics": {
-        // 后勤周结（每周日）：到今天为止办了、还没结过的单 × 人头单价，加上已批准的
-        // 报销。一单只结一次——staff_order_pay 的唯一键兜底，重复点不会付两遍。
+        // 后勤周结（每周日）：勾上的、到今天为止办了、还没结过的单 × 人头单价，加上
+        // 已批准的报销。一单只结一次——只认 settlement_id 还空着的行，重复点不会付两遍。
         if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
         const { data: stRow } = await supabase.from("staff_members").select(STAFF_COLUMNS).eq("id", body.id).maybeSingle()
         const st = stRow as unknown as Staff | null
@@ -1054,10 +1081,10 @@ export async function POST(request: NextRequest) {
           .single()
         if (error) throw error
         if (ledger.open.length) {
-          const { error: e1 } = await supabase.from("staff_order_pay").insert(ledger.open.map((r) => ({ staff_member_id: body.id, order_id: r.orderId, settlement_id: settlement.id, event_date: r.date, heads: r.heads, cents: r.cents })))
-          if (e1) {
-            await supabase.from("chef_settlements").delete().eq("id", settlement.id)
-            throw e1
+          // 冻结当时的人头和金额，之后发票再改不影响这次结算。
+          for (const r of ledger.open) {
+            const { error: e1 } = await supabase.from("staff_order_pay").update({ settlement_id: settlement.id, event_date: r.date, heads: r.heads, cents: r.cents }).eq("staff_member_id", body.id).eq("order_id", r.orderId).is("settlement_id", null)
+            if (e1) throw e1
           }
         }
         if (reimb.length) {
@@ -1133,8 +1160,8 @@ export async function POST(request: NextRequest) {
           await supabase.from("chef_settlements").update({ token: null, note: "已撤销（链接已作废）" }).eq("id", sid)
           await supabase.from("chef_review_bonuses").update({ settlement_id: null, settled_at: null }).eq("settlement_id", sid)
           await supabase.from("chef_files").update({ status: "approved", settled_at: null, settlement_id: null }).eq("settlement_id", sid).eq("status", "paid")
-          // 后勤周结：那批单回到待结。
-          await supabase.from("staff_order_pay").delete().eq("settlement_id", sid)
+          // 后勤周结：那批单回到待结（还是勾着的）。
+          await supabase.from("staff_order_pay").update({ settlement_id: null, heads: 0, cents: 0 }).eq("settlement_id", sid)
           return NextResponse.json({ ok: true })
         }
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })

@@ -60,7 +60,8 @@ export type StaffRole = "chef" | "logistics"
 export const ROLE_LABELS: Record<StaffRole, string> = { chef: "厨师", logistics: "后勤" }
 /** 后勤的一单：人头 = 大人 + 收费小孩 × 0.5（免费小孩不计）。 */
 export type LogisticsRow = { orderId: string; orderNo: string | null; date: string; customer: string | null; adults: number; kids: number; littles: number; heads: number; cents: number }
-export type LogisticsLedger = { perHeadCents: number; startDate: string; open: LogisticsRow[]; upcoming: LogisticsRow[] }
+/** open = 勾了且办了（可结）；upcoming = 勾了还没办；candidates = 没勾的单。 */
+export type LogisticsLedger = { perHeadCents: number; startDate: string; open: LogisticsRow[]; upcoming: LogisticsRow[]; candidates: LogisticsRow[] }
 
 export type ChefSummary = {
   id: string
@@ -68,7 +69,7 @@ export type ChefSummary = {
   phone: string | null
   status: string
   role: StaffRole
-  /** 只有后勤有：到今天为止办了、还没结的单。 */
+  /** 只有后勤有：勾给她、办了、还没结的单。 */
   logi: { openCents: number; openParties: number; openHeads: number } | null
   rate: ChefRate | null
   skills: string[]

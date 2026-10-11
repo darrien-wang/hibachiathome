@@ -4,17 +4,19 @@ import { Kicker } from "./ui"
 import { dowZh, md, money, stamp } from "./helpers"
 import type { ChefFile, LogisticsLedger, LogisticsRow, Settlement } from "./chef-types"
 
-// 后勤的结算页：没有代收、小费、桌椅路费，只有"这周办了哪些单 × 人头单价"
-// 加上已批准的报销。每周日结一次；一单只结一次。
+// 后勤的结算页：没有代收、小费、桌椅路费。她是兼职、不是每单都做，所以先在
+// 下面的单子里勾出她做了哪几单；勾上的单 × 人头单价，加上已批准的报销。
+// 每周日结一次；一单只结一次。
 
-const COLS = "96px minmax(0,1fr) 110px 64px 72px"
+const COLS = "22px 92px minmax(0,1fr) 110px 60px 68px"
 const headsText = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 
-function Rows({ rows, onOpenOrder, faded }: { rows: LogisticsRow[]; onOpenOrder: (id: string) => void; faded?: boolean }) {
+function Rows({ rows, checked, canEdit, busy, onToggle, onOpenOrder, faded }: { rows: LogisticsRow[]; checked: boolean; canEdit: boolean; busy: boolean; onToggle: (orderId: string, on: boolean) => void; onOpenOrder: (id: string) => void; faded?: boolean }) {
   return (
     <>
       {rows.map((r) => (
-        <div key={r.orderId} className="wb-row" onClick={() => onOpenOrder(r.orderId)} style={{ display: "grid", gridTemplateColumns: COLS, gap: 8, padding: "8px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", fontSize: 13, opacity: faded ? 0.6 : 1 }}>
+        <div key={r.orderId} className="wb-row" onClick={() => onOpenOrder(r.orderId)} style={{ display: "grid", gridTemplateColumns: COLS, gap: 8, padding: "8px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", fontSize: 13, opacity: faded ? 0.65 : 1 }}>
+          <input type="checkbox" checked={checked} disabled={!canEdit || busy} aria-label={checked ? "不是她做的" : "她做的"} onClick={(e) => e.stopPropagation()} onChange={(e) => onToggle(r.orderId, e.target.checked)} style={{ width: 16, height: 16 }} />
           <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
             {md(r.date)} {dowZh(r.date)}
           </span>
@@ -40,6 +42,7 @@ export function LogisticsSettle({
   lastSettledAt,
   owner,
   busy,
+  onToggle,
   onSettle,
   onUnsettle,
   onOpenOrder,
@@ -50,6 +53,7 @@ export function LogisticsSettle({
   lastSettledAt: string | null
   owner: boolean
   busy: boolean
+  onToggle: (orderId: string, on: boolean) => void
   onSettle: () => void
   onUnsettle: (settlementId: string) => void
   onOpenOrder: (id: string) => void
@@ -59,19 +63,21 @@ export function LogisticsSettle({
   const reimb = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
   const net = pay + reimb
   const upCents = ledger.upcoming.reduce((a, r) => a + r.cents, 0)
+  const rowProps = { canEdit: owner, busy, onToggle, onOpenOrder }
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         <Kicker style={{ margin: 0 }}>本期结算 · 每周日结（周一–周日）</Kicker>
         <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-          每人头 {money(ledger.perHeadCents)} · 大人 1、小孩 0.5 · 从 {md(ledger.startDate)} 起算 · 上次结清 {lastSettledAt ? md(lastSettledAt) : "—"}
+          每人头 {money(ledger.perHeadCents)} · 大人 1、小孩 0.5 · 只算勾上的单 · 上次结清 {lastSettledAt ? md(lastSettledAt) : "—"}
         </span>
       </div>
       <div style={{ borderTop: "2px solid var(--color-divider)" }}>
-        {ledger.open.length === 0 ? <div style={{ padding: "16px 0", fontSize: 13, color: "var(--color-neutral-600)" }}>没有待结的单。</div> : null}
-        <Rows rows={ledger.open} onOpenOrder={onOpenOrder} />
+        {ledger.open.length === 0 ? <div style={{ padding: "16px 0", fontSize: 13, color: "var(--color-neutral-600)" }}>没有待结的单。她做了哪几单，在下面勾上。</div> : null}
+        <Rows rows={ledger.open} checked {...rowProps} />
         {ledger.open.length ? (
           <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 8, padding: "8px 0", fontSize: 13, fontWeight: 700 }}>
+            <span />
             <span>小计</span>
             <span>{ledger.open.length} 单</span>
             <span />
@@ -89,17 +95,22 @@ export function LogisticsSettle({
       {owner ? (
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button type="button" className="btn btn-primary" disabled={busy || (ledger.open.length === 0 && approvedReimb.length === 0)} onClick={onSettle}>
-            {busy ? "结算中…" : net > 0 ? `付 ${money(net)} 并结清` : "没有要结的"}
+            {busy ? "处理中…" : net > 0 ? `付 ${money(net)} 并结清` : "没有要结的"}
           </button>
         </div>
       ) : null}
       {ledger.upcoming.length ? (
         <div>
-          <Kicker>这周还没办 · {ledger.upcoming.length} 单 · 约 {money(upCents)}</Kicker>
+          <Kicker>她做的 · 还没办 · {ledger.upcoming.length} 单 · 约 {money(upCents)}</Kicker>
           <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginBottom: 4 }}>派对办了才进结算；人数以办的那天发票为准。</div>
-          <Rows rows={ledger.upcoming} onOpenOrder={onOpenOrder} faded />
+          <Rows rows={ledger.upcoming} checked faded {...rowProps} />
         </div>
       ) : null}
+      <div>
+        <Kicker>没勾的单 · 她做了就勾上</Kicker>
+        {ledger.candidates.length === 0 ? <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>最近两周到下周日没有别的单了。</div> : null}
+        <Rows rows={ledger.candidates} checked={false} faded {...rowProps} />
+      </div>
       {settlements.length ? (
         <details>
           <summary>结算记录（{settlements.length}）</summary>

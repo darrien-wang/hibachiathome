@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { logisticsOpenRows, logisticsRow, sumCents, sumHeads } from "../lib/logistics-pay"
+import { logisticsLedgerRows, logisticsRow, sumCents, sumHeads } from "../lib/logistics-pay"
 
 const order = (id: string, date: string | null, adults: number, kids = 0, extra: Record<string, unknown> = {}) => ({
   id,
@@ -29,23 +29,31 @@ test("logisticsRow: a paying kid is half a head, a free little is none", () => {
   assert.deepEqual([r.adults, r.kids, r.littles, r.heads, r.cents], [2, 2, 1, 3, 300])
 })
 
-test("logisticsOpenRows: held parties from the start date, each paid once; this week's later ones only previewed", () => {
+test("logisticsLedgerRows: only the orders marked as hers are owed, each paid once", () => {
   const orders = [
-    order("before", "2026-10-04", 30),
+    order("old-unmarked", "2026-09-20", 30),
+    order("old-marked", "2026-09-21", 10),
     order("held", "2026-10-06", 20, 3),
     order("paid", "2026-10-07", 15),
+    order("not-hers", "2026-10-10", 40),
     order("today", "2026-10-11", 27),
     order("cancelled", "2026-10-09", 40, 0, { order_status: "cancelled" }),
     order("nodate", null, 12),
-    order("nextweek", "2026-10-17", 18),
+    order("next-marked", "2026-10-17", 18),
+    order("next-unmarked", "2026-10-18", 18),
+    order("far", "2026-11-20", 18),
   ]
-  const { open, upcoming } = logisticsOpenRows(orders, { perHeadCents: 100, startYmd: "2026-10-05", throughYmd: "2026-10-11", untilYmd: "2026-10-11", paidOrderIds: ["paid"] })
-  assert.deepEqual(open.map((r) => r.orderId), ["held", "today"])
-  assert.equal(upcoming.length, 0)
-  assert.equal(sumHeads(open), 48.5)
-  assert.equal(sumCents(open), 4850)
-
-  const midweek = logisticsOpenRows(orders, { perHeadCents: 100, startYmd: "2026-10-05", throughYmd: "2026-10-08", untilYmd: "2026-10-11", paidOrderIds: [] })
-  assert.deepEqual(midweek.open.map((r) => r.orderId), ["held", "paid"])
-  assert.deepEqual(midweek.upcoming.map((r) => r.orderId), ["today"])
+  const { open, upcoming, candidates } = logisticsLedgerRows(orders, {
+    perHeadCents: 100,
+    todayYmd: "2026-10-11",
+    sinceYmd: "2026-09-27",
+    untilYmd: "2026-10-18",
+    markedOrderIds: ["old-marked", "held", "paid", "today", "cancelled", "next-marked"],
+    paidOrderIds: ["paid"],
+  })
+  assert.deepEqual(open.map((r) => r.orderId), ["old-marked", "held", "today"])
+  assert.deepEqual(upcoming.map((r) => r.orderId), ["next-marked"])
+  assert.deepEqual(candidates.map((r) => r.orderId), ["not-hers", "next-unmarked"])
+  assert.equal(sumHeads(open), 58.5)
+  assert.equal(sumCents(open), 5850)
 })

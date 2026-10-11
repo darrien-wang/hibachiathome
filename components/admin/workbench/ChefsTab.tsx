@@ -47,7 +47,7 @@ export function ChefsTab({
   const rows = useMemo(
     () =>
       chefs.filter((c) => roleFilter === "all" || (c.role ?? "chef") === roleFilter).map((c) => {
-        // 后勤不派单：场次列放待结的单数和人头，结余列放待结的钱。
+        // 后勤不派单：场次列放勾给她、待结的单数和人头，结余列放待结的钱。
         if (c.role === "logistics") return { c, weekCount: c.logi?.openParties ?? 0, weekGuests: c.logi?.openHeads ?? 0, net: c.logi?.openCents ?? 0 }
         const ws = c.shifts.filter((s) => s.date >= week && s.date <= weekEnd && s.orderStatus !== "cancelled")
         // Same sum as the 结算 tab (shiftNet: 人头费 + 桌椅 + 路费 + 卡上小费 − 代收) over the
@@ -175,7 +175,7 @@ export function ChefsTab({
                     <td style={{ maxWidth: 0, width: "36%", minWidth: 150 }}>
                       {sensitive && c.rate ? <div className="clamp1">{c.role === "logistics" ? `每人头 ${money(c.rate.per_head_cents)} · 大人 1 / 小孩 0.5` : rateLabel(c.rate)}</div> : null}
                       <div className="clamp1" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-                        {c.role === "logistics" ? "按办了的单结 · 每周日" : c.skills.join(" · ") || "能力未填"}
+                        {c.role === "logistics" ? "兼职 · 做了的单才算 · 每周日结" : c.skills.join(" · ") || "能力未填"}
                       </div>
                     </td>
                     <td
@@ -287,7 +287,7 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
   }
   return (
     <Dialog onClose={onClose} width={560}>
-      <DialogHead title="添加员工" lines={[logi ? "后勤按订单人头结：大人 1、小孩 0.5，每周日结一次。" : "名字和电话先填，工价用默认值，之后在资料页改。"]} onClose={onClose} />
+      <DialogHead title="添加员工" lines={[logi ? "后勤按她做的单的人头结：大人 1、小孩 0.5，每周日结一次。做了哪几单在她的结算页勾。" : "名字和电话先填，工价用默认值，之后在资料页改。"]} onClose={onClose} />
       <div className="dialog-col" style={{ gap: 12 }}>
         <div style={{ display: "flex" }}>
           {(["chef", "logistics"] as const).map((k) => (
@@ -310,9 +310,6 @@ function AddChefDialog({ adminKey, settings, onClose, onDone }: { adminKey: stri
             <>
               <Field label="每人头 $">
                 <input className="input" type="number" value={form.logiPerHead} onChange={(e) => setForm({ ...form, logiPerHead: e.target.value })} />
-              </Field>
-              <Field label="从哪天的单开始算">
-                <input className="input" type="date" value={form.payStart} onChange={(e) => setForm({ ...form, payStart: e.target.value })} />
               </Field>
             </>
           ) : null}

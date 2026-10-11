@@ -180,7 +180,7 @@ export function ChefDialog({
     post("profile", {
       action: "update_profile",
       id: chefId,
-      fields: { display_name: profile.display_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas, role: profile.role, ...(profile.role === "logistics" ? { pay_start_date: profile.pay_start_date } : {}) },
+      fields: { display_name: profile.display_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas, role: profile.role, },
     }, "已保存")
   const saveDocs = () => post("docs", { action: "update_docs", id: chefId, fields: docs }, "已保存")
   // Not through post(): the dialog has nothing to reload once the chef is gone.
@@ -217,6 +217,7 @@ export function ChefDialog({
     if (method === null) return
     await post("settle", { action: "settle_logistics", id: chefId, method }, "本期已结清")
   }
+  const markLogistics = (orderId: string, on: boolean) => post("mark", { action: "mark_logistics", id: chefId, order_id: orderId, on })
   const unsettleLogistics = async (sid: string) => {
     if (!(await askConfirm({ title: "撤销这次结算", message: "这批单（和跟着结掉的报销）回到待结。钱要是已经付了，自己记得对一下。", okLabel: "撤销", danger: true }))) return
     await post("settle", { action: "unsettle", settlement_id: sid }, "已撤销——这批单回到待结")
@@ -447,7 +448,7 @@ export function ChefDialog({
         tags={
           c ? (
             <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-              {isLogi ? <>后勤 · 按订单人头结{d?.logistics ? ` · 待结 ${d.logistics.open.length} 单` : ""}</> : <>{(c.areas ?? []).join(" / ") || "区域未填"} · 接下来 {upcoming} 场 · 本月已办 {monthDone} 场</>}{c.status !== "active" ? " · 已停用" : ""}
+              {isLogi ? <>后勤（兼职）· 按她做的单人头结{d?.logistics ? ` · 待结 ${d.logistics.open.length} 单` : ""}</> : <>{(c.areas ?? []).join(" / ") || "区域未填"} · 接下来 {upcoming} 场 · 本月已办 {monthDone} 场</>}{c.status !== "active" ? " · 已停用" : ""}
             </span>
           ) : null
         }
@@ -549,11 +550,8 @@ export function ChefDialog({
                 <Field label="每人头 $">
                   <input className="input" type="number" value={profile.per_head ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, per_head: e.target.value })} />
                 </Field>
-                <Field label="从哪天的单开始算">
-                  <input className="input" type="date" value={profile.pay_start_date ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, pay_start_date: e.target.value })} />
-                </Field>
               </div>
-              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>每一场办了的派对：大人算 1、收费小孩算 0.5、免费小孩不计。27 个大人的单 = {money(27 * (Math.round(Number(profile.per_head) * 100) || 0))}。每周日结一次。</div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>兼职，只算在"结算"页勾给她的单：大人算 1、收费小孩算 0.5、免费小孩不计。27 个大人的单 = {money(27 * (Math.round(Number(profile.per_head) * 100) || 0))}。每周日结一次。</div>
             </div>
 ) : null}
 {sensitive && !isLogi ? (
@@ -813,7 +811,7 @@ export function ChefDialog({
         ) : null}
 
         {d && c && tab === "settle" && isLogi && d.logistics ? (
-          <LogisticsSettle ledger={d.logistics} settlements={d.settlements ?? []} approvedReimb={approvedReimb} lastSettledAt={c.last_settled_at} owner={owner} busy={!!busy} onSettle={() => void settleLogistics()} onUnsettle={(sid) => void unsettleLogistics(sid)} onOpenOrder={onOpenOrder} />
+          <LogisticsSettle ledger={d.logistics} settlements={d.settlements ?? []} approvedReimb={approvedReimb} lastSettledAt={c.last_settled_at} owner={owner} busy={!!busy} onToggle={(oid, on) => void markLogistics(oid, on)} onSettle={() => void settleLogistics()} onUnsettle={(sid) => void unsettleLogistics(sid)} onOpenOrder={onOpenOrder} />
         ) : null}
         {d && c && tab === "settle" && !isLogi ? (
           <>
