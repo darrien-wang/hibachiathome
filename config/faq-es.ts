@@ -65,14 +65,19 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
       "Toda la cocina se hace al aire libre — en patios, balcones, terrazas o bajo toldos y carpas. (Los invitados pueden sentarse adentro si gustan, pero la plancha se queda afuera.)",
   },
   {
+    question: "¿Qué llevan la salsa yum yum y el aderezo de jengibre?",
+    answer:
+      "Las dos las preparamos nosotros, frescas cada semana.\n\n- Salsa yum yum: mayonesa, jugo de naranja, jugo de piña, jugo de limón, azúcar, ajo en polvo, paprika y pimienta negra. Contiene huevo.\n- Aderezo de jengibre: cebolla, zanahoria, jengibre, apio, naranja y limón frescos, licuados con jugo de piña, puré de manzana, vinagre blanco, cátsup, salsa de soya, aceite, azúcar y mayonesa. Contiene huevo, soya y trigo.\n\n¿Algún invitado no puede comer una de ellas? Avísanos al reservar y tu chef no se la pone en su plato.",
+  },
+  {
     question: "¿Usan nueces o ajonjolí?",
     answer:
-      "No podemos prometer una mesa 100% libre de nueces o ajonjolí, y preferimos decirlo a adivinar. Nuestras salsas y gyozas son productos comerciales: las gyozas contienen ajonjolí, y una de nuestras salsas se elabora en una planta que también procesa cacahuate. Ambas salsas contienen huevo. Avísale a tu agente de reservas sobre cualquier alergia y revisaremos las etiquetas de los productos de tu fecha para decirte con honestidad si podemos servirle a ese invitado de forma segura.",
+      "No podemos prometer una mesa 100% libre de nueces o ajonjolí, y preferimos decirlo a adivinar. Las gyozas son un producto comercial y contienen ajonjolí y trigo. Nuestras dos salsas las preparamos nosotros y ninguna receta lleva nueces ni ajonjolí, pero se hacen con ingredientes de supermercado en una cocina que no es libre de alérgenos. Ambas salsas contienen huevo. Avísale a tu agente de reservas sobre cualquier alergia y revisaremos las etiquetas de los productos de tu fecha para decirte con honestidad si podemos servirle a ese invitado de forma segura.",
   },
   {
     question: "¿Pueden atender a invitados sin gluten?",
     answer:
-      "Claro que sí. Hemos servido a muchos comensales sin gluten. Avísanos al reservar y tu chef lleva salsa de soya y teriyaki sin gluten, y prepara ese plato en una estación aparte, sin costo extra. Necesitamos que nos avises con anticipación, porque nuestras salsas normales sí llevan gluten.",
+      "Claro que sí. Hemos servido a muchos comensales sin gluten. Avísanos al reservar y tu chef lleva salsa de soya y teriyaki sin gluten, y prepara ese plato en una estación aparte, sin costo extra. Su ensalada va sin el aderezo de jengibre, que lleva salsa de soya normal; la salsa yum yum no lleva ingredientes con gluten. Necesitamos que nos avises con anticipación, porque nuestra salsa de soya normal sí lleva gluten.",
   },
   {
     question: "¿Y los vegetarianos o veganos?",

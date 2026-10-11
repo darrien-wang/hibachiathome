@@ -80,6 +80,7 @@ export const faqGroups: FaqGroup[] = [
     items: [
       ...pick("How much food does each guest get?"),
       EXTRA.allergies,
+      ...pick("What's in your yum yum sauce and ginger dressing?"),
       ...pick("Do you use nuts or sesame?"),
       ...pick("Can you handle gluten-free guests?"),
       ...pick("What about vegetarians or vegans?"),

@@ -68,14 +68,19 @@ Want the fried rice loaded? DIY add-ins - shrimp or chicken - are $10 each, and 
       "All cooking is done outdoors—on patios, balconies, decks or under tents/awnings. (Feel free to arrange seating indoors, but our grill stays outside.)",
   },
   {
+    question: "What's in your yum yum sauce and ginger dressing?",
+    answer:
+      "We make both ourselves, fresh every week.\n\n- Yum yum sauce: mayonnaise, orange juice, pineapple juice, lemon juice, sugar, garlic powder, paprika and black pepper. Contains egg.\n- Ginger dressing: fresh onion, carrot, ginger, celery, orange and lemon, blended with pineapple juice, applesauce, white vinegar, ketchup, soy sauce, oil, sugar and mayonnaise. Contains egg, soy and wheat.\n\nHave a guest who can't have one of these? Tell us when you book and your chef leaves that sauce off their plate.",
+  },
+  {
     question: "Do you use nuts or sesame?",
     answer:
-      "We cannot promise a nut-free or sesame-free table, and we would rather say so than guess. Our sauces and gyoza are commercial products: the gyoza contain sesame, and one of our sauces is made in a facility that also handles peanuts. Both sauces contain egg. Tell your booking agent about any allergy and we will check the labels of the products in use for your date and tell you honestly whether we can serve that guest safely.",
+      "We cannot promise a nut-free or sesame-free table, and we would rather say so than guess. The gyoza are a commercial product and contain sesame and wheat. We make our two sauces ourselves and neither recipe has nuts or sesame in it, but they are made from store-bought ingredients in a kitchen that is not allergen-free. Both sauces contain egg. Tell your booking agent about any allergy and we will check the labels of the products in use for your date and tell you honestly whether we can serve that guest safely.",
   },
   {
     question: "Can you handle gluten-free guests?",
     answer:
-      "Absolutely. We've served many gluten-free diners. Tell us when you book and your chef brings gluten-free soy and teriyaki and cooks that guest's plate on a separate station — no extra charge. We do need the heads-up in advance, since our standard sauces are not gluten free.",
+      "Absolutely. We've served many gluten-free diners. Tell us when you book and your chef brings gluten-free soy and teriyaki and cooks that guest's plate on a separate station — no extra charge. Their salad comes without the ginger dressing, which is made with regular soy sauce; the yum yum sauce has no gluten ingredients. We do need the heads-up in advance, since our standard soy sauce is not gluten free.",
   },
   {
     question: "What about vegetarians or vegans?",
