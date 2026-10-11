@@ -97,7 +97,7 @@ const GUESTS_PER_TABLE = 4
 // ---- 采购单位换算（估算）----------------------------------------------
 
 const OZ_PER = { zucchini: 11, onion: 12 } // 09-22 用实际收据校准：8 根 = 5.7lb、2 个 = 1.6lb（向下取整，买的件数只多不少）
-const BAG_OZ = { broccoli: 32, carrots: 12 } // Walmart 袋装
+const BAG_OZ = { broccoli: 32, carrots: 32 } // Walmart 袋装；胡萝卜 1 袋 = 2 lb（老板 2026-10-11，原来错记成 12oz）
 // 三文鱼现在买分装好的，拆袋后按个数（老板 2026-09-30）：1 个 = 2 份 = 8 oz。
 // 原来 Marketside 2 lb 真空袋 = 5 块的口径作废——拆开以后数不清还算几袋。
 const SALMON_PIECE_OZ = 8
@@ -376,7 +376,7 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   zucchini: { per: 11, noun: "根", desc: "" },
   broccoli: { per: 32, noun: "袋", desc: "32oz 袋" },
   onion: { per: 12, noun: "个", desc: "炒饭也用，能囤" },
-  carrots: { per: 12, noun: "袋", desc: "12oz 袋" },
+  carrots: { per: 32, noun: "袋", desc: "2lb 袋" },
   eggs: { per: 1, noun: "个", desc: "combo 2 盒一提 = 36 个", big: { noun: "提", count: 36 } },
   salad: { per: 48, noun: "袋", desc: "RD 3lb 袋 = 48 份" },
   lime: { per: 1, noun: "个", desc: "配海鲜，每 10 人半个" },
