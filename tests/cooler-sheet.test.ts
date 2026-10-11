@@ -22,7 +22,7 @@ test("coolerSections: Chinese labels, her units, nothing that stays out of the c
   assert.equal(lines.chicken.note, "约 6.3 磅 · 20 人份")
   // 四样蔬菜一栏，切好后的净重：20 人 × 5 oz
   assert.equal(lines.mixed_vege.amount, "100 盎司")
-  assert.equal(lines.onion_volcano.amount, "1 个")
+  assert.equal(lines.onion_volcano.amount, "1 份")
   for (const id of ["zucchini", "broccoli", "onion", "carrots"]) assert.equal(lines[id], undefined)
   assert.equal(lines.shrimp.amount, "50 只")
   assert.equal(lines.ginger_sauce.amount, "40 盎司") // 20 × 2 oz

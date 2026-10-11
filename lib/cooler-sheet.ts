@@ -82,8 +82,9 @@ export function coolerSections(items: PrepItem[], menuKnown: boolean): CoolerSec
     if (q <= 0) continue
     if (rule.section === 0 && !menuKnown) continue
     sections[rule.section].lines.push({ id, label: rule.label, amount: rule.amount(q), note: rule.note?.(q), fill: rule.fill })
-    // 洋葱火山要一个整的洋葱，不在用料清单里（它是表演不是配料），每单都要带。
-    if (id === "mixed_vege") sections[1].lines.push({ id: "onion_volcano", label: "整个洋葱（洋葱火山用）", amount: "1 个", note: "不要切 · 两位厨师的单带 2 个" })
+    // 洋葱火山：切好叠成火山的洋葱圈，不在用料清单里（它是表演不是配料），每单都要带。
+    // 不是整个洋葱——要事先切好（老板 2026-10-11）。
+    if (id === "mixed_vege") sections[1].lines.push({ id: "onion_volcano", label: "洋葱火山（切好的）", amount: "1 份", note: "两位厨师的单带 2 份" })
   }
   return sections.filter((s) => s.lines.length > 0)
 }
