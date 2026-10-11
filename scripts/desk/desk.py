@@ -1069,6 +1069,9 @@ def cmd_order(a):
         else:
             raise SystemExit(f"the party is {days} days away - this goes out the day before (or the morning of)")
         at = f"{(hh + 11) % 12 + 1}{f':{mm:02d}' if mm else ''}"
+        # Owner 2026-10-11: chefs don't carry sauce cups - every customer sets out their own
+        # (Heather Yundt asked the morning of her party).
+        bowls = "Please set out a few small bowls for the dipping sauces. "
         if inv.get("pricingTerms") == "v2_by_method":
             # Never "no tax" / "tax-free".
             if inv.get("salesTaxRateSource") != "address":
@@ -1077,11 +1080,11 @@ def cmd_order(a):
             card = float(inv.get("cardBalanceDue") or 0)
             tax = float(inv.get("salesTax") or 0)
             fee = float(inv.get("cardProcessingFee") or 0)
-            body = (f"See you {when} at {at}! Your balance is {money(cash)} cash to your chef, "
+            body = (f"See you {when} at {at}! {bowls}Your balance is {money(cash)} cash to your chef, "
                     f"or {money(card)} by card ({money(cash)} + {money(tax)} sales tax + {money(fee)} card processing fee charged by Stripe). "
                     f"Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?")
         else:
-            body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
+            body = f"See you {when} at {at}! {bowls}Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
         if a.dry:
             print(f"DRY   {body}")
             return
