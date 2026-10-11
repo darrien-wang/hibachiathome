@@ -105,16 +105,16 @@ export function zhTime(eventStart: string): string {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string)
 
-/** 整份可打印的页面：每单另起一页（东西多的单会占两页）。 */
+/** 整份可打印的页面：一单一页，东西多的单整页等比缩小，不拆页。 */
 export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
   const pages = parties
     .map((p, i) => {
       const people = `${p.adults} 位大人${p.kids ? `、${p.kids} 位小孩` : ""}`
       const body = p.sections
         .map(
-          (s) => `<h2>${esc(s.title)}</h2><table>${s.lines
+          (s) => `<div class="sec"><h2>${esc(s.title)}</h2><table>${s.lines
             .map((l) => `<tr><td class="box"><span></span></td><td class="name">${esc(l.label)}${l.note ? `<small>${esc(l.note)}</small>` : ""}${l.fill ? `<small class="fill">${esc(l.fill)}</small>` : ""}</td><td class="amt">${esc(l.amount)}</td></tr>`)
-            .join("")}</table>`,
+            .join("")}</table></div>`,
         )
         .join("")
       return `<section class="page">
@@ -123,7 +123,7 @@ export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
   <div class="meta"><div class="day">${esc(zhDate(ymd))}</div><div>${esc(p.time)} 开席${p.chef ? ` · 厨师 ${esc(p.chef)}` : ""}</div><div>${esc(people)}</div></div>
 </header>
 ${p.menuKnown ? "" : `<div class="warn">这一单的菜还没定，肉和海鲜先不要备，等通知。</div>`}
-${body}
+<div class="cols">${body}</div>
 <footer>装好一样，打一个勾 ✓</footer>
 </section>`
     })
@@ -131,30 +131,48 @@ ${body}
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>备货单 ${esc(zhDate(ymd))}</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#fff;color:#000;font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC","Heiti SC",sans-serif;font-size:24px;line-height:1.35}
+body{margin:0;background:#fff;color:#000;font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC","Heiti SC",sans-serif;font-size:22px;line-height:1.25}
 .bar{padding:14px 20px;background:#f2f2f2;display:flex;gap:14px;align-items:center;font-size:18px}
 .bar button{font:inherit;font-size:22px;font-weight:700;padding:10px 26px;border:3px solid #000;background:#000;color:#fff;border-radius:8px;cursor:pointer}
-.page{max-width:820px;margin:0 auto;padding:26px 30px 20px;page-break-after:always;break-after:page}
+/* 一单一页，绝不拆成两页（老板 2026-10-11）：版面按信纸可打印区定宽，东西多的单由
+   页尾脚本整体缩小到一页高。 */
+.page{width:720px;margin:0 auto;padding:18px 0 10px;page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid}
 .page:last-child{page-break-after:auto;break-after:auto}
-header{display:flex;gap:22px;align-items:center;border-bottom:5px solid #000;padding-bottom:14px;margin-bottom:6px}
-.no{font-size:54px;font-weight:900;line-height:1;white-space:nowrap;border:5px solid #000;padding:12px 18px;border-radius:10px;text-align:center}
-.no small{display:block;font-size:18px;font-weight:600;margin-top:6px}
-.meta{font-size:26px;font-weight:600}
-.meta .day{font-size:34px;font-weight:900}
-.warn{margin:14px 0 0;padding:12px 16px;border:4px dashed #000;font-size:26px;font-weight:800}
-h2{font-size:26px;font-weight:900;margin:20px 0 4px;padding:4px 10px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+header{display:flex;gap:18px;align-items:center;border-bottom:4px solid #000;padding-bottom:8px;margin-bottom:2px}
+.no{font-size:40px;font-weight:900;line-height:1;white-space:nowrap;border:4px solid #000;padding:8px 14px;border-radius:8px;text-align:center}
+.no small{display:block;font-size:15px;font-weight:600;margin-top:4px}
+.meta{font-size:21px;font-weight:600}
+.meta .day{font-size:28px;font-weight:900}
+.warn{margin:10px 0 0;padding:8px 12px;border:4px dashed #000;font-size:24px;font-weight:800}
+h2{font-size:21px;font-weight:900;margin:10px 0 0;padding:2px 10px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table{width:100%;border-collapse:collapse}
-td{padding:11px 6px;border-bottom:2px solid #999;vertical-align:middle}
-td.box{width:54px}
-td.box span{display:block;width:38px;height:38px;border:4px solid #000;border-radius:5px}
-td.name{font-size:32px;font-weight:700}
-td.name small{display:block;font-size:19px;font-weight:500;color:#333}
-td.name small.fill{font-size:24px;font-weight:700;color:#000;margin-top:6px}
-td.amt{font-size:38px;font-weight:900;text-align:right;white-space:nowrap}
-footer{margin-top:18px;font-size:22px;font-weight:600;text-align:center}
-@media print{.bar{display:none}.page{padding:0;max-width:none}@page{margin:14mm}}
+td{padding:5px 6px;border-bottom:2px solid #999;vertical-align:middle}
+td.box{width:44px}
+td.box span{display:block;width:30px;height:30px;border:3px solid #000;border-radius:4px}
+td.name{font-size:28px;font-weight:700}
+td.name small{font-size:16px;font-weight:500;color:#333;margin-left:10px}
+td.name small.fill{display:block;font-size:20px;font-weight:700;color:#000;margin:2px 0 0}
+td.amt{font-size:32px;font-weight:900;text-align:right;white-space:nowrap}
+/* 东西多的单：先排成两栏、字略小，还放不下再整页缩小。 */
+.sec{break-inside:avoid;page-break-inside:avoid}
+.dense .cols{column-count:2;column-gap:26px}
+.dense td.box{width:36px}
+.dense td.box span{width:26px;height:26px}
+.dense td.name{font-size:24px}
+.dense td.name small{display:block;margin-left:0;font-size:14px}
+.dense td.name small.fill{font-size:17px}
+.dense td.amt{font-size:27px}
+.dense h2{margin-top:8px}
+.dense .sec:first-child h2{margin-top:10px}
+footer{margin-top:8px;font-size:18px;font-weight:600;text-align:center}
+@media print{.bar{display:none}.page{padding:0}@page{margin:10mm}}
 </style></head><body>
-<div class="bar"><button onclick="window.print()">打印</button><span>${esc(zhDate(ymd))} · 共 ${parties.length} 箱 · 每箱另起一页</span></div>
+<div class="bar"><button onclick="window.print()">打印</button><span>${esc(zhDate(ymd))} · 共 ${parties.length} 箱 · 一箱一页</span></div>
 ${pages || `<section class="page"><div class="warn">这一天没有要备的单。</div></section>`}
+<script>
+// 信纸（最短的常用纸）去掉页边距后约 259mm ≈ 979px 高；留一点余量。超过就整页等比缩小。
+(function(){var MAX=950;function fit(){var ps=document.querySelectorAll(".page");for(var i=0;i<ps.length;i++){var p=ps[i];p.style.zoom="1";p.classList.remove("dense");var h=p.scrollHeight;if(h>MAX){p.classList.add("dense");h=p.scrollHeight}if(h>MAX)p.style.zoom=String(Math.floor(MAX/h*1000)/1000)}}
+fit();window.addEventListener("load",fit);window.addEventListener("beforeprint",fit)})();
+</script>
 </body></html>`
 }
