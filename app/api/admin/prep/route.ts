@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`)
         .join(" · "),
       // 后勤备货单（装保温箱）：这一单要放进箱子的东西，中文、按她手上的单位。
-      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, sections: coolerSections(prep.items, prep.menuKnown) },
+      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, sections: coolerSections(prep.items, prep.menuKnown) },
     }
   })
   // 备货单上写哪位厨师来拿这一箱（不写客户）。
@@ -110,6 +110,16 @@ export async function GET(request: NextRequest) {
     for (const o of orders) {
       const names = (asg ?? []).filter((a) => a.order_id === o.id).map((a) => nameOf.get(String(a.staff_member_id)) ?? "").filter(Boolean)
       o.cooler.chef = names.length ? names.join("、") : null
+    }
+    // 备货负责人：后勤里这一单勾给了谁（员工 → 结算页，staff_order_pay）。以后帮忙备货的人多了，
+    // 纸上得写清楚这一箱是谁的（老板 2026-10-11）。没勾就留空，打出来手写。
+    const { data: marks } = await supabase.from("staff_order_pay").select("order_id, staff_member_id").in("order_id", orders.map((o) => o.id))
+    const ownerIds = Array.from(new Set((marks ?? []).map((m) => String(m.staff_member_id))))
+    const { data: ownerRows } = ownerIds.length ? await supabase.from("staff_members").select("id, display_name, full_name").in("id", ownerIds) : { data: [] as Array<{ id: string; display_name: string | null; full_name: string | null }> }
+    const ownerName = new Map((ownerRows ?? []).map((s) => [String(s.id), String(s.display_name ?? s.full_name ?? "").trim()]))
+    for (const o of orders) {
+      const names = (marks ?? []).filter((m) => m.order_id === o.id).map((m) => ownerName.get(String(m.staff_member_id)) ?? "").filter(Boolean)
+      o.cooler.owner = names.length ? names.join("、") : null
     }
   }
 

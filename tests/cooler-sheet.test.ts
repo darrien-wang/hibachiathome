@@ -44,12 +44,14 @@ test("coolerSections: menu not in yet - no proteins, sides by headcount", () => 
 test("coolerSheetHtml: one page per party, no customer or price fields", () => {
   const prep = orderPrep(inv as never, "2026-10-01T00:00:00Z", 20, 0)
   const html = coolerSheetHtml("2026-10-17", [
-    { time: zhTime("2026-10-17T17:00:00+00:00"), chef: "Blu", adults: 20, kids: 0, menuKnown: true, sections: coolerSections(prep.items, true) },
+    { time: zhTime("2026-10-17T17:00:00+00:00"), chef: "Blu", owner: "张阿姨", adults: 20, kids: 0, menuKnown: true, sections: coolerSections(prep.items, true) },
     { time: zhTime("2026-10-17T19:30:00+00:00"), chef: null, adults: 12, kids: 2, menuKnown: false, sections: [] },
   ])
   assert.equal(zhDate("2026-10-17"), "10 月 17 日 星期六")
   assert.equal((html.match(/<section class="page">/g) ?? []).length, 2)
   assert.match(html, /第 1 箱/)
+  assert.match(html, /备货负责人<\/small>张阿姨/)
+  assert.match(html, /备货负责人<\/small><span class="blank">/)
   assert.match(html, /下午 5:00 开席 · 厨师 Blu/)
   assert.match(html, /晚上 7:30 开席/)
   assert.match(html, /菜还没定/)

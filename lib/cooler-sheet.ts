@@ -13,6 +13,8 @@ export type CoolerParty = {
   /** "下午 5:00" */
   time: string
   chef: string | null
+  /** 这一单谁负责备货（后勤，在员工→结算页勾给谁就是谁）。没定就留空给人手写。 */
+  owner?: string | null
   adults: number
   kids: number
   menuKnown: boolean
@@ -121,6 +123,7 @@ export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
 <header>
   <div class="no">第 ${i + 1} 箱<small>共 ${parties.length} 箱</small></div>
   <div class="meta"><div class="day">${esc(zhDate(ymd))}</div><div>${esc(p.time)} 开席${p.chef ? ` · 厨师 ${esc(p.chef)}` : ""}</div><div>${esc(people)}</div></div>
+  <div class="owner"><small>备货负责人</small>${p.owner ? esc(p.owner) : `<span class="blank"></span>`}</div>
 </header>
 ${p.menuKnown ? "" : `<div class="warn">这一单的菜还没定，肉和海鲜先不要备，等通知。</div>`}
 <div class="cols">${body}</div>
@@ -143,6 +146,9 @@ header{display:flex;gap:18px;align-items:center;border-bottom:4px solid #000;pad
 .no small{display:block;font-size:15px;font-weight:600;margin-top:4px}
 .meta{font-size:21px;font-weight:600}
 .meta .day{font-size:28px;font-weight:900}
+.owner{margin-left:auto;text-align:center;font-size:30px;font-weight:900;border:4px solid #000;border-radius:8px;padding:6px 14px;min-width:150px}
+.owner small{display:block;font-size:15px;font-weight:600}
+.owner .blank{display:block;height:36px}
 .warn{margin:10px 0 0;padding:8px 12px;border:4px dashed #000;font-size:24px;font-weight:800}
 h2{font-size:21px;font-weight:900;margin:10px 0 0;padding:2px 10px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table{width:100%;border-collapse:collapse}
