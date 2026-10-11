@@ -592,7 +592,11 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
           .from("lead_touchpoints")
           .update({ raw_payload_json: { via: "sms", auto: true, template: "B", sms_sid: sms.sid, claimed: true } })
           .eq("id", claimB)
-        await supabase.from("lead_touchpoints").insert([
+        // Every row carries the same keys: a bulk insert fills a key one row
+        // lacks with NULL, not the column default, and occurred_at is NOT
+        // NULL - so this batch failed silently from 10-07 until 2026-10-11
+        // (no sms_outbound / note rows behind any machine template B).
+        const { error: logError } = await supabase.from("lead_touchpoints").insert([
           {
             lead_id: lead.id,
             touchpoint_type: "sms_outbound",
@@ -605,9 +609,12 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
             lead_id: lead.id,
             touchpoint_type: "agent_note",
             touchpoint_source: "lead_watch",
+            external_touchpoint_id: null,
             raw_payload_json: { note: `[SOP:first_response] AUTO template B (lead-watch, ${ageMin} min after the quote): ${plan.text}`.slice(0, 1900) },
+            occurred_at: at,
           },
         ])
+        if (logError) console.error("[lead-watch] template B log insert failed", { leadId: lead.id, error: logError.message })
         await supabase.from("leads").update({ status: "qualified", updated_at: at }).eq("id", lead.id).eq("status", "new")
       }
       autoSent.push({ leadId: lead.id, phone, template: "B", dated: plan.dated, minutesWaiting: ageMin, sms: sms.ok ? "sent" : sms.error, reached: sms.ok })
