@@ -65,7 +65,7 @@ const PROTEIN_LABELS: Record<string, string> = {
 }
 const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
 const SALAD = { adult: 1, child: 0.5 } // 份
-// 蔬菜（2026-09-22 用户定）：总量每人 4–5oz 左右。厨师备料单按 4oz 做菜；
+// 蔬菜（2026-09-22 用户定）：总量每人 4–5oz 左右（净重）。厨师备料单原来按 4oz，10-11 起和这里同一套；
 // 备货、占用一律按 5oz 算（老板 2026-09-30："按 5 oz 算吧"）——宁多勿少。
 // 四样怎么分见下面的 VEGE_MIX。
 // 2026-10-11 老板：上桌的菜还是每人 5 oz，这里算的是"要买/要取的生菜"——蔬菜要去皮、
@@ -411,7 +411,7 @@ const MERGE_INTO_PROTEIN: Record<string, { id: string; fromOz: (oz: number) => n
  * 蔬菜合计拆成四样（老板 2026-09-30："我需要你告诉我 broccoli zucchini carrot onion 各要多少"）。
  * 2026-10-11 起西葫芦按实测加量（10 人 3.3 根），配比不再和厨师备料单一样：
  * 每人 7.1 oz = 西葫芦 3.6 + 西兰花 1.5 + 洋葱 1.5 + 胡萝卜 0.5。
- * 厨师备料单（发票仓库 lib/pricing.ts）仍是每人 4 oz、3/3/3/1。
+ * 厨师备料单（发票仓库 lib/pricing.ts 的 VEGE_TOTAL_OZ / VEGE_MIX）同一天改成同一套数，改这里也要改那边。
  */
 export const VEGE_MIX: Array<{ id: string; label: string; ratio: number }> = [
   { id: "zucchini", label: "Zucchini 西葫芦", ratio: 0.51 },
