@@ -31,6 +31,17 @@ export function partyHeadCounts(o: OrderForHeads): HeadCounts {
   return { adults, kids: Math.max(0, child - littles), littles }
 }
 
+/**
+ * 人数定了没有：菜单进来了（逐人行，或快速模式的蛋白份数）才算定。只有锁单时
+ * 填的大人/小孩数的单，那个数是估的——客人常常在派对前一两周才报准。
+ */
+export function headcountFirm(o: OrderForHeads): boolean {
+  const inv = (o.invoice_data ?? {}) as Record<string, unknown>
+  const rows = Array.isArray(inv.guests) ? inv.guests.length : 0
+  const quick = Array.isArray(inv.quickCountItems) ? (inv.quickCountItems as Array<Record<string, unknown>>).filter((q) => q.category === "protein").length : 0
+  return rows > 0 || quick > 0
+}
+
 export type MonthOrder = OrderForHeads & {
   event_start: string | null
   order_status?: string | null
@@ -55,6 +66,12 @@ export type MonthStat = {
   doneRevenueCents: number | null
   /** 实际已收（含客人刷卡时一起付的小费） */
   paidCents: number | null
+  /** 还没办、菜单也没填的场：人数是锁单时的估数（老板 2026-10-10） */
+  openParties: number
+  /** 这些场占的折算人数（已含在 heads 里） */
+  openHeads: number
+  /** 这些场占的营业额（已含在 revenueCents 里） */
+  openRevenueCents: number | null
   /** 只有场次、没有人数金额的历史月份（2025 导入） */
   countOnly?: boolean
 }
@@ -68,7 +85,7 @@ export function monthlyStats(orders: MonthOrder[], todayYmd: string, withMoney: 
     const month = ymd.slice(0, 7)
     const row =
       by.get(month) ??
-      by.set(month, { month, parties: 0, done: 0, adults: 0, kids: 0, littles: 0, heads: 0, revenueCents: withMoney ? 0 : null, doneRevenueCents: withMoney ? 0 : null, paidCents: withMoney ? 0 : null }).get(month)!
+      by.set(month, { month, parties: 0, done: 0, adults: 0, kids: 0, littles: 0, heads: 0, revenueCents: withMoney ? 0 : null, doneRevenueCents: withMoney ? 0 : null, paidCents: withMoney ? 0 : null, openParties: 0, openHeads: 0, openRevenueCents: withMoney ? 0 : null }).get(month)!
     const c = partyHeadCounts(o)
     const isDone = ymd < todayYmd
     row.parties += 1
@@ -77,8 +94,15 @@ export function monthlyStats(orders: MonthOrder[], todayYmd: string, withMoney: 
     row.littles += c.littles
     row.heads += payableHeads(c)
     if (isDone) row.done += 1
+    // 办完的场人数就是事实；没办的要菜单进来才算定。
+    const open = !isDone && !headcountFirm(o)
+    if (open) {
+      row.openParties += 1
+      row.openHeads += payableHeads(c)
+    }
     if (withMoney) {
       const quoted = Math.max(0, o.quoted_total_cents ?? 0)
+      if (open) row.openRevenueCents! += quoted
       row.revenueCents! += quoted
       if (isDone) row.doneRevenueCents! += quoted
       row.paidCents! += Math.max(0, o.amount_paid_total_cents ?? 0)

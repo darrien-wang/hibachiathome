@@ -33,9 +33,15 @@ test("monthlyStats: adults 1, paying kids 0.5, free kids 0; cancelled out; money
   assert.equal(s.length, 2)
   assert.deepEqual(
     { ...s[0] },
-    { month: "2026-09", parties: 1, done: 1, adults: 2, kids: 1, littles: 1, heads: 2.5, revenueCents: 100000, doneRevenueCents: 100000, paidCents: 110000 },
+    { month: "2026-09", parties: 1, done: 1, adults: 2, kids: 1, littles: 1, heads: 2.5, revenueCents: 100000, doneRevenueCents: 100000, paidCents: 110000, openParties: 0, openHeads: 0, openRevenueCents: 0 },
   )
   assert.equal(s[1].heads, 11.5)
+  // not held yet and no menu in: the 11.5 is an estimate, flagged as open
+  assert.equal(s[1].openParties, 1)
+  assert.equal(s[1].openHeads, 11.5)
+  assert.equal(s[1].openRevenueCents, 70000)
+  // a held party is a fact whatever the invoice looks like
+  assert.equal(s[0].openParties, 0)
   assert.equal(s[1].done, 0)
   assert.equal(s[1].doneRevenueCents, 0)
   const noMoney = monthlyStats(orders, "2026-10-10", false)

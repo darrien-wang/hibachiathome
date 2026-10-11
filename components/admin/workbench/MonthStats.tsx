@@ -47,7 +47,7 @@ export function MonthlyHeads({ adminKey, isMobile }: { adminKey: string; isMobil
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <h3 style={{ margin: 0 }}>每月服务人数</h3>
         <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-          按派对日期归月。服务人数 = 大人 + 收费小孩 × ½，免费小孩不计。营业额 = 订单总价（含路费，不含小费）；本月和以后的月份含还没办的场。
+          按派对日期归月。服务人数 = 大人 + 收费小孩 × ½，免费小孩不计。营业额 = 订单总价（含路费，不含小费）；本月和以后的月份含还没办的场。还没办、菜单也没填的场，人数只是锁单时的估数，单独列在"其中待定"。
         </span>
       </div>
       {error ? <div className="notice">{error}</div> : null}
@@ -65,6 +65,7 @@ export function MonthlyHeads({ adminKey, isMobile }: { adminKey: string; isMobil
                 <th style={th}>大人</th>
                 <th style={th}>收费小孩</th>
                 <th style={th}>免费小孩</th>
+                <th style={th}>其中待定</th>
                 {withMoney ? <th style={th}>营业额</th> : null}
                 {withMoney ? <th style={th}>每位大人量</th> : null}
               </tr>
@@ -80,7 +81,7 @@ export function MonthlyHeads({ adminKey, isMobile }: { adminKey: string; isMobil
                       {partial ? <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}> · 本月（已办 {r.done}）</span> : future ? <span style={{ fontWeight: 400 }}> · 已订</span> : null}
                     </td>
                     <td style={td}>{r.parties}</td>
-                    <td style={{ ...td, fontWeight: 800 }}>{r.countOnly ? "—" : headsText(r.heads)}</td>
+                    <td style={{ ...td, fontWeight: 800 }}>{r.countOnly ? "—" : `${r.openParties ? "约 " : ""}${headsText(r.heads)}`}</td>
                     <td style={{ ...td, textAlign: "left" }}>
                       {r.countOnly ? (
                         <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>只有场次（2025 导入，无人数金额）</span>
@@ -93,6 +94,9 @@ export function MonthlyHeads({ adminKey, isMobile }: { adminKey: string; isMobil
                     <td style={td}>{r.countOnly ? "—" : r.adults}</td>
                     <td style={td}>{r.countOnly ? "—" : r.kids}</td>
                     <td style={td}>{r.countOnly ? "—" : r.littles}</td>
+                    <td style={{ ...td, color: r.openParties ? "var(--color-accent-700)" : "var(--color-neutral-500)" }}>
+                      {r.countOnly || !r.openParties ? "—" : `${r.openParties} 场 · 约 ${headsText(r.openHeads)} 人${r.openRevenueCents != null ? ` · ${money0(r.openRevenueCents)}` : ""}`}
+                    </td>
                     {withMoney ? <td style={{ ...td, fontWeight: 700 }}>{r.revenueCents == null ? "—" : money0(r.revenueCents)}</td> : null}
                     {withMoney ? <td style={td}>{r.revenueCents == null || r.heads <= 0 ? "—" : money0(Math.round(r.revenueCents / r.heads))}</td> : null}
                   </tr>

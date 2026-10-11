@@ -50,6 +50,9 @@ export async function GET(request: NextRequest) {
     revenueCents: null,
     doneRevenueCents: null,
     paidCents: null,
+    openParties: 0,
+    openHeads: 0,
+    openRevenueCents: null,
     countOnly: true,
   }))
   const all = [...history, ...months].sort((a, b) => a.month.localeCompare(b.month))

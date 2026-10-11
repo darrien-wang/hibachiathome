@@ -126,7 +126,8 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
             style={{ fontSize: 12, color: "var(--color-neutral-700)" }}
             title={`${ms.adults} 大人 + ${ms.kids} 收费小孩 × ½${ms.littles ? ` · ${ms.littles} 免费小孩不计` : ""}`}
           >
-            · 服务 <strong style={{ color: "var(--color-text)" }}>{headsText(ms.heads)}</strong> 人（大人量）
+            · 服务 <strong style={{ color: "var(--color-text)" }}>{ms.openParties ? "约 " : ""}{headsText(ms.heads)}</strong> 人（大人量）
+            {ms.openParties ? <span style={{ color: "var(--color-accent-700)" }}>，其中 {ms.openParties} 场约 {headsText(ms.openHeads)} 人还没定</span> : null}
             {ms.revenueCents != null ? (
               <>
                 {" "}
