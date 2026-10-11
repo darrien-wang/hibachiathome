@@ -68,7 +68,10 @@ const SALAD = { adult: 1, child: 0.5 } // 份
 // 蔬菜（2026-09-22 用户定）：总量每人 4–5oz 左右。厨师备料单按 4oz 做菜；
 // 备货、占用一律按 5oz 算（老板 2026-09-30："按 5 oz 算吧"）——宁多勿少。
 // 四样怎么分见下面的 VEGE_MIX。
-const VEGE_OZ = { adult: 5, child: 2.5 }
+// 2026-10-11 老板实测：西葫芦一直买少，10 个人要 3.3 根（一根 ≈ 11 oz，即每人
+// ≈ 3.6 oz，原来只算 1.5 oz）。西兰花、洋葱、胡萝卜照旧（1.5 / 1.5 / 0.5 oz），
+// 所以合计从 5 oz 变成 7.1 oz。
+const VEGE_OZ = { adult: 7.1, child: 3.55 }
 const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料单一致）
 // 份量表的 4 oz 是熟面；面吸水，干:熟 ≈ 1:3（重量，老板 2026-09-30）。
 // 采购买的是干面（RD 10 lb/箱），所以清单里按干重算：熟面 ÷ 3。
@@ -405,14 +408,15 @@ const MERGE_INTO_PROTEIN: Record<string, { id: string; fromOz: (oz: number) => n
 
 /**
  * 蔬菜合计拆成四样（老板 2026-09-30："我需要你告诉我 broccoli zucchini carrot onion 各要多少"）。
- * 配比和厨师备料单同一套：发票仓库 lib/pricing.ts 的 VEGE_MIX（西葫芦/西兰花/洋葱 各 30%、胡萝卜 10%）。
- * 改配比两边同一天改。
+ * 2026-10-11 起西葫芦按实测加量（10 人 3.3 根），配比不再和厨师备料单一样：
+ * 每人 7.1 oz = 西葫芦 3.6 + 西兰花 1.5 + 洋葱 1.5 + 胡萝卜 0.5。
+ * 厨师备料单（发票仓库 lib/pricing.ts）仍是每人 4 oz、3/3/3/1。
  */
 export const VEGE_MIX: Array<{ id: string; label: string; ratio: number }> = [
-  { id: "zucchini", label: "Zucchini 西葫芦", ratio: 0.3 },
-  { id: "broccoli", label: "Broccoli 西兰花", ratio: 0.3 },
-  { id: "onion", label: "Onion 洋葱", ratio: 0.3 },
-  { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.1 },
+  { id: "zucchini", label: "Zucchini 西葫芦", ratio: 0.51 },
+  { id: "broccoli", label: "Broccoli 西兰花", ratio: 0.21 },
+  { id: "onion", label: "Onion 洋葱", ratio: 0.21 },
+  { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.07 },
 ]
 
 /** 蔬菜合计的提示：总磅数 + 四样各买几（和备货页拆出来的四行同一个算法）。 */
@@ -422,7 +426,7 @@ function vegeAlt(oz: number): string {
     const name = v.label.split(" ")[1] ?? v.label
     return u ? `${name} ${Math.max(1, Math.ceil((oz * v.ratio) / u.per))} ${u.noun}` : `${name} ${r1(oz * v.ratio)} oz`
   }).join("、")
-  return `每人 5 oz：≈ ${r1(oz / 16)} lb（${parts}）`
+  return `每人约 7 oz（西葫芦 10 人 3.3 根）：≈ ${r1(oz / 16)} lb（${parts}）`
 }
 
 /** 蔬菜合计那一行 → 四样各一行（oz），按各自的采购单位出"买几根/几袋/几个"。 */

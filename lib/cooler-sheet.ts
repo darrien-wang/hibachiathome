@@ -3,10 +3,11 @@ import { aggregatePrep, splitVeg, type PrepItem } from "@/lib/prep-bom"
 // 后勤备货单（装保温箱）：给后勤阿姨打印出来照着装的那张纸。
 // 老板 2026-10-11：只列要放进保温箱的东西，不带客户信息、不带价格；全中文、
 // 字要大、越简单越好（后勤年纪偏大）。数量来自同一套配比（lib/prep-bom.ts），
-// 只是换成她手上的单位：肉按磅、菜按根/个/袋、酱按盒、黄油按根，一律往上取整。
+// 称重的东西写到盎司（往上取整），旁边小字给参照（约几磅 / 几根 / 几盒）；按个数的照个数。
 // 不进保温箱的（油、酱油、桌椅餐具）不出现在这张纸上。
 
-export type CoolerLine = { id: string; label: string; amount: string; note?: string }
+/** fill = 留给后勤手写的空（"实际 ____ 根"），老板拿回来校准配比。 */
+export type CoolerLine = { id: string; label: string; amount: string; note?: string; fill?: string }
 export type CoolerSection = { title: string; lines: CoolerLine[] }
 export type CoolerParty = {
   /** "下午 5:00" */
@@ -18,38 +19,44 @@ export type CoolerParty = {
   sections: CoolerSection[]
 }
 
-const halfLb = (oz: number) => Math.max(0.5, Math.ceil((oz / 16) * 2) / 2)
-const lb = (oz: number) => `${halfLb(oz)} 磅`
+const r1 = (n: number) => Math.round(n * 10) / 10
 const up = (n: number) => Math.max(1, Math.ceil(n - 1e-9))
+// 称重的东西一律写到盎司（老板 2026-10-11："备料需要放到 oz 级别"），往上取整；
+// 旁边小字给一个顺手的参照："约 x 磅 / 约 x 根 / 约 x 盒"。
+const oz = (q: number) => `${up(q)} 盎司`
+const aboutLb = (q: number) => `约 ${r1(q / 16)} 磅`
+const servings = (q: number, per: number) => `${up(q / per)} 人份`
 
-type Rule = { section: 0 | 1 | 2 | 3 | 4; label: string; amount: (qty: number) => string; note?: (qty: number) => string }
+type Rule = { section: 0 | 1 | 2 | 3 | 4; label: string; amount: (qty: number) => string; note?: (qty: number) => string; fill?: string }
 const SECTION_TITLES = ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
 
 // 一根西葫芦 ≈ 11 盎司、一个洋葱 ≈ 12 盎司、胡萝卜 12 盎司一袋（和 prep-bom 的采购换算一致）。
+// 酱料、黄油、青豆胡萝卜粒在清单上按汤匙记：2 汤匙 = 1 盎司。
 const RULES: Record<string, Rule> = {
-  chicken: { section: 0, label: "鸡胸肉", amount: lb, note: (q) => `${up(q / 5)} 人份` },
-  steak: { section: 0, label: "牛排", amount: lb, note: (q) => `${up(q / 4.5)} 人份` },
-  ribeye: { section: 0, label: "肋眼牛排", amount: lb, note: (q) => `${up(q / 4.5)} 人份` },
-  filet_mignon: { section: 0, label: "菲力牛排", amount: lb, note: (q) => `${up(q / 4.5)} 人份` },
-  shrimp: { section: 0, label: "虾", amount: (q) => `${up(q)} 只`, note: (q) => `${up(q / 5)} 人份` },
-  salmon: { section: 0, label: "三文鱼", amount: lb, note: (q) => `${up(q / 4)} 人份` },
-  scallops: { section: 0, label: "带子", amount: (q) => `${up(q)} 个`, note: (q) => `${up(q / 4)} 人份` },
+  chicken: { section: 0, label: "鸡胸肉", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 5)}` },
+  steak: { section: 0, label: "牛排", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4.5)}` },
+  ribeye: { section: 0, label: "肋眼牛排", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4.5)}` },
+  filet_mignon: { section: 0, label: "菲力牛排", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4.5)}` },
+  shrimp: { section: 0, label: "虾", amount: (q) => `${up(q)} 只`, note: (q) => servings(q, 5) },
+  salmon: { section: 0, label: "三文鱼", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4)}` },
+  scallops: { section: 0, label: "带子", amount: oz, note: (q) => `约 ${up(q)} 个 · ${servings(q, 4)}` },
   lobster_tail: { section: 0, label: "龙虾尾", amount: (q) => `${up(q / 6)} 只` },
-  tofu: { section: 0, label: "豆腐", amount: (q) => `${up(q / 15)} 盒`, note: (q) => `${up(q / 5)} 人份` },
-  zucchini: { section: 1, label: "西葫芦", amount: (q) => `${up(q / 11)} 根` },
-  broccoli: { section: 1, label: "西兰花", amount: lb },
-  onion: { section: 1, label: "洋葱", amount: (q) => `${up(q / 12)} 个` },
-  carrots: { section: 1, label: "胡萝卜", amount: (q) => `${up(q / 12)} 袋`, note: () => "12 盎司一袋" },
+  tofu: { section: 0, label: "豆腐", amount: oz, note: (q) => `约 ${up(q / 15)} 盒 · ${servings(q, 5)}` },
+  // 根数是估的（一根按 11 盎司）：请她把实际用了几根写在纸上，慢慢对出真实的数（老板 2026-10-11）。
+  zucchini: { section: 1, label: "西葫芦", amount: oz, note: (q) => `约 ${r1(q / 11)} 根`, fill: "实际用了 ______ 根" },
+  broccoli: { section: 1, label: "西兰花", amount: oz, note: aboutLb },
+  onion: { section: 1, label: "洋葱", amount: oz, note: (q) => `约 ${r1(q / 12)} 个` },
+  carrots: { section: 1, label: "胡萝卜", amount: oz, note: (q) => `约 ${up(q / 12)} 袋（12 盎司一袋）` },
   salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 人份` },
   lime: { section: 1, label: "青柠", amount: (q) => `${up(q)} 个` },
-  fried_rice: { section: 2, label: "熟米饭", amount: lb },
+  fried_rice: { section: 2, label: "熟米饭", amount: oz, note: aboutLb },
   // 清单上记的是干面重量（熟面 ÷ 3）；装箱的是煮好的面。
-  noodles: { section: 2, label: "面条（煮好的）", amount: (q) => lb(q * 3) },
+  noodles: { section: 2, label: "面条（煮好的）", amount: (q) => oz(q * 3), note: (q) => aboutLb(q * 3) },
   eggs: { section: 2, label: "鸡蛋", amount: (q) => `${up(q)} 个` },
-  fried_rice_seasoning: { section: 2, label: "青豆胡萝卜粒（冷冻）", amount: (q) => `${up(q / 24)} 包` },
-  ginger_sauce: { section: 3, label: "Yum Yum 白酱", amount: (q) => `${up(q / 32)} 盒`, note: () => "16 盎司的盒子" },
-  ginger_dressing: { section: 3, label: "姜汁沙拉酱", amount: (q) => `${up(q / 32)} 盒`, note: () => "16 盎司的盒子" },
-  garlic_butter: { section: 3, label: "蒜香黄油", amount: (q) => `${up(q / 16)} 根`, note: () => "8 盎司一根" },
+  fried_rice_seasoning: { section: 2, label: "青豆胡萝卜粒（冷冻）", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 24)} 包（12 盎司一包）` },
+  ginger_sauce: { section: 3, label: "Yum Yum 白酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
+  ginger_dressing: { section: 3, label: "姜汁沙拉酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
+  garlic_butter: { section: 3, label: "蒜香黄油", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 16)} 根（8 盎司一根）` },
   gyoza: { section: 4, label: "煎饺", amount: (q) => `${up(q)} 个` },
   spring_rolls: { section: 4, label: "春卷", amount: (q) => `${up(q)} 个` },
   edamame: { section: 4, label: "毛豆", amount: (q) => `${up(q)} 袋` },
@@ -69,7 +76,7 @@ export function coolerSections(items: PrepItem[], menuKnown: boolean): CoolerSec
     const q = qty.get(id) ?? 0
     if (q <= 0) continue
     if (rule.section === 0 && !menuKnown) continue
-    sections[rule.section].lines.push({ id, label: rule.label, amount: rule.amount(q), note: rule.note?.(q) })
+    sections[rule.section].lines.push({ id, label: rule.label, amount: rule.amount(q), note: rule.note?.(q), fill: rule.fill })
   }
   return sections.filter((s) => s.lines.length > 0)
 }
@@ -98,7 +105,7 @@ export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
       const body = p.sections
         .map(
           (s) => `<h2>${esc(s.title)}</h2><table>${s.lines
-            .map((l) => `<tr><td class="box"><span></span></td><td class="name">${esc(l.label)}${l.note ? `<small>${esc(l.note)}</small>` : ""}</td><td class="amt">${esc(l.amount)}</td></tr>`)
+            .map((l) => `<tr><td class="box"><span></span></td><td class="name">${esc(l.label)}${l.note ? `<small>${esc(l.note)}</small>` : ""}${l.fill ? `<small class="fill">${esc(l.fill)}</small>` : ""}</td><td class="amt">${esc(l.amount)}</td></tr>`)
             .join("")}</table>`,
         )
         .join("")
@@ -134,6 +141,7 @@ td.box{width:54px}
 td.box span{display:block;width:38px;height:38px;border:4px solid #000;border-radius:5px}
 td.name{font-size:32px;font-weight:700}
 td.name small{display:block;font-size:19px;font-weight:500;color:#333}
+td.name small.fill{font-size:24px;font-weight:700;color:#000;margin-top:6px}
 td.amt{font-size:38px;font-weight:900;text-align:right;white-space:nowrap}
 footer{margin-top:18px;font-size:22px;font-weight:600;text-align:center}
 @media print{.bar{display:none}.page{padding:0;max-width:none}@page{margin:14mm}}

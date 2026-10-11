@@ -18,10 +18,15 @@ test("coolerSections: Chinese labels, her units, nothing that stays out of the c
   const sections = coolerSections(prep.items, prep.menuKnown)
   const lines = Object.fromEntries(sections.flatMap((s) => s.lines).map((l) => [l.id, l]))
   assert.deepEqual(sections.map((s) => s.title), ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"])
-  assert.equal(lines.chicken.amount, "6.5 磅") // 20 × 5 oz = 100 oz
-  assert.equal(lines.chicken.note, "20 人份")
+  assert.equal(lines.chicken.amount, "100 盎司") // 20 × 5 oz
+  assert.equal(lines.chicken.note, "约 6.3 磅 · 20 人份")
+  // 西葫芦：10 个人 3.3 根（老板 2026-10-11 实测），20 人 ≈ 6.6 根
+  assert.equal(lines.zucchini.amount, "73 盎司")
+  assert.equal(lines.zucchini.note, "约 6.6 根")
+  assert.equal(lines.broccoli.amount, "30 盎司")
   assert.equal(lines.shrimp.amount, "50 只")
-  assert.equal(lines.ginger_sauce.amount, "3 盒") // 20 × 2 oz = 40 oz
+  assert.equal(lines.ginger_sauce.amount, "40 盎司") // 20 × 2 oz
+  assert.equal(lines.ginger_sauce.note, "约 3 盒（16 盎司一盒）")
   assert.equal(lines.gyoza.amount, "20 个")
   assert.equal(lines.noodles.label, "面条（煮好的）")
   for (const id of ["oil", "soy_sauce", "tables", "chairs", "utensils"]) assert.equal(lines[id], undefined)
