@@ -375,6 +375,38 @@ export async function GET(request: NextRequest) {
 // cronCaller: nobody reads that response, so the "reported once" marks for
 // plain items are left alone - otherwise the server run at :05 would swallow
 // the push the desktop task sends at :10. Escalation keeps its own marks.
+/**
+ * One machine first response per lead, whichever run gets there first. The
+ * 10-minute sweep and the per-minute cron can start in the same second -
+ * 2026-10-11 11:55 Cory (951-237-8255) got template B twice, both runs having
+ * read "no first response yet". The claim row goes in BEFORE the text, and the
+ * unique (touchpoint_source, external_touchpoint_id) index lets exactly one
+ * insert through. Returns the claim's id, or null when another run has it.
+ */
+async function claimFirstResponse(supabase: AnySupabase, leadId: string, payload: Record<string, unknown>): Promise<string | number | null> {
+  const { data, error } = await supabase
+    .from("lead_touchpoints")
+    .insert({
+      lead_id: leadId,
+      touchpoint_type: "agent_first_response",
+      touchpoint_source: "lead_watch",
+      external_touchpoint_id: `first_response:${leadId}`,
+      raw_payload_json: { ...payload, claimed: true },
+    })
+    .select("id")
+    .single()
+  if (error) {
+    if ((error as { code?: string }).code === "23505") return null
+    throw new Error(`first-response claim failed: ${error.message}`)
+  }
+  return (data as { id: string | number }).id
+}
+
+/** Nothing reached the customer: drop the claim so a later run can try again. */
+async function releaseFirstResponse(supabase: AnySupabase, claimId: string | number) {
+  await supabase.from("lead_touchpoints").delete().eq("id", claimId)
+}
+
 async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: boolean, stage: WatchStage = "full"): Promise<WatchResult> {
   const now = Date.now()
   const watch = (await getWorkbenchSettings()).lead_watch
@@ -433,6 +465,8 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         autoSent.push({ leadId: lead.id, phone, email: lead.email, minutesWaiting: ageMin, dryRun: true, sms: msg.sms })
         continue
       }
+      const claimA = await claimFirstResponse(supabase, lead.id, { via: "sms", auto: true, template: "A" })
+      if (claimA == null) continue
       const sms = phone ? await sendSms(phone, msg.sms) : ({ ok: false, error: "no_phone" } as const)
       const email = lead.email
         ? await sendCustomerEmail({
@@ -446,14 +480,13 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
           })
         : null
       const reached = sms.ok || Boolean(email?.delivered)
+      if (!reached) await releaseFirstResponse(supabase, claimA)
       if (reached) {
+        await supabase
+          .from("lead_touchpoints")
+          .update({ raw_payload_json: { via: sms.ok ? "sms" : "email", auto: true, template: "A", sms_sid: sms.ok ? sms.sid : null, claimed: true } })
+          .eq("id", claimA)
         await supabase.from("lead_touchpoints").insert([
-          {
-            lead_id: lead.id,
-            touchpoint_type: "agent_first_response",
-            touchpoint_source: "lead_watch",
-            raw_payload_json: { via: sms.ok ? "sms" : "email", auto: true, sms_sid: sms.ok ? sms.sid : null },
-          },
           {
             lead_id: lead.id,
             touchpoint_type: "agent_note",
@@ -549,16 +582,17 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         autoSent.push({ leadId: lead.id, phone, template: "B", minutesWaiting: ageMin, dryRun: true, sms: plan.text })
         continue
       }
+      const claimB = await claimFirstResponse(supabase, lead.id, { via: "sms", auto: true, template: "B" })
+      if (claimB == null) continue
       const sms = await sendSms(phone, plan.text)
+      if (!sms.ok) await releaseFirstResponse(supabase, claimB)
       if (sms.ok) {
         const at = new Date().toISOString()
+        await supabase
+          .from("lead_touchpoints")
+          .update({ raw_payload_json: { via: "sms", auto: true, template: "B", sms_sid: sms.sid, claimed: true } })
+          .eq("id", claimB)
         await supabase.from("lead_touchpoints").insert([
-          {
-            lead_id: lead.id,
-            touchpoint_type: "agent_first_response",
-            touchpoint_source: "lead_watch",
-            raw_payload_json: { via: "sms", auto: true, template: "B", sms_sid: sms.sid },
-          },
           {
             lead_id: lead.id,
             touchpoint_type: "sms_outbound",
