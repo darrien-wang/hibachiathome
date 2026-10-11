@@ -56,7 +56,8 @@ const RULES: Record<string, Rule> = {
   fried_rice: { section: 2, label: "熟米饭", amount: oz, note: aboutLb },
   // 清单上记的是干面重量（熟面 ÷ 3）；装箱的是煮好的面。
   noodles: { section: 2, label: "面条（煮好的）", amount: (q) => oz(q * 3), note: (q) => aboutLb(q * 3) },
-  eggs: { section: 2, label: "鸡蛋", amount: (q) => `${up(q)} 个` },
+  // 鸡蛋不用数得一个不差（老板 2026-10-11）：写"多少个上下"。
+  eggs: { section: 2, label: "鸡蛋", amount: (q) => `${up(q)} 个上下` },
   fried_rice_seasoning: { section: 2, label: "青豆胡萝卜粒（冷冻）", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 24)} 包（12 盎司一包）` },
   ginger_sauce: { section: 3, label: "Yum Yum 白酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
   ginger_dressing: { section: 3, label: "姜汁沙拉酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
