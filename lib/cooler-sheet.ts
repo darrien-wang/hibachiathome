@@ -28,7 +28,8 @@ const aboutLb = (q: number) => `约 ${r1(q / 16)} 磅`
 const servings = (q: number, per: number) => `${up(q / per)} 人份`
 
 type Rule = { section: 0 | 1 | 2 | 3 | 4; label: string; amount: (qty: number) => string; note?: (qty: number) => string; fill?: string }
-const SECTION_TITLES = ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
+// 蔬菜写的是没处理的重量（去皮、去头尾之前），标题上说清楚。
+const SECTION_TITLES = ["肉和海鲜", "蔬菜（没去皮、没切之前的重量）", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
 
 // 一根西葫芦 ≈ 11 盎司、一个洋葱 ≈ 12 盎司、胡萝卜 12 盎司一袋（和 prep-bom 的采购换算一致）。
 // 酱料、黄油、青豆胡萝卜粒在清单上按汤匙记：2 汤匙 = 1 盎司。
@@ -45,7 +46,7 @@ const RULES: Record<string, Rule> = {
   // 根数是估的（一根按 11 盎司）：请她把实际用了几根写在纸上，慢慢对出真实的数（老板 2026-10-11）。
   zucchini: { section: 1, label: "西葫芦", amount: oz, note: (q) => `约 ${r1(q / 11)} 根`, fill: "实际用了 ______ 根" },
   broccoli: { section: 1, label: "西兰花", amount: oz, note: aboutLb },
-  onion: { section: 1, label: "洋葱", amount: oz, note: (q) => `约 ${r1(q / 12)} 个` },
+  onion: { section: 1, label: "洋葱", amount: oz, note: (q) => `约 ${r1(q / 12)} 个`, fill: "实际用了 ______ 个" },
   carrots: { section: 1, label: "胡萝卜", amount: oz, note: (q) => `约 ${up(q / 12)} 袋（12 盎司一袋）` },
   salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 人份` },
   lime: { section: 1, label: "青柠", amount: (q) => `${up(q)} 个` },

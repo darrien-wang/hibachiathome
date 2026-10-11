@@ -17,7 +17,7 @@ test("coolerSections: Chinese labels, her units, nothing that stays out of the c
   const prep = orderPrep(inv as never, "2026-10-01T00:00:00Z", 20, 0)
   const sections = coolerSections(prep.items, prep.menuKnown)
   const lines = Object.fromEntries(sections.flatMap((s) => s.lines).map((l) => [l.id, l]))
-  assert.deepEqual(sections.map((s) => s.title), ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"])
+  assert.deepEqual(sections.map((s) => s.title), ["肉和海鲜", "蔬菜（没去皮、没切之前的重量）", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"])
   assert.equal(lines.chicken.amount, "100 盎司") // 20 × 5 oz
   assert.equal(lines.chicken.note, "约 6.3 磅 · 20 人份")
   // 西葫芦：10 个人 3.3 根（老板 2026-10-11 实测），20 人 ≈ 6.6 根
