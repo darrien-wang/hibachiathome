@@ -1,4 +1,4 @@
-import { aggregatePrep, splitVeg, type PrepItem } from "@/lib/prep-bom"
+import { aggregatePrep, VEGE_NET_PER_RAW, type PrepItem } from "@/lib/prep-bom"
 
 // 后勤备货单（装保温箱）：给后勤阿姨打印出来照着装的那张纸。
 // 老板 2026-10-11：只列要放进保温箱的东西，不带客户信息、不带价格；全中文、
@@ -28,10 +28,8 @@ const aboutLb = (q: number) => `约 ${r1(q / 16)} 磅`
 const servings = (q: number, per: number) => `${up(q / per)} 人份`
 
 type Rule = { section: 0 | 1 | 2 | 3 | 4; label: string; amount: (qty: number) => string; note?: (qty: number) => string; fill?: string }
-// 蔬菜写的是没处理的重量（去皮、去头尾之前），标题上说清楚。
-const SECTION_TITLES = ["肉和海鲜", "蔬菜（没去皮、没切之前的重量）", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
+const SECTION_TITLES = ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
 
-// 一根西葫芦 ≈ 11 盎司、一个洋葱 ≈ 12 盎司、胡萝卜 2 磅一袋（和 prep-bom 的采购换算一致）。
 // 酱料、黄油、青豆胡萝卜粒在清单上按汤匙记：2 汤匙 = 1 盎司。
 const RULES: Record<string, Rule> = {
   chicken: { section: 0, label: "鸡胸肉", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 5)}` },
@@ -43,11 +41,16 @@ const RULES: Record<string, Rule> = {
   scallops: { section: 0, label: "带子", amount: oz, note: (q) => `约 ${up(q)} 个 · ${servings(q, 4)}` },
   lobster_tail: { section: 0, label: "龙虾尾", amount: (q) => `${up(q / 6)} 只` },
   tofu: { section: 0, label: "豆腐", amount: oz, note: (q) => `约 ${up(q / 15)} 盒 · ${servings(q, 5)}` },
-  // 根数是估的（一根按 11 盎司）：请她把实际用了几根写在纸上，慢慢对出真实的数（老板 2026-10-11）。
-  zucchini: { section: 1, label: "西葫芦", amount: oz, note: (q) => `约 ${r1(q / 11)} 根`, fill: "实际用了 ______ 根" },
-  broccoli: { section: 1, label: "西兰花", amount: oz, note: aboutLb },
-  onion: { section: 1, label: "洋葱", amount: oz, note: (q) => `约 ${r1(q / 12)} 个`, fill: "实际用了 ______ 个" },
-  carrots: { section: 1, label: "胡萝卜", amount: oz, note: (q) => `约 ${up(q / 32)} 袋（2 磅一袋）` },
+  // 四样蔬菜合成一栏，写切好后的净重：平均每人 5 盎司上下，不用分开称（老板 2026-10-11）。
+  // 清单上的 mixed_vege 是毛重（含去皮去头尾的损耗），这里折回净重。西葫芦买多少根还在
+  // 校准，所以留一个空请她写实际用了几根。
+  mixed_vege: {
+    section: 1,
+    label: "蔬菜混合（切好的）",
+    amount: (q) => oz(q * VEGE_NET_PER_RAW),
+    note: () => "西葫芦、西兰花、洋葱、胡萝卜 · 平均每人 5 盎司，上下一点没关系",
+    fill: "西葫芦实际用了 ______ 根",
+  },
   salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 人份` },
   lime: { section: 1, label: "青柠", amount: (q) => `${up(q)} 个` },
   fried_rice: { section: 2, label: "熟米饭", amount: oz, note: aboutLb },
@@ -65,7 +68,7 @@ const RULES: Record<string, Rule> = {
 
 /** 一单的用料行 → 保温箱里的东西，按五类分好。菜单没定时不出肉（由页面提示）。 */
 export function coolerSections(items: PrepItem[], menuKnown: boolean): CoolerSection[] {
-  const merged = aggregatePrep(items.filter((i) => i.group !== "setup")).flatMap((i) => (i.id === "mixed_vege" ? splitVeg(i) : [i]))
+  const merged = aggregatePrep(items.filter((i) => i.group !== "setup"))
   // 加的鸡蛋并进鸡蛋一行。
   const qty = new Map<string, number>()
   for (const i of merged) {
@@ -78,6 +81,8 @@ export function coolerSections(items: PrepItem[], menuKnown: boolean): CoolerSec
     if (q <= 0) continue
     if (rule.section === 0 && !menuKnown) continue
     sections[rule.section].lines.push({ id, label: rule.label, amount: rule.amount(q), note: rule.note?.(q), fill: rule.fill })
+    // 洋葱火山要一个整的洋葱，不在用料清单里（它是表演不是配料），每单都要带。
+    if (id === "mixed_vege") sections[1].lines.push({ id: "onion_volcano", label: "整个洋葱（洋葱火山用）", amount: "1 个", note: "不要切 · 两位厨师的单带 2 个" })
   }
   return sections.filter((s) => s.lines.length > 0)
 }

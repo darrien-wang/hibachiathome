@@ -73,6 +73,8 @@ const SALAD = { adult: 1, child: 0.5 } // 份
 // ≈ 3.6 oz 生的，原来按净重 1.5 oz 算所以一直买少）。西兰花、洋葱、胡萝卜的损耗还
 // 没量，先照净重（1.5 / 1.5 / 0.5 oz）；后勤报回实际用量再逐样加。合计 7.1 oz 是毛重。
 const VEGE_OZ = { adult: 7.1, child: 3.55 }
+/** 上桌的净重：每人 5 oz（小孩一半）。毛重 × 这个系数 = 切好后的净重。 */
+export const VEGE_NET_PER_RAW = 5 / VEGE_OZ.adult
 const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料单一致）
 // 份量表的 4 oz 是熟面；面吸水，干:熟 ≈ 1:3（重量，老板 2026-09-30）。
 // 采购买的是干面（RD 10 lb/箱），所以清单里按干重算：熟面 ÷ 3。

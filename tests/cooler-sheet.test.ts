@@ -17,13 +17,13 @@ test("coolerSections: Chinese labels, her units, nothing that stays out of the c
   const prep = orderPrep(inv as never, "2026-10-01T00:00:00Z", 20, 0)
   const sections = coolerSections(prep.items, prep.menuKnown)
   const lines = Object.fromEntries(sections.flatMap((s) => s.lines).map((l) => [l.id, l]))
-  assert.deepEqual(sections.map((s) => s.title), ["肉和海鲜", "蔬菜（没去皮、没切之前的重量）", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"])
+  assert.deepEqual(sections.map((s) => s.title), ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"])
   assert.equal(lines.chicken.amount, "100 盎司") // 20 × 5 oz
   assert.equal(lines.chicken.note, "约 6.3 磅 · 20 人份")
-  // 西葫芦：10 个人 3.3 根（老板 2026-10-11 实测），20 人 ≈ 6.6 根
-  assert.equal(lines.zucchini.amount, "73 盎司")
-  assert.equal(lines.zucchini.note, "约 6.6 根")
-  assert.equal(lines.broccoli.amount, "30 盎司")
+  // 四样蔬菜一栏，切好后的净重：20 人 × 5 oz
+  assert.equal(lines.mixed_vege.amount, "100 盎司")
+  assert.equal(lines.onion_volcano.amount, "1 个")
+  for (const id of ["zucchini", "broccoli", "onion", "carrots"]) assert.equal(lines[id], undefined)
   assert.equal(lines.shrimp.amount, "50 只")
   assert.equal(lines.ginger_sauce.amount, "40 盎司") // 20 × 2 oz
   assert.equal(lines.ginger_sauce.note, "约 3 盒（16 盎司一盒）")
