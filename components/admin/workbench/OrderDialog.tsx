@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
+import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 import { Chip, Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
 import { askConfirm, tell } from "./ask"
 import {
@@ -99,11 +100,10 @@ const GRATUITY_QUESTION = "Would you like to add the 20% gratuity for your chef 
 // update-request confirm/complete, chef assignment) and the SMS line.
 
 const OPEN_REQUEST = new Set(["received", "confirmed_in_progress"])
-type OTab = "money" | "planner" | "prep" | "sms" | "records"
+type OTab = "money" | "planner" | "sms" | "records"
 const OTABS: Array<[OTab, string]> = [
   ["money", "金额 · 收款"],
   ["planner", "Planner · 派单"],
-  ["prep", "备料单"],
   ["sms", "短信 · 邮件"],
   ["records", "记录"],
 ]
@@ -466,6 +466,32 @@ export function OrderDialog({
 
   // 只看不改：拿订单上存的发票数据现铸一个 30 分钟的 token 打开。发票会改，
   // 所以每次现铸，看到的永远是当前这版；要看发给客户的那版用"已发送的发票"。
+  // 备料单：给后勤（张阿姨）打印的那张——只有这一单要放进保温箱的东西，大字中文，
+  // 没有客户信息和价格（老板 2026-10-11：不要单独一个页签，一个按钮点开就能打印）。
+  // 窗口要在点击当下就开，等接口回来再开会被浏览器当弹窗拦掉。
+  const openCoolerSheet = async () => {
+    const w = window.open("", "_blank")
+    setBusy("cooler")
+    try {
+      const r = await adminJson<{ orders: Array<{ cooler?: CoolerParty }> }>(adminKey, `/api/admin/prep?orders=${o.id}`)
+      const parties = r.orders.map((x) => x.cooler).filter((c): c is CoolerParty => !!c)
+      const html = coolerSheetHtml(ev?.ymd ?? new Date().toISOString().slice(0, 10), parties)
+      if (w) {
+        w.document.open()
+        w.document.write(html)
+        w.document.close()
+      } else {
+        const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }))
+        window.location.assign(url)
+      }
+    } catch (e) {
+      w?.close()
+      setMsg(e instanceof Error ? e.message : "备料单打不开")
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const viewInvoice = () =>
     call("viewinv", async () => {
       const w = window.open("", "_blank")
@@ -715,6 +741,9 @@ export function OrderDialog({
               </button>
               <button type="button" className="btn btn-secondary btn-left" disabled={!lead} onClick={() => lead && onOpenLead(lead.id)} title={lead ? "打开线索期的对话和承诺" : "没找到对应线索"}>
                 线索期承诺 / 优惠
+              </button>
+              <button type="button" className="btn btn-secondary btn-left" disabled={busy === "cooler"} onClick={() => void openCoolerSheet()} title="给后勤打印：这一单要放进保温箱的东西，大字中文，没有客户信息和价格">
+                {busy === "cooler" ? "打开中…" : "备料单（打印）"}
               </button>
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、路费、报价一律在专业表单里算和改，保存后这里自动同步。</div>
@@ -973,7 +1002,6 @@ export function OrderDialog({
         </div>
       ) : null}
 
-      {curTab === "prep" ? <PrepSheet adminKey={adminKey} orderId={o.id} /> : null}
 
       {curTab === "sms" ? (
         <div className="dialog-col" style={{ paddingTop: 0 }}>
@@ -1144,92 +1172,6 @@ function SetupPanel({ order }: { order: OrderRow }) {
           </button>
         ) : null}
       </span>
-    </div>
-  )
-}
-
-
-/* ---------- 备料单：这一单师傅要带的量 ---------- */
-
-type SheetRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string }
-type SheetResp = {
-  orders: Array<{ name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean; proteinLine: string; extrasLine: string }>
-  totals: SheetRow[]
-  guestTotal: number
-  warnings: string[]
-}
-const SHEET_GROUPS: Array<[string, string]> = [
-  ["protein", "蛋白质"],
-  ["produce", "生鲜 · 鸡蛋"],
-  ["frozen", "冻品 · 前菜 · 面"],
-  ["pantry", "调料"],
-  ["setup", "桌椅 · 餐具（装车）"],
-]
-
-function PrepSheet({ adminKey, orderId }: { adminKey: string; orderId: string }) {
-  const [d, setD] = useState<SheetResp | null>(null)
-  const [err, setErr] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    let dead = false
-    void (async () => {
-      try {
-        const r = await adminJson<SheetResp>(adminKey, `/api/admin/prep?orders=${orderId}`)
-        if (!dead) setD(r)
-      } catch (e) {
-        if (!dead) setErr(e instanceof Error ? e.message : "读取失败")
-      }
-    })()
-    return () => {
-      dead = true
-    }
-  }, [adminKey, orderId])
-
-  if (err) return <div className="dialog-col" style={{ paddingTop: 0 }}><div className="notice danger">{err}</div></div>
-  if (!d) return <div className="dialog-col" style={{ paddingTop: 0 }}><div className="empty">读取中…</div></div>
-
-  const o = d.orders[0]
-  const groups = SHEET_GROUPS.map(([key, title]) => ({ key, title, rows: d.totals.filter((t) => t.group === key) })).filter((g) => g.rows.length)
-  const asText = [
-    o ? `${o.name} · ${o.timeLabel} · ${o.adults + o.kids} 人` : "",
-    ...groups.flatMap((g) => [`【${g.title}】`, ...g.rows.map((r) => `${r.label} ${Math.round(r.qty * 10) / 10}${r.unit}${r.alt ? `（${r.alt}）` : ""}`)]),
-  ]
-    .filter(Boolean)
-    .join("\n")
-
-  return (
-    <div className="dialog-col" style={{ paddingTop: 0 }}>
-      {d.warnings.map((w, i) => (
-        <div key={i} className="notice danger">{w}</div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <Kicker>这一单要带的量 · {d.guestTotal} 人</Kicker>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { void copyText(asText); setCopied(true) }}>
-          {copied ? "已复制" : "复制给师傅"}
-        </button>
-      </div>
-      {o?.proteinLine ? <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>{o.proteinLine}{o.extrasLine ? ` · ${o.extrasLine}` : ""}</div> : null}
-
-      {groups.map((g) => (
-        <div key={g.key}>
-          <h6 style={{ margin: "10px 0 4px" }}>{g.title}</h6>
-          {g.rows.map((r) => (
-            <div key={r.id + r.label} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 12, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-divider)" }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{r.label}</div>
-                {r.alt ? <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>{r.alt}</div> : null}
-              </div>
-              <div className="num" style={{ fontSize: 15, whiteSpace: "nowrap" }}>
-                {Math.round(r.qty * 10) / 10} {r.unit}
-              </div>
-            </div>
-          ))}
-        </div>
-      ))}
-      <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 8 }}>
-        份量表算的净需求，没加余量——采购留的富余在"仓库 · 备货"里。
-      </div>
     </div>
   )
 }
