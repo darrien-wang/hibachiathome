@@ -1,31 +1,33 @@
-// Layer-2 self-test: 来电耳语 (lib/call-whisper.ts, 2026-10-10). When April called the 213 line
-// on 10-10 the owner picked up knowing nothing; whoever answers now hears who it is first.
-// The sentence, its numbers and dates, and where the price and name come from.
+// Layer-2 self-test: 来电卡片 (lib/caller-card.ts, 2026-10-10). When April called the 213 line on
+// 10-10 the owner picked up knowing nothing; the ring now carries who it is, and the App and the web
+// softphone show it. The card, its dates and money, where the price and name come from, and the
+// TwiML leg that carries it.
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
-  firstName,
+  callerCard,
+  cardDate,
+  clientLeg,
+  displayName,
   greetedName,
+  money,
   partyDateFromHint,
   pickPrice,
   priceInText,
   readTimeline,
-  spokenDate,
   statedHeadcount,
-  whisperAttribute,
-  whisperLine,
-  zhNumber,
+  type CallerFacts,
   type TimelineRow,
-  type WhisperFacts,
-} from "../lib/call-whisper"
+} from "../lib/caller-card"
+import { CALLER_CARD_PARAM, decodeCallerCard, encodeCallerCard } from "../lib/caller-card-param"
 
 const SAT = "2026-10-10"
-const april: WhisperFacts = {
-  name: "April",
-  phone: "+16262220069",
+const april: CallerFacts = {
+  name: "April Costigan",
   heads: 35,
   date: "2026-10-12",
+  time: null,
   dateTbd: false,
   price: 1225,
   locked: false,
@@ -33,69 +35,49 @@ const april: WhisperFacts = {
   returning: false,
 }
 
-test("whisper · April after the 11:28 concession: the owner's own example", () => {
-  assert.equal(whisperLine(april, SAT), "April，三十五人，周一十月十二号，报价一千二百二十五，还没锁单")
+test("caller card · April after the 11:28 concession", () => {
+  assert.deepEqual(callerCard(april, SAT), { name: "April Costigan", line: "35人 · 10月12日 周一 · 报价 $1,225 · 还没锁单" })
 })
 
-test("whisper · April at 11:15: the $1,337.40 we had texted, said as written", () => {
-  assert.equal(whisperLine({ ...april, price: 1337.4 }, SAT), "April，三十五人，周一十月十二号，报价一千三百三十七，还没锁单")
+test("caller card · April at 11:15: the $1,337.40 we had texted, as written", () => {
+  assert.equal(callerCard({ ...april, price: 1337.4 }, SAT)?.line, "35人 · 10月12日 周一 · 报价 $1,337.40 · 还没锁单")
 })
 
-test("whisper · a number we know nothing about gets no whisper", () => {
-  const unknown: WhisperFacts = { name: "", phone: "+13105550123", heads: null, date: null, dateTbd: false, price: null, locked: false, order: false, returning: false }
-  assert.equal(whisperLine(unknown, SAT), null)
-  assert.equal(whisperLine({ ...unknown, heads: 0, price: 0 }, SAT), null)
+test("caller card · a number we know nothing about gets no card", () => {
+  const unknown: CallerFacts = { name: "", heads: null, date: null, time: null, dateTbd: false, price: null, locked: false, order: false, returning: false }
+  assert.equal(callerCard(unknown, SAT), null)
+  assert.equal(callerCard({ ...unknown, heads: 0, price: 0 }, SAT), null)
 })
 
-test("whisper · no name: the last four digits, as the callback ring says them", () => {
-  assert.equal(whisperLine({ ...april, name: "", price: null }, SAT), "尾号 0 0 6 9 的客人，三十五人，周一十月十二号，还没锁单")
+test("caller card · no name: the party still shows (the number is on screen anyway)", () => {
+  assert.deepEqual(callerCard({ ...april, name: "", price: null }, SAT), { name: "", line: "35人 · 10月12日 周一 · 还没锁单" })
 })
 
-test("whisper · a booked party: total, locked, 今天 / 明天 / 日期待定", () => {
-  const booked: WhisperFacts = { ...april, name: "Maribel", heads: 26, date: SAT, price: 1382, locked: true, order: true }
-  assert.equal(whisperLine(booked, SAT), "Maribel，二十六人，今天，总价一千三百八十二，已锁单")
-  assert.equal(whisperLine({ ...booked, date: "2026-10-11" }, SAT), "Maribel，二十六人，明天，总价一千三百八十二，已锁单")
-  assert.equal(whisperLine({ ...booked, date: null, dateTbd: true, heads: 6, price: 599 }, SAT), "Maribel，六人，日期待定，总价五百九十九，已锁单")
+test("caller card · a booked party: total, start time, locked, 今天 / 明天 / 日期待定", () => {
+  const booked: CallerFacts = { ...april, name: "Maribel Martinez", heads: 26, date: SAT, time: "19:00", price: 1382, locked: true, order: true }
+  assert.equal(callerCard(booked, SAT)?.line, "26人 · 今天 19:00 · 总价 $1,382 · 已锁单")
+  assert.equal(callerCard({ ...booked, date: "2026-10-11", time: null }, SAT)?.line, "26人 · 明天 · 总价 $1,382 · 已锁单")
+  assert.equal(callerCard({ ...booked, date: "2026-10-13", time: "18:30", price: 1257.6 }, SAT)?.line, "26人 · 10月13日 周二 18:30 · 总价 $1,257.60 · 已锁单")
+  assert.equal(callerCard({ ...booked, date: null, time: null, dateTbd: true, heads: 6, price: 599 }, SAT)?.line, "6人 · 日期待定 · 总价 $599 · 已锁单")
 })
 
-test("whisper · a returning customer says so", () => {
-  assert.equal(
-    whisperLine({ ...april, name: "Jane", returning: true, heads: 20, date: null, price: null }, SAT),
-    "Jane，老客人，二十人，还没锁单",
-  )
+test("caller card · a returning customer says so", () => {
+  assert.equal(callerCard({ ...april, name: "Jane", returning: true, heads: 20, date: null, price: null }, SAT)?.line, "老客人 · 20人 · 还没锁单")
 })
 
-test("whisper · numbers are written out, never left to the voice", () => {
-  const cases: Array<[number, string]> = [
-    [6, "六"],
-    [10, "十"],
-    [12, "十二"],
-    [35, "三十五"],
-    [101, "一百零一"],
-    [110, "一百一十"],
-    [599, "五百九十九"],
-    [1005, "一千零五"],
-    [1010, "一千零一十"],
-    [1225, "一千二百二十五"],
-    [1337.4, "一千三百三十七"],
-    [1801.5, "一千八百零一"],
-    [2000, "两千"],
-    [2319, "两千三百一十九"],
-    [3114, "三千一百一十四"],
-    [10050, "一万零五十"],
-    [12000, "一万两千"],
-  ]
-  for (const [n, zh] of cases) assert.equal(zhNumber(n), zh, String(n))
+test("caller card · dates and money read the way they were quoted", () => {
+  assert.equal(cardDate("2026-10-12", SAT), "10月12日 周一")
+  assert.equal(cardDate("2026-10-24", SAT), "10月24日 周六")
+  assert.equal(cardDate("2027-01-09", SAT), "1月9日 周六")
+  assert.equal(cardDate("2026-12-31", "2026-12-30"), "明天")
+  assert.equal(money(1225), "$1,225")
+  assert.equal(money(1337.4), "$1,337.40")
+  assert.equal(money(1801.5), "$1,801.50")
+  assert.equal(money(599), "$599")
+  assert.equal(money(12000), "$12,000")
 })
 
-test("whisper · dates: weekday, month, day; no year", () => {
-  assert.equal(spokenDate("2026-10-12", SAT), "周一十月十二号")
-  assert.equal(spokenDate("2026-10-24", SAT), "周六十月二十四号")
-  assert.equal(spokenDate("2027-01-09", SAT), "周六一月九号")
-  assert.equal(spokenDate("2026-12-31", "2026-12-30"), "明天")
-})
-
-test("whisper · the price is the one the text gives, not its parts", () => {
+test("caller card · the price is the one the text gives, not its parts", () => {
   const cases: Array<[string, number | null]> = [
     // April, 10-10 11:28 and 10-09 13:24
     ["Hi April, it's Bling - For Monday I can do $35 a boy, $1,225 for all 35, and every boy gets all three", 1225],
@@ -126,7 +108,7 @@ test("whisper · the price is the one the text gives, not its parts", () => {
   for (const [text, price] of cases) assert.equal(priceInText(text), price, text)
 })
 
-test("whisper · the name we greeted them by", () => {
+test("caller card · the name we greeted them by", () => {
   assert.equal(greetedName("Hi April, it's Bling - sorry I was a step behind on the phone"), "April")
   assert.equal(greetedName("Hi Whitney - great to hear from you"), "Whitney")
   assert.equal(greetedName("Hey Jose Garcia, thanks for the call!"), "Jose")
@@ -136,16 +118,14 @@ test("whisper · the name we greeted them by", () => {
   }
 })
 
-test("whisper · first names; a phone number or a stand-in is no name", () => {
-  assert.equal(firstName("April Costigan"), "April")
-  assert.equal(firstName("Ellen  Vallee"), "Ellen")
-  assert.equal(firstName("NIC TENWOLDE"), "Nic")
-  assert.equal(firstName("D Johnson"), "D Johnson")
-  assert.equal(firstName("王小明"), "王小明")
-  for (const n of ["+16262220069", "Unknown Contact", "Guest", "SMS Lead", "", null]) assert.equal(firstName(n), "", String(n))
+test("caller card · names; a phone number or a stand-in is no name", () => {
+  assert.equal(displayName("April Costigan"), "April Costigan")
+  assert.equal(displayName("Ellen  Vallee"), "Ellen Vallee")
+  assert.equal(displayName("王小明"), "王小明")
+  for (const n of ["+16262220069", "Unknown Contact", "Guest", "SMS Lead", "", null]) assert.equal(displayName(n), "", String(n))
 })
 
-test("whisper · a note's date without a year is the next one after the note", () => {
+test("caller card · a note's date without a year is the next one after the note", () => {
   // April's [data] note, 10-09: "Engine Mon 10/12 weekday"
   assert.equal(partyDateFromHint("10/12", "2026-10-09T07:01:22Z"), "2026-10-12")
   assert.equal(partyDateFromHint("1/9", "2026-10-08T19:23:27Z"), "2027-01-09")
@@ -163,7 +143,7 @@ test("whisper · a note's date without a year is the next one after the note", (
   assert.equal(partyDateFromHint("Marching 4", "2026-10-09T00:00:00Z"), null)
 })
 
-test("whisper · the party size a price was for", () => {
+test("caller card · the party size a price was for", () => {
   const cases: Array<[string, number | null]> = [
     ["Real Hibachi: your hibachi price is $1,801.50 for 35 adults (Weekday Special). Includes the $120 party-size discount (31-40 adults).", 35],
     ["For Monday I can do $35 a boy, $1,225 for all 35, and every boy gets all three", 35],
@@ -199,7 +179,7 @@ const aprilTimeline: TimelineRow[] = [
   quote("2026-10-09T06:37:09Z", 35, "2026-10-12", 1801.5),
 ]
 
-test("whisper · April's timeline: her name from our greeting, Monday from the note, $1,225", () => {
+test("caller card · April's timeline: her name from our greeting, Monday from the note, $1,225", () => {
   const t = readTimeline(aprilTimeline)
   assert.equal(t.greeted, "April")
   assert.equal(t.date, "2026-10-12")
@@ -209,7 +189,7 @@ test("whisper · April's timeline: her name from our greeting, Monday from the n
   assert.equal(pickPrice(at1115.shown, 35)?.value, 1337.4)
 })
 
-test("whisper · 'OWNER DECISION 09-28' in a note is not Dec 9: the party date is the real one", () => {
+test("caller card · 'OWNER DECISION 09-28' in a note is not Dec 9: the party date is the real one", () => {
   const t = readTimeline([
     note("2026-10-01T20:12:03Z", "[data] 10-01 13:08 she asked when to pay - card total $1,019.10. Party tomorrow Fri 10-02 18:30."),
     note("2026-09-28T22:03:02Z", "[data] 09-28 address received, written to the order. With travel $999.80, balance $979.90. OWNER DECISION 09-28: keep it."),
@@ -218,7 +198,7 @@ test("whisper · 'OWNER DECISION 09-28' in a note is not Dec 9: the party date i
   assert.equal(t.date, "2026-10-02")
 })
 
-test("whisper · a price for another headcount is passed over (912-944-5781: 30, not the 15 we asked about)", () => {
+test("caller card · a price for another headcount is passed over (912-944-5781: 30, not the 15 we asked about)", () => {
   const t = readTimeline([
     sms("2026-10-09T20:25:28Z", "Hi - Saturday the 17th is 8 days out. If you'd still like a chef for your 30, lock it here."),
     quote("2026-10-04T20:44:06Z", 15, "", 838.5), // the page's untouched default, not a quote
@@ -233,11 +213,18 @@ test("whisper · a price for another headcount is passed over (912-944-5781: 30,
   assert.equal(pickPrice([], 30), null)
 })
 
-test("whisper · the leg's url is signed as written: digits only, nothing for an unknown caller", () => {
-  assert.equal(
-    whisperAttribute("https://www.realhibachi.com", "+16262220069"),
-    ' url="https://www.realhibachi.com/api/twilio/voice-whisper?from=16262220069" method="POST"',
-  )
-  assert.equal(whisperAttribute("https://www.realhibachi.com", "Anonymous"), "")
-  assert.equal(whisperAttribute("https://www.realhibachi.com", ""), "")
+test("caller card · rides on the App leg as one parameter that survives the trip", () => {
+  const card = { name: "April Costigan", line: "35人 · 10月12日 周一 · 报价 $1,225 · 还没锁单" }
+  const leg = clientLeg("agent_darrien", card)
+  const value = /<Parameter name="([^"]+)" value="([^"]+)"\/>/.exec(leg)
+  assert.ok(leg.startsWith("<Client><Identity>agent_darrien</Identity><Parameter "), leg)
+  assert.ok(leg.endsWith("</Client>"), leg)
+  assert.equal(value?.[1], CALLER_CARD_PARAM)
+  assert.match(value?.[2] ?? "", /^[A-Za-z0-9_-]+$/) // nothing the push or the XML could mangle
+  assert.deepEqual(decodeCallerCard(value?.[2]), card)
+  assert.deepEqual(decodeCallerCard(encodeCallerCard({ name: "", line: "老客人 · 20人 · 还没锁单" })), { name: "", line: "老客人 · 20人 · 还没锁单" })
+  // An unknown caller: the leg the App always got.
+  assert.equal(clientLeg("agent_darrien", null), "<Client><Identity>agent_darrien</Identity></Client>")
+  assert.equal(clientLeg("agent_<x>", null), "<Client><Identity>agent_&lt;x&gt;</Identity></Client>")
+  for (const junk of ["", "not base64!", "e30", null]) assert.equal(decodeCallerCard(junk), null, String(junk))
 })

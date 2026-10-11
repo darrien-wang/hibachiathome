@@ -47,7 +47,7 @@ export function SoftphoneMobileDrawer() {
     drawerOpen, setDrawerOpen, stickyOffline,
     goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     dialDraft, setDialDraft, smsDraft, setSmsDraft,
-    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall, inApp,
+    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall, inApp, cardFor,
   } = useSoftphone()
 
   const isMobile = useIsMobile()
@@ -61,6 +61,8 @@ export function SoftphoneMobileDrawer() {
   const ringing = live.kind === "incoming"
   const active = live.kind === "active"
   const peerNumber = ringing ? live.from : active ? live.peer : (lastCall?.peer ?? "")
+  // Who is calling, when the ring carried it (lib/caller-card.ts).
+  const card = cardFor(peerNumber, ringing ? "in" : active ? live.direction : (lastCall?.direction ?? "out"))
 
   // 响铃和通话中不允许停在拨号/短信屏：这两个状态必须自己占满抽屉。
   useEffect(() => {
@@ -297,8 +299,10 @@ export function SoftphoneMobileDrawer() {
           {phase === "ringing" ? (
             <div style={{ padding: "26px 16px 0", display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1.15 }}>
-                {prettyNumber(peerNumber)}
+                {card?.name || prettyNumber(peerNumber)}
               </div>
+              {card?.name ? <div style={{ fontSize: 17, color: MUTED, fontVariantNumeric: "tabular-nums" }}>{prettyNumber(peerNumber)}</div> : null}
+              {card?.line ? <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.45, marginTop: 6 }}>{card.line}</div> : null}
               <div style={{ marginTop: 22, borderLeft: `2px solid ${INK}`, padding: "4px 0 4px 12px", fontSize: 15, lineHeight: 1.6, color: "#444141" }}>
                 拒接只挂掉你这一路，备用手机仍会继续响——客户不会被直接掐断。
               </div>
@@ -308,10 +312,12 @@ export function SoftphoneMobileDrawer() {
           {phase === "active" || phase === "wrapup" ? (
             <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
               <div style={{ flex: "none", padding: "14px 16px", borderBottom: RULE }}>
-                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{prettyNumber(peerNumber)}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{card?.name || prettyNumber(peerNumber)}</div>
                 <div style={{ fontSize: 14, color: MUTED }}>
                   {phase === "active" ? (live.kind === "active" && live.direction === "in" ? "来电" : "去电") : "刚刚结束"}
+                  {card?.name ? ` · ${prettyNumber(peerNumber)}` : ""}
                 </div>
+                {card?.line ? <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.45, marginTop: 4 }}>{card.line}</div> : null}
               </div>
 
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "12px 16px 8px" }}>

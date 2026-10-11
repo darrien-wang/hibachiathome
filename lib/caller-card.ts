@@ -1,24 +1,26 @@
-// 来电耳语 (owner 2026-10-10).
+// 来电卡片 (owner 2026-10-10).
 //
 // 10-10 11:15 April (35 boys, Mon 10/12, quoted $1,337.40, mid-negotiation) called the 213 line.
-// The owner picked up in the workbench App, which shows only the number, asked her whether she had
+// The owner picked up in the workbench App, which showed only her number, asked her whether she had
 // paid a deposit and re-checked a date we had already texted her about - and we apologized by text
-// afterwards. Now whoever answers a call from a number we know hears one Mandarin sentence before
-// the caller is put through:
+// afterwards. Now the ring itself says who is calling, and the App and the web softphone show it on
+// the incoming and in-call screens:
 //
-//   "April，三十五人，周一十月十二号，报价一千二百二十五，还没锁单"
+//   April Costigan
+//   35人 · 10月12日 周一 · 报价 $1,225 · 还没锁单
 //
-// It rides on <Client url> / <Number url> (app/api/twilio/voice, voice-status): Twilio plays the
-// url's TwiML to the answering leg only, then bridges. The caller hears ringing for those seconds;
-// their recording notice already played before the <Dial>. A number we know nothing about - its
-// lead is only this call - gets nothing. TwiML: app/api/twilio/voice-whisper/route.ts.
+// The first cut said this in the answering agent's ear before the bridge (<Client url>); a caller
+// waiting through those six seconds was too long (owner, same day). The card now travels as a
+// <Parameter> on each App leg of the inbound <Dial> (app/api/twilio/voice, lib/caller-card-param.ts),
+// looked up while the call's lead is written. The backup <Number> is a plain phone and gets none. A
+// number we know nothing about - its lead is only this call - gets no card.
 //
 // Every part is optional:
 //   name   the order's, the lead's, a past order's, or the one we greeted them by in a text
-//          ("Hi April, ..." - April's lead is still named by her number); else 尾号 (spokenName)
+//          ("Hi April, ..." - April's lead is still named by her number)
 //   heads  the order's adults + kids, else the lead's guest count
-//   date   the order's event_start (wall time stored as UTC: read, never converted), else the party
-//          date the workbench derives (lib/lead-event-hint.ts)
+//   date   the order's event_start and its time (wall time stored as UTC: read, never converted),
+//          else the party date the workbench derives (lib/lead-event-hint.ts)
 //   price  the order's total, else the newest price the customer was shown for that party size -
 //          by our texts, or by the site's estimator. Not the deposit link's estimate: April's last
 //          link still says $1,802 (the deal's catalog base) while the text that carried it says $1,225.
@@ -27,20 +29,21 @@
 // out, and a number we have done a party for is a 老客人.
 
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { spokenName } from "@/lib/callback-ring"
+import { CALLER_CARD_PARAM, encodeCallerCard, type CallerCard } from "@/lib/caller-card-param"
 import { HINT_TYPES, hintFromRows } from "@/lib/lead-event-hint"
 import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { isPlaceholderName } from "@/lib/leads"
 import { toE164 } from "@/lib/sms-thread"
 import { escapeXml } from "@/lib/twilio-identity"
 
-export type WhisperFacts = {
-  /** First name, "" when we have none (spokenName then says the last four digits). */
+export type CallerFacts = {
+  /** The name as we have it, "" when we have none. */
   name: string
-  phone: string
   heads: number | null
   /** The party's wall date, YYYY-MM-DD. */
   date: string | null
+  /** A booked party's wall-clock start, HH:MM. */
+  time: string | null
   /** A booked party with no date yet. */
   dateTbd: boolean
   /** Dollars. */
@@ -54,45 +57,12 @@ export type WhisperFacts = {
 }
 
 const PT = "America/Los_Angeles"
-const ZH_DIGITS = "零一二三四五六七八九"
 const WEEKDAYS = "日一二三四五六"
 const MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
 // order_status values that mean the party is off (as lib/deposit-lock.ts)
 const CLOSED_STATUSES = new Set(["cancelled", "canceled", "refunded", "void", "voided", "closed"])
 
-// ---- speaking -------------------------------------------------------------------------------
-
-function underTenThousand(v: number, leading: boolean): string {
-  const digits = [Math.floor(v / 1000), Math.floor(v / 100) % 10, Math.floor(v / 10) % 10, v % 10]
-  const units = ["千", "百", "十", ""]
-  let out = ""
-  let zero = false
-  for (let i = 0; i < 4; i++) {
-    const d = digits[i]
-    if (d === 0) {
-      if (out) zero = true
-      continue
-    }
-    if (zero) out += "零"
-    zero = false
-    // A number that starts in the tens is 十五, not 一十五; 两千 reads better than 二千.
-    if (!(d === 1 && i === 2 && !out && leading)) out += d === 2 && i === 0 ? "两" : ZH_DIGITS[d]
-    out += units[i]
-  }
-  return out
-}
-
-/** Whole numbers in Mandarin, written out so the voice never guesses: 1225 -> 一千二百二十五. */
-export function zhNumber(n: number): string {
-  const v = Math.floor(Math.abs(n))
-  if (v === 0) return "零"
-  if (v >= 100_000_000) return String(v)
-  const high = Math.floor(v / 10_000)
-  const low = v % 10_000
-  if (!high) return underTenThousand(low, true)
-  const wan = (high === 2 ? "两" : underTenThousand(high, true)) + "万"
-  return low ? wan + (low < 1000 ? "零" : "") + underTenThousand(low, false) : wan
-}
+// ---- the card --------------------------------------------------------------------------------
 
 function ymd(year: number, month: number, day: number): string {
   return new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10)
@@ -108,38 +78,39 @@ export function pacificDate(ms: number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: PT, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms))
 }
 
-/** 今天 / 明天 / 周一十月十二号 for a wall date. */
-export function spokenDate(date: string, today: string): string {
+/** 今天 / 明天 / 10月12日 周一 for a wall date. */
+export function cardDate(date: string, today: string): string {
   if (date === today) return "今天"
   if (date === addDays(today, 1)) return "明天"
   const [y, m, d] = date.split("-").map(Number)
-  return `周${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}${zhNumber(m)}月${zhNumber(d)}号`
+  return `${m}月${d}日 周${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}`
 }
 
-/** "April Costigan" -> "April"; "" for a stand-in ("+16262220069", "Guest"). */
-export function firstName(raw: string | null | undefined): string {
+/** $1,225 / $1,337.40 - cents only when it was quoted with cents. */
+export function money(n: number): string {
+  const cents = Math.round(n * 100) % 100 !== 0
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 })}`
+}
+
+/** "April Costigan"; "" for a stand-in ("+16262220069", "Guest"). */
+export function displayName(raw: string | null | undefined): string {
   const name = (raw ?? "").trim().replace(/\s+/g, " ")
-  if (isPlaceholderName(name) || /^(sms lead|caller)$/i.test(name)) return ""
-  const first = name.split(" ")[0]
-  const word = (first.match(/\p{L}/gu) ?? []).length >= 2 ? first : name
-  // "NIC TENWOLDE" would be read as letters.
-  return /^[A-Z][A-Z'’-]+$/.test(word) ? word[0] + word.slice(1).toLowerCase() : word
+  return isPlaceholderName(name) || /^(sms lead|caller)$/i.test(name) ? "" : name.slice(0, 40)
 }
 
-/** The sentence whoever answers hears, or null when we know nothing about the caller. */
-export function whisperLine(f: WhisperFacts, today: string): string | null {
+/** What the ring screen shows under the number, or null when we know nothing about the caller. */
+export function callerCard(f: CallerFacts, today: string): CallerCard | null {
   const heads = f.heads && f.heads > 0 ? f.heads : null
   const price = f.price && f.price >= 1 ? f.price : null
   if (!f.name && !heads && !f.date && !f.dateTbd && !price && !f.locked && !f.returning) return null
-  const parts = [spokenName({ name: f.name, phone: f.phone })]
+  const parts: string[] = []
   if (f.returning) parts.push("老客人")
-  if (heads) parts.push(`${zhNumber(heads)}人`)
-  if (f.date) parts.push(spokenDate(f.date, today))
+  if (heads) parts.push(`${heads}人`)
+  if (f.date) parts.push(f.time ? `${cardDate(f.date, today)} ${f.time}` : cardDate(f.date, today))
   else if (f.dateTbd) parts.push("日期待定")
-  // Whole dollars: "$1,337.40" is said as 一千三百三十七, the digits as they were written.
-  if (price) parts.push(`${f.order ? "总价" : "报价"}${zhNumber(price)}`)
+  if (price) parts.push(`${f.order ? "总价" : "报价"} ${money(price)}`)
   parts.push(f.locked ? "已锁单" : "还没锁单")
-  return parts.join("，")
+  return { name: f.name, line: parts.join(" · ") }
 }
 
 // ---- reading what we told them -------------------------------------------------------------------
@@ -257,6 +228,7 @@ type LeadRow = {
 }
 type OrderRow = {
   customer_name: string | null
+  source_metadata: Record<string, unknown> | null
   customer_phone: string | null
   event_start: string | null
   order_status: string | null
@@ -314,7 +286,7 @@ export function pickPrice(shown: ShownPrice[], heads: number | null): ShownPrice
 }
 
 /** What we know about whoever is calling from `phone` (E.164). Throws on a lookup error. */
-export async function loadWhisperFacts(supabase: SupabaseClient, phone: string, now = Date.now()): Promise<WhisperFacts> {
+export async function loadCallerFacts(supabase: SupabaseClient, phone: string, now = Date.now()): Promise<CallerFacts> {
   const d10 = digits10(phone)
   const today = pacificDate(now)
   const [leadRes, orderRes] = await Promise.all([
@@ -329,7 +301,7 @@ export async function loadWhisperFacts(supabase: SupabaseClient, phone: string, 
       .maybeSingle(),
     supabase
       .from("orders")
-      .select("customer_name, customer_phone, event_start, order_status, deposit_status, quoted_total_cents, guest_adult_count, guest_child_count")
+      .select("customer_name, customer_phone, source_metadata, event_start, order_status, deposit_status, quoted_total_cents, guest_adult_count, guest_child_count")
       .ilike("customer_phone", `%${d10}%`)
       .order("created_at", { ascending: false })
       .limit(10),
@@ -355,14 +327,14 @@ export async function loadWhisperFacts(supabase: SupabaseClient, phone: string, 
   }
   const timeline = readTimeline(rows)
 
-  // event_start is the party's wall-clock time stored as UTC: the date is its first ten characters.
+  // event_start is the party's wall-clock time stored as UTC: the date and the time are read off it.
   const dayOf = (o: OrderRow) => str(o.event_start).slice(0, 10)
   const live =
     orders.filter((o) => !o.event_start || dayOf(o) >= today).sort((a, b) => (dayOf(a) || "9999").localeCompare(dayOf(b) || "9999"))[0] ?? null
   const past = orders.filter((o) => o.event_start && dayOf(o) < today)
   const returning = past.some((o) => o.deposit_status === "paid_verified")
 
-  const name = [live?.customer_name, lead?.full_name, past[0]?.customer_name, timeline.greeted].map(firstName).find(Boolean) ?? ""
+  const name = [live?.customer_name, lead?.full_name, past[0]?.customer_name, timeline.greeted].map(displayName).find(Boolean) ?? ""
   const split = (lead?.adult_count ?? 0) + (lead?.child_count ?? 0) + (lead?.little_count ?? 0)
   const leadHeads = lead?.guest_count && lead.guest_count > 0 ? lead.guest_count : split > 0 ? split : null
 
@@ -370,11 +342,12 @@ export async function loadWhisperFacts(supabase: SupabaseClient, phone: string, 
     const orderHeads = (live.guest_adult_count ?? 0) + (live.guest_child_count ?? 0)
     const heads = orderHeads > 0 ? orderHeads : leadHeads
     const cents = live.quoted_total_cents ?? 0
+    const time = str(live.event_start).slice(11, 16)
     return {
       name,
-      phone,
       heads,
       date: live.event_start ? dayOf(live) : null,
+      time: /^\d\d:\d\d$/.test(time) && live.source_metadata?.event_time_tbd !== true ? time : null,
       dateTbd: !live.event_start,
       // Some orders carry no total yet (the invoice was never saved): the price we texted stands.
       price: cents > 0 ? cents / 100 : (pickPrice(timeline.shown, heads)?.value ?? null),
@@ -391,13 +364,43 @@ export async function loadWhisperFacts(supabase: SupabaseClient, phone: string, 
   const gone = [...past.map(dayOf), ...(timeline.date && !date ? [timeline.date] : [])].sort()
   const lastGone = gone[gone.length - 1] ?? null
   const price = quote && !(lastGone && quote.at.slice(0, 10) <= lastGone) ? quote.value : null
-  return { name, phone, heads: leadHeads, date, dateTbd: false, price, locked: false, order: false, returning }
+  return { name, heads: leadHeads, date, time: null, dateTbd: false, price, locked: false, order: false, returning }
 }
 
-/** ` url="…" method="POST"` for a <Client> / <Number> leg: whisper about `from` to whoever answers. */
-export function whisperAttribute(base: string, from: string | null | undefined): string {
+/**
+ * The card for a call from `from`, or null - an unknown number, a lookup error, or a lookup slower
+ * than `budgetMs`: the caller is waiting on this TwiML, so the call rings without a card rather
+ * than late. Never throws.
+ */
+export async function callerCardFor(
+  supabase: SupabaseClient,
+  from: string | null | undefined,
+  budgetMs = 1500,
+  now = Date.now(),
+): Promise<CallerCard | null> {
   const phone = toE164(from)
-  if (!phone) return ""
-  // Digits only: no "+" to encode, so the URL Twilio signs is byte-for-byte the one we rebuild.
-  return ` url="${escapeXml(`${base}/api/twilio/voice-whisper?from=${phone.replace(/\D/g, "")}`)}" method="POST"`
+  if (!phone) return null
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const facts = await Promise.race([
+      loadCallerFacts(supabase, phone, now),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`lookup over ${budgetMs} ms`)), budgetMs)
+      }),
+    ])
+    const card = callerCard(facts, pacificDate(now))
+    console.log("[caller-card]", { caller: `…${phone.slice(-4)}`, card, ms: Date.now() - now })
+    return card
+  } catch (error) {
+    console.error("[caller-card] ringing without a card", { caller: `…${phone.slice(-4)}`, error: String(error) })
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** One softphone leg of the inbound <Dial>: the identity, and the caller card when there is one. */
+export function clientLeg(identity: string, card: CallerCard | null): string {
+  const param = card ? `<Parameter name="${CALLER_CARD_PARAM}" value="${escapeXml(encodeCallerCard(card))}"/>` : ""
+  return `<Client><Identity>${escapeXml(identity)}</Identity>${param}</Client>`
 }

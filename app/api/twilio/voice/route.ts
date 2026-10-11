@@ -2,7 +2,7 @@ import crypto from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
-import { whisperAttribute } from "@/lib/call-whisper"
+import { callerCardFor, clientLeg } from "@/lib/caller-card"
 import { APP_RING_SECONDS, escapeXml, ringIdentities } from "@/lib/twilio-identity"
 import { RECORDING_NOTICE, recordingAttributes } from "@/lib/twilio-recording"
 
@@ -42,8 +42,12 @@ export async function POST(request: NextRequest) {
   const from = params.From ?? ""
   const callSid = params.CallSid ?? ""
 
-  // Log the inbound call as a lead touchpoint so it shows up on the workbench.
+  // Who is calling, for the ring screen (lib/caller-card.ts): looked up while
+  // the lead is written below, so it adds no wait of its own.
   const supabase = createServerSupabaseClient()
+  const cardLookup = supabase && from !== "Anonymous" ? callerCardFor(supabase, from) : Promise.resolve(null)
+
+  // Log the inbound call as a lead touchpoint so it shows up on the workbench.
   if (supabase && from && callSid && from !== "Anonymous") {
     try {
       await upsertLeadFromContact(supabase, {
@@ -79,15 +83,14 @@ export async function POST(request: NextRequest) {
   // With no softphone identity registered there is nothing to ring first, so
   // the backup number IS stage one - a <Dial> with no nouns is invalid TwiML.
   //
-  // Each leg carries the 来电耳语 (lib/call-whisper.ts): whoever answers hears
-  // who is calling - name, headcount, date, price, locked or not - before the
-  // caller is bridged. It plays to the answering leg only.
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
-  const whisper = whisperAttribute(base, from)
+  // Each App leg carries the caller card - name, headcount, date, price,
+  // locked or not - which the App and the web softphone show on the ring
+  // and in-call screens. The backup phone is a plain number and gets none.
+  const card = await cardLookup
   const appStage = clients.length > 0
   const legs = appStage
-    ? clients.map((id) => `<Client${whisper}>${escapeXml(id)}</Client>`).join("")
-    : `<Number${whisper}>${escapeXml(forwardTo ?? "")}</Number>`
+    ? clients.map((id) => clientLeg(id, card)).join("")
+    : `<Number>${escapeXml(forwardTo ?? "")}</Number>`
 
   // California is a two-party consent state (Penal Code 632): every party must
   // be told before the call is recorded. The notice plays to the caller BEFORE
@@ -100,6 +103,7 @@ export async function POST(request: NextRequest) {
   // When the legs finish, /api/twilio/voice-status decides what the caller
   // hears: nothing if someone answered, and if nobody did it texts them right
   // away and says so (2026-09-27 audit: 4 of 8 missed calls got no text).
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.realhibachi.com"
   const action = `${base}/api/twilio/voice-status${appStage ? "?stage=app" : ""}`
   return twiml(
     notice +

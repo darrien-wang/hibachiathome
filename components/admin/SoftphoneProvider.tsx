@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react"
 import type { Call, Device } from "@twilio/voice-sdk"
+import { CALLER_CARD_PARAM, decodeCallerCard, type CallerCard } from "@/lib/caller-card-param"
 import { startLiveCaptions, type CaptionHandle, type CaptionLine } from "@/lib/live-captions"
 import { SoftphoneMobileDrawer, useIsMobile } from "./SoftphoneMobileDrawer"
 
@@ -48,6 +49,8 @@ type SoftphoneContextValue = {
   toggleCaptions: () => Promise<void>
   lastCall: { peer: string; direction: "in" | "out"; seconds: number } | null
   dismissLastCall: () => void
+  /** Who is calling (lib/caller-card.ts) for an inbound call from this number, or null. */
+  cardFor: (peer: string, direction: "in" | "out") => CallerCard | null
   setInputDevice: (deviceId: string) => Promise<void>
   goOnline: (opts?: { probeMic?: boolean }) => Promise<void>
   goOffline: () => void
@@ -152,6 +155,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const [lastCall, setLastCall] = useState<
     { peer: string; direction: "in" | "out"; seconds: number } | null
   >(null)
+  // The card the ring carried (a Twilio custom parameter), kept for the call it came with.
+  const [callerCard, setCallerCard] = useState<(CallerCard & { peer: string }) | null>(null)
 
   const deviceRef = useRef<Device | null>(null)
   // 当前令牌是什么时候拿的：标签页醒来时用它判断要不要续，免得每次切标签都去打接口。
@@ -235,7 +240,14 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const dismissLastCall = useCallback(() => {
     setLastCall(null)
     setCaptions([])
+    setCallerCard(null)
   }, [])
+
+  const cardFor = useCallback(
+    (peer: string, direction: "in" | "out") =>
+      direction === "in" && callerCard && callerCard.peer === peer ? { name: callerCard.name, line: callerCard.line } : null,
+    [callerCard]
+  )
 
   const wireCall = useCallback(
     (call: Call, peer: string, direction: "in" | "out") => {
@@ -342,6 +354,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       })
       device.on("incoming", (call: Call) => {
         const from = call.parameters.From ?? ""
+        const card = decodeCallerCard(call.customParameters?.get(CALLER_CARD_PARAM))
+        setCallerCard(card ? { ...card, peer: from } : null)
         wireCall(call, from, "in")
         setLastCall(null)
         setCaptions([])
@@ -596,13 +610,13 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       inputDevices, selectedInputId, inputLevel, setInputDevice,
       drawerOpen, setDrawerOpen, stickyOffline, inApp,
       dialDraft, setDialDraft, smsDraft, setSmsDraft, prefill,
-      captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
+      captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall, cardFor,
       goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     }),
     [status, identity, canDialOut, message, live, muted, seconds,
      inputDevices, selectedInputId, inputLevel, setInputDevice,
      drawerOpen, stickyOffline, inApp, dialDraft, smsDraft, prefill,
-     captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
+     captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall, cardFor,
      goOnline, goOffline, dial, toggleMute, hangUp, accept, reject]
   )
 
@@ -617,13 +631,26 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
 
 const DRAWER_WIDTH = 320
 
+/** Who is on the line: the name when the ring carried one, the number, and the caller card line. */
+function CallerHead({ peer, card }: { peer: string; card: CallerCard | null }) {
+  return (
+    <div style={{ margin: "3px 0 10px" }}>
+      <div style={{ fontSize: 19, fontWeight: 700 }}>{card?.name || prettyNumber(peer)}</div>
+      {card?.name ? <div style={{ fontSize: 13, color: "#6b7280" }}>{prettyNumber(peer)}</div> : null}
+      {card?.line ? (
+        <div style={{ fontSize: 13.5, color: "#111827", marginTop: 4, lineHeight: 1.45 }}>{card.line}</div>
+      ) : null}
+    </div>
+  )
+}
+
 function SoftphoneDrawer() {
   const {
     status, identity, canDialOut, message, live, muted, seconds,
     inputDevices, selectedInputId, inputLevel, setInputDevice,
     drawerOpen, setDrawerOpen, stickyOffline, inApp, goOnline, goOffline, dial, toggleMute, hangUp, accept, reject,
     dialDraft, setDialDraft, smsDraft, setSmsDraft,
-    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall,
+    captions, captionsOn, captionStatus, toggleCaptions, lastCall, dismissLastCall, cardFor,
   } = useSoftphone()
 
   const [note, setNote] = useState("")
@@ -634,6 +661,7 @@ function SoftphoneDrawer() {
   const busy = live.kind !== "none"
   const peerNumber =
     live.kind === "incoming" ? live.from : live.kind === "active" ? live.peer : (lastCall?.peer ?? "")
+  const endedCard = lastCall ? cardFor(lastCall.peer, lastCall.direction) : null
   // "There is a call in front of me" — true while connected and after it ends,
   // because the note and the transcript are still on screen and unsaved.
   const hasContext = live.kind !== "none" || Boolean(lastCall)
@@ -823,9 +851,7 @@ function SoftphoneDrawer() {
           {ringing ? (
             <div style={{ border: "2px solid #dc2626", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>来电</div>
-              <div style={{ fontSize: 19, fontWeight: 700, margin: "3px 0 10px" }}>
-                {prettyNumber(live.from)}
-              </div>
+              <CallerHead peer={live.from} card={cardFor(live.from, "in")} />
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={accept} style={{ ...btn("#16a34a"), flex: 1, padding: "10px" }}>接听</button>
                 <button onClick={reject} style={{ ...btn("#6b7280"), flex: 1, padding: "10px" }}>拒接</button>
@@ -841,9 +867,7 @@ function SoftphoneDrawer() {
               <div style={{ fontSize: 12, color: "#6b7280" }}>
                 {live.direction === "in" ? "通话中" : "去电中"} · {mmss}
               </div>
-              <div style={{ fontSize: 19, fontWeight: 700, margin: "3px 0 10px" }}>
-                {prettyNumber(live.peer)}
-              </div>
+              <CallerHead peer={live.peer} card={cardFor(live.peer, live.direction)} />
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={toggleMute} style={{ ...btn(muted ? "#d97706" : "#6b7280"), flex: 1, padding: "10px" }}>
                   {muted ? "取消静音" : "静音"}
@@ -867,8 +891,11 @@ function SoftphoneDrawer() {
                     {String(lastCall.seconds % 60).padStart(2, "0")}
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>
-                    {prettyNumber(lastCall.peer)}
+                    {endedCard?.name || prettyNumber(lastCall.peer)}
                   </div>
+                  {endedCard?.line ? (
+                    <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 2, lineHeight: 1.45 }}>{endedCard.line}</div>
+                  ) : null}
                 </div>
                 <button onClick={dismissLastCall} style={btn("#9ca3af", false, true)}>关闭</button>
               </div>
