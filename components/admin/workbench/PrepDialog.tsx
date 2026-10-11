@@ -6,6 +6,7 @@ import { tell } from "./ask"
 import { Chip, Dialog, DialogHead, Kicker, Tag } from "./ui"
 import { addDays, dowZh, md, ptToday } from "./helpers"
 import { PREP_GROUP_TITLES, type PrepGroup, type PrepItem } from "@/lib/prep-bom"
+import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 import { isRestockItem } from "@/lib/pantry"
 
 // 备料采购：明天有几场、每场吃什么、合计买什么（按 Walmart / Instacart 的
@@ -22,6 +23,7 @@ type PrepOrder = {
   menuKnown: boolean
   proteinLine: string
   extrasLine: string
+  cooler?: CoolerParty
 }
 type StockRow = { item_key: string; label: string; unit: string; qty: number; low_at: number | null; note: string | null; updated_at: string }
 type PrepData = {
@@ -128,6 +130,15 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
     }
   }
 
+  // 后勤备货单：新开一页，大字中文、一单一页，直接打印。没有客户名和价格。
+  const openCoolerSheet = () => {
+    if (!d) return
+    const html = coolerSheetHtml(d.date, d.orders.map((o) => o.cooler).filter((c): c is CoolerParty => !!c))
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }))
+    window.open(url, "_blank")
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
   const dates = [0, 1, 2].map((n) => addDays(today, n))
   const dateName = (ymd: string) => (ymd === today ? "今天" : ymd === addDays(today, 1) ? "明天" : "后天")
 
@@ -145,7 +156,10 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
               {dateName(ymd)} {md(ymd)}
             </Chip>
           ))}
-          <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={() => void copy()} disabled={!d || d.orderCount === 0}>
+          <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={openCoolerSheet} disabled={!d || d.orderCount === 0} title="给后勤打印：只列要放进保温箱的东西，大字中文，一单一页">
+            后勤备货单
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 6 }} onClick={() => void copy()} disabled={!d || d.orderCount === 0}>
             {copied ? "✓ 已复制" : "复制清单"}
           </button>
         </div>

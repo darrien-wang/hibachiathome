@@ -5,6 +5,7 @@ import { aggregatePrep, BUY_UNITS, orderPrep, splitVeg, VEGE_MIX, type InvoiceLi
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { committedDetail, reserveForOrders, setVegTotal, settleDueReservations, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
+import { coolerSections, zhTime } from "@/lib/cooler-sheet"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -96,8 +97,21 @@ export async function GET(request: NextRequest) {
         .filter((i) => i.group === "frozen" || i.group === "setup")
         .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`)
         .join(" · "),
+      // 后勤备货单（装保温箱）：这一单要放进箱子的东西，中文、按她手上的单位。
+      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, sections: coolerSections(prep.items, prep.menuKnown) },
     }
   })
+  // 备货单上写哪位厨师来拿这一箱（不写客户）。
+  if (orders.length) {
+    const { data: asg } = await supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_status").in("order_id", orders.map((o) => o.id)).in("assignment_status", ["tentative", "confirmed", "completed"])
+    const staffIds = Array.from(new Set((asg ?? []).map((a) => String(a.staff_member_id))))
+    const { data: staffRows } = staffIds.length ? await supabase.from("staff_members").select("id, display_name, full_name").in("id", staffIds) : { data: [] as Array<{ id: string; display_name: string | null; full_name: string | null }> }
+    const nameOf = new Map((staffRows ?? []).map((s) => [String(s.id), String(s.display_name ?? s.full_name ?? "").trim()]))
+    for (const o of orders) {
+      const names = (asg ?? []).filter((a) => a.order_id === o.id).map((a) => nameOf.get(String(a.staff_member_id)) ?? "").filter(Boolean)
+      o.cooler.chef = names.length ? names.join("、") : null
+    }
+  }
 
   const unknown = orders.filter((o) => !o.menuKnown)
   // 装备库存（桌椅桌布餐具气罐）：跟需求放在一张清单里对着看。
