@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react"
 import { Chip } from "./ui"
 import { DayMap } from "./DayMap"
-import { addDays, dowZh, eventParts, firstName, md, parseYmd, ptToday, stageOf, type OrderRow, lockLabel } from "./helpers"
+import { addDays, dowZh, eventParts, firstName, md, money0, parseYmd, ptToday, stageOf, type OrderRow, lockLabel } from "./helpers"
 import { holidayOn, upcomingHolidays } from "./holidays"
+import { headsText, useMonthStats } from "./MonthStats"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // 日历 · every booked party on a month grid or a week timeline. Evening
@@ -96,6 +97,12 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
   }
   const title = view === "month" ? `${y} 年 ${m + 1} 月` : `${md(wkStart)} – ${md(addDays(wkStart, 6))}`
   const monthCount = cells.filter((c) => c.inMonth).reduce((a, c) => a + c.events.length, 0)
+  // 这个月的小结：服务人数（大人 + 收费小孩 × ½，免费不计）和营业额。
+  // 订单列表只带最近 200 单、不带发票明细，所以数字来自 /api/admin/month-stats。
+  const monthStats = useMonthStats(adminKey)
+  const monthKey = `${y}-${String(m + 1).padStart(2, "0")}`
+  const ms = monthStats.months?.find((r) => r.month === monthKey && !r.countOnly) ?? null
+  const msPast = monthKey < today.slice(0, 7)
 
   const evStyle = (e: Ev) => ({
     background: e.evening ? "var(--color-text)" : "var(--color-neutral-300)",
@@ -114,6 +121,21 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
         </button>
         <h2 style={{ fontSize: 22 }}>{title}</h2>
         <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{view === "month" ? `${monthCount} 场` : `${weekDays.reduce((a, d) => a + d.events.length, 0)} 场`}</span>
+        {view === "month" && ms ? (
+          <span
+            style={{ fontSize: 12, color: "var(--color-neutral-700)" }}
+            title={`${ms.adults} 大人 + ${ms.kids} 收费小孩 × ½${ms.littles ? ` · ${ms.littles} 免费小孩不计` : ""}`}
+          >
+            · 服务 <strong style={{ color: "var(--color-text)" }}>{headsText(ms.heads)}</strong> 人（大人量）
+            {ms.revenueCents != null ? (
+              <>
+                {" "}
+                · 营业额 <strong style={{ color: "var(--color-text)" }}>{money0(ms.revenueCents)}</strong>
+                {msPast ? "" : `（已办 ${ms.done} 场 ${money0(ms.doneRevenueCents ?? 0)}，其余是已订）`}
+              </>
+            ) : null}
+          </span>
+        ) : null}
         <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setCursor(today)}>
           今天
         </button>

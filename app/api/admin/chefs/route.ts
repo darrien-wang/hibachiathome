@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
+import { partyHeadCounts } from "@/lib/party-heads"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
@@ -207,25 +208,13 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
 function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; miles: number | null } {
   const inv = (o.invoice_data ?? {}) as Record<string, unknown>
   const guests = Array.isArray(inv.guests) ? (inv.guests as Array<Record<string, unknown>>) : []
-  const promos = Array.isArray(inv.promotions) ? (inv.promotions as Array<Record<string, unknown>>) : []
-  const under5 = promos.find((p) => /^little kids/i.test(String(p.label ?? "")))
-  const under5N = under5 ? Number(String(under5.label ?? "").match(/×(\d+)/)?.[1] ?? 1) : 0
-
-  let adults: number
-  let kids: number
-  let littles: number
+  // 人头的数法在 lib/party-heads.ts：结算、日历月份小结、看板每月服务人数同一口径。
+  const { adults, kids, littles } = partyHeadCounts(o)
   let tableHeads: number
   if (inv.mode === "detailed" && guests.length) {
-    adults = guests.filter((g) => g.isChild !== true).length
-    const flagged = guests.filter((g) => g.isChild === true && g.isLittle === true).length
-    littles = Math.max(flagged, under5N)
-    kids = Math.max(0, guests.filter((g) => g.isChild === true).length - littles)
     tableHeads = guests.filter((g) => g.tablesChairs === true).length
   } else {
-    adults = Number(inv.adultCount ?? o.guest_adult_count ?? 0) || 0
     const child = Number(inv.childCount ?? o.guest_child_count ?? 0) || 0
-    littles = Math.min(child, under5N)
-    kids = Math.max(0, child - littles)
     const pwa = Array.isArray(inv.partyWideAddons) ? (inv.partyWideAddons as unknown[]) : []
     tableHeads = pwa.includes("tables_chairs") ? adults + child : 0
   }

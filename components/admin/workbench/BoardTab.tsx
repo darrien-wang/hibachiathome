@@ -5,6 +5,7 @@ import { adminJson } from "./api"
 import { Chip } from "./ui"
 import { DepositTrend } from "./DepositTrend"
 import { CpaTrend } from "./CpaTrend"
+import { MonthlyHeads } from "./MonthStats"
 import { addDays, daysBetween, digits10, dowZh, isTestLead, md, money, money0, monthStartOf, num, pct, ptDateOf, ptToday, weekSundayOf, type LeadRow, type OrderRow } from "./helpers"
 import { channelLabel, type ChannelScore } from "@/lib/channels"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
@@ -311,6 +312,8 @@ export function BoardTab({
       <DepositTrend adminKey={adminKey} isMobile={isMobile} />
 
       <CpaTrend adminKey={adminKey} targetCents={target} isMobile={isMobile} />
+
+      <MonthlyHeads adminKey={adminKey} isMobile={isMobile} />
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)", gap: 28, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
