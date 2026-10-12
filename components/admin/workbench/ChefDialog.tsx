@@ -298,7 +298,7 @@ export function ChefDialog({
   const cardFlow = async (s: ShiftRow) => {
     setBusy(`m:${s.assignmentId}`)
     setMsg(null)
-    let look: { found?: boolean; grossCents?: number; feeCents?: number; taxCents?: number; terms?: string; taxRateLabel?: string | null; taxRateSource?: string; chosenTipCents?: number | null; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; reason?: string } | null = null
+    let look: { found?: boolean; grossCents?: number; feeCents?: number; taxCents?: number; terms?: string; taxRateLabel?: string | null; taxRateSource?: string; chosenTipCents?: number | null; duplicateCashCents?: number; netCents?: number; balanceRefCents?: number; tipCents?: number; paymentId?: string; reason?: string } | null = null
     try {
       look = await adminJson(adminKey, "/api/admin/chefs", { body: { action: "card_lookup", assignment_id: s.assignmentId } })
     } catch (e) {
@@ -315,6 +315,7 @@ export function ChefDialog({
           v2 && look.taxRateSource !== "address" ? "⚠ 税率是估的（发票还没按派对地址定税率）——先在发票里 Re-rate，再记这笔" : null,
           `应收尾款 ${money(look.balanceRefCents ?? 0)}`,
           typeof look.chosenTipCents === "number" ? `客人在付款页填的小费 ${money(look.chosenTipCents)}` : null,
+          look.duplicateCashCents ? `⚠ 这单还登记着一笔现金尾款 ${money(look.duplicateCashCents)}，和这笔刷卡重复了——上面的应收尾款已经按没收过现金算` : null,
         ].filter(Boolean).join("\n")
       : look?.reason ?? "这单查不到 Stripe 付款，金额自己填。"
     const raw = await askPrompt({

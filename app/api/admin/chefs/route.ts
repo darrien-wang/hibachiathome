@@ -729,9 +729,19 @@ export async function POST(request: NextRequest) {
         }
         // 这笔之外已经收到的钱（押金等），用来还原当天该收多少尾款——尾款一旦
         // 登记，orders.balance_due_cents 就变 0 了，不能只看它。
-        const others = rows.filter((r) => r.id !== card.id).reduce((n, r) => n + (r.amount_cents ?? 0), 0)
+        //
+        // 同一单既登记过"现金尾款"又刷了卡，那笔现金是记重了（Faith Tucker 10-11：先点了
+        // "师傅代收现金"记了 $2,196.20，14 分钟后客人刷了卡——尾款被当成已经收过，整笔
+        // 刷卡 $2,750 全算成了小费）。手工记的尾款如果一笔就顶满了整个尾款，就不算它；
+        // 真是"一部分现金一部分刷卡"的（手工那笔小于尾款）照常扣。
+        const rest = rows.filter((r) => r.id !== card.id)
+        const nonFinal = rest.filter((r) => r.type !== "final").reduce((n, r) => n + (r.amount_cents ?? 0), 0)
+        const fullBalance = Math.max(0, (ord?.quoted_total_cents ?? 0) - nonFinal)
+        const dupCash = rest.filter((r) => r.type === "final" && r.provider !== "stripe" && fullBalance > 0 && (r.amount_cents ?? 0) >= fullBalance)
+        const duplicateCashCents = dupCash.reduce((n, r) => n + (r.amount_cents ?? 0), 0)
+        const others = rest.filter((r) => !dupCash.includes(r)).reduce((n, r) => n + (r.amount_cents ?? 0), 0)
         const fromTotal = Math.max(0, (ord?.quoted_total_cents ?? 0) - others)
-        const balanceRefCents = balanceNow > 0 ? balanceNow : fromTotal
+        const balanceRefCents = duplicateCashCents > 0 ? fromTotal : balanceNow > 0 ? balanceNow : fromTotal
         // 手续费一律按 4% 计（2026-09-28 用户定）：不查 Stripe 实扣，
         // 和发票上收客人的 Card Processing Fee 用同一个数。gross 就是
         // payments 里记的实刷金额，所以这里连 Stripe API 都不用碰。
@@ -767,7 +777,10 @@ export async function POST(request: NextRequest) {
           feeRatePct: v2 ? CARD_PROCESSING_RATE * 100 : CARD_FEE_RATE * 100,
           feeFixedCents: 0,
           // What the customer typed on /pay as the chef's gratuity (the split at payment time).
-          chosenTipCents: typeof ord?.chosen_gratuity_cents === "number" ? ord.chosen_gratuity_cents : null,
+          // 记重的时候 /pay 当时也是按"尾款已收"拆的，那个数不可信，不给。
+          chosenTipCents: duplicateCashCents > 0 ? null : typeof ord?.chosen_gratuity_cents === "number" ? ord.chosen_gratuity_cents : null,
+          // > 0 = 这单还挂着一笔记重了的现金尾款，页面要提醒。
+          duplicateCashCents,
           tipCents: Math.max(0, netCents - balanceRefCents),
         })
       }
