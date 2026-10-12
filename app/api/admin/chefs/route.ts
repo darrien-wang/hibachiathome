@@ -458,6 +458,29 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ ok: true, chefs, assignments, alertsCount, today })
 }
 
+/**
+ * 把这单上"师傅代收现金"时手工登记的现金尾款撤掉：老板先点了现金、后来发现客人其实
+ * 刷了卡（或者点错了改回待确认）。不撤的话订单上钱记了两遍，刷卡那笔还会被整笔算成
+ * 小费（Faith Tucker 2026-10-11）。只动 chef_settlement 这条路记的 manual_final_cash_*。
+ */
+async function voidManualCashFinal(supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>, orderId: string, actorAlias: string, reason: string): Promise<number> {
+  const { data: rows } = await supabase.from("payments").select("id, amount_cents, external_payment_id").eq("order_id", orderId).eq("type", "final").eq("status", "paid").like("external_payment_id", "manual_final_cash_%")
+  const list = (rows ?? []) as Array<{ id: string; amount_cents: number | null; external_payment_id: string | null }>
+  const sum = list.reduce((n, r) => n + (r.amount_cents ?? 0), 0)
+  if (!list.length || sum <= 0) return 0
+  const { data: ord } = await supabase.from("orders").select("quoted_total_cents, amount_paid_total_cents, non_deposit_paid_total_cents, deposit_paid_total_cents").eq("id", orderId).maybeSingle()
+  if (!ord) return 0
+  const { error: e1 } = await supabase.from("payments").delete().in("id", list.map((r) => r.id))
+  if (e1) throw e1
+  const nonDeposit = Math.max(0, Number(ord.non_deposit_paid_total_cents ?? 0) - sum)
+  const paid = Math.max(0, Number(ord.amount_paid_total_cents ?? 0) - sum)
+  const balance = Math.max(0, Number(ord.quoted_total_cents ?? 0) - Number(ord.deposit_paid_total_cents ?? 0) - nonDeposit)
+  const { error: e2 } = await supabase.from("orders").update({ amount_paid_total_cents: paid, non_deposit_paid_total_cents: nonDeposit, balance_due_cents: balance, updated_at: new Date().toISOString() }).eq("id", orderId)
+  if (e2) throw e2
+  await supabase.from("order_events").insert({ order_id: orderId, actor: `admin:${actorAlias}`, action: "final_payment_voided", metadata: { reason, amount_cents: sum, removed: list.map((r) => r.external_payment_id) } })
+  return sum
+}
+
 // ---------------------------------------------------------------- writes
 
 type Body = Record<string, unknown> & { action?: string }
@@ -835,7 +858,10 @@ export async function POST(request: NextRequest) {
             .update({ settlement_method: null, settlement_at: null, card_gross_cents: null, card_fee_cents: null, card_tip_cents: null, settlement_ref: null, updated_at: now })
             .eq("id", body.assignment_id)
           if (error) throw error
-          return NextResponse.json({ ok: true, cleared: true })
+          // 改回待确认：之前点"师傅代收现金"时在订单上记的那笔已收一并撤掉。
+          const { data: asn0 } = await supabase.from("order_staff_assignments").select("order_id").eq("id", body.assignment_id).maybeSingle()
+          const voided0 = asn0 ? await voidManualCashFinal(supabase, String(asn0.order_id), actor.alias, "settlement method cleared") : 0
+          return NextResponse.json({ ok: true, cleared: true, voidedCashCents: voided0 })
         }
         const method = str(body.method, 10) as SettleMethod
         if (!SETTLE_METHODS.has(method)) return NextResponse.json({ error: "method 只能是 cash / card / prepaid / other" }, { status: 400 })
@@ -863,6 +889,12 @@ export async function POST(request: NextRequest) {
         //   prepaid -> 老板说钱早到了（老单的 Zelle/转账；10-06 起客人不再走这些渠道，D-1006-06），把还挂着的尾款记成已收
         //   card    -> /pay 的 webhook 自己会记，这里不动
         let orderSync: string | null = null
+        if (method === "card") {
+          // 先记过现金、其实是刷卡：把那笔现金已收撤掉，订单上只留 Stripe 那笔。
+          const { data: asn1 } = await supabase.from("order_staff_assignments").select("order_id").eq("id", body.assignment_id).maybeSingle()
+          const voided1 = asn1 ? await voidManualCashFinal(supabase, String(asn1.order_id), actor.alias, "settled as card; the cash final was logged by mistake") : 0
+          if (voided1 > 0) orderSync = `之前误记的现金尾款 $${(voided1 / 100).toFixed(2)} 已从订单上撤掉`
+        }
         if (method === "cash" || method === "prepaid") {
           const { data: asn2 } = await supabase.from("order_staff_assignments").select("order_id").eq("id", body.assignment_id).maybeSingle()
           const { data: ord2 } = asn2
