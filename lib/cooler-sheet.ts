@@ -29,6 +29,9 @@ const oz = (q: number) => `${up(q)} 盎司`
 const aboutLb = (q: number) => `约 ${r1(q / 16)} 磅`
 const servings = (q: number, per: number) => `${up(q / per)} 人份`
 
+/** 多少盎司黄油配 1 盎司蒜蓉（估的，等老板给准数）。 */
+const GARLIC_PER_BUTTER = 8
+
 type Rule = { section: 0 | 1 | 2 | 3 | 4; label: string; amount: (qty: number) => string; note?: (qty: number) => string; fill?: string }
 const SECTION_TITLES = ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
 
@@ -48,12 +51,13 @@ const RULES: Record<string, Rule> = {
   // 校准，所以留一个空请她写实际用了几根。
   mixed_vege: {
     section: 1,
-    label: "蔬菜混合（切好的）",
-    amount: (q) => oz(q * VEGE_NET_PER_RAW),
-    note: () => "西葫芦、西兰花、洋葱、胡萝卜 · 平均每人 5 盎司，上下一点没关系",
-    fill: "西葫芦实际用了 ______ 根",
+    label: "蔬菜混合",
+    amount: (q) => `${oz(q * VEGE_NET_PER_RAW)}上下`,
+    note: () => "切好的",
+    fill: "西葫芦用了 ____ 根",
   },
-  salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 人份` },
+  // 沙拉菜一人份 ≈ 1 盎司，不用称得很准（老板 2026-10-12）。
+  salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 盎司上下`, note: (q) => `${up(q)} 人份` },
   lime: { section: 1, label: "青柠", amount: (q) => `${up(q)} 个` },
   fried_rice: { section: 2, label: "熟米饭", amount: oz, note: aboutLb },
   // 清单上记的是干面重量（熟面 ÷ 3）；装箱的是煮好的面。
@@ -63,7 +67,9 @@ const RULES: Record<string, Rule> = {
   fried_rice_seasoning: { section: 2, label: "青豆胡萝卜粒（冷冻）", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 24)} 包（12 盎司一包）` },
   ginger_sauce: { section: 3, label: "Yum Yum 白酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
   ginger_dressing: { section: 3, label: "姜汁沙拉酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
-  garlic_butter: { section: 3, label: "蒜香黄油", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 16)} 根（8 盎司一根）` },
+  // 蒜香黄油拆成黄油和蒜两行（老板 2026-10-12）。清单上按汤匙记，2 汤匙 = 1 盎司，全部算黄油；
+  // 蒜的行在 coolerSections 里跟着补，按一根黄油（8 盎司）配 1 盎司蒜蓉估。
+  garlic_butter: { section: 3, label: "黄油", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 16)} 根` },
   gyoza: { section: 4, label: "煎饺", amount: (q) => `${up(q)} 个` },
   spring_rolls: { section: 4, label: "春卷", amount: (q) => `${up(q)} 个` },
   edamame: { section: 4, label: "毛豆", amount: (q) => `${up(q)} 袋` },
@@ -86,7 +92,8 @@ export function coolerSections(items: PrepItem[], menuKnown: boolean): CoolerSec
     sections[rule.section].lines.push({ id, label: rule.label, amount: rule.amount(q), note: rule.note?.(q), fill: rule.fill })
     // 洋葱火山：切好叠成火山的洋葱圈，不在用料清单里（它是表演不是配料），每单都要带。
     // 不是整个洋葱——要事先切好（老板 2026-10-11）。
-    if (id === "mixed_vege") sections[1].lines.push({ id: "onion_volcano", label: "洋葱火山（切好的）", amount: "1 份", note: "两位厨师的单带 2 份" })
+    if (id === "garlic_butter") sections[3].lines.push({ id: "garlic", label: "蒜蓉", amount: oz(q / 2 / GARLIC_PER_BUTTER) })
+    if (id === "mixed_vege") sections[1].lines.push({ id: "onion_volcano", label: "洋葱火山", amount: "1 份" })
   }
   return sections.filter((s) => s.lines.length > 0)
 }
