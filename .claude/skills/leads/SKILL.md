@@ -892,6 +892,8 @@ python scripts/desk/desk.py transcribe <手机|leadId> --last 2 [--model small|m
 
 `next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址和 NOTES；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。**客人不逐人点、只说"鸡牛虾都要，15 个人你们备够"**（Nasim，2026-09-29）：用 `--proteins` 记总份数，**份数 = 人数 × 2**，平均分到他点名的几样上（15 人三样 = 10/10/10）。超过每人两份的部分引擎会按加购收钱，所以**发票上的数是菜单，不是师傅的备货余量**——余量写进线索备注提醒多备，不要加进发票。已经有逐人菜单的订单 `--proteins` 会拒绝，免得把客人自己填的冲掉。
 
+`order set` 存的时候带着"读到的那一版"（2026-10-11）。从读到存的这几秒里订单被改过——客人在 planner 点了提交、有人在发票页保存——发票应用回 409，desk 打 `STALE not saved` 和改了什么，**什么都没存**。先 `order show` 看最新的，再决定要不要重跑：`--add-adult` / `--free-item` / `--add-extra` 这类"加"的参数，先确认客人是不是已经自己加上了。**为什么**：save-invoice 是整张发票覆盖，旧的那份存进去会把客人刚交的地址、菜单一起盖回去（Natalie Dunn 10-10 是反方向的同一个坑）。手写 lookup → save-invoice 同理：把 lookup 返回的 `order.updatedAt` / `order.version` 作为 `baseUpdatedAt` / `baseVersion` 一起 POST，不带就没有这层保护。
+
 `send` 遇 409 会把刹车名和原因打出来（`daily` / `spacing` / `asked_known_date` / `sweep` / `followup_cap`），**默认就是对的**，`--force` 只用于客人正在等我们答复（§4.4）。同一个客人可能同时被另一个会话在处理（老板常开两个窗口）：`card` 里看到几分钟内已有我方新发的人工短信，就不要再发。
 
 desk 还没包的（邮件、巡检、协议总价、发票）用下面的 curl；包进去之后删这里的对应段。
@@ -975,7 +977,7 @@ curl -s -X POST -H "x-admin-key: $KEY" -H "Content-Type: application/json" \
 - 送桌椅/餐具这类让利用 `freeExtraIds` 写成规则，不要拿总价去抵。
 - **送前菜（饺子/春卷/毛豆几盘）不要签进 `freeExtraIds`**：发票会把那一类前菜**全部**退钱（客人在 planner 多点也白送），还会和周中 / 20 人以上自带的那 1 盘重复退。前菜只记承诺；付押金后在发票里把盘数加进 `partyExtras`，再加一条 **Free Item** 行（发票工具里的「Free Item」：id `<前菜id>_<时间戳>`，label `FREE: Spring Rolls (10 pcs) x4`，金额=单价×盘数）——固定金额，planner 重算不动它，多点的照收。
 - **每人特价在周中要加回 $5 再签**：发票的 deal_rate 从 $59.90 往下让、和周中价叠加。客人周中每位实付 $49.90 → 签 `adultRate: 54.90`。
-- **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData}` 存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
+- **已经付过押金的特殊价订单**不走这条：用 `POST https://invoice.realhibachi.com/api/self-service/orders/save-invoice {orderId, invoiceData, baseUpdatedAt, baseVersion}`（后两个取 lookup 的 `order.updatedAt` / `order.version`，409 = 订单在你读之后被改过、没存，重新 lookup 再改）存一张带 Custom Discount 行的发票（Sergio RH-20260917-1071 就是这么补的），存前先用 `POST /api/invoice` 预览总价。
 - 正式发票邮件：`POST https://invoice.realhibachi.com/api/invoice/email {invoiceData, orderNo}`。
 - **发发票之前，先看 NOTES 框会印什么**（用户 2026-09-25 定）。`contactInfo.specialNotes` 会**原样印在客户发票上**（PDF、邮件、存档副本），而同一个字段也是我们和 `orders.notes` 互相同步的草稿本——押金自动建单会往里写 `Auto-generated booking for deposit checkout | deposit_source=workbench`，agent 会话会往里写 `[why]` `[callback]` 和中文过程记录。
   - **代码已经兜底**（invoice `lib/customer-notes.ts`，09-25 上线）：存发票、写 `orders.notes`、以及**打印那一刻**都会过滤掉打标签的过程记录、系统话、中文内部记录、`lead_id/utm_*` 这类字段和 /admin 链接；拿不准的一律**保留**（宁可多印一句怪话，也不能丢掉"不要香菜"）。

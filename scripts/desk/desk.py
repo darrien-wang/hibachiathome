@@ -604,6 +604,25 @@ def _lookup(order: dict) -> tuple[dict, dict]:
     return inv_order, look["prefill"]
 
 
+def _invoice_drift(before: dict, after: dict) -> list[str]:
+    """What moved on an order between two reads of its invoice - printed when a save is refused as out of date."""
+    lines = []
+    was, now = before.get("contactInfo") or {}, after.get("contactInfo") or {}
+    for key in ("clientName", "email", "phone", "eventDate", "eventTime", "eventAddress", "specialNotes"):
+        if (was.get(key) or "") != (now.get(key) or ""):
+            lines.append(f"{key}: {was.get(key)!r} -> {now.get(key)!r}")
+    for key in ("adultCount", "childCount", "mode", "paymentMethod", "depositAmount"):
+        if before.get(key) != after.get(key):
+            lines.append(f"{key}: {before.get(key)!r} -> {after.get(key)!r}")
+    rows = lambda d: f"{len(d.get('guests') or [])} rows, {sum(1 for g in (d.get('guests') or []) if g.get('proteins'))} with picks"
+    if json.dumps(before.get("guests"), sort_keys=True) != json.dumps(after.get("guests"), sort_keys=True):
+        lines.append(f"guests: {rows(before)} -> {rows(after)}")
+    for key in ("quickCountItems", "partyExtras", "promotions", "customDeal", "travelFee"):
+        if json.dumps(before.get(key), sort_keys=True) != json.dumps(after.get(key), sort_keys=True):
+            lines.append(f"{key}: changed")
+    return lines
+
+
 def _totals(data: dict) -> dict:
     return invoice_post("/api/invoice", data)["invoice"]
 
@@ -1045,7 +1064,24 @@ def cmd_order(a):
         if a.dry:
             print("DRY   not saved (--dry)")
             return
-        res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data})
+        # save-invoice writes this whole copy onto the order, and the lookup it
+        # was built from is a few seconds old by now: a customer submitting from
+        # their planner in that gap was overwritten by it. So the save says
+        # where the order stood when it was read (the lookup's updatedAt and
+        # version); if the order changed since, the invoice app answers 409,
+        # saves nothing and sends the order back as it stands (2026-10-11).
+        base = {k: v for k, v in (("baseUpdatedAt", inv_order.get("updatedAt")), ("baseVersion", inv_order.get("version"))) if v}
+        try:
+            res = invoice_post("/api/self-service/orders/save-invoice", {"orderId": order["id"], "invoiceData": data, **base})
+        except ApiError as e:
+            if e.status != 409 or not (isinstance(e.payload, dict) and e.payload.get("conflict")):
+                raise
+            print(f"STALE not saved - {order_no} changed between the lookup and this save (the customer's planner, the invoice tool, another desk):")
+            for line in _invoice_drift(prefill, e.payload.get("prefill") or {}) or ["(none of the fields compared here - see order show)"]:
+                print("   " + line)
+            # Not retried here: after the customer's own change a relative flag
+            # (--add-adult, --free-item, --add-extra) may already be on the order.
+            raise SystemExit(f"nothing was saved. Read it again (order show {order_no}), then re-run this command if it still applies.")
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
         return
     if a.op == "remind":
