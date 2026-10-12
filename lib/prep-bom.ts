@@ -108,8 +108,9 @@ const SALMON_PIECE_OZ = 8
 const SHRIMP_PER_LB = 18 // 16/20 规格取中
 const EGGS_PER_BOX = 36
 // 西冷（老板 2026-10-12）：Costco 的 Kirkland Signature USDA Choice Top Sirloin（去盖 Cap Off，
-// 货号 29192），称重卖。一盒 ≈3.69 lb 是 Costco 下单页的估重，实际每盒不一样重。
-const STEAK_PACK_OZ = 59
+// 货号 29192），称重卖。Costco 下单页估重 3.69 lb，实际买回来一盒差不多 3.2 lb（老板当天实测），
+// 按实际的算；每盒不一样重。
+const STEAK_PACK_OZ = 51 // 3.2 lb（老板 2026-10-12：现在 Costco 买的一盒差不多 3.2 lb；之前记的是 3.7 lb / 59 oz）
 
 /** 宁多勿少（用户 09-22 定）：建议买量 = 需求 × 1.1 再向上取整到采购颗粒度。 */
 const BUFFER = 1.1
@@ -145,7 +146,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   if (id === "chicken") return `≈ ${Math.round((qty / 16) * 10) / 10} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 72))} 盒（鸡胸盘 ≈4.5lb/盒）`
   // 西冷按盒：Costco 的大盒按重量算，宁多勿少走 BUFFER。原来 Walmart Family Pack
   // "1 盒 ≈ 4 人"（1.6 lb/盒，用户 09-24 定）是那个包装的经验口径，跟着包装一起作废。
-  if (id === "steak") return `≈ ${r1(qty / 16)} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / STEAK_PACK_OZ))} 盒（Costco Top Sirloin ≈3.7lb/盒）`
+  if (id === "steak") return `≈ ${r1(qty / 16)} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / STEAK_PACK_OZ))} 盒（Costco Top Sirloin ≈3.2lb/盒）`
   // 肋眼没有固定包装规格，按重量买（份量同西冷 4.5 oz，宁多勿少走 BUFFER）
   if (id === "ribeye") return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp((qty * BUFFER) / 16)} lb`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
@@ -355,8 +356,8 @@ export function orderPrep(
  * 瓶/盒/袋，跟师傅说的是同一种话，差几毫升是师傅现场的事。
  *
  * 注意 per 记的是"这一个包装能覆盖多少需求"，不是它的物理净重。三文鱼 1 个 = 2 份，
- * 所以 per = 2 × 4oz = 8oz；西冷一盒 ≈59oz，称重的盒子每盒不一样重，
- * per = 59 ÷ 1.1，让出来的一成就是宁多勿少的余量（和订单页"买几盒"同一个数）。
+ * 所以 per = 2 × 4oz = 8oz；西冷一盒 ≈51oz，称重的盒子每盒不一样重，
+ * per = 51 ÷ 1.1，让出来的一成就是宁多勿少的余量（和订单页"买几盒"同一个数）。
  *
  * 也正因为 per 已经含余量、买又只能整包取整，planner 不再另乘 1.1 缓冲——
  * 两层叠加会无缘无故多买一个单位。
@@ -370,7 +371,7 @@ export type BuyUnit = { per: number; noun: string; desc: string; big?: { noun: s
 
 export const BUY_UNITS: Record<string, BuyUnit> = {
   // 蛋白
-  steak: { per: STEAK_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Top Sirloin ≈3.7lb/盒" },
+  steak: { per: STEAK_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Top Sirloin ≈3.2lb/盒" },
   chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
   filet_mignon: { per: 9.6, noun: "盒", desc: "≈0.6lb，1 盒 ≈ 2 人" },
   salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" }, // 一袋几个还没定，定了加 big: { noun: "袋", count }

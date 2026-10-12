@@ -18,10 +18,10 @@ test("prep · steak portions are untouched: 4.5 oz an adult, 2.25 oz a kid", () 
   assert.equal(steakLine(10).unit, "oz")
 })
 
-test("prep · steak is bought in Costco top sirloin packs (about 3.7 lb): need x 1.1, rounded up to whole packs", () => {
-  assert.equal(steakLine(10).alt, "≈ 2.8 lb，买 1 盒（Costco Top Sirloin ≈3.7lb/盒）") // 45 oz x 1.1 = 49.5 <= 59
-  assert.equal(packsInHint(steakLine(11).alt), 1) // 54.45 oz with the buffer still fits one pack
-  assert.equal(packsInHint(steakLine(12).alt), 2) // 59.4 oz with the buffer is just over one pack: never less
+test("prep · steak is bought in Costco top sirloin packs (about 3.2 lb): need x 1.1, rounded up to whole packs", () => {
+  assert.equal(steakLine(10).alt, "≈ 2.8 lb，买 1 盒（Costco Top Sirloin ≈3.2lb/盒）") // 45 oz x 1.1 = 49.5 <= 51
+  assert.equal(packsInHint(steakLine(11).alt), 2) // 54.45 oz with the buffer is just over one 51 oz pack: never less
+  assert.equal(packsInHint(steakLine(12).alt), 2) // 59.4 oz
   assert.equal(packsInHint(steakLine(20).alt), 2) // 99 oz
   assert.equal(packsInHint(steakLine(30).alt), 3) // 148.5 oz
   assert.doesNotMatch(steakLine(20).alt ?? "", /Family Pack|Walmart/)
