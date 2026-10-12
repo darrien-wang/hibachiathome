@@ -3,7 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, splitVeg, VEGE_MIX, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
-import { committedDetail, reserveForOrders, setVegTotal, settleDueReservations, vegTotal } from "@/lib/prep-reservations"
+import { setVegTotal, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
 import { coolerSections, zhTime } from "@/lib/cooler-sheet"
 
@@ -68,19 +68,12 @@ export async function GET(request: NextRequest) {
     (r) => r.event_start && (byOrders || r.event_start.slice(0, 10) === date) && !/cancel|void|refund/i.test(r.order_status ?? ""),
   )
 
-  // 进门先把办完/取消的单的占用放掉（不扣库存——老板 2026-10-02：每次备货自己核对）。
-  // 放在这里而不是定时任务——定时任务卡死过三天没人发现。
-  await settleDueReservations(supabase).catch((e) => console.error("[prep] settle failed", e))
-
   const allItems: PrepItem[] = []
-  // 每单各自的用量，用来写占用（合计那份是按品项汇总的，回不到单）。
-  const perOrder: Array<{ orderId: string; items: Array<{ id: string; qty: number; unit: string }> }> = []
   const orders = rows.map((r) => {
     const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
     const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
     if (prep.menuKnown) allItems.push(...prep.items)
     else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
-    perOrder.push({ orderId: r.id, items: reservableItems(mine) })
     const t = new Date(r.event_start as string)
     return {
       id: r.id,
@@ -141,53 +134,11 @@ export async function GET(request: NextRequest) {
   }
   stores.mixed_vege = { channel: "Walmart", pack: null }
 
-  // 勾了单来算缺口 = 这几单的料被占住了。幂等，随便重算。
-  if (byOrders && perOrder.length > 0) {
-    await reserveForOrders(supabase, perOrder).catch((e) => console.error("[prep] reserve failed", e))
-  }
-  // 别的还占着料的单，按现在的菜单和配方重算一遍：菜单改了、配方改了（09-30 面改按干重、
-  // DIY 的虾鸡并进总量、大宗不占用），占用跟着变，不留旧数。
-  // 只跳过刚占过的那几单（按日期看的模式没占，不跳）。
-  await refreshOtherReservations(supabase, new Set(byOrders ? rows.map((r) => r.id) : [])).catch((e) => console.error("[prep] refresh failed", e))
-  // 别的单还占着多少——可用 = 在库 − 这个。不含正在算的这几单，否则自己扣自己。
-  const detail = await committedDetail(supabase, rows.map((r) => r.id)).catch(() => ({ totals: {} as Record<string, number>, byItem: {} as Record<string, Array<{ orderId: string; qty: number }>> }))
-  const committed = detail.totals
-  // 蔬菜的占用记在 mixed_vege 上（和清单同一行），四样分开记的库存那边另算；原来这里用四样
-  // 分开的占用之和把它盖掉了，而那个和永远是 0——蔬菜的"别的单占了"就一直显示没有。
-  committed.mixed_vege = Math.round(((committed.mixed_vege ?? 0) + VEG_IDS.reduce((n, k) => n + (committed[k] ?? 0), 0)) * 100) / 100
-
-  // 占着的是哪几单：带上名字和日子，页面上点"别的单占了"就能看到（老板 2026-09-30）
-  const holderIds = Array.from(new Set(Object.values(detail.byItem).flatMap((l) => l.map((x) => x.orderId))))
-  const { data: holderRows } = holderIds.length
-    ? await supabase.from("orders").select("id, customer_name, event_start").in("id", holderIds)
-    : { data: [] as Array<{ id: string; customer_name: string | null; event_start: string | null }> }
-  const holderOf = new Map(
-    ((holderRows ?? []) as Array<{ id: string; customer_name: string | null; event_start: string | null }>).map((o) => [
-      o.id,
-      {
-        name: (o.customer_name ?? "").trim() || "未留名",
-        date: (o.event_start ?? "").slice(5, 10),
-        time: o.event_start ? new Date(o.event_start).toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }) : "",
-        sort: o.event_start ?? "",
-      },
-    ]),
-  )
+  // 占用（"别的单占了多少、可用 = 在库 − 占用"）2026-10-12 整套删掉：老板全选过一次备货，
+  // 所有单的料就一直被占着，之后单算一单的缺口全是错的——"用不上"。现在缺口 = 要的 − 在库，
+  // 勾哪几单就只算哪几单。这两个字段留空给页面兼容。
+  const committed: Record<string, number> = {}
   const committedBy: Record<string, Array<{ orderId: string; name: string; date: string; time: string; qty: number }>> = {}
-  for (const [item, list] of Object.entries(detail.byItem)) {
-    committedBy[item] = list
-      .map((x) => ({ orderId: x.orderId, qty: x.qty, ...(holderOf.get(x.orderId) ?? { name: "（订单已删）", date: "", time: "", sort: "" }) }))
-      .sort((a, b) => a.sort.localeCompare(b.sort))
-      .map(({ sort: _sort, ...h }) => h)
-  }
-  // 备货页把蔬菜拆成四样（老板 2026-09-30："broccoli zucchini carrot onion 各要多少"）：
-  // 别的单占的蔬菜是按合计记的，按同一个配比摊到四样上。先摊，再把四样并回合计给按日期看的页面。
-  const mixedHolders = committedBy.mixed_vege ?? []
-  const mixedReserved = mixedHolders.reduce((n, h) => n + h.qty, 0)
-  for (const v of VEGE_MIX) {
-    committed[v.id] = Math.round(((committed[v.id] ?? 0) + mixedReserved * v.ratio) * 100) / 100
-    committedBy[v.id] = [...(committedBy[v.id] ?? []), ...mixedHolders.map((h) => ({ ...h, qty: Math.round(h.qty * v.ratio * 100) / 100 }))]
-  }
-  committedBy.mixed_vege = [...mixedHolders, ...VEG_IDS.flatMap((k) => (committedBy[k] ?? []).filter((h) => !mixedHolders.some((m) => m.orderId === h.orderId)))]
 
   const { data: consumed } = await supabase.from("stock_moves").select("id").eq("ref", `consume:${date}`).limit(1)
   return NextResponse.json(
@@ -229,38 +180,6 @@ export async function GET(request: NextRequest) {
     },
     { headers: { "cache-control": "no-store" } },
   )
-}
-
-/**
- * 一单的用料 → 占用行。装车的桌椅是周转品，不是吃掉的东西，不进占用；
- * 米、油、酱油是大宗，缺了直接买，也不进（老板 2026-09-30）。
- */
-function reservableItems(items: PrepItem[]): Array<{ id: string; qty: number; unit: string }> {
-  return aggregatePrep(items)
-    .filter((i) => i.group !== "setup" && !isBulkItem(i.id))
-    .map((i) => ({ id: i.id, qty: i.qty, unit: i.unit }))
-}
-
-type Supabase = NonNullable<ReturnType<typeof createServerSupabaseClient>>
-
-/** 还占着料、但这次没勾的单：按现在的配方重算它们的占用。 */
-async function refreshOtherReservations(supabase: Supabase, skip: Set<string>) {
-  const { data: open } = await supabase.from("prep_reservations").select("order_id").is("settled_at", null)
-  const ids = Array.from(new Set(((open ?? []) as Array<{ order_id: string }>).map((r) => r.order_id))).filter((id) => !skip.has(id))
-  if (ids.length === 0) return
-  const { data } = await supabase
-    .from("orders")
-    .select("id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection")
-    .in("id", ids)
-  // 只动还没办的单：办过的归 settleDueReservations 结转；这里要是重写了它的行，
-  // upsert 会把已结转的行翻回"占着"，下次就扣两遍库存。
-  const today = ptDay(new Date())
-  const live = ((data ?? []) as Row[]).filter((r) => !/cancel|void|refund/i.test(r.order_status ?? "") && (r.event_start ?? "").slice(0, 10) >= today)
-  const perOrder = live.map((r) => {
-    const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
-    return { orderId: r.id, items: reservableItems(prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")) }
-  })
-  if (perOrder.length) await reserveForOrders(supabase, perOrder)
 }
 
 // 盘点：改一个装备的数（只有老板）。POST { action: "set_stock", item_key, qty, note? }
@@ -305,16 +224,6 @@ export async function POST(request: NextRequest) {
       applied++
     }
     return NextResponse.json({ ok: true, applied })
-  }
-
-  // 释放一单的占用（老板 2026-09-30："我的备货明明没有够到他"）：这单没备，就别占着料。
-  // 只删还没结转的行；以后再勾上这单算缺口，会重新占。
-  if (body.action === "release") {
-    const orderId = typeof body.order_id === "string" && /^[0-9a-f-]{36}$/i.test(body.order_id) ? body.order_id : ""
-    if (!orderId) return NextResponse.json({ error: "order_id required" }, { status: 400 })
-    const { data, error } = await supabase.from("prep_reservations").delete().eq("order_id", orderId).is("settled_at", null).select("item_key")
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, released: (data ?? []).length })
   }
 
   if (body.action === "set_pantry") {
