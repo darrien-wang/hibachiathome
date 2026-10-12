@@ -6,9 +6,11 @@
 // 一边的份量，必须同一天改另一边。计算逻辑抄自那边的 calcBom，砍掉了
 // 与采购无关的部分（价格、隐藏行规则）。
 //
-// 采购单位换算（≈）按老板的两个渠道：餐饮批发（油/酱油/米/16-20 虾整箱）
-// 和 Walmart 生鲜（鸡胸盘、西冷盘、西葫芦按根、西兰花 32oz 袋、鸡蛋 36 盒、
-// Tai Pei 煎饺春卷、毛豆 12oz）。换算系数是估算，帮助下单，不是精确值。
+// 采购单位换算（≈）：2026-10-11 起食材统一在 Costco 买（老板定，决策日志 D-1011-01）。
+// 包装规格只按老板给的实物数字换，不猜。已经是 Costco 包装的：西冷。
+// 其余还是原来两个渠道的规格，等老板给了 Costco 的实际包装再逐样换：餐饮批发
+// （油/酱油/米/16-20 虾整箱）和 Walmart 生鲜（鸡胸盘、西葫芦按根、西兰花 32oz 袋、
+// 鸡蛋 36 盒、Tai Pei 煎饺春卷、毛豆 12oz）。换算系数是估算，帮助下单，不是精确值。
 
 import { TABLECLOTHS, findTheme, findVariant, type SetupSelection } from "@/config/table-themes"
 
@@ -105,6 +107,9 @@ const BAG_OZ = { broccoli: 32, carrots: 32 } // Walmart 袋装；胡萝卜 1 袋
 const SALMON_PIECE_OZ = 8
 const SHRIMP_PER_LB = 18 // 16/20 规格取中
 const EGGS_PER_BOX = 36
+// 西冷（老板 2026-10-12）：Costco 的 Kirkland Signature USDA Choice Top Sirloin（去盖 Cap Off，
+// 货号 29192），称重卖。一盒 ≈3.69 lb 是 Costco 下单页的估重，实际每盒不一样重。
+const STEAK_PACK_OZ = 59
 
 /** 宁多勿少（用户 09-22 定）：建议买量 = 需求 × 1.1 再向上取整到采购颗粒度。 */
 const BUFFER = 1.1
@@ -138,9 +143,9 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   if (id === "filet_mignon") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 9.6))} 盒（≈0.6lb/盒 ≈ 2 人）`
   // 鸡胸盘平均 4.5 lb/盒（用户 09-24 定），入库按小票实重，买按盒
   if (id === "chicken") return `≈ ${Math.round((qty / 16) * 10) / 10} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 72))} 盒（鸡胸盘 ≈4.5lb/盒）`
-  // 西冷按盒（用户 09-24 定）：Family Pack 平均 1.6 lb/盒，经验 1 盒 ≈ 4 个选牛排的客人
-  // （每人 6.4 oz，比份量表 4.5 oz 多四成——宁多勿少已含在规则里，不另乘 BUFFER）
-  if (id === "steak") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil(qty / 18))} 盒（Family Pack ≈1.6lb/盒 ≈ 4 人）`
+  // 西冷按盒：Costco 的大盒按重量算，宁多勿少走 BUFFER。原来 Walmart Family Pack
+  // "1 盒 ≈ 4 人"（1.6 lb/盒，用户 09-24 定）是那个包装的经验口径，跟着包装一起作废。
+  if (id === "steak") return `≈ ${r1(qty / 16)} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / STEAK_PACK_OZ))} 盒（Costco Top Sirloin ≈3.7lb/盒）`
   // 肋眼没有固定包装规格，按重量买（份量同西冷 4.5 oz，宁多勿少走 BUFFER）
   if (id === "ribeye") return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp((qty * BUFFER) / 16)} lb`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
@@ -350,8 +355,8 @@ export function orderPrep(
  * 瓶/盒/袋，跟师傅说的是同一种话，差几毫升是师傅现场的事。
  *
  * 注意 per 记的是"这一个包装能覆盖多少需求"，不是它的物理净重。三文鱼 1 个 = 2 份，
- * 所以 per = 2 × 4oz = 8oz；牛排一盒管 4 个人，
- * per = 4 × 4.5oz = 18oz，盒子本身 1.6lb 里多出来的就是老板留的余量。
+ * 所以 per = 2 × 4oz = 8oz；西冷一盒 ≈59oz，称重的盒子每盒不一样重，
+ * per = 59 ÷ 1.1，让出来的一成就是宁多勿少的余量（和订单页"买几盒"同一个数）。
  *
  * 也正因为 per 已经含余量、买又只能整包取整，planner 不再另乘 1.1 缓冲——
  * 两层叠加会无缘无故多买一个单位。
@@ -365,7 +370,7 @@ export type BuyUnit = { per: number; noun: string; desc: string; big?: { noun: s
 
 export const BUY_UNITS: Record<string, BuyUnit> = {
   // 蛋白
-  steak: { per: 18, noun: "盒", desc: "Family Pack ≈1.6lb，1 盒 ≈ 4 人" },
+  steak: { per: STEAK_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Top Sirloin ≈3.7lb/盒" },
   chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
   filet_mignon: { per: 9.6, noun: "盒", desc: "≈0.6lb，1 盒 ≈ 2 人" },
   salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" }, // 一袋几个还没定，定了加 big: { noun: "袋", count }

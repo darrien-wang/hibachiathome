@@ -76,3 +76,18 @@ Verification completed:
 Verification still needed:
 - GA4 standard reports did not yet return `booking_submit` or `deposit_completed` rows for the last 30 days immediately after the change.
 - Recheck standard GA4 source/medium plus landing-page report after report processing catches up.
+
+## PREP-COSTCO - Shopping list in Costco packs (2026-10-12)
+
+Status: in progress - steak done; the other items wait for the owner's Costco pack sizes.
+
+What changed:
+- `lib/prep-bom.ts`: the standard steak is bought in Costco Kirkland USDA Choice top sirloin packs (item 29192, about 3.69 lb a pack). Packs = need x 1.1, rounded up; the order-page hint and the warehouse planner (`BUY_UNITS.steak`) give the same count.
+- The portion table is untouched and still mirrors the invoice repo's `lib/pricing.ts` (compared with its `origin/main`).
+
+Verification completed:
+- `npm test`: 176 pass, 0 fail. `tests/prep-bom.test.ts` is new. Output: `harness/verification/2026-10-12-prep-bom-costco/npm-test.txt`.
+
+Still needed:
+- The owner's actual Costco packs for chicken breast, filet, ribeye, shrimp, salmon, broccoli, carrots, zucchini, onions, eggs, butter, tofu and lobster tails. Do not guess them.
+- This is not a `harness/feature_list.json` item (that backlog is the tracking spec), so there is no status transition there.
