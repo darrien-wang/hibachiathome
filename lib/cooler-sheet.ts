@@ -54,7 +54,6 @@ const RULES: Record<string, Rule> = {
     label: "蔬菜混合",
     amount: (q) => `${oz(q * VEGE_NET_PER_RAW)}上下`,
     note: () => "切好的",
-    fill: "西葫芦用了 ____ 根",
   },
   // 沙拉菜一人份 ≈ 1 盎司，不用称得很准（老板 2026-10-12）。
   salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 盎司上下`, note: (q) => `${up(q)} 人份` },
