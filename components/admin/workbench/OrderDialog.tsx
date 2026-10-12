@@ -275,12 +275,19 @@ export function OrderDialog({
   // 备货单上印这个名字，人头工钱也算给他。
   const logiStaff = chefs.filter((c) => c.role === "logistics" && c.status === "active")
   const [logiOwner, setLogiOwner] = useState<{ staffId: string; settled: boolean } | null | undefined>(undefined)
+  // 备货备注：印在这一单的备料单上，写了才印。
+  const [prepNote, setPrepNote] = useState("")
+  const [prepNoteSaved, setPrepNoteSaved] = useState("")
   useEffect(() => {
     let dead = false
     setLogiOwner(undefined)
-    void adminJson<{ owners: Array<{ staffId: string; settled: boolean }> }>(adminKey, `/api/admin/chefs?logi_order=${orderId}`)
+    void adminJson<{ owners: Array<{ staffId: string; settled: boolean }>; prepNote?: string }>(adminKey, `/api/admin/chefs?logi_order=${orderId}`)
       .then((r) => {
-        if (!dead) setLogiOwner(r.owners[0] ?? null)
+        if (!dead) {
+          setLogiOwner(r.owners[0] ?? null)
+          setPrepNote(r.prepNote ?? "")
+          setPrepNoteSaved(r.prepNote ?? "")
+        }
       })
       .catch(() => {
         if (!dead) setLogiOwner(null)
@@ -488,6 +495,16 @@ export function OrderDialog({
   // 备料单：给后勤（张阿姨）打印的那张——只有这一单要放进保温箱的东西，大字中文，
   // 没有客户信息和价格（老板 2026-10-11：不要单独一个页签，一个按钮点开就能打印）。
   // 窗口要在点击当下就开，等接口回来再开会被浏览器当弹窗拦掉。
+  const savePrepNote = async () => {
+    if (prepNote.trim() === prepNoteSaved.trim()) return
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "set_prep_note", order_id: orderId, note: prepNote.trim() } })
+      if (!r.ok) throw new Error(r.error ?? "没存上")
+      setPrepNoteSaved(prepNote.trim())
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "备货备注没存上")
+    }
+  }
   const saveLogiOwner = async (staffId: string) => {
     setBusy("logi")
     setMsg(null)
@@ -506,6 +523,7 @@ export function OrderDialog({
     const w = window.open("", "_blank")
     setBusy("cooler")
     try {
+      await savePrepNote()
       const r = await adminJson<{ orders: Array<{ cooler?: CoolerParty }> }>(adminKey, `/api/admin/prep?orders=${o.id}`)
       const parties = r.orders.map((x) => x.cooler).filter((c): c is CoolerParty => !!c)
       const html = coolerSheetHtml(ev?.ymd ?? new Date().toISOString().slice(0, 10), parties)
@@ -796,6 +814,23 @@ export function OrderDialog({
               ) : null}
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: -10 }}>人数、菜单、路费、报价一律在专业表单里算和改，保存后这里自动同步。</div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <span style={{ whiteSpace: "nowrap" }}>备货备注</span>
+              <input
+                className="input"
+                style={{ flex: 1, padding: "6px 8px" }}
+                value={prepNote}
+                maxLength={300}
+                disabled={viewerRole !== "owner" || logiOwner === undefined}
+                placeholder="写给后勤的话，会印在备料单上；不写就不印"
+                onChange={(e) => setPrepNote(e.target.value)}
+                onBlur={() => void savePrepNote()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur()
+                }}
+              />
+              {prepNote.trim() !== prepNoteSaved.trim() ? <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>没保存</span> : prepNoteSaved ? <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>已保存</span> : null}
+            </label>
           </div>
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>

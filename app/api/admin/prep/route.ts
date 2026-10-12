@@ -30,6 +30,7 @@ type Row = {
   created_at: string
   invoice_data: InvoiceLite | null
   setup_selection: SetupSelection | null
+  prep_note?: string | null
 }
 
 export async function GET(request: NextRequest) {
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
     .slice(0, 40)
   const byOrders = orderIds.length > 0
 
-  const sel = "id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection"
+  const sel = "id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, prep_note"
   const query = byOrders
     ? supabase.from("orders").select(sel).in("id", orderIds).order("event_start")
     : (() => {
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
         .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`)
         .join(" · "),
       // 后勤备货单（装保温箱）：这一单要放进箱子的东西，中文、按她手上的单位。
-      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, sections: coolerSections(prep.items, prep.menuKnown) },
+      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, sections: coolerSections(prep.items, prep.menuKnown) },
     }
   })
   // 备货单上写哪位厨师来拿这一箱（不写客户）。

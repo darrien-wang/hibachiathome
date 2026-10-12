@@ -15,6 +15,8 @@ export type CoolerParty = {
   chef: string | null
   /** 这一单谁负责备货（后勤，在员工→结算页勾给谁就是谁）。没定就留空给人手写。 */
   owner?: string | null
+  /** 老板写给后勤的备注（订单弹窗里填）。有才印，没有就不占地方。 */
+  note?: string | null
   adults: number
   kids: number
   menuKnown: boolean
@@ -133,6 +135,7 @@ export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
 </header>
 ${p.menuKnown ? "" : `<div class="warn">这一单的菜还没定，肉和海鲜先不要备，等通知。</div>`}
 <div class="cols">${body}</div>
+${p.note ? `<div class="memo"><b>备注</b>${esc(p.note)}</div>` : ""}
 <footer>装好一样，打一个勾 ✓<div class="hint">蔬菜、沙拉菜、鸡蛋的数量是大概的数，上下差一点没关系。</div></footer>
 </section>`
     })
@@ -176,6 +179,8 @@ td.amt{font-size:32px;font-weight:900;text-align:right;white-space:nowrap}
 .dense td.amt{font-size:27px}
 .dense h2{margin-top:8px}
 .dense .sec:first-child h2{margin-top:10px}
+.memo{margin-top:10px;padding:8px 12px;border:4px solid #000;border-radius:8px;font-size:26px;font-weight:700;white-space:pre-wrap}
+.memo b{display:block;font-size:16px;font-weight:600}
 footer .hint{font-weight:500;margin-top:4px}
 footer{margin-top:8px;font-size:18px;font-weight:600;text-align:center}
 @media print{.bar{display:none}.page{padding:0}@page{margin:10mm}}

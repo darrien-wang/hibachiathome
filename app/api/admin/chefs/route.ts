@@ -347,7 +347,8 @@ export async function GET(request: NextRequest) {
   if (logiOrder) {
     if (!/^[0-9a-f-]{36}$/i.test(logiOrder)) return NextResponse.json({ error: "bad order id" }, { status: 400 })
     const { data: marks } = await supabase.from("staff_order_pay").select("staff_member_id, settlement_id").eq("order_id", logiOrder)
-    return NextResponse.json({ ok: true, owners: (marks ?? []).map((m) => ({ staffId: String(m.staff_member_id), settled: !!m.settlement_id })) })
+    const { data: noteRow } = await supabase.from("orders").select("prep_note").eq("id", logiOrder).maybeSingle()
+    return NextResponse.json({ ok: true, owners: (marks ?? []).map((m) => ({ staffId: String(m.staff_member_id), settled: !!m.settlement_id })), prepNote: (noteRow?.prep_note as string | null) ?? "" })
   }
 
   const fileId = request.nextUrl.searchParams.get("file")
@@ -488,7 +489,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -1081,6 +1082,13 @@ export async function POST(request: NextRequest) {
           tipCents: tip,
           netCents: net,
         })
+      }
+      case "set_prep_note": {
+        // 备货备注：老板写给后勤的话，印在这一单的备料单上（没写就不印）。
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        const { error } = await supabase.from("orders").update({ prep_note: str(body.note, 300) || null }).eq("id", body.order_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
       }
       case "set_logistics_owner": {
         // 订单弹窗里选"这单谁备货"：一单一个负责人。换人 = 把别人没结的勾去掉、给新的人勾上；
