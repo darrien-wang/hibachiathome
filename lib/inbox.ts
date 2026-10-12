@@ -4,6 +4,7 @@ import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
+import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
 // small. It started life inside /api/admin/mobile/inbox (the Android shell
@@ -550,20 +551,37 @@ export async function computeInbox(
   let undelivered = 0
   if (notDelivered.length) {
     const known = await leadsByPhones(supabase, notDelivered.map((n) => n.peer))
+    const ids = Array.from(new Set(Array.from(known.values()).map((l) => l.id)))
+    const oldest = notDelivered.reduce((a, n) => (n.at < a ? n.at : a), notDelivered[0].at)
+    const { data: mailed } = ids.length
+      ? await supabase.from("lead_touchpoints").select("lead_id, occurred_at").in("lead_id", ids).eq("touchpoint_type", "email_outbound").gte("occurred_at", oldest)
+      : { data: [] as Array<{ lead_id: string; occurred_at: string }> }
+    const emailedAt = new Map<string, string>()
+    for (const m of (mailed ?? []) as Array<{ lead_id: string; occurred_at: string }>) {
+      const prev = emailedAt.get(m.lead_id)
+      if (!prev || m.occurred_at > prev) emailedAt.set(m.lead_id, m.occurred_at)
+    }
     for (const n of notDelivered) {
       const lead = known.get(n.peer)
-      if (!lead || lead.status === "lost" || lead.status === "disqualified") continue
+      if (!lead || !undeliveredStillOpen(lead, n.at, emailedAt.get(lead.id) ?? null)) continue
       undelivered += 1
       const who = (lead.full_name ?? "").trim() || prettyPhone(n.peer)
+      const blocked = Boolean(lead.sms_blocked_at)
+      const waited = minutesSince(n.at, now)
+      // A brand-new lead whose only way in is email is a first response, not a
+      // data chore: ring like a new lead does.
+      const fresh = Boolean(lead.created_at && now - Date.parse(lead.created_at) < LEAD_LOOKBACK_MS)
       events.push({
         key: `undelivered:${n.peer}:${n.at}`,
         kind: "undelivered",
-        title: `短信没送达 · ${who}`,
-        body: `给这个号码发的短信一直没有送达回执（最后一条 ${ptStamp(n.at)}，${n.status}），换邮件或打电话`,
+        title: blocked ? `短信打不通，改发邮件 · ${who}` : `短信没送达 · ${who}`,
+        body: blocked
+          ? `这个号码收不了短信（${lead.sms_blocked_reason ?? n.status}），${lead.email ? `留了邮箱 ${lead.email}，还没发过邮件` : "没留邮箱，只能打电话"}`
+          : `给这个号码发的短信一直没有送达回执（最后一条 ${ptStamp(n.at)}，${n.status}），换邮件或打电话`,
         url: `/admin?tab=leads&lead=${lead.id}`,
         at: n.at,
-        waitedMinutes: minutesSince(n.at, now),
-        ring: false,
+        waitedMinutes: waited,
+        ring: fresh && shouldRing(waited, now),
         leadId: lead.id,
         phone: n.peer,
       })
@@ -623,24 +641,66 @@ export async function computeInbox(
 }
 
 /** The newest lead on each of these numbers (any age), by the 10-digit normalized_phone. */
-async function leadsByPhones(
-  supabase: SupabaseClient,
-  peers: string[],
-): Promise<Map<string, { id: string; full_name: string | null; status: string | null }>> {
+type PhoneLead = {
+  id: string
+  full_name: string | null
+  status: string | null
+  email: string | null
+  created_at: string | null
+  sms_blocked_at: string | null
+  sms_blocked_reason: string | null
+}
+
+async function leadsByPhones(supabase: SupabaseClient, peers: string[]): Promise<Map<string, PhoneLead>> {
   const digits = Array.from(new Set(peers.map((p) => p.replace(/\D/g, "").slice(-10)).filter((d) => d.length === 10)))
-  const out = new Map<string, { id: string; full_name: string | null; status: string | null }>()
+  const out = new Map<string, PhoneLead>()
   if (!digits.length) return out
   const { data } = await supabase
     .from("leads")
-    .select("id, full_name, status, normalized_phone, created_at")
+    .select("id, full_name, status, email, normalized_phone, created_at, sms_blocked_at, sms_blocked_reason")
     .in("normalized_phone", digits)
     .order("created_at", { ascending: false })
     .limit(500)
-  for (const r of (data ?? []) as Array<{ id: string; full_name: string | null; status: string | null; normalized_phone: string | null }>) {
+  for (const r of (data ?? []) as Array<PhoneLead & { normalized_phone: string | null }>) {
     const e164 = r.normalized_phone ? `+1${r.normalized_phone}` : null
-    if (e164 && !out.has(e164)) out.set(e164, { id: r.id, full_name: r.full_name, status: r.status })
+    if (e164 && !out.has(e164)) {
+      out.set(e164, {
+        id: r.id,
+        full_name: r.full_name,
+        status: r.status,
+        email: r.email,
+        created_at: r.created_at,
+        sms_blocked_at: r.sms_blocked_at,
+        sms_blocked_reason: r.sms_blocked_reason,
+      })
+    }
   }
   return out
+}
+
+/**
+ * Should a text that never arrived still be on the list?
+ *
+ * 30003 / 30006 (number off, landline) make twilio/sms-status block the number
+ * and mark the lead lost, and lost leads used to be skipped here - so the one
+ * lead that most needed an email vanished from every list. A planner customer
+ * (14 adults, 10/29) sat 15 hours with no email after her "party saved" text
+ * bounced (2026-10-12). Lost by that carrier block, with an email on file,
+ * still shows; an opt-out (21610 / STOP) never does. Once an email has gone
+ * out after the text, it is handled and drops off (Ash's sat there a day
+ * after she was emailed).
+ */
+export function undeliveredStillOpen(
+  lead: Pick<PhoneLead, "status" | "email" | "sms_blocked_at" | "sms_blocked_reason"> | null | undefined,
+  lastOutAt: string,
+  emailedAt: string | null,
+): boolean {
+  if (!lead || lead.status === "disqualified") return false
+  const reason = lead.sms_blocked_reason ?? ""
+  if (reason.startsWith("21610") || reason.startsWith(OPT_OUT_REASON_PREFIX)) return false
+  if (lead.status === "lost" && !(lead.sms_blocked_at && (lead.email ?? "").trim())) return false
+  if (emailedAt && Date.parse(emailedAt) >= Date.parse(lastOutAt)) return false
+  return true
 }
 
 const PT_STAMP = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
