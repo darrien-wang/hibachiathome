@@ -52,17 +52,17 @@ const RULES: Record<string, Rule> = {
   mixed_vege: {
     section: 1,
     label: "蔬菜混合",
-    amount: (q) => `${oz(q * VEGE_NET_PER_RAW)}上下`,
+    amount: (q) => oz(q * VEGE_NET_PER_RAW),
     note: () => "切好的",
   },
   // 沙拉菜一人份 ≈ 1 盎司，不用称得很准（老板 2026-10-12）。
-  salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 盎司上下`, note: (q) => `${up(q)} 人份` },
+  salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 盎司`, note: (q) => `${up(q)} 人份` },
   lime: { section: 1, label: "青柠", amount: (q) => `${up(q)} 个` },
   fried_rice: { section: 2, label: "熟米饭", amount: oz, note: aboutLb },
   // 清单上记的是干面重量（熟面 ÷ 3）；装箱的是煮好的面。
   noodles: { section: 2, label: "面条（煮好的）", amount: (q) => oz(q * 3), note: (q) => aboutLb(q * 3) },
-  // 鸡蛋不用数得一个不差（老板 2026-10-11）：写"多少个上下"。
-  eggs: { section: 2, label: "鸡蛋", amount: (q) => `${up(q)} 个上下` },
+  // 鸡蛋、蔬菜、沙拉菜不用一点不差：数量后面不写"上下"，统一在页脚说明（老板 2026-10-12）。
+  eggs: { section: 2, label: "鸡蛋", amount: (q) => `${up(q)} 个` },
   fried_rice_seasoning: { section: 2, label: "青豆胡萝卜粒（冷冻）", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 24)} 包（12 盎司一包）` },
   ginger_sauce: { section: 3, label: "Yum Yum 白酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
   ginger_dressing: { section: 3, label: "姜汁沙拉酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
@@ -133,7 +133,7 @@ export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
 </header>
 ${p.menuKnown ? "" : `<div class="warn">这一单的菜还没定，肉和海鲜先不要备，等通知。</div>`}
 <div class="cols">${body}</div>
-<footer>装好一样，打一个勾 ✓</footer>
+<footer>装好一样，打一个勾 ✓<div class="hint">蔬菜、沙拉菜、鸡蛋的数量是大概的数，上下差一点没关系。</div></footer>
 </section>`
     })
     .join("")
@@ -176,6 +176,7 @@ td.amt{font-size:32px;font-weight:900;text-align:right;white-space:nowrap}
 .dense td.amt{font-size:27px}
 .dense h2{margin-top:8px}
 .dense .sec:first-child h2{margin-top:10px}
+footer .hint{font-weight:500;margin-top:4px}
 footer{margin-top:8px;font-size:18px;font-weight:600;text-align:center}
 @media print{.bar{display:none}.page{padding:0}@page{margin:10mm}}
 </style></head><body>

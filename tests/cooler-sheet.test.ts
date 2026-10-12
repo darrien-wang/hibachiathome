@@ -21,8 +21,8 @@ test("coolerSections: Chinese labels, her units, nothing that stays out of the c
   assert.equal(lines.chicken.amount, "100 盎司") // 20 × 5 oz
   assert.equal(lines.chicken.note, "约 6.3 磅 · 20 人份")
   // 四样蔬菜一栏，切好后的净重：20 人 × 5 oz
-  assert.equal(lines.mixed_vege.amount, "100 盎司上下")
-  assert.equal(lines.salad.amount, "20 盎司上下")
+  assert.equal(lines.mixed_vege.amount, "100 盎司")
+  assert.equal(lines.salad.amount, "20 盎司")
   assert.equal(lines.garlic_butter.label, "黄油")
   assert.equal(lines.garlic_butter.amount, "10 盎司")
   assert.equal(lines.garlic.amount, "2 盎司")
