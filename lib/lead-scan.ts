@@ -116,6 +116,8 @@ const SCAN_TYPES = Array.from(
   new Set([
     ...HINT_TYPES,
     "sms_outbound",
+    "email_outbound",
+    "email_inbound",
     "deposit_checkout_started",
     "payment_failed",
     "planner_opened",
@@ -229,6 +231,14 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const inbound = tps.filter((t) => t.touchpoint_type === "sms_inbound").map((t) => ({ at: t.occurred_at, body: str(t.raw_payload_json?.Body ?? t.raw_payload_json?.body) }))
     const outbound = tps.filter((t) => t.touchpoint_type === "sms_outbound").map((t) => ({ at: t.occurred_at, body: str(t.raw_payload_json?.body ?? t.raw_payload_json?.Body) }))
     const calls = tps.filter((t) => t.touchpoint_type === "call_inbound").map((t) => t.occurred_at)
+    // Email is a conversation too (support@ in via the Gmail script, out via
+    // desk email): a lead we have only emailed is not "never contacted", and
+    // an email from them is them speaking. Jackson Rogow (email only) sat in A
+    // "从没联系过" after three replies (2026-10-12).
+    const emailsIn = tps.filter((t) => t.touchpoint_type === "email_inbound").map((t) => t.occurred_at)
+    const emailsOut = tps.filter((t) => t.touchpoint_type === "email_outbound").map((t) => t.occurred_at)
+    const lastEmailInAt = emailsIn.length ? emailsIn[emailsIn.length - 1] : null
+    const lastEmailOutAt = emailsOut.length ? emailsOut[emailsOut.length - 1] : null
     const notes = tps.filter((t) => t.touchpoint_type === "agent_note").map((t) => ({ at: t.occurred_at, note: str(t.raw_payload_json?.note) }))
     const quotes = tps.filter((t) => t.touchpoint_type === "landing_quote_text")
     // Only quotes the customer shaped say anything about the party: a revisit
@@ -247,7 +257,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     let lastInBody = inbound.length ? inbound[inbound.length - 1].body : ""
     if (tw?.last.direction === "inbound" && tw.lastInAt && (!inbound.length || tw.lastInAt > inbound[inbound.length - 1].at)) lastInBody = tw.last.body
     const dbLastOut = outbound.length ? outbound[outbound.length - 1].at : null
-    const lastOutAt = later(dbLastOut, tw?.lastOutAt ?? null)
+    const lastOutAt = later(later(dbLastOut, tw?.lastOutAt ?? null), lastEmailOutAt)
     // A reaction or a "thanks" after a real message (or photos) is not the
     // thing to judge: "Loved …" 30 s after three patio photos put 909-268-7235
     // in H "最后一条是点赞" for two days (2026-10-05). When the newest inbound
@@ -265,7 +275,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const forms = tps.filter((t) => (CUSTOMER_FORM_TYPES as readonly string[]).includes(t.touchpoint_type) && firstOutAt && t.occurred_at > firstOutAt)
     const lastForm = forms.length ? forms[forms.length - 1] : null
     const lastFormAt = lastForm?.occurred_at ?? null
-    const lastCustomerAt = later(later(lastInAt, lastCallAt), lastFormAt)
+    const lastCustomerAt = later(later(later(lastInAt, lastCallAt), lastFormAt), lastEmailInAt)
 
     let run = outbound.filter((m) => !lastCustomerAt || m.at > lastCustomerAt).length
     // Compared straight, the carrier's stamp counted every desk / workbench text
@@ -313,6 +323,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const customerLast = Boolean(lastCustomerAt && (!lastOutAt || lastCustomerAt > lastOutAt))
     const lastIsCall = Boolean(lastCallAt && (!lastInAt || lastCallAt > lastInAt))
     const lastIsForm = Boolean(lastFormAt && lastFormAt === lastCustomerAt)
+    const lastIsEmail = Boolean(lastEmailInAt && lastEmailInAt === lastCustomerAt)
     const lastInIsTapback = !lastIsCall && isTapback(lastInBody)
     const lastInIsCourtesy = !lastIsCall && !lastInIsTapback && courtesyOnly(lastInBody)
 
@@ -337,6 +348,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     } else if (customerLast && lastIsForm) {
       bucket = "A"
       reason = `客人在网站回了：${FORM_LABELS[lastForm!.touchpoint_type] ?? lastForm!.touchpoint_type} ${formSummary(lastForm!.touchpoint_type, lastForm!.raw_payload_json)}`.slice(0, 160)
+    } else if (customerLast && lastIsEmail) {
+      bucket = "A"
+      reason = "客人发了邮件，欠回复（用邮件回）"
     } else if (customerLast && lastInIsTapback) {
       bucket = "H"
       reason = "最后一条是点赞，不用回"
@@ -363,6 +377,12 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "C"
       const sig = [...signals].reverse().find((s) => !lastManualOutAt || s.occurred_at > lastManualOutAt)
       reason = sig ? `${sig.touchpoint_type} ${sig.occurred_at.slice(0, 16)}` : `重算了报价 ${latestShaped!.occurred_at.slice(0, 16)}（${num(latestShaped!.raw_payload_json?.adults)} 人 $${num(((latestShaped!.raw_payload_json?.computed ?? {}) as Record<string, unknown>).total)}）`
+    } else if (!phone) {
+      // Email only, and we spoke last: the ladder below is texts. A follow-up
+      // email is a person's call, not a scan bucket.
+      bucket = "H"
+      reason = "只有邮箱，我们最后说话：等他回信（邮件跟进人工定）"
+      nextActionAt = null
     } else if (holdActive) {
       bucket = "H"
       reason = `挂起到 ${lead.hold_until!.slice(0, 10)}${callbackNote ? "（客人自设节奏）" : ""}`
