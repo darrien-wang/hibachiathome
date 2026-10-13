@@ -852,6 +852,17 @@ def cmd_order(a):
                 changes.append(f"mode: {data.get('mode')!r} -> 'detailed'")
                 data["mode"] = "detailed"
                 data["quickCountItems"] = [q for q in (data.get("quickCountItems") or []) if q.get("category") != "protein"]
+            # Before the rows, tables / utensils ride as one party-wide line;
+            # the rows carry them per guest, and the engine bills both. Stacy
+            # 10-13: tables_chairs=27 stayed next to 29 rows with tables - $270
+            # billed twice.
+            setup_lines = [e for e in (data.get("partyExtras") or []) if e.get("id") in SETUP_PRICES]
+            if setup_lines:
+                data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES]
+                changes.append("partyExtras: dropped " + ", ".join(f"{e.get('id')}={e.get('qty')}" for e in setup_lines)
+                               + " (the rows carry tables/utensils now)")
+            if any(x.get("id") == "deal_free_extras" for x in (data.get("promotions") or [])):
+                print("   ⚠ deal_free_extras is a stored amount - re-state it with --deal-free so it matches the rows")
             for x in (data.get("promotions") or []):
                 if re.search(r"party size", str(x.get("label") or ""), re.I):
                     print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
@@ -1181,10 +1192,19 @@ def cmd_order(a):
                 day = _dt.date.fromisoformat(date).strftime("%A")
             body = (f"Here's your invoice{' for ' + day if day else ''}: {short} - please look it over and reply "
                     f"\"confirm\" here if it's all right. A PDF copy is in your email too.")
-            payload = {"phone": phone, "body": body}
+            # The session id lets the just_answered brake tell this desk from
+            # another one. Without it Tonia 10-13 got the invoice email but not
+            # the text: our own "updated invoice coming" two minutes earlier
+            # counted as someone else's answer.
+            payload = {"phone": phone, "body": body, "session": desk_session()}
             if lead_id:
                 payload["leadId"] = lead_id
-            sent = site_post("/api/admin/sms-thread", payload)
+            try:
+                sent = site_post("/api/admin/sms-thread", payload)
+            except ApiError as e:
+                print(f"FAIL  emailed, but the text did not go: {e.status} {e.payload}")
+                print(f"      send it by hand: desk send {phone} --lead {lead_id} --body \"{body}\"")
+                sys.exit(2)
             print(f"OK    texted {phone}  {sent.get('sid', '')}\n      {body}")
         return
 
