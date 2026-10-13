@@ -10,6 +10,7 @@ import { classifySmsKeyword, OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { addressFromMessage, looksLikeStreetAddress } from "@/lib/address-detect"
 import { requestCallback, wantsCall } from "@/lib/callback-ring"
 import { platformOfText } from "@/lib/heard-from"
+import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 
 export const dynamic = "force-dynamic"
 
@@ -78,36 +79,27 @@ export async function POST(request: NextRequest) {
         .not("sms_blocked_reason", "like", "21610%")
     }
   } catch {}
+  // 员工（厨师、老板自己）发来的是工作往来，不建线索（lib/staff-phones.ts）。10-13
+  // 上午先试过"建了再标已排除"，收件箱照样把 Gary 的"好的"当成没回的客人报出来。
+  const fromStaff = isStaffNumber(await loadStaffDigits(supabase), from)
   try {
     // Zola / The Knot sometimes text the inquiry instead of emailing it
     // (Taegan, 10-02): that lead came from the platform, not "direct" (D-1010).
     const platform = platformOfText(body)
-    const upserted = await upsertLeadFromContact(supabase, {
-      name: from,
-      phone: from,
-      message: body,
-      leadSource: platform ?? "sms_inbound",
-      leadChannel: platform ? "platform" : "sms",
-      touchpointType: "sms_inbound",
-      touchpointSource: "twilio",
-      externalTouchpointId: messageSid,
-      rawPayload: params,
-    })
+    const upserted = fromStaff
+      ? null
+      : await upsertLeadFromContact(supabase, {
+          name: from,
+          phone: from,
+          message: body,
+          leadSource: platform ?? "sms_inbound",
+          leadChannel: platform ? "platform" : "sms",
+          touchpointType: "sms_inbound",
+          touchpointSource: "twilio",
+          externalTouchpointId: messageSid,
+          rawPayload: params,
+        })
     leadId = upserted?.leadId ?? null
-    // 员工回的短信不是线索（Gary 2026-10-13 回了句"好的"，被当成新线索挂在线索页）。
-    // 记录还是要留——对话得查得到——但直接标成"已排除"、写上是谁，不进待跟进、不进统计、
-    // 也不会被巡检当成没人回的客户去催。已经在谈/成单的同号线索不动。
-    if (leadId && supabase) {
-      const digits = from.replace(/\D/g, "").slice(-10)
-      if (digits.length === 10) {
-        const { data: staff } = await supabase.from("staff_members").select("display_name, full_name").eq("status", "active").ilike("phone", `%${digits}`).limit(1)
-        const who = staff?.[0]
-        if (who) {
-          const label = `员工 · ${String(who.display_name ?? who.full_name ?? "").trim() || from}`
-          await supabase.from("leads").update({ status: "disqualified", full_name: label, next_action_at: null }).eq("id", leadId).eq("status", "new")
-        }
-      }
-    }
     if (leadId && supabase) {
       const { data: lead } = await supabase.from("leads").select("full_name").eq("id", leadId).maybeSingle()
       const name = (lead?.full_name ?? "").trim()

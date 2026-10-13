@@ -5,6 +5,7 @@ import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
 import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
+import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
 // small. It started life inside /api/admin/mobile/inbox (the Android shell
@@ -126,6 +127,10 @@ export async function computeInbox(
   // 挂起中的客人不响手机：他说了他会回头找我们，这不是我们欠回复。
   // 同一份规则巡检也在用（lib/lead-hold.ts）。
   const quiet = await loadQuiet(supabase, now)
+  // A chef answering a prep sheet is not a customer waiting (Gary's "好的",
+  // 2026-10-13): staff numbers never show here, same as our 555 test numbers.
+  const staff = await loadStaffDigits(supabase)
+  const notCustomer = (e164: string | null) => isTestNumber(e164) || isStaffNumber(staff, e164)
 
   // ---- new leads nobody answered ------------------------------------------
   const { data: leads } = await supabase
@@ -145,7 +150,7 @@ export async function computeInbox(
   for (const l of leadRows) {
     if (answered.has(l.id)) continue
     const phone = toE164(l.phone)
-    if (isTestNumber(phone)) continue
+    if (notCustomer(phone)) continue
     if (quiet.quiet(l.phone, Date.parse(l.created_at))) continue
     newLeadsTotal += 1
     if (minutesSince(l.created_at, now) > MAX_EVENT_AGE_MIN) continue
@@ -189,7 +194,7 @@ export async function computeInbox(
     const atMs = Date.parse(judged.at)
     if (now - atMs > smsLookback) continue
     if (now - atMs < SMS_GRACE_MS && !opts.includeFresh) continue
-    if (isTestNumber(peer)) continue
+    if (notCustomer(peer)) continue
     const body = (judged.body ?? "").trim()
     // 一条规则管三件事：挂起中、老板标过「不用回」、这条本来就不是问题（点赞
     // 回执 / STOP / 光道谢）。见 lib/lead-hold.ts loadQuiet。
@@ -452,7 +457,7 @@ export async function computeInbox(
       // The form that created the lead is the lead (handled above); only a form after our first reply is a reply.
       if (!l.first_response_at || form.occurred_at <= l.first_response_at) continue
       const peer = toE164(l.phone)
-      if (peer && isTestNumber(peer)) continue
+      if (peer && notCustomer(peer)) continue
       // Twilio is the truth for texts: a text after the form answered it.
       const tw = peer ? byPeer.get(peer) : undefined
       if (tw?.lastOutAt && tw.lastOutAt >= form.occurred_at) continue
@@ -545,7 +550,7 @@ export async function computeInbox(
     if (!v.lastOutAt || v.deliveredOutAt || !v.lastOutStatus) continue
     if (!["sent", "undelivered", "failed"].includes(v.lastOutStatus)) continue
     const age = now - Date.parse(v.lastOutAt)
-    if (age < UNDELIVERED_AFTER_MS || age > SMS_CUSTOMER_LOOKBACK_MS || isTestNumber(peer)) continue
+    if (age < UNDELIVERED_AFTER_MS || age > SMS_CUSTOMER_LOOKBACK_MS || notCustomer(peer)) continue
     notDelivered.push({ peer, at: v.lastOutAt, status: v.lastOutStatus })
   }
   let undelivered = 0
@@ -597,6 +602,7 @@ export async function computeInbox(
   const shownPhones = new Set(events.map((e) => e.phone).filter(Boolean))
   for (const t of await findOpenTurns(supabase, now, byPeer, opts.noCache ? 0 : undefined).catch(() => [])) {
     const phone = toE164(t.lead.phone)
+    if (phone && isStaffNumber(staff, phone)) continue
     if (shownLeads.has(t.lead.id) || (phone && shownPhones.has(phone))) continue
     silenced += 1
     const waited = minutesSince(t.first.at, now)
