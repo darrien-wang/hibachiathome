@@ -815,7 +815,7 @@ python scripts/desk/desk.py heard <lead> "原话" --as friend   # 归错了就�
 | **下雨怎么办** | 10×10 帐篷客户自备；≥48h 改期免费 |
 | **坚果/芝麻过敏** | 第 6 节诚实口径，不承诺 |
 | **能自带牛排吗** | 不行，一句话带过 |
-| **有没有扔虾 / shrimp toss** | **有人点虾才扔虾；没人点虾，师傅用西葫芦（zucchini）玩同一个接食游戏**（老板 2026-10-11 定）。客人问到就一句话说清条件："Yes - the chef tosses shrimp if shrimp's on your menu, or zucchini if not. Same catch game either way." 菜单定成全鸡肉牛排的单，派对前一天的提醒里不用再提。**起因**：Heather Yundt（Long Beach 10/11，16 岁生日、一群棒球队员）09-30 订前就问"能做 shrimp toss 吗"，我们答"Yes, the shrimp toss is part of the show"，没说要点虾；她后来全员鸡肉牛排，派对上扔的是西葫芦，客人说"没有付了钱的扔虾、孩子们很失望"，加上"比预期短很多"，最后让了 $50 心意。 |
+| **有没有扔虾 / shrimp toss** | **接食游戏一般扔西葫芦（zucchini）**（老板 2026-10-13："我们一般都是抛zucini"；10-11 曾说没点虾才用西葫芦，以 10-13 为准）。客人问"shrimp toss"就一句话说清："Yes - the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu." 别答成"Yes, the shrimp toss is part of the show"。**起因**：Heather Yundt（Long Beach 10/11，16 岁生日、一群棒球队员）09-30 订前就问"能做 shrimp toss 吗"，我们答"Yes, the shrimp toss is part of the show"，没说要点虾；她后来全员鸡肉牛排，派对上扔的是西葫芦，客人说"没有付了钱的扔虾、孩子们很失望"，加上"比预期短很多"，最后让了 $50 心意。 |
 | **厨师不来怎么办** | 到场承诺（实名确认、自己团队、优先补档） |
 | **押金能退吗 / 取消怎么算** | 没收押金；≥48h 免费，48h 内 $99 |
 | **只想要报价别打电话** | 尊重，只邮件；工作台 note 记 "email only" |
