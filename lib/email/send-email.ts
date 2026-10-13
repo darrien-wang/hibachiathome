@@ -13,6 +13,8 @@
  * Keep in sync with v0-real-hibachi-invoice-generator/lib/email/send-email.ts.
  */
 
+import type { EmailAttachment } from "@/lib/email/attachments"
+
 export type EmailProvider = "resend" | "cloudflare"
 
 export type OutboundEmail = {
@@ -24,6 +26,8 @@ export type OutboundEmail = {
   subject: string
   text?: string
   html?: string
+  /** base64 files (lib/email/attachments.ts). Resend only - see sendEmail. */
+  attachments?: EmailAttachment[]
 }
 
 export type EmailSendResult =
@@ -66,6 +70,7 @@ async function sendViaResend(apiKey: string, email: OutboundEmail): Promise<stri
       subject: email.subject,
       ...(email.text ? { text: email.text } : {}),
       ...(email.html ? { html: email.html } : {}),
+      ...(email.attachments?.length ? { attachments: email.attachments.map((a) => ({ filename: a.filename, content: a.content })) } : {}),
     }),
     signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
   })
@@ -143,6 +148,11 @@ export async function sendEmail(email: OutboundEmail): Promise<EmailSendResult> 
 
   if (!cloudflareReady) {
     return { ok: false, configured: true, error: resendError ?? "email_send_failed" }
+  }
+  // The Cloudflare path sends text and html only. A W-9 email that arrives
+  // without the W-9 is worse than one that fails loudly and gets resent.
+  if (email.attachments?.length) {
+    return { ok: false, configured: true, error: `${resendError ?? "resend_not_configured"} (attachments are Resend-only, not failed over)` }
   }
 
   try {

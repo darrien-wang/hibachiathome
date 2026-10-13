@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { sendEmail } from "@/lib/email/send-email"
+import { parseAttachments } from "@/lib/email/attachments"
 import { createServerSupabaseClient } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
-  let body: { to?: string; cc?: string | string[]; subject?: string; text?: string; leadId?: string }
+  let body: { to?: string; cc?: string | string[]; subject?: string; text?: string; leadId?: string; attachments?: unknown }
   try {
     body = await request.json()
   } catch {
@@ -49,6 +50,9 @@ export async function POST(request: NextRequest) {
   if (cc.length > MAX_CC) {
     return NextResponse.json({ error: `at most ${MAX_CC} cc addresses` }, { status: 400 })
   }
+  const files = parseAttachments(body.attachments)
+  if (!files.ok) return NextResponse.json({ error: files.error }, { status: 400 })
+  const attachmentNames = files.attachments.map((a) => a.filename)
   try {
     // Customer mail must come from, and reply into, the mailbox staff actually
     // watch. EMAIL_FROM is the ops notification identity (notify@) and is
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
       replyTo: inbox,
       subject,
       text,
+      ...(files.attachments.length ? { attachments: files.attachments } : {}),
     })
     if (!result.ok) {
       return NextResponse.json(
@@ -96,7 +101,7 @@ export async function POST(request: NextRequest) {
           lead_id: leadId,
           touchpoint_type: "agent_note",
           touchpoint_source: "admin_dashboard",
-          raw_payload_json: { note: `✉️ 邮件已发送：${subject}` },
+          raw_payload_json: { note: `✉️ 邮件已发送：${subject}${attachmentNames.length ? `（附件：${attachmentNames.join("、")}）` : ""}` },
         })
         // The email itself, so an inbound email (email-inbound route) newer
         // than this shows as waiting and the desk card lists both directions.
@@ -104,7 +109,13 @@ export async function POST(request: NextRequest) {
           lead_id: leadId,
           touchpoint_type: "email_outbound",
           touchpoint_source: "admin_dashboard",
-          raw_payload_json: { to, subject, snippet: text.replace(/\s+/g, " ").trim().slice(0, 200), text: text.slice(0, 4000) },
+          raw_payload_json: {
+            to,
+            subject,
+            snippet: text.replace(/\s+/g, " ").trim().slice(0, 200),
+            text: text.slice(0, 4000),
+            ...(attachmentNames.length ? { attachments: attachmentNames } : {}),
+          },
         })
         await supabase
           .from("leads")
@@ -116,7 +127,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, id: result.providerMessageId ?? null, provider: result.provider, cc })
+    return NextResponse.json({ ok: true, id: result.providerMessageId ?? null, provider: result.provider, cc, attachments: attachmentNames })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }

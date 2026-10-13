@@ -416,9 +416,20 @@ def cmd_email(a):
         payload["leadId"] = a.lead
     if a.cc:
         payload["cc"] = a.cc
+    if a.attach:
+        # A company booking wants our W-9 and insurance certificate (Taegan
+        # 2026-10-13). The route checks names, types and size (lib/email/attachments.ts).
+        import base64
+        files = []
+        for path in a.attach:
+            f = pathlib.Path(path)
+            if not f.is_file():
+                raise SystemExit(f"--attach: no such file {path}")
+            files.append({"filename": f.name, "content": base64.b64encode(f.read_bytes()).decode("ascii")})
+        payload["attachments"] = files
     res = site_post("/api/admin/send-followup", payload)
     print(f"OK    emailed {a.to}  {dump(res)[:200]}")
-    print("      " + a.subject)
+    print("      " + a.subject + (f"  + {', '.join(res.get('attachments') or [])}" if a.attach else ""))
 
 
 def _patch(payload: dict):
@@ -1271,7 +1282,8 @@ def main(argv=None):
     p.add_argument("--swap", action="store_true", help="flip who is 客/我 if the channels came the other way round")
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
-    p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*"); p.set_defaults(fn=cmd_email)
+    p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*")
+    p.add_argument("--attach", nargs="+", metavar="FILE", help="pdf/png/jpg files to attach (up to 3, about 3 MB in all)"); p.set_defaults(fn=cmd_email)
     # Sales daily / weekly report, numbers half (docs/销售日志/README.md): read-only.
     def _report(a):
         import datetime as _dt
