@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { notAQuestion } from "@/lib/courtesy-text"
 import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
 import { toE164, type LastByPeer } from "@/lib/sms-thread"
+import { payloadColumns, payloadFrom } from "@/lib/payload-select"
 
 // 收件箱防沉默（老板 2026-10-07："先做 1、2、4"）.
 //
@@ -114,6 +115,8 @@ const isTestNumber = (e164: string | null) => Boolean(e164 && /^\+1\d{3}555\d{4}
 let cache: { at: number; turns: OpenTurn[] } | null = null
 
 type Row = { lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+/** Every payload key toItem reads. */
+const AUDIT_KEYS = ["Body", "body", "NumMedia", "subject", "snippet", "text"] as const
 
 function toItem(r: Row): AuditItem {
   const p = r.raw_payload_json ?? {}
@@ -140,15 +143,38 @@ export async function findOpenTurns(
   maxAgeMs = 5 * 60_000,
 ): Promise<OpenTurn[]> {
   if (cache && now - cache.at < maxAgeMs) return cache.turns
-  const { data } = await supabase
-    .from("lead_touchpoints")
-    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
-    .in("touchpoint_type", [...IN_TYPES, ...OUT_TYPES])
-    .gte("occurred_at", new Date(now - AUDIT_LOOKBACK_MS).toISOString())
-    .order("occurred_at", { ascending: false })
-    .limit(5000)
+  // What the customer said needs only the keys toItem reads; what we sent needs
+  // only its time. One query with the whole payload of every row was a big part
+  // of the egress that got the project stopped (2026-10-13). Split, each side
+  // also gets its own 1,000-row page (PostgREST caps a response there).
+  const since = new Date(now - AUDIT_LOOKBACK_MS).toISOString()
+  const [{ data: said }, { data: sent }] = await Promise.all([
+    supabase
+      .from("lead_touchpoints")
+      .select(`lead_id, touchpoint_type, occurred_at, ${payloadColumns(AUDIT_KEYS)}`)
+      .in("touchpoint_type", IN_TYPES)
+      .gte("occurred_at", since)
+      .order("occurred_at", { ascending: false })
+      .limit(1000),
+    supabase
+      .from("lead_touchpoints")
+      .select("lead_id, touchpoint_type, occurred_at")
+      .in("touchpoint_type", OUT_TYPES)
+      .gte("occurred_at", since)
+      .order("occurred_at", { ascending: false })
+      .limit(1000),
+  ])
+  const rows: Row[] = [
+    ...((said ?? []) as unknown as Array<Record<string, unknown> & Omit<Row, "raw_payload_json">>).map((r) => ({
+      lead_id: r.lead_id,
+      touchpoint_type: r.touchpoint_type,
+      occurred_at: r.occurred_at,
+      raw_payload_json: payloadFrom(r, AUDIT_KEYS),
+    })),
+    ...((sent ?? []) as Array<Omit<Row, "raw_payload_json">>).map((r) => ({ ...r, raw_payload_json: null })),
+  ]
   const byLead = new Map<string, { items: AuditItem[]; lastOutAt: string | null }>()
-  for (const r of (data ?? []) as Row[]) {
+  for (const r of rows) {
     if (!r.lead_id) continue
     const g = byLead.get(r.lead_id) ?? { items: [], lastOutAt: null }
     if (OUT_TYPES.includes(r.touchpoint_type)) {

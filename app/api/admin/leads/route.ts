@@ -5,6 +5,7 @@ import { upsertLeadFromContact } from "@/lib/leads"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
 import { describeChefPayRule, normalizeChefPayRule } from "@/lib/chef-pay"
+import { payloadColumns, payloadFrom } from "@/lib/payload-select"
 
 export const dynamic = "force-dynamic"
 
@@ -111,6 +112,7 @@ export async function GET(request: NextRequest) {
   const INBOUND_TYPES = ["sms_inbound", "call_inbound", "landing_contact", "contact_form", "contact_intent", "quote_book_online", "manual_entry", "planner_unlock"]
   const AUTO_TYPES = ["landing_quote_text"]
   const OUTBOUND_TYPES = ["sms_outbound", FIRST_RESPONSE_TYPE, "sms_failed"]
+  const HINT_KEYS = ["eventDate", "event_date", "partyDate", "date"] as const
   const lastInbound: Record<string, string> = {}
   const lastOutbound: Record<string, string> = {}
   const lastPersonal: Record<string, string> = {}
@@ -119,17 +121,19 @@ export async function GET(request: NextRequest) {
   if (ids.length > 0) {
     const { data: recent } = await supabase
       .from("lead_touchpoints")
-      .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+      // Only the date keys - the whole payload, 3,000 rows a load, was most of
+      // the egress that got the project stopped on 2026-10-13 (lib/payload-select.ts).
+      .select(`lead_id, touchpoint_type, occurred_at, ${payloadColumns(HINT_KEYS)}`)
       .in("lead_id", ids)
       .in("touchpoint_type", [...INBOUND_TYPES, ...AUTO_TYPES, ...OUTBOUND_TYPES])
       .order("occurred_at", { ascending: false })
       .limit(3000)
-    for (const ev of recent ?? []) {
+    for (const ev of (recent ?? []) as unknown as Array<Record<string, unknown> & { lead_id: string; touchpoint_type: string; occurred_at: string }>) {
       const t = String(ev.touchpoint_type)
       if (INBOUND_TYPES.includes(t)) {
         if (!lastInbound[ev.lead_id]) lastInbound[ev.lead_id] = ev.occurred_at
         if (!eventHint[ev.lead_id]) {
-          const p = (ev.raw_payload_json ?? {}) as Record<string, unknown>
+          const p = payloadFrom(ev, HINT_KEYS)
           const d = p.eventDate ?? p.event_date ?? p.partyDate ?? p.date
           if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) eventHint[ev.lead_id] = d.slice(0, 10)
         }
@@ -137,7 +141,7 @@ export async function GET(request: NextRequest) {
         if (!lastAuto[ev.lead_id]) lastAuto[ev.lead_id] = ev.occurred_at
         if (!lastOutbound[ev.lead_id]) lastOutbound[ev.lead_id] = ev.occurred_at
         if (!eventHint[ev.lead_id]) {
-          const p = (ev.raw_payload_json ?? {}) as Record<string, unknown>
+          const p = payloadFrom(ev, HINT_KEYS)
           const d = p.eventDate ?? p.event_date
           if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) eventHint[ev.lead_id] = d.slice(0, 10)
         }

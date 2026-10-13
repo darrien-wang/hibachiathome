@@ -3,6 +3,7 @@ import { loadQuiet } from "@/lib/lead-hold"
 import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
+import { payloadColumns, payloadFrom } from "@/lib/payload-select"
 import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
 import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
@@ -99,6 +100,7 @@ export type InboxCounts = {
 }
 
 const URGENT_MIN = 15
+const MAIL_KEYS = ["subject", "snippet"] as const
 
 // The 555 exchange is never assigned to real subscribers; our own tests use it.
 const isTestNumber = (e164: string | null) => !e164 || /^\+1\d{3}555\d{4}$/.test(e164)
@@ -368,16 +370,17 @@ export async function computeInbox(
   const emailSince = new Date(now - EMAIL_LOOKBACK_MS).toISOString()
   const { data: mailRows } = await supabase
     .from("lead_touchpoints")
-    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+    .select(`lead_id, touchpoint_type, occurred_at, ${payloadColumns(MAIL_KEYS)}`)
     .in("touchpoint_type", ["email_inbound", "email_outbound", "sms_outbound"])
     .gte("occurred_at", emailSince)
     .order("occurred_at", { ascending: false })
     .limit(400)
   const mailByLead = new Map<string, { lastIn: { at: string; subject: string; snippet: string } | null; lastOutAt: string | null }>()
-  for (const r of (mailRows ?? []) as Array<{ lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }>) {
+  for (const r of (mailRows ?? []) as unknown as Array<Record<string, unknown> & { lead_id: string; touchpoint_type: string; occurred_at: string }>) {
     const m = mailByLead.get(r.lead_id) ?? { lastIn: null, lastOutAt: null }
     if (r.touchpoint_type === "email_inbound") {
-      if (!m.lastIn) m.lastIn = { at: r.occurred_at, subject: String(r.raw_payload_json?.subject ?? ""), snippet: String(r.raw_payload_json?.snippet ?? "") }
+      const p = payloadFrom(r, MAIL_KEYS)
+      if (!m.lastIn) m.lastIn = { at: r.occurred_at, subject: String(p.subject ?? ""), snippet: String(p.snippet ?? "") }
     } else if (!m.lastOutAt) m.lastOutAt = r.occurred_at
     mailByLead.set(r.lead_id, m)
   }
@@ -424,16 +427,32 @@ export async function computeInbox(
   // our first response (the first form is the lead itself, listed above) =
   // waiting, under the same hold / "no reply needed" rules.
   const formSince = new Date(now - FORM_LOOKBACK_MS).toISOString()
-  const { data: formRows } = await supabase
-    .from("lead_touchpoints")
-    .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
-    .in("touchpoint_type", [...CUSTOMER_FORM_TYPES, "sms_outbound", "email_outbound"])
-    .gte("occurred_at", formSince)
-    .order("occurred_at", { ascending: false })
-    .limit(800)
+  // Forms carry their payload (a few dozen a week); what we sent needs only its
+  // time. One query for both pulled every outbound text's whole Twilio payload
+  // each poll - egress that got the project stopped on 2026-10-13.
   type FormRow = { lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+  const [{ data: formOnly }, { data: sentOnly }] = await Promise.all([
+    supabase
+      .from("lead_touchpoints")
+      .select("lead_id, touchpoint_type, occurred_at, raw_payload_json")
+      .in("touchpoint_type", [...CUSTOMER_FORM_TYPES])
+      .gte("occurred_at", formSince)
+      .order("occurred_at", { ascending: false })
+      .limit(400),
+    supabase
+      .from("lead_touchpoints")
+      .select("lead_id, touchpoint_type, occurred_at")
+      .in("touchpoint_type", ["sms_outbound", "email_outbound"])
+      .gte("occurred_at", formSince)
+      .order("occurred_at", { ascending: false })
+      .limit(1000),
+  ])
+  const formRows: FormRow[] = [
+    ...((formOnly ?? []) as FormRow[]),
+    ...((sentOnly ?? []) as Array<Omit<FormRow, "raw_payload_json">>).map((r) => ({ ...r, raw_payload_json: null })),
+  ].sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at))
   const formByLead = new Map<string, { lastForm: FormRow | null; lastOutAt: string | null }>()
-  for (const r of (formRows ?? []) as FormRow[]) {
+  for (const r of formRows) {
     const m = formByLead.get(r.lead_id) ?? { lastForm: null, lastOutAt: null }
     if ((CUSTOMER_FORM_TYPES as readonly string[]).includes(r.touchpoint_type)) {
       if (!m.lastForm) m.lastForm = r
