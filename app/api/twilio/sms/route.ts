@@ -94,6 +94,20 @@ export async function POST(request: NextRequest) {
       rawPayload: params,
     })
     leadId = upserted?.leadId ?? null
+    // 员工回的短信不是线索（Gary 2026-10-13 回了句"好的"，被当成新线索挂在线索页）。
+    // 记录还是要留——对话得查得到——但直接标成"已排除"、写上是谁，不进待跟进、不进统计、
+    // 也不会被巡检当成没人回的客户去催。已经在谈/成单的同号线索不动。
+    if (leadId && supabase) {
+      const digits = from.replace(/\D/g, "").slice(-10)
+      if (digits.length === 10) {
+        const { data: staff } = await supabase.from("staff_members").select("display_name, full_name").eq("status", "active").ilike("phone", `%${digits}`).limit(1)
+        const who = staff?.[0]
+        if (who) {
+          const label = `员工 · ${String(who.display_name ?? who.full_name ?? "").trim() || from}`
+          await supabase.from("leads").update({ status: "disqualified", full_name: label, next_action_at: null }).eq("id", leadId).eq("status", "new")
+        }
+      }
+    }
     if (leadId && supabase) {
       const { data: lead } = await supabase.from("leads").select("full_name").eq("id", leadId).maybeSingle()
       const name = (lead?.full_name ?? "").trim()
