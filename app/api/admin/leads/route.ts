@@ -29,12 +29,13 @@ async function logEvent(
   actor: Actor,
   payload: Record<string, unknown> = {}
 ) {
-  await supabase.from("lead_touchpoints").insert({
+  const { error } = await supabase.from("lead_touchpoints").insert({
     lead_id: leadId,
     touchpoint_type: type,
     touchpoint_source: "admin_dashboard",
     raw_payload_json: { ...payload, actor: actor.alias },
   })
+  return error
 }
 
 export async function GET(request: NextRequest) {
@@ -684,7 +685,14 @@ export async function PATCH(request: NextRequest) {
     if (!note) {
       return NextResponse.json({ error: "note required" }, { status: 400 })
     }
-    await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: note.slice(0, 2000) })
+    // A wrong id (an order id pasted where the lead id goes) came back ok while
+    // the insert failed on the foreign key, so the note just vanished (twice,
+    // last on 2026-10-13). Say so instead.
+    const error = await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: note.slice(0, 2000) })
+    if (error) {
+      const missing = error.code === "23503"
+      return NextResponse.json({ error: missing ? "lead not found" : error.message }, { status: missing ? 404 : 500 })
+    }
     return NextResponse.json({ ok: true })
   }
 
