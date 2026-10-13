@@ -77,7 +77,7 @@ python scripts/desk/desk.py scan --no-write   # 只看不写
 - 每条发出去的跟进用桶做前缀记备注：`[SOP:f_one]`、`[SOP:f_deadline]`、`[SOP:deposit_ask]`、`[SOP:tables]`……周报按前缀算每个桶的回复率
 - 客人说的原因记 `[why]`，场合记 `[occasion]`，自报时间记 `[callback]`
 - D 发完立刻 `desk hold <id> 14`（那是最后一条）；H 里 `needs_hold` 的也挂
-- `has_paid_order` 的把状态改 won；`travel_underquoted` 的**不对客更正**，备注里记"到时候认不认老板定"
+- `has_paid_order` 的把状态改 won；`travel_underquoted` 的**不对客更正**，但**发票按实际里程收路费**（老板 2026-10-13 两次都定"按规矩收"：Karis 锁单后换到 Fallbrook，"按照新地址"；Aryan 网站报价没算 Joshua Tree 路费，"加上路费，按规矩收"）。订单上用 `desk order set <单号> --travel-miles <英里>` 改，备注里记一笔
 
 ## 7. 报告格式（固定）
 
