@@ -411,6 +411,18 @@ def cmd_email(a):
     text = read_text_arg(a.body, a.body_file)
     if not text.strip():
         raise SystemExit("empty email - pass the text or --body-file")
+    if a.lead and not a.any_address:
+        # Never an address typed from memory: 10-14 a guessed jackson.rogow@gmail.com got
+        # Jackson's booking link, and his address is me@jacksonrogow.com. Allowed: the
+        # lead's own email and the addresses the customer has written to us from.
+        card = (site_get("/api/admin/desk", {"lead": a.lead}).get("cards") or [{}])[0]
+        found = re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", " ".join(
+            [str((card.get("lead") or {}).get("email") or "")]
+            + [str(e.get("from") or "") for e in (card.get("emails") or []) if e.get("direction") == "inbound"]))
+        known = {x.lower() for x in found}
+        if a.to.strip().lower() not in known:
+            raise SystemExit(f"not sent: {a.to} is not this customer's address (on file: {', '.join(sorted(known)) or 'none'}). "
+                             "Use one of those, or --any-address if the customer gave you a new one.")
     payload = {"to": a.to, "subject": a.subject, "text": text}
     if a.lead:
         payload["leadId"] = a.lead
@@ -1283,7 +1295,8 @@ def main(argv=None):
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*")
-    p.add_argument("--attach", nargs="+", metavar="FILE", help="pdf/png/jpg files to attach (up to 3, about 3 MB in all)"); p.set_defaults(fn=cmd_email)
+    p.add_argument("--attach", nargs="+", metavar="FILE", help="pdf/png/jpg files to attach (up to 3, about 3 MB in all)")
+    p.add_argument("--any-address", action="store_true", help="send to an address the lead does not have on file (a new one the customer gave)"); p.set_defaults(fn=cmd_email)
     # Sales daily / weekly report, numbers half (docs/销售日志/README.md): read-only.
     def _report(a):
         import datetime as _dt
