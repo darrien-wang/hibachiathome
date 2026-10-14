@@ -13,6 +13,9 @@ import { createHmac, timingSafeEqual } from "node:crypto"
 /** 好评台账每 15 分钟从 Google 商家资料自动同步 */
 export const CRON_PURPOSE_REVIEWS_SYNC = "reviews-sync"
 
+/** 每 15 分钟把 Meta 来的客人"回话 / 锁单"回传给 Meta（D-1014-01） */
+export const CRON_PURPOSE_META_CAPI = "meta-capi"
+
 export function cronKeyFor(purpose: string, base = process.env.LEAD_WATCH_CRON_KEY): string | null {
   const k = (base ?? "").trim()
   return k ? createHmac("sha256", k).update(purpose).digest("hex") : null

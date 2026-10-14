@@ -320,6 +320,27 @@ export function captureAttributionOnLanding(search: string): void {
     incoming.utm_medium = "cpc"
   }
 
+  // A Meta ad click: keep this browser's user agent / IP / _fbp next to the
+  // fbclid, so the server can later tell Meta "this click replied / booked"
+  // as a website event (D-1014-01, app/api/integrations/meta-capi). The pixel
+  // sets _fbp after it loads, hence the wait.
+  const fbclid = query.get("fbclid")
+  if (fbclid) {
+    window.setTimeout(() => {
+      try {
+        const fbp = document.cookie.match(/(?:^|;\s*)_fbp=([^;]+)/)?.[1] ?? ""
+        void fetch("/api/integrations/meta-capi?action=context", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ fbclid, fbp: decodeURIComponent(fbp) }),
+          keepalive: true,
+        }).catch(() => {})
+      } catch {
+        // Never let this break the landing.
+      }
+    }, 3000)
+  }
+
   // No tags at all: fall back to where the visitor came from, but only for a
   // first touch (nothing stored yet), so an organic return never overwrites an
   // ad click. Until 2026-10-10 these visitors had no source and every one of
