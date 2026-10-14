@@ -32,6 +32,8 @@ type Stop = {
   approx?: boolean
   /** 这一单现在派给了谁（order_staff_assignments 里没取消的） */
   chefIds: string[]
+  /** 要布置桌椅 */
+  tables?: boolean
 }
 type Chef = { id: string; name: string; active: boolean }
 type Grade = "solid" | "ontime" | "late_ok" | "late_limit"
@@ -39,6 +41,8 @@ type Link = {
   fromId: string
   toId: string
   minutes: number
+  /** 因为桌椅多留的分钟数，已经算进下面两个数里 */
+  extra?: number
   miles: number | null
   /** 到场减开场：负数早到，正数迟到。顺利（服务按最短）的情况。 */
   bestLate: number
@@ -277,7 +281,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
           <TileMap
             pins={placed.map((st, i) => ({ id: st.id, lat: st.lat, lng: st.lng, label: String(i + 1), title: `${st.time} ${st.name}`, active: open === st.id }))}
             home={d.home}
-            lines={(plan?.links ?? []).map((l) => ({ fromId: l.fromId, toId: l.toId, dashed: l.worstLate > 0, text: `路上 ${l.minutes} 分 · 拖满${when(l.worstLate)}` }))}
+            lines={(plan?.links ?? []).map((l) => ({ fromId: l.fromId, toId: l.toId, dashed: l.worstLate > 0, text: `路上 ${l.minutes} 分${l.extra ? ` + 桌椅 ${l.extra} 分` : ""} · 拖满${when(l.worstLate)}` }))}
             onPick={(id) => setOpen(open === id ? null : id)}
           />
         ) : null}
@@ -342,7 +346,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                         <div key={id}>
                           {link ? (
                             <div style={{ fontSize: 12.5, color: risky ? "var(--color-accent-700)" : "var(--color-neutral-600)", fontWeight: risky ? 700 : 400, padding: "1px 0 3px 10px", borderLeft: `2px ${risky ? "dashed" : "solid"} var(--color-accent)`, marginLeft: 4, lineHeight: 1.6 }}>
-                              路上 {link.minutes} 分{link.miles !== null ? `（${link.miles} mi）` : ""} · <Tag cls={risky ? "tag-accent" : "tag-faint"}>{GRADE_LABEL[link.grade]}</Tag>
+                              路上 {link.minutes} 分{link.miles !== null ? `（${link.miles} mi）` : ""}{link.extra ? <strong style={{ color: "var(--color-accent-700)" }}> + 桌椅多留 {link.extra} 分</strong> : null} · <Tag cls={risky ? "tag-accent" : "tag-faint"}>{GRADE_LABEL[link.grade]}</Tag>
                               <br />
                               顺利的话{when(link.bestLate)}，拖满的话{when(link.worstLate)}
                               {link.grade === "late_limit" ? "——到这个数按惯例要给客人补偿" : ""}
@@ -358,6 +362,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           <button type="button" className="btn btn-ghost" style={{ padding: 0, minHeight: 0, fontWeight: 700, fontSize: 14 }} onClick={() => (s.lat !== null ? setOpen(open === id ? null : id) : onOpenOrder(id))}>
                             {s.time} {s.name}
                           </button>
+                          {s.tables ? <Tag cls="tag-accent">桌椅</Tag> : null}
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
                           {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
                           {cc.mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length ? `已派 ${namesOf(s.chefIds)}` : "还没派"}</span> : null}
@@ -460,7 +465,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
             </div>
 
             <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 12, lineHeight: 1.7 }}>
-              算法：第一台准时开 → 开场到装车出发 {d.params.busyMin}–{d.params.busyMax} 分 → 路上 → 下一场提前 {d.params.arriveEarly} 分到。迟到 {d.params.lateOk} 分内算还能接受，{d.params.lateLimit} 分是极限。（设置 → 派工 里能改）
+              算法：第一台准时开 → 开场到装车出发 {d.params.busyMin}–{d.params.busyMax} 分 → 路上 → 下一场提前 {d.params.arriveEarly} 分到；两台里有一台要布置桌椅的，中间再多留 30 分。迟到 {d.params.lateOk} 分内算还能接受，{d.params.lateLimit} 分是极限。（设置 → 派工 里能改）
               <br />
               车程来源：{SOURCE_LABEL[d.source]} · 底图 © OpenStreetMap contributors
             </div>

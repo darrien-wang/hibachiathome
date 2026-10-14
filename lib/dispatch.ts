@@ -19,6 +19,15 @@
 // 接不接得上（那样会高估），要沿着整条链把延误带下去。一天最多十来场，直接穷举
 // 所有排法，取师傅最少的；一样少的里取最不容易迟到的。
 
+/**
+ * 两台连着跑，只要其中一台要布置桌椅，中间就得多留这么久（老板 2026-10-13）：
+ * 前一台有桌椅，收桌椅装车要时间；后一台有桌椅，到了得先摆好才能开。
+ * 做法是把它当成"路上多出来的时间"加进去，所以到场早晚、迟到档位、排班都已经含了它。
+ */
+export const TABLES_EXTRA_MINUTES = 30
+/** 第 from 场接第 to 场，额外要留的分钟数（没有就是 0）。 */
+export type LinkExtra = (from: number, to: number) => number
+
 export type DispatchParams = {
   /** 开场到装车出发，顺利的话（分钟） */
   busyMinMinutes: number
@@ -35,6 +44,8 @@ export type ChainLink = {
   from: number
   to: number
   driveMinutes: number
+  /** 这段因为桌椅多留的分钟数（已经算进 bestLate / worstLate 里）。 */
+  extraMinutes: number
   /** 到场时刻减开场时刻。负数 = 早到，正数 = 迟到。服务按最短算。 */
   bestLate: number
   /** 同上，服务按拖满算——排班看的是这个数。 */
@@ -65,7 +76,7 @@ type Chain = { items: number[]; links: ChainLink[]; delayBest: number; delayWors
  * @param tolerance 拖满的情况下，最多允许迟到几分钟（0 = 最差踩点到）
  * @param lateOk    迟到多少分钟以内算"还行"，只用来给衔接定档
  */
-export function planDay(starts: number[], drive: Array<Array<number | null>>, p: DispatchParams, tolerance: number, lateOk: number): DayPlan {
+export function planDay(starts: number[], drive: Array<Array<number | null>>, p: DispatchParams, tolerance: number, lateOk: number, extra?: LinkExtra): DayPlan {
   const n = starts.length
   const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => starts[a] - starts[b] || a - b)
 
@@ -97,13 +108,14 @@ export function planDay(starts: number[], drive: Array<Array<number | null>>, p:
       const d = drive[i]?.[j]
       if (d === null || d === undefined) continue
       // 上一场要是晚开了，这一场出发也跟着晚——延误顺着链往下带。
-      const worstLate = starts[i] + c.delayWorst + p.busyMaxMinutes + d - starts[j]
-      const bestLate = starts[i] + c.delayBest + p.busyMinMinutes + d - starts[j]
+      const x = extra?.(i, j) ?? 0
+      const worstLate = starts[i] + c.delayWorst + p.busyMaxMinutes + d + x - starts[j]
+      const bestLate = starts[i] + c.delayBest + p.busyMinMinutes + d + x - starts[j]
       if (worstLate > tolerance) continue
 
       const saved = { delayBest: c.delayBest, delayWorst: c.delayWorst }
       c.items.push(j)
-      c.links.push({ from: i, to: j, driveMinutes: d, bestLate, worstLate, grade: gradeOf(worstLate, p, lateOk) })
+      c.links.push({ from: i, to: j, driveMinutes: d, extraMinutes: x, bestLate, worstLate, grade: gradeOf(worstLate, p, lateOk) })
       // 到了还得摆台：比"提前 10 分钟"晚到多少，这一场就晚开多少。
       c.delayWorst = Math.max(0, worstLate + p.arriveEarlyMinutes)
       c.delayBest = Math.max(0, bestLate + p.arriveEarlyMinutes)
@@ -132,7 +144,7 @@ export function planDay(starts: number[], drive: Array<Array<number | null>>, p:
 }
 
 /** 一个师傅按顺序跑这几场：每段衔接顺利 / 拖满各到得多早多晚。和 planDay 里的算法一模一样。 */
-export function chainLinks(items: number[], starts: number[], drive: Array<Array<number | null>>, p: DispatchParams, lateOk: number): ChainLink[] {
+export function chainLinks(items: number[], starts: number[], drive: Array<Array<number | null>>, p: DispatchParams, lateOk: number, extra?: LinkExtra): ChainLink[] {
   const links: ChainLink[] = []
   let delayBest = 0
   let delayWorst = 0
@@ -140,9 +152,10 @@ export function chainLinks(items: number[], starts: number[], drive: Array<Array
     const i = items[k - 1]
     const j = items[k]
     const d = drive[i]?.[j] ?? 0
-    const worstLate = starts[i] + delayWorst + p.busyMaxMinutes + d - starts[j]
-    const bestLate = starts[i] + delayBest + p.busyMinMinutes + d - starts[j]
-    links.push({ from: i, to: j, driveMinutes: d, bestLate, worstLate, grade: gradeOf(worstLate, p, lateOk) })
+    const x = extra?.(i, j) ?? 0
+    const worstLate = starts[i] + delayWorst + p.busyMaxMinutes + d + x - starts[j]
+    const bestLate = starts[i] + delayBest + p.busyMinMinutes + d + x - starts[j]
+    links.push({ from: i, to: j, driveMinutes: d, extraMinutes: x, bestLate, worstLate, grade: gradeOf(worstLate, p, lateOk) })
     delayWorst = Math.max(0, worstLate + p.arriveEarlyMinutes)
     delayBest = Math.max(0, bestLate + p.arriveEarlyMinutes)
   }
@@ -192,6 +205,7 @@ export function planTiers(
   p: DispatchParams,
   lateOk: number,
   lateLimit: number,
+  extra?: LinkExtra,
 ): TierPlan[] {
   const byStart = (a: number[], b: number[]) => starts[a[0]] - starts[b[0]] || a[0] - b[0]
   const build = (key: TierKey, tolerance: number, chains: number[][], links: ChainLink[], spread: boolean): TierPlan => {
@@ -230,7 +244,7 @@ export function planTiers(
   ]
   const out: TierPlan[] = []
   for (const t of tiers) {
-    const plan = planDay(starts, drive, p, t.tolerance, lateOk)
+    const plan = planDay(starts, drive, p, t.tolerance, lateOk, extra)
     if (out.length > 0 && plan.chefs >= out[out.length - 1].chefs) continue
     out.push(build(t.key, t.tolerance, plan.chains, plan.links, false))
   }
@@ -241,7 +255,7 @@ export function planTiers(
     while (chains.length < starts.length) {
       let cut: { ci: number; k: number; worst: number; drive: number } | null = null
       for (let ci = 0; ci < chains.length; ci++) {
-        const links = chainLinks(chains[ci], starts, drive, p, lateOk)
+        const links = chainLinks(chains[ci], starts, drive, p, lateOk, extra)
         for (let k = 0; k < links.length; k++) {
           const l = links[k]
           if (!cut || l.worstLate > cut.worst || (l.worstLate === cut.worst && l.driveMinutes > cut.drive)) cut = { ci, k, worst: l.worstLate, drive: l.driveMinutes }
@@ -250,7 +264,7 @@ export function planTiers(
       if (!cut) break
       const c = chains[cut.ci]
       chains = [...chains.slice(0, cut.ci), c.slice(0, cut.k + 1), c.slice(cut.k + 1), ...chains.slice(cut.ci + 1)].sort(byStart)
-      out.push(build(`spread_${chains.length}`, 0, chains, chains.flatMap((ch) => chainLinks(ch, starts, drive, p, lateOk)), true))
+      out.push(build(`spread_${chains.length}`, 0, chains, chains.flatMap((ch) => chainLinks(ch, starts, drive, p, lateOk, extra)), true))
     }
   }
   return out

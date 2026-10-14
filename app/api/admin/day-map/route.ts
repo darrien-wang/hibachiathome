@@ -3,7 +3,9 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { HOME_BASE_QUERY } from "@/config/home-base"
 import { decodePlusCode, parseLatLng, parsePlusCode, recoverPlusCode } from "@/lib/plus-code"
-import { planTiers, type DispatchParams } from "@/lib/dispatch"
+import { planTiers, TABLES_EXTRA_MINUTES, type DispatchParams } from "@/lib/dispatch"
+import { orderPrep, type InvoiceLite } from "@/lib/prep-bom"
+import type { SetupSelection } from "@/config/table-themes"
 import { makeResolver, streetless, type Located } from "@/lib/address-resolve"
 import { emptyMatrix, googleMatrix, osrmMatrix, ptInstantMs, type Matrix } from "@/lib/drive-matrix"
 import { geocode } from "@/lib/travel-distance"
@@ -32,6 +34,9 @@ type OrderRow = {
   guest_adult_count: number | null
   guest_child_count: number | null
   order_status: string | null
+  created_at?: string | null
+  invoice_data?: InvoiceLite | null
+  setup_selection?: SetupSelection | null
 }
 
 type DriveSource = "google_traffic" | "google" | "osrm" | "none"
@@ -116,7 +121,7 @@ export async function GET(request: NextRequest) {
   // 不做时区换算——换算会把 12:00 变成前一天。
   const { data } = await supabase
     .from("orders")
-    .select("id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status")
+    .select("id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection")
     .gte("event_start", `${date}T00:00:00`)
     .lt("event_start", `${date}T23:59:59`)
     .order("event_start")
@@ -135,6 +140,8 @@ export async function GET(request: NextRequest) {
     lat: number | null
     lng: number | null
     approx: boolean
+    /** 这一场要布置桌椅（发票或 setup 里订了桌椅）。 */
+    tables: boolean
   }
   const resolver = makeResolver({ googleKey: process.env.GOOGLE_MAPS_API_KEY || null })
   const stops: StopRow[] = []
@@ -157,6 +164,8 @@ export async function GET(request: NextRequest) {
       // 图钉不是门口的两种情况：查不到街道退到了城市，或者地址本来就只写了城市。
       // 手工定位过的不算。
       approx: !!geo && (!!geo.approx || (streetless(addr) && !geo.label.includes("手工定位"))),
+      // 和备料单同一个判定：算出来要装桌子或椅子的就是有桌椅。
+      tables: orderPrep(r.invoice_data ?? null, r.created_at ?? null, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection ?? null).items.some((i) => i.id === "tables" || i.id === "chairs"),
     })
   }
 
@@ -225,7 +234,8 @@ export async function GET(request: NextRequest) {
   }))
 
   // 三档容忍度各排一版，再加多派的几版（见 lib/dispatch.ts planTiers）。
-  const plans = planTiers(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, dp.late_limit_minutes)
+  // 两台里有一台要布置桌椅，中间多留 30 分（见 lib/dispatch.ts TABLES_EXTRA_MINUTES）。
+  const plans = planTiers(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, dp.late_limit_minutes, (a, b) => (stops[a].tables || stops[b].tables ? TABLES_EXTRA_MINUTES : 0))
   const home = await locate(supabase, resolver, HOME_BASE_QUERY)
 
   // 指派（老板 2026-09-30）：图上直接给每条线派师傅。这里带上每单现在派给了谁、能派的师傅名单；
@@ -266,6 +276,7 @@ export async function GET(request: NextRequest) {
         fromId: stops[l.from].id,
         toId: stops[l.to].id,
         minutes: l.driveMinutes,
+        extra: l.extraMinutes,
         miles: miles[l.from][l.to],
         bestLate: l.bestLate,
         worstLate: l.worstLate,
