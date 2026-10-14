@@ -39,6 +39,11 @@ test("Purchase goes out as a website event with hashed contact and value", () =>
   assert.ok(String(u.fbc).endsWith(".IwAR123"))
 })
 
+test("Schedule carries the booking value like Purchase", () => {
+  const e = buildEvent({ eventName: "Schedule", eventId: "lock-1", eventTime: "2026-10-14T17:00:00.000Z", valueCents: 60000, user: { phone: "6265550101" } })
+  assert.deepEqual(e.custom_data, { currency: "USD", value: 600 })
+})
+
 test("without the browser's user agent the event is system_generated and has no value for Contact", () => {
   const e = buildEvent({ eventName: "Contact", eventId: "reply-1", eventTime: "2026-10-14T17:00:00.000Z", user: { phone: "6265550101" } })
   assert.equal(e.action_source, "system_generated")

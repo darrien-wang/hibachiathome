@@ -12,6 +12,9 @@
 //
 //   Contact  - the customer wrote back (first real reply, not a decline)
 //   Purchase - the date was locked (Booking Confirmed), value = the quote
+//   Schedule - the same lock again: the campaign's objective is Leads, and a
+//              Leads ad set can optimise for Schedule but not for Purchase
+//              (that needs a Sales campaign)
 //
 // Purchase reuses the pixel's eventID (the Stripe session id) so Meta counts
 // a booking once even when both the browser and the server report it.
@@ -65,7 +68,7 @@ export type CapiUser = {
 }
 
 export type CapiEvent = {
-  eventName: "Contact" | "Purchase"
+  eventName: "Contact" | "Purchase" | "Schedule"
   eventId: string
   eventTime: string
   user: CapiUser
@@ -100,7 +103,7 @@ export function buildEvent(e: CapiEvent): Record<string, unknown> {
     action_source: website ? "website" : "system_generated",
     ...(website ? { event_source_url: "https://www.realhibachi.com/" } : {}),
     user_data: buildUserData(e.user),
-    ...(e.eventName === "Purchase" ? { custom_data: { currency: "USD", value: Math.round(e.valueCents ?? 0) / 100 } } : {}),
+    ...(e.eventName !== "Contact" ? { custom_data: { currency: "USD", value: Math.round(e.valueCents ?? 0) / 100 } } : {}),
   }
 }
 

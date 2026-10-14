@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic"
 //
 // The sweep looks back 7 days (Meta's limit for event_time) and sends each
 // event once: Contact when a Meta lead first writes back with something that
-// is not a no, Purchase when a Meta customer's date is locked.
+// is not a no, Purchase + Schedule when a Meta customer's date is locked.
 
 const LOOKBACK_DAYS = 7
 const DEFAULT_BOOKING_VALUE_CENTS = 60_000
@@ -181,16 +181,19 @@ export async function POST(request: NextRequest) {
       byEmail.get((o.customer_email ?? "").trim().toLowerCase())
     if (!lead) continue // not a Meta customer
     const value = (o.quoted_total_cents ?? 0) > 0 ? (o.quoted_total_cents as number) : DEFAULT_BOOKING_VALUE_CENTS
+    const user = userFor(lead, o.customer_email, o.customer_phone)
     candidates.push({
       eventName: "Purchase",
       // Same id as the pixel's Purchase (deposit success page), so Meta dedupes.
       eventId: (o.source_ref && sessionOf.get(o.source_ref)) || `order-${o.id}`,
       eventTime: o.created_at,
       valueCents: value,
-      user: userFor(lead, o.customer_email, o.customer_phone),
+      user,
       leadId: lead.id,
       orderId: o.id,
     })
+    // The pixel never sends Schedule, so this one only comes from here.
+    candidates.push({ eventName: "Schedule", eventId: `lock-${o.id}`, eventTime: o.created_at, valueCents: value, user, leadId: lead.id, orderId: o.id })
   }
 
   // ---- Already sent? ----------------------------------------------------------
@@ -207,6 +210,7 @@ export async function POST(request: NextRequest) {
   const summary = {
     contact: todo.filter((c) => c.eventName === "Contact").length,
     purchase: todo.filter((c) => c.eventName === "Purchase").length,
+    schedule: todo.filter((c) => c.eventName === "Schedule").length,
     withBrowserContext: todo.filter((c) => c.user.userAgent).length,
   }
   if (dry) {
