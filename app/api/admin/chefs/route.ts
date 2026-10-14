@@ -204,6 +204,49 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
   return { staff: (staff ?? []) as Staff[], assignments: (assignments ?? []) as Assignment[], orderMap, cashReported, drive }
 }
 
+// ---- 帮手（学徒跟台）：跟过哪几台 ----
+type HelpRow = { orderId: string; orderNo: string | null; date: string; time: string; customer: string | null; guests: number; leads: string[]; done: boolean }
+/**
+ * 每位员工当帮手跟过 / 要跟的场（assistant_chef 的派单）。取消的单不算。
+ * done = 派对日期已经过了今天，或者是今天而且开席满一小时（和师傅那边"办了"同一个口径）。
+ * 学徒出师看的就是 done 的台数（看 2 台 + 半独立 5 台，手册 2026-10-07）。
+ */
+async function loadHelping(supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>, staffNames: Map<string, string>, onlyStaffId?: string): Promise<Map<string, HelpRow[]>> {
+  let q = supabase.from("order_staff_assignments").select("order_id, staff_member_id").eq("assignment_role", HELPER_ROLE).in("assignment_status", ACTIVE_ASSIGNMENT).limit(2000)
+  if (onlyStaffId) q = q.eq("staff_member_id", onlyStaffId)
+  const { data: rows } = await q
+  const out = new Map<string, HelpRow[]>()
+  const list = (rows ?? []) as Array<{ order_id: string; staff_member_id: string }>
+  if (!list.length) return out
+  const orderIds = Array.from(new Set(list.map((r) => r.order_id)))
+  const [{ data: orders }, { data: leadRows }] = await Promise.all([
+    supabase.from("orders").select("id, order_no, customer_name, event_start, guest_adult_count, guest_child_count, order_status").in("id", orderIds),
+    supabase.from("order_staff_assignments").select("order_id, staff_member_id").in("order_id", orderIds).in("assignment_status", ACTIVE_ASSIGNMENT).neq("assignment_role", HELPER_ROLE),
+  ])
+  const orderById = new Map(((orders ?? []) as Array<{ id: string; order_no: string | null; customer_name: string | null; event_start: string | null; guest_adult_count: number | null; guest_child_count: number | null; order_status: string | null }>).map((o) => [o.id, o]))
+  const leadsOf = new Map<string, string[]>()
+  for (const l of (leadRows ?? []) as Array<{ order_id: string; staff_member_id: string }>) leadsOf.set(l.order_id, [...(leadsOf.get(l.order_id) ?? []), staffNames.get(l.staff_member_id) ?? "?"])
+  const nowWall = ptNowWall()
+  for (const r of list) {
+    const o = orderById.get(r.order_id)
+    if (!o || !o.event_start || o.order_status === "cancelled") continue
+    const ended = new Date(Date.parse(o.event_start) + 60 * 60_000).toISOString().slice(0, 16)
+    const row: HelpRow = {
+      orderId: o.id,
+      orderNo: o.order_no,
+      date: o.event_start.slice(0, 10),
+      time: o.event_start.slice(11, 16),
+      customer: o.customer_name,
+      guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0),
+      leads: leadsOf.get(o.id) ?? [],
+      done: ended <= nowWall,
+    }
+    out.set(r.staff_member_id, [...(out.get(r.staff_member_id) ?? []), row])
+  }
+  for (const v of out.values()) v.sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))
+  return out
+}
+
 // ---- 后勤：按订单人头结 ----
 const LOGI_ORDER_COLUMNS = "id, order_no, customer_name, event_start, guest_adult_count, guest_child_count, order_status, invoice_data"
 const isLogistics = (s: Staff) => s.role === "logistics"
@@ -389,13 +432,15 @@ export async function GET(request: NextRequest) {
       supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, url, review_id, cents, settlement_id, settled_at, created_at").eq("staff_member_id", id).order("review_date", { ascending: false }).limit(120),
     ])
     const assets = (assetRows ?? []).map((a) => ({ ...a, label: assetLabel(String(a.item_key), String(a.label ?? "")) }))
+    // 当帮手跟过的台（不是敏感信息，坐席也能看）
+    const helping = (await loadHelping(supabase, new Map(world.staff.map((s) => [s.id, nameOf(s)])), id)).get(id) ?? []
     if (!can(actor, "chef_sensitive")) {
       // 工服在谁手上不是敏感信息，采购价才是。
       const assetsSafe = assets.map((a) => ({ ...a, unit_cost_cents: null }))
-      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, reviews: [], today, sensitive: false })
+      return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, reviews: [], helping, today, sensitive: false })
     }
     const logistics = isLogistics(chef) ? await loadLogistics(supabase, chef, today) : undefined
-    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, reviews: reviewRows ?? [], logistics, today, sensitive: true })
+    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, reviews: reviewRows ?? [], logistics, helping, today, sensitive: true })
   }
 
   // List: everything the 名单 table and the nav badge need.
@@ -404,6 +449,7 @@ export async function GET(request: NextRequest) {
     ids.length ? supabase.from("chef_performance").select("staff_member_id, review, late_minutes").in("staff_member_id", ids).limit(5000) : { data: [] },
     ids.length ? supabase.from("chef_files").select("staff_member_id, amount_cents").eq("kind", "receipt").eq("status", "pending").in("staff_member_id", ids) : { data: [] },
   ])
+  const helpBy = await loadHelping(supabase, new Map(world.staff.map((s) => [s.id, nameOf(s)])))
   const logiBy = new Map<string, { openCents: number; openParties: number; openHeads: number }>()
   if (can(actor, "chef_sensitive")) {
     for (const s of world.staff.filter(isLogistics)) {
@@ -430,6 +476,9 @@ export async function GET(request: NextRequest) {
       status: s.status,
       role: isLogistics(s) ? ("logistics" as const) : ("chef" as const),
       logi: logiBy.get(s.id) ?? null,
+      // 当帮手：已经跟完的台数 / 接下来要跟的
+      helpDone: (helpBy.get(s.id) ?? []).filter((h) => h.done).length,
+      helpUpcoming: (helpBy.get(s.id) ?? []).filter((h) => !h.done).length,
       rate: rateOf(s),
       skills: (s.skills as string[]) ?? [],
       areas: (s.areas as string[]) ?? [],

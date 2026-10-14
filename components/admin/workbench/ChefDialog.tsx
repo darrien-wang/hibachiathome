@@ -5,7 +5,7 @@ import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, PhoneIcon, Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
 import { addDays, copyText, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
-import { FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
+import { APPRENTICE_ASSIST, APPRENTICE_WATCH, FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { LogisticsSettle } from "./LogisticsSettle"
 import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
@@ -522,6 +522,49 @@ export function ChefDialog({
               ))}
             </div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>点一场进订单。改派、加人在订单弹窗的"Planner · 派单"里操作。</div>
+            {(d.helping ?? []).length ? (
+              (() => {
+                // 跟台（当帮手）：不分周，全部列出来——学徒出师数的是总台数。办过的从早到晚编号：
+                // 前 2 台是"看"，接着 5 台是"半独立"。
+                const all = d.helping ?? []
+                const done = all.filter((h) => h.done).slice().reverse()
+                const nth = new Map(done.map((h, i) => [h.orderId, i + 1]))
+                const need = APPRENTICE_WATCH + APPRENTICE_ASSIST
+                return (
+                  <div>
+                    <Kicker>
+                      跟台（帮手）· 已跟 {done.length} 台{all.length > done.length ? ` · 接下来 ${all.length - done.length} 台` : ""}
+                    </Kicker>
+                    <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginBottom: 4 }}>
+                      出师要 {need} 台：先看 {APPRENTICE_WATCH} 台，再半独立 {APPRENTICE_ASSIST} 台。{done.length >= need ? "已经跟满了。" : `还差 ${need - done.length} 台。`}跟台不计工钱。
+                    </div>
+                    <div style={{ fontSize: 13, borderTop: "2px solid var(--color-divider)" }}>
+                      {all.map((h) => {
+                        const k = nth.get(h.orderId)
+                        return (
+                          <div key={h.orderId} className="wb-row" onClick={() => onOpenOrder(h.orderId)} style={{ display: "grid", gridTemplateColumns: "96px 1fr auto auto", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center" }}>
+                            <div>
+                              <div style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+                                {md(h.date)} {dowZh(h.date)}
+                              </div>
+                              <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{h.time}</div>
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="clamp1">
+                                <strong>{h.customer ?? "客户"}</strong> <span className="mono" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{h.orderNo}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>跟 {h.leads.join("、") || "（主厨还没派）"}</div>
+                            </div>
+                            <span style={{ whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>{h.guests} 人</span>
+                            <Tag cls={h.done ? "tag-neutral" : "tag-ink"}>{k ? `第 ${k} 台 · ${k <= APPRENTICE_WATCH ? "看" : k <= need ? "半独立" : "已满"}` : "要跟"}</Tag>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()
+            ) : null}
           </>
         ) : null}
 

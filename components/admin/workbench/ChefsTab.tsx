@@ -158,6 +158,11 @@ export function ChefsTab({
                       </div>
                       <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{prettyPhone(c.phone)}</div>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{c.role === "logistics" ? "备货" : c.areas.join(" / ") || "区域未填"}</div>
+                      {c.helpDone || c.helpUpcoming ? (
+                        <div style={{ fontSize: 11, color: "var(--color-accent-700)" }}>
+                          跟台 {c.helpDone ?? 0} 台{c.helpUpcoming ? ` · 接下来 ${c.helpUpcoming}` : ""}
+                        </div>
+                      ) : null}
                     </td>
                     <td
                       className="r"

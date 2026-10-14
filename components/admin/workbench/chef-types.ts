@@ -63,6 +63,12 @@ export type LogisticsRow = { orderId: string; orderNo: string | null; date: stri
 /** open = 勾了且办了（可结）；upcoming = 勾了还没办；candidates = 没勾的单。 */
 export type LogisticsLedger = { perHeadCents: number; startDate: string; open: LogisticsRow[]; upcoming: LogisticsRow[]; candidates: LogisticsRow[] }
 
+/** 当帮手跟的一台。done = 派对办了。 */
+export type HelpRow = { orderId: string; orderNo: string | null; date: string; time: string; customer: string | null; guests: number; leads: string[]; done: boolean }
+/** 学徒出师前：先看 2 台，再半独立做 5 台（厨师手册 2026-10-07）。 */
+export const APPRENTICE_WATCH = 2
+export const APPRENTICE_ASSIST = 5
+
 export type ChefSummary = {
   id: string
   name: string
@@ -71,6 +77,9 @@ export type ChefSummary = {
   role: StaffRole
   /** 只有后勤有：勾给她、办了、还没结的单。 */
   logi: { openCents: number; openParties: number; openHeads: number } | null
+  /** 当帮手（学徒跟台）：已经跟完的台数、接下来要跟的台数。 */
+  helpDone?: number
+  helpUpcoming?: number
   rate: ChefRate | null
   skills: string[]
   areas: string[]
@@ -134,7 +143,7 @@ export type Settlement = { id: string; period_start: string | null; period_end: 
 export type AssetRow = { id: string; item_key: string; label: string; qty: number; size: string | null; issued_on: string; returned_on: string | null; condition: string | null; unit_cost_cents: number | null; note: string | null; created_by: string | null }
 /** 客人在 Google/Yelp 留的好评（搜师傅名字搜到的），一条一档：无图 $2、带图 $3。 */
 export type ReviewBonus = { id: string; platform: "google" | "yelp" | "other"; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url: string | null; review_id?: string | null; cents: number; settlement_id: string | null; settled_at: string | null; created_at: string }
-export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; reviews?: ReviewBonus[]; logistics?: LogisticsLedger; today: string; sensitive?: boolean }
+export type ChefDetail = { chef: ChefRecord; shifts: ShiftRow[]; performance: PerfRow[]; files: ChefFile[]; settlements: Settlement[]; assets?: AssetRow[]; reviews?: ReviewBonus[]; logistics?: LogisticsLedger; helping?: HelpRow[]; today: string; sensitive?: boolean }
 
 export type MediaItem = {
   id: string
