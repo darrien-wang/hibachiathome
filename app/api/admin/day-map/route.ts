@@ -243,24 +243,29 @@ export async function GET(request: NextRequest) {
   const ACTIVE = ["tentative", "confirmed", "completed"]
   const [{ data: asg }, { data: staff }] = await Promise.all([
     rows.length
-      ? supabase.from("order_staff_assignments").select("order_id, staff_member_id").in("order_id", rows.map((r) => r.id)).in("assignment_status", ACTIVE)
-      : Promise.resolve({ data: [] as Array<{ order_id: string; staff_member_id: string }> }),
-    supabase.from("staff_members").select("id, display_name, full_name, status, is_bookable").neq("status", "deleted").order("display_name", { ascending: true }),
+      ? supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_role").in("order_id", rows.map((r) => r.id)).in("assignment_status", ACTIVE)
+      : Promise.resolve({ data: [] as Array<{ order_id: string; staff_member_id: string; assignment_role: string | null }> }),
+    supabase.from("staff_members").select("id, display_name, full_name, status, is_bookable, role").neq("status", "deleted").order("display_name", { ascending: true }),
   ])
   const chefIdsOf = new Map<string, string[]>()
-  for (const a of (asg ?? []) as Array<{ order_id: string; staff_member_id: string }>) {
-    chefIdsOf.set(a.order_id, [...(chefIdsOf.get(a.order_id) ?? []), a.staff_member_id])
+  // 帮手（学徒跟台，角色 assistant_chef）单独一份：不算这单的师傅，也不拿工钱。
+  const helperIdsOf = new Map<string, string[]>()
+  for (const a of (asg ?? []) as Array<{ order_id: string; staff_member_id: string; assignment_role: string | null }>) {
+    const m = a.assignment_role === "assistant_chef" ? helperIdsOf : chefIdsOf
+    m.set(a.order_id, [...(m.get(a.order_id) ?? []), a.staff_member_id])
   }
-  const chefs = ((staff ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; status: string | null; is_bookable: boolean | null }>).map((s) => ({
+  const chefs = ((staff ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; status: string | null; is_bookable: boolean | null; role?: string | null }>).map((s) => ({
     id: s.id,
     name: (s.display_name ?? s.full_name ?? "").trim() || "未命名",
     active: s.status === "active" && s.is_bookable !== false,
+    // 能当帮手的：在职、不是后勤（学徒还没开放派单也可以跟台）
+    canHelp: s.status === "active" && s.role !== "logistics",
   }))
 
   return NextResponse.json({
     ok: true,
     date,
-    stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [] })),
+    stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [] })),
     chefs,
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),

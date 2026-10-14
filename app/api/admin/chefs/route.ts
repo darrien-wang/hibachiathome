@@ -38,6 +38,10 @@ function publicStaff(s: Staff): Staff {
 }
 const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, payCents: 0, cashCents: 0, cardTipCents: 0, cardGrossCents: 0, cardFeeCents: 0, cashTipCents: 0, paySettledCents: 0, tablesCents: 0, travelCents: 0, reviewCents: 0, cashSource: "none", settledAt: null })
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
+// 帮手（学徒跟台，老板 2026-10-13）：也记在 order_staff_assignments，角色是 assistant_chef。
+// 帮手不拿这场的工钱、不分人头、不进结算——所以这个文件里所有"这场有哪些师傅"的读法都
+// 把这个角色排除掉，只有 assign_helpers 和日历排班图去读写它。
+const HELPER_ROLE = "assistant_chef"
 const STAFF_COLUMNS =
   "id, full_name, display_name, staff_type, role, pay_start_date, status, email, phone, notes, is_bookable, allow_customer_request, wechat, base_pay_cents, head_from, per_head_cents, skills, areas, billing_cycle, last_settled_at, food_handler_no, food_handler_exp, id_type, id_last4, id_exp, tax_form, tax_legal_name, tax_id_last4, tax_address, created_at, updated_at"
 const ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, balance_due_cents, quoted_total_cents, service_duration_minutes, invoice_data, created_at, source_metadata"
@@ -162,6 +166,7 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
       .from("order_staff_assignments")
       .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents, tables_cents, travel_cents, comp_breakdown, has_tables_override, review_plain_count, review_photo_count, review_cents")
       .in("assignment_status", ACTIVE_ASSIGNMENT)
+      .neq("assignment_role", HELPER_ROLE)
       .limit(2000),
     supabase.from("chef_sheet_links").select("order_id, staff_member_id, assignment_id, cash_collected_cents, tip_reported_cents, collected_at").not("collected_at", "is", null).limit(2000),
   ])
@@ -623,7 +628,11 @@ export async function POST(request: NextRequest) {
         // done at read time when guest_share is null, so we clear it here).
         if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
         const want = (Array.isArray(body.staff_member_ids) ? body.staff_member_ids : []).filter(isUuid)
-        const { data: existing } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_status").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
+        const { data: allRows } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_status, assignment_role").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
+        // 帮手那几行不归这里管；但被派成师傅的人不能同时还是这单的帮手。
+        const existing = (allRows ?? []).filter((a) => a.assignment_role !== HELPER_ROLE)
+        const helperClash = (allRows ?? []).filter((a) => a.assignment_role === HELPER_ROLE && want.includes(a.staff_member_id))
+        if (helperClash.length) await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", helperClash.map((a) => a.id))
         const have = new Set((existing ?? []).map((a) => a.staff_member_id))
         const toCancel = (existing ?? []).filter((a) => !want.includes(a.staff_member_id))
         const toAdd = want.filter((sid) => !have.has(sid))
@@ -636,11 +645,35 @@ export async function POST(request: NextRequest) {
           if (error) throw error
         }
         // Even split again for everyone still on the party.
-        const { error: e2 } = await supabase.from("order_staff_assignments").update({ guest_share: null, updated_at: now }).eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
+        const { error: e2 } = await supabase.from("order_staff_assignments").update({ guest_share: null, updated_at: now }).eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT).neq("assignment_role", HELPER_ROLE)
         if (e2) throw e2
         const { data: names } = want.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", want) : { data: [] }
         await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "chef_assigned", metadata: { staff_member_ids: want, names: (names ?? []).map((n) => n.display_name ?? n.full_name), cancelled: toCancel.length } })
         return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length })
+      }
+      case "assign_helpers": {
+        // 这一单的帮手换成这几个人（可以是空）。帮手不计工钱、不分人头；已经是这单师傅的人跳过。
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        const wantH = Array.from(new Set((Array.isArray(body.staff_member_ids) ? body.staff_member_ids : []).filter(isUuid)))
+        const { data: rowsH } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_role").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
+        const leads = new Set((rowsH ?? []).filter((a) => a.assignment_role !== HELPER_ROLE).map((a) => a.staff_member_id))
+        const helpersNow = (rowsH ?? []).filter((a) => a.assignment_role === HELPER_ROLE)
+        const keep = wantH.filter((sid) => !leads.has(sid))
+        const drop = helpersNow.filter((a) => !keep.includes(a.staff_member_id))
+        const add = keep.filter((sid) => !helpersNow.some((a) => a.staff_member_id === sid))
+        if (drop.length) {
+          const { error } = await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", drop.map((a) => a.id))
+          if (error) throw error
+        }
+        if (add.length) {
+          const { error } = await supabase.from("order_staff_assignments").insert(add.map((sid) => ({ order_id: body.order_id, staff_member_id: sid, assignment_role: HELPER_ROLE, assignment_status: "confirmed", assignment_source: "admin_manual", requested_by_customer: false, notes: "helper" })))
+          if (error) throw error
+        }
+        if (drop.length || add.length) {
+          const { data: namesH } = keep.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", keep) : { data: [] }
+          await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "helpers_assigned", metadata: { staff_member_ids: keep, names: (namesH ?? []).map((n) => n.display_name ?? n.full_name) } })
+        }
+        return NextResponse.json({ ok: true, added: add.length, removed: drop.length })
       }
       case "issue_assets": {
         // 领用登记：一次可以发一整套（帽子 + 厨师服 + 围裙）。同一个人、同一件、

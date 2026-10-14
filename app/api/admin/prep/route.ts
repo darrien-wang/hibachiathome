@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
   })
   // 备货单上写哪位厨师来拿这一箱（不写客户）。
   if (orders.length) {
-    const { data: asg } = await supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_status").in("order_id", orders.map((o) => o.id)).in("assignment_status", ["tentative", "confirmed", "completed"])
+    const { data: asg } = await supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_status").in("order_id", orders.map((o) => o.id)).in("assignment_status", ["tentative", "confirmed", "completed"]).neq("assignment_role", "assistant_chef")
     const staffIds = Array.from(new Set((asg ?? []).map((a) => String(a.staff_member_id))))
     const { data: staffRows } = staffIds.length ? await supabase.from("staff_members").select("id, display_name, full_name").in("id", staffIds) : { data: [] as Array<{ id: string; display_name: string | null; full_name: string | null }> }
     const nameOf = new Map((staffRows ?? []).map((s) => [String(s.id), String(s.display_name ?? s.full_name ?? "").trim()]))

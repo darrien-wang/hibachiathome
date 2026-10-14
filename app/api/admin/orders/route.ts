@@ -204,6 +204,8 @@ export async function GET(request: NextRequest) {
       .select("id, order_id, staff_member_id, guest_share, staff_members(display_name, full_name)")
       .in("order_id", orderIds)
       .in("assignment_status", ["tentative", "confirmed", "completed"])
+      // 帮手（学徒跟台）不算这单的师傅
+      .neq("assignment_role", "assistant_chef")
     type Named = { display_name: string | null; full_name: string | null }
     type Joined = { id: string; order_id: string; staff_member_id: string; guest_share: number | null; staff_members: Named | Named[] | null }
     for (const r of (rows ?? []) as unknown as Joined[]) {

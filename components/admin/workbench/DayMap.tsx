@@ -32,10 +32,12 @@ type Stop = {
   approx?: boolean
   /** 这一单现在派给了谁（order_staff_assignments 里没取消的） */
   chefIds: string[]
+  /** 跟台的帮手（学徒），不算师傅、不拿这场工钱 */
+  helperIds?: string[]
   /** 要布置桌椅 */
   tables?: boolean
 }
-type Chef = { id: string; name: string; active: boolean }
+type Chef = { id: string; name: string; active: boolean; canHelp?: boolean }
 type Grade = "solid" | "ontime" | "late_ok" | "late_limit"
 type Link = {
   fromId: string
@@ -181,6 +183,30 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
       for (const s of change) await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
     } catch (e) {
       void tell({ title: "没派上", message: e instanceof Error ? e.message : "出错了" })
+    } finally {
+      await load()
+      setAssigning(null)
+    }
+  }
+  // ---- 帮手（老板 2026-10-13）：学徒跟着这条线的师傅跑，可以多选。点一下加上、再点一下拿掉，
+  // 写进这条线上的每一单。帮手不拿这场工钱、不分人头。
+  const chainHelpers = (chain: string[]): Set<string> => {
+    const sets = chain.map((id) => new Set(byId.get(id)?.helperIds ?? []))
+    return new Set([...(sets[0] ?? [])].filter((h) => sets.every((s) => s.has(h))))
+  }
+  const toggleHelper = async (ci: number, chain: string[], helperId: string) => {
+    const on = !chainHelpers(chain).has(helperId)
+    setAssigning(ci)
+    try {
+      for (const id of chain) {
+        const s = byId.get(id)
+        if (!s) continue
+        const cur = s.helperIds ?? []
+        const next = on ? Array.from(new Set([...cur, helperId])) : cur.filter((x) => x !== helperId)
+        await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", order_id: s.id, staff_member_ids: next } })
+      }
+    } catch (e) {
+      void tell({ title: "帮手没加上", message: e instanceof Error ? e.message : "出错了" })
     } finally {
       await load()
       setAssigning(null)
@@ -377,10 +403,11 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                       )
                     })}
                   </div>
+                  <div style={{ flex: "none", width: 190, marginLeft: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
                   <select
                     className="input"
                     aria-label={`师傅 ${ci + 1} 指派给谁`}
-                    style={{ flex: "none", width: 150, minHeight: 34, padding: "4px 8px", fontSize: 13, marginLeft: "auto" }}
+                    style={{ width: "100%", minHeight: 34, padding: "4px 8px", fontSize: 13 }}
                     value={cc.id}
                     disabled={assigning !== null}
                     onChange={(e) => void assignChain(ci, chain, e.target.value)}
@@ -394,6 +421,24 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                         </option>
                       ))}
                   </select>
+                  {/* 帮手：多选，点一下加上、再点一下拿掉 */}
+                  {(() => {
+                    const on = chainHelpers(chain)
+                    const leadIds = new Set(chain.flatMap((id) => byId.get(id)?.chefIds ?? []))
+                    const options = (d.chefs ?? []).filter((c) => (c.canHelp && !leadIds.has(c.id)) || on.has(c.id))
+                    if (!options.length) return null
+                    return (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", fontSize: 12 }}>
+                        <span style={{ color: "var(--color-neutral-600)" }}>帮手</span>
+                        {options.map((c) => (
+                          <button key={c.id} type="button" className="wb-chip wb-chip-sm" aria-pressed={on.has(c.id) ? "true" : "false"} disabled={assigning !== null} onClick={() => void toggleHelper(ci, chain, c.id)}>
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                  </div>
                 </div>
               </div>
               )
