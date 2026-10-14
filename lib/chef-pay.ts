@@ -65,6 +65,11 @@ export const KID_HEAD_FACTOR = 0.5
 /** 派对带桌椅时付给师傅：$4 × 带桌椅的人头（大人小孩全算）。 */
 export const TABLE_CHAIR_PER_HEAD_CENTS = 400
 /**
+ * 食材加工费（老板 2026-10-13）：这单的料是后勤（张阿姨）备的，师傅就不用自己切菜备料，
+ * 结算时从师傅这场里扣——每个成人 $1。小孩不扣。几位师傅同场按人平分。
+ */
+export const PREP_FEE_PER_ADULT_CENTS = 100
+/**
  * 路费（2026-09-28 用户定）：基地 913 Ranlett Ave, La Puente 91744 到客户家
  * 的最短驾驶距离（发票 travelFee.distanceMiles 就是这么算的）。
  * 超过 50 mi 的场：整程 × $1/mi（等价于 $50 起步 + 超出 × $1）；

@@ -146,13 +146,14 @@ export function ChefDialog({
   const payTotal = openRows.reduce((a, s) => a + (s.paySettledAt ? 0 : s.payCents), 0)
   const tablesTotal = openRows.reduce((a, s) => a + s.tablesCents, 0)
   const travelTotal = openRows.reduce((a, s) => a + s.travelCents, 0)
+  const prepFeeTotal = openRows.reduce((a, s) => a + (s.prepFeeCents ?? 0), 0)
   const pendingReviews = (d?.reviews ?? []).filter((r) => !r.settlement_id)
   const reviewTotal = pendingReviews.reduce((a, r) => a + r.cents, 0)
   const cashTotal = openRows.reduce((a, s) => a + s.cashCents, 0)
   const tipTotal = openRows.reduce((a, s) => a + s.cardTipCents, 0)
   const reimbTotal = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
   // 好评不进周结（2026-09-28 起每月单独出单，见下方好评卡）。
-  const net = payTotal + tablesTotal + travelTotal + reimbTotal + tipTotal - cashTotal
+  const net = payTotal + tablesTotal + travelTotal + reimbTotal + tipTotal - cashTotal - prepFeeTotal
   const perf = d?.performance ?? []
   const good = perf.filter((p) => p.review === "good").length
   const bad = perf.filter((p) => p.review === "bad").length
@@ -959,6 +960,11 @@ export function ChefDialog({
                         >
                           · 路费 {s.travelCents ? money(s.travelCents) : s.miles == null ? "?" : "$0"}
                         </span>
+                        {s.prepFeeCents ? (
+                          <span title="这单的料是后勤备的，每个成人扣 $1 食材加工费" style={{ color: "var(--color-accent-700)" }}>
+                            · 食材加工 −{money(s.prepFeeCents)}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     <span style={{ textAlign: "right", whiteSpace: "nowrap", color: s.paySettledAt && !s.settledAt ? "var(--color-neutral-500)" : undefined }} title={`人头费 ${money(s.payCents)} + 桌椅 ${money(s.tablesCents)} + 路费 ${money(s.travelCents)}${s.paySettledAt && !s.settledAt ? "；人头费已提前结过" : ""}`}>
@@ -995,7 +1001,7 @@ export function ChefDialog({
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 0 4px" }}>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}
+                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}{prepFeeTotal ? ` − 食材加工 ${money(prepFeeTotal)}` : ""}
                 </span>
                 <strong className="num" style={{ fontSize: 20, whiteSpace: "nowrap", color: net < 0 ? "var(--color-accent-700)" : undefined }}>
                   {net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清"}

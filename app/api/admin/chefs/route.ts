@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
-import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
+import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, PREP_FEE_PER_ADULT_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { partyHeadCounts } from "@/lib/party-heads"
 import { logisticsLedgerRows, sumCents, sumHeads, type LogisticsOrder } from "@/lib/logistics-pay"
@@ -36,7 +36,7 @@ function publicStaff(s: Staff): Staff {
   for (const k of SENSITIVE_STAFF_FIELDS) delete out[k]
   return out
 }
-const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, payCents: 0, cashCents: 0, cardTipCents: 0, cardGrossCents: 0, cardFeeCents: 0, cashTipCents: 0, paySettledCents: 0, tablesCents: 0, travelCents: 0, reviewCents: 0, cashSource: "none", settledAt: null })
+const hideShiftMoney = <T extends { payCents: number; cashCents: number; cashSource: string; settledAt: string | null }>(x: T): T => ({ ...x, prepFeeCents: 0, payCents: 0, cashCents: 0, cardTipCents: 0, cardGrossCents: 0, cardFeeCents: 0, cashTipCents: 0, paySettledCents: 0, tablesCents: 0, travelCents: 0, reviewCents: 0, cashSource: "none", settledAt: null })
 const ACTIVE_ASSIGNMENT = ["tentative", "confirmed", "completed"]
 // 帮手（学徒跟台，老板 2026-10-13）：也记在 order_staff_assignments，角色是 assistant_chef。
 // 帮手不拿这场的工钱、不分人头、不进结算——所以这个文件里所有"这场有哪些师傅"的读法都
@@ -69,6 +69,7 @@ type Assignment = {
   pay_settled_cents: number | null
   tables_cents: number | null
   travel_cents: number | null
+  prep_fee_cents: number | null
   comp_breakdown: Record<string, unknown> | null
   has_tables_override: boolean | null
   review_plain_count: number
@@ -95,6 +96,8 @@ type OrderLite = {
   source_metadata?: Record<string, unknown> | null
   /** Special head rule from the order's lead (leads.chef_pay_rule), attached by loadWorld. */
   chef_pay_rule?: ChefPayRule | null
+  /** 这单的料是后勤备的（staff_order_pay 里有人），师傅要扣食材加工费。loadWorld 带上。 */
+  logi_prepped?: boolean
 }
 
 /** Which pricing terms a party bills under: what the invoice recorded, else the order's age. */
@@ -164,7 +167,7 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
     supabase.from("staff_members").select(STAFF_COLUMNS).neq("status", "deleted").order("display_name", { ascending: true }),
     supabase
       .from("order_staff_assignments")
-      .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents, tables_cents, travel_cents, comp_breakdown, has_tables_override, review_plain_count, review_photo_count, review_cents")
+      .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents, tables_cents, travel_cents, prep_fee_cents, comp_breakdown, has_tables_override, review_plain_count, review_photo_count, review_cents")
       .in("assignment_status", ACTIVE_ASSIGNMENT)
       .neq("assignment_role", HELPER_ROLE)
       .limit(2000),
@@ -184,6 +187,14 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
     for (const o of orderMap.values()) {
       const rule = byLead.get(leadOf(o))
       if (rule) o.chef_pay_rule = rule
+    }
+  }
+  // 后勤备料的单（订单弹窗"备货负责人"/员工结算页勾的）：师傅这场扣食材加工费。
+  if (orderMap.size) {
+    const { data: prepped } = await supabase.from("staff_order_pay").select("order_id").in("order_id", [...orderMap.keys()])
+    for (const p of prepped ?? []) {
+      const o = orderMap.get(String(p.order_id))
+      if (o) o.logi_prepped = true
     }
   }
   // Cash the chef reported on the prep sheet, latest per order+chef.
@@ -330,6 +341,8 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const heads = payableHeads(counts) / n
   const pay = a.pay_cents ?? (s ? chefPayCentsFrac(rateOf(s), heads) : 0)
   const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads) / n)
+  // 食材加工费：后勤备的料，每个成人 $1（按发票上的大人数，不受特殊人头规则影响），同场平分。
+  const prepFee = a.prep_fee_cents ?? (o.logi_prepped ? Math.round((comp.counts.adults * PREP_FEE_PER_ADULT_CENTS) / n) : 0)
   // 发票上量过、而且超过 50 mi：客人就是按这个数付的路费，师傅照这个数。发票没量，
   // 或者在 50 以内（客人路费手填 $0、里程被改成 50 都是这样），按地址实量 ——
   // 客户那头免不免路费都照给师傅（2026-10-04，Niko/Nasim West Hills 53.7 mi）。
@@ -353,6 +366,7 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     payCents: pay,
     tablesCents: tables,
     travelCents: travel,
+    prepFeeCents: prepFee,
     counts,
     chefRule: o.chef_pay_rule ? { ...o.chef_pay_rule, label: describeChefPayRule(o.chef_pay_rule) } : null,
     tableHeads,
@@ -1041,6 +1055,7 @@ export async function POST(request: NextRequest) {
         const pay = picked.reduce((a, x) => a + payOf(x), 0)
         const tables = ready.reduce((a, x) => a + x.tablesCents, 0)
         const travel = ready.reduce((a, x) => a + x.travelCents, 0)
+        const prepFee = ready.reduce((a, x) => a + x.prepFeeCents, 0)
         const review = reviewRows2.reduce((a, r) => a + (r.cents ?? 0), 0)
         const cash = ready.reduce((a, x) => a + x.cashCents, 0)
         const tip = ready.reduce((a, x) => a + x.cardTipCents, 0)
@@ -1048,7 +1063,7 @@ export async function POST(request: NextRequest) {
         if (!picked.length && !reimb.length) {
           return NextResponse.json({ error: "没有可结的：先确认每场尾款怎么收的（还没办的场用\"提前结算\"，按师傅代收现金处理）。" }, { status: 400 })
         }
-        const net = pay + tables + travel + review + reimbCents + tip - cash
+        const net = pay + tables + travel + review + reimbCents + tip - cash - prepFee
         const dates = picked.map((x) => x.date).filter(Boolean).sort()
         const rate = rateOf(chef)
         // 对账单快照：师傅链接里看到的每一行，都是此刻算好存死的。
@@ -1078,17 +1093,18 @@ export async function POST(request: NextRequest) {
               payCents: payOf(x),
               tablesCents: x.method ? x.tablesCents : 0,
               travelCents: x.method ? x.travelCents : 0,
+              prepFeeCents: x.method ? x.prepFeeCents : 0,
               cardTipCents: x.method ? x.cardTipCents : 0,
               cardGrossCents: x.cardGrossCents,
               cardFeeCents: x.cardFeeCents,
               pricingTerms: x.pricingTerms,
               cashCents: x.method ? x.cashCents : 0,
               cashTipCents: x.cashTipCents,
-              subtotalCents: payOf(x) + (x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents : 0),
+              subtotalCents: payOf(x) + (x.method ? x.tablesCents + x.travelCents + x.cardTipCents - x.cashCents - x.prepFeeCents : 0),
             })),
           reviews: reviewRows2.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, url: r.url ?? null, cents: r.cents })),
           reimb: { count: reimb.length, cents: reimbCents },
-          totals: { payCents: pay, tablesCents: tables, travelCents: travel, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, netCents: net },
+          totals: { payCents: pay, tablesCents: tables, travelCents: travel, prepFeeCents: prepFee, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, netCents: net },
         }
         const { data: settlement, error } = await supabase
           .from("chef_settlements")
@@ -1103,6 +1119,7 @@ export async function POST(request: NextRequest) {
             tip_cents: tip,
             tables_cents: tables,
             travel_cents: travel,
+            prep_fee_cents: prepFee,
             review_cents: review,
             lines,
             token,
@@ -1125,6 +1142,7 @@ export async function POST(request: NextRequest) {
               guest_share: x.share,
               tables_cents: x.tablesCents,
               travel_cents: x.travelCents,
+              prep_fee_cents: x.prepFeeCents,
               comp_breakdown: { counts: x.counts, tableHeads: x.tableHeads, miles: x.miles, ...(x.chefRule ? { chefRule: x.chefRule } : {}) },
               pay_settled_at: x.paySettledAt ?? now,
               pay_settled_cents: x.paySettledAt ? x.paySettledCents : x.payCents,
@@ -1158,6 +1176,7 @@ export async function POST(request: NextRequest) {
           payCents: pay,
           tablesCents: tables,
           travelCents: travel,
+          prepFeeCents: prepFee,
           reviewCents: review,
           reimbCents,
           cashCents: cash,
@@ -1335,7 +1354,7 @@ export async function POST(request: NextRequest) {
         // 撤销要把冻结的钱全放回现算，否则这场会带着旧数字再结一次。
         const { error } = await supabase
           .from("order_staff_assignments")
-          .update({ settled_at: null, settlement_id: null, pay_settled_at: null, pay_settled_cents: null, pay_cents: null, tables_cents: null, travel_cents: null, comp_breakdown: null, updated_at: now })
+          .update({ settled_at: null, settlement_id: null, pay_settled_at: null, pay_settled_cents: null, pay_cents: null, tables_cents: null, travel_cents: null, prep_fee_cents: null, comp_breakdown: null, updated_at: now })
           .eq("id", body.assignment_id)
         if (error) throw error
         if (sid) {

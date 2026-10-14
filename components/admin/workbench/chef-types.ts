@@ -16,6 +16,8 @@ export type ShiftRow = {
   /** 桌椅 $4/人、路费(超50mi×$1)——结算明细的另外两条腿（好评是 chef 级逐条记录）。 */
   tablesCents: number
   travelCents: number
+  /** 食材加工费：后勤备的料，每个成人 $1，从师傅这场扣（老板 2026-10-13）。 */
+  prepFeeCents: number
   counts: { adults: number; kids: number; littles: number }
   /** 谈价时定在线索上的特殊人头规则（发票按大人备料、工钱按小孩算），counts 已经按它算过。 */
   chefRule?: { adultsAsKids: number | "all"; note?: string; label: string } | null
@@ -50,9 +52,9 @@ export type SettleMethod = "cash" | "card" | "prepaid" | "other"
 export const METHOD_LABELS: Record<SettleMethod, string> = { cash: "师傅代收现金", card: "客人刷卡", prepaid: "已付清 / 转账", other: "其它" }
 export const METHOD_SHORT: Record<SettleMethod, string> = { cash: "现金代收", card: "刷卡", prepaid: "已付清", other: "其它" }
 
-/** 这场还欠师傅多少：人头费（结过不算）+ 桌椅 + 路费 + 卡上小费 − 代收现金。 */
+/** 这场还欠师傅多少：人头费（结过不算）+ 桌椅 + 路费 + 卡上小费 − 代收现金 − 食材加工费。 */
 export function shiftNet(s: ShiftRow): number {
-  return (s.paySettledAt ? 0 : s.payCents) + s.tablesCents + s.travelCents + s.cardTipCents - s.cashCents
+  return (s.paySettledAt ? 0 : s.payCents) + s.tablesCents + s.travelCents + s.cardTipCents - s.cashCents - (s.prepFeeCents ?? 0)
 }
 
 /** 员工分类：厨师上门做饭，后勤备货（按订单人头结，不派单）。 */
