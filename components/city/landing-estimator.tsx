@@ -138,6 +138,14 @@ export default function LandingEstimator({
   const leadSentRef = useRef(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const autoSentRef = useRef(false)
+  // Step 2 came from the saved contact, not from this page, and whether the
+  // visitor has set anything on this card since. An untouched restored card
+  // only holds its defaults, so leaving it must not text them as a quote:
+  // 2026-10-14 952-567 gave her number on La Quinta ($900.50 with ~$62
+  // travel), opened /menu, and that card's leave-beacon texted the SoCal
+  // default ($838.50, 15 adults, no travel) instead.
+  const restoredRef = useRef(false)
+  const touchedRef = useRef(false)
 
   // Already gave us the contact (here or on /quote): straight to the price.
   useEffect(() => {
@@ -146,8 +154,14 @@ export default function LandingEstimator({
     setPhoneValue(saved.phone)
     setEmail(saved.email)
     leadSentRef.current = true
+    restoredRef.current = true
     setStep(2)
   }, [])
+
+  useEffect(() => {
+    if (adults !== (defaults?.adults ?? 15) || kids !== (defaults?.kids ?? 0) || date || manualWeekday) touchedRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adults, kids, date, manualWeekday])
 
   // Height of the on-screen keyboard (0 when closed). The sticky bar is moved
   // up by this much so the button stays reachable while the number is being
@@ -328,6 +342,7 @@ export default function LandingEstimator({
     const fire = () => {
       const l = latestRef.current
       if (autoSentRef.current || l.busy || l.sent || !l.phoneReady || !l.emailReady) return
+      if (restoredRef.current && !touchedRef.current) return
       const body = { ...l.payload(), stage: "quote", auto: "leave" }
       try {
         if (sessionStorage.getItem("rh_landing_autosent") === String(body.phone)) return
