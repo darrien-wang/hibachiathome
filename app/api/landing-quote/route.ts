@@ -8,6 +8,7 @@ import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notif
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 import { getCityTravel } from "@/config/city-travel"
+import { placeName } from "@/lib/first-response"
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
@@ -113,6 +114,9 @@ export async function POST(request: NextRequest) {
   const contactOnly = body.stage === "contact"
 
   const cityName = asStr(body.cityName, 60) || "Southern California"
+  // What the customer reads: the card's cityName is whatever they typed ("idyllwild").
+  // ZIPs and region labels have no town to capitalize and stay as typed.
+  const cityLabel = placeName(cityName) || cityName
   const citySlug = asStr(body.citySlug, 60).replace(/[^a-z0-9-]/gi, "") || "socal"
   const source = asStr(body.source, 60) || `landing_${citySlug.replace(/-/g, "_")}`
   const adults = asInt(body.adults, 1, 200)
@@ -274,10 +278,10 @@ export async function POST(request: NextRequest) {
     if (previous.travelFee !== travelFee) {
       whyLines.push(
         travelFee
-          ? `This one includes ~$${travelFee} travel to ${cityName}.`
+          ? `This one includes ~$${travelFee} travel to ${cityLabel}.`
           : travelPending
-            ? `Travel to ${cityName} is confirmed from your address.`
-            : `No travel fee for ${cityName}.`,
+            ? `Travel to ${cityLabel} is confirmed from your address.`
+            : `No travel fee for ${cityLabel}.`,
       )
     }
   }
@@ -337,7 +341,7 @@ export async function POST(request: NextRequest) {
   const smsBody = (
     updated
       ? [
-          `Real Hibachi: updated for ${guestsLine} in ${cityName}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+          `Real Hibachi: updated for ${guestsLine} in ${cityLabel}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
           ...whyLines,
           // The travel line is only repeated when it did not just get explained.
           previous && previous.travelFee !== travelFee ? null : travelLine,
@@ -348,7 +352,7 @@ export async function POST(request: NextRequest) {
           // The listed price. Nothing about tax or payment method is brought up
           // before the booking is confirmed (owner 2026-10-06): the invoice and
           // the pay page carry the itemised bills.
-          `Real Hibachi: your ${cityName} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+          `Real Hibachi: your ${cityLabel} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
           discountLine,
           travelLine,
           `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
@@ -366,7 +370,7 @@ export async function POST(request: NextRequest) {
 
   {
     const lines = [
-      `Your ${cityName} hibachi price: ${money(total)}`,
+      `Your ${cityLabel} hibachi price: ${money(total)}`,
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
       ...(discountLine ? [discountLine] : []),
       travelFee
@@ -383,7 +387,7 @@ export async function POST(request: NextRequest) {
     ]
     await sendCustomerEmail({
       to: email,
-      subject: `Your ${cityName} hibachi quote: ${money(total)}`,
+      subject: `Your ${cityLabel} hibachi quote: ${money(total)}`,
       text: lines.join("\n"),
       html: `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#3d2a1c">${lines
         .map((l) => (l ? `<p style="margin:0 0 8px">${escapeHtml(l).replace(depositUrl, `<a href="${depositUrl}">${depositUrl}</a>`)}</p>` : "<br>"))

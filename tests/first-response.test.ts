@@ -6,6 +6,7 @@ import {
   partyContactFirstText,
   partyContactSecondText,
   partyContactStage,
+  placeName,
   ptDate,
   quoteFollowUpPlan,
   shortDate,
@@ -79,6 +80,17 @@ test("template B: ZIPs, region labels and missing cities fall back to the plain 
   const lower = quoteFollowUpPlan({ adults: 10, kids: 0, city: "irvine", todayPt: today })
   assert.ok(lower.send)
   assert.equal(lower.text, "Hi! Rowling from Real Hibachi 👋 10 in Irvine — what's the celebration?")
+})
+
+test("placeName capitalizes what the customer typed, and keeps ZIPs and regions out", () => {
+  assert.equal(placeName("idyllwild"), "Idyllwild")
+  assert.equal(placeName("palm springs"), "Palm Springs")
+  assert.equal(placeName("la"), "LA")
+  assert.equal(placeName("Rancho Cucamonga"), "Rancho Cucamonga")
+  // The quote text falls back to the raw value when there is no town to show.
+  assert.equal(placeName("LA & Orange County"), "")
+  assert.equal(placeName("92270"), "")
+  assert.equal(placeName("southern california"), "")
 })
 
 test("template B hands edge cases to a person", () => {

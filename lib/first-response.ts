@@ -136,6 +136,8 @@ export function placeName(city: string | null | undefined): string {
   const c = (city ?? "").trim()
   if (!c || !/^[A-Za-z][A-Za-z .'-]*$/.test(c)) return ""
   if (/^(southern california|socal|california|los angeles county|orange county)$/i.test(c)) return ""
+  // "la", "oc", "sd": a two-letter place is an abbreviation, not a name to capitalize.
+  if (/^[a-z]{2}$/i.test(c)) return c.toUpperCase()
   return c.replace(/(^|[\s'-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase())
 }
 
