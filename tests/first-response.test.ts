@@ -10,6 +10,7 @@ import {
   ptDate,
   quoteFollowUpPlan,
   shortDate,
+  templateAWording,
   wallTime,
   wallToInstant,
   textSignerFor,
@@ -80,6 +81,21 @@ test("template B: ZIPs, region labels and missing cities fall back to the plain 
   const lower = quoteFollowUpPlan({ adults: 10, kids: 0, city: "irvine", todayPt: today })
   assert.ok(lower.send)
   assert.equal(lower.text, "Hi! Rowling from Real Hibachi 👋 10 in Irvine — what's the celebration?")
+})
+
+test("template A says one price when both nights hit the minimum, and no travel promise for a region", () => {
+  const daisy = templateAWording({ weekend: "$599.00", weekday: "$599.00", travel: 0, city: "Southern California" })
+  assert.equal(daisy.price, "$599.00 any day of the week")
+  assert.equal(daisy.where, "")
+  assert.equal(daisy.travelSms, ", first 50 miles of travel free")
+  assert.match(daisy.travelEmail, /first 50 miles free/)
+  const ps = templateAWording({ weekend: "$838.50", weekday: "$763.50", travel: 42, city: "palm springs" })
+  assert.equal(ps.price, "$838.50 Fri-Sun or $763.50 Mon-Thu")
+  assert.equal(ps.where, " in Palm Springs")
+  assert.equal(ps.travelSms, ", plus about $42 travel")
+  assert.equal(ps.travelEmail, "- Travel to Palm Springs: about $42")
+  const near = templateAWording({ weekend: "$838.50", weekday: "$763.50", travel: 0, city: "Irvine" })
+  assert.equal(near.travelSms, ", no travel fee")
 })
 
 test("placeName capitalizes what the customer typed, and keeps ZIPs and regions out", () => {

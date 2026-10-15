@@ -16,6 +16,7 @@ import {
   textSignerFor,
   quoteFollowUpPlan,
   shortDate,
+  templateAWording,
   wallTime,
   wallToInstant,
 } from "@/lib/first-response"
@@ -233,14 +234,13 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
   const weekend = calcSimpleEstimate({ adults, kids, weekdaySpecial: false }).total
   const weekday = calcSimpleEstimate({ adults, kids, weekdaySpecial: true }).total
   const guests = kids > 0 ? `${adults} adults + ${kids} kids` : `${adults} adults`
-  const where = city ? ` in ${city}` : ""
-  const travelSms = travel > 0 ? `, plus about $${travel} travel` : ", no travel fee"
+  const { where, price, travelSms, travelEmail } = templateAWording({ weekend: money(weekend), weekday: money(weekday), travel, city })
   const sms =
     `Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
     // Listed price only: nothing about tax or payment method is brought up
     // before the booking is confirmed (owner 2026-10-06); the invoice and the
     // pay page carry the itemised bills.
-    `For ${guests}${where} it's ${money(weekend)} Fri-Sun or ${money(weekday)} Mon-Thu${travelSms} ` +
+    `For ${guests}${where} it's ${price}${travelSms} ` +
     `(2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?`
   const emailText = [
     "Hi there,",
@@ -249,7 +249,7 @@ function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: str
     "",
     `- ${guests}, Fri-Sun: ${money(weekend)} total`,
     `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
-    travel > 0 ? `- Travel${city ? ` to ${city}` : ""}: about $${travel}` : `- ${city || "Your area"}: no travel fee`,
+    travelEmail,
     "- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.",
     `- Tables, chairs & linens are $${TABLES_CHAIRS_PER_GUEST} a guest if you need them, plates & silverware $${FULL_SETUP_PER_GUEST - TABLES_CHAIRS_PER_GUEST} - or use your own.`,
     "",

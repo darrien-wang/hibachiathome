@@ -141,6 +141,30 @@ export function placeName(city: string | null | undefined): string {
   return c.replace(/(^|[\s'-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase())
 }
 
+/**
+ * Template A's price and travel wording (lead-watch). Small parties land on
+ * the $599 minimum both nights, and "$599.00 Fri-Sun or $599.00 Mon-Thu" reads
+ * like a typo (2026-10-15 Daisy). A region label ("Southern California",
+ * "LA & Orange County") is not an address, so it cannot promise "no travel fee".
+ */
+export function templateAWording(i: { weekend: string; weekday: string; travel: number; city: string | null | undefined }): {
+  where: string
+  price: string
+  travelSms: string
+  travelEmail: string
+} {
+  const town = placeName(i.city)
+  const price = i.weekend === i.weekday ? `${i.weekend} any day of the week` : `${i.weekend} Fri-Sun or ${i.weekday} Mon-Thu`
+  const travelSms = i.travel > 0 ? `, plus about $${i.travel} travel` : town ? ", no travel fee" : ", first 50 miles of travel free"
+  const travelEmail =
+    i.travel > 0
+      ? `- Travel${town ? ` to ${town}` : ""}: about $${i.travel}`
+      : town
+        ? `- ${town}: no travel fee`
+        : "- Travel: first 50 miles free, then $1 a mile - we confirm it from your address."
+  return { where: town ? ` in ${town}` : "", price, travelSms, travelEmail }
+}
+
 // ---------------------------------------------------------------------------
 // Pre-party contact (owner 2026-10-07): a booked customer we have not heard
 // from must be reached before the party - the day before at the latest, or
