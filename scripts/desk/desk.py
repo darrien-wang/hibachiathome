@@ -800,6 +800,22 @@ def cmd_order(a):
             tf.setdefault("freeRadiusMiles", 50)
             tf.setdefault("manualOverride", None)
             tf.setdefault("homeZipcode", tf.get("homeZipcode") or "")
+        if a.travel_fee is not None:
+            # A fixed customer travel fee - "keep it at the $43 you quoted"
+            # (2026-10-15 Jenna: quoted Palm Springs, booked an Indio address).
+            # The invoice charges manualOverride ahead of the miles, and it sits
+            # outside the $599 minimum, so a promo line cannot do this: on an
+            # order at the minimum the minimum swallows it. Miles stay true for
+            # the chef's drive pay. "none" goes back to pricing by miles.
+            tf = data.setdefault("travelFee", {})
+            raw = str(a.travel_fee).strip().lower()
+            new = None if raw == "none" else round(float(raw), 2)
+            changes.append(f"travelFee.manualOverride: {tf.get('manualOverride')!r} -> {new!r}")
+            tf["manualOverride"] = new
+            tf.setdefault("ratePerMile", 1)
+            tf.setdefault("freeRadiusMiles", 50)
+            tf.setdefault("distanceMiles", None)
+            tf.setdefault("homeZipcode", tf.get("homeZipcode") or "")
         if a.proteins:
             # A customer who texts "chicken, steak and shrimp for 15" has given
             # totals, not a pick per guest - that is what quick mode is for.
@@ -1048,7 +1064,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1316,6 +1332,8 @@ def main(argv=None):
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")
     p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
+    p.add_argument("--travel-fee", help="fixed customer travel fee in dollars (a concession, e.g. the quoted amount); "
+                                        "miles stay for the chef's pay; 'none' prices by miles again")
     p.add_argument("--free-appetizer-trays", type=int, metavar="N",
                    help="how many trays the free-appetizer promo brings (owner 2026-10-01: one per 10 guests). "
                         "Moves the promo's discount by the same amount, so the customer is not billed for it.")
