@@ -87,22 +87,25 @@ export const HOUSE_SAUCES: SauceRecipe[] = [
     bottleOz: 16,
     // 老板 2026-10-11 的简化做法（自己试过、好吃）：80 oz 搅拌机一罐，用 8 oz 的杯子量，
     // 美乃滋最后挤到 80 oz 线。取代原来那锅 19 kg 的大配方（带黄油、味醂、糖浆）。
-    // 克数是按杯子换算的：橙汁 1 杯 ≈ 247 g、白糖 1 杯 ≈ 200 g、柠檬汁半杯 ≈ 122 g、
-    // 菠萝汁 16 oz ≈ 492 g；美乃滋 = 80 oz 减去前面的液体和糖粉体积 ≈ 45 oz ≈ 1,250 g。
-    batchLabel: "一罐 = 80 oz 搅拌机满线（约 2,350 g），用 8 oz 杯子量",
+    // 10-16 老板改成用 12 oz 的杯子、按半杯量（"那就改成半杯 但是是12oz作为一杯"）：
+    // 橙汁、白糖各半杯（6 oz）、柠檬汁 1/4 杯（3 oz）、菠萝汁 1 杯（12 oz）——四样之间的比例
+    // 和 8 oz 杯那版一样，只是都少了四分之一，美乃滋多挤一些（还是挤到 80 oz 线）。
+    // 克数：橙汁 6 oz ≈ 185 g、白糖 6 oz 体积 ≈ 150 g、柠檬汁 3 oz ≈ 91 g、菠萝汁 12 oz ≈ 369 g；
+    // 美乃滋 = 80 oz 减去前面的液体和糖粉体积 ≈ 53 oz ≈ 1,475 g。
+    batchLabel: "一罐 = 80 oz 搅拌机满线（约 2,310 g），用 12 oz 杯子量",
     notes: [
       "做法：橙汁、糖、柠檬汁、菠萝汁、三样粉先倒进搅拌机打到糖化开，再挤美乃滋到 80 oz 线；先点动几下让美乃滋沉下去再补满。",
       "不放黄油、不放味醂。美乃滋不用称，挤到线就行，下面写的美乃滋量是大概数。",
     ],
     ingredients: [
-      { zh: "橙汁", en: "Orange Juice", g: 247, est: { qty: 1, unit: "杯", note: "8 oz 杯" }, price: { perG: 5.58 / (GAL_ML * 1.045), note: "Walmart 市价：Great Value 100% 橙汁 1 gal $5.58" } },
-      { zh: "白糖", en: "Sugar", g: 200, est: { qty: 1, unit: "杯", note: "8 oz 杯" }, price: { perG: 3.24 / (4 * LB), note: "估：白糖 4 lb ~$3.24" } },
-      { zh: "柠檬汁", en: "Lemon Juice", g: 122, est: { qty: 0.5, unit: "杯", note: "8 oz 杯" }, price: { perG: 2.34 / (32 * FL_OZ * 1.03), note: "Walmart 市价：Great Value 柠檬汁 32 oz $2.34" } },
-      { zh: "菠萝汁", en: "Pineapple Juice", g: 492, est: { qty: 2, unit: "杯", note: "16 oz" }, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
+      { zh: "橙汁", en: "Orange Juice", g: 185, est: { qty: 0.5, unit: "杯", note: "12 oz 杯" }, price: { perG: 5.58 / (GAL_ML * 1.045), note: "Walmart 市价：Great Value 100% 橙汁 1 gal $5.58" } },
+      { zh: "白糖", en: "Sugar", g: 150, est: { qty: 0.5, unit: "杯", note: "12 oz 杯" }, price: { perG: 3.24 / (4 * LB), note: "估：白糖 4 lb ~$3.24" } },
+      { zh: "柠檬汁", en: "Lemon Juice", g: 91, est: { qty: 0.25, unit: "杯", note: "12 oz 杯" }, price: { perG: 2.34 / (32 * FL_OZ * 1.03), note: "Walmart 市价：Great Value 柠檬汁 32 oz $2.34" } },
+      { zh: "菠萝汁", en: "Pineapple Juice", g: 369, est: { qty: 1, unit: "杯", note: "12 oz 杯" }, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
       { zh: "蒜粉", en: "Garlic Powder", g: 19, est: { qty: 2, unit: "大勺" }, price: { perG: 1.08 / (3.4 * G_PER_OZ), note: "Walmart 市价：Great Value 3.4 oz $1.08" } },
       { zh: "红椒粉", en: "Paprika", g: 14, est: { qty: 2, unit: "大勺" }, price: { perG: 1.08 / (2.5 * G_PER_OZ), note: "Walmart 市价：Great Value 2.5 oz $1.08" } },
       { zh: "黑胡椒粉", en: "Black Pepper", g: 7, est: { qty: 1, unit: "大勺" }, price: { perG: 18.24 / (18 * G_PER_OZ), note: "Walmart 市价：Great Value 18 oz $18.24" } },
-      { zh: "美乃滋", en: "Mayonnaise", g: 1250, est: { qty: 45, unit: "oz", note: "最后挤到 80 oz 线" }, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
+      { zh: "美乃滋", en: "Mayonnaise", g: 1475, est: { qty: 53, unit: "oz", note: "最后挤到 80 oz 线" }, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
     ],
     storeBought: { label: "Terry Ho's Yum Yum", perOz: 4.87 / 16, note: "收据 09-25 Walmart：16 fl oz ×6 瓶 $29.22" },
   },
