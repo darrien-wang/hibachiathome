@@ -5,6 +5,7 @@ import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
 import { TileMap } from "@/components/schedule/TileMap"
+import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 
 // 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
 // 排班规则照的是他们人工的算法，见 lib/dispatch.ts。
@@ -88,6 +89,41 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   const [err, setErr] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // 后勤备货单：这一天所有单一次打出来，或者按备货负责人分开打（老板 2026-10-16：
+  // "不要一个一个点进去打印"）。数据和订单弹窗那个按钮同一个接口。
+  const [coolers, setCoolers] = useState<CoolerParty[] | null>(null)
+  useEffect(() => {
+    let dead = false
+    void adminJson<{ orders: Array<{ cooler?: CoolerParty }> }>(adminKey, `/api/admin/prep?date=${date}`)
+      .then((r) => {
+        if (!dead) setCoolers(r.orders.map((o) => o.cooler).filter((c): c is CoolerParty => !!c))
+      })
+      .catch(() => {
+        if (!dead) setCoolers([])
+      })
+    return () => {
+      dead = true
+    }
+  }, [adminKey, date])
+  const coolerGroups = useMemo(() => {
+    const by = new Map<string, CoolerParty[]>()
+    for (const c of coolers ?? []) {
+      const k = c.owner?.trim() || "还没定负责人"
+      by.set(k, [...(by.get(k) ?? []), c])
+    }
+    return Array.from(by.entries())
+  }, [coolers])
+  const printCoolers = (parties: CoolerParty[]) => {
+    const html = coolerSheetHtml(date, parties)
+    const w = window.open("", "_blank")
+    if (w) {
+      w.document.open()
+      w.document.write(html)
+      w.document.close()
+    } else {
+      window.location.assign(URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" })))
+    }
+  }
   // 默认看最稳的那版：冒不冒险得是老板自己点过去看的，不是打开就替他选好。
   const [tier, setTier] = useState<string>("safe")
   const [assigning, setAssigning] = useState<number | null>(null)
@@ -443,6 +479,30 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
               </div>
               )
             })}
+
+            <div style={{ marginTop: 14, border: "2px solid var(--color-text)", padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>打印后勤备货单</div>
+                {coolers && coolers.length ? (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => printCoolers(coolers)}>
+                    全部打印（{coolers.length} 张）
+                  </button>
+                ) : null}
+              </div>
+              {coolers === null ? <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>读取中…</div> : null}
+              {coolers && !coolers.length ? <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>这天没有要备的单。</div> : null}
+              {coolerGroups.length > 1 || (coolerGroups.length === 1 && coolerGroups[0][0] !== "还没定负责人") ? (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 8, fontSize: 13 }}>
+                  <span style={{ color: "var(--color-neutral-600)" }}>按负责人：</span>
+                  {coolerGroups.map(([who, list]) => (
+                    <button key={who} type="button" className="btn btn-secondary btn-sm" onClick={() => printCoolers(list)}>
+                      {who}（{list.length} 张）
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>一单一页，按开席时间排；负责人在订单弹窗"备货负责人"里选。</div>
+            </div>
 
             <div style={{ marginTop: 14, border: "2px solid var(--color-text)", padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
