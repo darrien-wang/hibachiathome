@@ -104,7 +104,9 @@ const OZ_PER = { zucchini: 11, onion: 12 } // 09-22 用实际收据校准：8 �
 const BAG_OZ = { broccoli: 32, carrots: 32 } // Walmart 袋装；胡萝卜 1 袋 = 2 lb（老板 2026-10-11，原来错记成 12oz）
 // 三文鱼现在买分装好的，拆袋后按个数（老板 2026-09-30）：1 个 = 2 份 = 8 oz。
 // 原来 Marketside 2 lb 真空袋 = 5 块的口径作废——拆开以后数不清还算几袋。
-const SALMON_PIECE_OZ = 8
+// 三文鱼（老板 2026-10-16 改在 Costco 买）：Kirkland Fresh Farmed Atlantic Salmon Fillet，
+// 整片按重量卖，一盒约 2.57 lb = 41 oz ≈ 10 份（每份 4 oz），自己切份。
+const SALMON_PACK_OZ = 41
 const SHRIMP_PER_LB = 18 // 16/20 规格取中
 const EGGS_PER_BOX = 36
 // 西冷（老板 2026-10-12）：Costco 的 Kirkland Signature USDA Choice Top Sirloin（去盖 Cap Off，
@@ -152,7 +154,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   // 肋眼没有固定包装规格，按重量买（份量同西冷 4.5 oz，宁多勿少走 BUFFER）
   if (id === "ribeye") return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp((qty * BUFFER) / 16)} lb`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
-  if (id === "salmon") return `≈ ${r1(qty / 4)} 份，要 ${Math.max(1, Math.ceil(qty / SALMON_PIECE_OZ))} 个（分装，1 个 = 2 份）`
+  if (id === "salmon") return `≈ ${r1(qty / 4)} 份，买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_PACK_OZ))} 盒（Costco 三文鱼整片 ≈2.57lb/盒）`
   if (id === "shrimp") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / 43))} 袋（1 袋 = 43 只，09-24 实数）`
   if (id === "eggs") return `带 ${Math.ceil(qty * BUFFER) + 1} 个（combo 装 2 盒一提 = 36 个，要 ${Math.max(1, Math.ceil((qty * BUFFER + 1) / EGGS_PER_BOX))} 提）`
   if (unit === "oz" && qty >= 16) return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp(qty / 16)} lb`
@@ -376,7 +378,7 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   steak: { per: STEAK_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Top Sirloin ≈3.2lb/盒" },
   chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
   filet_mignon: { per: FILET_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Tenderloin ≈2.3lb/盒" },
-  salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" }, // 一袋几个还没定，定了加 big: { noun: "袋", count }
+  salmon: { per: SALMON_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Atlantic Salmon Fillet ≈2.57lb/盒" },
   lobster_tail: { per: 6, noun: "个", desc: "1 个 = 1 位客人，1 盒 = 2 个", big: { noun: "盒", count: 2 } },
   scallops: { per: 1, noun: "个", desc: "1 个 ≈ 1 oz，每人 4 个；RD 5lb 袋 ≈ 20 人份", big: { noun: "袋", count: 80 } },
   shrimp: { per: 1, noun: "只", desc: "1 袋 = 43 只", big: { noun: "袋", count: 43 } },
