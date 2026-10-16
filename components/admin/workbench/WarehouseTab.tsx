@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
-import type { PrepGroup } from "@/lib/prep-bom"
+import { basisOf, type PrepGroup } from "@/lib/prep-bom"
 import { bulkName, isBulkItem } from "@/lib/pantry"
 import { SauceCalc } from "./SauceCalc"
 import BuyListTab from "./BuyListTab"
@@ -1082,11 +1082,13 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
       // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
       ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
       if (short > 0) {
-        const store = resp.stores[row.id]?.channel ?? "Walmart"
+        // 去哪买 = 这一项在仓库里记的"补货渠道"，记了收据会自动更新成最近一次实际买的地方
+        // （老板 2026-10-16：不要硬塞到 Walmart，按我们现在实际在哪买分）。
+        const store = resp.stores[row.id]?.channel?.trim() || "还没定在哪买"
         ;(buy[store] = buy[store] ?? []).push(line)
       }
     }
-    const order = ["Walmart", "Restaurant Depot", "Instacart", "Amazon"]
+    const order = ["Costco", "Walmart", "Restaurant Depot", "Instacart", "Amazon", "还没定在哪买"]
     const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
     const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry"]
     const all = GROUP_ORDER.flatMap((g) => byGroup[g] ?? [])
@@ -1157,9 +1159,10 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                      要 {fmtNeed(row.qty, row.pack, row.unit)} · 在库 {fmtCount(have, row.pack, row.unit)}
+                      要 {row.pack && row.pack.per !== 1 ? `${r1(row.qty)} ${row.unit}（≈ ${fmtNeed(row.qty, row.pack, row.unit)}）` : fmtNeed(row.qty, row.pack, row.unit)} · 在库 {fmtCount(have, row.pack, row.unit)}
                       {row.pack?.desc ? ` · ${row.pack.desc}` : ""}
                     </div>
+                    {basisOf(row.id) ? <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>按 {basisOf(row.id)}</div> : null}
                   </div>
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
                     {buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${buyNoun(row.pack)}`}

@@ -168,6 +168,19 @@ export async function POST(request: NextRequest) {
       id = data.id as string
     }
 
+    // 去哪买跟着实际采购走（老板 2026-10-16）：这张收据里出现的品项，仓库里记的"补货渠道"
+    // 改成这次买的地方。备货页按它分组——哪天牛排又改回 Walmart 买，记了收据就自动挪过去。
+    const storeName = storeOf(channel, typeof body.store === "string" ? body.store : null, note)
+    const boughtKeys = Array.from(new Set(lines.map((l) => l.itemKey).filter((k): k is string => !!k)))
+    if (storeName && boughtKeys.length) {
+      const latest = await supabase.from("supply_purchases").select("purchased_on").order("purchased_on", { ascending: false }).limit(1).maybeSingle()
+      // 补录旧收据不该把渠道改回旧的地方：只有这张是最近的一张才更新。
+      if (!latest.data || String(latest.data.purchased_on) <= on) {
+        await supabase.from("warehouse_items").update({ buy_channel: storeName, updated_at: new Date().toISOString() }).in("pantry_key", boughtKeys)
+        await supabase.from("warehouse_items").update({ buy_channel: storeName, updated_at: new Date().toISOString() }).is("pantry_key", null).in("item_key", boughtKeys)
+      }
+    }
+
     // 入库：同一张收据（ref）同一个品项只加一次，重发收据不会重复进货。
     const stockIn: Array<{ itemKey: string; qty: number }> = []
     const byItem = new Map<string, number>()
@@ -203,4 +216,19 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 })
+}
+
+/** 收据记的渠道 → 备货页的店名。Instacart 是送货平台，真正的店写在备注里（Restaurant Depot / Costco…）。 */
+function storeOf(channel: string, store: string | null, note: string | null): string | null {
+  if (store && store.trim()) return store.trim().slice(0, 40)
+  const c = channel.toLowerCase()
+  if (c.includes("costco")) return "Costco"
+  if (c.includes("walmart")) return "Walmart"
+  if (c.includes("amazon")) return "Amazon"
+  const n = (note ?? "").toLowerCase()
+  if (n.includes("costco")) return "Costco"
+  if (n.includes("restaurant depot")) return "Restaurant Depot"
+  if (n.includes("walmart")) return "Walmart"
+  if (c.includes("instacart")) return "Instacart"
+  return null
 }

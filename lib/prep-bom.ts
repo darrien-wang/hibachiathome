@@ -110,6 +110,7 @@ const EGGS_PER_BOX = 36
 // 西冷（老板 2026-10-12）：Costco 的 Kirkland Signature USDA Choice Top Sirloin（去盖 Cap Off，
 // 货号 29192），称重卖。Costco 下单页估重 3.69 lb，实际买回来一盒差不多 3.2 lb（老板当天实测），
 // 按实际的算；每盒不一样重。
+const FILET_PACK_OZ = 36.8
 const STEAK_PACK_OZ = 51 // 3.2 lb（老板 2026-10-12：现在 Costco 买的一盒差不多 3.2 lb；之前记的是 3.7 lb / 59 oz）
 
 /** 宁多勿少（用户 09-22 定）：建议买量 = 需求 × 1.1 再向上取整到采购颗粒度。 */
@@ -141,7 +142,8 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   // 龙虾尾盒装 2 只/盒（用户 09-24 定），每只 ≈ 1 个选龙虾的客人（6 oz）
   if (id === "lobster_tail") return `≈ ${Math.ceil(qty / 6)} 只，买 ${Math.max(1, Math.ceil(Math.ceil((qty * BUFFER) / 6) / 2))} 盒（1 盒 = 2 只）`
   // 菲力盒装 ≈0.6 lb/盒 ≈ 2 人份（用户 09-24 定）
-  if (id === "filet_mignon") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 9.6))} 盒（≈0.6lb/盒 ≈ 2 人）`
+  // 菲力（老板 2026-10-16 在 Costco 买）：Kirkland USDA Choice Tenderloin，一盒约 2.3 lb = 36.8 oz ≈ 8 人份。
+  if (id === "filet_mignon") return `≈ ${Math.ceil(qty / 4.5)} 人份，买 ${Math.max(1, Math.ceil((qty * BUFFER) / FILET_PACK_OZ))} 盒（Costco 菲力 ≈2.3lb/盒）`
   // 鸡胸盘平均 4.5 lb/盒（用户 09-24 定），入库按小票实重，买按盒
   if (id === "chicken") return `≈ ${Math.round((qty / 16) * 10) / 10} lb，买 ${Math.max(1, Math.ceil((qty * BUFFER) / 72))} 盒（鸡胸盘 ≈4.5lb/盒）`
   // 西冷按盒：Costco 的大盒按重量算，宁多勿少走 BUFFER。原来 Walmart Family Pack
@@ -373,7 +375,7 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   // 蛋白
   steak: { per: STEAK_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Top Sirloin ≈3.2lb/盒" },
   chicken: { per: 72, noun: "盒", desc: "鸡胸盘 ≈4.5lb" },
-  filet_mignon: { per: 9.6, noun: "盒", desc: "≈0.6lb，1 盒 ≈ 2 人" },
+  filet_mignon: { per: FILET_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Tenderloin ≈2.3lb/盒" },
   salmon: { per: 8, noun: "个", desc: "分装好的，1 个 = 2 份" }, // 一袋几个还没定，定了加 big: { noun: "袋", count }
   lobster_tail: { per: 6, noun: "个", desc: "1 个 = 1 位客人，1 盒 = 2 个", big: { noun: "盒", count: 2 } },
   scallops: { per: 1, noun: "个", desc: "1 个 ≈ 1 oz，每人 4 个；RD 5lb 袋 ≈ 20 人份", big: { noun: "袋", count: 80 } },
@@ -444,6 +446,29 @@ export function splitVeg(item: PrepItem): PrepItem[] {
     const qty = r1(item.qty * v.ratio)
     return { id: v.id, label: v.label, qty, unit: "oz", group: "produce" as PrepGroup, alt: alt(v.id, qty, "oz") }
   })
+}
+
+/**
+ * 这一行的总量是怎么算出来的（每人多少），给备货页写在数量旁边（老板 2026-10-16：
+ * "我想看总重量是按每人多少算的"）。和上面的份量表同一套数，改份量这里跟着变。
+ */
+export function basisOf(id: string): string | null {
+  const p = PROTEIN_PORTIONS[id]
+  if (p) return `每份 ${p.adult} ${p.unit === "pcs" ? "只" : p.unit}，小孩 ${p.child}${id === "shrimp" ? "" : ""}`
+  if (id === "mixed_vege") return `上桌每人 5 oz 净重；算的是去皮去头尾前的毛重，每人 ${VEGE_OZ.adult} oz（小孩一半）`
+  const mix = VEGE_MIX.find((v) => v.id === id)
+  if (mix) return `蔬菜毛重每人 ${VEGE_OZ.adult} oz 里占 ${Math.round(mix.ratio * 100)}%（每人约 ${r1(VEGE_OZ.adult * mix.ratio)} oz）`
+  if (id === "fried_rice") return `每人 ${FRIED_RICE.adult} oz 熟饭，小孩 ${FRIED_RICE.child}`
+  if (id === "salad") return `每人 ${SALAD.adult} 份（约 1 oz），小孩一半`
+  if (id === "eggs") return "每人 1 个"
+  if (id === "noodles") return `点了面的每人 ${NOODLE_PORTION.adult} oz 熟面（小孩 ${NOODLE_PORTION.child}），按干面 = 熟面 ÷ ${NOODLE_COOKED_PER_DRY}`
+  if (id === "gyoza") return `每份前菜 ${PORTION_POLICY.gyozaPcs} 个`
+  if (id === "spring_rolls") return `每份前菜 ${PORTION_POLICY.springRollPcs} 个`
+  if (id === "edamame") return "每份前菜 1 袋"
+  if (id === "lime") return "有海鲜的单，每 10 人半个"
+  const m = MISC_PER_PERSON.find((x) => x.id === id)
+  if (m) return `每人 ${m.amount} ${m.unit}`
+  return null
 }
 
 export function aggregatePrep(all: PrepItem[]): PrepItem[] {
