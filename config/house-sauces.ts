@@ -42,7 +42,6 @@ export type SauceRecipe = {
 export const G_PER_OZ = 28.35
 const LB = 453.6
 const FL_OZ = 29.57
-const QT_ML = 946.35
 const GAL_ML = 3785.4
 /** 美乃滋的密度（g/ml）：Yum Yum 配方"三加仑 = 10,656 g"反推出来的 */
 const MAYO = 0.94
@@ -86,22 +85,24 @@ export const HOUSE_SAUCES: SauceRecipe[] = [
     name: "Yum Yum",
     perGuestOz: 2,
     bottleOz: 16,
-    batchLabel: "一锅 19,450 g（约 686 oz，42.9 lb）",
+    // 老板 2026-10-11 的简化做法（自己试过、好吃）：80 oz 搅拌机一罐，用 8 oz 的杯子量，
+    // 美乃滋最后挤到 80 oz 线。取代原来那锅 19 kg 的大配方（带黄油、味醂、糖浆）。
+    // 克数是按杯子换算的：橙汁 1 杯 ≈ 247 g、白糖 1 杯 ≈ 200 g、柠檬汁半杯 ≈ 122 g、
+    // 菠萝汁 16 oz ≈ 492 g；美乃滋 = 80 oz 减去前面的液体和糖粉体积 ≈ 45 oz ≈ 1,250 g。
+    batchLabel: "一罐 = 80 oz 搅拌机满线（约 2,350 g），用 8 oz 杯子量",
     notes: [
-      "糖浆按 1,650 g 称（约 1.4 夸脱 1:1 糖水）。原配方写“两夸脱、密度约 0.85 g/ml”——糖水比水重（约 1.25 g/ml），两夸脱应该有 ~2,400 g；按 1,650 g 做会比原来淡一些，试过味定了再改这里。",
-      "Mirin 是建议新加的一样，不加就少这一项（一锅约 $5）。",
+      "做法：橙汁、糖、柠檬汁、菠萝汁、三样粉先倒进搅拌机打到糖化开，再挤美乃滋到 80 oz 线；先点动几下让美乃滋沉下去再补满。",
+      "不放黄油、不放味醂。美乃滋不用称，挤到线就行，下面写的美乃滋量是大概数。",
     ],
     ingredients: [
-      { zh: "蛋黄酱", en: "Mayonnaise", g: 10700, est: { qty: 10700 / (GAL_ML * MAYO), unit: "加仑" }, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
-      { zh: "橙汁", en: "Orange Juice", g: 2850, est: { qty: 2850 / (QT_ML * 1.045), unit: "夸脱" }, price: { perG: 5.58 / (GAL_ML * 1.045), note: "Walmart 市价：Great Value 100% 橙汁 1 gal $5.58" } },
-      { zh: "菠萝汁", en: "Pineapple Juice", g: 1900, est: { qty: 1900 / (QT_ML * 1.04), unit: "夸脱" }, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
-      { zh: "柠檬汁", en: "Lemon Juice", g: 950, est: { qty: 950 / (QT_ML * 1.03), unit: "夸脱" }, price: { perG: 2.34 / (32 * FL_OZ * 1.03), note: "Walmart 市价：Great Value 柠檬汁 32 oz $2.34" } },
-      { zh: "糖浆", en: "Sugar syrup", g: 1650, est: { qty: 1650 / (QT_ML * 1.25), unit: "夸脱", note: "1:1 糖水" }, price: { perG: SYRUP_PER_G, note: SYRUP_NOTE } },
-      { zh: "味醂", en: "Mirin", g: 750, est: { qty: 750 / (QT_ML * 1.17), unit: "夸脱" }, price: { perG: 13.89 / (60 * FL_OZ * 1.17), note: "市价：Kikkoman Aji-Mirin 60 oz $13.89（CHEF'STORE）" } },
-      { zh: "黄油", en: "Butter", g: 340, est: { qty: 3, unit: "条", note: "每条约 113 g" }, price: { perG: 5.96 / (4 * 113.4), note: "收据 09-25 Walmart：GV 黄油 4 根 $5.96" } },
-      { zh: "蒜粉", en: "Garlic Powder", g: 130, est: { qty: 130 / G_PER_OZ, unit: "oz" }, price: { perG: 1.08 / (3.4 * G_PER_OZ), note: "Walmart 市价：Great Value 3.4 oz $1.08" } },
-      { zh: "黑胡椒粉", en: "Black Pepper", g: 50, est: { qty: 50 / G_PER_OZ, unit: "oz" }, price: { perG: 18.24 / (18 * G_PER_OZ), note: "Walmart 市价：Great Value 18 oz $18.24" } },
-      { zh: "辣椒粉", en: "Paprika", g: 130, est: { qty: 130 / G_PER_OZ, unit: "oz" }, price: { perG: 1.08 / (2.5 * G_PER_OZ), note: "Walmart 市价：Great Value 2.5 oz $1.08" } },
+      { zh: "橙汁", en: "Orange Juice", g: 247, est: { qty: 1, unit: "杯", note: "8 oz 杯" }, price: { perG: 5.58 / (GAL_ML * 1.045), note: "Walmart 市价：Great Value 100% 橙汁 1 gal $5.58" } },
+      { zh: "白糖", en: "Sugar", g: 200, est: { qty: 1, unit: "杯", note: "8 oz 杯" }, price: { perG: 3.24 / (4 * LB), note: "估：白糖 4 lb ~$3.24" } },
+      { zh: "柠檬汁", en: "Lemon Juice", g: 122, est: { qty: 0.5, unit: "杯", note: "8 oz 杯" }, price: { perG: 2.34 / (32 * FL_OZ * 1.03), note: "Walmart 市价：Great Value 柠檬汁 32 oz $2.34" } },
+      { zh: "菠萝汁", en: "Pineapple Juice", g: 492, est: { qty: 2, unit: "杯", note: "16 oz" }, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
+      { zh: "蒜粉", en: "Garlic Powder", g: 19, est: { qty: 2, unit: "大勺" }, price: { perG: 1.08 / (3.4 * G_PER_OZ), note: "Walmart 市价：Great Value 3.4 oz $1.08" } },
+      { zh: "红椒粉", en: "Paprika", g: 14, est: { qty: 2, unit: "大勺" }, price: { perG: 1.08 / (2.5 * G_PER_OZ), note: "Walmart 市价：Great Value 2.5 oz $1.08" } },
+      { zh: "黑胡椒粉", en: "Black Pepper", g: 7, est: { qty: 1, unit: "大勺" }, price: { perG: 18.24 / (18 * G_PER_OZ), note: "Walmart 市价：Great Value 18 oz $18.24" } },
+      { zh: "美乃滋", en: "Mayonnaise", g: 1250, est: { qty: 45, unit: "oz", note: "最后挤到 80 oz 线" }, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
     ],
     storeBought: { label: "Terry Ho's Yum Yum", perOz: 4.87 / 16, note: "收据 09-25 Walmart：16 fl oz ×6 瓶 $29.22" },
   },
