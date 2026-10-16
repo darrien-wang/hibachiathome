@@ -23,6 +23,7 @@ import {
 import { ringOpenCallbacks } from "@/lib/callback-ring"
 import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { loadQuiet } from "@/lib/lead-hold"
+import { cityForZip } from "@/lib/zip-city"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
@@ -229,7 +230,8 @@ type ContactPayload = {
 function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: string; emailText: string } {
   const adults = Math.max(1, Math.round(Number(p.adults) || 15))
   const kids = Math.max(0, Math.round(Number(p.kids) || 0))
-  const city = (p.cityName ?? "").trim()
+  const typed = (p.cityName ?? "").trim()
+  const city = cityForZip(typed) || typed // "92201" -> "Indio"
   const travel = Math.max(0, Math.round(Number(p.travelFee) || 0))
   const weekend = calcSimpleEstimate({ adults, kids, weekdaySpecial: false }).total
   const weekday = calcSimpleEstimate({ adults, kids, weekdaySpecial: true }).total
@@ -542,7 +544,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
         kids: Number(payload.kids ?? lead.child_count ?? 0) || 0,
         eventDate: payload.eventDate ?? null,
-        city: payload.cityName ?? null,
+        city: cityForZip(payload.cityName) || payload.cityName || null,
         todayPt: ptDate(now),
         numberUnknown: defaultLeave,
       })

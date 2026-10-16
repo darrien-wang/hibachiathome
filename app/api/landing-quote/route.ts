@@ -9,6 +9,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 import { getCityTravel } from "@/config/city-travel"
 import { placeName } from "@/lib/first-response"
+import { cityForZip } from "@/lib/zip-city"
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
@@ -115,8 +116,8 @@ export async function POST(request: NextRequest) {
 
   const cityName = asStr(body.cityName, 60) || "Southern California"
   // What the customer reads: the card's cityName is whatever they typed ("idyllwild").
-  // ZIPs and region labels have no town to capitalize and stay as typed.
-  const cityLabel = placeName(cityName) || cityName
+  // A ZIP becomes its town ("92201" -> "Indio"); region labels stay as typed.
+  const cityLabel = placeName(cityName) || cityForZip(cityName) || cityName
   const citySlug = asStr(body.citySlug, 60).replace(/[^a-z0-9-]/gi, "") || "socal"
   const source = asStr(body.source, 60) || `landing_${citySlug.replace(/-/g, "_")}`
   const adults = asInt(body.adults, 1, 200)
