@@ -50,8 +50,6 @@ const MAYO_PER_G = 2.97 / (30 * FL_OZ * MAYO)
 const MAYO_NOTE = "Walmart 市价：Great Value 30 oz $2.97（RD 1 gal $15.99 按克算反而贵）"
 const PINEAPPLE_PER_G = 4.62 / (46 * FL_OZ * 1.04)
 const PINEAPPLE_NOTE = "Walmart 市价：Dole 46 oz $4.62"
-const SYRUP_PER_G = 3.24 / (4 * LB) / 2
-const SYRUP_NOTE = "估：自己熬 1:1 糖水，白糖 4 lb ~$3.24"
 
 export const HOUSE_SAUCES: SauceRecipe[] = [
   {
@@ -59,22 +57,30 @@ export const HOUSE_SAUCES: SauceRecipe[] = [
     name: "姜汁酱",
     perGuestOz: 1,
     bottleOz: 16,
-    batchLabel: "标准一锅 48 oz（各料合计 1,350 g，配方标题写 1.36 kg 是取整）",
+    // 10-16 老板："我也不想称重，最好直接能够按照体积量"。和 Yum Yum 一样改成 80 oz 搅拌机一罐、
+    // 用 16 oz 杯子量（老板："比如一个16oz的杯子"）：原来 48 oz 那锅按 5/3 倍放大，再取整到
+    // "几个 / 几杯 / 几大勺"——蔬果按个、六样液体各 1/4 杯（= 4 oz）、糖浆换成白糖 4 大勺、美乃滋最后补到 80 oz 线。
+    // 下面的克数是这些体积/个数换算出来的，只给按人数放大和算成本用，做的时候不用称。
+    batchLabel: "一罐 = 80 oz 搅拌机满线（约 2,370 g），按个数和 16 oz 杯子量",
+    notes: [
+      "做法：洋葱、胡萝卜、生姜、芹菜、橙子、柠檬（橙柠去皮）切块，连同六样液体和糖一起打成泥，最后补美乃滋到 80 oz 线，再点动几下拌匀。",
+      "姜和洋葱的大小最影响味道：姜按鸡蛋大一个半，洋葱用中等大小的。第一锅尝一下再调。",
+    ],
     ingredients: [
-      { zh: "洋葱", en: "Onion", g: 130, est: { qty: 0.5, unit: "颗", note: "中等洋葱" }, price: { perG: 5.82 / (7.5 * LB), note: "收据 09-25 Walmart：7 个 7.5 lb $5.82" } , base: true },
-      { zh: "胡萝卜", en: "Carrot", g: 75, est: { qty: 0.5, unit: "根", note: "中等胡萝卜" }, price: { perG: 2.26 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $2.26" } , base: true },
-      { zh: "生姜", en: "Ginger", g: 45, est: { qty: 1, unit: "小块", note: "鸡蛋大小" }, price: { perG: 3.97 / LB, note: "Walmart 市价 $3.97/lb" } , base: true },
-      { zh: "芹菜", en: "Celery", g: 30, est: { qty: 1 / 16, unit: "颗", note: "或几根茎" }, price: { perG: 1.98 / (1.5 * LB), note: "估：一把 ~$1.98 ≈ 1.5 lb" } , base: true },
-      { zh: "橙子", en: "Orange", g: 130, est: { qty: 0.5, unit: "个" }, price: { perG: 5 / (4 * LB), note: "估：navel 4 lb 袋 ~$5" } , base: true },
-      { zh: "柠檬", en: "Lemon", g: 65, est: { qty: 0.5, unit: "个" }, price: { perG: 3.92 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $3.92" } , base: true },
-      { zh: "菠萝汁", en: "Pineapple Juice", g: 60, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
-      { zh: "苹果酱", en: "Applesauce", g: 60, price: { perG: 2.68 / (48 * G_PER_OZ), note: "估：Great Value 48 oz ~$2.68" } },
-      { zh: "白醋", en: "White Vinegar", g: 60, price: { perG: 3.94 / (GAL_ML * 1.01), note: "Walmart 市价：Great Value 白醋 1 gal $3.94（老板 09-30 确认用白醋）" } , base: true },
-      { zh: "番茄酱", en: "Ketchup", g: 60, price: { perG: 2.98 / (64 * G_PER_OZ), note: "估：Great Value 64 oz ~$2.98" } },
-      { zh: "酱油", en: "Soy Sauce", g: 60, price: { perG: 39.99 / (5 * 128 * FL_OZ * 1.17), note: "收据 09-18 RD：Kikkoman 5 gal $39.99" } , base: true },
-      { zh: "油", en: "Oil", g: 60, price: { perG: 45.99 / (35 * LB), note: "收据 09-18 RD：大豆油 35 lb $45.99" } },
-      { zh: "糖浆", en: "Sugar syrup", g: 55, price: { perG: SYRUP_PER_G, note: SYRUP_NOTE } },
-      { zh: "美乃滋", en: "Mayonnaise", g: 460, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
+      { zh: "洋葱", en: "Onion", g: 217, est: { qty: 1, unit: "个", note: "中等大小" }, price: { perG: 22.99 / (50 * LB), note: "收据 10-16 RD：Jumbo 洋葱 50 lb $22.99" } , base: true },
+      { zh: "胡萝卜", en: "Carrot", g: 125, est: { qty: 1, unit: "根", note: "中等" }, price: { perG: 7.99 / (10 * LB), note: "收据 10-16 RD：胡萝卜 10 lb $7.99" } , base: true },
+      { zh: "生姜", en: "Ginger", g: 75, est: { qty: 1, unit: "块", note: "鸡蛋大一个半" }, price: { perG: 3.97 / LB, note: "Walmart 市价 $3.97/lb" } , base: true },
+      { zh: "芹菜", en: "Celery", g: 50, est: { qty: 1, unit: "根" }, price: { perG: 1.98 / (1.5 * LB), note: "估：一把 ~$1.98 ≈ 1.5 lb" } , base: true },
+      { zh: "橙子", en: "Orange", g: 217, est: { qty: 1, unit: "个", note: "去皮" }, price: { perG: 5 / (4 * LB), note: "估：navel 4 lb 袋 ~$5" } , base: true },
+      { zh: "柠檬", en: "Lemon", g: 108, est: { qty: 1, unit: "个", note: "去皮" }, price: { perG: 3.92 / (2 * LB), note: "收据 09-25 Walmart：2 lb 袋 $3.92" } , base: true },
+      { zh: "菠萝汁", en: "Pineapple Juice", g: 123, est: { qty: 0.25, unit: "杯", note: "16 oz 杯" }, price: { perG: PINEAPPLE_PER_G, note: PINEAPPLE_NOTE } },
+      { zh: "苹果酱", en: "Applesauce", g: 124, est: { qty: 0.25, unit: "杯", note: "16 oz 杯" }, price: { perG: 2.68 / (48 * G_PER_OZ), note: "估：Great Value 48 oz ~$2.68" } },
+      { zh: "白醋", en: "White Vinegar", g: 119, est: { qty: 0.25, unit: "杯", note: "16 oz 杯" }, price: { perG: 3.94 / (GAL_ML * 1.01), note: "Walmart 市价：Great Value 白醋 1 gal $3.94（老板 09-30 确认用白醋）" } , base: true },
+      { zh: "番茄酱", en: "Ketchup", g: 136, est: { qty: 0.25, unit: "杯", note: "16 oz 杯" }, price: { perG: 2.98 / (64 * G_PER_OZ), note: "估：Great Value 64 oz ~$2.98" } },
+      { zh: "酱油", en: "Soy Sauce", g: 138, est: { qty: 0.25, unit: "杯", note: "16 oz 杯" }, price: { perG: 39.99 / (5 * 128 * FL_OZ * 1.17), note: "收据 09-18 RD：Kikkoman 5 gal $39.99" } , base: true },
+      { zh: "油", en: "Oil", g: 109, est: { qty: 0.25, unit: "杯", note: "16 oz 杯" }, price: { perG: 45.99 / (35 * LB), note: "收据 09-18 RD：大豆油 35 lb $45.99" } },
+      { zh: "白糖", en: "Sugar", g: 50, est: { qty: 4, unit: "大勺" }, price: { perG: 3.24 / (4 * LB), note: "估：白糖 4 lb ~$3.24" } },
+      { zh: "美乃滋", en: "Mayonnaise", g: 778, est: { qty: 28, unit: "oz", note: "最后补到 80 oz 线" }, price: { perG: MAYO_PER_G, note: MAYO_NOTE } },
     ],
     storeBought: { label: "Terry Ho's 姜汁酱", perOz: 4.82 / 16, note: "收据 09-22 / 09-25 Walmart：16 fl oz $4.82" },
     baseHowTo:
