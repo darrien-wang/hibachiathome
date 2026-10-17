@@ -3,7 +3,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { computeQuote, quoteSms } from "../components/admin/workbench/quote-tool"
+import { computeQuote, isSaturday, quotePromiseNote, quoteSms, TABLES_HALF_PRICE } from "../components/admin/workbench/quote-tool"
 import { LARGE_PARTY_FLOOR, PRICE_FLOOR_PER_HEAD } from "../config/pricing-rules"
 
 const r2 = (n: number) => Math.round(n * 100) / 100
@@ -100,4 +100,56 @@ test("signing · a weekday special rate is signed with the $5 added back (the in
   const q = computeQuote({ adults: 20, kids: 0, weekdaySpecial: true, travelFee: 0, adultRate: 49.9 })
   assert.equal(q.adultPrice, 49.9)
   assert.equal(q.deal?.adultRate, 54.9)
+})
+
+test("tables · Saturday half price (D-1017-01): $5 a guest is billed inside the total and signed as a rate, not a dollar amount", () => {
+  const q = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, eventDate: "2026-10-17", travelFee: 0, tablesRate: TABLES_HALF_PRICE })
+  // 20 x $59.90 = $1,198 + tables 20 x $5 - $60 (15-24 tier) = $1,238 - what the invoice bills
+  // ($10 a guest, then a "Tables & Chairs at $5/guest" line taking $5 a guest back off).
+  assert.equal(q.tablesRate, 5)
+  assert.equal(q.tablesCharge, 100)
+  assert.equal(q.total, 1238)
+  assert.deepEqual(q.deal, { extraRates: { tables_chairs: 5 } })
+  const sms = quoteSms(q, {})
+  assert.match(sms, /Tables & chairs: 20 guests x \$5\.00 \(half price\) = \$100\.00/)
+  assert.match(sms, /Discount: -\$60\.00/)
+  assert.match(sms, /Total: \$1,238\.00/)
+  assert.doesNotMatch(sms, /tables and chairs on us/i, "half price is a price, not a gift")
+  assert.match(quotePromiseNote(q, ""), /桌椅半价 \$5\.00\/人/)
+})
+
+test("tables · half price is no concession on the floor: $5 paid covers the $4 they cost, and the $5 is not food", () => {
+  const plain = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, travelFee: 0 })
+  const half = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, travelFee: 0, tablesRate: TABLES_HALF_PRICE })
+  const free = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, travelFee: 0, freeTables: true })
+  assert.equal(half.effectivePerHead, plain.effectivePerHead)
+  assert.equal(free.effectivePerHead, r2(plain.effectivePerHead - 4))
+  assert.equal(half.freeValue, 0)
+})
+
+test("tables · at the $599 minimum the half-price tables sit inside it, as the invoice bills them", () => {
+  // 8 x $59.90 = $479.20 + $40 tables = $519.20 -> $599
+  const q = computeQuote({ adults: 8, kids: 0, weekdaySpecial: false, travelFee: 0, tablesRate: TABLES_HALF_PRICE })
+  assert.equal(q.total, 599)
+  assert.equal(q.minApplied, true)
+  assert.match(quoteSms(q, {}), /Party minimum: \$599\.00/)
+})
+
+test("tables · free wins over a rate, and a rate at or above $10 (or zero) is not a deal", () => {
+  const q = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, travelFee: 0, freeTables: true, tablesRate: TABLES_HALF_PRICE })
+  assert.equal(q.tablesRate, null)
+  assert.deepEqual(q.deal, { freeExtraIds: ["tables_chairs"] })
+  for (const tablesRate of [10, 12, 0, -5, Number.NaN]) {
+    const r = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, travelFee: 0, tablesRate })
+    assert.equal(r.tablesRate, null, `rate ${tablesRate}`)
+    assert.equal(r.deal, null)
+  }
+})
+
+test("tables · isSaturday reads the party date (D-1017-01: Saturdays get half price at most)", () => {
+  assert.equal(isSaturday("2026-10-17"), true)
+  assert.equal(isSaturday("2026-10-18"), false)
+  assert.equal(isSaturday("2026-10-16"), false)
+  assert.equal(isSaturday(""), false)
+  assert.equal(isSaturday(null), false)
 })

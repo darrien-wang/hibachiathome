@@ -36,7 +36,7 @@ import { PlannerPill, type PlannerSession } from "./planner-live"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, normalizePricingTerms } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
-import { computeQuote, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, usd, type QuoteAppetizer } from "./quote-tool"
+import { computeQuote, isSaturday, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, TABLES_HALF_PRICE, usd, type QuoteAppetizer } from "./quote-tool"
 
 // 线索弹窗 · 客服：对话 + 承诺 + 操作. Everything a person does with a lead
 // before the deposit lands. Writes go through /api/admin/leads (PATCH) and
@@ -104,7 +104,8 @@ export function LeadDialog({
   const [flatOff, setFlatOff] = useState("")
   const [appId, setAppId] = useState<"" | QuoteAppetizer>("")
   const [appTrays, setAppTrays] = useState("")
-  const [freeTables, setFreeTables] = useState(false)
+  // 桌椅换锁日期（D-1017-01）：周六最多半价 $5/人，周日到周五最多免费。
+  const [tables, setTables] = useState<"" | "half" | "free">("")
   const [freeUtensils, setFreeUtensils] = useState(false)
   // Below the owner's floor (D-1006-06) the quote only goes out once the owner has said yes.
   const [floorOk, setFloorOk] = useState(false)
@@ -190,10 +191,11 @@ export function LeadDialog({
         adultRate: Number(rate) || null,
         flatOff: Number(flatOff) || null,
         freeAppetizer: appId && Number(appTrays) > 0 ? { id: appId, trays: Math.floor(Number(appTrays)) } : null,
-        freeTables,
+        freeTables: tables === "free",
+        tablesRate: tables === "half" ? TABLES_HALF_PRICE : null,
         freeUtensils,
       }),
-    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, freeTables, freeUtensils],
+    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, tables, freeUtensils],
   )
   const qLabel = quoteDateLabel(qDate || lead.event_hint, qTime)
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
@@ -638,10 +640,11 @@ export function LeadDialog({
               {appId ? (
                 <input className="input" style={{ width: 80 }} type="number" min={1} value={appTrays} onChange={(e) => setAppTrays(e.target.value)} placeholder="盘数" aria-label="盘数" />
               ) : null}
-              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <input type="checkbox" checked={freeTables} onChange={(e) => setFreeTables(e.target.checked)} />
-                桌椅
-              </label>
+              <select className="input" style={{ width: "auto" }} value={tables} onChange={(e) => setTables(e.target.value as "" | "half" | "free")} aria-label="桌椅">
+                <option value="">桌椅不送</option>
+                <option value="half">桌椅半价 ${TABLES_HALF_PRICE}/人</option>
+                <option value="free">桌椅免费</option>
+              </select>
               <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <input type="checkbox" checked={freeUtensils} onChange={(e) => setFreeUtensils(e.target.checked)} />
                 餐具
@@ -668,7 +671,7 @@ export function LeadDialog({
                 <div style={{ color: quote.belowFloor ? "var(--color-danger-600, #b91c1c)" : undefined, fontWeight: quote.belowFloor ? 600 : undefined }}>
                   人均实收 ${quote.effectivePerHead.toFixed(2)}（底线 {quote.floorRate < (weekday ? 45 : 50) ? "40 人以上" : weekday ? "周一–四" : "周五–日"} ${quote.floorRate}
                   {quote.kids ? "，小孩算半个" : ""}
-                  {freeTables ? "，桌椅按 $4/人计入" : ""}）
+                  {tables === "free" ? "，桌椅按 $4/人计入" : ""}）
                   {quote.belowFloor ? (
                     <label style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 8 }}>
                       <input type="checkbox" checked={floorOk} onChange={(e) => setFloorOk(e.target.checked)} />
@@ -681,6 +684,14 @@ export function LeadDialog({
                 <div style={{ color: "var(--color-warning-700, #b45309)" }}>
                   低于平时底线 → 按半自助做：表演照做，食物放桌上大盘自己添，{quote.semiBuffetChefs} 个厨师（50 人一个）。报价短信里已写明 family-style。
                 </div>
+              ) : null}
+              {quote.tablesRate !== null ? (
+                <div>
+                  桌椅 {quote.adults + quote.kids} 位 × ${quote.tablesRate}（原 $10）= {usd(quote.tablesCharge)}，进总价（和发票一样算在 $599 起订之内）
+                </div>
+              ) : null}
+              {tables === "free" && isSaturday(qDate || lead.event_hint) ? (
+                <div style={{ color: "var(--color-warning-700, #b45309)" }}>周六的派对桌椅最多半价（D-1017-01），免费要老板点头</div>
               ) : null}
               {quote.freebiesZh.length ? <div>送：{quote.freebiesZh.join("、")}，共值 ${quote.freeValue}，不进总价</div> : null}
               {appId ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>前菜不签进押金链接，付押金后发票里按盘数加上（发出后记在承诺里）</div> : null}

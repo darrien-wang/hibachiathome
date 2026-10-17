@@ -18,6 +18,9 @@
 //      送前菜**不签**：发票的 freeExtraIds 会把这一类前菜全部退钱——客人在
 //      planner 里多点几盘也白送，还会和周中 / 20 人以上自带的那几盘重复退。
 //      前菜只记进承诺，发票里按盘数加上。
+//   5. 桌椅半价（周六的派对，D-1017-01）签成 extraRates { tables_chairs: 5 }：
+//      发票照收 $10/人、再减 $5/人一行，人头变了跟着变。客人要付的这 $5/人和
+//      发票一样算在 $599 起订之内、进总价。
 
 import {
   calcSimpleEstimate,
@@ -43,6 +46,15 @@ export type QuoteAppetizer = keyof typeof QUOTE_APPETIZERS
 
 export const TABLES_PER_GUEST = 10
 export const UTENSILS_PER_GUEST = 5
+/** Tables for locking the date on a Saturday: half price at most (D-1017-01). */
+export const TABLES_HALF_PRICE = TABLES_PER_GUEST / 2
+
+/** D-1017-01: a Saturday party gets tables at half price at most; Sunday-Friday up to free. */
+export function isSaturday(ymd: string | null | undefined): boolean {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false
+  const [y, m, d] = ymd.split("-").map(Number)
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 6
+}
 
 /**
  * Last day of the 20+ guest free appetizer. Same date as the invoice tool's
@@ -64,6 +76,11 @@ export type QuoteInput = {
   flatOff?: number | null
   freeAppetizer?: { id: QuoteAppetizer; trays: number } | null
   freeTables?: boolean
+  /**
+   * Tables & chairs at this price per guest instead of $10, e.g. 5 for a
+   * Saturday's half price (D-1017-01). Ignored when freeTables is set.
+   */
+  tablesRate?: number | null
   freeUtensils?: boolean
 }
 
@@ -117,8 +134,12 @@ export type QuoteBreakdown = {
   freebies: string[]
   /** Owner-facing (Chinese) lines for the gifts. */
   freebiesZh: string[]
+  /** Per-guest price of tables & chairs under the deal (D-1017-01); null when they are not quoted at a price. */
+  tablesRate: number | null
+  /** What those tables add to the bill - inside the $599 minimum, as the invoice bills them. */
+  tablesCharge: number
   /** custom-deal rules to sign into the deposit link; null when nothing needs signing. */
-  deal: { adultRate?: number; flatOff?: number; freeExtraIds?: string[] } | null
+  deal: { adultRate?: number; flatOff?: number; freeExtraIds?: string[]; extraRates?: Record<string, number> } | null
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100
@@ -145,19 +166,34 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
   const partySizeTier = tier ? `${tier.minGuests}–${tier.maxGuests} 人档` : partySize > 0 ? `${PARTY_SIZE_CUSTOM_FROM} 人以上` : null
 
-  const afterDiscounts = est.subtotal - partySize - rateCut - flatOff
+  // Tables at a set price (D-1017-01 half price) are billed like any rental:
+  // inside the $599 minimum, before it is applied (calcInvoiceTotal).
+  const tablesRate =
+    !q.freeTables && heads > 0 && typeof q.tablesRate === "number" && q.tablesRate > 0 && q.tablesRate < TABLES_PER_GUEST
+      ? r2(q.tablesRate)
+      : null
+  const tablesCharge = tablesRate !== null ? r2(tablesRate * heads) : 0
+
+  const afterDiscounts = est.subtotal + tablesCharge - partySize - rateCut - flatOff
   const food = Math.max(afterDiscounts, MINIMUM_SPEND)
   const travelFee = q.travelFee == null ? 0 : Math.max(0, Math.round(q.travelFee))
   const total = r2(food + travelFee)
 
   // Owner's floor (D-1006-06): per-head take after every discount, food only.
   // 40+ guests may go to $45 on any day; under the usual floor that means
-  // semi-buffet (D-1010-03).
+  // semi-buffet (D-1010-03). Tables cost us $4 a guest: free ones count the
+  // whole $4, half price ($5 paid) counts nothing (D-1017-01).
   const usualFloor = q.weekdaySpecial ? PRICE_FLOOR_PER_HEAD.weekday : PRICE_FLOOR_PER_HEAD.weekend
   const largeParty = count >= LARGE_PARTY_FLOOR.minGuests
   const floorRate = largeParty ? Math.min(usualFloor, LARGE_PARTY_FLOOR.perHead) : usualFloor
   const floorHeads = adults + PRICE_FLOOR_KID_WEIGHT * kids
-  const receivable = food - (q.freeTables && heads > 0 ? TABLES_CONCESSION_PER_GUEST * heads : 0)
+  const tablesConcession =
+    q.freeTables && heads > 0
+      ? TABLES_CONCESSION_PER_GUEST * heads
+      : tablesRate !== null
+        ? Math.max(0, TABLES_CONCESSION_PER_GUEST - tablesRate) * heads
+        : 0
+  const receivable = food - tablesCharge - tablesConcession
   const effectivePerHead = floorHeads > 0 ? r2(receivable / floorHeads) : 0
   const belowFloor = floorHeads > 0 && effectivePerHead < floorRate
   const semiBuffet = largeParty && floorHeads > 0 && !belowFloor && effectivePerHead < usualFloor
@@ -213,6 +249,8 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const signedFlat = r2(flatOff + (count >= PARTY_SIZE_CUSTOM_FROM ? partySize : 0))
   if (signedFlat > 0) deal.flatOff = signedFlat
   if (freeExtraIds.length) deal.freeExtraIds = freeExtraIds
+  // A rule, not a dollar amount: the invoice re-prices it when the headcount moves.
+  if (tablesRate !== null) deal.extraRates = { tables_chairs: tablesRate }
 
   return {
     adults,
@@ -225,7 +263,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     partySizeTier,
     rateCut,
     flatOff,
-    totalDiscount: r2(Math.max(0, est.subtotal - food)),
+    totalDiscount: r2(Math.max(0, est.subtotal + tablesCharge - food)),
     minApplied: afterDiscounts < MINIMUM_SPEND,
     travelFee,
     travelKnown: q.travelFee != null,
@@ -241,6 +279,8 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     freeValue,
     freebies,
     freebiesZh,
+    tablesRate,
+    tablesCharge,
     deal: Object.keys(deal).length > 0 ? deal : null,
   }
 }
@@ -269,6 +309,11 @@ export function quoteSms(b: QuoteBreakdown, opts: { dateLabel?: string; depositL
     lines.push(`${b.adults} ${b.adults === 1 ? "adult" : "adults"} x ${usd(b.adultPrice)}${special ? ` (instead of ${usd(b.listAdultPrice)})` : ""} = ${usd(r2(b.adults * b.adultPrice))}`)
   }
   if (b.kids > 0) lines.push(`${b.kids} ${b.kids === 1 ? "kid" : "kids"} x ${usd(b.childPrice)} = ${usd(r2(b.kids * b.childPrice))}`)
+  if (b.tablesRate !== null) {
+    const guests = b.adults + b.kids
+    const was = b.tablesRate * 2 === TABLES_PER_GUEST ? "half price" : `instead of ${usd(TABLES_PER_GUEST)}`
+    lines.push(`Tables & chairs: ${guests} ${guests === 1 ? "guest" : "guests"} x ${usd(b.tablesRate)} (${was}) = ${usd(b.tablesCharge)}`)
+  }
   // The per-head cut is already in the line above, so only the rest is "discount" here.
   const shownDiscount = r2(b.totalDiscount - b.rateCut)
   if (b.minApplied) lines.push(`Party minimum: ${usd(MINIMUM_SPEND)}`)
@@ -295,6 +340,7 @@ export function quotePromiseNote(b: QuoteBreakdown, dateLabel: string): string {
   if (b.rateCut > 0) parts.push(`每人 ${usd(b.adultPrice)}`)
   const extra = r2(b.totalDiscount - b.rateCut)
   if (extra > 0) parts.push(`折扣 -${usd(extra)}`)
+  if (b.tablesRate !== null) parts.push(`桌椅${b.tablesRate * 2 === TABLES_PER_GUEST ? "半价" : ""} ${usd(b.tablesRate)}/人`)
   if (b.freebiesZh.length) parts.push(`送 ${b.freebiesZh.join("、")}`)
   return parts.join(" · ")
 }

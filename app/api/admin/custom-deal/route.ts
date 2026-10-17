@@ -6,8 +6,10 @@ import { encodeDeal, normalizeDeal, signDeal } from "@/lib/custom-deal"
 export const dynamic = "force-dynamic"
 
 // Staff-only: sign the owner's deal for a lead's deposit link.
-//   POST { leadId, adultRate?, childRate?, freeExtraIds?, flatOff?, note? }
+//   POST { leadId, adultRate?, childRate?, freeExtraIds?, extraRates?, flatOff?, note? }
 //     -> { ok, deal, query }
+// extraRates bills an extra at a set price per unit, e.g. { tables_chairs: 5 }
+// for Saturday's half-price tables (D-1017-01).
 // `query` appends to a /deposit/pay URL. Unlike agreed_total (one frozen
 // number), these rules travel to the order system and are re-priced whenever
 // the party changes - headcount, upgrades, rentals.
@@ -28,11 +30,17 @@ export async function POST(request: NextRequest) {
   const deal = normalizeDeal(body.deal ?? body)
   if (!deal) {
     return NextResponse.json(
-      { ok: false, error: "give at least one rule: adultRate, childRate, freeExtraIds or flatOff" },
+      { ok: false, error: "give at least one rule: adultRate, childRate, freeExtraIds, extraRates or flatOff" },
       { status: 400 },
     )
   }
   const encoded = encodeDeal(deal)
+  // Checkout carries the deal in a 500-character Stripe metadata field; a
+  // longer one would verify on the page and then be cut off on the way to the
+  // order, so the party would be billed at catalog price.
+  if (encoded.length > 500) {
+    return NextResponse.json({ ok: false, error: "deal too long to carry through checkout - fewer extras or a shorter note" }, { status: 400 })
+  }
   const sig = signDeal(leadId, encoded)
   if (!sig) return NextResponse.json({ ok: false, error: "cannot sign - AGREED_TOTAL_SECRET / ADMIN_DASH_KEY missing" }, { status: 500 })
 

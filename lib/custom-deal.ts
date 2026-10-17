@@ -13,6 +13,12 @@ export interface CustomDeal {
   adultRate?: number
   childRate?: number
   freeExtraIds?: string[]
+  /**
+   * An extra billed at a set price per unit for this party instead of the
+   * catalog's, e.g. { tables_chairs: 5 } - Saturday's half-price tables
+   * (D-1017-01). Re-priced against the party as it stands, like the rest.
+   */
+  extraRates?: Record<string, number>
   flatOff?: number
   note?: string
 }
@@ -57,6 +63,16 @@ export function normalizeDeal(input: unknown): CustomDeal | null {
   const freeExtraIds = Array.isArray(source.freeExtraIds)
     ? (source.freeExtraIds.filter((id): id is string => typeof id === "string" && (FREE_EXTRA_IDS as readonly string[]).includes(id)))
     : []
+  // An extra that is free already is not also discounted: free wins, so the
+  // invoice can never refund it twice.
+  const extraRates: Record<string, number> = {}
+  if (source.extraRates && typeof source.extraRates === "object" && !Array.isArray(source.extraRates)) {
+    for (const [id, value] of Object.entries(source.extraRates as Record<string, unknown>)) {
+      const perUnit = rate(value)
+      if (perUnit === undefined || !(FREE_EXTRA_IDS as readonly string[]).includes(id) || freeExtraIds.includes(id)) continue
+      extraRates[id] = perUnit
+    }
+  }
   const deal: CustomDeal = {}
   const adultRate = rate(source.adultRate)
   const childRate = rate(source.childRate)
@@ -64,24 +80,35 @@ export function normalizeDeal(input: unknown): CustomDeal | null {
   if (adultRate !== undefined) deal.adultRate = adultRate
   if (childRate !== undefined) deal.childRate = childRate
   if (freeExtraIds.length > 0) deal.freeExtraIds = freeExtraIds
+  if (Object.keys(extraRates).length > 0) deal.extraRates = extraRates
   if (flatOff !== undefined && flatOff > 0) deal.flatOff = flatOff
   const note = typeof source.note === "string" ? source.note.trim().slice(0, 80) : ""
   if (note) deal.note = note
   const hasRule =
-    deal.adultRate !== undefined || deal.childRate !== undefined || deal.freeExtraIds !== undefined || deal.flatOff !== undefined
+    deal.adultRate !== undefined ||
+    deal.childRate !== undefined ||
+    deal.freeExtraIds !== undefined ||
+    deal.extraRates !== undefined ||
+    deal.flatOff !== undefined
   return hasRule ? deal : null
 }
 
-/** Canonical JSON (fixed key order) so the same deal always signs the same. */
+/**
+ * Canonical JSON (fixed key order) so the same deal always signs the same.
+ * `extraRates` (2026-10-17) is appended only when the deal has one, so every
+ * deal from before it encodes byte for byte as it always did.
+ */
 export function encodeDeal(deal: CustomDeal): string {
-  const canonical = JSON.stringify({
+  const canonical: Record<string, unknown> = {
     adultRate: deal.adultRate ?? null,
     childRate: deal.childRate ?? null,
     freeExtraIds: [...(deal.freeExtraIds ?? [])].sort(),
     flatOff: deal.flatOff ?? null,
     note: deal.note ?? "",
-  })
-  return Buffer.from(canonical, "utf8").toString("base64url")
+  }
+  const rateIds = Object.keys(deal.extraRates ?? {}).sort()
+  if (rateIds.length > 0) canonical.extraRates = Object.fromEntries(rateIds.map((id) => [id, deal.extraRates![id]]))
+  return Buffer.from(JSON.stringify(canonical), "utf8").toString("base64url")
 }
 
 export function decodeDeal(encoded: string | null | undefined): CustomDeal | null {
