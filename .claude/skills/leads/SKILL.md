@@ -403,12 +403,12 @@ Real Hibachi · (213) 770-7788
    - ② 免费前菜 / 致敬计划（已有政策内的）
    - ③ 现金折扣，底线之上（**人均实收 周五–日 ≥ $50 / 周一–四 ≥ $45**，见下方「让价底线」）
    - ④ **桌椅放最后**：桌椅成本 $4/人（付师傅），不比现金折扣便宜；送桌椅按每人 $4 计入让价
-     - **例外（用户 2026-09-29 定）：客人在订之前自己问桌椅，桌椅就是这次的那一个让步，排第一个用，不等他说"贵"。**问桌椅本身就是在说预算，只是没说出口——等到他开口讲价，人早就走了。话术和边界见 §8「桌椅包不包（订之前问）」。
+     - **例外（用户 2026-09-29 定）：客人在订之前自己问桌椅，桌椅就是这次的那一个让步，排第一个用，不等他说"贵"。**（**2026-10-17 改，D-1017-01：周六的派对最多半价 $5/人，周日到周五最多免费**）问桌椅本身就是在说预算，只是没说出口——等到他开口讲价，人早就走了。话术和边界见 §8「桌椅包不包（订之前问）」。
 3. **底线之上我直接定、当场发，事后在汇报里告诉用户**——为成交抢速度；底线之下、破 $599 底线 → 一句话问用户。
 
    **让价底线（用户 2026-10-06 定，替代旧的"每人 ≤$5 / 每单 ≤$100"带宽）**
    - 底线是**人均实收**：食物部分扣完所有折扣（阶梯、特价、flatOff）后 ÷ 人头，不含路费、不含租赁。**周五/六/日 ≥ $50，周一至周四 ≥ $45。****节假日也 ≥ $50**（节假日 = `config/pricing-rules.ts` 的 `WEEKDAY_SPECIAL_BLACKOUTS`：Thanksgiving 那周、12/20–1/3 圣诞到新年、7/4、劳动节、阵亡将士纪念日；不在表里的如 10/12 哥伦布日按平日算）；**40 人以上的大单可以低于 $50**（老板 2026-10-09："周六的均价不能低于50 周一到周四 不能低于45 节假日也不能低于50 除非特别大的订单 均价可以低于50"、"比如40人以上的"，D-1009-03）——我给的建议最低到 $45，再低先问老板。 小孩按半个成人折算（不折算的话按标价小孩多的单就已经在线下）。
-   - **送桌椅 = 每人 $4 计入让价**（桌椅成本 $4/人）：周六标价 $59.90 送了桌椅视同实收 $55.90。
+   - **送桌椅 = 每人 $4 计入让价**（桌椅成本 $4/人）：周日标价 $59.90 送了桌椅视同实收 $55.90。**周六半价桌椅（客人付 $5，高于成本）不计入让价**（D-1017-01）。
    - **40 人以上（含 61+）最低到每人 $45，任何一天**（老板 2026-10-10，D-1010-03，补充 D-1009-03）：周五–日低于平时的 $50 时**按半自助做**——表演照做，炒好的菜放桌上大盘、客人自己添，**50 人一个厨师**；报价短信里写明 "served family-style"（报价工具自动加）。周一–四底线本来就是 $45，不多让、照常全套。**低于 $45 问老板。** 61+ 也是我自己谈，先报标准价，按 §7.1 一步步让。
    - **送前菜、送面条（butter noodles / yakisoba）不计成本**，可以随便送，不动底线。
    - **餐具（plates & silverware $5/位）不送、不打折。**
@@ -479,7 +479,7 @@ Real Hibachi · (213) 770-7788
 
 **客人正在线秒回 = "聊"也直接发**（老板 2026-10-13："这种秒回的 你就不要等我同意了 你尽快推进吧"，D-1013-01）：客人在我们上一条之后 10 分钟内就回了，对话正在进行，这时顺着他的话问、问下一步、递链接都直接发，发完在汇报里带一行。隔了很久才回的照旧按上一段（先给稿子，30 分钟默认）。超带宽让价、严重投诉、满 3 条 force、老板本人才能做的事，秒回也照旧要批。起因：V Flores（1/1 Palm Springs 婚宴）每条一分钟内回，按 30 分钟默认每来回一次等半小时。
 
-**权限内的主动跟进也直接发、发完报**（老板 2026-10-13："直接发"，D-1013-05）：改了措辞的跟进、带宽内的那一次让步（订前问桌椅 → 送桌椅换锁单、把让步期限顺延）不再等批，也不用等 30 分钟。还要批的只剩：超带宽让价、满 3 条要 force、严重投诉、老板本人才能做的事——这几类照旧写清建议，30 分钟没回按建议做。起因：LA 12 人（11/21）那条顺延送桌椅的跟进白等了 30 分钟，老板问"为什么要等"。
+**权限内的主动跟进也直接发、发完报**（老板 2026-10-13："直接发"，D-1013-05）：改了措辞的跟进、带宽内的那一次让步（订前问桌椅 → 桌椅换锁单（周六最多半价、其他日子最多免费，D-1017-01）、把让步期限顺延）不再等批，也不用等 30 分钟。还要批的只剩：超带宽让价、满 3 条要 force、严重投诉、老板本人才能做的事——这几类照旧写清建议，30 分钟没回按建议做。起因：LA 12 人（11/21）那条顺延送桌椅的跟进白等了 30 分钟，老板问"为什么要等"。
 
 | 我不问直接做 | 起草等用户说"发" | 永远不做 |
 |---|---|---|
@@ -644,7 +644,7 @@ python scripts/desk/desk.py heard <lead> "原话" --as friend   # 归错了就�
 ### 5.0 大单（61+）成交包（用户 09-16 定，Kande 60–75 人为例；2026-10-03 门槛由 31 提到 61）
 
 - 报价按人均（用户定的大单价，如 $55.90/adult 含税）× 两个人数档，+ 路费；小孩 5–12 $29.90、5 岁以下免费；厨师数 = ⌈人数/28⌉（全套服务）；**半自助（价格低于平时底线，见 §4.3）⌈人数/50⌉**。
-- **桌椅可以送**作为大单让利（按每人 $4 计入底线，§4.3，不主动给）；**餐具不送**（2026-10-10 起和底线口径统一，原"桌椅+餐具可免费、老板当场定"作废）。
+- **桌椅可以送**作为大单让利（按每人 $4 计入底线，§4.3，不主动给；**周六最多半价**，D-1017-01）；**餐具不送**（2026-10-10 起和底线口径统一，原"桌椅+餐具可免费、老板当场定"作废）。
 - **菜单 + planner 专属链接**单独一条发：客户要提前收齐每位客人的选择，"easiest way is our party planner"，`POST /api/admin/planner-link {email,phone,booked:false}` 生成带身份的链接。
 - **61+ 大单也是留卡锁日期，不收 $100 押金**（老板 2026-10-06 定，原"大单 $100 押金"作废）：用同一条 `/deposit/pay` 链接（`desk link deposit`，或报价工具签好 61+ 规则的那条），**不再用 `POST /api/admin/pay-link` 铸 $100 Checkout**；留卡后 webhook 自动建单，不用手动。
 - 尾款口径（锁了日期之后才提）："The balance is paid on the day of the party - $X in cash to your chef, or by card." 刷卡的实数（税 + 手续费）等菜单人数定了由系统出（D-1006-05/06）。
@@ -693,7 +693,7 @@ python scripts/desk/desk.py heard <lead> "原话" --as friend   # 归错了就�
 2. 先讲差异，不讲价（§5.1 第 2 步）。只讲具体事实：当天早上买、不冷冻、真黄油。**不说"我们最好""你吃过就知道"**——形容词是自夸，事实让客户自己下结论。
 3. 主动说唯一的短处（海鲜是冷冻的）。这是整组话里最建立可信度的一句：肯说短处的人，说的长处才可信。
 4. 让他把对方报价和"升级项"发过来（§7.1 先问再让），同时先说清"我们食材贵，不一定能匹配，只是看看能不能做到"——把锚定住，免得他期待大砍价；这也是用户的原话意思。
-5. 他回了数再动：升级项多半是菲力/龙虾那类，先用**交换**（周中价、免桌椅、送前菜）代替降价；带宽内（每人 ≤$5 或每单 ≤$100，取小）我直接定，超过问用户。匹配不了就照实说，留好印象，不第二次挽留。
+5. 他回了数再动：升级项多半是菲力/龙虾那类，先用**交换**（周中价、桌椅让价（周六最多半价）、送前菜）代替降价；带宽内（每人 ≤$5 或每单 ≤$100，取小）我直接定，超过问用户。匹配不了就照实说，留好印象，不第二次挽留。
 
 **话术（三条，分开发；他刚回过话就立刻发，隔太久就别发了）**
 1. "Appreciate you telling me — no hard feelings at all. One thing worth knowing before it's locked in: we're not the biggest outfit in SoCal, but it's the only place we cook, and it shows in the food. Beef and chicken are bought fresh the morning of your party, never frozen, and everything's cooked in real butter."
@@ -810,7 +810,7 @@ python scripts/desk/desk.py heard <lead> "原话" --as friend   # 归错了就�
 | **含税吗 / 有没有隐藏费用** | "Tax is included - $X is the cash price, paid to your chef on the day. The only other thing is gratuity - 20-25% is customary, and all of it goes to the chefs." 客人追问刷卡才补："By card it's $X plus your local sales tax and the card processing fee - I'll send the exact line-by-line once your menu is set."（2026-10-06 D-1006-05；**不报 ×1.10 的整数**；不说 "no tax / tax-free"） |
 | **付现金 / 刷卡有什么区别**（D-1006-05，2026-10-06 晚） | **定之前不提**。菜单人数定了、算总账时系统出两张账：现金 = 标价；信用卡 = 标价 + 该地址实际销售税 + Stripe 3%（借记卡不加）+ 可选 20% 小费，当天从留存卡扣（Zelle/Venmo 不主动提，客人问了才说，见 §5「支付」）。总账短信把行贴出来 + 问小费先付还是现场给。派对前一天 `desk order remind <单号>`："See you tomorrow at 6! Your balance is $X cash to your chef, or $Y by card ($X + $T sales tax + $F card processing). Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?" **不说** "no tax / tax-free / 走批发"——老板 10-05 提过没采用：税含在现金价里、刷卡按地址列实数、季报同一个数。 |
 | **桌椅长什么样 / 是不是塑料的** | 先发实拍：`/rentals` 页（已订的客人带 `?lead_id=<线索id>`，她在页面上选了会直接写进订单和装车单；用 `desk link short` 缩短）。材质照实说：**椅子是铝框 + 黑色塑料靠背**（用户 2026-09-30 口述）；**桌子是 6 英尺折叠桌，桌面 72 × 30 英寸**（用户 09-30），默认铺黑桌布，**按 4 人一桌备**（18 人 = 5 张桌、5 张布；用户 09-30 更正，之前说的 6 人一桌作废）。**白桌布不是塑料**：是 Smiry 白色弹力氨纶（spandex）贴合桌套，带到地面的褶裙，6 英尺桌专用（72"L×30"W×30"H，09-17 亚马逊买的 7 条装）。客人问"是不是塑料的"就答 "white stretch-fabric covers fitted to each table, with a pleated skirt down to the floor"，可以附效果图（别发亚马逊页面截图，有价格和品牌）。桌子本身的材质没确认过，别编；客人自带桌布问尺寸就答 "6-foot folding tables"。**问白色的**：没有白椅子（户外派对太难保持干净，用户 09-30）；有白桌布，**每张（每桌）比黑的贵 $5**，4 人一桌（09-30 更正：之前按每座 $5 报错了，Daria 那次道歉更正过）。回法："We don't have white chairs - they're too hard to keep clean at outdoor parties. We do have white tablecloths - $5 more per table than the black." |
-| **桌椅包不包（订之前问）** | **把桌椅当成那一个让步，挂锁日期的条件**（用户 2026-09-29 定）："We do - they're normally $10 a guest, but lock the date today and I'll include them." 还没日期就说 "Pick your date and lock it, and I'll include them."；他说自家有桌椅 → "Then there's nothing extra at all."。**边界**：只送桌椅椅布（$10 那一档），餐具 $5 照常报；用了这个就不再给别的让步（§4.3 只让一次）；31 人以上仍问用户；**押金付了之后才问的照常收费**（那是 §7.1 的"蚕食"）。成交用 `custom-deal` 的 `freeExtraIds: ["tables_chairs"]` 锁进链接（§10），不要拿总价去抵。**例外里的例外**：客人卡在 $599 最低消费、自己提出"我只有几个人还要补最低消费，能不能打折"——她多付的那截正好装得下整套，用户 09-29 选了连餐具一起送（Andrea，Palm Springs 8 人，食物 $439.20 被顶到 $599，桌椅+餐具 $120 全送）。**依据**：9 月订前问过桌椅、听到"另收 $10/位"的 7 位客人里，3 位当场再没回话（Joshua Tree 949-697、Temecula 720-244、LA 231-383），Melissa（Aliso Viejo 10 人 $599）没问我们、比完去了别家，原话 "it came down to them not charging for tables and set up. You were my second choice."；桌椅现金成本约 $4/位，10 人单为多收 $100 丢了约 $350 毛利。 |
+| **桌椅包不包（订之前问）** | **把桌椅当成那一个让步，挂锁日期的条件**（用户 2026-09-29 定；**2026-10-17 改 D-1017-01：按派对是星期几给**）：**周六**最多半价 → "They're normally $10 a guest - lock the date and I'll do them at half price, $5 a guest."；**周日到周五**最多免费 → "We do - they're normally $10 a guest, but lock the date today and I'll include them."；还没日期 → "Pick your date and lock it, and I'll take care of the tables."（日期定了再按星期几给，**别在不知道星期几时先答应免费**）；已经答应过免费的（Daisy 12/26、818-747 10/31 等）照旧兑现；他说自家有桌椅 → "Then there's nothing extra at all."。**边界**：只送桌椅椅布（$10 那一档），餐具 $5 照常报；用了这个就不再给别的让步（§4.3 只让一次）；31 人以上仍问用户；**押金付了之后才问的照常收费**（那是 §7.1 的"蚕食"）。成交时免费用 `custom-deal` 的 `freeExtraIds: ["tables_chairs"]` 锁进链接（§10），不要拿总价去抵；**周六半价**在特殊报价支持"桌椅按 $5/人收"之前用 `--flat-off <5×人数> --deal-note "Tables half price"`，人数变了要重算那一行。**例外里的例外**：客人卡在 $599 最低消费、自己提出"我只有几个人还要补最低消费，能不能打折"——她多付的那截正好装得下整套，用户 09-29 选了连餐具一起送（Andrea，Palm Springs 8 人，食物 $439.20 被顶到 $599，桌椅+餐具 $120 全送）。**依据**：9 月订前问过桌椅、听到"另收 $10/位"的 7 位客人里，3 位当场再没回话（Joshua Tree 949-697、Temecula 720-244、LA 231-383），Melissa（Aliso Viejo 10 人 $599）没问我们、比完去了别家，原话 "it came down to them not charging for tables and set up. You were my second choice."；桌椅现金成本约 $4/位，10 人单为多收 $100 丢了约 $350 毛利。 |
 | **餐具/盘子包含吗** | "Plates, napkins and silverware are $5/guest if we bring them, or use your own - either works. Chopsticks come with that at no extra charge if you want them."（桌椅 $10/人另算；**筷子只跟 $5/位的餐具包走，要就给、不加钱——客人自带餐具就不主动带筷子，用户 2026-10-07 定**。Stacy 10/17 那单没租餐具也答应了筷子，老板批作顺手人情、下不为例） |
 | **春卷是什么样的 / 有没有肉** | **炸的，像小号 egg roll，全素无肉**（用户 2026-10-05 确认，Eileen 问的）："They're crispy and fried, like a smaller egg roll, and they're vegetable only, no meat." 一盘 10 个。有人要素食前菜就推毛豆或春卷。**饺子（gyoza）是鸡肉馅**（用户 2026-10-05 确认）："Our gyoza are chicken." |
 | **能在室内做吗** | "All cooking is outdoors — patio, balcony, deck, or under a canopy. Seating can be inside." |
