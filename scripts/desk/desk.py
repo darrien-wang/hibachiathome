@@ -1065,6 +1065,29 @@ def cmd_order(a):
             for x in stale:
                 print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount - "
                       f"re-state it with --promo {x.get('id')}=<amount> or the extra guest is overcharged")
+        # "Randy can't make it" the night before (Eileen 10-16, 32 named rows):
+        # one row off by name, every other row keeps its id and picks so the
+        # planner reconciles without touching anyone else. The name must match
+        # exactly one row.
+        for who in (a.remove_guest or []):
+            guests = data.get("guests") or []
+            if data.get("mode") == "quick" or not guests:
+                raise SystemExit("this order carries party-wide counts, not guest rows - change the headcount with --proteins instead")
+            hits = [g for g in guests if str(g.get("name") or "").strip().lower() == who.strip().lower()]
+            if len(hits) != 1:
+                raise SystemExit(f"--remove-guest {who!r}: {len(hits)} rows have that name - rows are: "
+                                 + ", ".join(str(g.get("name")) for g in guests))
+            gone = hits[0]
+            data["guests"] = [g for g in guests if g is not gone]
+            key = "childCount" if gone.get("isChild") else "adultCount"
+            before = int(data.get(key) or 0)
+            data[key] = max(0, before - 1)
+            changes.append(f"guest removed: {gone.get('name')} ({', '.join(gone.get('proteins') or ['no proteins'])}); {key}: {before} -> {data[key]}")
+        if a.remove_guest:
+            # Same frozen-amount trap as --add-adult, the other way round.
+            for x in (data.get("promotions") or []):
+                if re.search(r"official_weekday|deal_|party|tables|free", str(x.get("id", "")), re.I):
+                    print(f"   ⚠ promo {x.get('id')} {x.get('label')!r} is still {money(x.get('amount'))} - check it still fits the new headcount")
         if a.promo:
             promos = data.setdefault("promotions", [])
             for pair in a.promo:
@@ -1078,7 +1101,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1357,6 +1380,7 @@ def main(argv=None):
                    "the last adult's proteins and their tables/utensils flags, so a late 'can I bring one more' keeps billing the same way "
                    "as everyone else. Check the printed rows before sending - proteins are a guess until the guest says otherwise.")
     p.add_argument("--add-child", type=int, metavar="N", help="same as --add-adult for children 5-12.")
+    p.add_argument("--remove-guest", nargs="+", metavar="NAME", help="take guest rows off by name (exact, one row each): a guest who cancels. Other rows keep their ids and picks.")
     p.add_argument("--guests-file", help="JSON list of guests the customer sent, one per row: "
                    '[{"name": "Mom", "proteins": ["filet_mignon", "steak", "lobster_tail"], "tables": true}, {"name": "Tyson", "child": true, ...}]. '
                    "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows.")
