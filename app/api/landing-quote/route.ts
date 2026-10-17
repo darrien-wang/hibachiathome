@@ -84,6 +84,43 @@ function describeDate(iso: string): string {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
 }
 
+// What a card on a page without a town sends (the gallery, the home page,
+// /quote, the LA hub) - a region, not a place to price travel to.
+const REGION_LABEL = /^(southern california|la & orange county)$/i
+
+/**
+ * The town from this phone's last quote in the past day, for a card that only
+ * knows the region. 951-742 (2026-10-16) got Big Bear Lake at $871.50 with ~$33
+ * travel, tapped the /gallery card three minutes later and was re-texted
+ * "updated for 15 adults in Southern California: $838.50 ... Travel to Southern
+ * California is confirmed from your address" - the travel gone and the lead's
+ * city overwritten with the region.
+ */
+async function lastTownQuote(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  phoneE164: string,
+): Promise<{ city: string; travelFee: number; travelPending: boolean } | null> {
+  const { data: leads } = await supabase.from("leads").select("id").eq("normalized_phone", phoneE164.replace(/\D/g, "").slice(-10)).limit(10)
+  const ids = ((leads ?? []) as Array<{ id: string }>).map((l) => l.id)
+  if (!ids.length) return null
+  const { data: rows } = await supabase
+    .from("lead_touchpoints")
+    .select("raw_payload_json, created_at")
+    .in("lead_id", ids)
+    .eq("touchpoint_type", "landing_quote_text")
+    .gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(10)
+  for (const r of (rows ?? []) as Array<{ raw_payload_json: Record<string, unknown> | null }>) {
+    const p = r.raw_payload_json ?? {}
+    const city = asStr(p.cityName, 60)
+    if (!city || REGION_LABEL.test(city)) continue
+    const c = (p.computed ?? {}) as Record<string, unknown>
+    return { city, travelFee: Math.max(0, Math.round(Number(c.travelFee) || 0)), travelPending: Boolean(p.travelPending) }
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   const limited = await rateLimit("landing-quote", request, LIMIT, WINDOW_SECONDS)
   if (!limited.ok) {
@@ -114,7 +151,12 @@ export async function POST(request: NextRequest) {
   const surfaceLabel = leadChannel === "website_quote_unlock" ? "Quote unlock" : leadChannel === "ai_agent" ? "AI agent quote" : "Landing quote"
   const contactOnly = body.stage === "contact"
 
-  const cityName = asStr(body.cityName, 60) || "Southern California"
+  const typedCity = asStr(body.cityName, 60) || "Southern California"
+  const supabase = createServerSupabaseClient()
+  // A region card after a town quote keeps the town and its travel.
+  const carried =
+    !contactOnly && supabase && REGION_LABEL.test(typedCity) ? await lastTownQuote(supabase, phoneE164).catch(() => null) : null
+  const cityName = carried?.city ?? typedCity
   // What the customer reads: the card's cityName is whatever they typed ("idyllwild").
   // A ZIP becomes its town ("92201" -> "Indio"); region labels stay as typed.
   const cityLabel = placeName(cityName) || cityForZip(cityName) || cityName
@@ -128,12 +170,13 @@ export async function POST(request: NextRequest) {
   const todayPacific = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())
   const rawEventDate = /^\d{4}-\d{2}-\d{2}$/.test(asStr(body.eventDate, 10)) ? asStr(body.eventDate, 10) : ""
   const eventDate = rawEventDate && rawEventDate >= todayPacific ? rawEventDate : ""
-  const travelFee = Math.max(0, Math.round(Number(body.travelFee) || 0))
+  const travelFee = carried ? carried.travelFee : Math.max(0, Math.round(Number(body.travelFee) || 0))
   // "No travel fee" is a promise. A client can send $0 for a place it never
   // measured, so a city the travel table prices above $0 is never called
   // free here - the text says the fee is confirmed from the address instead.
   const tableTravel = getCityTravel(cityName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))
-  const travelPending = Boolean(body.travelPending) || (travelFee === 0 && Boolean(tableTravel && tableTravel.fee > 0))
+  const travelPending =
+    (carried ? carried.travelPending : Boolean(body.travelPending)) || (travelFee === 0 && Boolean(tableTravel && tableTravel.fee > 0))
 
   // Price from config, never from the client. With a date the weekday rate is
   // decided by the real rule (Mon–Thu, blackouts); without one the visitor's
@@ -161,7 +204,6 @@ export async function POST(request: NextRequest) {
   const guestsLine = kids > 0 ? `${adults} adults + ${kids} kids` : `${adults} adults`
   const dateLine = eventDate ? describeDate(eventDate) : "date TBD"
 
-  const supabase = createServerSupabaseClient()
   // A customer we are already talking to (texted us in the last two weeks, or
   // booked) gets no automatic quote when they fill the form again (owner
   // 2026-10-08). The form is filed as the customer talking (landing_contact,
@@ -204,7 +246,14 @@ export async function POST(request: NextRequest) {
         touchpointSource: source,
         sourcePage: pagePath,
         attribution,
-        rawPayload: { ...body, phone: phoneE164, computed: { weekday, subtotal, total, travelFee, discountCode, discount: est.partySizeDiscountApplied } },
+        // A carried town is stored as the quote's city, so the next comparison
+        // (and the next region card) sees the town that was actually priced.
+        rawPayload: {
+          ...body,
+          ...(carried ? { cityName, travelPending, cardCity: typedCity } : {}),
+          phone: phoneE164,
+          computed: { weekday, subtotal, total, travelFee, discountCode, discount: est.partySizeDiscountApplied },
+        },
       })
       leadId = lead.leadId
       // A leave-beacon must not repeat a quote the visitor already tapped for
