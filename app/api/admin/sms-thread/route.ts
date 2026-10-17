@@ -67,6 +67,21 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ ok: true, phones: unique, messages, synced })
 }
 
+/** The newest unmerged lead on this number, or null (staff numbers have none). */
+async function leadIdForPhone(phone: string): Promise<string | null> {
+  const supabase = createServerSupabaseClient()
+  if (!supabase) return null
+  const { data } = await supabase
+    .from("leads")
+    .select("id")
+    .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
+    .is("merged_into", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return (data as { id: string } | null)?.id ?? null
+}
+
 /**
  * POST { phone, body, leadId? } -> send from the 213 line and write it down:
  * a lead_touchpoints row so the history panel shows it, and the lead's
@@ -459,7 +474,11 @@ export async function POST(request: NextRequest) {
   const sent = await sendSms(phone, body, mediaUrl)
   if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 502 })
 
-  const leadId = leadIdParam
+  // A text sent by phone number alone (the desk answering an order thread)
+  // still belongs on that customer's timeline. Only texts that named their
+  // lead were written down, and the reply audit - which reads the timeline -
+  // listed eight answered customers as 漏网 on 2026-10-17.
+  const leadId = leadIdParam ?? (await leadIdForPhone(phone))
   if (leadId) {
     const supabase = createServerSupabaseClient()
     if (supabase) {
