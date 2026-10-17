@@ -18,6 +18,7 @@
   python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip=Long\\ Beach
   python scripts/desk/desk.py link deposit --lead <id> --adults 24 --city "Long Beach" [--kids 0]
                                    [--date 2026-10-13] [--time 18:00] [--email e] [--name n] [--est 1258]
+                                   [--free tables_chairs | --rate tables_chairs=5]   signed deal: tables free / at $5 a guest
   python scripts/desk/desk.py link planner --email e --phone p [--booked] [--lead <id>]
   python scripts/desk/desk.py link short <url> [--lead <id>]
   python scripts/desk/desk.py order find <text>            orders on a name / phone / email / order no
@@ -57,6 +58,8 @@ THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
 # Protein ids the invoice engine knows (v0 invoice repo, lib/pricing.ts).
 PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"}
 SETUP_PRICES = {"tables_chairs": 10.0, "utensils": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
+SETUP_LABELS = {"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}  # same, as the customer reads them
+MINIMUM_SPEND = 599  # config/pricing-rules.ts
 # Menu price of the appetizers a free-appetizer promo can bring, so changing
 # how many trays it brings moves the discount by the same amount and the
 # customer is never charged for what we gave them.
@@ -536,6 +539,28 @@ def cmd_fields(a):
     _patch({"action": "update_fields", "leadId": a.lead, "fields": fields})
 
 
+def _parse_rates(pairs, flag: str) -> dict:
+    """ID=PRICE pairs for a deal's extraRates: that item at that price per guest
+    instead of the catalog's (D-1017-01, Saturday tables: tables_chairs=5)."""
+    rates = {}
+    for pair in pairs or []:
+        m = re.fullmatch(r"([a-z_]+)=(\d+(?:\.\d{1,2})?)", pair)
+        if not m:
+            raise SystemExit(f"{flag} {pair!r}: use ID=PRICE, e.g. tables_chairs=5")
+        x, r = m.group(1), float(m.group(2))
+        cap = SETUP_PRICES.get(x)
+        if r <= 0 or (cap is not None and r >= cap):
+            raise SystemExit(f"{flag} {pair!r}: a deal rate is above $0 and under the catalog price"
+                             + (f" ({money(cap)} a guest)" if cap is not None else "") + " - free is --free / --deal-free")
+        rates[x] = r
+    return rates
+
+
+def _per_guest(r: float) -> str:
+    """$5 / $4.50 - a per-guest deal rate as the invoice line prints it."""
+    return f"${r:.0f}" if float(r).is_integer() else f"${r:.2f}"
+
+
 def cmd_link(a):
     if a.kind == "short":
         out = site_post("/api/admin/short-link", {"url": a.url, **({"leadId": a.lead} if a.lead else {})})
@@ -555,10 +580,23 @@ def cmd_link(a):
     # deposit: the same prefilled /deposit/pay the auto quote texts, hand-built
     if not a.adults or not a.city:
         raise SystemExit("deposit link needs --adults and --city")
+    free_ids = [x.strip() for x in (a.free or "").split(",") if x.strip()]
+    rates = _parse_rates(a.rate, "--rate")
+    both = sorted(set(free_ids) & set(rates))
+    if both:
+        raise SystemExit(f"--free and --rate both name {both} - pick one")
     est = a.est
     if est is None:
-        p = price_for(a.adults, a.kids, a.date, a.zip)
-        est = round(p["price"]["total"]) if p and p.get("ok") and p.get("price") else None
+        # Tables at a deal rate are billed inside the $599 minimum, as the
+        # invoice bills them: price the party with them at the catalog price,
+        # take the deal's cut back off, never under the minimum.
+        heads = a.adults + a.kids
+        cut = sum((SETUP_PRICES[x] - r) * heads for x, r in rates.items() if x in SETUP_PRICES)
+        p = price_for(a.adults, a.kids, a.date, a.zip,
+                      tables=heads if "tables_chairs" in rates else 0, utensils=heads if "utensils" in rates else 0)
+        if p and p.get("ok") and p.get("price"):
+            pr = p["price"]
+            est = round(max(pr["total"] - cut, MINIMUM_SPEND + (pr.get("travelFee") or 0)))
     q = {"source": "workbench", "location": a.city, "adults": str(a.adults), "kids": str(a.kids)}
     if est is not None:
         q["estimate_low"] = q["estimate_high"] = str(est)
@@ -574,26 +612,35 @@ def cmd_link(a):
         q["lead_id"] = a.lead
     long_url = "https://www.realhibachi.com/deposit/pay?" + urllib.parse.urlencode(q)
     # A concession rides on the link as a signed rule (custom-deal, skill §10):
-    # free tables for locking the date, a flat amount off. Rules, never a frozen
-    # total, so a changed headcount still prices right.
+    # free tables for locking the date, Saturday's half-price tables
+    # (D-1017-01), a flat amount off. Rules, never a frozen total, so a changed
+    # headcount still prices right. The order puts a free or rated item on the
+    # party itself (invoice withDealExtras), so the chef's sheet loads it.
     deal = {}
-    if a.free:
-        deal["freeExtraIds"] = [x.strip() for x in a.free.split(",") if x.strip()]
+    if free_ids:
+        deal["freeExtraIds"] = free_ids
+    if rates:
+        deal["extraRates"] = rates
     if a.flat_off:
         deal["flatOff"] = a.flat_off
     if deal:
         if not a.lead:
-            raise SystemExit("a deal (--free / --flat-off) is signed per lead: give --lead")
+            raise SystemExit("a deal (--free / --rate / --flat-off) is signed per lead: give --lead")
         signed = site_post("/api/admin/custom-deal", {"leadId": a.lead, **deal, **({"note": a.deal_note} if a.deal_note else {})})
         if not signed.get("ok") or not signed.get("query"):
             raise SystemExit(dump(signed))
+        dropped = sorted(set(rates) - set(((signed.get("deal") or {}).get("extraRates") or {})))
+        if dropped:
+            raise SystemExit(f"--rate {dropped}: the site would not sign that (not an extra a deal can price) - no link made")
+        deal = signed.get("deal") or deal
         long_url += "&" + signed["query"]
     out = site_post("/api/admin/short-link", {"url": long_url, **({"leadId": a.lead} if a.lead else {})})
     print(out.get("shortUrl") or dump(out))
     if deal:
         print(f"   deal: {deal}")
+    with_tables = f"（含桌椅 {_per_guest(rates['tables_chairs'])}/人）" if "tables_chairs" in rates and a.est is None else ""
     print(f"   {a.adults} 大人 + {a.kids} 小孩 · {a.city} · {a.date or '日期待定'}{' ' + a.time if a.time else ''}"
-          f" · 估 ${est if est is not None else '?'} · 有效至 {pt(out.get('expiresAt'))}")
+          f" · 估 ${est if est is not None else '?'}{with_tables} · 有效至 {pt(out.get('expiresAt'))}")
     if a.verbose:
         print("   " + long_url)
 
@@ -648,6 +695,16 @@ def _invoice_drift(before: dict, after: dict) -> list[str]:
 
 def _totals(data: dict) -> dict:
     return invoice_post("/api/invoice", data)["invoice"]
+
+
+def _setup_units(data: dict, x: str) -> int:
+    """Guests the invoice bills a setup item for right now, counted the way the
+    engine's extraValue counts them: the rows' flags once there are rows, else
+    the party-wide partyExtras line (a fresh order has no rows yet, 2026-10-09)."""
+    if data.get("mode") == "detailed" and data.get("guests"):
+        flag = "tablesChairs" if x == "tables_chairs" else "utensils"
+        return sum(1 for g in data["guests"] if g.get(flag))
+    return next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
 
 
 def _print_totals(inv: dict) -> None:
@@ -900,8 +957,9 @@ def cmd_order(a):
                 data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES]
                 changes.append("partyExtras: dropped " + ", ".join(f"{e.get('id')}={e.get('qty')}" for e in setup_lines)
                                + " (the rows carry tables/utensils now)")
-            if any(x.get("id") == "deal_free_extras" for x in (data.get("promotions") or [])):
-                print("   ⚠ deal_free_extras is a stored amount - re-state it with --deal-free so it matches the rows")
+            for pid, flag in (("deal_free_extras", "--deal-free"), ("deal_extra_rates", "--deal-rate")):
+                if any(x.get("id") == pid for x in (data.get("promotions") or [])):
+                    print(f"   ⚠ {pid} is a stored amount - re-state it with {flag} so it matches the rows")
             for x in (data.get("promotions") or []):
                 if re.search(r"party size", str(x.get("label") or ""), re.I):
                     print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
@@ -990,38 +1048,52 @@ def cmd_order(a):
             data["promotions"] = [x for x in (data.get("promotions") or []) if not str(x.get("id", "")).startswith("deal_")]
             changes.append(f"customDeal: {data.get('customDeal')} -> None")
             data["customDeal"] = None
-        if a.deal_free:
+        if a.deal_free or a.deal_rate:
             # A setup item promised free (tables for locking the date, skill 8)
-            # is billed as usual and refunded on its own line, so the loading
+            # or at a set price (Saturday's half-price tables, D-1017-01) is
+            # billed as usual and taken back off on its own line, so the loading
             # list still carries the tables. Saved invoices do not re-derive
             # deal lines (self-service-invoice.ts leaves stored promotions
-            # alone), so the line is written here, at the rows' current count.
+            # alone), so the lines are written here, at the current count, as the
+            # engine's customDealPromotions prices them. An item is free or at a
+            # rate, never both (it would come off twice): the newer one wins.
             deal = dict(data.get("customDeal") or {})
-            ids = sorted(set((deal.get("freeExtraIds") or []) + [x.strip() for x in a.deal_free.split(",") if x.strip()]))
-            unknown = [x for x in ids if x not in SETUP_PRICES]
+            new_free = [x.strip() for x in (a.deal_free or "").split(",") if x.strip()]
+            new_rates = _parse_rates(a.deal_rate, "--deal-rate")
+            both = sorted(set(new_free) & set(new_rates))
+            if both:
+                raise SystemExit(f"--deal-free and --deal-rate both name {both} - pick one")
+            ids = sorted({x for x in (deal.get("freeExtraIds") or []) if x not in new_rates} | set(new_free))
+            rates = {x: float(r) for x, r in (deal.get("extraRates") or {}).items() if x not in new_free}
+            rates.update(new_rates)
+            unknown = [x for x in ids + sorted(rates) if x not in SETUP_PRICES]
             if unknown:
-                raise SystemExit(f"--deal-free: only {sorted(SETUP_PRICES)} are priced here, not {unknown}")
-            deal["freeExtraIds"] = ids
+                raise SystemExit(f"--deal-free / --deal-rate: only {sorted(SETUP_PRICES)} are priced here, not {unknown}")
+            deal.pop("freeExtraIds", None)
+            deal.pop("extraRates", None)
+            if ids:
+                deal["freeExtraIds"] = ids
+            if rates:
+                deal["extraRates"] = {x: rates[x] for x in sorted(rates)}
             if a.deal_note:
                 deal["note"] = a.deal_note[:80]
             changes.append(f"customDeal: {data.get('customDeal')} -> {deal}")
             data["customDeal"] = deal
-            guests_now = data.get("guests") or []
-            value = 0.0
-            for x in ids:
-                flag = "tablesChairs" if x == "tables_chairs" else "utensils"
-                if data.get("mode") == "detailed":
-                    n = sum(1 for g in guests_now if g.get(flag))
-                else:
-                    n = next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
-                value += n * SETUP_PRICES[x]
-            promos = [x for x in (data.get("promotions") or []) if x.get("id") != "deal_free_extras"]
+            promos = [x for x in (data.get("promotions") or []) if x.get("id") not in ("deal_free_extras", "deal_extra_rates")]
+            value = sum(_setup_units(data, x) * SETUP_PRICES[x] for x in ids)
             if value > 0:
-                label = " + ".join({"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}[x] for x in ids) + " on us"
+                label = " + ".join(SETUP_LABELS[x] for x in ids) + " on us"
                 promos.append({"id": "deal_free_extras", "label": label, "amount": round(value, 2)})
                 changes.append(f"promo deal_free_extras: {label} {money(value)}")
-            else:
-                print("   ⚠ no guest row has that item - nothing to refund; set tables/utensils on the rows first")
+            cut = sum(_setup_units(data, x) * (SETUP_PRICES[x] - r) for x, r in rates.items())
+            if cut > 0:
+                label = " + ".join(f"{SETUP_LABELS[x]} at {_per_guest(rates[x])}/guest" for x in sorted(rates))
+                promos.append({"id": "deal_extra_rates", "label": label, "amount": round(cut, 2)})
+                changes.append(f"promo deal_extra_rates: {label} {money(cut)}")
+            for x in new_free + sorted(new_rates):
+                if _setup_units(data, x) == 0:
+                    print(f"   ⚠ the order bills no {x} yet - nothing to take off; set it on the rows first"
+                          f" (before there are rows: --add-extra {x}=<guests> in the same command)")
             data["promotions"] = promos
         # "Can I add one more?" the day of. order set used to have no answer for
         # a detailed-mode party: --proteins refuses one (and would wipe every
@@ -1101,7 +1173,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1328,6 +1400,9 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--email"); p.add_argument("--name"); p.add_argument("--phone")
     p.add_argument("--zip"); p.add_argument("--est", type=int); p.add_argument("--booked", action="store_true"); p.add_argument("--verbose", action="store_true")
     p.add_argument("--free", help="comma list of extras the deal gives free, e.g. tables_chairs (deposit only)")
+    p.add_argument("--rate", nargs="+", action="extend", metavar="ID=PRICE",
+                   help="deal: an extra at a set price per guest instead of the catalog's, e.g. tables_chairs=5 - Saturday's half price "
+                        "(D-1017-01). Re-priced on the order when the headcount moves; the order puts the item on the party (deposit only)")
     p.add_argument("--flat-off", type=float, help="deal: dollars off the total (deposit only)")
     p.add_argument("--deal-note", help="deal: why, shown on the order")
     p.set_defaults(fn=cmd_link)
@@ -1386,6 +1461,9 @@ def main(argv=None):
                    "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows.")
     p.add_argument("--replace-guests", action="store_true", help="allow --guests-file to overwrite rows that already have picks")
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
+    p.add_argument("--deal-rate", nargs="+", action="extend", metavar="ID=PRICE",
+                   help="setup item at a set price per guest, e.g. tables_chairs=5 (Saturday's half price, D-1017-01): writes customDeal.extraRates "
+                        "+ the matching 'Tables & Chairs at $5/guest' line at the current count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--free-item", nargs="+", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
     p.add_argument("--add-extra", nargs="+", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; or a setup item for N guests before the rows exist: utensils=18")
