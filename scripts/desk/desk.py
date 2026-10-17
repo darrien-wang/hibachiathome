@@ -43,6 +43,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import pathlib
 import re
 import sys
@@ -59,6 +60,8 @@ THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
 PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"}
 SETUP_PRICES = {"tables_chairs": 10.0, "utensils": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 SETUP_LABELS = {"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}  # same, as the customer reads them
+ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
+DEAL_PROMO_IDS = ("deal_rate", "deal_free_extras", "deal_extra_rates", "deal_flat")  # invoice isCustomDealPromoId, in its order
 MINIMUM_SPEND = 599  # config/pricing-rules.ts
 # Menu price of the appetizers a free-appetizer promo can bring, so changing
 # how many trays it brings moves the discount by the same amount and the
@@ -707,6 +710,67 @@ def _setup_units(data: dict, x: str) -> int:
     return next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
 
 
+def _deal_lines(data: dict) -> list[dict]:
+    """The order's deal lines priced from its rules (customDeal) against the party
+    as it stands, line for line the invoice engine's customDealPromotions
+    (lib/pricing.ts). The planner and the staff tool re-run that on every change;
+    a saved invoice keeps the lines as stored amounts, so desk re-runs it here.
+    Heads are counted like paidAdultCount / paidChildCountForDeal: the rows once
+    there are rows, with the free 3-4 year olds left out, else the booking's
+    counts. Only setup items are priced here: a deal on anything else is
+    refused, not guessed."""
+    deal = data.get("customDeal") or {}
+    free_ids = list(deal.get("freeExtraIds") or [])
+    rates = deal.get("extraRates") or {}
+    odd = sorted(({str(x) for x in free_ids} | set(rates)) - set(SETUP_PRICES))
+    if odd:
+        raise SystemExit(f"this order's deal covers {odd}, which desk cannot price (only {sorted(SETUP_PRICES)}) - it will not guess "
+                         "the deal lines; change the party in the invoice tool, which re-prices the deal itself")
+    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+    cents = lambda v: math.floor(v * 100 + 0.5) / 100  # the engine's Math.round(v * 100) / 100 (half up)
+    rows = data.get("guests") or []
+    detailed = data.get("mode") == "detailed"
+    # Free 3-4 year olds are flagged on the rows or counted on the planner's
+    # "Little kids (3-4) ×N" line; countPaidChildren takes the larger.
+    hit = next((p for p in (data.get("promotions") or [])
+                if p.get("id") == "under5_auto" or re.match(r"little kids", str(p.get("label") or ""), re.I)), None)
+    m = re.search(r"×([0-9]+)", str(hit.get("label") or "")) if hit else None
+    little = int(m.group(1)) if m else (1 if hit else 0)
+    if detailed and rows:
+        kids = [g for g in rows if g.get("isChild")]
+        adults = len(rows) - len(kids)
+        children = max(0, len(kids) - max(sum(1 for g in kids if g.get("isLittle")), little))
+    else:
+        adults = max(0, int(data.get("adultCount") or 0))
+        children = max(0, int(data.get("childCount") or 0) - (0 if detailed else little))
+    lines = []
+    adult_off = max(0.0, ADULT_PRICE - deal["adultRate"]) if num(deal.get("adultRate")) else 0.0
+    child_off = max(0.0, CHILD_PRICE - deal["childRate"]) if num(deal.get("childRate")) else 0.0
+    cut = cents(adult_off * adults + child_off * children)
+    if cut > 0:
+        parts = ([f"${deal['adultRate']:.2f}/adult"] if adult_off > 0 else []) + ([f"${deal['childRate']:.2f}/child"] if child_off > 0 else [])
+        lines.append({"id": "deal_rate", "label": "Your rate: " + ", ".join(parts), "amount": cut})
+    cut = cents(sum(_setup_units(data, x) * SETUP_PRICES[x] for x in free_ids))
+    if cut > 0:
+        lines.append({"id": "deal_free_extras", "label": " + ".join(SETUP_LABELS[x] for x in free_ids) + " on us", "amount": cut})
+    # Items at the deal's price (D-1017-01, Saturday's tables at $5 a guest), in
+    # catalog order as the engine walks PARTY_EXTRAS. Free wins over a rate.
+    cut, names = 0.0, []
+    for x, price in SETUP_PRICES.items():
+        r, units = rates.get(x), _setup_units(data, x)
+        if not num(r) or x in free_ids or not r >= 0 or r >= price or units <= 0:
+            continue
+        cut += (price - r) * units
+        names.append(f"{SETUP_LABELS[x]} at {_per_guest(r)}/guest" if r > 0 else f"{SETUP_LABELS[x]} on us")
+    cut = cents(cut)
+    if cut > 0:
+        lines.append({"id": "deal_extra_rates", "label": " + ".join(names), "amount": cut})
+    flat = cents(max(0.0, deal["flatOff"])) if num(deal.get("flatOff")) else 0.0
+    if flat > 0:
+        lines.append({"id": "deal_flat", "label": f"Special discount ({deal['note']})" if deal.get("note") else "Special discount", "amount": flat})
+    return lines
+
+
 def _print_totals(inv: dict) -> None:
     print(f"   base {money(inv.get('baseCost'))} | promos -{money(inv.get('promotionsTotal'))} | extras {money(inv.get('partyExtrasCost'))}"
           f" | travel {money(inv.get('travelFee'))} | TOTAL {money(inv.get('finalTotal'))} | deposit {money(inv.get('deposit'))} | BALANCE {money(inv.get('balanceDue'))}")
@@ -957,9 +1021,6 @@ def cmd_order(a):
                 data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES]
                 changes.append("partyExtras: dropped " + ", ".join(f"{e.get('id')}={e.get('qty')}" for e in setup_lines)
                                + " (the rows carry tables/utensils now)")
-            for pid, flag in (("deal_free_extras", "--deal-free"), ("deal_extra_rates", "--deal-rate")):
-                if any(x.get("id") == pid for x in (data.get("promotions") or [])):
-                    print(f"   ⚠ {pid} is a stored amount - re-state it with {flag} so it matches the rows")
             for x in (data.get("promotions") or []):
                 if re.search(r"party size", str(x.get("label") or ""), re.I):
                     print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
@@ -1054,9 +1115,9 @@ def cmd_order(a):
             # billed as usual and taken back off on its own line, so the loading
             # list still carries the tables. Saved invoices do not re-derive
             # deal lines (self-service-invoice.ts leaves stored promotions
-            # alone), so the lines are written here, at the current count, as the
-            # engine's customDealPromotions prices them. An item is free or at a
-            # rate, never both (it would come off twice): the newer one wins.
+            # alone), so desk writes them (_deal_lines, below - after any rows
+            # this command changes). An item is free or at a rate, never both
+            # (it would come off twice): the newer one wins.
             deal = dict(data.get("customDeal") or {})
             new_free = [x.strip() for x in (a.deal_free or "").split(",") if x.strip()]
             new_rates = _parse_rates(a.deal_rate, "--deal-rate")
@@ -1079,22 +1140,10 @@ def cmd_order(a):
                 deal["note"] = a.deal_note[:80]
             changes.append(f"customDeal: {data.get('customDeal')} -> {deal}")
             data["customDeal"] = deal
-            promos = [x for x in (data.get("promotions") or []) if x.get("id") not in ("deal_free_extras", "deal_extra_rates")]
-            value = sum(_setup_units(data, x) * SETUP_PRICES[x] for x in ids)
-            if value > 0:
-                label = " + ".join(SETUP_LABELS[x] for x in ids) + " on us"
-                promos.append({"id": "deal_free_extras", "label": label, "amount": round(value, 2)})
-                changes.append(f"promo deal_free_extras: {label} {money(value)}")
-            cut = sum(_setup_units(data, x) * (SETUP_PRICES[x] - r) for x, r in rates.items())
-            if cut > 0:
-                label = " + ".join(f"{SETUP_LABELS[x]} at {_per_guest(rates[x])}/guest" for x in sorted(rates))
-                promos.append({"id": "deal_extra_rates", "label": label, "amount": round(cut, 2)})
-                changes.append(f"promo deal_extra_rates: {label} {money(cut)}")
             for x in new_free + sorted(new_rates):
                 if _setup_units(data, x) == 0:
                     print(f"   ⚠ the order bills no {x} yet - nothing to take off; set it on the rows first"
                           f" (before there are rows: --add-extra {x}=<guests> in the same command)")
-            data["promotions"] = promos
         # "Can I add one more?" the day of. order set used to have no answer for
         # a detailed-mode party: --proteins refuses one (and would wipe every
         # guest's picks), so the only route was the planner. The new rows copy
@@ -1130,10 +1179,10 @@ def cmd_order(a):
             # per-head ones keep the number they were computed at and silently
             # overcharge the new guest. Gregorio 2026-10-05: one late adult left
             # the Weekday Special at 13 adults and "Tables & Chairs on us" at 17
-            # guests, $15 too little off. Nothing here can re-derive those rates
-            # from an amount, so say so loudly rather than guess.
-            stale = [x for x in (data.get("promotions") or [])
-                     if str(x.get("id", "")).startswith("official_weekday") or str(x.get("id", "")).startswith("deal_")]
+            # guests, $15 too little off. The deal lines are re-priced from the
+            # order's customDeal below; nothing here can re-derive the Weekday
+            # Special from an amount, so say so loudly rather than guess.
+            stale = [x for x in (data.get("promotions") or []) if str(x.get("id", "")).startswith("official_weekday")]
             for x in stale:
                 print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount - "
                       f"re-state it with --promo {x.get('id')}=<amount> or the extra guest is overcharged")
@@ -1156,10 +1205,35 @@ def cmd_order(a):
             data[key] = max(0, before - 1)
             changes.append(f"guest removed: {gone.get('name')} ({', '.join(gone.get('proteins') or ['no proteins'])}); {key}: {before} -> {data[key]}")
         if a.remove_guest:
-            # Same frozen-amount trap as --add-adult, the other way round.
+            # Same frozen-amount trap as --add-adult, the other way round (the
+            # deal lines are re-priced below).
             for x in (data.get("promotions") or []):
-                if re.search(r"official_weekday|deal_|party|tables|free", str(x.get("id", "")), re.I):
+                pid = str(x.get("id", ""))
+                if not pid.startswith("deal_") and re.search(r"official_weekday|party|tables|free", pid, re.I):
                     print(f"   ⚠ promo {x.get('id')} {x.get('label')!r} is still {money(x.get('amount'))} - check it still fits the new headcount")
+        # The deal lines are stored amounts as well, but the order keeps the deal
+        # itself as rules (customDeal), so they follow whatever moved what they
+        # count: the guest rows, the switch between rows and counts, or the
+        # party-wide setup line a fresh order bills its tables from. The planner
+        # and the staff tool re-price them the same way. --deal-free /
+        # --deal-rate land here too, after any rows the command changed.
+        recount = bool(a.guests_file or a.add_adult or a.add_child or a.remove_guest or data.get("mode") != prefill.get("mode")
+                       or any(x.split("=")[0] in SETUP_PRICES for x in (a.add_extra or [])))
+        if a.deal_free or a.deal_rate or (recount and data.get("customDeal")):
+            promos = data.get("promotions") or []
+            new = _deal_lines(data)
+            for pid in DEAL_PROMO_IDS:
+                was = next((x for x in promos if x.get("id") == pid), None)
+                now = next((x for x in new if x["id"] == pid), None)
+                if was or now:
+                    changes.append(f"promo {pid}: {money(was.get('amount')) if was else 'none'} -> {money(now['amount']) if now else 'none'}"
+                                   f"  {(now or was).get('label')}")
+            data["promotions"] = [x for x in promos if x.get("id") not in DEAL_PROMO_IDS] + new
+        elif recount:
+            for x in (data.get("promotions") or []):
+                if str(x.get("id", "")).startswith("deal_"):
+                    print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount, and the order has no "
+                          f"customDeal to re-price it from - re-state it with --promo {x.get('id')}=<amount>")
         if a.promo:
             promos = data.setdefault("promotions", [])
             for pair in a.promo:
@@ -1472,8 +1546,9 @@ def main(argv=None):
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
     p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
     p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
-                   "Promotions are frozen numbers on the invoice, not rules, so any per-head one (the Weekday Special, a free-extras deal) "
-                   "has to be re-stated by hand when the headcount moves - see the warning --add-adult prints.")
+                   "Promotions are frozen numbers on the invoice, not rules, so a per-head one (the Weekday Special) has to be re-stated "
+                   "by hand when the headcount moves - see the warning --add-adult prints. The deal_* lines are re-priced from the "
+                   "order's customDeal whenever the rows change.")
     p.set_defaults(fn=cmd_order)
 
     a = ap.parse_args(argv)
