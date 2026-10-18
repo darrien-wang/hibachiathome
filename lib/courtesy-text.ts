@@ -71,7 +71,11 @@ export function courtesyOnly(body: string): boolean {
  */
 export function isTapback(body: string): boolean {
   const b = (body ?? "").trim()
-  if (/^(liked|loved|laughed at|emphasized|disliked|questioned)\s/i.test(b)) return true
+  if (/^(liked|loved|laughed at|emphasized|disliked|questioned|reacted)\s/i.test(b)) return true
+  // The same reactions from a Spanish iPhone ("Le gustó “…”" - 818-800, 2026-10-17,
+  // sat in the inbox as an unanswered text). Many of our customers text in
+  // Spanish; only the reaction prefix followed by a quote counts.
+  if (/^(le gust[oó]|no le gust[oó]|le encant[oó]|le dio risa|se ri[oó] de|enfatiz[oó]|destac[oó]|cuestion[oó]|reaccion[oó])\s.*[“"«]/i.test(b)) return true
   // a bare thumbs-up, with or without a skin tone / variation selector
   return /^\u{1F44D}[\u{1F3FB}-\u{1F3FF}]?\u{FE0F}?[\s.!]*$/u.test(b)
 }
