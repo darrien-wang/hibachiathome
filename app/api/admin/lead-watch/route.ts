@@ -833,7 +833,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
 
   // ---- report each open item once (again after two hours; urgent ones every 10 min)
   const candidates: Candidate[] = [
-    ...humanLeads.map((h) => ({ key: `lead:${h.leadId}`, item: h, urgent: false })),
+    // A lead whose party is tomorrow or the day after gets no machine opener
+    // ("open on our end" needs a person to check), so it waits on us alone:
+    // Lindsay (Santee, Sun 10/18) sat 55 minutes on 10-17 after one ping.
+    ...humanLeads.map((h) => ({ key: `lead:${h.leadId}`, item: h, urgent: h.why === "date_within_48h" })),
     ...humanSms.map((h) => ({ key: `sms:${h.sid}`, item: h, urgent: Number(h.minutesWaiting) >= URGENT_AFTER_MIN })),
     ...partyCandidates,
   ]
