@@ -119,7 +119,8 @@ export type QuoteBreakdown = {
   semiBuffetChefs: number
   /**
    * What we actually take in per head after every discount: food only (travel
-   * aside), kids weighted half, free tables & chairs counted as $4/guest.
+   * aside), kids weighted half, free tables & chairs counted as $4/guest
+   * (half-price ones, $5 paid, count nothing - D-1017-01).
    */
   effectivePerHead: number
   /** Below the owner's floor - the owner has to say yes before this goes out. */
