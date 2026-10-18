@@ -9,6 +9,7 @@ import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { ASKS_SOURCE } from "@/lib/heard-from"
+import { captureStaffingPromise } from "@/lib/promise-capture"
 
 export const dynamic = "force-dynamic"
 
@@ -530,5 +531,26 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, sid: sent.sid, status: sent.status })
+  // A staffing promise in this text ("2 chefs and 2 grills for 30", "each
+  // chef cooks from an open end") lands on the lead and on the customer's
+  // upcoming orders (lib/promise-capture.ts). Eileen 10-17: promised in
+  // texts, never on the order, one grill on the day.
+  let promise: Awaited<ReturnType<typeof captureStaffingPromise>> = null
+  {
+    const supabase = createServerSupabaseClient()
+    if (supabase) {
+      try {
+        promise = await captureStaffingPromise(supabase, { text: body, sid: sent.sid, via: "sms", leadId, phone, actor: `promise_capture:${session}` })
+      } catch (error) {
+        console.error("[sms-thread] promise capture failed", { leadId, error })
+      }
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    sid: sent.sid,
+    status: sent.status,
+    ...(promise ? { promise: { chefs: promise.promise.chefs, grills: promise.promise.grills, orders: promise.ordersPatched.map((o) => o.order_no) } } : {}),
+  })
 }

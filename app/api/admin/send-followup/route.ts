@@ -3,6 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { sendEmail } from "@/lib/email/send-email"
 import { parseAttachments } from "@/lib/email/attachments"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { captureStaffingPromise } from "@/lib/promise-capture"
 
 export const dynamic = "force-dynamic"
 
@@ -127,7 +128,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, id: result.providerMessageId ?? null, provider: result.provider, cc, attachments: attachmentNames })
+    // Same as a text: a staffing promise in the email lands on the lead and
+    // the customer's upcoming orders (lib/promise-capture.ts).
+    let promise: Awaited<ReturnType<typeof captureStaffingPromise>> = null
+    try {
+      const supabase = createServerSupabaseClient()
+      if (supabase) {
+        promise = await captureStaffingPromise(supabase, {
+          text: `${subject}\n${text}`,
+          sid: result.providerMessageId ?? null,
+          via: "email",
+          leadId: leadId || null,
+          email: to,
+          actor: "promise_capture:email",
+        })
+      }
+    } catch (error) {
+      console.error("[send-followup] promise capture failed", { leadId, error })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      id: result.providerMessageId ?? null,
+      provider: result.provider,
+      cc,
+      attachments: attachmentNames,
+      ...(promise ? { promise: { chefs: promise.promise.chefs, grills: promise.promise.grills, orders: promise.ordersPatched.map((o) => o.order_no) } } : {}),
+    })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }

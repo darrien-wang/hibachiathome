@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { SmsMessage } from "@/lib/sms-thread"
+import { captureStaffingPromise } from "@/lib/promise-capture"
 
 // ============================================================
 // Twilio -> lead timeline reconciliation (2026-09-24)
@@ -84,6 +85,17 @@ export async function reconcileThread(
     if (error && !/duplicate|unique/i.test(error.message)) {
       console.error("[sms-reconcile] insert failed", error.message)
       return { inserted: 0, scanned: usable.length }
+    }
+    // Texts sent from the owner's phone App skip /api/admin/sms-thread, so a
+    // staffing promise in one of them is caught here, when the thread is
+    // synced (lib/promise-capture.ts; idempotent on the SID).
+    for (const r of rows) {
+      if (r.touchpoint_type !== "sms_outbound") continue
+      try {
+        await captureStaffingPromise(supabase, { text: String(r.raw_payload_json.body ?? ""), sid: r.external_touchpoint_id, via: "sms", leadId, phone: String(r.raw_payload_json.peer ?? "") || null, at: r.occurred_at, actor: "promise_capture:twilio_sync" })
+      } catch (e) {
+        console.error("[sms-reconcile] promise capture failed", e instanceof Error ? e.message : e)
+      }
     }
   }
 

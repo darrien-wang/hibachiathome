@@ -46,6 +46,9 @@ const LIST_COLUMNS = [
   "invoice_confirmed_at",
   "invoice_confirmed_revision",
   "invoice_confirmed_by",
+  // Dispatch plan (chefs / grills / stations; lib/dispatch-plan.ts) and its legacy mirror.
+  "dispatch_plan",
+  "required_staff_count",
 ].join(",")
 
 type FinishedOrderShape = {
@@ -168,7 +171,21 @@ export async function GET(request: NextRequest) {
     requestsQuery = sourceRef
       ? requestsQuery.or(`order_id.eq.${orderId},external_order_id.eq.${sourceRef}`)
       : requestsQuery.eq("order_id", orderId)
-    const requestsRes = await requestsQuery
+    const [requestsRes, staffingRes] = await Promise.all([
+      requestsQuery,
+      // 这单的全队，含帮手：派工计划的 lint 要分清谁带灶、谁只是跟台。
+      supabase
+        .from("order_staff_assignments")
+        .select("id, staff_member_id, assignment_role, assignment_status, staff_members(display_name, full_name)")
+        .eq("order_id", orderId)
+        .in("assignment_status", ["tentative", "confirmed", "completed"]),
+    ])
+    type Named = { display_name: string | null; full_name: string | null }
+    type StaffingJoined = { id: string; staff_member_id: string; assignment_role: string | null; assignment_status: string; staff_members: Named | Named[] | null }
+    const staffingRows = ((staffingRes.data ?? []) as unknown as StaffingJoined[]).map((r) => {
+      const sm = Array.isArray(r.staff_members) ? r.staff_members[0] : r.staff_members
+      return { assignmentId: r.id, staffId: r.staff_member_id, name: (sm?.display_name ?? sm?.full_name ?? "").trim() || "?", role: r.assignment_role ?? "lead_chef", status: r.assignment_status }
+    })
 
     return NextResponse.json({
       ok: true,
@@ -176,6 +193,10 @@ export async function GET(request: NextRequest) {
       payments: paymentsRes.data ?? [],
       events: eventsRes.data ?? [],
       updateRequests: requestsRes.data ?? [],
+      staffing: {
+        cooks: staffingRows.filter((r) => r.role !== "assistant_chef"),
+        helpers: staffingRows.filter((r) => r.role === "assistant_chef"),
+      },
     })
   }
 

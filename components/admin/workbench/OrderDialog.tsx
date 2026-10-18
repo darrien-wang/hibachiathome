@@ -34,6 +34,7 @@ import {
 } from "./helpers"
 import type { ChefSummary, OrderAssignment } from "./chef-types"
 import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
+import { DispatchPlanPanel } from "./DispatchPlanPanel"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
@@ -1019,6 +1020,8 @@ export function OrderDialog({
                   </button>
                 </div>
               ) : null}
+              {/* 派工计划：几位师傅几台灶、站位、答应过客人什么，和派了几个人对不对得上。 */}
+              <DispatchPlanPanel adminKey={adminKey} order={o} staffing={detail?.staffing} cooksFallback={assignments.length} viewerRole={viewerRole} onSaved={async () => { await Promise.all([load(), onChanged()]) }} />
               <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单按发票里存的份量生成，改了发票要再发一次。</div>
             </div>
           </div>

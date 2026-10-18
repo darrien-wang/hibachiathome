@@ -10,6 +10,8 @@ import { assetLabel } from "@/lib/staff-assets"
 import { chefDriveMiles, type DriveMiles } from "@/lib/chef-drive-miles"
 import { CARD_PROCESSING_RATE, cardProcessingFeeInside, DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, salesTaxOn, type PricingTerms } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
+import { MAX_CHEFS, normalizeDispatchPlan, rulePlan, type DispatchPlan } from "@/lib/dispatch-plan"
+import { lintOrderStaffing, orderPaidHeads, type OrderForPlan } from "@/lib/dispatch-plan-order"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -557,7 +559,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note", "set_dispatch_plan"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -1190,6 +1192,48 @@ export async function POST(request: NextRequest) {
         const { error } = await supabase.from("orders").update({ prep_note: str(body.note, 300) || null }).eq("id", body.order_id)
         if (error) throw error
         return NextResponse.json({ ok: true })
+      }
+      case "set_dispatch_plan": {
+        // 派工计划（老板 2026-10-17，Eileen 那单两台灶答应了没派）：这一单几位师傅、
+        // 几台灶、站位怎么摆。老板定的覆盖规则；clear 回到按人头的规则。答应过客人的
+        // 那条（promise）留在计划里，lint 拿它对照派工。lib/dispatch-plan.ts。
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        const { data: ordRow } = await supabase.from("orders").select("id, order_no, event_start, guest_adult_count, guest_child_count, invoice_data, dispatch_plan").eq("id", body.order_id).maybeSingle()
+        if (!ordRow) return NextResponse.json({ error: "order not found" }, { status: 404 })
+        const existing = normalizeDispatchPlan((ordRow as { dispatch_plan?: unknown }).dispatch_plan)
+        const heads = orderPaidHeads(ordRow as { invoice_data?: unknown; guest_adult_count?: number | null; guest_child_count?: number | null })
+        let plan: DispatchPlan
+        if (body.clear === true) {
+          plan = { ...rulePlan(heads, now), promise: existing?.promise ?? null, stations_note: str(body.stations_note, 200) || null }
+        } else {
+          const chefs = body.chefs === undefined ? (existing?.chefs ?? rulePlan(heads).chefs) : int(body.chefs)
+          const grills = body.grills === undefined ? (body.chefs === undefined ? (existing?.grills ?? chefs) : chefs) : int(body.grills)
+          if (chefs < 1 || chefs > MAX_CHEFS || grills < 1 || grills > MAX_CHEFS) return NextResponse.json({ error: `chefs / grills must be 1-${MAX_CHEFS}` }, { status: 400 })
+          plan = {
+            chefs,
+            grills,
+            stations_note: body.stations_note === undefined ? (existing?.stations_note ?? null) : str(body.stations_note, 200) || null,
+            source: "owner",
+            promise: existing?.promise ?? null,
+            heads,
+            set_by: `workbench:${actor.alias}`,
+            set_at: now,
+          }
+        }
+        const { error } = await supabase.from("orders").update({ dispatch_plan: plan, required_staff_count: plan.chefs, updated_at: now }).eq("id", body.order_id)
+        if (error) throw error
+        await supabase.from("order_events").insert({
+          order_id: body.order_id,
+          actor: `workbench:${actor.alias}`,
+          action: "dispatch_plan_set",
+          metadata: { source: plan.source, chefs: plan.chefs, grills: plan.grills, stations_note: plan.stations_note ?? null, was: existing ? { source: existing.source, chefs: existing.chefs, grills: existing.grills } : null },
+        })
+        // Lint right back, so the desk / dialog can show what the plan still lacks.
+        const { data: asgRows } = await supabase.from("order_staff_assignments").select("assignment_role").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
+        const cooks = (asgRows ?? []).filter((a) => a.assignment_role !== HELPER_ROLE).length
+        const helpers = (asgRows ?? []).length - cooks
+        const lint = lintOrderStaffing({ ...(ordRow as OrderForPlan), dispatch_plan: plan }, { cooks, helpers })
+        return NextResponse.json({ ok: true, plan, lint })
       }
       case "set_logistics_owner": {
         // 订单弹窗里选"这单谁备货"：一单一个负责人。换人 = 把别人没结的勾去掉、给新的人勾上；

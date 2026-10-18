@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T01:03:30.913Z",
+  "generatedAt": "2026-10-18T21:35:28.446Z",
   "source": "v0-real-hibachi-invoice-generator lib/pricing.ts",
   "constants": {
     "CREDIT_CARD_FEE_RATE": 0.04,
@@ -8,7 +8,8 @@
     "MINIMUM_SPEND": 599,
     "PRICING_TERMS_V2_FROM": "2026-10-06T07:00:00.000Z",
     "CARD_PROCESSING_RATE": 0.03,
-    "ZELLE_VENMO_RATE": 0.04
+    "ZELLE_VENMO_RATE": 0.04,
+    "GUESTS_PER_CHEF": 28
   },
   "bills": [
     {

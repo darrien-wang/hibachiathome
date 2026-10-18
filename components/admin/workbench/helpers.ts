@@ -109,6 +109,10 @@ export type OrderRow = {
   invoice_data?: Record<string, unknown> | null
   /** What the customer picked on /rentals: package, tablecloth, table theme. */
   setup_selection?: SetupSelection | null
+  /** Chefs / grills / stations for the party and why (lib/dispatch-plan.ts). Null = by rule. */
+  dispatch_plan?: unknown
+  /** Legacy mirror of dispatch_plan.chefs. */
+  required_staff_count?: number | null
   /** Chef gratuity the customer typed on /pay. Selected, not necessarily paid. */
   chosen_gratuity_cents?: number | null
   chosen_gratuity_at?: string | null
@@ -170,7 +174,16 @@ export type OrderPayment = {
 
 export type OrderEvent = { id: string; actor: string | null; action: string; metadata: Record<string, unknown> | null; created_at: string }
 
-export type OrderDetail = { order: OrderRow; payments: OrderPayment[]; events: OrderEvent[]; updateRequests: UpdateRequest[] }
+/** One active row of order_staff_assignments, with the chef's name. */
+export type OrderStaffingRow = { assignmentId: string; staffId: string; name: string; role: string; status: string }
+export type OrderDetail = {
+  order: OrderRow
+  payments: OrderPayment[]
+  events: OrderEvent[]
+  updateRequests: UpdateRequest[]
+  /** The whole team: cooks (lead_chef) and helpers (assistant_chef, no grill). Detail only. */
+  staffing?: { cooks: OrderStaffingRow[]; helpers: OrderStaffingRow[] }
+}
 
 // ---------------------------------------------------------------- statuses
 

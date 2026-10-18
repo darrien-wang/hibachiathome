@@ -1887,7 +1887,7 @@ export const cityPages: CityPage[] = [
       {
         question: "How many guests can you handle at one event?",
         answer:
-          "Any size. One chef comfortably serves up to about 20 guests; for larger reunions we bring additional chefs and grills. You still make just one reservation.",
+          "Any size. One chef comfortably serves up to 28 guests; for larger reunions we bring additional chefs and grills. You still make just one reservation.",
       },
       {
         question: "What does hibachi at home cost in Anaheim?",

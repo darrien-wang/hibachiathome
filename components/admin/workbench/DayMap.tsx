@@ -37,6 +37,8 @@ type Stop = {
   helperIds?: string[]
   /** 要布置桌椅 */
   tables?: boolean
+  /** 派工计划：几位师傅几台灶（lib/dispatch-plan.ts）。派的人比计划少，这一单要标红。 */
+  plan?: { chefs: number; grills: number; source: "rule" | "owner" | "promise" }
 }
 type Chef = { id: string; name: string; active: boolean; canHelp?: boolean }
 type Grade = "solid" | "ontime" | "late_ok" | "late_limit"
@@ -353,6 +355,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
               <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 18 }}>
                 {numOf(cur.id)}. {cur.time} {cur.name} <Tag cls="tag-neutral">{cur.guests} 人</Tag>
+                {cur.plan && (cur.plan.chefs > 1 || cur.plan.grills > 1) ? <Tag cls="tag-accent">{cur.plan.chefs} 厨 · {cur.plan.grills} 灶</Tag> : null}
               </div>
               <span className="mono" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{cur.orderNo}</span>
             </div>
@@ -425,7 +428,10 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                             {s.time} {s.name}
                           </button>
                           {s.tables ? <Tag cls="tag-accent">桌椅</Tag> : null}
+                          {/* 两位以上师傅的单（规则 / 老板 / 答应过客人）：图上点名，派少了标红——Eileen 10-17 两台灶答应了没派 */}
+                          {s.plan && (s.plan.chefs > 1 || s.plan.grills > 1) ? <Tag cls="tag-accent">{s.plan.chefs} 厨 · {s.plan.grills} 灶{s.plan.source === "promise" ? "（答应过）" : ""}</Tag> : null}
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
+                          {s.plan && s.chefIds.length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {s.chefIds.length}</span> : null}
                           {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
                           {cc.mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length ? `已派 ${namesOf(s.chefIds)}` : "还没派"}</span> : null}
                           {s.lat === null ? <span style={{ color: "var(--color-accent-700)" }}> · 地址定位不到</span> : null}

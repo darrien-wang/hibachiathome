@@ -12,6 +12,7 @@ import GeoCityName from "@/components/city/geo-city-name"
 import { greetsWithVisitorCity } from "@/config/geo-locations"
 import { JsonLd, BUSINESS_ID } from "@/components/structured-data"
 import { phone } from "@/config/site"
+import { GUESTS_PER_CHEF } from "@/config/pricing-rules"
 
 const BASE_URL = "https://www.realhibachi.com"
 const PHONE_RAW = phone.sms.e164
@@ -68,7 +69,7 @@ const eventTypes = [
   {
     title: "Big group? That's the point.",
     description:
-      "One chef serves up to ~25 guests with the full show; larger events get a second chef and grill so every table has a front row. Tell us the headcount and we bring the right crew.",
+      `One chef serves up to ${GUESTS_PER_CHEF} guests with the full show; larger events get a second chef and grill so every table has a front row. Tell us the headcount and we bring the right crew.`,
   },
   {
     title: "Corporate & team events",

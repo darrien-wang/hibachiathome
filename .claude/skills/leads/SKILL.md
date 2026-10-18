@@ -725,7 +725,7 @@ python scripts/desk/desk.py heard <lead> "原话" --as friend   # 归错了就�
 - **素/纯素**：tofu + 蔬菜 / 植物基，**同价**。**只选了豆腐一样的，默认双份豆腐**（老板 2026-10-13，Stacy 那单的 Julie），不用再问客人。同理，**同一种蛋白可以选两次**，就是双份（10-13 Hardeep 问"只吃鸡的能两样都选鸡吗"，答可以；依据是老板的双份豆腐口径，鸡是最便宜的蛋白）。
 - **初中生 / 12–14 岁算大人还是小孩**（老板 2026-10-13）：跟客人说这个年纪一般按大人算——小孩那份蛋白是减半的，建议按大人订："Kids that age usually eat like adults - our kids' plates have half the protein, so I'd book them as adults."
 - **自带蛋白**：不行（安全 + 定价一致）。
-- **多少人要几个厨师**：28 人/厨师，一次预订即可，我们安排。**刚过一点线的照样一个厨师**：老板 2026-10-13 定 Stacy 29 人（27 大 2 小）派一个（"29个人就安排一个师傅吧 没事 除非他要求再说"）；客人问"是不是一个厨师一个烤炉"就答是，客人自己要求加厨师再问老板。
+- **多少人要几个厨师**：28 人/厨师，一次预订即可，我们安排。**刚过一点线的照样一个厨师**：老板 2026-10-13 定 Stacy 29 人（27 大 2 小）派一个（"29个人就安排一个师傅吧 没事 除非他要求再说"）；客人问"是不是一个厨师一个烤炉"就答是，客人自己要求加厨师再问老板。**答应了几位师傅几台灶就是承诺，系统会记**（2026-10-18 起，Eileen 10-17 两台灶答应了没派）：短信/邮件里写了 "two chefs" / "2 chefs" / "3 chefs" / "each chef" / "each with their own grill" / "two stations"，发出去的那一刻就记成线索上的 promise、落到这个客人已建的订单的派工计划（`orders.dispatch_plan`，来源 promise），锁单时也会自动带上；备料单顶上印 "2 chefs · 2 grills" 和站位，装车单多一行 Grill ×2。所以**别随口写复数**——没打算派两位就不要写 "your chefs" / "two stations"；老板要改用 `desk order set <单号> --chefs 1 --grills 1`（见 §10.0），改了 lint 仍会提示"答应过客人 2 位"。规则本身在 `config/pricing-rules.ts` 的 `GUESTS_PER_CHEF`（=28，和城市页 FAQ 一个数，测试锁死）。
 - **酒/清酒**：**提供**（**不加价，含在派对里**，用户 09-15 定）。**客人问饮料时，短信里直接说 sake**（用户 2026-09-29 定，Nasim、Carlos 两次都 delivered）："We bring sake for the adults - it's included." 边界：**只在回答客人的问题时说**，不写进首条、跟进、群发或任何主动发的短信，不写 alcohol/liquor/beer/wine 这些泛称，不描述喝法和数量（"unlimited" 之类）。原因：运营商对商家短信有 SHAFT 酒类限制（错误码 30955），我们从来没因此被拦过，用户评估后选择在回答里直说；发了之后看一眼送达状态，出现 30955 立刻停用并告诉用户。客人要细节或想免掉 → 照办。
   - **喷酒枪是真有的**（用户 2026-09-30 确认）：师傅会用 sake gun 往客人嘴里喷清酒，**客人自己提起来或问起来就可以认**（“your chef brings the sake gun”）。单身派对/生日这种场合答好了特别加分。边界和 sake 一样：**只在回答里说，不写进首条/跟进/群发**，也不主动向带小孩的派对提。头一例：Frank Musso（10/3 La Quinta 单身派对）自己说 “feel free to bring some sake water guns”。
 
@@ -895,13 +895,14 @@ python scripts/desk/desk.py order show <单号>                # 发票内容：
 python scripts/desk/desk.py order set  <单号> --time 18:30 [--date] [--address] [--name] [--email] [--phone] [--notes-file f]   # 先算价再存，同步 planner
 python scripts/desk/desk.py order set  <单号> --proteins chicken=10 steak=10 shrimp=10   # 客人只给了总数/只说要哪几样：记成快速模式的份数
 python scripts/desk/desk.py order set  <单号> --deal-rate tables_chairs=5   # 已建好的单补上答应过的半价桌椅：customDeal + 一行 "Tables & Chairs at $5/guest"（免费用 --deal-free tables_chairs）
+python scripts/desk/desk.py order set  <单号> --chefs 2 --grills 2 --stations "two U shapes, each chef at an open end, by the pool"   # 派工计划（老板定的，盖过人头规则）：几位师傅几台灶、站位；印在备料单顶上，装车单多一行 Grill ×N；--plan-rule 回到按人头（28 人一位）；order show 能看现在的计划、答应过客人什么、派了谁
 python scripts/desk/desk.py order preview <单号>             # 只算不存
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]   # 客户发票邮件(+PDF+存档)；NOTES 有内部内容会先拦下来给你看
 python scripts/desk/desk.py calls <手机|leadId>                # 这个客人的来电录音（时间、时长）
 python scripts/desk/desk.py transcribe <手机|leadId> --last 2 [--model small|medium] [--note]   # 本机转录，客/我分声道；--note 挂到线索时间线（客人打过电话先转一遍再回短信，电话里说过的不要再问）
 ```
 
-`next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址和 NOTES；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。**客人不逐人点、只说"鸡牛虾都要，15 个人你们备够"**（Nasim，2026-09-29）：用 `--proteins` 记总份数，**份数 = 人数 × 2**，平均分到他点名的几样上（15 人三样 = 10/10/10）。超过每人两份的部分引擎会按加购收钱，所以**发票上的数是菜单，不是师傅的备货余量**——余量写进线索备注提醒多备，不要加进发票。已经有逐人菜单的订单 `--proteins` 会拒绝，免得把客人自己填的冲掉。
+`next` / `card` 走 `/api/admin/desk`（2026-09-27 Phase 1）：一次调用就是完整卡，不要再分别拉线索/时间线/对话/价。`order set` 只改联系人、日期时间地址、NOTES 和派工计划（`--chefs/--grills/--stations`，直接写订单、不过发票）；逐人菜单、加购、促销仍用 §10.1 的 lookup → 改 `guests` / `partyExtras` → save-invoice。**客人不逐人点、只说"鸡牛虾都要，15 个人你们备够"**（Nasim，2026-09-29）：用 `--proteins` 记总份数，**份数 = 人数 × 2**，平均分到他点名的几样上（15 人三样 = 10/10/10）。超过每人两份的部分引擎会按加购收钱，所以**发票上的数是菜单，不是师傅的备货余量**——余量写进线索备注提醒多备，不要加进发票。已经有逐人菜单的订单 `--proteins` 会拒绝，免得把客人自己填的冲掉。
 
 `order set` 存的时候带着"读到的那一版"（2026-10-11）。从读到存的这几秒里订单被改过——客人在 planner 点了提交、有人在发票页保存——发票应用回 409，desk 打 `STALE not saved` 和改了什么，**什么都没存**。先 `order show` 看最新的，再决定要不要重跑：`--add-adult` / `--free-item` / `--add-extra` 这类"加"的参数，先确认客人是不是已经自己加上了。**为什么**：save-invoice 是整张发票覆盖，旧的那份存进去会把客人刚交的地址、菜单一起盖回去（Natalie Dunn 10-10 是反方向的同一个坑）。手写 lookup → save-invoice 同理：把 lookup 返回的 `order.updatedAt` / `order.version` 作为 `baseUpdatedAt` / `baseVersion` 一起 POST，不带就没有这层保护。
 

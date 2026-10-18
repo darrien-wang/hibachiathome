@@ -25,6 +25,8 @@
   python scripts/desk/desk.py order show <orderNo|orderId> the stored invoice: contact, guests, extras, notes, totals
   python scripts/desk/desk.py order set  <orderNo> [--date 2026-10-13] [--time 18:30] [--address ...]
                                    [--name ...] [--email ...] [--phone ...] [--notes-file f]   re-price, then save
+  python scripts/desk/desk.py order set  <orderNo> --chefs 2 --grills 2 [--stations "two U shapes, each chef at an open end"]
+                                   dispatch plan on the order (owner override; --plan-rule goes back to the headcount rule)
                                    [--proteins chicken=10 steak=10 shrimp=10]   totals texted by the customer
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
@@ -790,6 +792,26 @@ def _print_totals(inv: dict) -> None:
         print("   v1 含税价 · 刷卡 +4%")
 
 
+def _print_plan(row: dict, staffing: dict | None) -> None:
+    """One line: chefs / grills / source, the stations note, the promise, who is assigned."""
+    plan = row.get("dispatch_plan") if isinstance(row.get("dispatch_plan"), dict) else None
+    if not plan:
+        print(f"   派工: 按人头规则（required_staff_count={row.get('required_staff_count')}）- 没有单独的计划")
+        return
+    src = {"rule": "按人头规则", "owner": "老板定的", "promise": "答应过客人"}.get(str(plan.get("source")), str(plan.get("source")))
+    print(f"   派工: {plan.get('chefs')} 位师傅 / {plan.get('grills')} 台灶 ({src})"
+          + (f"  站位: {plan['stations_note']}" if plan.get("stations_note") else ""))
+    pr = plan.get("promise") if isinstance(plan.get("promise"), dict) else None
+    if pr:
+        print(f"         答应过: {pr.get('chefs')} 厨 / {pr.get('grills')} 灶 {str(pr.get('at') or '')[:10]} \"{str(pr.get('text') or '')[:120]}\"")
+    if isinstance(staffing, dict):
+        cooks = [c.get("name") for c in (staffing.get("cooks") or [])]
+        helpers = [c.get("name") for c in (staffing.get("helpers") or [])]
+        print(f"         已派: {', '.join(cooks) or '-'}" + (f"  帮手: {', '.join(helpers)}" if helpers else ""))
+        if len(cooks) < int(plan.get("chefs") or 1):
+            print(f"         ! 计划 {plan.get('chefs')} 位师傅，只派了 {len(cooks)} 位")
+
+
 def _print_invoice(order_no: str, data: dict) -> None:
     c = data.get("contactInfo") or {}
     print(f"{order_no} · {c.get('clientName') or '-'} · {c.get('phone') or '-'} · {c.get('email') or '-'}")
@@ -846,6 +868,7 @@ def cmd_order(a):
         if not data:
             data = row.get("invoice_data") or {}
         _print_invoice(order_no, data)
+        _print_plan(row, detail.get("staffing"))
         if row.get("internal_notes"):
             print(f"   内部备注(客户看不到): {str(row['internal_notes'])[:300]}")
         try:
@@ -855,6 +878,35 @@ def cmd_order(a):
         if a.json:
             print(dump(detail))
         return
+    if a.op == "set" and (a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule):
+        # The dispatch plan (2026-10-18): how many chefs and grills this party
+        # gets and where they stand. Lives on the order (orders.dispatch_plan,
+        # lib/dispatch-plan.ts), read by the prep sheet and the day map; set by
+        # the owner here or in the order dialog, else by the headcount rule
+        # (28 paid heads a chef), else by what the desk promised the customer
+        # in a text (promise capture). Eileen 10-17: "two stations" promised
+        # by text, one grill on the day - the promise had nowhere to land.
+        payload = {"action": "set_dispatch_plan", "order_id": order["id"]}
+        if a.plan_rule:
+            payload["clear"] = True
+        else:
+            if a.chefs is not None:
+                payload["chefs"] = int(a.chefs)
+            if a.grills is not None:
+                payload["grills"] = int(a.grills)
+        if a.stations is not None:
+            payload["stations_note"] = a.stations
+        res = site_post("/api/admin/chefs", payload)
+        plan = res.get("plan") or {}
+        print(f"OK    {order_no} dispatch plan: {plan.get('chefs')} chef(s) / {plan.get('grills')} grill(s) ({plan.get('source')})"
+              + (f"  stations: {plan['stations_note']}" if plan.get("stations_note") else ""))
+        for w in res.get("lint") or []:
+            print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
+        invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
+                         a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.add_promo, a.remove_promo,
+                         a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo)
+        if all(v in (None, False, []) for v in invoice_flags):
+            return
     inv_order, prefill = _lookup(order)
     if a.op == "preview":
         _print_invoice(order_no, prefill)
@@ -1517,6 +1569,10 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")
+    p.add_argument("--chefs", type=int, metavar="N", help="dispatch plan: chefs on this party (owner override; the prep sheet and day map read it)")
+    p.add_argument("--grills", type=int, metavar="N", help="dispatch plan: grills (defaults to --chefs)")
+    p.add_argument("--stations", help="dispatch plan: where the chefs stand, printed on the prep sheet, e.g. \"two U shapes, each chef at an open end, by the pool\"")
+    p.add_argument("--plan-rule", action="store_true", help="dispatch plan: back to the headcount rule (28 paid heads a chef and grill)")
     p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
     p.add_argument("--travel-fee", help="fixed customer travel fee in dollars (a concession, e.g. the quoted amount); "
                                         "miles stay for the chef's pay; 'none' prices by miles again")
