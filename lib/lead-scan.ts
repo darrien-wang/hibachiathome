@@ -185,6 +185,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
         .from("orders")
         .select("id, order_no, customer_name, customer_phone, event_start, event_address, invoice_data, source_metadata")
         .eq("deposit_status", "paid_verified")
+        .or("order_status.is.null,order_status.neq.cancelled")
         .gte("event_start", new Date(now - DAY_MS).toISOString())
         .lte("event_start", new Date(now + ORDER_HORIZON_DAYS * DAY_MS).toISOString())
         .order("event_start", { ascending: true })
@@ -216,9 +217,15 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     byLead.set(t.lead_id, list)
   }
   // A paid order on the same number means the lead is a customer, whatever
-  // its status says.
+  // its status says - unless the order was cancelled (Isabella Reyna locked and
+  // cancelled 11/7 the same afternoon on 10-18; her lead went back to "in talks").
   const paidPhones = new Set<string>()
-  const { data: paidAll } = await supabase.from("orders").select("customer_phone").eq("deposit_status", "paid_verified").gte("created_at", since)
+  const { data: paidAll } = await supabase
+    .from("orders")
+    .select("customer_phone")
+    .eq("deposit_status", "paid_verified")
+    .or("order_status.is.null,order_status.neq.cancelled")
+    .gte("created_at", since)
   for (const o of (paidAll ?? []) as Array<{ customer_phone: string | null }>) {
     const d = digits10(o.customer_phone)
     if (d) paidPhones.add(d)
