@@ -36,8 +36,11 @@ const SYSTEM_SENDER = /(^|[<\s])(mailer-daemon|postmaster|no-?reply@stripe\.com|
 // alert as leads. Marketing senders by local part / domain, plus anything
 // carrying a List-Unsubscribe header - except the lead platforms, whose
 // notifications are real inquiries even when they are bulk-sent.
+// meta.com (security@account.meta.com) added 2026-10-19: a Meta account
+// recovery code was filed as a lead on 10-18; Facebook customer mail comes
+// from facebookmail.com and is parsed above this filter, never from meta.com.
 const BULK_LOCAL = /^(newsletter|news|newsletters|marketing|promo|promotions?|offers?|deals|digest|updates?|notifications?|hello|team|info|donotreply|do-not-reply|no-?reply|noreply)$/i
-const SYSTEM_DOMAIN = /(^|\.)(accounts\.google\.com|google\.com|googlemail\.com|em\.business\.walmart\.com|walmart\.com|amazon\.com|costco\.com|intuit\.com|quickbooks\.com|vercel\.com|twilio\.com|cloudflare\.com|godaddy\.com|squarespace\.com|yelp\.com|facebookmail\.com|instagram\.com|linkedin\.com|x\.com|twitter\.com)$/i
+const SYSTEM_DOMAIN = /(^|\.)(accounts\.google\.com|google\.com|googlemail\.com|em\.business\.walmart\.com|walmart\.com|amazon\.com|costco\.com|intuit\.com|quickbooks\.com|vercel\.com|twilio\.com|cloudflare\.com|godaddy\.com|squarespace\.com|yelp\.com|facebookmail\.com|meta\.com|instagram\.com|linkedin\.com|x\.com|twitter\.com)$/i
 const LEAD_PLATFORM = /(zola|thumbtack|theknot|weddingwire|bark\.com|eventective|peerspace|giggster|gigsalad|thebash|partyslate|airbnb|vrbo)/i
 
 function isBulkOrSystem(email: string, listUnsubscribe: boolean): string | null {
