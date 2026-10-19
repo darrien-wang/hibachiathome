@@ -63,6 +63,10 @@ type Body = {
    * "Text me this quote". Same send, but skipped if a quote already went out. */
   auto?: "leave"
   pagePath?: string
+  /** The card asked a Meta ad visitor for a headcount and a date (D-1019-02). */
+  metaQualified?: boolean
+  /** That visitor tapped "No date yet": text the price, but file a price check, not a lead. */
+  noDateYet?: boolean
 }
 
 const asStr = (v: unknown, max = 120) => (typeof v === "string" ? v.trim().slice(0, max) : "")
@@ -219,6 +223,13 @@ export async function POST(request: NextRequest) {
     talking = customerInConversation(thread, ((known ?? []) as Array<{ status: string | null }>).map((l) => l.status), Date.now())
     if (talking && body.auto === "leave") return NextResponse.json({ ok: true, stage: "quote", skipped: "in_conversation" })
   }
+  // A Meta ad visitor who asked for the price with no party date (D-1019-02).
+  // They get the same text and email - they gave a number to get a price - but
+  // the row is a price check, not a lead: parked 45 days, out of the first-
+  // response robot (status leaves "new"), the inbox queue (hold) and the lead
+  // counts (lead_attribution.counts_as_lead). A date or a text from them lifts
+  // it. Sep-Oct: 72 such leads, 0 bookings, 72 follow-ups.
+  const priceCheck = !contactOnly && !talking && body.noDateYet === true && !eventDate
   let leadId: string | null = null
   if (supabase) {
     try {
@@ -231,6 +242,8 @@ export async function POST(request: NextRequest) {
           ? `Re-quoted on the site (${cityName}) while we are talking: card says ${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)} - no automatic text, answer by hand`
           : contactOnly
           ? `Landing contact (${cityName}): gave mobile + email, quote step pending · card default ${guestsLine} · ${planLabel}`
+          : priceCheck
+          ? `Price check (${cityName}, Meta, no date yet): ${guestsLine} · ${planLabel} · est. ${money(total)} - price texted, parked 45 days, not a lead until a date or a reply`
           : `${surfaceLabel} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}${notes ? ` · ${notes}` : ""}`,
         leadSource: source,
         leadChannel,
@@ -242,7 +255,7 @@ export async function POST(request: NextRequest) {
         guestCount: contactOnly || talking ? undefined : adults + kids,
         adultCount: contactOnly || talking ? undefined : adults,
         childCount: contactOnly || talking ? undefined : kids,
-        touchpointType: contactOnly || talking ? "landing_contact" : "landing_quote_text",
+        touchpointType: contactOnly || talking ? "landing_contact" : priceCheck ? "landing_price_check" : "landing_quote_text",
         touchpointSource: source,
         sourcePage: pagePath,
         attribution,
@@ -265,7 +278,7 @@ export async function POST(request: NextRequest) {
           .from("lead_touchpoints")
           .select("id", { count: "exact", head: true })
           .eq("lead_id", lead.leadId)
-          .eq("touchpoint_type", "landing_quote_text")
+          .in("touchpoint_type", ["landing_quote_text", "landing_price_check"])
           .gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString())
         if ((count ?? 0) > 1) return NextResponse.json({ ok: true, stage: "quote", leadId, skipped: "already_sent" })
       }
@@ -278,11 +291,32 @@ export async function POST(request: NextRequest) {
   // default (15 adults), and the shared upsert only fills empty fields, so the
   // workbench kept showing 15 guests for an 8-person quote (2026-09-13).
   if (!contactOnly && !talking && supabase && leadId) {
-    const { error: partyError } = await supabase
-      .from("leads")
-      .update({ guest_count: adults + kids, adult_count: adults, child_count: kids, city_or_zip: cityName, updated_at: new Date().toISOString() })
-      .eq("id", leadId)
-    if (partyError) console.error("[landing-quote] party refresh failed", { leadId, error: partyError.message })
+    const now = new Date()
+    const party = { guest_count: adults + kids, adult_count: adults, child_count: kids, city_or_zip: cityName, updated_at: now.toISOString() }
+    if (priceCheck) {
+      const { error: partyError } = await supabase
+        .from("leads")
+        .update({ ...party, price_check_at: now.toISOString(), hold_until: new Date(now.getTime() + 45 * 86400_000).toISOString(), hold_set_at: now.toISOString() })
+        .eq("id", leadId)
+      if (partyError) console.error("[landing-quote] price-check park failed", { leadId, error: partyError.message })
+      // Out of lead-watch's first-response pass, which only looks at "new".
+      await supabase.from("leads").update({ status: "qualified" }).eq("id", leadId).eq("status", "new")
+      await supabase.from("lead_touchpoints").insert([
+        {
+          lead_id: leadId,
+          touchpoint_type: "agent_note",
+          touchpoint_source: "landing_quote",
+          raw_payload_json: {
+            note: `[price check] Meta visitor with no party date: price texted (${money(total)} for ${guestsLine}), parked 45 days, not counted as a lead until they give a date or write back (D-1019-02).`,
+          },
+        },
+      ])
+    } else {
+      const { error: partyError } = await supabase.from("leads").update(party).eq("id", leadId)
+      if (partyError) console.error("[landing-quote] party refresh failed", { leadId, error: partyError.message })
+      // A price check that came back with a date is a lead from now on.
+      await supabase.from("leads").update({ price_check_at: null, hold_until: null, hold_set_at: null }).eq("id", leadId).not("price_check_at", "is", null)
+    }
   }
 
   // A second quote for the same lead within half an hour is almost always the
@@ -446,6 +480,10 @@ export async function POST(request: NextRequest) {
   }
 
   const workbench = leadId ? `${BASE_URL}/admin/leads?lead=${leadId}` : `${BASE_URL}/admin/leads`
+  // A price check wakes nobody: the quote is on its way and the row is parked.
+  if (priceCheck) {
+    return NextResponse.json({ ok: true, leadId, smsDelivered: sms.ok, emailed: Boolean(email), total, weekday, depositUrl, discountCode, discount: est.partySizeDiscountApplied, priceCheck: true })
+  }
   await sendSupportNotificationEmail({
     subject: `🔥 ${surfaceLabel} · ${cityName} · ${guestsLine} · ${money(total)} · ${phoneE164}`,
     text: [

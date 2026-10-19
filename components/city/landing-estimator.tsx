@@ -6,7 +6,7 @@ import { CalendarDays, Check, Phone } from "lucide-react"
 import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone } from "@/config/site"
-import { trackEvent } from "@/lib/tracking"
+import { isMetaVisitor, trackEvent } from "@/lib/tracking"
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
@@ -126,6 +126,20 @@ export default function LandingEstimator({
   const [kids, setKids] = useState(defaults?.kids ?? 0)
   const [date, setDate] = useState("")
   const [manualWeekday, setManualWeekday] = useState(false)
+  // Meta ad visitors pick their headcount and decide on a date before the
+  // quote (D-1019-02). Of 115 Meta leads in Sep-Oct, the 72 who gave no date
+  // and the 32 who left the default 15 guests booked nothing, and every one
+  // of them cost a follow-up. "No date yet" still gets the price by text, but
+  // is filed as a price check, not a lead. Google visitors are unchanged.
+  const [qualify, setQualify] = useState(false)
+  const [noDateYet, setNoDateYet] = useState(false)
+  const adultsBaseline = qualify && !defaults ? 0 : (defaults?.adults ?? 15)
+  useEffect(() => {
+    if (!isMetaVisitor()) return
+    setQualify(true)
+    if (!defaults) setAdults(0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [phoneValue, setPhoneValue] = useState("")
   const [email, setEmail] = useState("")
   const [phoneErr, setPhoneErr] = useState(false)
@@ -159,7 +173,7 @@ export default function LandingEstimator({
   }, [])
 
   useEffect(() => {
-    if (adults !== (defaults?.adults ?? 15) || kids !== (defaults?.kids ?? 0) || date || manualWeekday) touchedRef.current = true
+    if (adults !== adultsBaseline || kids !== (defaults?.kids ?? 0) || date || manualWeekday) touchedRef.current = true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adults, kids, date, manualWeekday])
 
@@ -190,6 +204,9 @@ export default function LandingEstimator({
   }, [])
 
   const dateKnown = /^\d{4}-\d{2}-\d{2}$/.test(date)
+  // Meta visitors: a headcount and a date decision before anything is quoted.
+  const partyReady = !qualify || (adults >= 1 && (dateKnown || noDateYet))
+  const priceCheck = qualify && noDateYet && !dateKnown
   const eligibility = useMemo(() => (dateKnown ? checkWeekdayEligibility(date, { adult: adults, child: kids, toddler: 0 }) : null), [dateKnown, date, adults, kids])
   const blackout = dateKnown ? weekdayBlackoutLabel(date) : null
   // A real date decides the rate; without one the visitor's toggle stands.
@@ -222,7 +239,11 @@ export default function LandingEstimator({
     (minApplied ? `${weekday ? "Weekday Special" : "Standard"} · $${MINIMUM_SPEND} event minimum` : weekday ? `Weekday Special · ${guestsShort}` : `Standard · ${guestsShort}`) +
     (fee > 0 ? ` · incl. ~$${fee} travel` : "")
   const dateStatus = !dateKnown
-    ? "optional"
+    ? qualify
+      ? noDateYet
+        ? "no date yet · we'll text the price anyway"
+        : "pick one, or tap “No date yet”"
+      : "optional"
     : blackout
       ? `${describeDate(date)} · holiday rate`
       : weekday
@@ -237,7 +258,7 @@ export default function LandingEstimator({
   }
 
   useEffect(() => {
-    if (adults !== (defaults?.adults ?? 15) || kids !== (defaults?.kids ?? 0) || date || phoneValue || email) markStarted()
+    if (adults !== adultsBaseline || kids !== (defaults?.kids ?? 0) || date || phoneValue || email) markStarted()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adults, kids, date, phoneValue, email])
 
@@ -254,6 +275,7 @@ export default function LandingEstimator({
     email: email.trim(),
     pagePath: window.location.pathname,
     ...(travelUnknown && fee === 0 ? { travelPending: true } : {}),
+    ...(qualify ? { metaQualified: true, noDateYet: priceCheck } : {}),
   })
 
   const validateContact = () => {
@@ -335,14 +357,17 @@ export default function LandingEstimator({
   // the mobile so the price would be sent, so send it when they leave: a
   // beacon survives navigation and tab close, once per session, and the
   // server skips a second send if the tap already went out.
-  const latestRef = useRef({ busy, sent, phoneReady, emailReady, total, discountCode, sizeOff, payload: quotePayload })
-  latestRef.current = { busy, sent, phoneReady, emailReady, total, discountCode, sizeOff, payload: quotePayload }
+  const latestRef = useRef({ busy, sent, phoneReady, emailReady, partyReady, priceCheck, total, discountCode, sizeOff, payload: quotePayload })
+  latestRef.current = { busy, sent, phoneReady, emailReady, partyReady, priceCheck, total, discountCode, sizeOff, payload: quotePayload }
   useEffect(() => {
     if (step !== 2 || sent) return
     const fire = () => {
       const l = latestRef.current
       if (autoSentRef.current || l.busy || l.sent || !l.phoneReady || !l.emailReady) return
       if (restoredRef.current && !touchedRef.current) return
+      // A Meta visitor who never picked a headcount or decided on a date has
+      // no party to quote; the card's placeholders must not go out as a price.
+      if (!l.partyReady) return
       const body = { ...l.payload(), stage: "quote", auto: "leave" }
       try {
         if (sessionStorage.getItem("rh_landing_autosent") === String(body.phone)) return
@@ -362,6 +387,7 @@ export default function LandingEstimator({
         event_date: body.eventDate || "unspecified",
         value: l.total,
         currency: "USD",
+        ...(l.priceCheck ? { price_check: true } : {}),
       })
     }
     const onVisibility = () => {
@@ -380,6 +406,10 @@ export default function LandingEstimator({
   const submit = async () => {
     if (!validateContact()) {
       setStep(1)
+      return
+    }
+    if (!partyReady) {
+      setServerErr(adults < 1 ? "Pick how many adults first." : "Pick a party date, or tap “No date yet”.")
       return
     }
     setBusy(true)
@@ -412,6 +442,7 @@ export default function LandingEstimator({
         event_date: dateKnown ? date : "unspecified",
         value: total,
         currency: "USD",
+        ...(priceCheck ? { price_check: true } : {}),
       })
     } catch {
       setServerErr("Couldn't send just now. Call or text (213) 770-7788 and we'll quote you right away.")
@@ -515,7 +546,19 @@ export default function LandingEstimator({
               )}
             </p>
 
-            <EstimatorRow label="Adults" sub="13 and up" value={adults} onValueChange={setAdults} min={1} data-quote-field="adults" />
+            {qualify && adults < 1 ? (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="How many adults?">
+                <span className="w-full text-[15px] font-semibold">How many adults?</span>
+                {[8, 10, 12, 15, 20, 25, 30].map((n) => (
+                  <button key={n} type="button" onClick={() => setAdults(n)} className="h-9 rounded-full bg-cream px-3.5 text-[13px] font-semibold text-ink transition hover:bg-ink/5">
+                    {n}
+                    {n === 30 ? "+" : ""}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <EstimatorRow label="Adults" sub="13 and up" value={adults} onValueChange={setAdults} min={1} data-quote-field="adults" />
+            )}
             <EstimatorRow label="Kids 5–12" sub="half price · under 5 free" value={kids} onValueChange={setKids} min={0} data-quote-field="kids" />
 
             <label className="flex items-center gap-2.5">
@@ -530,13 +573,30 @@ export default function LandingEstimator({
                   value={date}
                   // No past dates: the server drops them anyway, but the picker should not offer them.
                   min={new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())}
-                  onChange={(e) => setDate(e.target.value)}
-                  aria-label="Party date (optional)"
+                  onChange={(e) => {
+                    setDate(e.target.value)
+                    setServerErr(null)
+                  }}
+                  aria-label={qualify ? "Party date" : "Party date (optional)"}
                   data-quote-field="date"
                   className="h-11 w-[150px] rounded-full border border-ink/15 bg-cream pl-9 pr-2 text-[13px] text-ink focus:border-flame focus:outline-none"
                 />
               </span>
             </label>
+            {qualify && !dateKnown ? (
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={noDateYet}
+                onClick={() => {
+                  setNoDateYet((v) => !v)
+                  setServerErr(null)
+                }}
+                className={`h-10 self-start rounded-full px-4 text-[13px] font-semibold transition ${noDateYet ? "bg-ink text-white" : "bg-cream text-ink hover:bg-ink/5"}`}
+              >
+                {noDateYet ? "✓ No date yet" : "No date yet"}
+              </button>
+            ) : null}
 
             {!dateKnown ? (
               <div className="flex gap-2" role="radiogroup" aria-label="Pricing plan">
@@ -551,12 +611,12 @@ export default function LandingEstimator({
 
             <div className="flex items-end justify-between border-t border-ink/10 pt-2">
               <div>
-                <p className="text-xs text-clay-600">{planLabel}</p>
+                <p className="text-xs text-clay-600">{qualify && adults < 1 ? "Choose your headcount to see the price" : planLabel}</p>
                 <p className="font-serif text-4xl font-extrabold leading-none lg:text-[40px]" aria-live="polite">
-                  {fmt(total)}
+                  {qualify && adults < 1 ? "—" : fmt(total)}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-gold-700">
-                  {discountCode ? `Code ${discountCode} · −$${sizeOff} party size discount included` : "Your exact price · nothing charged"}
+                  {qualify && adults < 1 ? "Exact price · nothing charged" : discountCode ? `Code ${discountCode} · −$${sizeOff} party size discount included` : "Your exact price · nothing charged"}
                 </p>
               </div>
               <p className="text-right text-xs font-semibold leading-snug text-gold-700">
@@ -599,10 +659,10 @@ export default function LandingEstimator({
                   onClick={() => {
                     if (!sending) void submit()
                   }}
-                  disabled={sending}
+                  disabled={sending || !partyReady}
                   className="flex h-[52px] items-center justify-center rounded-full bg-flame text-base font-bold text-white transition hover:bg-flame-600 disabled:opacity-60"
                 >
-                  {busy ? "Sending…" : "Text me this quote"}
+                  {busy ? "Sending…" : !partyReady ? (adults < 1 ? "Choose adults first" : "Pick a date or “No date yet”") : "Text me this quote"}
                 </button>
                 <p className={`text-center text-xs ${serverErr ? "font-semibold text-flame-700" : "text-clay-600"}`}>
                   {serverErr ?? `Goes to ${prettyPhone(phoneValue)} and ${email.trim()} · we follow up within 15 min`}
@@ -632,8 +692,8 @@ export default function LandingEstimator({
         style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] text-clay-600">{step === 1 ? "Exact price after step 1" : `${guestsShort} · ${planShort}`}</p>
-          <p className="font-serif text-[22px] font-extrabold leading-none">{step === 1 ? rangeLabel : fmt(total)}</p>
+          <p className="truncate text-[11px] text-clay-600">{step === 1 ? "Exact price after step 1" : qualify && adults < 1 ? "Choose your headcount" : `${guestsShort} · ${planShort}`}</p>
+          <p className="font-serif text-[22px] font-extrabold leading-none">{step === 1 ? rangeLabel : qualify && adults < 1 ? "—" : fmt(total)}</p>
         </div>
         <a
           href={phone.voice.tel}
@@ -649,6 +709,10 @@ export default function LandingEstimator({
           onClick={() => {
             if (sent || sending) return
             if (step === 2) {
+              if (!partyReady) {
+                cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                return
+              }
               void submit()
               return
             }
@@ -661,7 +725,7 @@ export default function LandingEstimator({
           }}
           className={`flex h-[50px] items-center rounded-full px-5 text-[15px] font-bold shadow-organic-lg ${sent ? "bg-emerald-600 text-white" : "bg-flame text-white"}`}
         >
-          {sent ? "Sent ✓" : sending ? "Sending…" : step === 2 ? "Text me this quote" : phoneReady && emailReady ? "Next: my price →" : "Get my price"}
+          {sent ? "Sent ✓" : sending ? "Sending…" : step === 2 ? (partyReady ? "Text me this quote" : "Finish your party ↑") : phoneReady && emailReady ? "Next: my price →" : "Get my price"}
         </button>
       </div>
     </>

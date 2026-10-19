@@ -4,6 +4,9 @@ import { ensureMetaPixel } from "@/components/meta-pixel"
 
 type TrackingEventName =
   | "page_view"
+  // The landing card's quote going out (text + email). Was pushed untyped
+  // since 2026-09-12; named here so the Meta mirror can key on it.
+  | "quote_sent"
   | "quote_view"
   | "quote_started"
   | "quote_plan_select"
@@ -153,6 +156,32 @@ function readStoredAttribution(): AttributionFields {
   } catch {
     return {}
   }
+}
+
+/**
+ * Arrived from a Meta ad: an fbclid on the stored click, or utm_source
+ * facebook / instagram. The landing card asks these visitors for a headcount
+ * and a date decision before quoting (D-1019-02).
+ */
+export function isMetaVisitor(): boolean {
+  if (typeof window === "undefined") return false
+  return metaVisitorFrom(window.location.search, readStoredAttribution())
+}
+
+/**
+ * Same rule as captureAttributionOnLanding: a landing that carries any
+ * attribution param is a new touch and decides on its own; what is stored
+ * only speaks for a landing without params. Read from the URL here because
+ * the card mounts before the provider has written the cookie (child effects
+ * run first), and the cookie may still hold the previous visit's click.
+ */
+export function metaVisitorFrom(search: string, stored: AttributionFields): boolean {
+  const q = new URLSearchParams(search)
+  const fresh = ATTRIBUTION_KEYS.some((k) => q.get(k))
+  const a: AttributionFields = fresh ? Object.fromEntries(ATTRIBUTION_KEYS.flatMap((k) => (q.get(k) ? [[k, q.get(k) as string]] : []))) : stored
+  if (a.fbclid) return true
+  const src = (a.utm_source ?? "").toLowerCase()
+  return ["facebook", "instagram", "fb", "ig", "meta"].includes(src) || (a.utm_medium ?? "").toLowerCase() === "paid_social"
 }
 
 function normalizePagePath(pathname: string | undefined): string {
@@ -482,12 +511,29 @@ function mirrorToChatgptPixel(name: TrackingEventName, payload: DataLayerPayload
   }
 }
 
-// Meta Pixel: the standard events Ads Manager can optimise on. Lead is the
-// same hand-raise set the ChatGPT pixel uses (plus the quote text going out);
+// Meta Pixel: the standard events Ads Manager can optimise on.
 // deposit_started / deposit_completed map to InitiateCheckout / Purchase with
-// the deposit as value. eventID is the transaction id GA4 dedupes on, so a
-// Conversions API feed can dedupe against the browser later. The stub + init
-// live in components/meta-pixel.tsx; without a pixel id this is a no-op.
+// the deposit as value. eventID is the transaction id GA4 dedupes on, so the
+// Conversions API feed (lib/meta-capi.ts) dedupes against the browser. The
+// stub + init live in components/meta-pixel.tsx; without a pixel id this is a
+// no-op.
+//
+// Lead (D-1019-02): until 2026-10-19 every contact-button tap was a Lead -
+// 1,000 Lead events for 98 real leads in four weeks - so Meta learned from
+// button-tappers. A Lead is now a contact we can reach for a priced party: a
+// form submit, or the landing card's quote going out. The landing card's step
+// 1 (mobile + email, no party yet) is not reported; its quote is, unless the
+// visitor said they have no date yet - that is a PriceCheck, a custom event
+// Meta does not optimise on.
+const META_LEAD_FORM_EVENTS: ReadonlySet<string> = new Set(["booking_submit", "contact_booking_inquiry_submit", "quote_completed", "chat_lead_submitted"])
+
+export function metaPixelEventFor(name: string, payload: Record<string, unknown>): "Lead" | "PriceCheck" | null {
+  if (name === "quote_sent") return payload.price_check === true ? "PriceCheck" : "Lead"
+  if (!META_LEAD_FORM_EVENTS.has(name)) return null
+  if (name === "booking_submit" && payload.contact_surface === "landing_estimator") return null
+  return "Lead"
+}
+
 function mirrorToMetaPixel(name: TrackingEventName, payload: DataLayerPayload): void {
   const fbq = ensureMetaPixel()
   if (!fbq) return
@@ -503,8 +549,10 @@ function mirrorToMetaPixel(name: TrackingEventName, payload: DataLayerPayload): 
       )
     } else if (name === "deposit_started") {
       fbq("track", "InitiateCheckout", { value: Number(payload.value ?? 0), currency: payload.currency ?? "USD" })
-    } else if (CHATGPT_LEAD_EVENTS.has(name) || (name as string) === "quote_sent") {
-      fbq("track", "Lead", { content_name: name }, payload.event_id ? { eventID: payload.event_id } : undefined)
+    } else {
+      const ev = metaPixelEventFor(name, payload)
+      if (ev === "Lead") fbq("track", "Lead", { content_name: name }, payload.event_id ? { eventID: payload.event_id } : undefined)
+      else if (ev === "PriceCheck") fbq("trackCustom", "PriceCheck", { content_name: name })
     }
   } catch {
     // measurement must never break the page
