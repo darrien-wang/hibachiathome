@@ -3,6 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { platformOf } from "@/lib/heard-from"
+import { facebookLeadName, parseFacebookNotification } from "@/lib/fb-notification"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -90,6 +91,13 @@ export async function POST(request: NextRequest) {
   const from = parseFrom(fromRaw)
   if (!from) return NextResponse.json({ ok: true, skipped: "unparseable_sender" })
   if (SYSTEM_SENDER.test(fromRaw) || SYSTEM_SENDER.test(from.email)) return NextResponse.json({ ok: true, skipped: "system_sender" })
+  // A Facebook notification about a Messenger / Marketplace message is a
+  // customer writing in (lib/fb-notification.ts): filed as its own lead, named
+  // from the subject, no phone or e-mail to reach them on - the owner answers
+  // in Messenger and the desk drafts. Every other facebookmail.com e-mail is
+  // system mail and falls through to the filter below.
+  const fb = parseFacebookNotification(from.email, str(body.subject, 500), str(body.text, MAX_TEXT))
+  if (fb) return fileFacebookMessage(supabase, fb, body, caller)
   const bulk = isBulkOrSystem(from.email, body.listUnsubscribe === true)
   if (bulk) return NextResponse.json({ ok: true, skipped: bulk })
   // Our own people writing from personal addresses. Since 10-09 the script also files The Knot /
@@ -173,4 +181,82 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, leadId, created, snippet })
+}
+
+/**
+ * File one Facebook message notification. The same buyer messaging again
+ * within 60 days lands on the same lead (matched by Facebook name + source);
+ * an unnamed Marketplace mail always opens a new one.
+ */
+async function fileFacebookMessage(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  fb: { name: string; kind: "messenger" | "marketplace" },
+  body: Record<string, unknown>,
+  caller: "actor" | "script",
+) {
+  const messageId = str(body.messageId, 200)
+  const externalId = `email:${messageId}`
+  const subject = str(body.subject, 500) || "(no subject)"
+  const text = str(body.text, MAX_TEXT)
+  const snippet = text.replace(/\s+/g, " ").trim().slice(0, SNIPPET)
+  const receivedMs = Date.parse(str(body.receivedAt, 60))
+  const receivedAt = Number.isFinite(receivedMs) ? new Date(receivedMs).toISOString() : new Date().toISOString()
+  const latestMessage = `📘 Facebook ${fb.kind === "marketplace" ? "Marketplace" : "Messenger"}: ${subject}${snippet ? ` — ${snippet}` : ""}`.slice(0, 500)
+  const payload = { from: str(body.from, 500), subject, text, snippet, gmailUrl: str(body.gmailUrl, 500) || null, receivedAt, via: "gmail_script", caller, facebook: fb }
+
+  const { data: dup } = await supabase.from("lead_touchpoints").select("lead_id").eq("external_touchpoint_id", externalId).limit(1).maybeSingle()
+  if (dup) return NextResponse.json({ ok: true, duplicate: true, leadId: dup.lead_id })
+
+  const name = facebookLeadName(fb)
+  const nowIso = new Date().toISOString()
+  let leadId: string | null = null
+  if (fb.name) {
+    const { data: same } = await supabase
+      .from("leads")
+      .select("id, touchpoint_count")
+      .eq("lead_source", "facebook_marketplace")
+      .ilike("full_name", name.replace(/[\%_]/g, (c) => `\${c}`))
+      .gte("created_at", new Date(Date.now() - 60 * 86400_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (same) {
+      leadId = String(same.id)
+      await supabase
+        .from("leads")
+        .update({ latest_message: latestMessage, last_seen_at: nowIso, updated_at: nowIso, touchpoint_count: (Number(same.touchpoint_count) || 1) + 1 })
+        .eq("id", leadId)
+    }
+  }
+  if (!leadId) {
+    const { data: created, error } = await supabase
+      .from("leads")
+      .insert({
+        full_name: name,
+        status: "new",
+        lead_source: "facebook_marketplace",
+        lead_channel: "facebook_marketplace",
+        lead_type: "booking_inquiry",
+        latest_message: latestMessage,
+        first_message: latestMessage,
+        touchpoint_count: 1,
+        last_seen_at: nowIso,
+        created_at: nowIso,
+        updated_at: nowIso,
+      })
+      .select("id")
+      .single()
+    if (error || !created) return NextResponse.json({ ok: false, error: error?.message ?? "lead insert failed" }, { status: 500 })
+    leadId = String(created.id)
+  }
+  const { error: tpError } = await supabase.from("lead_touchpoints").insert({
+    lead_id: leadId,
+    touchpoint_type: "email_inbound",
+    touchpoint_source: "gmail_script",
+    external_touchpoint_id: externalId,
+    raw_payload_json: payload,
+    occurred_at: receivedAt,
+  })
+  if (tpError && (tpError as { code?: string }).code !== "23505") return NextResponse.json({ ok: false, error: tpError.message }, { status: 500 })
+  return NextResponse.json({ ok: true, leadId, facebook: fb, snippet })
 }
