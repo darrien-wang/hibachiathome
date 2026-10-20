@@ -464,17 +464,38 @@ export async function computeInbox(
   if (formCandidates.length) {
     const { data: formLeads } = await supabase
       .from("leads")
-      .select("id, full_name, phone, email, status, acked_until, hold_until, first_response_at")
+      .select("id, full_name, phone, email, status, acked_until, hold_until")
       .in("id", formCandidates.map(([id]) => id))
-    type FormLead = { id: string; full_name: string | null; phone: string | null; email: string | null; status: string | null; acked_until: string | null; hold_until: string | null; first_response_at: string | null }
+    type FormLead = { id: string; full_name: string | null; phone: string | null; email: string | null; status: string | null; acked_until: string | null; hold_until: string | null }
     const formLeadById = new Map(((formLeads ?? []) as FormLead[]).map((l) => [l.id, l]))
+    // When we first answered each candidate. leads has no first_response_at
+    // column (the desk computes it from touchpoints); selecting one that does
+    // not exist made PostgREST return no rows at all, so from 10-07 to 10-19
+    // no website reply ever reached this list and a second form only surfaced
+    // through the 15-minute audit below (818-645's second landing form on
+    // 2026-10-19 "waited 16 minutes"). Earliest of the first-response marker,
+    // a text or an email, per lead.
+    const firstReplyAt = new Map<string, string>()
+    {
+      const { data: firsts } = await supabase
+        .from("lead_touchpoints")
+        .select("lead_id, occurred_at")
+        .in("lead_id", formCandidates.map(([id]) => id))
+        .in("touchpoint_type", ["agent_first_response", "sms_outbound", "email_outbound"])
+        .order("occurred_at", { ascending: true })
+        .limit(2000)
+      for (const r of (firsts ?? []) as Array<{ lead_id: string; occurred_at: string }>) {
+        if (!firstReplyAt.has(r.lead_id)) firstReplyAt.set(r.lead_id, r.occurred_at)
+      }
+    }
     for (const [leadId, m] of formCandidates) {
       const l = formLeadById.get(leadId)
       const form = m.lastForm!
       // A booked customer re-quoting, or a lost one coming back, is talking to us too (2026-10-08).
       if (!l || l.status === "disqualified") continue
       // The form that created the lead is the lead (handled above); only a form after our first reply is a reply.
-      if (!l.first_response_at || form.occurred_at <= l.first_response_at) continue
+      const firstAt = firstReplyAt.get(leadId)
+      if (!firstAt || form.occurred_at <= firstAt) continue
       const peer = toE164(l.phone)
       if (peer && notCustomer(peer)) continue
       // Twilio is the truth for texts: a text after the form answered it.
