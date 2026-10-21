@@ -7,7 +7,10 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
   callerCard,
+  callerCardFull,
+  callerCardLine2,
   cardDate,
+  textDate,
   clientLeg,
   displayName,
   greetedName,
@@ -33,6 +36,8 @@ const april: CallerFacts = {
   locked: false,
   order: false,
   returning: false,
+  lastText: null,
+  channel: null,
 }
 
 test("caller card · April after the 11:28 concession", () => {
@@ -44,7 +49,7 @@ test("caller card · April at 11:15: the $1,337.40 we had texted, as written", (
 })
 
 test("caller card · a number we know nothing about gets no card", () => {
-  const unknown: CallerFacts = { name: "", heads: null, date: null, time: null, dateTbd: false, price: null, locked: false, order: false, returning: false }
+  const unknown: CallerFacts = { name: "", heads: null, date: null, time: null, dateTbd: false, price: null, locked: false, order: false, returning: false, lastText: null, channel: null }
   assert.equal(callerCard(unknown, SAT), null)
   assert.equal(callerCard({ ...unknown, heads: 0, price: 0 }, SAT), null)
 })
@@ -54,7 +59,7 @@ test("caller card · no name: the party still shows (the number is on screen any
 })
 
 test("caller card · a booked party: total, start time, locked, 今天 / 明天 / 日期待定", () => {
-  const booked: CallerFacts = { ...april, name: "Maribel Martinez", heads: 26, date: SAT, time: "19:00", price: 1382, locked: true, order: true }
+  const booked: CallerFacts = { ...april, name: "Maribel Martinez", heads: 26, date: SAT, time: "19:00", price: 1382, locked: true, order: true, lastText: null, channel: null }
   assert.equal(callerCard(booked, SAT)?.line, "26人 · 今天 19:00 · 总价 $1,382 · 已锁单")
   assert.equal(callerCard({ ...booked, date: "2026-10-11", time: null }, SAT)?.line, "26人 · 明天 · 总价 $1,382 · 已锁单")
   assert.equal(callerCard({ ...booked, date: "2026-10-13", time: "18:30", price: 1257.6 }, SAT)?.line, "26人 · 10月13日 周二 18:30 · 总价 $1,257.60 · 已锁单")
@@ -227,4 +232,35 @@ test("caller card · rides on the App leg as one parameter that survives the tri
   assert.equal(clientLeg("agent_darrien", null), "<Client><Identity>agent_darrien</Identity></Client>")
   assert.equal(clientLeg("agent_<x>", null), "<Client><Identity>agent_&lt;x&gt;</Identity></Client>")
   for (const junk of ["", "not base64!", "e30", null]) assert.equal(decodeCallerCard(junk), null, String(junk))
+})
+
+test("caller card · line 2: the customer's last text and the channel (owner 2026-10-20)", () => {
+  const f: CallerFacts = { ...april, lastText: { body: "Can we do Nov 6 at 7?  We're 16 now", at: "2026-10-09T19:12:00Z" }, channel: "google_ads" }
+  assert.equal(callerCardLine2(f, SAT), "昨天短信：Can we do Nov 6 at 7? We're 16 now · Google Ads")
+  assert.equal(callerCardLine2({ ...f, lastText: { ...f.lastText!, at: "2026-10-10T19:12:00Z" } }, SAT).slice(0, 5), "今天短信：")
+  assert.equal(callerCardLine2({ ...f, lastText: { ...f.lastText!, at: "2026-10-01T19:12:00Z" } }, SAT).slice(0, 7), "10月1日短信")
+  assert.equal(callerCardLine2({ ...april, channel: "meta_ads" }, SAT), "还没回过短信 · Meta Ads")
+  assert.equal(callerCardLine2({ ...april, channel: null }, SAT), "还没回过短信")
+  const long = "x".repeat(80)
+  assert.equal(callerCardLine2({ ...april, lastText: { body: long, at: "2026-10-10T01:00:00Z" } }, SAT), `今天短信：${"x".repeat(47)}…`)
+})
+
+test("caller card · both lines travel in one card; nothing known reads 新号码 · 无记录", () => {
+  const f: CallerFacts = { ...april, lastText: { body: "Does the price include tax?", at: "2026-10-10T15:00:00Z" }, channel: "google_ads" }
+  assert.deepEqual(callerCardFull(f, SAT), {
+    name: "April Costigan",
+    line: "35人 · 10月12日 周一 · 报价 $1,225 · 还没锁单\n今天短信：Does the price include tax? · Google Ads",
+  })
+  const nothing: CallerFacts = { name: "", heads: null, date: null, time: null, dateTbd: false, price: null, locked: false, order: false, returning: false, lastText: null, channel: null }
+  assert.deepEqual(callerCardFull(nothing, SAT), { name: "", line: "新号码 · 无记录" })
+  // A number that only ever texted us still gets its text.
+  assert.deepEqual(callerCardFull({ ...nothing, lastText: { body: "Hi, do you come to Big Bear?", at: "2026-10-10T15:00:00Z" } }, SAT), { name: "", line: "今天短信：Hi, do you come to Big Bear?" })
+  const wire = decodeCallerCard(encodeCallerCard(callerCardFull(f, SAT)))
+  assert.equal(wire?.line.split("\n").length, 2)
+})
+
+test("textDate · 今天 / 昨天 / 月日", () => {
+  assert.equal(textDate("2026-10-10", SAT), "今天")
+  assert.equal(textDate("2026-10-09", SAT), "昨天")
+  assert.equal(textDate("2026-09-30", SAT), "9月30日")
 })

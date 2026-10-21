@@ -35,6 +35,7 @@ import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { isPlaceholderName } from "@/lib/leads"
 import { toE164 } from "@/lib/sms-thread"
 import { escapeXml } from "@/lib/twilio-identity"
+import { channelLabel } from "@/lib/channels"
 
 export type CallerFacts = {
   /** The name as we have it, "" when we have none. */
@@ -54,6 +55,10 @@ export type CallerFacts = {
   order: boolean
   /** We have already done a party for this number. */
   returning: boolean
+  /** The customer's newest text to us, for the second line of the card; null when they never texted. */
+  lastText: { body: string; at: string } | null
+  /** The lead's attributed channel (lead_attribution.channel), e.g. google_ads; null when unknown. */
+  channel: string | null
 }
 
 const PT = "America/Los_Angeles"
@@ -111,6 +116,40 @@ export function callerCard(f: CallerFacts, today: string): CallerCard | null {
   if (price) parts.push(`${f.order ? "总价" : "报价"} ${money(price)}`)
   parts.push(f.locked ? "已锁单" : "还没锁单")
   return { name: f.name, line: parts.join(" · ") }
+}
+
+/** 今天 / 昨天 / 10月12日 for the day a text arrived. */
+export function textDate(date: string, today: string): string {
+  if (date === today) return "今天"
+  if (date === addDays(today, -1)) return "昨天"
+  const [, m, d] = date.split("-").map(Number)
+  return `${m}月${d}日`
+}
+
+/**
+ * The card's second line (owner 2026-10-20: "电话打过来我不知道什么情况"): what the customer last
+ * texted us and where the lead came from - "昨天短信：Can we do Nov 6 at 7? · Google Ads".
+ * A caller who never texted reads "还没回过短信". "" when we know neither.
+ */
+export function callerCardLine2(f: CallerFacts, today: string): string {
+  const parts: string[] = []
+  if (f.lastText) {
+    const body = f.lastText.body.replace(/\s+/g, " ").trim()
+    const snippet = body.length > 48 ? `${body.slice(0, 47)}…` : body
+    parts.push(`${textDate(f.lastText.at.slice(0, 10), today)}短信：${snippet || "[图片]"}`)
+  } else if (f.name || f.heads || f.date || f.channel) {
+    parts.push("还没回过短信")
+  }
+  if (f.channel) parts.push(channelLabel(f.channel))
+  return parts.join(" · ")
+}
+
+/** Both lines for the ring screen; a number we know nothing about is told so ("新号码 · 无记录"). */
+export function callerCardFull(f: CallerFacts, today: string): CallerCard {
+  const first = callerCard(f, today)
+  const second = callerCardLine2(f, today)
+  if (!first && !second) return { name: "", line: "新号码 · 无记录" }
+  return { name: first?.name ?? "", line: [first?.line, second].filter(Boolean).join("\n") }
 }
 
 // ---- reading what we told them -------------------------------------------------------------------
@@ -241,7 +280,7 @@ export type TimelineRow = { touchpoint_type: string; occurred_at: string; raw_pa
 /** A price the customer was shown, with the party size it was for when the text says. */
 export type ShownPrice = { value: number; at: string; heads: number | null }
 
-const LOOKUP_TYPES = Array.from(new Set([...HINT_TYPES, "sms_outbound"]))
+const LOOKUP_TYPES = Array.from(new Set([...HINT_TYPES, "sms_outbound", "sms_inbound"]))
 const digits10 = (phone: string | null | undefined) => String(phone ?? "").replace(/\D/g, "").slice(-10)
 const str = (v: unknown) => (typeof v === "string" ? v : "")
 
@@ -314,18 +353,27 @@ export async function loadCallerFacts(supabase: SupabaseClient, phone: string, n
   )
 
   let rows: TimelineRow[] = []
+  let channel: string | null = null
   if (lead) {
-    const { data, error } = await supabase
-      .from("lead_touchpoints")
-      .select("touchpoint_type, occurred_at, raw_payload_json")
-      .eq("lead_id", lead.id)
-      .in("touchpoint_type", LOOKUP_TYPES)
-      .order("occurred_at", { ascending: false })
-      .limit(200)
-    if (error) throw new Error(`timeline lookup: ${error.message}`)
-    rows = (data ?? []) as TimelineRow[]
+    const [tl, attribution] = await Promise.all([
+      supabase
+        .from("lead_touchpoints")
+        .select("touchpoint_type, occurred_at, raw_payload_json")
+        .eq("lead_id", lead.id)
+        .in("touchpoint_type", LOOKUP_TYPES)
+        .order("occurred_at", { ascending: false })
+        .limit(200),
+      // Where the lead came from, as the scorecard classifies it (rh_resolve_channel).
+      supabase.from("lead_attribution").select("channel").eq("id", lead.id).maybeSingle(),
+    ])
+    if (tl.error) throw new Error(`timeline lookup: ${tl.error.message}`)
+    rows = (tl.data ?? []) as TimelineRow[]
+    const resolved = (attribution.data as { channel: string | null } | null)?.channel ?? null
+    channel = resolved && resolved !== "unresolved" ? resolved : null
   }
   const timeline = readTimeline(rows)
+  const lastIn = rows.find((r) => r.touchpoint_type === "sms_inbound")
+  const lastText = lastIn ? { body: str(lastIn.raw_payload_json?.Body) || str(lastIn.raw_payload_json?.body), at: lastIn.occurred_at } : null
 
   // event_start is the party's wall-clock time stored as UTC: the date and the time are read off it.
   const dayOf = (o: OrderRow) => str(o.event_start).slice(0, 10)
@@ -354,6 +402,8 @@ export async function loadCallerFacts(supabase: SupabaseClient, phone: string, n
       locked: live.deposit_status === "paid_verified",
       order: true,
       returning,
+      lastText,
+      channel,
     }
   }
 
@@ -364,7 +414,7 @@ export async function loadCallerFacts(supabase: SupabaseClient, phone: string, n
   const gone = [...past.map(dayOf), ...(timeline.date && !date ? [timeline.date] : [])].sort()
   const lastGone = gone[gone.length - 1] ?? null
   const price = quote && !(lastGone && quote.at.slice(0, 10) <= lastGone) ? quote.value : null
-  return { name, heads: leadHeads, date, time: null, dateTbd: false, price, locked: false, order: false, returning }
+  return { name, heads: leadHeads, date, time: null, dateTbd: false, price, locked: false, order: false, returning, lastText, channel }
 }
 
 /**
@@ -388,7 +438,7 @@ export async function callerCardFor(
         timer = setTimeout(() => reject(new Error(`lookup over ${budgetMs} ms`)), budgetMs)
       }),
     ])
-    const card = callerCard(facts, pacificDate(now))
+    const card = callerCardFull(facts, pacificDate(now))
     console.log("[caller-card]", { caller: `…${phone.slice(-4)}`, card, ms: Date.now() - now })
     return card
   } catch (error) {

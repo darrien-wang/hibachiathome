@@ -41,7 +41,7 @@ const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered" | "call_summary"
   title: string
   body: string
   url: string
@@ -97,6 +97,8 @@ export type InboxCounts = {
   changedOrders: number
   plannerLive: number
   redditNew: number
+  /** 【来电小结】 notes from the last few hours (lib/call-summary.ts), shown as notifications. */
+  callSummaries: number
 }
 
 const URGENT_MIN = 15
@@ -668,6 +670,54 @@ export async function computeInbox(
     })
   }
 
+  // ---- call summaries (lib/call-summary.ts) ------------------------------------
+  // The two-line 【来电小结】 the server files a few minutes after a call. Shown
+  // for three hours so the owner sees what the call was about without reading
+  // the captions (owner 2026-10-20). Quiet: a summary never rings.
+  let callSummaries = 0
+  {
+    const since = new Date(now - 3 * 3600_000).toISOString()
+    const { data: summaryRows } = await supabase
+      .from("lead_touchpoints")
+      .select("lead_id, occurred_at, raw_payload_json")
+      .eq("touchpoint_type", "agent_note")
+      .gte("occurred_at", since)
+      .like("raw_payload_json->>note", "【来电小结】%")
+      .order("occurred_at", { ascending: false })
+      .limit(20)
+    type SummaryRow = { lead_id: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+    const latest = new Map<string, SummaryRow>()
+    for (const r of (summaryRows ?? []) as SummaryRow[]) if (!latest.has(r.lead_id)) latest.set(r.lead_id, r)
+    if (latest.size) {
+      const { data: summaryLeads } = await supabase
+        .from("leads")
+        .select("id, full_name, phone")
+        .in("id", Array.from(latest.keys()))
+      const byId = new Map(((summaryLeads ?? []) as Array<{ id: string; full_name: string | null; phone: string | null }>).map((l) => [l.id, l]))
+      for (const [leadId, r] of latest) {
+        const l = byId.get(leadId)
+        const phone = toE164(l?.phone ?? null)
+        const who = (l?.full_name ?? "").trim() || (phone ? prettyPhone(phone) : "客人")
+        const text = String(r.raw_payload_json?.note ?? "").replace("【来电小结】", "").trim()
+        if (!text) continue
+        callSummaries += 1
+        events.push({
+          key: `call-summary:${leadId}:${r.occurred_at}`,
+          kind: "call_summary",
+          title: `来电小结 · ${who}`,
+          body: text.slice(0, 200),
+          url: `/admin?tab=leads&lead=${leadId}`,
+          at: r.occurred_at,
+          waitedMinutes: minutesSince(r.occurred_at, now),
+          ring: false,
+          urgent: false,
+          leadId,
+          phone,
+        })
+      }
+    }
+  }
+
   events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
@@ -681,6 +731,7 @@ export async function computeInbox(
       changedOrders: changeRows.length,
       plannerLive,
       redditNew: redditRows.length,
+      callSummaries,
     },
     events,
   }

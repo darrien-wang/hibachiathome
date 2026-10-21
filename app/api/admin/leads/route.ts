@@ -1,4 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { after, type NextRequest, NextResponse } from "next/server"
+import { CALL_TRANSCRIPT_PREFIX, callSummaryNote, summarizeCallTranscript } from "@/lib/call-summary"
 import { resolveAdminActor, publicActor, type AdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
@@ -507,11 +508,22 @@ export async function PATCH(request: NextRequest) {
       targetId = created.leadId
     }
 
+    const callSid = typeof body.callSid === "string" ? body.callSid : undefined
     await logEvent(supabase, targetId, NOTE_TYPE, actor, {
       note: note.slice(0, 4000),
       during_call: true,
-      call_sid: typeof body.callSid === "string" ? body.callSid : undefined,
+      call_sid: callSid,
     })
+    // The transcript is a wall of captions; file a two-line 【来电小结】 after the
+    // response goes back to the App (owner 2026-10-20). lib/inbox.ts shows it.
+    if (note.startsWith(CALL_TRANSCRIPT_PREFIX)) {
+      const leadId = targetId
+      after(async () => {
+        const summary = await summarizeCallTranscript(note)
+        if (!summary) return
+        await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: callSummaryNote(summary), call_summary: true, call_sid: callSid })
+      })
+    }
     return NextResponse.json({ ok: true, leadId: targetId })
   }
 
