@@ -16,6 +16,9 @@ export const CRON_PURPOSE_REVIEWS_SYNC = "reviews-sync"
 /** 每 15 分钟把 Meta 来的客人"回话 / 锁单"回传给 Meta（D-1014-01） */
 export const CRON_PURPOSE_META_CAPI = "meta-capi"
 
+/** 每 2 分钟把 Meta 表单广告（Instant Form）的新线索拉进工作台并发报价（2026-10-21） */
+export const CRON_PURPOSE_META_LEADS = "meta-leads"
+
 export function cronKeyFor(purpose: string, base = process.env.LEAD_WATCH_CRON_KEY): string | null {
   const k = (base ?? "").trim()
   return k ? createHmac("sha256", k).update(purpose).digest("hex") : null

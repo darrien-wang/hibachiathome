@@ -1,4 +1,5 @@
 import { createShortLink } from "@/lib/short-link"
+import { CRON_PURPOSE_META_LEADS, isCronCall } from "@/lib/cron-key"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName, readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
@@ -126,7 +127,9 @@ async function lastTownQuote(
 }
 
 export async function POST(request: NextRequest) {
-  const limited = await rateLimit("landing-quote", request, LIMIT, WINDOW_SECONDS)
+  // The Meta lead-form cron (/api/admin/meta-leads) hands leads to this route
+  // from one server address; the per-IP limit is for browsers, not for it.
+  const limited = isCronCall(request, CRON_PURPOSE_META_LEADS) ? { ok: true } : await rateLimit("landing-quote", request, LIMIT, WINDOW_SECONDS)
   if (!limited.ok) {
     // tooManyRequests() is a plain {status, body}; returning it directly made
     // the handler throw (a 500, not a 429).
