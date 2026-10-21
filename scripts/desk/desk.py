@@ -69,6 +69,11 @@ MINIMUM_SPEND = 599  # config/pricing-rules.ts
 # how many trays it brings moves the discount by the same amount and the
 # customer is never charged for what we gave them.
 APPETIZER_PRICES = {"gyoza": 15.0, "spring_rolls": 15.0, "edamame": 10.0}
+# Whole-table protein servings (invoice PARTY_EXTRAS side_*, billed per serving; one serving = one
+# adult portion). How "a third protein for everyone" rides on an order that has no guest rows yet:
+# the church group RH-20261021-9381 wanted shrimp as the third protein for 15 = side_shrimp=15 ($150).
+PROTEIN_SIDE_PRICES = {"side_chicken": 10.0, "side_steak": 10.0, "side_shrimp": 10.0, "side_salmon": 10.0,
+                       "side_tofu": 10.0, "side_scallops": 16.0, "side_filet_mignon": 18.0, "side_lobster_tail": 22.0}
 
 
 def is_tapback(body: str) -> bool:
@@ -1129,8 +1134,8 @@ def cmd_order(a):
             has_rows = data.get("mode") == "detailed" and bool(data.get("guests"))
             for pair in a.add_extra:
                 m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
-                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES}:
-                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES})}")
+                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES}:
+                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES})}")
                 app_id, n = m.group(1), int(m.group(2))
                 row = next((e for e in extras if e.get("id") == app_id), None)
                 if app_id in SETUP_PRICES:
@@ -1147,7 +1152,8 @@ def cmd_order(a):
                     row["qty"] = int(row.get("qty") or 0) + n
                 else:
                     extras.append({"id": app_id, "qty": n})
-                changes.append(f"paid extra: {app_id} +{n} tray(s) at {money(APPETIZER_PRICES[app_id])} each")
+                unit = "serving(s)" if app_id in PROTEIN_SIDE_PRICES else "tray(s)"
+                changes.append(f"paid extra: {app_id} +{n} {unit} at {money({**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES}[app_id])} each")
         if a.drop_deal:
             # Take a signed deal back off an order: the customDeal rule and the
             # deal_* lines it wrote. Taegan 10-09: the 10-02 flatOff $90 was the
