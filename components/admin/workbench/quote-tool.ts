@@ -57,10 +57,11 @@ export function isSaturday(ymd: string | null | undefined): boolean {
 }
 
 /**
- * Last day of the 20+ guest free appetizer. Same date as the invoice tool's
+ * Last party date of the 20+ guest free appetizer, or null for no end date
+ * (owner 2026-10-21, D-1021-01: "继续送"). Same value as the invoice tool's
  * platter20 validTo and lib/ai-facts.ts - move all three together.
  */
-export const LARGE_PARTY_APPETIZER_UNTIL = "2026-10-31"
+export const LARGE_PARTY_APPETIZER_UNTIL: string | null = null
 
 export type QuoteInput = {
   adults: number
@@ -203,7 +204,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const today = new Date().toISOString().slice(0, 10)
   const autoAppetizer =
     heads > 0 &&
-    (q.weekdaySpecial || (earnsLargePartyAppetizer({ adults, kids }) && (q.eventDate || today) <= LARGE_PARTY_APPETIZER_UNTIL))
+    (q.weekdaySpecial || (earnsLargePartyAppetizer({ adults, kids }) && (LARGE_PARTY_APPETIZER_UNTIL === null || (q.eventDate || today) <= LARGE_PARTY_APPETIZER_UNTIL)))
   // One tray per 10 paying guests, at least one (owner 2026-10-01, after 21
   // people shared one tray of gyoza; Annie Phan's 21 got 2). The invoice still
   // seeds 1 - `desk order set --free-appetizer-trays` raises it.

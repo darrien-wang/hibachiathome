@@ -2196,7 +2196,7 @@ export default function QuoteBuilderClient() {
                       <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       {result.includesAppetizerPlatter
                         ? "Free appetizer of your choice (gyoza, edamame or spring rolls) — included with the Weekday Special"
-                        : "Free appetizer of your choice (gyoza, edamame or spring rolls) — parties of 20+ adults, through Oct 31"}
+                        : "Free appetizer of your choice (gyoza, edamame or spring rolls) — parties of 20+ adults"}
                     </div>
                   ) : null}
                 </div>

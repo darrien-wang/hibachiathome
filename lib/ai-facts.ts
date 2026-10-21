@@ -41,8 +41,13 @@ import { phone, siteConfig } from "@/config/site"
 
 export const SITE = "https://www.realhibachi.com"
 
-/** Free appetizer (one of the customer's choice) for parties of 20+ (large-party promo, owner extended to Oct 31). */
-const LARGE_PARTY_PLATTER = { until: "2026-10-31" }
+/**
+ * Free appetizer (one of the customer's choice) for parties of 20+ (large-party promo).
+ * Owner 2026-10-21 (D-1021-01, "继续送"): no end date any more. To end it, set
+ * `until` to the last party date - and move the invoice tool's platter20 validTo
+ * and the workbench quote tool's LARGE_PARTY_APPETIZER_UNTIL with it.
+ */
+const LARGE_PARTY_PLATTER: { until: string | null } = { until: null }
 
 export type FactSection = { id: string; title: string; items: string[] }
 
@@ -60,7 +65,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
   const blackouts = WEEKDAY_SPECIAL_BLACKOUTS.filter((b) => b.end >= today)
     .slice(0, 4)
     .map((b) => (b.start === b.end ? `${b.label} (${b.start})` : `${b.label} (${b.start} to ${b.end})`))
-  const platterOn = today <= LARGE_PARTY_PLATTER.until
+  const platterOn = !LARGE_PARTY_PLATTER.until || today <= LARGE_PARTY_PLATTER.until
   const addOn = (id: string) => sides.find((s) => s.id === id)
 
   const pricing: string[] = [
@@ -71,7 +76,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     `Weekday Special, Monday-Thursday: ${usd2(adult.weekdayPrice)} per adult, ${usd2(child.weekdayPrice)} per child, plus a free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}): one tray for the table to share, gyoza if the customer doesn't choose. Any party size, full menu.${blackouts.length ? ` Not available on major holidays: ${blackouts.join("; ")}.` : ""}`,
     `Party Size Discount, automatic on any day and on top of the Weekday Special (counts paying heads: each adult 1, each child 5-12 counts as half, under-5s do not count): ${PARTY_SIZE_DISCOUNT_TIERS.map((t) => `${t.minGuests}-${t.maxGuests} adults ${usd(t.amount)} off`).join(", ")}. ${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
     ...(platterOn
-      ? [`Parties of ${LARGE_PARTY_APPETIZER_MIN}+ adults on any day get the same free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}) through October 31, 2026. Counted in the same paying heads as the party-size discount, so a child 5-12 counts as half and an under-5 does not count. It is one per party: a qualifying weekday party gets one, not two.`]
+      ? [`Parties of ${LARGE_PARTY_APPETIZER_MIN}+ adults on any day get the same free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}). Counted in the same paying heads as the party-size discount, so a child 5-12 counts as half and an under-5 does not count. It is one per party: a qualifying weekday party gets one, not two.`]
       : []),
     `Travel: first ${TRAVEL_FREE_RADIUS_MILES} driving miles free, then ${usd(TRAVEL_RATE_PER_MILE)} per mile. Most of Los Angeles and Orange County is inside the free radius.`,
     ...(isPromotionActive("call_out_fee_waived") ? ["No chef call-out fee right now (waived)."] : []),
