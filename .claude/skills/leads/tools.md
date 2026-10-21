@@ -90,6 +90,6 @@ curl -s -X POST ... -d '{"email":"...","phone":"...","booked":true}' https://www
 - **入口**：Claude 应用内置浏览器已登录 Facebook。Business Suite 收件箱 `https://business.facebook.com/latest/inbox/all?asset_id=1278206205381427`；评论在「Facebook comments」页签，广告帖评论默认折叠，排序切到 **All comments** 再往下滚。广告帖用 facebook.com 链接打不开，只能在 Business Suite 看。
 - **规矩**：公开回复、隐藏、私信每次先给老板稿子，回"发"再做；只隐藏不删除；私信里拿手机号。同行（Linh Ho Young 引流 Yaki24）捣乱：隐藏，不在评论区争。
 - **主页设置**（服务区域、屏蔽词、通知、Messenger 自动回复）会被自动审批拦，交给老板点。
-- **上传图片和视频**：内置浏览器传不了本地文件；老板同意后用 Claude in Chrome：用 `find` 找 `type=file` 的元素再 `file_upload`，**不要点** "Photo/video"、"Add cover photo" 本身（会弹原生文件框）。发帖会弹两个推荐：加 Call Now 按钮 → Not now；Hosting an event → Publish Original Post。做完把老板 Chrome 的 Facebook 切回个人身份，关掉自己开的标签。
-- **Instagram**：@realhibachi 绑在旧个人号"Real Hibachi"上，连不上新主页；要老板登录把旧号加成新主页管理员、再在 IG 里换关联主页。
+- **上传图片和视频**：内置浏览器传不了本地文件；老板同意后用 Claude in Chrome：用 `find` 找 `type=file` 的元素再 `file_upload`，**不要点** "Photo/video"、"Add cover photo" 本身（会弹原生文件框）。发帖会弹两个推荐：加 Call Now 按钮 → Not now；Hosting an event → Publish Original Post。做完关掉自己开的标签；主页身份留着就行，不用切回个人身份（老板 10-21）。
+- **Instagram**：@realhibachi 10-21 已连到新主页（Switch Page）。Business Suite 发帖 "Post to" 默认 FB 和 IG 都勾，只发一边就取消另一个。IG 私信进 Business Suite 收件箱靠 IG App 里"允许访问消息"（已开）；收件箱 Instagram 页签显示 Disconnected 时私信进不来。网页版 IG 不能归档帖子（只能删，我们不删）。细节见记忆 realhibachi-facebook-page-moderation。
 - **视频素材**：`D:\desktop\RealHibachi\video-pipeline`（`build_creatives.py` 的 PLANS，字幕不写 "setup & cleanup included"、"we bring everything"）。
