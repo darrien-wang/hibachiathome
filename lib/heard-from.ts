@@ -4,7 +4,7 @@
 // person, so rh_resolve_channel falls through to "organic_direct" (no utm, no
 // click id, no referrer). Those customers get the question once, at the
 // moment it costs nothing: after they lock the date, riding on a reply that
-// would otherwise be a plain thank-you (leads skill §4.6). Their answer is
+// would otherwise be a plain thank-you (leads skill §6). Their answer is
 // kept next to the system channel, never instead of it - a "Google" from a
 // customer can be an ad or organic.
 //

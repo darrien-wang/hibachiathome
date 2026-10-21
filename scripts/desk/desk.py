@@ -148,10 +148,10 @@ def render_card(c: dict) -> None:
         if stats.get("quiet"):
             flags.append("不响铃(致谢/挂起/已标不用回)")
         print(f"   日期线索: {hint.get('date') or '-'} | 首响: {pt(lead.get('first_response_at'))} | {' | '.join(flags) or '无挂起'} | id {lead.get('id')}")
-        # Our hold ran out and they never spoke since: dormant, not due (leads §4.2). 10-11 two
+        # Our hold ran out and they never spoke since: dormant, not due (leads §5.1). 10-11 two
         # leads the 09-27 review had stopped got one more text each because the card said nothing.
         if stats.get("hold") == "dormant":
-            print(f"   💤 休眠：挂起 {pt(lead.get('hold_until'))} 已到期，之后客人没说过话 → 不再主动发（leads §4.2 停），他开口立即接")
+            print(f"   💤 休眠：挂起 {pt(lead.get('hold_until'))} 已到期，之后客人没说过话 → 不再主动发（leads §5.1 休眠），他开口立即接")
         if stats.get("hold") in ("active", "dormant"):
             for t in c.get("holdNotes") or []:
                 print(f"   ⏸ 挂起理由 {pt(t.get('at'))} {t.get('note', '')[:160]}")
@@ -161,7 +161,7 @@ def render_card(c: dict) -> None:
         spoke = any(m.get("direction") == "outbound" and not (m.get("body") or "").startswith("Real Hibachi:")
                     for m in (c.get("thread") or []))
         if int(lead.get("guest_count") or 0) >= 61 and not spoke:
-            print("   ⚠️ 61+ 大单：机器不发问场合那条（first-response large_party），首条要人工发（leads §3.1 E）")
+            print("   ⚠️ 61+ 大单：机器不发问场合那条（first-response large_party），首条要人工发（leads §3 判型 E）")
         line = source_line(lead.get("source") or {}, lead.get("id"))
         if line:
             print(line)

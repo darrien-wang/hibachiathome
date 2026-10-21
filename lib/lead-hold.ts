@@ -120,7 +120,7 @@ export async function loadQuiet(supabase: SupabaseClient, now = Date.now()): Pro
 }
 
 // ============================================================
-// 挂起到期之后算什么（leads skill §4.2「停」：第 3 条之后挂 2 周 → dormant，不再
+// 挂起到期之后算什么（leads skill §5.1「休眠」：第 3 条之后挂 2 周 → dormant，不再
 // 主动发，他一开口立即接）。
 //
 // 以前到期就当没挂过：扫描按"沉默 N 小时、第 N 条到期"把它放回 D，模板句直发。

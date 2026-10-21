@@ -5,7 +5,7 @@
     python scripts/selftest/lint-copy.py --json     # 机器可读
     python scripts/selftest/lint-copy.py --rule 19.90   # 只跑一条规则
 
-规则来自决策日志 D-1005-01 / D-1006-04 / D-1006-05 / D-1006-07 和 leads skill §5：
+规则来自决策日志 D-1005-01 / D-1006-04 / D-1006-05 / D-1006-07 和 leads skill（answers.md）：
 押金前一个字不提税和付款方式；锁日期 = 留卡不收钱、48h/$99；没有 4% 手续费、
 没有 all-inclusive、没有 cash discount、没有 "no fees"；$19.90 押金和 72 小时退款
 是 10-05 之前的世界。每条规则有自己的范围（哪些文件是对客面）和放行条件

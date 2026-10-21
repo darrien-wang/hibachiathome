@@ -72,7 +72,7 @@ export function wallTime(wallIso: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Template B - after the automatic quote (leads skill §3.1).
+// Template B - after the automatic quote (leads templates.md, first messages).
 //
 // 2026-10-08 (owner, D-1008-02): the question is the occasion, not the date or
 // the start time. Leads 10-01~07 answered the machine's "which date are you
