@@ -65,7 +65,7 @@ const PROTEIN_LABELS: Record<string, string> = {
   lobster_tail: "Lobster Tail 龙虾尾",
   ribeye: "Ribeye 肋眼",
 }
-const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
+export const FRIED_RICE = { adult: 8, child: 4 } // oz 熟饭
 const SALAD = { adult: 1, child: 0.5 } // 份
 // 蔬菜（2026-09-22 用户定）：总量每人 4–5oz 左右（净重）。厨师备料单原来按 4oz，10-11 起和这里同一套；
 // 备货、占用一律按 5oz 算（老板 2026-09-30："按 5 oz 算吧"）——宁多勿少。
