@@ -59,7 +59,8 @@ python scripts/desk/desk.py order remind <单号> --dry              # 前一天
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信请回 confirm（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
-- 改之前先 `--dry` 看 TOTAL；存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
+- 改之前先 `--dry` 看 TOTAL，和 `desk price` 对一遍；存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
+- 几样加购写在**同一个** `--add-extra` 后面（`--add-extra tables_chairs=10 utensils=10`）；把 `--add-extra` 写两遍只留最后一个（10-21 Yunnie 差点只加上餐具）。
 - 5 岁以下的小孩按系统惯例记成 child + little 行，并加 `--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"`，否则多收钱。
 - 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的：派对前用 `--guests-file` 灌进订单（10-21 Stephanie 那单）。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
