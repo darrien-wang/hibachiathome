@@ -144,7 +144,8 @@ def render_card(c: dict) -> None:
         if stats.get("onHold"):
             flags.append(f"hold→{pt(lead.get('hold_until'))}")
         if lead.get("sms_blocked_at"):
-            flags.append("短信打不通(30003/30006)")
+            reason = lead.get("sms_blocked_reason") or ""
+            flags.append(f"座机/固话,短信发不了,走邮件({reason[8:].strip()})" if reason.startswith("lookup:") else f"短信打不通({reason or '30003/30006'})")
         if stats.get("quiet"):
             flags.append("不响铃(致谢/挂起/已标不用回)")
         print(f"   日期线索: {hint.get('date') or '-'} | 首响: {pt(lead.get('first_response_at'))} | {' | '.join(flags) or '无挂起'} | id {lead.get('id')}")

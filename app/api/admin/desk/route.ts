@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic"
 // No rules live here - what to say is the leads skill's job.
 
 const LEAD_COLUMNS =
-  "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, merged_into, heard_from, heard_channel, heard_asked_at, chef_pay_rule"
+  "id, created_at, full_name, phone, email, status, lead_source, lead_channel, lead_type, city_or_zip, guest_count, latest_message, utm_campaign, utm_term, hold_until, hold_set_at, acked_until, sms_blocked_at, sms_blocked_reason, phone_line_type, merged_into, heard_from, heard_channel, heard_asked_at, chef_pay_rule"
 const ORDER_COLUMNS =
   "id, order_no, customer_name, customer_phone, customer_email, event_start, event_address, guest_adult_count, guest_child_count, order_status, deposit_status, details_status, quoted_total_cents, balance_due_cents, source_metadata, created_at"
 const TAG = /\[(callback|occasion|why|data|SOP:[^\]]+)\]/i
@@ -59,6 +59,8 @@ type LeadRow = {
   hold_set_at: string | null
   acked_until: string | null
   sms_blocked_at: string | null
+  sms_blocked_reason: string | null
+  phone_line_type: string | null
   merged_into: string | null
   heard_from: string | null
   heard_channel: string | null
@@ -287,6 +289,8 @@ async function buildCard(
           hold_set_at: lead.hold_set_at,
           acked_until: lead.acked_until,
           sms_blocked_at: lead.sms_blocked_at,
+          sms_blocked_reason: lead.sms_blocked_reason,
+          phone_line_type: lead.phone_line_type,
           event_hint: hint,
           source,
           chef_pay_rule: lead.chef_pay_rule,

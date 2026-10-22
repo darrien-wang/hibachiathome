@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName, readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/leads"
 import { fetchSmsThread, sendSms, toE164 } from "@/lib/sms-thread"
+import { blockReason, lookupLineType, smsCapable } from "@/lib/phone-line-type"
 import { customerInConversation } from "@/lib/customer-forms"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
@@ -452,8 +453,18 @@ export async function POST(request: NextRequest) {
   )
     .filter((line): line is string => Boolean(line))
     .join(" ")
-  const sms = await sendSms(phoneE164, smsBody)
-  if (!sms.ok) console.error("[landing-quote] sms failed", { phoneE164, error: sms.error })
+  // Landline / fixed VoIP: the text would bounce minutes later (30006), so it
+  // is not sent at all - the quote goes by email below and the lead carries
+  // the same sms_blocked flag the carrier bounce would have set, which is what
+  // lead-watch, the desk brake and the inbox reminder already read.
+  const line = await lookupLineType(phoneE164, { supabase })
+  const textable = smsCapable(line.type) !== false
+  const sms = textable ? await sendSms(phoneE164, smsBody) : ({ ok: false as const, error: `line_type_${line.type}` })
+  if (!sms.ok) console.error("[landing-quote] sms " + (textable ? "failed" : "skipped"), { phoneE164, error: sms.error, lineType: line.type })
+  if (leadId && supabase && line.type !== "unknown") {
+    if (textable) await supabase.from("leads").update({ phone_line_type: line.type }).eq("id", leadId)
+    else await supabase.from("leads").update({ phone_line_type: line.type, sms_blocked_at: new Date().toISOString(), sms_blocked_reason: blockReason(line) }).eq("id", leadId).is("sms_blocked_at", null)
+  }
 
   {
     const lines = [
@@ -490,7 +501,9 @@ export async function POST(request: NextRequest) {
   await sendSupportNotificationEmail({
     subject: `🔥 ${surfaceLabel} · ${cityName} · ${guestsLine} · ${money(total)} · ${phoneE164}`,
     text: [
-      `Texted the price to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}.`,
+      textable
+        ? `Texted the price to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}.`
+        : `${phoneE164} is a ${line.type}${line.carrier ? ` (${line.carrier})` : ""} - NO TEXT SENT, the quote went by email${email ? ` to ${email}` : ""}. Follow up by email or phone.${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}`,
       `${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)}${travelFee ? ` incl ~$${travelFee} travel` : ""}`,
       email ? `Email: ${email}` : "No email given.",
       `Source: ${source} · page ${pagePath}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}`,
@@ -498,8 +511,11 @@ export async function POST(request: NextRequest) {
       `Workbench: ${workbench}`,
       "Reply within 15 minutes (text or email) - the page promised it.",
     ].join("\n"),
-    html: `<p>Texted the estimate to <strong>${escapeHtml(phoneE164)}</strong>${sms.ok ? "" : ` <strong style="color:#b91c1c">(SMS FAILED: ${escapeHtml(sms.error)})</strong>`}.</p>
-<p>${escapeHtml(guestsLine)} · ${escapeHtml(planLabel)} · ${escapeHtml(dateLine)} · <strong>${money(total)}</strong>${travelFee ? ` incl ~$${travelFee} travel` : ""}</p>
+    html: (textable
+      ? `<p>Texted the estimate to <strong>${escapeHtml(phoneE164)}</strong>${sms.ok ? "" : ` <strong style="color:#b91c1c">(SMS FAILED: ${escapeHtml(sms.error)})</strong>`}.</p>
+`
+      : `<p><strong>${escapeHtml(phoneE164)}</strong> is a <strong>${escapeHtml(line.type)}</strong>${line.carrier ? ` (${escapeHtml(line.carrier)})` : ""} - <strong style="color:#b91c1c">no text sent</strong>; the quote went by email${email ? ` to ${escapeHtml(email)}` : ""}. Follow up by email or phone.</p>
+`) + `<p>${escapeHtml(guestsLine)} · ${escapeHtml(planLabel)} · ${escapeHtml(dateLine)} · <strong>${money(total)}</strong>${travelFee ? ` incl ~$${travelFee} travel` : ""}</p>
 <p>${email ? `Email: ${escapeHtml(email)}` : "No email given."}<br>Source: ${escapeHtml(source)} · page ${escapeHtml(pagePath)}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}</p>
 ${notes ? `<p>${escapeHtml(notes)}</p>` : ""}
 <p><a href="${workbench}">Open in workbench</a> · <strong>Reply within 15 minutes</strong> (text or email) - the page promised it.</p>`,

@@ -6,6 +6,7 @@ import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-fo
 import { payloadColumns, payloadFrom } from "@/lib/payload-select"
 import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
 import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
+import { isLookupBlock } from "@/lib/phone-line-type"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
@@ -139,12 +140,12 @@ export async function computeInbox(
   // ---- new leads nobody answered ------------------------------------------
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, created_at, full_name, phone, lead_source, city_or_zip, guest_count, latest_message")
+    .select("id, created_at, full_name, phone, lead_source, city_or_zip, guest_count, latest_message, sms_blocked_reason")
     .eq("status", "new")
     .gte("created_at", new Date(now - LEAD_LOOKBACK_MS).toISOString())
     .order("created_at", { ascending: false })
     .limit(40)
-  const leadRows = (leads ?? []) as Array<{ id: string; created_at: string; full_name: string | null; phone: string | null; lead_source: string | null; city_or_zip: string | null; guest_count: number | null; latest_message: string | null }>
+  const leadRows = (leads ?? []) as Array<{ id: string; created_at: string; full_name: string | null; phone: string | null; lead_source: string | null; city_or_zip: string | null; guest_count: number | null; latest_message: string | null; sms_blocked_reason: string | null }>
   const leadIds = leadRows.map((l) => l.id)
   const { data: responded } = leadIds.length
     ? await supabase.from("lead_touchpoints").select("lead_id").in("lead_id", leadIds).eq("touchpoint_type", "agent_first_response")
@@ -159,7 +160,10 @@ export async function computeInbox(
     newLeadsTotal += 1
     if (minutesSince(l.created_at, now) > MAX_EVENT_AGE_MIN) continue
     const name = (l.full_name ?? "").trim() || (phone ? prettyPhone(phone) : "新询盘")
-    const bits = [l.guest_count ? `${l.guest_count} 人` : null, l.city_or_zip, SOURCE_LABELS[l.lead_source ?? ""] ?? null].filter(Boolean)
+    // Lookup said landline / fixed VoIP before the first text: the quote went
+    // by email and every follow-up has to as well (lib/phone-line-type.ts).
+    const landline = isLookupBlock(l.sms_blocked_reason) ? "☎ 座机，短信发不了，报价已邮件发出，跟进走邮件" : null
+    const bits = [l.guest_count ? `${l.guest_count} 人` : null, l.city_or_zip, SOURCE_LABELS[l.lead_source ?? ""] ?? null, landline].filter(Boolean)
     // A lead the voice line created from an inbound call already rang the
     // owner's phone; a second ring two minutes later is noise, so it lands
     // on the quiet channel as "call" and just asks for a follow-up.

@@ -469,7 +469,8 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       }
       const claimA = await claimFirstResponse(supabase, lead.id, { via: "sms", auto: true, template: "A" })
       if (claimA == null) continue
-      const sms = phone ? await sendSms(phone, msg.sms) : ({ ok: false, error: "no_phone" } as const)
+      // A line that cannot take a text (carrier bounce or Lookup) gets the email only.
+      const sms = phone && !lead.sms_blocked_at ? await sendSms(phone, msg.sms) : ({ ok: false, error: lead.sms_blocked_at ? "sms_blocked" : "no_phone" } as const)
       const email = lead.email
         ? await sendCustomerEmail({
             to: lead.email,
