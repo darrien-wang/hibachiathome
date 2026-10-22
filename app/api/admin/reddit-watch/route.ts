@@ -130,6 +130,20 @@ async function notifyTier1(hits: Candidate[]): Promise<boolean> {
 }
 
 /**
+ * 连续失败到提醒线时发一封运营邮件。以前是桌面任务读返回里的 staleAlert 去推送；
+ * pg_cron 不看返回，所以这里自己发。
+ */
+async function notifyStale(stale: StaleGroup[]): Promise<void> {
+  const lines = stale.map((s) => `${s.label}（${s.group}）连续失败 ${s.failStreak} 次，距上次成功 ${s.hoursSinceOk ?? "?"} 小时：${s.lastError ?? "-"}`)
+  const text = [...lines, "", "多半是 monid 余额用完（app.monid.ai 充值）或 Reddit 限流。修好之前，Reddit 上问 hibachi 的人没人看到。"].join("\n")
+  try {
+    await sendSupportNotificationEmail({ subject: `⚠️ Reddit 监听连续失败 · ${stale.map((s) => s.label).join("、")}`, text, html: `<pre style="white-space:pre-wrap">${escapeHtml(text)}</pre>` })
+  } catch (e) {
+    console.error("[reddit-watch] stale notify failed", e)
+  }
+}
+
+/**
  * 记下这一轮每组抓没抓到（只有真跑才写库），算出连续失败到提醒线的组。
  * staleAlert = 这一轮刚好到提醒点的组（第 6 次、第 24 次……），不会每 20 分钟重复。
  */
@@ -254,6 +268,7 @@ export async function GET(request: NextRequest) {
   }
 
   const health = await trackGroups(supabase, prev, collected.groups, !dry)
+  if (health.staleAlert.length) await notifyStale(health.staleAlert)
   if (fb) await trackFacebook(supabase, prev, fb, !dry)
   const tier1 = fresh.filter((c) => c.tier === 1)
   const emailed = !dry && tier1.length > 0 ? await notifyTier1(tier1) : false

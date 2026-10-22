@@ -42,9 +42,14 @@ test("competitor watch · reviews: only this week's count, only ≤3★ are comp
   assert.equal(r.complaints[0].date, "2026-10-24")
   assert.equal(r.complaints[0].text, "Chef was 2 hours late, nobody answered the phone")
   assert.equal(r.votes, 2284)
+  assert.equal(r.capped, false)
   const failed = summarizeReviews("X", [], {}, now, "monid 402")
   assert.equal(failed.error, "monid 402")
   assert.equal(failed.newInWindow, 0)
+  // OMG Hibachi on 2026-10-21: all 20 newest reviews were from the last 7 days.
+  const busy = summarizeReviews("OMG Hibachi", Array.from({ length: 20 }, (_, i) => ({ iso_date: new Date(now - i * 3600_000).toISOString(), rating: 5 })), { rating: 5, votes: 186 }, now)
+  assert.equal(busy.newInWindow, 20)
+  assert.equal(busy.capped, true)
 })
 
 test("competitor watch · Google Ads: an advertiser the Center does not know is a plain line, not an error", () => {
@@ -71,19 +76,25 @@ test("competitor watch · Google Ads: an advertiser the Center does not know is 
 test("competitor watch · the report reads top to bottom on a phone", () => {
   const md = buildReport({
     weekOf: "2026-10-26",
-    metaAds: [{ id: "1", pageName: "fujihibachicateringla", text: "Luxury hibachi", cta: "Send message", link: "", since: "2026-10-20", adCount: 1, competitor: "Fuji Flame Hibachi" }],
+    metaAds: [
+      { id: "1", pageName: "fujihibachicateringla", text: "Luxury hibachi", cta: "Send message", link: "", since: "2026-10-20", adCount: 1, competitor: "Fuji Flame Hibachi" },
+      { id: "2", pageName: "Love Hibachi", text: "Cake is expected", cta: "Book now", link: "", since: "2026-10-21", adCount: 1, competitor: "Love Hibachi" },
+    ],
     metaTotal: 412,
     googleAds: [{ competitor: "OMG Hibachi", domain: "omghibachi.com", found: false, count: 0, newest: null, sample: null }],
     reviews: [
       { competitor: "Hibachi 4Ever", rating: 5, votes: 2284, newInWindow: 2, complaints: [{ rating: 1, date: "2026-10-24", text: "late" }] },
       { competitor: "Senshi Hibachi", rating: 4.8, votes: 300, newInWindow: 0, complaints: [] },
+      { competitor: "OMG Hibachi", rating: 5, votes: 186, newInWindow: 20, capped: true, complaints: [] },
     ],
     errors: ["Meta 广告库「hibachi」: monid 402"],
     cost: 0.0123,
   })
   assert.match(md, /^# 同行周报 · 2026-10-26\n/)
-  assert.match(md, /南加相关 1 条，全美在跑 412 条/)
+  assert.match(md, /南加相关 2 条，全美在跑 412 条/)
   assert.match(md, /- \*\*fujihibachicateringla\*\*（Fuji Flame Hibachi） · 自 2026-10-20 · \[Send message\]：Luxury hibachi/)
+  assert.match(md, /- \*\*Love Hibachi\*\* · 自 2026-10-21 · \[Book now\]：Cake is expected/, "no (Love Hibachi) after Love Hibachi")
+  assert.match(md, /- OMG Hibachi 5★×186：新评价 ≥20 条，没有 ≤3★/)
   assert.match(md, /- OMG Hibachi（omghibachi\.com）：透明中心没有这个广告主/)
   assert.match(md, /- Hibachi 4Ever 5★×2284：新评价 2 条，差评 1 条\n  - \[1★ 2026-10-24\] late/)
   assert.match(md, /- Senshi Hibachi 4\.8★×300：新评价 0 条，没有 ≤3★/)

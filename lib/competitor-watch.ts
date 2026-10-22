@@ -2,7 +2,7 @@
 // provider payloads and write the report. No network here, so it is testable
 // with fixtures; the route (app/api/admin/competitor-watch) does the calls.
 
-import { COMPETITORS, COMPLAINT_MAX_RATING, SOCAL_ABBR_RE, SOCAL_PLACES_RE, WATCH_WINDOW_DAYS, type Competitor } from "@/config/competitor-watch"
+import { COMPETITORS, COMPLAINT_MAX_RATING, REVIEWS_PER_COMPETITOR, SOCAL_ABBR_RE, SOCAL_PLACES_RE, WATCH_WINDOW_DAYS, type Competitor } from "@/config/competitor-watch"
 
 /** One ad as anyapi /facebook.ads_search returns it (dates are unix seconds). */
 export type MetaAdRaw = {
@@ -27,7 +27,16 @@ export type GoogleAds = { competitor: string; domain: string; found: boolean; co
 
 /** One review as litescrape /google/reviews returns it. */
 export type ReviewRaw = { iso_date?: string; snippet?: string | null; rating?: number; user?: { name?: string } }
-export type ReviewWatch = { competitor: string; rating: number | null; votes: number | null; newInWindow: number; complaints: Array<{ rating: number; date: string; text: string }>; error?: string }
+export type ReviewWatch = {
+  competitor: string
+  rating: number | null
+  votes: number | null
+  newInWindow: number
+  /** Every review pulled is from this week, so the real count is at least newInWindow. */
+  capped?: boolean
+  complaints: Array<{ rating: number; date: string; text: string }>
+  error?: string
+}
 
 const oneLine = (s: string | undefined | null, max = 160) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, max)
 const day = (v: number | string | undefined | null): string | null => {
@@ -88,7 +97,8 @@ export function summarizeReviews(competitor: string, raw: ReviewRaw[], meta: { r
     newInWindow += 1
     if (typeof r.rating === "number" && r.rating <= COMPLAINT_MAX_RATING) complaints.push({ rating: r.rating, date: new Date(ts).toISOString().slice(0, 10), text: oneLine(r.snippet, 300) || "(no text)" })
   }
-  return { competitor, rating: meta.rating ?? null, votes: meta.votes ?? null, newInWindow, complaints }
+  const capped = raw.length >= REVIEWS_PER_COMPETITOR && newInWindow === raw.length
+  return { competitor, rating: meta.rating ?? null, votes: meta.votes ?? null, newInWindow, capped, complaints }
 }
 
 export type ReportInput = {
@@ -109,7 +119,8 @@ export function buildReport(input: ReportInput): string {
   lines.push(`## Meta 广告库（搜 hibachi，南加相关 ${input.metaAds.length} 条${input.metaTotal != null ? `，全美在跑 ${input.metaTotal} 条` : ""}）`)
   if (!input.metaAds.length) lines.push("- 本周没有南加相关的 hibachi 广告在跑")
   for (const a of input.metaAds.slice(0, 25)) {
-    lines.push(`- **${a.pageName}**${a.competitor ? `（${a.competitor}）` : ""}${a.since ? ` · 自 ${a.since}` : ""}${a.adCount > 1 ? ` · ${a.adCount} 条` : ""}${a.cta ? ` · [${a.cta}]` : ""}：${a.text || "（无文案）"}`)
+    const who = a.competitor && a.competitor.toLowerCase() !== a.pageName.toLowerCase() ? `（${a.competitor}）` : ""
+    lines.push(`- **${a.pageName}**${who}${a.since ? ` · 自 ${a.since}` : ""}${a.adCount > 1 ? ` · ${a.adCount} 条` : ""}${a.cta ? ` · [${a.cta}]` : ""}：${a.text || "（无文案）"}`)
   }
   lines.push("")
   lines.push("## Google 广告透明中心（按同行域名）")
@@ -123,10 +134,11 @@ export function buildReport(input: ReportInput): string {
   lines.push(`## Google 评价（最近 ${WATCH_WINDOW_DAYS} 天）`)
   for (const r of input.reviews) {
     const head = `- ${r.competitor}${r.rating != null ? ` ${r.rating}★` : ""}${r.votes != null ? `×${r.votes}` : ""}：`
+    const fresh = `新评价 ${r.capped ? "≥" : ""}${r.newInWindow} 条`
     if (r.error) lines.push(`${head}查询失败 ${r.error}`)
-    else if (!r.complaints.length) lines.push(`${head}新评价 ${r.newInWindow} 条，没有 ≤${COMPLAINT_MAX_RATING}★`)
+    else if (!r.complaints.length) lines.push(`${head}${fresh}，没有 ≤${COMPLAINT_MAX_RATING}★`)
     else {
-      lines.push(`${head}新评价 ${r.newInWindow} 条，差评 ${r.complaints.length} 条`)
+      lines.push(`${head}${fresh}，差评 ${r.complaints.length} 条`)
       for (const c of r.complaints) lines.push(`  - [${c.rating}★ ${c.date}] ${c.text}`)
     }
   }

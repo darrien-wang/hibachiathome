@@ -220,7 +220,13 @@ export async function fetchNewPosts(subs: string[], limit = 100): Promise<FetchR
   const mode = redditMode()
   if (!multi) return { ok: true, mode, posts: [] }
   if (mode === "oauth") return oauthGet(`/r/${multi}/new?limit=${limit}&raw_json=1`)
-  if (mode === "monid") return monidGet(multi, limit)
+  if (mode === "monid") {
+    const r = await monidGet(multi, limit)
+    if (r.ok) return r
+    // monid 不通（余额用完、上游挂了）就退回公开 RSS，这一轮照样有机会抓到。
+    const rss = await rssGet(`/r/${multi}/new/.rss?limit=${limit}`)
+    return rss.ok ? rss : { ...rss, error: `${r.error}; rss fallback: ${rss.error}` }
+  }
   return rssGet(`/r/${multi}/new/.rss?limit=${limit}`)
 }
 

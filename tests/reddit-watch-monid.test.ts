@@ -69,3 +69,34 @@ test("facebook · a person asking stays, a business selling goes", () => {
   assert.deepEqual(picked.dropped, { competitor: 1, business: 1, promo: 1, not_ask: 1, geo: 1, old: 1, offtopic: 1 })
   assert.equal(facebookToPost({ id: "9", text: "", url: "https://www.facebook.com/x" }), null, "no text, nothing to classify")
 })
+
+test("reddit via monid · when monid is out (402), the same round falls back to the public feed", async () => {
+  const { fetchNewPosts } = await import("../lib/reddit-watch/fetch")
+  const saved = { fetch: globalThis.fetch, key: process.env.MONID_API_KEY, id: process.env.REDDIT_CLIENT_ID }
+  process.env.MONID_API_KEY = "k"
+  delete process.env.REDDIT_CLIENT_ID
+  const urls: string[] = []
+  globalThis.fetch = (async (url: string | URL | Request) => {
+    const u = String(url)
+    urls.push(u)
+    if (u.startsWith("https://api.monid.ai/")) return new Response(JSON.stringify({ message: "insufficient balance" }), { status: 402 })
+    const atom =
+      '<feed><entry><id>t3_abc</id><category term="sgv"/><title>Hibachi chef for a backyard party?</title>' +
+      '<link href="https://www.reddit.com/r/sgv/comments/abc/x/"/><author><name>/u/someone</name></author>' +
+      '<published>2026-10-21T20:00:00+00:00</published><content type="html">&lt;div class="md"&gt;&lt;p&gt;anyone?&lt;/p&gt;&lt;/div&gt;</content></entry></feed>'
+    return new Response(atom, { status: 200, headers: { "content-type": "application/atom+xml" } })
+  }) as typeof fetch
+  try {
+    const r = await fetchNewPosts(["sgv", "pasadena"], 100)
+    assert.equal(r.ok, true)
+    assert.equal(r.mode, "rss")
+    assert.deepEqual(r.ok ? r.posts.map((p) => p.id) : [], ["t3_abc"])
+    assert.equal(urls[0], "https://api.monid.ai/v1/run")
+    assert.equal(urls[1], "https://www.reddit.com/r/sgv+pasadena/new/.rss?limit=100")
+  } finally {
+    globalThis.fetch = saved.fetch
+    if (saved.key === undefined) delete process.env.MONID_API_KEY
+    else process.env.MONID_API_KEY = saved.key
+    if (saved.id !== undefined) process.env.REDDIT_CLIENT_ID = saved.id
+  }
+})
