@@ -26,6 +26,12 @@ const ptDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: PT })
 // order_ref 单独记一笔，category 填 gear。
 const CATS = new Set(["fresh", "frozen", "pantry", "sake", "other", "gear"])
 
+// 清酒按用量摊，不按哪天买的摊（老板 2026-10-22）：3 箱 × $55 = $165，
+// 10-18 那周之前的 474 位客人（25 场）刚好用完——每人约 $0.35。
+// 清酒还算在大宗里（不进"不含大宗"），这里单独给一个"含清酒"的每人成本。
+// 下次喝完一批再按同样办法更新这两个数。
+const SAKE_CENTS_PER_GUEST = Math.round(16500 / 474)
+
 type Purchase = { id: string; purchased_on: string; channel: string; category: string; amount_cents: number; note: string | null }
 type OrderLite = { event_start: string | null; guest_adult_count: number | null; guest_child_count: number | null; order_status: string | null }
 
@@ -51,6 +57,8 @@ function statsFor(purchases: Purchase[], orders: Array<{ day: string; guests: nu
     gearCents,
     perGuestCents: guests > 0 ? Math.round(foodCents / guests) : null,
     perGuestExBulkCents: guests > 0 ? Math.round((foodCents - bulkCents) / guests) : null,
+    perGuestWithSakeCents: guests > 0 ? Math.round((foodCents - bulkCents) / guests) + SAKE_CENTS_PER_GUEST : null,
+    sakePerGuestCents: SAKE_CENTS_PER_GUEST,
     bulkCents,
     byCategory,
   }
