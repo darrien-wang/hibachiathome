@@ -80,7 +80,7 @@
 - **下雨、大风**（D-1019-03，老板待最终确认，现在照此答）：下雨在带顶的露台或客人备的 10×10 帐篷下做（我们不带帐篷）；大风或红旗预警不安全时，免费改期或取消，48 小时内也不收 $99（以官方 NWS 预警为准）。
 - **最晚几点开场**：不报"最晚"，问他打算几点 `What time do you have in mind? Later starts usually work.` 半夜 12 点以后要先问师傅（这一层不对客说）。
 - **接食游戏**：扔西葫芦，不扔虾 `Yes - the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu.`
-- **酒**：`We bring sake for the adults - it's included.` 只在客人问饮料时说；喷酒枪客人提了可以认，不主动对带小孩的派对提。
+- **酒**：`We bring sake for the adults - it's included.` 只在客人问饮料时说（或比价时当差异讲，见 `negotiation.md` §4）；带足 2 加仑，很少有派对喝得完（老板 10-21），不说 unlimited。喷酒枪客人提了可以认，不主动对带小孩的派对提。
 - **软饮**：$5/位，或客人自备。
 
 ## 桌椅、餐具
