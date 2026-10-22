@@ -187,7 +187,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (actor.role !== "owner") return NextResponse.json({ error: "只有老板能改库存" }, { status: 403 })
+  // 2026-10-22：老板在一台存着坐席钥匙（leilin）的电脑上对货，点了没反应——把是谁登录的说出来。
+  if (actor.role !== "owner") return NextResponse.json({ error: `只有老板能改库存。这台设备现在登录的是「${actor.name ?? actor.alias}」，用你自己的手机号重新登录一下就行（/admin/login）` }, { status: 403 })
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
   let body: Record<string, unknown>

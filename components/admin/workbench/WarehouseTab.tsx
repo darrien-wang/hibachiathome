@@ -1186,6 +1186,8 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
 
           {/* 对货：只问需要问的。够、而且最近盘过的默认信它——老板 2026-09-29 定的口径是
               "我不在乎有什么，我在乎缺什么"，所以别拿 30 行东西占你的屏幕。 */}
+          {/* 报错也放在对货这里：上面那条在屏幕外，点了按钮没反应会以为是坏了（2026-10-22） */}
+          {err ? <div className="notice danger">{err}</div> : null}
           {groups.ask.length > 0 ? (
             <section>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 8 }}>
