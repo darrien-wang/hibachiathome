@@ -130,7 +130,7 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
     }
   }
 
-  // 后勤备货单：新开一页，大字中文、一单一页，直接打印。没有客户名和价格。
+  // 后勤备货单：新开一页，大字中文，这一天几场合成一张（切多少、煮多少），直接打印。没有客户名和价格。
   const openCoolerSheet = () => {
     if (!d) return
     const html = coolerSheetHtml(d.date, d.orders.map((o) => o.cooler).filter((c): c is CoolerParty => !!c))
@@ -156,7 +156,7 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
               {dateName(ymd)} {md(ymd)}
             </Chip>
           ))}
-          <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={openCoolerSheet} disabled={!d || d.orderCount === 0} title="给后勤打印：只列要放进保温箱的东西，大字中文，一单一页">
+          <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={openCoolerSheet} disabled={!d || d.orderCount === 0} title="给后勤打印：几场合成一张，只列要提前切、要煮的，大字中文">
             后勤备货单
           </button>
           <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 6 }} onClick={() => void copy()} disabled={!d || d.orderCount === 0}>

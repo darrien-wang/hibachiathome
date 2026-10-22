@@ -1,102 +1,101 @@
-import { aggregatePrep, VEGE_NET_PER_RAW, type PrepItem } from "@/lib/prep-bom"
+import { aggregatePrep, VEGE_MIX, VEGE_NET_PER_RAW, type PrepItem } from "@/lib/prep-bom"
 
-// 后勤备货单（装保温箱）：给后勤阿姨打印出来照着装的那张纸。
-// 老板 2026-10-11：只列要放进保温箱的东西，不带客户信息、不带价格；全中文、
-// 字要大、越简单越好（后勤年纪偏大）。数量来自同一套配比（lib/prep-bom.ts），
-// 称重的东西写到盎司（往上取整），旁边小字给参照（约几磅 / 几根 / 几盒）；按个数的照个数。
-// 不进保温箱的（油、酱油、桌椅餐具）不出现在这张纸上。
+// 后勤备货单：给后勤阿姨打印出来照着做的那张纸。
+// 老板 2026-10-11：不带客户信息、不带价格；全中文、字要大、越简单越好（后勤年纪偏大）。
+// 老板 2026-10-22 改成合并：后勤只做要提前处理的几样——切鸡肉、切牛肉、切蔬菜、
+// 切豆腐、煮饭——按整天（或按负责人）合成一个大概的总数；每一场分多少由师傅
+// 自己去抓（抓码），后勤不再一场一场称。海鲜、酱料、鸡蛋、前菜这些不用加工的，
+// 师傅自己拿，不上这张纸。
 
-/** fill = 留给后勤手写的空（"实际 ____ 根"），老板拿回来校准配比。 */
-export type CoolerLine = { id: string; label: string; amount: string; note?: string; fill?: string }
-export type CoolerSection = { title: string; lines: CoolerLine[] }
+/** 一场要提前处理的量，原始单位：肉和豆腐、蔬菜毛重、熟饭都是盎司。 */
+export type CoolerWork = {
+  chicken: number
+  steak: number
+  ribeye: number
+  filet_mignon: number
+  tofu: number
+  /** 蔬菜混合的毛重（清单口径，含去皮去头尾的损耗）；纸上折成净重。 */
+  mixed_vege: number
+  /** 熟饭 */
+  fried_rice: number
+}
+const WORK_IDS = ["chicken", "steak", "ribeye", "filet_mignon", "tofu", "mixed_vege", "fried_rice"] as const
+const MEAT_IDS = new Set(["chicken", "steak", "ribeye", "filet_mignon", "tofu"])
+
 export type CoolerParty = {
   /** "下午 5:00" */
   time: string
   chef: string | null
-  /** 这一单谁负责备货（后勤，在员工→结算页勾给谁就是谁）。没定就留空给人手写。 */
+  /** 这一单谁负责备货（后勤，订单弹窗"备货负责人"）。 */
   owner?: string | null
-  /** 老板写给后勤的备注（订单弹窗里填）。有才印，没有就不占地方。 */
+  /** 老板写给后勤的备注（订单弹窗里填）。有才印。 */
   note?: string | null
   adults: number
   kids: number
   menuKnown: boolean
-  sections: CoolerSection[]
+  work: CoolerWork
+}
+
+/** 一单的用料行 → 要提前处理的量。菜单没定时肉和豆腐不算（纸上会提示）。 */
+export function coolerWork(items: PrepItem[], menuKnown: boolean): CoolerWork {
+  const merged = aggregatePrep(items.filter((i) => i.group !== "setup"))
+  const w = Object.fromEntries(WORK_IDS.map((id) => [id, 0])) as CoolerWork
+  for (const i of merged) {
+    if (!(WORK_IDS as readonly string[]).includes(i.id)) continue
+    if (MEAT_IDS.has(i.id) && !menuKnown) continue
+    w[i.id as keyof CoolerWork] += i.qty
+  }
+  return w
 }
 
 const r1 = (n: number) => Math.round(n * 10) / 10
 const up = (n: number) => Math.max(1, Math.ceil(n - 1e-9))
-// 称重的东西一律写到盎司（老板 2026-10-11："备料需要放到 oz 级别"），往上取整；
-// 旁边小字给一个顺手的参照："约 x 磅 / 约 x 根 / 约 x 盒"。
-const oz = (q: number) => `${up(q)} 盎司`
-const aboutLb = (q: number) => `约 ${r1(q / 16)} 磅`
-const servings = (q: number, per: number) => `${up(q / per)} 人份`
+const lb = (oz: number) => `约 ${r1(oz / 16)} 磅`
 
-/** 多少盎司黄油配 1 盎司蒜蓉（估的，等老板给准数）。 */
-const GARLIC_PER_BUTTER = 8
+// 蔬菜四样拆开给个大概（切的时候知道要几根几个）：毛重按 VEGE_MIX 比例分。
+const ZUCCHINI_OZ = 11
+const ONION_OZ = 12
+// 熟饭 ≈ 生米 × 3（50 磅一袋生米 ≈ 2400 盎司熟饭）；美式量杯 1 杯生米约 7 盎司。
+// 第一次照这个煮，让后勤说一下实际用了几杯，再校准。
+const RICE_COOKED_PER_RAW = 3
+const RICE_CUP_OZ = 7
 
-type Rule = { section: 0 | 1 | 2 | 3 | 4; label: string; amount: (qty: number) => string; note?: (qty: number) => string; fill?: string }
-const SECTION_TITLES = ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"]
+type Line = { label: string; amount: string; note?: string }
 
-// 酱料、黄油、青豆胡萝卜粒在清单上按汤匙记：2 汤匙 = 1 盎司。
-const RULES: Record<string, Rule> = {
-  chicken: { section: 0, label: "鸡胸肉", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 5)}` },
-  steak: { section: 0, label: "牛排", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4.5)}` },
-  ribeye: { section: 0, label: "肋眼牛排", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4.5)}` },
-  filet_mignon: { section: 0, label: "菲力牛排", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4.5)}` },
-  shrimp: { section: 0, label: "虾", amount: (q) => `${up(q)} 只`, note: (q) => servings(q, 5) },
-  salmon: { section: 0, label: "三文鱼", amount: oz, note: (q) => `${aboutLb(q)} · ${servings(q, 4)}` },
-  scallops: { section: 0, label: "带子", amount: oz, note: (q) => `约 ${up(q)} 个 · ${servings(q, 4)}` },
-  lobster_tail: { section: 0, label: "龙虾尾", amount: (q) => `${up(q / 6)} 只` },
-  tofu: { section: 0, label: "豆腐", amount: oz, note: (q) => `约 ${up(q / 15)} 盒 · ${servings(q, 5)}` },
-  // 四样蔬菜合成一栏，写切好后的净重：平均每人 5 盎司上下，不用分开称（老板 2026-10-11）。
-  // 清单上的 mixed_vege 是毛重（含去皮去头尾的损耗），这里折回净重。西葫芦买多少根还在
-  // 校准，所以留一个空请她写实际用了几根。
-  mixed_vege: {
-    section: 1,
-    label: "蔬菜混合",
-    amount: (q) => oz(q * VEGE_NET_PER_RAW),
-    note: () => "切好的",
-  },
-  // 沙拉菜一人份 ≈ 1 盎司，不用称得很准（老板 2026-10-12）。
-  salad: { section: 1, label: "沙拉菜", amount: (q) => `${up(q)} 盎司`, note: (q) => `${up(q)} 人份` },
-  lime: { section: 1, label: "青柠", amount: (q) => `${up(q)} 个` },
-  fried_rice: { section: 2, label: "熟米饭", amount: oz, note: aboutLb },
-  // 清单上记的是干面重量（熟面 ÷ 3）；装箱的是煮好的面。
-  noodles: { section: 2, label: "面条（煮好的）", amount: (q) => oz(q * 3), note: (q) => aboutLb(q * 3) },
-  // 鸡蛋、蔬菜、沙拉菜不用一点不差：数量后面不写"上下"，统一在页脚说明（老板 2026-10-12）。
-  eggs: { section: 2, label: "鸡蛋", amount: (q) => `${up(q)} 个` },
-  fried_rice_seasoning: { section: 2, label: "青豆胡萝卜粒（冷冻）", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 24)} 包（12 盎司一包）` },
-  ginger_sauce: { section: 3, label: "Yum Yum 白酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
-  ginger_dressing: { section: 3, label: "姜汁沙拉酱", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 32)} 盒（16 盎司一盒）` },
-  // 蒜香黄油拆成黄油和蒜两行（老板 2026-10-12）。清单上按汤匙记，2 汤匙 = 1 盎司，全部算黄油；
-  // 蒜的行在 coolerSections 里跟着补，按一根黄油（8 盎司）配 1 盎司蒜蓉估。
-  garlic_butter: { section: 3, label: "黄油", amount: (q) => oz(q / 2), note: (q) => `约 ${up(q / 16)} 根` },
-  gyoza: { section: 4, label: "煎饺", amount: (q) => `${up(q)} 个` },
-  spring_rolls: { section: 4, label: "春卷", amount: (q) => `${up(q)} 个` },
-  edamame: { section: 4, label: "毛豆", amount: (q) => `${up(q)} 袋` },
-}
-
-/** 一单的用料行 → 保温箱里的东西，按五类分好。菜单没定时不出肉（由页面提示）。 */
-export function coolerSections(items: PrepItem[], menuKnown: boolean): CoolerSection[] {
-  const merged = aggregatePrep(items.filter((i) => i.group !== "setup"))
-  // 加的鸡蛋并进鸡蛋一行。
-  const qty = new Map<string, number>()
-  for (const i of merged) {
-    const id = i.id === "extra_egg" ? "eggs" : i.id
-    qty.set(id, (qty.get(id) ?? 0) + i.qty)
+/** 合并后的几行：切多少、煮多少。 */
+export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[]; rice: Line[] } {
+  const sum = Object.fromEntries(WORK_IDS.map((id) => [id, 0])) as CoolerWork
+  for (const p of parties) for (const id of WORK_IDS) sum[id] += p.work?.[id] ?? 0
+  const meat: Line[] = []
+  const cut = (id: keyof CoolerWork, label: string) => {
+    if (sum[id] > 0) meat.push({ label, amount: `${up(sum[id])} 盎司`, note: lb(sum[id]) })
   }
-  const sections: CoolerSection[] = SECTION_TITLES.map((title) => ({ title, lines: [] }))
-  for (const [id, rule] of Object.entries(RULES)) {
-    const q = qty.get(id) ?? 0
-    if (q <= 0) continue
-    if (rule.section === 0 && !menuKnown) continue
-    sections[rule.section].lines.push({ id, label: rule.label, amount: rule.amount(q), note: rule.note?.(q), fill: rule.fill })
-    // 洋葱火山：切好叠成火山的洋葱圈，不在用料清单里（它是表演不是配料），每单都要带。
-    // 不是整个洋葱——要事先切好（老板 2026-10-11）。
-    if (id === "garlic_butter") sections[3].lines.push({ id: "garlic", label: "蒜蓉", amount: oz(q / 2 / GARLIC_PER_BUTTER) })
-    if (id === "mixed_vege") sections[1].lines.push({ id: "onion_volcano", label: "洋葱火山", amount: "1 份" })
+  cut("chicken", "鸡胸肉 切块")
+  cut("steak", "牛排 切块")
+  cut("ribeye", "肋眼牛排 切块")
+  cut("filet_mignon", "菲力 切块")
+  if (sum.tofu > 0) meat.push({ label: "豆腐 切块", amount: `${up(sum.tofu / 15)} 盒`, note: `${up(sum.tofu)} 盎司` })
+
+  const vege: Line[] = []
+  if (sum.mixed_vege > 0) {
+    const raw = sum.mixed_vege
+    const part = (id: string) => raw * (VEGE_MIX.find((v) => v.id === id)?.ratio ?? 0)
+    const net = raw * VEGE_NET_PER_RAW
+    vege.push({
+      label: "蔬菜 切好",
+      amount: `${up(net)} 盎司`,
+      note: `切好后的重量，${lb(net)}。大概要：西葫芦 ${up(part("zucchini") / ZUCCHINI_OZ)} 根 · 西兰花 ${r1(part("broccoli") / 16)} 磅 · 洋葱 ${up(part("onion") / ONION_OZ)} 个 · 胡萝卜 ${r1(part("carrots") / 16)} 磅`,
+    })
+    const volcanoes = parties.filter((p) => (p.work?.mixed_vege ?? 0) > 0).length
+    vege.push({ label: "洋葱火山 切好", amount: `${volcanoes} 个`, note: "一场一个" })
   }
-  return sections.filter((s) => s.lines.length > 0)
+
+  const rice: Line[] = []
+  if (sum.fried_rice > 0) {
+    const rawOz = sum.fried_rice / RICE_COOKED_PER_RAW
+    rice.push({ label: "煮米饭", amount: `${up(rawOz / RICE_CUP_OZ)} 杯米`, note: `生米${lb(rawOz)}（美式量杯），煮好约 ${up(sum.fried_rice)} 盎司` })
+  }
+  return { meat, vege, rice }
 }
 
 const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
@@ -115,81 +114,74 @@ export function zhTime(eventStart: string): string {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string)
 
-/** 整份可打印的页面：一单一页，东西多的单整页等比缩小，不拆页。 */
-export function coolerSheetHtml(ymd: string, parties: CoolerParty[]): string {
-  const pages = parties
-    .map((p, i) => {
-      const people = `${p.adults} 位大人${p.kids ? `、${p.kids} 位小孩` : ""}`
-      const body = p.sections
-        .map(
-          (s) => `<div class="sec"><h2>${esc(s.title)}</h2><table>${s.lines
-            .map((l) => `<tr><td class="box"><span></span></td><td class="name">${esc(l.label)}${l.note ? `<small>${esc(l.note)}</small>` : ""}${l.fill ? `<small class="fill">${esc(l.fill)}</small>` : ""}</td><td class="amt">${esc(l.amount)}</td></tr>`)
-            .join("")}</table></div>`,
-        )
-        .join("")
-      return `<section class="page">
-<header>
-  <div class="no">第 ${i + 1} 箱<small>共 ${parties.length} 箱</small></div>
-  <div class="meta"><div class="day">${esc(zhDate(ymd))}</div><div>${esc(p.time)} 开席${p.chef ? ` · 厨师 ${esc(p.chef)}` : ""}</div><div>${esc(people)}</div></div>
-  <div class="owner"><small>备货负责人</small>${p.owner ? esc(p.owner) : `<span class="blank"></span>`}</div>
-</header>
-${p.menuKnown ? "" : `<div class="warn">这一单的菜还没定，肉和海鲜先不要备，等通知。</div>`}
-<div class="cols">${body}</div>
-${p.note ? `<div class="memo"><b>备注</b>${esc(p.note)}</div>` : ""}
-<footer>装好一样，打一个勾 ✓<div class="hint">蔬菜、沙拉菜、鸡蛋的数量是大概的数，上下差一点没关系。</div></footer>
-</section>`
-    })
+/**
+ * 整份可打印的页面：传进来的几场合成一张（一天的全部，或某位负责人的那几场）。
+ * who = 这张是谁的（按负责人打印时），不传就是"全部"。
+ */
+export function coolerSheetHtml(ymd: string, parties: CoolerParty[], who?: string | null): string {
+  const { meat, vege, rice } = workLines(parties)
+  const adults = parties.reduce((n, p) => n + p.adults, 0)
+  const kids = parties.reduce((n, p) => n + p.kids, 0)
+  const unknown = parties.filter((p) => !p.menuKnown)
+  const sec = (title: string, lines: Line[]) =>
+    lines.length
+      ? `<div class="sec"><h2>${esc(title)}</h2><table>${lines
+          .map((l) => `<tr><td class="box"><span></span></td><td class="name">${esc(l.label)}${l.note ? `<small>${esc(l.note)}</small>` : ""}</td><td class="amt">${esc(l.amount)}</td></tr>`)
+          .join("")}</table></div>`
+      : ""
+  const body = sec("肉和豆腐", meat) + sec("蔬菜", vege) + sec("米饭", rice)
+  const list = parties
+    .map((p) => `<tr><td>${esc(p.time)}</td><td>${p.chef ? `厨师 ${esc(p.chef)}` : "厨师未定"}</td><td>${p.adults} 大${p.kids ? ` ${p.kids} 小` : ""}</td><td>${p.menuKnown ? "" : "菜没定"}</td></tr>`)
     .join("")
+  const notes = parties.filter((p) => p.note).map((p) => `<div><b>${esc(p.time)}${p.chef ? ` · ${esc(p.chef)}` : ""}</b>${esc(p.note as string)}</div>`).join("")
+  const page = parties.length
+    ? `<section class="page">
+<header>
+  <div class="meta"><div class="day">${esc(zhDate(ymd))}</div><div>共 ${parties.length} 场 · ${adults} 位大人${kids ? `、${kids} 位小孩` : ""}</div></div>
+  <div class="owner"><small>备货负责人</small>${who ? esc(who) : `<span class="blank"></span>`}</div>
+</header>
+${unknown.length ? `<div class="warn">有 ${unknown.length} 场菜还没定，那几场的肉和豆腐没算进去，等通知。</div>` : ""}
+${body || `<div class="warn">这几场没有要提前切、要煮的东西。</div>`}
+<div class="sec"><h2>是哪几场</h2><table class="list">${list}</table></div>
+${notes ? `<div class="memo"><b>备注</b>${notes}</div>` : ""}
+<footer>做好一样，打一个勾 ✓<div class="hint">数量是大概的，多一点没关系。每一场分多少，师傅自己来拿。</div></footer>
+</section>`
+    : `<section class="page"><div class="warn">这一天没有要备的单。</div></section>`
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>备货单 ${esc(zhDate(ymd))}</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:#000;font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC","Heiti SC",sans-serif;font-size:22px;line-height:1.25}
 .bar{padding:14px 20px;background:#f2f2f2;display:flex;gap:14px;align-items:center;font-size:18px}
 .bar button{font:inherit;font-size:22px;font-weight:700;padding:10px 26px;border:3px solid #000;background:#000;color:#fff;border-radius:8px;cursor:pointer}
-/* 一单一页，绝不拆成两页（老板 2026-10-11）：版面按信纸可打印区定宽，东西多的单由
-   页尾脚本整体缩小到一页高。 */
-.page{width:720px;margin:0 auto;padding:18px 0 10px;page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid}
-.page:last-child{page-break-after:auto;break-after:auto}
+.page{width:720px;margin:0 auto;padding:18px 0 10px;page-break-inside:avoid;break-inside:avoid}
 header{display:flex;gap:18px;align-items:center;border-bottom:4px solid #000;padding-bottom:8px;margin-bottom:2px}
-.no{font-size:40px;font-weight:900;line-height:1;white-space:nowrap;border:4px solid #000;padding:8px 14px;border-radius:8px;text-align:center}
-.no small{display:block;font-size:15px;font-weight:600;margin-top:4px}
-.meta{font-size:21px;font-weight:600}
-.meta .day{font-size:28px;font-weight:900}
+.meta{font-size:22px;font-weight:600}
+.meta .day{font-size:32px;font-weight:900}
 .owner{margin-left:auto;text-align:center;font-size:30px;font-weight:900;border:4px solid #000;border-radius:8px;padding:6px 14px;min-width:150px}
 .owner small{display:block;font-size:15px;font-weight:600}
 .owner .blank{display:block;height:36px}
 .warn{margin:10px 0 0;padding:8px 12px;border:4px dashed #000;font-size:24px;font-weight:800}
-h2{font-size:21px;font-weight:900;margin:10px 0 0;padding:2px 10px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h2{font-size:22px;font-weight:900;margin:12px 0 0;padding:2px 10px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table{width:100%;border-collapse:collapse}
-td{padding:5px 6px;border-bottom:2px solid #999;vertical-align:middle}
-td.box{width:44px}
-td.box span{display:block;width:30px;height:30px;border:3px solid #000;border-radius:4px}
-td.name{font-size:28px;font-weight:700}
-td.name small{font-size:16px;font-weight:500;color:#333;margin-left:10px}
-td.name small.fill{display:block;font-size:20px;font-weight:700;color:#000;margin:2px 0 0}
-td.amt{font-size:32px;font-weight:900;text-align:right;white-space:nowrap}
-/* 东西多的单：先排成两栏、字略小，还放不下再整页缩小。 */
+td{padding:7px 6px;border-bottom:2px solid #999;vertical-align:middle}
+td.box{width:48px}
+td.box span{display:block;width:32px;height:32px;border:3px solid #000;border-radius:4px}
+td.name{font-size:30px;font-weight:800}
+td.name small{display:block;font-size:17px;font-weight:500;color:#333;margin-top:2px}
+td.amt{font-size:36px;font-weight:900;text-align:right;white-space:nowrap}
+.list td{font-size:19px;padding:4px 6px;border-bottom:1px solid #bbb}
 .sec{break-inside:avoid;page-break-inside:avoid}
-.dense .cols{column-count:2;column-gap:26px}
-.dense td.box{width:36px}
-.dense td.box span{width:26px;height:26px}
-.dense td.name{font-size:24px}
-.dense td.name small{display:block;margin-left:0;font-size:14px}
-.dense td.name small.fill{font-size:17px}
-.dense td.amt{font-size:27px}
-.dense h2{margin-top:8px}
-.dense .sec:first-child h2{margin-top:10px}
-.memo{margin-top:10px;padding:8px 12px;border:4px solid #000;border-radius:8px;font-size:26px;font-weight:700;white-space:pre-wrap}
-.memo b{display:block;font-size:16px;font-weight:600}
+.memo{margin-top:10px;padding:8px 12px;border:4px solid #000;border-radius:8px;font-size:22px;font-weight:700;white-space:pre-wrap}
+.memo b{display:block;font-size:16px;font-weight:600;margin-top:4px}
+footer{margin-top:10px;font-size:18px;font-weight:600;text-align:center}
 footer .hint{font-weight:500;margin-top:4px}
-footer{margin-top:8px;font-size:18px;font-weight:600;text-align:center}
 @media print{.bar{display:none}.page{padding:0}@page{margin:10mm}}
 </style></head><body>
-<div class="bar"><button onclick="window.print()">打印</button><span>${esc(zhDate(ymd))} · 共 ${parties.length} 箱 · 一箱一页</span></div>
-${pages || `<section class="page"><div class="warn">这一天没有要备的单。</div></section>`}
+<div class="bar"><button onclick="window.print()">打印</button><span>${esc(zhDate(ymd))}${who ? ` · ${esc(who)}` : ""} · ${parties.length} 场合成一张</span></div>
+${page}
 <script>
-// 信纸（最短的常用纸）去掉页边距后约 259mm ≈ 979px 高；留一点余量。超过就整页等比缩小。
-(function(){var MAX=950;function fit(){var ps=document.querySelectorAll(".page");for(var i=0;i<ps.length;i++){var p=ps[i];p.style.zoom="1";p.classList.remove("dense");var h=p.scrollHeight;if(h>MAX){p.classList.add("dense");h=p.scrollHeight}if(h>MAX)p.style.zoom=String(Math.floor(MAX/h*1000)/1000)}}
+// 一张纸放得下：信纸去掉页边距约 950px 高，超过就整页等比缩小。
+(function(){var MAX=950;function fit(){var p=document.querySelector(".page");if(!p)return;p.style.zoom="1";var h=p.scrollHeight;if(h>MAX)p.style.zoom=String(Math.floor(MAX/h*1000)/1000)}
 fit();window.addEventListener("load",fit);window.addEventListener("beforeprint",fit)})();
 </script>
 </body></html>`

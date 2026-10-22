@@ -1,65 +1,65 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { coolerSections, coolerSheetHtml, zhDate, zhTime } from "../lib/cooler-sheet"
+import { coolerSheetHtml, coolerWork, workLines, zhDate, zhTime, type CoolerParty } from "../lib/cooler-sheet"
 import { orderPrep } from "../lib/prep-bom"
 
 const inv = {
   mode: "detailed",
   guests: [
     ...Array.from({ length: 10 }, () => ({ proteins: ["chicken", "steak"] })),
-    ...Array.from({ length: 10 }, () => ({ proteins: ["chicken", "shrimp"], noodles: true })),
+    ...Array.from({ length: 10 }, () => ({ proteins: ["chicken", "tofu"], noodles: true })),
   ],
   partyExtras: [{ id: "gyoza", qty: 2 }],
 }
 
-test("coolerSections: Chinese labels, her units, nothing that stays out of the cooler", () => {
+const party = (over: Partial<CoolerParty> = {}): CoolerParty => {
   const prep = orderPrep(inv as never, "2026-10-01T00:00:00Z", 20, 0)
-  const sections = coolerSections(prep.items, prep.menuKnown)
-  const lines = Object.fromEntries(sections.flatMap((s) => s.lines).map((l) => [l.id, l]))
-  assert.deepEqual(sections.map((s) => s.title), ["肉和海鲜", "蔬菜", "饭、面、鸡蛋", "酱料和黄油", "前菜（冷冻）"])
-  assert.equal(lines.chicken.amount, "100 盎司") // 20 × 5 oz
-  assert.equal(lines.chicken.note, "约 6.3 磅 · 20 人份")
-  // 四样蔬菜一栏，切好后的净重：20 人 × 5 oz
-  assert.equal(lines.mixed_vege.amount, "100 盎司")
-  assert.equal(lines.salad.amount, "20 盎司")
-  assert.equal(lines.garlic_butter.label, "黄油")
-  assert.equal(lines.garlic_butter.amount, "10 盎司")
-  assert.equal(lines.garlic.amount, "2 盎司")
-  assert.equal(lines.onion_volcano.amount, "1 份")
-  for (const id of ["zucchini", "broccoli", "onion", "carrots"]) assert.equal(lines[id], undefined)
-  assert.equal(lines.shrimp.amount, "50 只")
-  assert.equal(lines.ginger_sauce.amount, "40 盎司") // 20 × 2 oz
-  assert.equal(lines.ginger_sauce.note, "约 3 盒（16 盎司一盒）")
-  assert.equal(lines.gyoza.amount, "20 个")
-  assert.equal(lines.noodles.label, "面条（煮好的）")
-  for (const id of ["oil", "soy_sauce", "tables", "chairs", "utensils"]) assert.equal(lines[id], undefined)
-  for (const l of Object.values(lines)) assert.doesNotMatch(l.label + l.amount, /oz|lb|tbsp|pcs/)
+  return { time: zhTime("2026-10-17T17:00:00+00:00"), chef: "Blu", adults: 20, kids: 0, menuKnown: true, work: coolerWork(prep.items, true), ...over }
+}
+
+test("coolerWork: only what logistics processes ahead - meat, tofu, vegetables, rice", () => {
+  const w = party().work
+  assert.equal(w.chicken, 100) // 20 × 5 oz
+  assert.equal(w.steak, 45) // 10 × 4.5 oz
+  assert.equal(w.tofu, 50)
+  assert.ok(w.mixed_vege > 100) // raw weight, trimmed to net on the sheet
+  assert.ok(w.fried_rice > 0)
+  assert.deepEqual(Object.keys(w).sort(), ["chicken", "filet_mignon", "fried_rice", "mixed_vege", "ribeye", "steak", "tofu"])
 })
 
-test("coolerSections: menu not in yet - no proteins, sides by headcount", () => {
+test("coolerWork: menu not in yet - no meat or tofu, vegetables and rice by headcount", () => {
   const prep = orderPrep({ mode: "detailed", guests: [] } as never, "2026-10-01T00:00:00Z", 12, 0)
-  const sections = coolerSections(prep.items, prep.menuKnown)
+  const w = coolerWork(prep.items, prep.menuKnown)
   assert.equal(prep.menuKnown, false)
-  assert.ok(!sections.some((s) => s.title === "肉和海鲜"))
-  assert.ok(sections.some((s) => s.lines.some((l) => l.id === "eggs")))
+  assert.equal(w.chicken + w.steak + w.tofu, 0)
+  assert.ok(w.mixed_vege > 0 && w.fried_rice > 0)
 })
 
-test("coolerSheetHtml: one page per party, no customer or price fields", () => {
-  const prep = orderPrep(inv as never, "2026-10-01T00:00:00Z", 20, 0)
-  const html = coolerSheetHtml("2026-10-17", [
-    { time: zhTime("2026-10-17T17:00:00+00:00"), chef: "Blu", owner: "张阿姨", note: "牛排切大块", adults: 20, kids: 0, menuKnown: true, sections: coolerSections(prep.items, true) },
-    { time: zhTime("2026-10-17T19:30:00+00:00"), chef: null, adults: 12, kids: 2, menuKnown: false, sections: [] },
-  ])
+test("workLines: parties merged into one total; one onion volcano per party", () => {
+  const { meat, vege, rice } = workLines([party(), party({ time: "晚上 7:30", chef: "Gary" })])
+  const by = Object.fromEntries([...meat, ...vege, ...rice].map((l) => [l.label, l]))
+  assert.equal(by["鸡胸肉 切块"].amount, "200 盎司")
+  assert.equal(by["牛排 切块"].amount, "90 盎司")
+  assert.equal(by["豆腐 切块"].amount, "7 盒") // 100 oz / 15
+  assert.equal(by["蔬菜 切好"].amount, "200 盎司") // 40 guests × 5 oz net
+  assert.match(by["蔬菜 切好"].note ?? "", /西葫芦 \d+ 根/)
+  assert.equal(by["洋葱火山 切好"].amount, "2 个")
+  assert.match(by["煮米饭"].amount, /^\d+ 杯米$/)
+  assert.equal(by["菲力 切块"], undefined)
+  for (const l of [...meat, ...vege, ...rice]) assert.doesNotMatch(l.label + l.amount, /oz|lb|tbsp/)
+})
+
+test("coolerSheetHtml: one merged page, owner on it, no customer or price fields", () => {
+  const html = coolerSheetHtml("2026-10-17", [party({ note: "牛排切大块" }), party({ time: "晚上 7:30", chef: null, adults: 12, kids: 2, menuKnown: false })], "张阿姨")
   assert.equal(zhDate("2026-10-17"), "10 月 17 日 星期六")
-  assert.equal((html.match(/<section class="page">/g) ?? []).length, 2)
-  assert.match(html, /第 1 箱/)
-  assert.equal((html.match(/class="memo"/g) ?? []).length, 1) // only the party that has a note
-  assert.match(html, /<b>备注<\/b>牛排切大块/)
+  assert.equal((html.match(/<section class="page">/g) ?? []).length, 1)
+  assert.match(html, /共 2 场 · 32 位大人、2 位小孩/)
   assert.match(html, /备货负责人<\/small>张阿姨/)
-  assert.match(html, /备货负责人<\/small><span class="blank">/)
-  assert.match(html, /下午 5:00 开席 · 厨师 Blu/)
-  assert.match(html, /晚上 7:30 开席/)
-  assert.match(html, /菜还没定/)
+  assert.match(html, /有 1 场菜还没定/)
+  assert.match(html, /牛排切大块/)
+  assert.match(html, /师傅自己来拿/)
+  // nothing chefs take themselves
+  assert.doesNotMatch(html, /虾|煎饺|Yum Yum|鸡蛋|黄油/)
   assert.doesNotMatch(html, /\$|RH-\d/)
 })

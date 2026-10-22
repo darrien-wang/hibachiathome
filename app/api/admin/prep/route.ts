@@ -5,7 +5,7 @@ import { aggregatePrep, BUY_UNITS, orderPrep, splitVeg, VEGE_MIX, type InvoiceLi
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { setVegTotal, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
-import { coolerSections, zhTime } from "@/lib/cooler-sheet"
+import { coolerWork, zhTime } from "@/lib/cooler-sheet"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -91,8 +91,8 @@ export async function GET(request: NextRequest) {
         .filter((i) => i.group === "frozen" || i.group === "setup")
         .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`)
         .join(" · "),
-      // 后勤备货单（装保温箱）：这一单要放进箱子的东西，中文、按她手上的单位。
-      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, sections: coolerSections(prep.items, prep.menuKnown) },
+      // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
+      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
     }
   })
   // 备货单上写哪位厨师来拿这一箱（不写客户）。

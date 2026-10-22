@@ -115,8 +115,8 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     }
     return Array.from(by.entries())
   }, [coolers])
-  const printCoolers = (parties: CoolerParty[]) => {
-    const html = coolerSheetHtml(date, parties)
+  const printCoolers = (parties: CoolerParty[], who?: string) => {
+    const html = coolerSheetHtml(date, parties, who)
     const w = window.open("", "_blank")
     if (w) {
       w.document.open()
@@ -491,7 +491,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                 <div style={{ fontWeight: 800, fontSize: 15 }}>打印后勤备货单</div>
                 {coolers && coolers.length ? (
                   <button type="button" className="btn btn-primary btn-sm" onClick={() => printCoolers(coolers)}>
-                    全部打印（{coolers.length} 张）
+                    全部合成一张（{coolers.length} 场）
                   </button>
                 ) : null}
               </div>
@@ -501,13 +501,13 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 8, fontSize: 13 }}>
                   <span style={{ color: "var(--color-neutral-600)" }}>按负责人：</span>
                   {coolerGroups.map(([who, list]) => (
-                    <button key={who} type="button" className="btn btn-secondary btn-sm" onClick={() => printCoolers(list)}>
-                      {who}（{list.length} 张）
+                    <button key={who} type="button" className="btn btn-secondary btn-sm" onClick={() => printCoolers(list, who === "还没定负责人" ? undefined : who)}>
+                      {who}（{list.length} 场）
                     </button>
                   ))}
                 </div>
               ) : null}
-              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>一单一页，按开席时间排；负责人在订单弹窗"备货负责人"里选。</div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>几场合成一张：切多少肉、菜、豆腐，煮多少饭；每场分多少师傅自己拿。负责人在订单弹窗"备货负责人"里选。</div>
             </div>
 
             <div style={{ marginTop: 14, border: "2px solid var(--color-text)", padding: 12 }}>

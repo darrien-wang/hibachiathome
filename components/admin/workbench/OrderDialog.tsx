@@ -527,7 +527,7 @@ export function OrderDialog({
       await savePrepNote()
       const r = await adminJson<{ orders: Array<{ cooler?: CoolerParty }> }>(adminKey, `/api/admin/prep?orders=${o.id}`)
       const parties = r.orders.map((x) => x.cooler).filter((c): c is CoolerParty => !!c)
-      const html = coolerSheetHtml(ev?.ymd ?? new Date().toISOString().slice(0, 10), parties)
+      const html = coolerSheetHtml(ev?.ymd ?? new Date().toISOString().slice(0, 10), parties, parties[0]?.owner ?? null)
       if (w) {
         w.document.open()
         w.document.write(html)
