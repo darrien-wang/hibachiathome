@@ -517,7 +517,7 @@ function MediaLibrary({ adminKey, isMobile }: { adminKey: string; isMobile: bool
                     })
                   }
                   onDoubleClick={() => m.url && window.open(m.url, "_blank", "noopener")}
-                  title={`${m.chef} · ${m.event}${m.phase ? ` · ${m.phase === "setup" ? "开始" : "结束"}` : ""} · 双击放大`}
+                  title={`${m.chef} · ${m.event}${m.phase ? ` · ${m.phase === "setup" ? "全景" : m.phase === "volcano" ? "洋葱火山" : "更多"}` : ""} · 双击放大`}
                   style={{ position: "relative", aspectRatio: "4 / 3", background: "var(--color-neutral-300)", padding: 0, outline: `3px solid ${picked ? "var(--color-accent)" : "transparent"}`, outlineOffset: -3, display: "flex", alignItems: "flex-end", overflow: "hidden" }}
                 >
                   {m.url && m.type === "photo" ? <img src={m.url} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
@@ -538,7 +538,7 @@ function MediaLibrary({ adminKey, isMobile }: { adminKey: string; isMobile: bool
                   ) : null}
                   <span className="clamp1" style={{ position: "relative", width: "100%", fontSize: 10, color: "var(--color-bg)", background: "color-mix(in srgb, var(--color-text) 55%, transparent)", padding: "3px 6px", textAlign: "left" }}>
                     {m.chef}
-                    {m.phase ? ` · ${m.phase === "setup" ? "开始" : "结束"}` : ""}
+                    {m.phase ? ` · ${m.phase === "setup" ? "全景" : m.phase === "volcano" ? "洋葱火山" : "更多"}` : ""}
                   </span>
                 </button>
               )

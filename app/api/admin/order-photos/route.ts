@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
       id: r.id,
       phase: r.phase,
       bytes: r.bytes,
+      content_type: r.content_type,
       created_at: r.created_at,
       url: urlByPath.get(r.storage_path) ?? null,
     })),

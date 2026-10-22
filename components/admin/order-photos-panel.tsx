@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react"
 // good ones for ads. Signed URLs expire in an hour, so the panel refetches
 // each time an order is opened. Built 2026-09-19.
 
-type Photo = { id: string; phase: string; url: string | null; created_at: string }
+type Photo = { id: string; phase: string; url: string | null; content_type?: string | null; created_at: string }
 
 const PT = "America/Los_Angeles"
 
@@ -44,31 +44,48 @@ export function OrderPhotosPanel({ adminKey, orderId }: { adminKey: string; orde
   if (photos.length === 0) {
     return (
       <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>
-        还没有照片（厨师在备料单上拍，开始和结束各一组）
+        还没有照片（厨师在备料单上传：摆好的全景要拍到地垫、洋葱火山视频必拍，是生日录唱生日歌）
         {error ? ` · ${error}` : ""}
       </p>
     )
   }
 
-  const groups: Array<{ key: string; label: string }> = [
-    { key: "setup", label: "开始" },
-    { key: "after", label: "结束" },
+  // 2026-10-21 起：摆好的全景（拍到地垫）、洋葱火山视频必拍；"更多"里是生日歌和其他。
+  const groups: Array<{ key: string; label: string; required?: boolean }> = [
+    { key: "setup", label: "摆好的全景", required: true },
+    { key: "volcano", label: "洋葱火山视频", required: true },
+    { key: "after", label: "生日歌 + 更多" },
   ]
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {groups.map((g) => {
         const shots = photos.filter((p) => p.phase === g.key)
-        if (shots.length === 0) return null
+        if (shots.length === 0) {
+          return g.required ? (
+            <div key={g.key} style={{ fontSize: 12, color: "#b91c1c" }}>
+              {g.label} · 没传（必拍）
+            </div>
+          ) : null
+        }
         return (
           <div key={g.key}>
             <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>
-              {g.label} · {shots.length} 张 ·{" "}
+              {g.label} · {shots.length} 个 ·{" "}
               {new Date(shots[0].created_at).toLocaleString("en-US", { timeZone: PT, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} PT
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {shots.map((p) =>
-                p.url ? (
+                p.url && (p.content_type ?? "").startsWith("video/") ? (
+                  <video
+                    key={p.id}
+                    src={p.url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    style={{ width: 186, height: 104, objectFit: "cover", borderRadius: 8, border: "1px solid #e5e7eb", display: "block", background: "#000" }}
+                  />
+                ) : p.url ? (
                   <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" title="打开原图">
                     <img
                       src={p.url}
