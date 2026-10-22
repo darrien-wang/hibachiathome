@@ -79,7 +79,11 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   cut("steak", "牛排 切块")
   cut("ribeye", "肋眼牛排 切块")
   cut("filet_mignon", "菲力 切块")
-  if (sum.tofu > 0) meat.push({ label: "豆腐 切块", amount: `${up(sum.tofu / 15)} 盒`, note: `${up(sum.tofu)} 盎司` })
+  // 豆腐按份算：一盒三个人（老板 2026-10-22），不写盎司。清单上一份是 5 盎司（小孩半份）。
+  if (sum.tofu > 0) {
+    const portions = sum.tofu / 5
+    meat.push({ label: "豆腐 切块", amount: `${up(portions / 3)} 盒`, note: `${up(portions)} 份 · 一盒三个人` })
+  }
 
   const vege: Line[] = []
   const vegeNet = sum.mixed_vege * VEGE_NET_PER_RAW

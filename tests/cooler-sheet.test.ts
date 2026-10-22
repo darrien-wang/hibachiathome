@@ -41,7 +41,8 @@ test("workLines: parties merged into one total; one onion volcano per party", ()
   const by = Object.fromEntries([...meat, ...vege, ...rice].map((l) => [l.label, l]))
   assert.equal(by["鸡胸肉 切块"].amount, "200 盎司")
   assert.equal(by["牛排 切块"].amount, "90 盎司")
-  assert.equal(by["豆腐 切块"].amount, "7 盒") // 100 oz / 15
+  assert.equal(by["豆腐 切块"].amount, "7 盒") // 20 portions, three a box
+  assert.equal(by["豆腐 切块"].note, "20 份 · 一盒三个人")
   // 40 guests × 5 oz net = 200, split like the chef sheet: 30 / 30 / 30 / 10 %
   assert.equal(by["西葫芦 切好"].amount, "60 盎司")
   assert.equal(by["西兰花 切好"].amount, "60 盎司")
