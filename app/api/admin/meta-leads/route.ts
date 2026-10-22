@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { CRON_PURPOSE_META_LEADS, cronKeyFor, isCronCall } from "@/lib/cron-key"
+import { escapeHtml } from "@/lib/escape-html"
 import { fetchFormLeads, fetchLeadForms, metaLeadsToken, parseLead, type MetaLead, type MetaLeadForm } from "@/lib/meta-leads"
+import { META_LEADS_HEALTH_KEY, failingMail, nextHealth, readHealth, recoveredMail } from "@/lib/meta-leads-health"
 import { sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
@@ -174,6 +176,38 @@ async function sweep(dry: boolean) {
   return { ok: failed === 0, forms: forms.map((f) => ({ id: f.id, name: f.name, status: f.status })), fetched, sent, skipped, failed, dry, report }
 }
 
+/**
+ * Cron sweeps only: count failures in a row in workbench_settings and mail ops
+ * at half an hour of failing (then every 12 hours) and once when it works
+ * again. pg_cron never reads our answer, so without this a broken token is
+ * silent (it was, for 17 hours, on 2026-10-21/22). Never throws.
+ */
+async function trackHealth(failure: string | null): Promise<void> {
+  const supabase = getSupabaseAdmin()
+  if (!supabase) return
+  try {
+    const { data } = await supabase.from("workbench_settings").select("value").eq("key", META_LEADS_HEALTH_KEY).maybeSingle()
+    const prev = readHealth((data as { value?: unknown } | null)?.value)
+    const now = Date.now()
+    const nowIso = new Date(now).toISOString()
+    const { health, alert, recovered } = nextHealth(prev, failure ? { ok: false, error: failure } : { ok: true }, nowIso)
+    const { error } = await supabase
+      .from("workbench_settings")
+      .upsert({ key: META_LEADS_HEALTH_KEY, value: health, updated_at: nowIso, updated_by: "meta-leads cron" }, { onConflict: "key" })
+    if (error) console.error("[meta-leads] health upsert failed", error.message)
+    const mail = alert ? failingMail(health, now) : recovered ? recoveredMail(prev, now) : null
+    if (mail) {
+      await sendSupportNotificationEmail({
+        subject: mail.subject,
+        text: mail.text,
+        html: `<pre style="white-space:pre-wrap;font-family:system-ui,sans-serif;font-size:14px;line-height:1.5">${escapeHtml(mail.text)}</pre>`,
+      })
+    }
+  } catch (e) {
+    console.error("[meta-leads] health tracking failed", e instanceof Error ? e.message : e)
+  }
+}
+
 async function handle(request: NextRequest) {
   const cron = isCronCall(request, CRON_PURPOSE_META_LEADS)
   if (!cron) {
@@ -182,13 +216,19 @@ async function handle(request: NextRequest) {
     if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
   }
   const dry = request.nextUrl.searchParams.get("dry") === "1"
+  let body: Record<string, unknown>
   try {
-    return NextResponse.json(await sweep(dry), { status: 200 })
+    body = await sweep(dry)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error("[meta-leads] sweep failed", message)
-    return NextResponse.json({ ok: false, error: message }, { status: 200 })
+    body = { ok: false, error: message }
   }
+  // A sweep that reached Meta counts as working even if one quote failed (that
+  // lead keeps its own failed result row); only "could not read the forms at
+  // all" is the outage this watches for.
+  if (cron && !dry) await trackHealth(typeof body.error === "string" ? body.error : null)
+  return NextResponse.json(body, { status: 200 })
 }
 
 export async function POST(request: NextRequest) {
