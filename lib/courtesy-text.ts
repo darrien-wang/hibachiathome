@@ -76,6 +76,10 @@ export function isTapback(body: string): boolean {
   // sat in the inbox as an unanswered text). Many of our customers text in
   // Spanish; only the reaction prefix followed by a quote counts.
   if (/^(le gust[oó]|no le gust[oó]|le encant[oó]|le dio risa|se ri[oó] de|enfatiz[oó]|destac[oó]|cuestion[oó]|reaccion[oó])\s.*[“"«]/i.test(b)) return true
+  // An Italian iPhone ("Ha aggiunto i punti esclamativi a “…”" - Susan Bell,
+  // 2026-10-22) and the Android/RCS form "❤️ to “…”" (562-966, same day).
+  if (/^ha (aggiunto|messo|riso|reagito|evidenziato)\s.*[“"«]/i.test(b)) return true
+  if (/^[\p{Extended_Pictographic}\u{FE0F}\u{200B}\u{200D}\s]+\s(to|a)\s+[“"«]/u.test(b)) return true
   // a bare thumbs-up, with or without a skin tone / variation selector
   return /^\u{1F44D}[\u{1F3FB}-\u{1F3FF}]?\u{FE0F}?[\s.!]*$/u.test(b)
 }

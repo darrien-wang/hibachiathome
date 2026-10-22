@@ -17,6 +17,14 @@ test("Spanish iPhone reactions are tapbacks too", () => {
   assert.equal(notAQuestion("Le gustó “Here's the link to lock it”"), true)
 })
 
+test("Italian iPhone and Android emoji reactions are tapbacks", () => {
+  assert.equal(isTapback("Ha aggiunto i punti esclamativi a “Perfect - cash it is. See you Nov 24!”"), true)
+  assert.equal(isTapback("Ha messo Mi piace a “See you Saturday!”"), true)
+  assert.equal(isTapback("Ha aggiunto un cuore a “Thank you!”"), true)
+  assert.equal(isTapback("​❤️​ to “ Palmdale works! For 24 on New Year's Eve it's $1,412.60”"), true)
+  assert.equal(isTapback("Ha una domanda: si può fare alle 6?"), false)
+})
+
 test("Spanish sentences that only start like a reaction are real messages", () => {
   assert.equal(isTapback("Le gustó mucho la comida, ¿tienen fecha en diciembre?"), false)
   assert.equal(notAQuestion("How many chefs come?"), false)

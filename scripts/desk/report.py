@@ -43,7 +43,7 @@ UTC = dt.timezone.utc
 
 # iPhone reactions arrive as text: "Liked “…”"; on Spanish and Russian phones the verb is localized.
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned|reacted|le gustó|le encantó|se rió de|enfatizó|no le gustó|cuestionó"
-                     r"|reaccionó|очень понравилось|понравилось|не понравилось) ", re.I)
+                     r"|reaccionó|очень понравилось|понравилось|не понравилось|ha aggiunto|ha messo|ha riso di|ha reagito) ", re.I)
 _CLOSER = (r"(ok(ay)?|k+|thanks?( you)?( so much| very much)?|thank you|ty|tysm|thx|great|perfect|awesome|amazing|cool|nice|sounds (good|great|perfect)"
            r"|will do|got it|see (you|ya)( then| soon| there| tomorrow| saturday| sunday| friday)?|you too|you as well|same to you"
            r"|(i )?appreciate (it|you)|yay|no problem|np|lol|haha)")
