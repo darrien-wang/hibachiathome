@@ -36,10 +36,13 @@ python scripts/desk/desk.py link deposit --lead <id> --adults 18 --kids 0 --city
 python scripts/desk/desk.py link deposit ... --rate tables_chairs=5        # 周六桌椅半价（D-1017-01）
 python scripts/desk/desk.py link deposit ... --free tables_chairs          # 免费桌椅
 python scripts/desk/desk.py link deposit ... --flat-off 60 --deal-note "why"
+python scripts/desk/desk.py link deposit ... --waive-travel --deal-note "why"   # 路费老板请：单上路费 $0，里程照记（师傅照拿）
 python scripts/desk/desk.py link planner --email <e> --phone <p> [--booked] --lead <id>
 python scripts/desk/desk.py link short  <长链> --lead <id>
 ```
 `--est` 只收整数。让步不要冻成总价（`agreed-total` 已停用），一律签规则（`custom-deal`），人数变了会自动重算。送前菜不要签进 `freeExtraIds`（会把那一类全退），锁单后在订单里加 `--free-item`。周中每人特价要加回 $5 再签（发票从 $59.90 往下让）。
+
+锁单那一刻网站自己算路费（2026-10-21 起）：按客人填的地址、和报价同一套量法（前 50 英里免费，之后 $1/英里），地址补成「街道, 城市, CA 邮编」；量不出来就用客人收到的报价里的路费。"Deposit Paid" 邮件里有一行 `Travel:` 写明怎么来的；标题带 `⚠ Travel unknown` 才需要手补 `order set --travel-miles`。电话里答应免路费的，发链接时加 `--waive-travel`（已锁的单用 `order set --travel-fee 0`）。
 
 **订单**
 ```bash
