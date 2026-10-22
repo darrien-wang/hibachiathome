@@ -19,6 +19,12 @@ export const CRON_PURPOSE_META_CAPI = "meta-capi"
 /** 每 2 分钟把 Meta 表单广告（Instant Form）的新线索拉进工作台并发报价（2026-10-21） */
 export const CRON_PURPOSE_META_LEADS = "meta-leads"
 
+/** 每 20 分钟（07–24 PT）抓一组 Reddit 版块新帖 + 每天一次 Facebook 公开帖搜索（2026-10-21 起由 pg_cron 调；桌面任务 10-04 起就没跑了） */
+export const CRON_PURPOSE_REDDIT_WATCH = "reddit-watch"
+
+/** 每周一早上的同行周报：Meta 广告库 / Google 广告透明中心 / 同行 Google 新差评（2026-10-21） */
+export const CRON_PURPOSE_COMPETITOR_WATCH = "competitor-watch"
+
 export function cronKeyFor(purpose: string, base = process.env.LEAD_WATCH_CRON_KEY): string | null {
   const k = (base ?? "").trim()
   return k ? createHmac("sha256", k).update(purpose).digest("hex") : null

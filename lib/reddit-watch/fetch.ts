@@ -2,6 +2,9 @@
 //
 //   rss    现在实际在用：公开的 .rss 流，和 Feedly 之类的订阅器一样。未登录会被
 //          Reddit 按突发限流，偶发 429 就等下一轮（run.ts 错开两组、路由记健康度）。
+//   monid  设了 MONID_API_KEY 就走 monid（anyapi /reddit.subreddit_posts，$0.0008/次，
+//          2026-10-21 起线上实际在用）：同一个 r/a+b+c 合并流，由 monid 的上游去拿，
+//          不再挨 Reddit 对未登录 IP 的限流。
 //   oauth  设了 REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET 才走官方 API。**暂时用不上**：
 //          Reddit 从 2025-11（Responsible Builder Policy）起所有 API 应用都要先
 //          人工审批、商用要书面批准，2026-09-22 用户在 prefs/apps 点 create app
@@ -10,6 +13,7 @@
 // 两条路都只读，不登录任何账号，不发任何东西。
 
 import { REDDIT_USER_AGENT } from "@/config/reddit-watch"
+import { monidEnabled, monidList, monidRun } from "@/lib/monid"
 
 export type RedditPost = {
   /** Reddit fullname，形如 t3_1abc2de */
@@ -22,7 +26,7 @@ export type RedditPost = {
   postedAt: string
 }
 
-export type RedditMode = "oauth" | "rss"
+export type RedditMode = "oauth" | "monid" | "rss"
 export type FetchResult = { ok: true; mode: RedditMode; posts: RedditPost[] } | { ok: false; mode: RedditMode; status: number; error: string }
 
 const OAUTH_BASE = "https://oauth.reddit.com"
@@ -38,7 +42,7 @@ function credentials(): { id: string; secret: string } | null {
 }
 
 export function redditMode(): RedditMode {
-  return credentials() ? "oauth" : "rss"
+  return credentials() ? "oauth" : monidEnabled() ? "monid" : "rss"
 }
 
 let tokenCache: { token: string; expiresAt: number } | null = null
@@ -178,19 +182,50 @@ async function rssGet(path: string): Promise<FetchResult> {
   return attempt()
 }
 
+// ---- monid ------------------------------------------------------------------
+
+type MonidRedditPost = { id?: string | number; subreddit?: string; title?: string; selftext?: string; author?: string; permalink?: string; createdUtc?: number; nsfw?: boolean }
+
+/** anyapi 的合并流行 → 和 RSS 路径一样的帖子：fullname id、reddit.com 永久链接、ISO 时间；NSFW 丢掉。 */
+export function postsFromMonid(output: unknown): RedditPost[] {
+  const out: RedditPost[] = []
+  for (const d of monidList<MonidRedditPost>(output, "posts")) {
+    if (d?.id == null || !d.title || !d.subreddit || d.nsfw) continue
+    const id = String(d.id)
+    const permalink = d.permalink ?? `/comments/${id.replace(/^t3_/, "")}/`
+    out.push({
+      id: id.startsWith("t3_") ? id : `t3_${id}`,
+      subreddit: d.subreddit,
+      title: d.title,
+      body: (d.selftext ?? "").slice(0, 8000),
+      author: d.author ?? "",
+      url: /^https?:/.test(permalink) ? permalink : `https://www.reddit.com${permalink}`,
+      postedAt: new Date((d.createdUtc ?? Date.now() / 1000) * 1000).toISOString(),
+    })
+  }
+  return out
+}
+
+async function monidGet(multi: string, limit: number): Promise<FetchResult> {
+  const r = await monidRun("anyapi", "/reddit.subreddit_posts", { body: { subreddit: multi, sort: "new", limit: Math.min(Math.max(limit, 1), 100) } })
+  if (!r.ok) return { ok: false, mode: "monid", status: 0, error: r.error }
+  return { ok: true, mode: "monid", posts: postsFromMonid(r.output) }
+}
+
 // ---- public API -------------------------------------------------------------
 
 /** 一组版块的最新帖子（r/a+b+c 合并流）。 */
 export async function fetchNewPosts(subs: string[], limit = 100): Promise<FetchResult> {
   const multi = subs.map((s) => s.trim()).filter(Boolean).join("+")
-  if (!multi) return { ok: true, mode: redditMode(), posts: [] }
-  return redditMode() === "oauth"
-    ? oauthGet(`/r/${multi}/new?limit=${limit}&raw_json=1`)
-    : rssGet(`/r/${multi}/new/.rss?limit=${limit}`)
+  const mode = redditMode()
+  if (!multi) return { ok: true, mode, posts: [] }
+  if (mode === "oauth") return oauthGet(`/r/${multi}/new?limit=${limit}&raw_json=1`)
+  if (mode === "monid") return monidGet(multi, limit)
+  return rssGet(`/r/${multi}/new/.rss?limit=${limit}`)
 }
 
 /** 全站关键词搜索，按新排序。公开 search.rss 一碰就 429，所以只在 oauth 模式下提供。 */
 export async function searchPosts(query: string, limit = 50): Promise<FetchResult> {
-  if (redditMode() !== "oauth") return { ok: false, mode: "rss", status: 0, error: "search needs reddit api credentials" }
+  if (redditMode() !== "oauth") return { ok: false, mode: redditMode(), status: 0, error: "search needs reddit api credentials" }
   return oauthGet(`/search?q=${encodeURIComponent(query)}&sort=new&t=week&type=link&limit=${limit}&raw_json=1`)
 }

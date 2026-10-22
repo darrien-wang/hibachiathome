@@ -67,6 +67,11 @@ export const REDDIT_NATIONAL_SUBS = ["Weddingsunder10k", "partyplanning", "Event
 export const REDDIT_FAIL_ALERT_STREAK = 6
 /** 提醒之后，每再连续失败这么多次（约 12 小时）再提醒一次。 */
 export const REDDIT_FAIL_REALERT_EVERY = 18
+/**
+ * 定时任务只在这几个小时（太平洋时间，含头不含尾）真跑：一档命中会让老板手机
+ * 响铃，半夜不该响。夜里的帖子早上 7 点那轮照样抓得到（合并流覆盖 12–25 小时）。
+ */
+export const REDDIT_WATCH_HOURS_PT = { from: 7, to: 24 }
 /** 本机干跑一次抓全部组时，组与组之间歇多久。 */
 export const REDDIT_RSS_GAP_MS = 45_000
 
@@ -78,3 +83,18 @@ export const REDDIT_MAX_POST_AGE_HOURS = 72
 
 /** Reddit 要求可辨识的 UA；拿 API 凭据后也不用改。 */
 export const REDDIT_USER_AGENT = "web:com.realhibachi.reddit-watch:v1.0 (by Real Hibachi, support@realhibachi.com)"
+
+/**
+ * Facebook 公开帖搜索（monid anyapi /facebook.search_posts，每条结果 $0.00324，
+ * 2026-10-21 起）：每天一次、三个词各 10 条 ≈ $0.10/天。词里带地名是因为搜索
+ * 是全国的，没地名的那条靠帖子正文里的南加地名过滤。两周后看 reddit_mentions
+ * 里 source = facebook 的命中有没有一条是真的在问，没有就把词删空关掉。
+ */
+export const FACEBOOK_WATCH_QUERIES = ["hibachi recommendations", "hibachi chef los angeles", "hibachi orange county"]
+export const FACEBOOK_WATCH_LIMIT = 10
+/** 只要这几天内发的帖（每天跑一次，留一天余量给索引延迟）。 */
+export const FACEBOOK_WATCH_SINCE_DAYS = 3
+/** 两次 Facebook 搜索至少隔这么久；20 分钟一轮的监听里，每天第一轮顺带跑。 */
+export const FACEBOOK_WATCH_EVERY_HOURS = 23.5
+/** reddit_watch_status 里记 Facebook 搜索健康度的那一行。 */
+export const FACEBOOK_STATUS_GROUP = "facebook-search"

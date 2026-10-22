@@ -355,7 +355,7 @@ export async function computeInbox(
     events.push({
       key: `reddit:${r.id}`,
       kind: "reddit",
-      title: `Reddit 有人在问 · r/${r.subreddit}`,
+      title: r.subreddit === "facebook" ? "Facebook 有人在问" : `Reddit 有人在问 · r/${r.subreddit}`,
       body: r.title.slice(0, 60),
       url: "/admin?tab=leads",
       at: r.found_at,

@@ -5,7 +5,8 @@ import { REDDIT_GLOBAL_SEARCH, REDDIT_MAX_POST_AGE_HOURS, REDDIT_NATIONAL_SUBS, 
 import { fetchNewPosts, redditMode, searchPosts, type RedditMode, type RedditPost } from "./fetch"
 import { classifyPost, looksSoCal } from "./match"
 
-export type Candidate = RedditPost & { tier: 1 | 2; keywords: string[]; source: "feed" | "search" }
+/** source: feed = 版块合并流，search = 全站搜索（oauth 才有），facebook = 公开帖搜索（lib/reddit-watch/facebook.ts） */
+export type Candidate = RedditPost & { tier: 1 | 2; keywords: string[]; source: "feed" | "search" | "facebook" }
 
 export type GroupResult = { name: string; ok: boolean; status: number; error?: string; posts: number }
 

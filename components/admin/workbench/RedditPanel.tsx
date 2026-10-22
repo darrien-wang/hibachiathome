@@ -97,7 +97,7 @@ export function RedditPanel({ adminKey }: { adminKey: string }) {
                 {i.title}
               </a>
               <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 2 }}>
-                r/{i.subreddit} · u/{i.author || "?"} · {relativeTime(i.posted_at)} · {i.keywords.join(", ")}
+                {i.subreddit === "facebook" ? `Facebook · ${i.author || "?"}` : `r/${i.subreddit} · u/${i.author || "?"}`} · {relativeTime(i.posted_at)} · {i.keywords.join(", ")}
               </div>
               {i.body ? (
                 <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 2 }}>

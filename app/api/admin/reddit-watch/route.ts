@@ -1,9 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { REDDIT_FAIL_ALERT_STREAK, REDDIT_FAIL_REALERT_EVERY, REDDIT_WATCH_GROUPS } from "@/config/reddit-watch"
+import { FACEBOOK_STATUS_GROUP, FACEBOOK_WATCH_EVERY_HOURS, REDDIT_FAIL_ALERT_STREAK, REDDIT_FAIL_REALERT_EVERY, REDDIT_WATCH_GROUPS, REDDIT_WATCH_HOURS_PT } from "@/config/reddit-watch"
 import { resolveAdminActor } from "@/lib/admin-auth"
-import { redditMode } from "@/lib/reddit-watch/fetch"
+import { CRON_PURPOSE_REDDIT_WATCH, isCronCall } from "@/lib/cron-key"
 import { escapeHtml } from "@/lib/escape-html"
+import { monidEnabled } from "@/lib/monid"
 import { sendSupportNotificationEmail } from "@/lib/ops-notifications"
+import { facebookCandidates, fetchFacebookPosts, type FacebookFetch } from "@/lib/reddit-watch/facebook"
+import { redditMode } from "@/lib/reddit-watch/fetch"
 import { collectCandidates, type Candidate, type GroupResult } from "@/lib/reddit-watch/run"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
@@ -11,26 +14,31 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-// Reddit 监听。
+// Reddit（+ Facebook 公开帖）监听。
 //
-//   GET            跑一轮：抓目标版块新帖 → 分级 → 新命中写 reddit_mentions →
-//                  一档（直接问 hibachi/私厨）发一封提醒邮件。由桌面定时任务
-//                  reddit-watch 每 20 分钟用 x-admin-key 调（Vercel 是 Hobby 版，
-//                  cron 只能一天一次，写进 vercel.json 会让整站部署被拒，
-//                  2026-09-22 踩过）；加 ?dry=1 只看不写。CRON_SECRET 分支留给
-//                  以后升级付费版再用。
+//   GET            跑一轮：抓一组目标版块新帖 → 分级 → 新命中写 reddit_mentions →
+//                  一档（直接问 hibachi/私厨）发一封提醒邮件。2026-10-21 起由
+//                  Supabase pg_cron（reddit-watch-20min，派生钥匙 reddit-watch，
+//                  见 lib/cron-key.ts）每 20 分钟调，07–24 PT 之外直接回
+//                  quiet_hours；之前的桌面定时任务 10-04 起就没跑了。加 ?dry=1
+//                  只看不写；?facebook=1 强制跑一次 Facebook 搜索。CRON_SECRET
+//                  分支留给以后 Vercel 付费版。
 //   GET ?list=1    工作台面板读列表（?status=new|replied|skipped|all）
 //   PATCH          工作台标状态 { id, status, note? }
 //
-// 取数走公开 RSS：Reddit 从 2025-11 起所有 API 应用都要先人工审批（商用要书面
-// 批准），自助建应用已经关了（2026-09-22 用户实测被挡）。未登录时同一 IP 连发
-// 第二个请求基本必挨限流，所以每轮只抓"最久没抓的那一组"：一次请求，两组轮流，
-// 每组每 40 分钟一次，远小于两组最新 100 帖约 12/25 小时的覆盖窗口。
-// 每组健康度记在 reddit_watch_status：连续失败 6 次（约 4 小时）在返回里给
-// staleAlert，定时任务据此提醒一次，之后每再失败 18 次再提醒。
+// 取数：设了 MONID_API_KEY 走 monid（anyapi 的 Reddit 合并流，$0.0008/次），否则
+// 公开 RSS（Reddit 官方 API 自 2025-11 要人工审批，自助建应用已关，2026-09-22
+// 用户实测被挡）。每轮只抓"最久没抓的那一组"：两组轮流，每组每 40 分钟一次，
+// 远小于两组最新 100 帖约 12/25 小时的覆盖窗口。每组健康度记在
+// reddit_watch_status：连续失败 6 次（约 4 小时）在返回里给 staleAlert，之后
+// 每再失败 18 次再提醒。
 //
-// 只做"发现"。绝不自动回帖、投票、私信——Reddit 上只能由人坦白身份手动回
-// （docs/竞对Reddit营销扫描-2026-09-22.md 记了为什么）。手机收件箱
+// Facebook：每天第一轮顺带搜一次公开帖（lib/reddit-watch/facebook.ts，约 $0.10/
+// 天），命中同样进 reddit_mentions（subreddit = "facebook"，id fb_…），健康度
+// 记在 reddit_watch_status 的 facebook-search 行。
+//
+// 只做"发现"。绝不自动回帖、投票、私信、评论——Reddit/Facebook 上只能由人坦白
+// 身份手动回（docs/竞对Reddit营销扫描-2026-09-22.md 记了为什么）。手机收件箱
 // （/api/admin/mobile/inbox）另外把一档新命中当事件推出去响铃。
 
 const STATUSES = new Set(["new", "replied", "skipped"])
@@ -52,7 +60,10 @@ type StaleGroup = { group: string; label: string; failStreak: number; hoursSince
 type Supabase = NonNullable<ReturnType<typeof getSupabaseAdmin>>
 
 async function readStatus(supabase: Supabase): Promise<Map<string, StatusRow>> {
-  const { data } = await supabase.from("reddit_watch_status").select("*").in("group_name", REDDIT_WATCH_GROUPS.map((g) => g.name))
+  const { data } = await supabase
+    .from("reddit_watch_status")
+    .select("*")
+    .in("group_name", [...REDDIT_WATCH_GROUPS.map((g) => g.name), FACEBOOK_STATUS_GROUP])
   return new Map(((data ?? []) as StatusRow[]).map((r) => [r.group_name, r]))
 }
 
@@ -65,11 +76,26 @@ function nextGroup(status: Map<string, StatusRow>) {
   })[0]
 }
 
+/** 今天还没搜过 Facebook（上次是 23.5 小时之前，或从没搜过）。 */
+function facebookDue(status: Map<string, StatusRow>, now: number): boolean {
+  const last = status.get(FACEBOOK_STATUS_GROUP)?.last_attempt_at
+  return !last || now - Date.parse(last) >= FACEBOOK_WATCH_EVERY_HOURS * 3600_000
+}
+
+const PT_HOUR = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hourCycle: "h23" })
+/** 太平洋时间在不在定时任务的工作时段里（pg_cron 按 UTC 排，夏令时换算放这里做）。 */
+function inWatchHours(now: number): boolean {
+  const h = Number(PT_HOUR.format(now)) % 24
+  return h >= REDDIT_WATCH_HOURS_PT.from && h < REDDIT_WATCH_HOURS_PT.to
+}
+
 function cronAuthorized(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim()
   if (!secret) return false
   return (request.headers.get("authorization") ?? "") === `Bearer ${secret}`
 }
+
+const where = (c: { subreddit: string }) => (c.subreddit === "facebook" ? "Facebook" : `r/${c.subreddit}`)
 
 const toRow = (c: Candidate) => ({
   id: c.id,
@@ -84,14 +110,15 @@ const toRow = (c: Candidate) => ({
   source: c.source,
 })
 
-const brief = (c: Candidate) => ({ id: c.id, tier: c.tier, subreddit: c.subreddit, title: c.title, url: c.url, keywords: c.keywords, postedAt: c.postedAt })
+const brief = (c: Candidate) => ({ id: c.id, tier: c.tier, subreddit: c.subreddit, source: c.source, title: c.title, url: c.url, keywords: c.keywords, postedAt: c.postedAt })
 
 async function notifyTier1(hits: Candidate[]): Promise<boolean> {
-  const lines = hits.map((c) => `[r/${c.subreddit}] ${c.title}\n${c.url}`)
-  const subject = `Reddit 有 ${hits.length} 条新询问待回 · r/${hits[0].subreddit}`
-  const text = ["有人在 Reddit 上问 hibachi / 私厨，去工作台线索页看，回的时候坦白身份、不放链接。", "", ...lines].join("\n")
-  const html = `<p>有人在 Reddit 上问 hibachi / 私厨。去工作台线索页看，回的时候坦白身份、不放链接。</p><ul>${hits
-    .map((c) => `<li><a href="${escapeHtml(c.url)}">${escapeHtml(c.title)}</a> <span style="color:#666">r/${escapeHtml(c.subreddit)}</span></li>`)
+  const lines = hits.map((c) => `[${where(c)}] ${c.title}\n${c.url}`)
+  const sites = new Set(hits.map((c) => (c.subreddit === "facebook" ? "Facebook" : "Reddit")))
+  const subject = `${[...sites].join("/")} 有 ${hits.length} 条新询问待回 · ${where(hits[0])}`
+  const text = ["有人在 Reddit / Facebook 上问 hibachi / 私厨，去工作台线索页看，回的时候坦白身份、不放链接。", "", ...lines].join("\n")
+  const html = `<p>有人在 Reddit / Facebook 上问 hibachi / 私厨。去工作台线索页看，回的时候坦白身份、不放链接。</p><ul>${hits
+    .map((c) => `<li><a href="${escapeHtml(c.url)}">${escapeHtml(c.title)}</a> <span style="color:#666">${escapeHtml(where(c))}</span></li>`)
     .join("")}</ul>`
   try {
     const r = await sendSupportNotificationEmail({ subject, text, html })
@@ -152,8 +179,28 @@ async function trackGroups(supabase: Supabase, prev: Map<string, StatusRow>, res
   return { stale, staleAlert: write ? staleAlert : [] }
 }
 
+/** Facebook 搜索的健康度行；没有提醒线，失败了明天再来。 */
+async function trackFacebook(supabase: Supabase, prev: Map<string, StatusRow>, fb: FacebookFetch, write: boolean) {
+  if (!write) return
+  const p = prev.get(FACEBOOK_STATUS_GROUP)
+  const nowIso = new Date().toISOString()
+  const { error } = await supabase.from("reddit_watch_status").upsert(
+    {
+      group_name: FACEBOOK_STATUS_GROUP,
+      last_attempt_at: nowIso,
+      last_ok_at: fb.ok ? nowIso : (p?.last_ok_at ?? null),
+      last_status: fb.ok ? 200 : 0,
+      last_error: fb.errors.length ? fb.errors.join("; ").slice(0, 500) : null,
+      fail_streak: fb.ok ? 0 : (p?.fail_streak ?? 0) + 1,
+      alerted_at: p?.alerted_at ?? null,
+    },
+    { onConflict: "group_name" },
+  )
+  if (error) console.error("[reddit-watch] facebook status upsert failed", error.message)
+}
+
 export async function GET(request: NextRequest) {
-  const viaCron = cronAuthorized(request)
+  const viaCron = cronAuthorized(request) || isCronCall(request, CRON_PURPOSE_REDDIT_WATCH)
   if (!viaCron && !(await resolveAdminActor(request))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
   }
@@ -171,20 +218,35 @@ export async function GET(request: NextRequest) {
   }
 
   const dry = sp.get("dry") === "1"
+  const now = Date.now()
+  // 定时任务每 20 分钟全天调，夜里直接回，不抓不响；人手动调不受限。
+  if (viaCron && !inWatchHours(now)) return NextResponse.json({ ok: true, skipped: "quiet_hours" })
   const prev = await readStatus(supabase)
-  // RSS 模式每轮一组一个请求；官方 API（将来拿到批准）有配额，全抓。
-  const groups = redditMode() === "rss" ? [nextGroup(prev)] : REDDIT_WATCH_GROUPS
-  const collected = await collectCandidates({ groups })
-  const summary = { mode: collected.mode, fetched: collected.fetched, matched: collected.candidates.length, errors: collected.errors, groups: collected.groups }
+  // 官方 API（将来拿到批准）有配额，全抓；monid 按次计费、RSS 怕限流，都是每轮一组。
+  const groups = redditMode() === "oauth" ? REDDIT_WATCH_GROUPS : [nextGroup(prev)]
+  const runFacebook = monidEnabled() && (sp.get("facebook") === "1" || (!dry && facebookDue(prev, now)))
+  const [collected, fb] = await Promise.all([collectCandidates({ groups }), runFacebook ? fetchFacebookPosts() : Promise.resolve(null)])
+  const fbPicked = fb ? facebookCandidates(fb.posts, now) : null
+  const candidates = [...collected.candidates, ...(fbPicked?.candidates ?? [])]
+  const summary = {
+    mode: collected.mode,
+    fetched: collected.fetched + (fb?.posts.length ?? 0),
+    matched: candidates.length,
+    errors: [...collected.errors, ...(fb?.errors.map((e) => `facebook ${e}`) ?? [])],
+    groups: collected.groups,
+    facebook: fb
+      ? { ran: true, ok: fb.ok, queries: fb.queries, posts: fb.posts.length, matched: fbPicked?.candidates.length ?? 0, dropped: fbPicked?.dropped ?? {}, cost: fb.cost }
+      : { ran: false },
+  }
 
   let known = new Set<string>()
-  const ids = collected.candidates.map((c) => c.id)
+  const ids = candidates.map((c) => c.id)
   if (ids.length) {
     const { data: existing, error } = await supabase.from("reddit_mentions").select("id").in("id", ids)
     if (error) return NextResponse.json({ ok: false, error: error.message, ...summary }, { status: 500 })
     known = new Set((existing ?? []).map((r) => (r as { id: string }).id))
   }
-  const fresh = collected.candidates.filter((c) => !known.has(c.id))
+  const fresh = candidates.filter((c) => !known.has(c.id))
 
   if (!dry && fresh.length) {
     const { error } = await supabase.from("reddit_mentions").upsert(fresh.map(toRow), { onConflict: "id", ignoreDuplicates: true })
@@ -192,6 +254,7 @@ export async function GET(request: NextRequest) {
   }
 
   const health = await trackGroups(supabase, prev, collected.groups, !dry)
+  if (fb) await trackFacebook(supabase, prev, fb, !dry)
   const tier1 = fresh.filter((c) => c.tier === 1)
   const emailed = !dry && tier1.length > 0 ? await notifyTier1(tier1) : false
 
