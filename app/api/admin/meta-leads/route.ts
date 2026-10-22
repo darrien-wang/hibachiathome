@@ -28,6 +28,30 @@ const SOURCE = "meta_lead_form"
 const LOOKBACK_H = 48
 
 type Claimed = { meta_lead_id: string; lead_id: string | null; result: Record<string, unknown> | null }
+type Supabase = NonNullable<ReturnType<typeof getSupabaseAdmin>>
+
+/**
+ * The lead that already got a price text from us in the last day for this
+ * phone, if any. The form's thank-you screen links to the website, and people
+ * use it: Cindy (2026-10-21) sent the form at 19:28:15 and had the website
+ * quote 29 seconds later, so the sweep two minutes on would have texted her a
+ * second price. landing-quote only skips people who have texted us back.
+ */
+async function recentlyQuoted(supabase: Supabase, phone: string): Promise<string | null> {
+  const digits = phone.replace(/\D/g, "").slice(-10)
+  if (digits.length !== 10) return null
+  const { data: known } = await supabase.from("leads").select("id").eq("normalized_phone", digits).limit(10)
+  const ids = ((known ?? []) as Array<{ id: string }>).map((l) => l.id)
+  if (!ids.length) return null
+  const { data: tps } = await supabase
+    .from("lead_touchpoints")
+    .select("lead_id")
+    .in("lead_id", ids)
+    .in("touchpoint_type", ["landing_quote_text", "landing_price_check"])
+    .gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString())
+    .limit(1)
+  return ((tps ?? []) as Array<{ lead_id: string }>)[0]?.lead_id ?? null
+}
 
 function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "form"
@@ -158,15 +182,25 @@ async function sweep(dry: boolean) {
           html: "",
         }).catch(() => undefined)
       } else {
-        try {
-          const r = await quoteLead(form, lead)
-          leadId = typeof r.body.leadId === "string" ? r.body.leadId : null
-          result = { status: r.status, leadId, total: r.body.total ?? null, smsDelivered: r.body.smsDelivered ?? null, personal: r.body.personal ?? null, error: r.body.error ?? null }
-          if (r.status >= 400) failed++
-          else sent++
-        } catch (error) {
-          result = { error: error instanceof Error ? error.message : String(error) }
-          failed++
+        const quotedLead = await recentlyQuoted(supabase, parsed.phone)
+        if (quotedLead) {
+          // They already have our price (website quote from the form's
+          // thank-you link, or the landing card): file the form against that
+          // lead instead of texting the same number a second price.
+          leadId = quotedLead
+          result = { skipped: "already_quoted", leadId }
+          skipped++
+        } else {
+          try {
+            const r = await quoteLead(form, lead)
+            leadId = typeof r.body.leadId === "string" ? r.body.leadId : null
+            result = { status: r.status, leadId, total: r.body.total ?? null, smsDelivered: r.body.smsDelivered ?? null, personal: r.body.personal ?? null, error: r.body.error ?? null }
+            if (r.status >= 400) failed++
+            else sent++
+          } catch (error) {
+            result = { error: error instanceof Error ? error.message : String(error) }
+            failed++
+          }
         }
       }
       await supabase.from("meta_form_leads").update({ lead_id: leadId, result, handled_at: new Date().toISOString() }).eq("meta_lead_id", lead.id)
