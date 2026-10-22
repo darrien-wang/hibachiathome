@@ -4,6 +4,7 @@ import { readAttributionFromCookieHeader, upsertLeadFromContact } from "@/lib/le
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { sendCustomerEmail, sendSupportNotificationEmail } from "@/lib/ops-notifications"
 import { escapeHtml } from "@/lib/escape-html"
+import { counted } from "@/lib/counted"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -118,10 +119,10 @@ export async function POST(request: NextRequest) {
 
   const eaters = adults + kids + littles
   const guestParts = [
-    `${adults} adults`,
-    kids ? `${kids} kids` : "",
+    counted(adults, "adult"),
+    kids ? counted(kids, "kid") : "",
     littles ? `${littles} under 5` : "",
-    babies ? `${babies} babies` : "",
+    babies ? counted(babies, "baby", "babies") : "",
   ].filter(Boolean)
   const guestsLine = guestParts.join(" + ")
   const dateLine = eventDate ? describeDate(eventDate) : "date TBD"

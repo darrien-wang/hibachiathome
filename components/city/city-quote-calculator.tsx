@@ -10,6 +10,7 @@ import InfoTip from "@/components/ui/info-tip"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone, siteConfig } from "@/config/site"
 import { trackEvent } from "@/lib/tracking"
+import { counted } from "@/lib/counted"
 import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 import {
   GUEST_TIERS,
@@ -106,12 +107,12 @@ export default function CityQuoteCalculator({
   // through, yet paid landings had no email affordance (决策日志 D-0907-04).
   // Third CTA, tracked like /quote's — a hedge, not a change to SMS-first.
   const priceLine = weekdayApplies ? `$${fmt(weekdayTotal)} (Weekday Special)` : `$${fmt(standard)} (Standard)`
-  const emailSubject = `Hibachi quote — ${adults} adults${kids ? `, ${kids} kids` : ""}${dateLabel ? `, ${dateLabel}` : ""} in ${shownCity}`
+  const emailSubject = `Hibachi quote — ${counted(adults, "adult")}${kids ? `, ${counted(kids, "kid")}` : ""}${dateLabel ? `, ${dateLabel}` : ""} in ${shownCity}`
   const emailBody = [
     "Hi Real Hibachi,",
     "",
     "I priced a party on your site and would like to confirm details:",
-    `- Guests: ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
+    `- Guests: ${counted(adults, "adult")}${kids ? `, ${counted(kids, "kid")} (5-12)` : ""}`,
     `- Date: ${dateLabel ?? "TBD"}`,
     `- Location: ${shownCity}`,
     `- Estimate shown: ${priceLine}`,
@@ -135,7 +136,7 @@ export default function CityQuoteCalculator({
   // The plain-text version of what the visitor just priced, so a desktop user
   // can paste it into a text from their own phone.
   const smsSummary = [
-    `Hibachi quote from realhibachi.com — ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
+    `Hibachi quote from realhibachi.com — ${counted(adults, "adult")}${kids ? `, ${counted(kids, "kid")} (5-12)` : ""}`,
     `Date: ${dateLabel ?? "TBD"} · Location: ${shownCity}`,
     `Estimate shown: ${priceLine}`,
   ].join("\n")

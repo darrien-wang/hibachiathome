@@ -1,0 +1,15 @@
+Guest-count grammar (2026-10-22), pages checked in a local production build (next start on localhost:3477,
+no database / SMS / email keys, browser marked internal with ?rh_internal=1; nothing submitted).
+
+/hibachi-at-home/irvine, landing card at step 2 (restored from a placeholder rh_quote_unlock key, then removed):
+  1 adult + 1 kid   -> bar "1 adult · 1 kid · any day", plan "Standard · $599 event minimum"
+  1 adult           -> bar "1 adult · any day"
+  11 adults + 1 kid -> bar "11 adults · 1 kid · any day", plan "Standard · 11 adults · 1 kid"
+/quote?adults=1&kids=0           -> badge "Standard Plan · 1 guest" (no "1 guests" / "1 adults" on the page)
+/rentals, guests stepped to 1    -> "White tablecloths · 1 guest"
+/deposit/pay?adults=1&kids=0...  -> "1 guest" (page loaded only; deposit not started)
+Console: only /_vercel/insights/script.js 404s (the Vercel Analytics script exists only on Vercel).
+
+Not rendered: /quote's per-person lines (after the contact step), /deposit/success and /pay (need a real
+session or pay link) - same counted() call, covered by the typecheck and build. The occasion estimator, the
+menu estimator bar and the city quote calculator are not imported by any page today.

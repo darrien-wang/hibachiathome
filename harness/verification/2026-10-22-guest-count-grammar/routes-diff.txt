@@ -1,0 +1,70 @@
+Guest-count grammar (2026-10-22), server routes before/after. Produced offline: /api/booking-request and
+/api/planner-unlock POSTs run under tsx with no database env, fake Twilio/Resend keys and a fetch stub that
+answers every call itself (nothing reached the network). Phone/email are placeholders. Line-level diff:
+
+## booking-1-adult-0-kids
+  EMAIL 1 text:
+    - Guests: 1 adults, 0 kids
+    + Guests: 1 adult, 0 kids
+  EMAIL 1 html:
+    - 1 adults, 0 kids
+    + 1 adult, 0 kids
+  EMAIL 2 text:
+    - Guests: 1 adults, 0 kids
+    + Guests: 1 adult, 0 kids
+  EMAIL 2 html:
+    - 1 adults, 0 kids
+    + 1 adult, 0 kids
+## booking-2-adults-1-kid
+  EMAIL 1 text:
+    - Guests: 2 adults, 1 kids
+    + Guests: 2 adults, 1 kid
+  EMAIL 1 html:
+    - 2 adults, 1 kids
+    + 2 adults, 1 kid
+  EMAIL 2 text:
+    - Guests: 2 adults, 1 kids
+    + Guests: 2 adults, 1 kid
+  EMAIL 2 html:
+    - 2 adults, 1 kids
+    + 2 adults, 1 kid
+## booking-15-adults-3-kids  (identical)
+## planner-1-adult
+  SMS 1:
+    - Real Hibachi: your party is saved. 1 adults, Sat, Nov 7, 2026 - exact price $599.00.
+    + Real Hibachi: your party is saved. 1 adult, Sat, Nov 7, 2026 - exact price $599.00.
+  EMAIL 1 text:
+    - Your party is saved: 1 adults · Sat, Nov 7, 2026.
+    + Your party is saved: 1 adult · Sat, Nov 7, 2026.
+  EMAIL 1 html:
+    - Your party is saved: 1 adults · Sat, Nov 7, 2026.
+    + Your party is saved: 1 adult · Sat, Nov 7, 2026.
+  EMAIL 2 subject:
+    - 🎪 Planner unlock · 1 adults · $599.00 · +12135550123
+    + 🎪 Planner unlock · 1 adult · $599.00 · +12135550123
+  EMAIL 2 text:
+    - 1 adults · Sat, Nov 7, 2026 · $599.00
+    + 1 adult · Sat, Nov 7, 2026 · $599.00
+  EMAIL 2 html:
+    - 1 adults · Sat, Nov 7, 2026 ·
+    + 1 adult · Sat, Nov 7, 2026 ·
+## planner-1-adult-1-kid-1-little-1-baby
+  SMS 1:
+    - Real Hibachi: your party is saved. 1 adults + 1 kids + 1 under 5 + 1 babies, Sat, Nov 7, 2026 - exact price $599.00.
+    + Real Hibachi: your party is saved. 1 adult + 1 kid + 1 under 5 + 1 baby, Sat, Nov 7, 2026 - exact price $599.00.
+  EMAIL 1 text:
+    - Your party is saved: 1 adults + 1 kids + 1 under 5 + 1 babies · Sat, Nov 7, 2026.
+    + Your party is saved: 1 adult + 1 kid + 1 under 5 + 1 baby · Sat, Nov 7, 2026.
+  EMAIL 1 html:
+    - Your party is saved: 1 adults + 1 kids + 1 under 5 + 1 babies · Sat, Nov 7, 2026.
+    + Your party is saved: 1 adult + 1 kid + 1 under 5 + 1 baby · Sat, Nov 7, 2026.
+  EMAIL 2 subject:
+    - 🎪 Planner unlock · 1 adults + 1 kids + 1 under 5 + 1 babies · $599.00 · +12135550123
+    + 🎪 Planner unlock · 1 adult + 1 kid + 1 under 5 + 1 baby · $599.00 · +12135550123
+  EMAIL 2 text:
+    - 1 adults + 1 kids + 1 under 5 + 1 babies · Sat, Nov 7, 2026 · $599.00
+    + 1 adult + 1 kid + 1 under 5 + 1 baby · Sat, Nov 7, 2026 · $599.00
+  EMAIL 2 html:
+    - 1 adults + 1 kids + 1 under 5 + 1 babies · Sat, Nov 7, 2026 ·
+    + 1 adult + 1 kid + 1 under 5 + 1 baby · Sat, Nov 7, 2026 ·
+## planner-12-adults-2-kids-2-babies  (identical)

@@ -5,6 +5,7 @@ import Link from "next/link"
 import EstimatorRow from "@/components/ui/estimator-row"
 import { GUEST_TIERS, MINIMUM_SPEND, calcSimpleEstimate, displayRangeForEstimate, formatDisplayRange, roundCurrency } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
+import { counted } from "@/lib/counted"
 import { DesktopTextPanel, useDesktopTextFallback } from "@/components/desktop-text-fallback"
 
 // The occasion page's 30-second estimate (Claude Design "Realhibachi Party",
@@ -44,7 +45,7 @@ export default function OccasionEstimator({
   // that showed it (决策日志 D-0908-04).
   const smsSummary = [
     `Hibachi quote from realhibachi.com - ${occasionLabel}`,
-    `Guests: ${adults} adults${kids ? `, ${kids} kids (5-12)` : ""}`,
+    `Guests: ${counted(adults, "adult")}${kids ? `, ${counted(kids, "kid")} (5-12)` : ""}`,
     `Estimate shown: ${rangeLabel}`,
   ].join("\n")
   const textFallback = useDesktopTextFallback({ summary: smsSummary, guests: adults + kids })
@@ -76,7 +77,7 @@ export default function OccasionEstimator({
       {row("Kids 5–12", `$${GUEST_TIERS.child.price.toFixed(2)} · under 5 free`, kids, setKids, 0, "kids")}
       <div className="flex items-end justify-between border-t border-ink/10 pt-2">
         <div>
-          <p className="text-xs text-clay-600">{underMin ? "Event minimum" : `${adults} adults · ${kids} kids`}</p>
+          <p className="text-xs text-clay-600">{underMin ? "Event minimum" : `${counted(adults, "adult")} · ${counted(kids, "kid")}`}</p>
           <p className="font-serif text-4xl font-extrabold leading-none lg:text-[38px]" aria-live="polite">
             {rangeLabel}
           </p>

@@ -10,6 +10,7 @@ import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate, formatUiDateShort } from "@/lib/date-display"
 import { trackEvent } from "@/lib/tracking"
+import { counted } from "@/lib/counted"
 import { readDepositMarker, writeDepositMarker, type DepositMarker } from "@/lib/deposit-marker"
 
 type BookingPreview = {
@@ -622,8 +623,8 @@ function DepositPaymentPageInner() {
     const lockedTime = formatClockTime(info?.eventTime || booking?.event_time || eventTimeParam || undefined)
     const lockedGuests = booking
       ? (booking.guest_kids ?? 0) > 0
-        ? `${booking.guest_adults ?? 0} adults, ${booking.guest_kids} kids`
-        : `${booking.guest_adults ?? 0} guests`
+        ? `${counted(booking.guest_adults ?? 0, "adult")}, ${counted(booking.guest_kids ?? 0, "kid")}`
+        : counted(booking.guest_adults ?? 0, "guest")
       : null
     return (
       <main className="min-h-[70vh] bg-cream px-4 py-10 sm:py-16">
@@ -709,7 +710,7 @@ function DepositPaymentPageInner() {
   const shownAdults = detailsEditable ? adultsInput : booking.guest_adults ?? 0
   const shownKids = detailsEditable ? kidsInput : booking.guest_kids ?? 0
   const dateLine = `${formatUiDate(shownDate || undefined, "Date TBD")} · ${formatClockTime(shownTime || undefined)}`
-  const guestsLine = shownKids > 0 ? `${shownAdults} adults, ${shownKids} kids` : `${shownAdults} guests`
+  const guestsLine = shownKids > 0 ? `${counted(shownAdults, "adult")}, ${counted(shownKids, "kid")}` : counted(shownAdults, "guest")
   const step = (setter: (n: number) => void, value: number, delta: number, min: number) => () => setter(Math.max(min, value + delta))
   const cashEstimate =
     shownEstimate !== null ? shownEstimate : agreedTotal ?? (hasBookingEstimateRange ? Number(booking?.estimate_high) : totalAmount)

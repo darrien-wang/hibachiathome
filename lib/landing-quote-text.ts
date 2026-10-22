@@ -1,11 +1,11 @@
 // Wording the landing-quote text and email share (app/api/landing-quote).
 // The numbers come from config/pricing-rules, never from here.
 import { GUEST_TIERS, MINIMUM_SPEND, type SimpleEstimate } from "@/config/pricing-rules"
+import { counted } from "@/lib/counted"
 
 /** The party as the quote says it: "1 adult", "12 adults + 1 kid". */
 export function partyLine(adults: number, kids: number): string {
-  const count = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
-  return kids > 0 ? `${count(adults, "adult")} + ${count(kids, "kid")}` : count(adults, "adult")
+  return kids > 0 ? `${counted(adults, "adult")} + ${counted(kids, "kid")}` : counted(adults, "adult")
 }
 
 /**

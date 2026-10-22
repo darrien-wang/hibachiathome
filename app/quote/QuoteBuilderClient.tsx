@@ -34,6 +34,7 @@ import { parseSetupParams } from "@/config/table-themes"
 import { useActiveRegion } from "@/lib/use-active-region"
 import { getAdRefCode, getStoredGclid, trackEvent } from "@/lib/tracking"
 import { contactDeviceLabel, copyText, deviceCanOpenSms } from "@/lib/device-contact"
+import { counted } from "@/lib/counted"
 import { PROOF_MEDIA } from "@/config/proof-media"
 import {
   buildEmailPayload,
@@ -202,7 +203,7 @@ function confirmationDateLine(eventDate: string, eventTime: string): string {
 }
 
 function confirmationGuestsLine(adults: number, kids: number): string {
-  return kids > 0 ? `${adults} adults, ${kids} kids` : `${adults} guests`
+  return kids > 0 ? `${counted(adults, "adult")}, ${counted(kids, "kid")}` : counted(adults, "guest")
 }
 
 function confirmationEstimate(low: number, high: number): string {
@@ -1593,7 +1594,7 @@ export default function QuoteBuilderClient() {
   const priceCard = (
     <div className="flex flex-col gap-1.5 rounded-[28px] bg-flame p-[22px] text-cream lg:p-7">
       <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-flame-100">
-        {planName} · {result.guestCount} guests
+        {planName} · {counted(result.guestCount, "guest")}
       </span>
       <div className="flex items-baseline gap-1.5">
         <span className="font-serif text-[52px] font-extrabold leading-none lg:text-[56px]">{shownPriceLabel}</span>
@@ -2135,14 +2136,14 @@ export default function QuoteBuilderClient() {
                 <div className="flex flex-col text-sm">
                   <div className="flex justify-between border-b border-ink/15 py-2.5">
                     <span>
-                      {heroAdults} adults × ${(isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)}
+                      {counted(heroAdults, "adult")} × ${(isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price).toFixed(2)}
                     </span>
                     <span className="font-semibold">${fmtMoney(heroAdults * (isWeekdaySaverTier ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price))}</span>
                   </div>
                   {heroKids > 0 ? (
                     <div className="flex justify-between border-b border-ink/15 py-2.5">
                       <span>
-                        {heroKids} kids × ${(isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)}
+                        {counted(heroKids, "kid")} × ${(isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price).toFixed(2)}
                       </span>
                       <span className="font-semibold">${fmtMoney(heroKids * (isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price))}</span>
                     </div>

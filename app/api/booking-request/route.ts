@@ -3,6 +3,7 @@ import { sendEmail } from "@/lib/email/send-email"
 
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
+import { counted } from "@/lib/counted"
 
 import { trackBookingSubmitServer } from "@/lib/ga4-measurement-protocol"
 import { INTERNAL_COOKIE_NAME } from "@/lib/internal-traffic"
@@ -244,7 +245,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
     `Event Date: ${params.eventDate}`,
     `Event Time: ${params.eventTime}`,
     `Location: ${params.location}`,
-    `Guests: ${params.adults} adults, ${params.kids} kids`,
+    `Guests: ${counted(params.adults, "adult")}, ${counted(params.kids, "kid")}`,
     `Pricing Tier: ${params.pricingTierLabel}`,
     `Estimated Range: $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}`,
     "",
@@ -262,7 +263,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
         <p><strong>Event Date:</strong> ${escapeHtml(params.eventDate)}</p>
         <p><strong>Event Time:</strong> ${escapeHtml(params.eventTime)}</p>
         <p><strong>Location:</strong> ${escapeHtml(params.location)}</p>
-        <p><strong>Guests:</strong> ${params.adults} adults, ${params.kids} kids</p>
+        <p><strong>Guests:</strong> ${counted(params.adults, "adult")}, ${counted(params.kids, "kid")}</p>
         <p><strong>Pricing Tier:</strong> ${escapeHtml(params.pricingTierLabel)}</p>
         <p><strong>Estimated Range:</strong> $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}</p>
       </div>
@@ -352,7 +353,7 @@ export async function POST(request: Request) {
       `Event Date: ${eventDate}`,
       `Event Time: ${eventTime}`,
       `Location: ${location}`,
-      `Guests: ${adults} adults, ${kids} kids`,
+      `Guests: ${counted(adults, "adult")}, ${counted(kids, "kid")}`,
       `Pricing Tier: ${pricingTierLabel}`,
       `Estimated Range: $${estimateLow.toFixed(0)} - $${estimateHigh.toFixed(0)}`,
       `Tableware Rental: ${tablewareRental ? "Yes" : "No"}`,
@@ -450,7 +451,7 @@ export async function POST(request: Request) {
       <p><strong>Event Date:</strong> ${escapeHtml(eventDate)}</p>
       <p><strong>Event Time:</strong> ${escapeHtml(eventTime)}</p>
       <p><strong>Location:</strong> ${escapeHtml(location)}</p>
-      <p><strong>Guests:</strong> ${adults} adults, ${kids} kids</p>
+      <p><strong>Guests:</strong> ${counted(adults, "adult")}, ${counted(kids, "kid")}</p>
       <p><strong>Pricing Tier:</strong> ${escapeHtml(pricingTierLabel)}</p>
       <p><strong>Estimated Range:</strong> $${estimateLow.toFixed(0)} - $${estimateHigh.toFixed(0)}</p>
       <p><strong>Tableware Rental:</strong> ${tablewareRental ? "Yes" : "No"}</p>

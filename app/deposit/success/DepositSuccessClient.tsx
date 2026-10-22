@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { AlertCircle, CalendarCheck, Loader2, Lock, MessageSquare } from "lucide-react"
 import { phone, smsHref } from "@/config/site"
 import { formatUiDate } from "@/lib/date-display"
+import { counted } from "@/lib/counted"
 import { fireGoogleAdsDepositConversion, trackDepositCompletedOnce } from "@/lib/tracking"
 import { writeDepositMarker } from "@/lib/deposit-marker"
 
@@ -376,8 +377,8 @@ export default function DepositSuccessClient({
   const guestsLine =
     adults !== null && adults > 0
       ? kids && kids > 0
-        ? `${adults} adults, ${kids} kids`
-        : `${adults} guests`
+        ? `${counted(adults, "adult")}, ${counted(kids, "kid")}`
+        : counted(adults, "guest")
       : null
   const dateLine = initialEventDate ? formatUiDate(initialEventDate, "") : ""
   const clock = formatClock(initialEventTime)

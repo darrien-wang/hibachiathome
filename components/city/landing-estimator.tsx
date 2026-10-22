@@ -7,6 +7,7 @@ import EstimatorRow from "@/components/ui/estimator-row"
 import { useLocCity } from "@/components/city/geo-city-name"
 import { phone } from "@/config/site"
 import { isMetaVisitor, trackEvent } from "@/lib/tracking"
+import { counted } from "@/lib/counted"
 import {
   GUEST_TIERS,
   MINIMUM_SPEND,
@@ -233,7 +234,7 @@ export default function LandingEstimator({
   const attribution = source ?? `city_${citySlug.replace(/-/g, "_")}`
   const phoneReady = phoneValue.replace(/\D/g, "").replace(/^1/, "").length === 10
   const emailReady = EMAIL_RE.test(email.trim())
-  const guestsShort = kids > 0 ? `${adults} adults · ${kids} kids` : `${adults} adults`
+  const guestsShort = kids > 0 ? `${counted(adults, "adult")} · ${counted(kids, "kid")}` : counted(adults, "adult")
   const planShort = weekday ? "Mon–Thu" : "any day"
   const planLabel =
     (minApplied ? `${weekday ? "Weekday Special" : "Standard"} · $${MINIMUM_SPEND} event minimum` : weekday ? `Weekday Special · ${guestsShort}` : `Standard · ${guestsShort}`) +

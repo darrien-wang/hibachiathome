@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { splitCardPayment, V1_TERMS, type PayTerms } from "@/lib/pay-link-math"
+import { counted } from "@/lib/counted"
 
 // 付款页。
 //
@@ -322,7 +323,7 @@ export default function PayClient() {
         </h1>
         {dateLabel && (
           <p className="mt-3 text-[17px] text-clay-700">
-            {dateLabel} party{data.guests ? ` · ${data.guests} guests` : ""}
+            {dateLabel} party{data.guests ? ` · ${counted(data.guests, "guest")}` : ""}
           </p>
         )}
 
@@ -393,7 +394,7 @@ export default function PayClient() {
                 <li>Set up the grill, the mats and the station before anyone ate</li>
                 <li>Cooked every plate fresh, one guest at a time</li>
                 <li>Put on the show at the grill</li>
-                <li>Served{typeof data.guests === "number" && data.guests > 0 ? ` all ${data.guests} guests` : " every guest"}</li>
+                <li>Served{typeof data.guests === "number" && data.guests > 1 ? ` all ${data.guests} guests` : " every guest"}</li>
                 <li>Cleaned the grill and packed everything out</li>
               </ul>
               <span className="text-[13px] text-clay-700">100% of the gratuity goes to your chef.</span>
@@ -499,7 +500,7 @@ export default function PayClient() {
       </h1>
       {dateLabel && (
         <p className="mt-3 text-[17px] text-clay-700">
-          {dateLabel} party{data.guests ? ` · ${data.guests} guests` : ""}
+          {dateLabel} party{data.guests ? ` · ${counted(data.guests, "guest")}` : ""}
         </p>
       )}
 

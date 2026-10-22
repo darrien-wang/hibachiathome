@@ -121,3 +121,18 @@ Verification completed:
 - `npm test` (rebased on `812c92d4`): 301 pass, 0 fail; four new template A tests in `tests/first-response.test.ts`. Output: `harness/verification/2026-10-22-lead-watch-template-a-minimum/npm-test.txt`.
 - The original route function vs `templateAMessage()` for 12 parties: only "1 adult(s)", the new sentence and the new email bullet changed; 11 adults ($628.90 Fri-Sun / $599.00 Mon-Thu), the 15-adult default, 15 adults and 30 adults + 4 kids are byte-identical. Output: `harness/verification/2026-10-22-lead-watch-template-a-minimum/template-a-diff.txt`.
 - This is not a `harness/feature_list.json` item, so there is no status transition there.
+
+## GUEST-COUNT-GRAMMAR - "1 adult", "1 kid", "1 guest", "1 baby" on customer-facing labels (2026-10-22)
+
+Status: done.
+
+What changed:
+- `lib/counted.ts` (new): `counted(n, one, many?)`; `partyLine` in `lib/landing-quote-text.ts` uses it.
+- Uses it instead of plural-only templates: the landing estimator card (`components/city/landing-estimator.tsx`), booking-request emails, the planner-unlock text and emails (also "1 baby"), `/deposit/pay`, `/deposit/success`, `/quote` (badge, per-person lines, confirmation line), `/pay` ("Served every guest" for a party of one), `/rentals`, and three components no page imports today (occasion estimator, menu estimator bar, city quote calculator).
+- Left alone: `app/api/booking/create` (internal lead note), `buildCallScript` in `lib/quote-builder.ts` (not called), planner-unlock's ops "x/y guests have picked proteins" lines.
+
+Verification completed:
+- `npm test`: 304 pass, 0 fail; `tests/counted.test.ts` is new. Output: `harness/verification/2026-10-22-guest-count-grammar/npm-test.txt`.
+- booking-request and planner-unlock run offline before/after: only the nouns changed; plural parties are byte-identical. Output: `harness/verification/2026-10-22-guest-count-grammar/routes-diff.txt`.
+- Local production build in the browser (nothing submitted, traffic marked internal): landing card "1 adult · any day", /quote "Standard Plan · 1 guest", /rentals "1 guest", /deposit/pay "1 guest". Output: `harness/verification/2026-10-22-guest-count-grammar/browser-checks.txt`.
+- `tsc`: the same 95 pre-existing errors, none new. This is not a `harness/feature_list.json` item, so there is no status transition there.

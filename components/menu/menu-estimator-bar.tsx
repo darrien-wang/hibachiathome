@@ -6,6 +6,7 @@ import { Minus, Plus } from "lucide-react"
 import EstimatorRow from "@/components/ui/estimator-row"
 import { GUEST_TIERS, calcSimpleEstimate, displayRangeForEstimate, formatDisplayRange } from "@/config/pricing-rules"
 import { trackEvent } from "@/lib/tracking"
+import { counted } from "@/lib/counted"
 
 // The menu's quick estimate: adults only, any day, one tap to the exact quote.
 // Kids, weekday special and add-ons are handled on /quote — the paid
@@ -45,7 +46,7 @@ export default function MenuEstimatorBar({ variant = "sticky" }: { variant?: "st
     <div className="fixed inset-x-0 bottom-0 z-40 bg-[linear-gradient(to_top,#f7efe2_70%,transparent)] px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-4 lg:hidden">
       <div className="flex items-center gap-2 rounded-[28px] border border-ink/10 bg-white py-3 pl-[18px] pr-3 shadow-organic-lg">
         <div className="flex-1">
-          <p className="text-xs text-clay-600">{adults} adults · any day</p>
+          <p className="text-xs text-clay-600">{counted(adults, "adult")} · any day</p>
           <p className="font-serif text-[22px] font-extrabold leading-[1.1]">{totalLabel}</p>
         </div>
         <button type="button" aria-label="Fewer adults" onClick={() => setAdults((a) => Math.max(1, a - 1))} className="flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 text-ink">

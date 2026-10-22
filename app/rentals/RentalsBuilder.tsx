@@ -15,6 +15,7 @@ import {
   type ThemeVariant,
 } from "@/config/table-themes"
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, UTENSILS_PER_GUEST, WHITE_CLOTH_PER_TABLE, tablesFor, whiteClothFee } from "@/config/pricing-rules"
+import { counted } from "@/lib/counted"
 
 // 设计稿 4a704199 "Rentals Page" 的配置器。稿子是用 Design 自己的 token 写
 // 的，这里照旧翻成站点自己的 Organic token（奶油底、flame 做选中态、gold 做
@@ -416,7 +417,7 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
             {isFull && theme ? theme.name : "Tables & chairs"}
           </span>
           <span className="text-sm text-clay-700">
-            {clothName} tablecloths · {guests} guests
+            {clothName} tablecloths · {counted(guests, "guest")}
           </span>
         </div>
 
