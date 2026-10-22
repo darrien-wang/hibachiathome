@@ -1555,7 +1555,7 @@ def main(argv=None):
     p.add_argument("--json", action="store_true"); p.set_defaults(fn=_transcribe)
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*")
-    p.add_argument("--attach", nargs="+", metavar="FILE", help="pdf/png/jpg files to attach (up to 3, about 3 MB in all)")
+    p.add_argument("--attach", nargs="+", action="extend", metavar="FILE", help="pdf/png/jpg files to attach (up to 3, about 3 MB in all)")
     p.add_argument("--any-address", action="store_true", help="send to an address the lead does not have on file (a new one the customer gave)"); p.set_defaults(fn=cmd_email)
     # Sales daily / weekly report, numbers half (docs/销售日志/README.md): read-only.
     def _report(a):
@@ -1585,13 +1585,13 @@ def main(argv=None):
     p.add_argument("--free-appetizer-trays", type=int, metavar="N",
                    help="how many trays the free-appetizer promo brings (owner 2026-10-01: one per 10 guests). "
                         "Moves the promo's discount by the same amount, so the customer is not billed for it.")
-    p.add_argument("--proteins", nargs="+", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
+    p.add_argument("--proteins", nargs="+", action="extend", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
                    "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode.")
     p.add_argument("--add-adult", type=int, metavar="N", help="add N adults to a party whose guests are already picked. The new rows copy "
                    "the last adult's proteins and their tables/utensils flags, so a late 'can I bring one more' keeps billing the same way "
                    "as everyone else. Check the printed rows before sending - proteins are a guess until the guest says otherwise.")
     p.add_argument("--add-child", type=int, metavar="N", help="same as --add-adult for children 5-12.")
-    p.add_argument("--remove-guest", nargs="+", metavar="NAME", help="take guest rows off by name (exact, one row each): a guest who cancels. Other rows keep their ids and picks.")
+    p.add_argument("--remove-guest", nargs="+", action="extend", metavar="NAME", help="take guest rows off by name (exact, one row each): a guest who cancels. Other rows keep their ids and picks.")
     p.add_argument("--guests-file", help="JSON list of guests the customer sent, one per row: "
                    '[{"name": "Mom", "proteins": ["filet_mignon", "steak", "lobster_tail"], "tables": true}, {"name": "Tyson", "child": true, ...}]. '
                    "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows.")
@@ -1601,13 +1601,13 @@ def main(argv=None):
                    help="setup item at a set price per guest, e.g. tables_chairs=5 (Saturday's half price, D-1017-01): writes customDeal.extraRates "
                         "+ the matching 'Tables & Chairs at $5/guest' line at the current count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
-    p.add_argument("--free-item", nargs="+", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
-    p.add_argument("--add-extra", nargs="+", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; or a setup item for N guests before the rows exist: utensils=18")
-    p.add_argument("--remove-promo", nargs="+", metavar="ID", help="drop stored promotion lines by id")
+    p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
+    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; or a setup item for N guests before the rows exist: utensils=18")
+    p.add_argument("--remove-promo", nargs="+", action="extend", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
     p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
-    p.add_argument("--promo", nargs="+", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
+    p.add_argument("--promo", nargs="+", action="extend", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
                    "Promotions are frozen numbers on the invoice, not rules, so a per-head one (the Weekday Special) has to be re-stated "
                    "by hand when the headcount moves - see the warning --add-adult prints. The deal_* lines are re-priced from the "
                    "order's customDeal whenever the rows change.")
