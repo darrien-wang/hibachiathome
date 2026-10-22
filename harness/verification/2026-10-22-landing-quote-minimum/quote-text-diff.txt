@@ -1,0 +1,85 @@
+Landing-quote text before/after (2026-10-22). Produced offline: app/api/landing-quote POST run under tsx
+with no database env, fake Twilio/Resend keys and fetch stubbed (anything but the stubbed hosts throws),
+so nothing was sent. Phone +12135550123 and harness@example.com are placeholders. Sentence-level diff:
+
+## susan-1-adult-la-puente
+  SMS:
+    - Real Hibachi: your La Puente hibachi price is $599.00 for 1 adults (Standard (any day)).
+    + Real Hibachi: your La Puente hibachi price is $599.00 for 1 adult (Standard (any day)) - our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL text:
+    - 1 adults · Standard (any day)
+    + 1 adult · Standard (any day)
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  OPS subject:
+    - 🔥 Landing quote · La Puente · 1 adults · $599.00 · +12135550123
+    + 🔥 Landing quote · La Puente · 1 adult · $599.00 · +12135550123
+## 1-adult-1-kid
+  SMS:
+    - Real Hibachi: your Whittier hibachi price is $599.00 for 1 adults + 1 kids (Standard (any day)).
+    + Real Hibachi: your Whittier hibachi price is $599.00 for 1 adult + 1 kid (Standard (any day)) - our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL text:
+    - 1 adults + 1 kids · Standard (any day)
+    + 1 adult + 1 kid · Standard (any day)
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  OPS subject:
+    - 🔥 Landing quote · Whittier · 1 adults + 1 kids · $599.00 · +12135550123
+    + 🔥 Landing quote · Whittier · 1 adult + 1 kid · $599.00 · +12135550123
+## 5-adults-weekday-no-date
+  SMS:
+    - Real Hibachi: your Irvine hibachi price is $599.00 for 5 adults (Weekday Special (Mon–Thu)).
+    + Real Hibachi: your Irvine hibachi price is $599.00 for 5 adults (Weekday Special (Mon–Thu)) - our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL text:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+## 10-adults-standard
+  SMS:
+    - Real Hibachi: your Pasadena hibachi price is $599.00 for 10 adults (Standard (any day)).
+    + Real Hibachi: your Pasadena hibachi price is $599.00 for 10 adults (Standard (any day)) - our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL text:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+## 11-adults-weekday
+  SMS:
+    - Real Hibachi: your Torrance hibachi price is $599.00 for 11 adults (Weekday Special (Mon–Thu)).
+    + Real Hibachi: your Torrance hibachi price is $599.00 for 11 adults (Weekday Special (Mon–Thu)) - our $599 minimum, which covers all 11 guests.
+  EMAIL text:
+    + That's our $599 minimum, which covers all 11 guests.
+## 2-adults-9-kids
+  SMS:
+    - Real Hibachi: your Downey hibachi price is $599.00 for 2 adults + 9 kids (Standard (any day)).
+    + Real Hibachi: your Downey hibachi price is $599.00 for 2 adults + 9 kids (Standard (any day)) - our $599 minimum, which covers all 11 guests.
+  EMAIL text:
+    + That's our $599 minimum, which covers all 11 guests.
+## 4-adults-travel-33
+  SMS:
+    - Real Hibachi: your Big Bear Lake hibachi price is $632.00 for 4 adults (Standard (any day)).
+    + Real Hibachi: your Big Bear Lake hibachi price is $632.00 for 4 adults (Standard (any day)) - our 10-guest minimum ($599) plus travel, so it covers up to 10 guests.
+  EMAIL text:
+    + That's our 10-guest minimum ($599) plus travel, so it covers up to 10 guests.
+## 3-adults-travel-pending
+  SMS:
+    - Real Hibachi: your Southern California hibachi price is $599.00 for 3 adults (Standard (any day)).
+    + Real Hibachi: your Southern California hibachi price is $599.00 for 3 adults (Standard (any day)) - our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL text:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+## 6-adults-dated-saturday
+  SMS:
+    - Real Hibachi: your Long Beach hibachi price is $599.00 for 6 adults (Standard (any day), Sat, Nov 7, 2026).
+    + Real Hibachi: your Long Beach hibachi price is $599.00 for 6 adults (Standard (any day), Sat, Nov 7, 2026) - our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL text:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+## 15-adults-standard  (identical)
+## 30-adults-4-kids-travel-dated  (identical)
+
+Full SMS after, 1 adult in La Puente (the long deposit URL is the shortener fallback offline):
+Real Hibachi: your La Puente hibachi price is $599.00 for 1 adult (Standard (any day)) - our 10-guest minimum, so it covers up to 10 guests. No travel fee for your area. Lock your date here - card on file, nothing charged today: https://www.realhibachi.com/deposit/pay?source=quote&location=La+Puente&adults=1&kids=0&estimate_low=599&estimate_high=599&customer_email=harness%40example.com&customer_name=Harness Tables, chairs & linens $10/guest, plates & silverware $5 - or use your own. Reply here with questions - we answer fast. Reply STOP to opt out.
+
+Full customer email after, subject: Your La Puente hibachi quote: $599.00
+Your La Puente hibachi price: $599.00
+1 adult · Standard (any day)
+That's our 10-guest minimum, so it covers up to 10 guests.
+No travel fee for your area.
+
+Lock your date here - card on file, nothing charged today: https://www.realhibachi.com/deposit/pay?source=quote&location=La+Puente&adults=1&kids=0&estimate_low=599&estimate_high=599&customer_email=harness%40example.com&customer_name=Harness
+
+Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.
+Tables, chairs & linens $10/guest, plates & silverware $5 - or use your own.
+Questions? Reply to this email or text (213) 770-7788.

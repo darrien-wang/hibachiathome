@@ -91,3 +91,18 @@ Verification completed:
 Still needed:
 - The owner's actual Costco packs for chicken breast, filet, ribeye, shrimp, salmon, broccoli, carrots, zucchini, onions, eggs, butter, tofu and lobster tails. Do not guess them.
 - This is not a `harness/feature_list.json` item (that backlog is the tracking spec), so there is no status transition there.
+
+## LANDING-QUOTE-MINIMUM - Say when the $599 minimum set the price (2026-10-22)
+
+Status: done.
+
+Why: Susan Romero (La Puente) got "your La Puente hibachi price is $599.00 for 1 adults", which reads as $599 a head; the desk had to text her that it is the minimum and covers 10 guests.
+
+What changed:
+- `lib/landing-quote-text.ts` (new): `partyLine()` says "1 adult" / "1 kid"; `minimumNote()` words the price when `calcSimpleEstimate().minApplied`; `MINIMUM_COVERS_GUESTS` = `MINIMUM_SPEND` / adult price from `config/pricing-rules` (10 today).
+- `app/api/landing-quote/route.ts`: the first-quote and "updated" texts add " - our 10-guest minimum, so it covers up to 10 guests" after the party (with travel: "our 10-guest minimum ($599) plus travel, ..."; more than 10 on the minimum, kids or Mon-Thu: "our $599 minimum, which covers all N guests"); the customer email adds "That's our 10-guest minimum, so it covers up to 10 guests." Discount, travel, deposit link, rentals and STOP lines are unchanged; nothing about tax, deposits or payment methods.
+
+Verification completed:
+- `npm test` (rebased on `4d2f17dd`): 297 pass, 0 fail. `tests/landing-quote-text.test.ts` is new. Output: `harness/verification/2026-10-22-landing-quote-minimum/npm-test.txt`.
+- The route run offline (no database, network stubbed) for 11 parties before and after: only the price sentence, the email's new line and "1 adult(s)" changed; 15 adults and 30 adults + 4 kids are identical. Output: `harness/verification/2026-10-22-landing-quote-minimum/quote-text-diff.txt`.
+- This is not a `harness/feature_list.json` item, so there is no status transition there.

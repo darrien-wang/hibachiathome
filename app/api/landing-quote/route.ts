@@ -12,6 +12,7 @@ import { escapeHtml } from "@/lib/escape-html"
 import { getCityTravel } from "@/config/city-travel"
 import { placeName } from "@/lib/first-response"
 import { cityForZip } from "@/lib/zip-city"
+import { minimumNote, partyLine } from "@/lib/landing-quote-text"
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
@@ -206,10 +207,13 @@ export async function POST(request: NextRequest) {
   const discountLine = discountCode
     ? `Includes the ${dollars(est.partySizeDiscountApplied)} party-size discount${tierRange ? ` (${tierRange})` : ""}.`
     : null
+  // When the minimum set the price the text says so: "$599.00 for 1 adults"
+  // read as $599 a head (Susan Romero, 2026-10-22).
+  const minimum = minimumNote(est, adults + kids)
 
   const attribution = readAttributionFromCookieHeader(request.headers.get("cookie"))
   const pagePath = asStr(body.pagePath, 200) || `/hibachi-at-home/${citySlug}`
-  const guestsLine = kids > 0 ? `${adults} adults + ${kids} kids` : `${adults} adults`
+  const guestsLine = partyLine(adults, kids)
   const dateLine = eventDate ? describeDate(eventDate) : "date TBD"
 
   // A customer we are already talking to (texted us in the last two weeks, or
@@ -429,7 +433,7 @@ export async function POST(request: NextRequest) {
   const smsBody = (
     updated
       ? [
-          `Real Hibachi: updated for ${guestsLine} in ${cityLabel}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+          `Real Hibachi: updated for ${guestsLine} in ${cityLabel}: ${money(total)} (${planLabel}${eventDate ? `, ${dateLine}` : ""})${minimum ? ` - ${minimum}` : ""}.`,
           ...whyLines,
           // The travel line is only repeated when it did not just get explained.
           previous && previous.travelFee !== travelFee ? null : travelLine,
@@ -440,7 +444,9 @@ export async function POST(request: NextRequest) {
           // The listed price. Nothing about tax or payment method is brought up
           // before the booking is confirmed (owner 2026-10-06): the invoice and
           // the pay page carry the itemised bills.
-          `Real Hibachi: your ${cityLabel} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""}).`,
+          // The minimum note comes after the party: the caller card reads the
+          // first "N adults" in our texts as the party size.
+          `Real Hibachi: your ${cityLabel} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""})${minimum ? ` - ${minimum}` : ""}.`,
           discountLine,
           travelLine,
           `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
@@ -470,6 +476,7 @@ export async function POST(request: NextRequest) {
     const lines = [
       `Your ${cityLabel} hibachi price: ${money(total)}`,
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
+      ...(minimum ? [`That's ${minimum}.`] : []),
       ...(discountLine ? [discountLine] : []),
       travelFee
         ? `Includes about $${travelFee} travel.`
