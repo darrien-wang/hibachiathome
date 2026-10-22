@@ -964,6 +964,18 @@ export async function POST(request: NextRequest) {
         }
         const method = str(body.method, 10) as SettleMethod
         if (!SETTLE_METHODS.has(method)) return NextResponse.json({ error: "method 只能是 cash / card / prepaid / other" }, { status: 400 })
+        // 还没办的派对不能登记"师傅代收现金"：钱还没收，记上就会把订单标成已付清，
+        // 师傅的备料单写"不用收钱"、客人的发票也显示付清。Hilary Shepard 10-23 的单
+        // 10-17 夜里在 Blu 的结算里被记了 $599 现金（2026-10-22 发现）。event_start 存的是墙上时间。
+        if (method === "cash") {
+          const { data: asnE } = await supabase.from("order_staff_assignments").select("order_id, orders(event_start)").eq("id", body.assignment_id).maybeSingle()
+          const ordE = (asnE as { orders?: { event_start?: string | null } | Array<{ event_start?: string | null }> | null } | null)?.orders
+          const evStart = (Array.isArray(ordE) ? ordE[0]?.event_start : ordE?.event_start) ?? null
+          const evDay = evStart ? String(evStart).slice(0, 10) : null
+          if (evDay && evDay > ptToday()) {
+            return NextResponse.json({ error: `这场 ${evDay} 还没办，现金还没收——办完再登记"师傅代收现金"。要先付工钱，直接结算就行（没确认尾款的场只结工钱）。` }, { status: 400 })
+          }
+        }
         const dollars = (v: unknown) => (v === undefined || v === null || v === "" ? null : Math.round(Number(v) * 100))
         const nums = { cash: dollars(body.cash_collected), gross: dollars(body.card_gross), fee: dollars(body.card_fee), tip: dollars(body.card_tip), cashTip: dollars(body.cash_tip) }
         for (const v of Object.values(nums)) if (v !== null && !Number.isFinite(v)) return NextResponse.json({ error: "金额不对" }, { status: 400 })
