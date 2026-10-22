@@ -59,6 +59,7 @@
 - **份量**（报份量时必须带 "each guest picks 2"，否则客人以为三样都给）：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo (tail-off), salmon 4 oz.` scallops 4 oz、filet 4.5 oz、lobster 6 oz。
 - **牛肉**：标准牛排是 Costco 的 USDA Choice top sirloin，不冷冻、前一天买；问产地答 `Costco's beef in California comes mostly from Harris Ranch in the Central Valley.` 虾是冷冻袋装的（问了照实说）。
 - **同一种选两次**可以（只吃鸡就两份鸡）；只选豆腐的默认双份豆腐。
+- **白米饭**：客人要可以带，替代炒饭（老板 10-22）；写进订单备注让师傅知道。
 - **12–14 岁**：一般按大人订 `Kids that age usually eat like adults - our kids' plates have half the protein, so I'd book them as adults.`
 - **5–12 岁有的单要问大概几岁**（10-05）：`Quick one on the kids - roughly how old are they? Kids' plates are half portions - plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry.`
 - **素/纯素**：豆腐 + 蔬菜，同价。
