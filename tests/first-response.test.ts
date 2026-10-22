@@ -10,11 +10,13 @@ import {
   ptDate,
   quoteFollowUpPlan,
   shortDate,
+  templateAMessage,
   templateAWording,
   wallTime,
   wallToInstant,
   textSignerFor,
 } from "../lib/first-response"
+import { priceInText, statedHeadcount } from "../lib/caller-card"
 
 // ---- wall clock stored as UTC ------------------------------------------------
 
@@ -96,6 +98,43 @@ test("template A says one price when both nights hit the minimum, and no travel 
   assert.equal(ps.travelEmail, "- Travel to Palm Springs: about $42")
   const near = templateAWording({ weekend: "$838.50", weekday: "$763.50", travel: 0, city: "Irvine" })
   assert.equal(near.travelSms, ", no travel fee")
+})
+
+test("template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum, not a price a head (2026-10-22)", () => {
+  const one = templateAMessage({ adults: 1, kids: 0, cityName: "La Puente", travelFee: 0 })
+  assert.equal(
+    one.sms,
+    "Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 1 adult in La Puente it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show). That's our 10-guest minimum, so it covers up to 10 guests. What date are you thinking?",
+  )
+  assert.match(one.emailText, /^- 1 adult, Fri-Sun: \$599\.00 total$/m)
+  assert.match(one.emailText, /^- That's our 10-guest minimum, so it covers up to 10 guests\.$/m)
+  assert.match(templateAMessage({ adults: 1, kids: 1, cityName: "Whittier" }).sms, /For 1 adult \+ 1 kid in Whittier it's \$599\.00/)
+  // The caller card reads the party and the price off our texts - 1, not the 10 the minimum covers.
+  assert.equal(statedHeadcount(one.sms), 1)
+  assert.equal(priceInText(one.sms), 599)
+})
+
+test("template A: travel stays its own phrase, and more than 10 on the minimum are all covered", () => {
+  const bigBear = templateAMessage({ adults: 4, cityName: "Big Bear Lake", travelFee: 33 })
+  assert.match(bigBear.sms, /it's \$599\.00 any day of the week, plus about \$33 travel \(.*\)\. That's our 10-guest minimum, so it covers up to 10 guests\. What date/)
+  assert.match(templateAMessage({ adults: 2, kids: 9, cityName: "Downey" }).sms, /That's our \$599 minimum, which covers all 11 guests\./)
+})
+
+test("template A: no note once Fri-Sun clears the minimum - 15 adults reads exactly as before", () => {
+  assert.equal(
+    templateAMessage({ adults: 15, cityName: "Anaheim" }).sms,
+    "Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 15 adults in Anaheim it's $838.50 Fri-Sun or $763.50 Mon-Thu, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?",
+  )
+  assert.doesNotMatch(templateAMessage({ adults: 11, cityName: "Torrance" }).sms, /minimum/, "$628.90 Fri-Sun or $599.00 Mon-Thu")
+})
+
+test("template A: the note shows exactly when the price is the minimum on both nights", () => {
+  for (let adults = 1; adults <= 20; adults++) {
+    for (let kids = 0; kids <= 12; kids++) {
+      const sms = templateAMessage({ adults, kids, cityName: "Irvine" }).sms
+      assert.equal(/That's our .*minimum/.test(sms), sms.includes("$599.00 any day of the week"), `${adults}+${kids}`)
+    }
+  }
 })
 
 test("placeName capitalizes what the customer typed, and keeps ZIPs and regions out", () => {

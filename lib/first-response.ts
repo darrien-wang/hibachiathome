@@ -1,10 +1,15 @@
 // The machine's share of the first response (owner 2026-10-07: "交给机器").
 //
-// Pure helpers for app/api/admin/lead-watch: the wording of template B (sent
+// Pure helpers for app/api/admin/lead-watch: the wording of template A (the
+// price, when the site's automatic quote never went out) and template B (sent
 // after the site's automatic quote), the pre-party contact texts, and the
 // wall-clock arithmetic they need. Nothing here touches the network, so the
 // rules are unit-tested in tests/first-response.test.ts and every change to
 // the wording or the thresholds is a visible diff.
+
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, calcSimpleEstimate } from "@/config/pricing-rules"
+import { minimumNote, partyLine } from "@/lib/landing-quote-text"
+import { cityForZip } from "@/lib/zip-city"
 
 const PT = "America/Los_Angeles"
 
@@ -163,6 +168,67 @@ export function templateAWording(i: { weekend: string; weekday: string; travel: 
         ? `- ${town}: no travel fee`
         : "- Travel: first 50 miles free, then $1 a mile - we confirm it from your address."
   return { where: town ? ` in ${town}` : "", price, travelSms, travelEmail }
+}
+
+/** What the landing card's contact step stored (lead_touchpoints landing_contact). */
+export type LandingContactPayload = {
+  adults?: number
+  kids?: number
+  cityName?: string
+  travelFee?: number
+  eventDate?: string
+}
+
+const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+/**
+ * Template A: the price, texted and mailed by lead-watch to a lead whose
+ * automatic quote never went out. When the minimum is the price on both nights
+ * it says so - "For 1 adults ... it's $599.00" reads as $599 a head (the
+ * landing quote's Susan Romero, 2026-10-22). A party whose Fri-Sun price is
+ * above the minimum ("$628.90 Fri-Sun or $599.00 Mon-Thu" for 11) cannot be
+ * read that way and gets no note.
+ */
+export function templateAMessage(p: LandingContactPayload): { sms: string; emailSubject: string; emailText: string } {
+  const adults = Math.max(1, Math.round(Number(p.adults) || 15))
+  const kids = Math.max(0, Math.round(Number(p.kids) || 0))
+  const typed = (p.cityName ?? "").trim()
+  const city = cityForZip(typed) || typed // "92201" -> "Indio"
+  const travel = Math.max(0, Math.round(Number(p.travelFee) || 0))
+  const weekendEst = calcSimpleEstimate({ adults, kids, weekdaySpecial: false })
+  const weekend = weekendEst.total
+  const weekday = calcSimpleEstimate({ adults, kids, weekdaySpecial: true }).total
+  const guests = partyLine(adults, kids)
+  // Priced without travel, so the note never says "plus travel": the travel
+  // fee is its own phrase here.
+  const minimum = minimumNote(weekendEst, adults + kids)
+  const { where, price, travelSms, travelEmail } = templateAWording({ weekend: money(weekend), weekday: money(weekday), travel, city })
+  const sms =
+    `Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
+    // Listed price only: nothing about tax or payment method is brought up
+    // before the booking is confirmed (owner 2026-10-06); the invoice and the
+    // pay page carry the itemised bills.
+    `For ${guests}${where} it's ${price}${travelSms} ` +
+    `(2 proteins each + fried rice, veggies, salad and the chef show). ${minimum ? `That's ${minimum}. ` : ""}What date are you thinking?`
+  const emailText = [
+    "Hi there,",
+    "",
+    "Rowling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:",
+    "",
+    `- ${guests}, Fri-Sun: ${money(weekend)} total`,
+    `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
+    ...(minimum ? [`- That's ${minimum}.`] : []),
+    travelEmail,
+    "- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.",
+    `- Tables, chairs & linens are $${TABLES_CHAIRS_PER_GUEST} a guest if you need them, plates & silverware $${FULL_SETUP_PER_GUEST - TABLES_CHAIRS_PER_GUEST} - or use your own.`,
+    "",
+    "What date are you thinking?",
+    "",
+    "Rowling",
+    "Real Hibachi - (213) 770-7788",
+    "",
+  ].join("\n")
+  return { sms, emailSubject: `Your hibachi quote${city ? ` for ${city}` : ""}`, emailText }
 }
 
 // ---------------------------------------------------------------------------

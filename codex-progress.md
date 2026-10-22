@@ -106,3 +106,18 @@ Verification completed:
 - `npm test` (rebased on `4d2f17dd`): 297 pass, 0 fail. `tests/landing-quote-text.test.ts` is new. Output: `harness/verification/2026-10-22-landing-quote-minimum/npm-test.txt`.
 - The route run offline (no database, network stubbed) for 11 parties before and after: only the price sentence, the email's new line and "1 adult(s)" changed; 15 adults and 30 adults + 4 kids are identical. Output: `harness/verification/2026-10-22-landing-quote-minimum/quote-text-diff.txt`.
 - This is not a `harness/feature_list.json` item, so there is no status transition there.
+
+## LEAD-WATCH-TEMPLATE-A-MINIMUM - The fallback price text says when the $599 minimum set it (2026-10-22)
+
+Status: done.
+
+Why: lead-watch's template A - the price Rowling texts and mails when the site's automatic quote never went out - had the same "For 1 adults in La Puente it's $599.00 any day of the week" wording as LANDING-QUOTE-MINIMUM above.
+
+What changed:
+- `lib/first-response.ts`: template A's text and email moved here verbatim from `app/api/admin/lead-watch/route.ts` as `templateAMessage()`, so it is unit-tested; it now says "1 adult" / "1 kid" (`partyLine`) and, when the price is the minimum on both nights, adds "That's our 10-guest minimum, so it covers up to 10 guests." to the text and as an email bullet (`minimumNote`; "our $599 minimum, which covers all N guests" above 10). A party whose Fri-Sun price clears the minimum gets no note.
+- `app/api/admin/lead-watch/route.ts`: calls `templateAMessage()`; the imports it no longer needs are gone.
+
+Verification completed:
+- `npm test` (rebased on `812c92d4`): 301 pass, 0 fail; four new template A tests in `tests/first-response.test.ts`. Output: `harness/verification/2026-10-22-lead-watch-template-a-minimum/npm-test.txt`.
+- The original route function vs `templateAMessage()` for 12 parties: only "1 adult(s)", the new sentence and the new email bullet changed; 11 adults ($628.90 Fri-Sun / $599.00 Mon-Thu), the 15-adult default, 15 adults and 30 adults + 4 kids are byte-identical. Output: `harness/verification/2026-10-22-lead-watch-template-a-minimum/template-a-diff.txt`.
+- This is not a `harness/feature_list.json` item, so there is no status transition there.

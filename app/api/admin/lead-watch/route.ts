@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 
-import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, calcSimpleEstimate } from "@/config/pricing-rules"
 import { escapeHtml } from "@/lib/escape-html"
 import { notAQuestion } from "@/lib/courtesy-text"
 import {
   PARTY_CONTACT_FIRST_TEXT_H,
   PARTY_CONTACT_MIN_ORDER_AGE_MS,
   PARTY_CONTACT_URGENT_H,
+  type LandingContactPayload,
   instantToWallIso,
   partyContactFirstText,
   partyContactSecondText,
@@ -16,7 +16,7 @@ import {
   textSignerFor,
   quoteFollowUpPlan,
   shortDate,
-  templateAWording,
+  templateAMessage,
   wallTime,
   wallToInstant,
 } from "@/lib/first-response"
@@ -206,7 +206,6 @@ const fmtPhone = (e164: string | null | undefined) => {
 
 // The 555 exchange is never assigned to real subscribers; our own tests use it.
 const isTestNumber = (e164: string | null) => !e164 || /^\+1\d{3}555\d{4}$/.test(e164)
-const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 function describeDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
@@ -217,51 +216,6 @@ function describeDate(iso: string): string {
     day: "numeric",
     year: "numeric",
   })
-}
-
-type ContactPayload = {
-  adults?: number
-  kids?: number
-  cityName?: string
-  travelFee?: number
-  eventDate?: string
-}
-
-function buildFirstResponse(p: ContactPayload): { sms: string; emailSubject: string; emailText: string } {
-  const adults = Math.max(1, Math.round(Number(p.adults) || 15))
-  const kids = Math.max(0, Math.round(Number(p.kids) || 0))
-  const typed = (p.cityName ?? "").trim()
-  const city = cityForZip(typed) || typed // "92201" -> "Indio"
-  const travel = Math.max(0, Math.round(Number(p.travelFee) || 0))
-  const weekend = calcSimpleEstimate({ adults, kids, weekdaySpecial: false }).total
-  const weekday = calcSimpleEstimate({ adults, kids, weekdaySpecial: true }).total
-  const guests = kids > 0 ? `${adults} adults + ${kids} kids` : `${adults} adults`
-  const { where, price, travelSms, travelEmail } = templateAWording({ weekend: money(weekend), weekday: money(weekday), travel, city })
-  const sms =
-    `Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
-    // Listed price only: nothing about tax or payment method is brought up
-    // before the booking is confirmed (owner 2026-10-06); the invoice and the
-    // pay page carry the itemised bills.
-    `For ${guests}${where} it's ${price}${travelSms} ` +
-    `(2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?`
-  const emailText = [
-    "Hi there,",
-    "",
-    "Rowling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:",
-    "",
-    `- ${guests}, Fri-Sun: ${money(weekend)} total`,
-    `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
-    travelEmail,
-    "- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.",
-    `- Tables, chairs & linens are $${TABLES_CHAIRS_PER_GUEST} a guest if you need them, plates & silverware $${FULL_SETUP_PER_GUEST - TABLES_CHAIRS_PER_GUEST} - or use your own.`,
-    "",
-    "What date are you thinking?",
-    "",
-    "Rowling",
-    "Real Hibachi - (213) 770-7788",
-    "",
-  ].join("\n")
-  return { sms, emailSubject: `Your hibachi quote${city ? ` for ${city}` : ""}`, emailText }
 }
 
 type TwilioMessage = { sid: string; from: string; to: string; body: string | null; date_sent: string | null; date_created: string; num_media?: string }
@@ -455,14 +409,14 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     // Left contact details, never reached the quote step: send the price.
     if (contact && !gotQuote) {
       if (ageMin < watch.grace_minutes) continue
-      const payload = (contact.raw_payload_json ?? {}) as ContactPayload
+      const payload = (contact.raw_payload_json ?? {}) as LandingContactPayload
       if (!watch.auto_first_response || (payload.eventDate && describeDate(payload.eventDate))) {
         // A date is already on file, so the approved "what date?" wording does
         // not fit - hand this one to a person instead of improvising.
         humanLeads.push({ kind: "lead", leadId: lead.id, phone, email: lead.email, city: lead.city_or_zip, minutesWaiting: ageMin, summary: lead.latest_message })
         continue
       }
-      const msg = buildFirstResponse(payload)
+      const msg = templateAMessage(payload)
       if (dryRun) {
         autoSent.push({ leadId: lead.id, phone, email: lead.email, minutesWaiting: ageMin, dryRun: true, sms: msg.sms })
         continue

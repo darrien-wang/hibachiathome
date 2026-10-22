@@ -1,0 +1,78 @@
+Lead-watch template A before/after (2026-10-22). Pure function, no network: 'before' is the original
+buildFirstResponse from app/api/admin/lead-watch/route.ts (a throwaway copy that exported it, deleted after),
+'after' is templateAMessage from lib/first-response.ts, both fed the same 12 landing-contact payloads.
+SMS compared by sentence, email by line:
+
+## 1-adult-la-puente
+  SMS:
+    - For 1 adults in La Puente it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show).
+    + For 1 adult in La Puente it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show).
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL:
+    - - 1 adults, Fri-Sun: $599.00 total
+    + - 1 adult, Fri-Sun: $599.00 total
+    + - That's our 10-guest minimum, so it covers up to 10 guests.
+## 1-adult-1-kid
+  SMS:
+    - For 1 adults + 1 kids in Whittier it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show).
+    + For 1 adult + 1 kid in Whittier it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show).
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL:
+    - - 1 adults + 1 kids, Fri-Sun: $599.00 total
+    + - 1 adult + 1 kid, Fri-Sun: $599.00 total
+    + - That's our 10-guest minimum, so it covers up to 10 guests.
+## 5-adults-zip-91744
+  SMS:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL:
+    + - That's our 10-guest minimum, so it covers up to 10 guests.
+## 10-adults
+  SMS:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL:
+    + - That's our 10-guest minimum, so it covers up to 10 guests.
+## 11-adults-split-prices  (identical)
+## 2-adults-9-kids
+  SMS:
+    + That's our $599 minimum, which covers all 11 guests.
+  EMAIL:
+    + - That's our $599 minimum, which covers all 11 guests.
+## 9-adults-3-kids
+  SMS:
+    + That's our $599 minimum, which covers all 12 guests.
+  EMAIL:
+    + - That's our $599 minimum, which covers all 12 guests.
+## 4-adults-travel-33
+  SMS:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL:
+    + - That's our 10-guest minimum, so it covers up to 10 guests.
+## 3-adults-region
+  SMS:
+    + That's our 10-guest minimum, so it covers up to 10 guests.
+  EMAIL:
+    + - That's our 10-guest minimum, so it covers up to 10 guests.
+## empty-payload-defaults-15  (identical)
+## 15-adults  (identical)
+## 30-adults-4-kids-travel  (identical)
+
+Full SMS after, 1 adult in La Puente:
+Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 1 adult in La Puente it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show). That's our 10-guest minimum, so it covers up to 10 guests. What date are you thinking?
+
+Full email after, subject: Your hibachi quote for La Puente
+Hi there,
+
+Rowling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:
+
+- 1 adult, Fri-Sun: $599.00 total
+- Same party Mon-Thu: $599.00 (+ a free appetizer of your choice: gyoza, edamame or spring rolls)
+- That's our 10-guest minimum, so it covers up to 10 guests.
+- La Puente: no travel fee
+- Includes 2 proteins per guest, fried rice, veggies, salad and the chef show. Kids 5-12 are $29.90, under 5 eat free.
+- Tables, chairs & linens are $10 a guest if you need them, plates & silverware $5 - or use your own.
+
+What date are you thinking?
+
+Rowling
+Real Hibachi - (213) 770-7788
+
