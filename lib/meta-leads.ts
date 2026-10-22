@@ -37,8 +37,7 @@ export type MetaLead = {
 type GraphError = { error?: { message?: string; code?: number; error_subcode?: number; type?: string } }
 type Paged<T> = { data?: T[]; paging?: { next?: string; cursors?: { after?: string } } }
 
-async function graphGet<T>(path: string, params: Record<string, string>): Promise<T> {
-  const token = metaLeadsToken()
+async function graphGet<T>(path: string, params: Record<string, string>, token = metaLeadsToken()): Promise<T> {
   if (!token) throw new Error("META_LEADS_TOKEN not set")
   const qs = new URLSearchParams({ ...params, access_token: token })
   const res = await fetch(`${GRAPH}/${path}?${qs.toString()}`, { cache: "no-store" })
@@ -51,11 +50,11 @@ async function graphGet<T>(path: string, params: Record<string, string>): Promis
   return json
 }
 
-async function graphPages<T>(path: string, params: Record<string, string>, maxPages = 10): Promise<T[]> {
+async function graphPages<T>(path: string, params: Record<string, string>, token: string, maxPages = 10): Promise<T[]> {
   const out: T[] = []
   let p = { ...params }
   for (let page = 0; page < maxPages; page++) {
-    const json = await graphGet<Paged<T>>(path, p)
+    const json = await graphGet<Paged<T>>(path, p, token)
     out.push(...(json.data ?? []))
     const after = json.paging?.next ? json.paging.cursors?.after : undefined
     if (!after) break
@@ -64,18 +63,37 @@ async function graphPages<T>(path: string, params: Record<string, string>, maxPa
   return out
 }
 
+// The lead edges only take a Page access token ("(#190) This method must be
+// called with a Page Access Token", 2026-10-22). META_LEADS_TOKEN is the
+// never-expiring token of system user ads-sync, which has the Page assigned,
+// so it can mint the Page's own token; that one is kept for half an hour.
+let pageTokenCache: { pageId: string; token: string; at: number } | null = null
+const PAGE_TOKEN_TTL_MS = 30 * 60_000
+
+async function pageAccessToken(pageId: string): Promise<string> {
+  if (pageTokenCache && pageTokenCache.pageId === pageId && Date.now() - pageTokenCache.at < PAGE_TOKEN_TTL_MS) return pageTokenCache.token
+  const json = await graphGet<{ access_token?: string }>(pageId, { fields: "access_token" })
+  if (!json.access_token) throw new Error(`Graph ${pageId}: no Page access token (is the Page assigned to the system user?)`)
+  pageTokenCache = { pageId, token: json.access_token, at: Date.now() }
+  return json.access_token
+}
+
 /** The Page's lead forms (every status - an archived form can still hold leads). */
 export async function fetchLeadForms(pageId = META_PAGE_ID): Promise<MetaLeadForm[]> {
-  return graphPages<MetaLeadForm>(`${pageId}/leadgen_forms`, { fields: "id,name,status", limit: "50" })
+  return graphPages<MetaLeadForm>(`${pageId}/leadgen_forms`, { fields: "id,name,status", limit: "50" }, await pageAccessToken(pageId))
 }
 
 /** Leads submitted to one form after `sinceUnix` (seconds), oldest first. */
-export async function fetchFormLeads(formId: string, sinceUnix: number): Promise<MetaLead[]> {
-  const rows = await graphPages<MetaLead>(`${formId}/leads`, {
-    fields: "id,created_time,field_data,ad_id,ad_name,adset_name,campaign_name,form_id",
-    filtering: JSON.stringify([{ field: "time_created", operator: "GREATER_THAN", value: Math.floor(sinceUnix) }]),
-    limit: "100",
-  })
+export async function fetchFormLeads(formId: string, sinceUnix: number, pageId = META_PAGE_ID): Promise<MetaLead[]> {
+  const rows = await graphPages<MetaLead>(
+    `${formId}/leads`,
+    {
+      fields: "id,created_time,field_data,ad_id,ad_name,adset_name,campaign_name,form_id",
+      filtering: JSON.stringify([{ field: "time_created", operator: "GREATER_THAN", value: Math.floor(sinceUnix) }]),
+      limit: "100",
+    },
+    await pageAccessToken(pageId),
+  )
   return rows.sort((a, b) => a.created_time.localeCompare(b.created_time))
 }
 
