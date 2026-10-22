@@ -54,6 +54,8 @@ python scripts/desk/desk.py order set  <单号> --free-item edamame=2           
 python scripts/desk/desk.py order set  <单号> --deal-rate tables_chairs=5 | --deal-free tables_chairs
 python scripts/desk/desk.py order set  <单号> --promo official_weekday=185 --remove-promo X --add-promo appreciation_veteran=50 --promo-label "..."
 python scripts/desk/desk.py order set  <单号> --chefs 2 --grills 2 --stations "..."   # 派工计划（老板定的）
+python scripts/desk/desk.py order hold <单号> --why "寿星出城，另挑日期"      # 日期待定：派对还在、日期拿掉（日历「日期待定」栏）；客人改期就用它
+python scripts/desk/desk.py order redate <单号> --date 2026-11-14 [--time 18:00]   # 待定的单定了新日期
 python scripts/desk/desk.py order preview <单号>
 python scripts/desk/desk.py order remind <单号> --dry              # 前一天提醒，先 --dry
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信请回 confirm（先自查、老板看过）

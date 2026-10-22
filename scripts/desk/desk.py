@@ -859,6 +859,24 @@ def cmd_order(a):
         return
     order = _order_row(a.ident)
     order_no = order.get("order_no")
+    if a.op == "hold":
+        # 日期待定 (owner 2026-10-04): the party is still on, the date is not -
+        # e.g. Yvette 10-21, the birthday boy left town. The order keeps its
+        # card and price; the date comes off the order and the invoice (the
+        # calendar lists it under 日期待定) until `order redate`.
+        res = site_post("/api/admin/orders/date-hold", {"orderId": order["id"], "action": "hold", "note": a.why or ""})
+        was = (order.get("event_start") or "")[:16].replace("T", " ")
+        print(f"OK    {order_no} date on hold{' (already)' if res.get('already') else ''} - was {was or '-'}")
+        return
+    if a.op == "redate":
+        if not a.date:
+            raise SystemExit("order redate needs --date YYYY-MM-DD [--time HH:MM]")
+        payload = {"orderId": order["id"], "action": "set_date", "date": a.date}
+        if a.time:
+            payload["time"] = a.time
+        site_post("/api/admin/orders/date-hold", payload)
+        print(f"OK    {order_no} date set {a.date} {a.time or '(time to be confirmed)'}")
+        return
     if a.op == "show":
         # The invoice app's prefill is the canonical InvoiceData (it builds
         # guest rows from the counts when the menu is not in yet); the
@@ -1570,7 +1588,8 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind", "hold", "redate"]); p.add_argument("ident")
+    p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date)")
     p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
