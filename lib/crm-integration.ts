@@ -1,5 +1,6 @@
 import { createHmac, randomUUID } from "node:crypto"
 import { decodeDeal, type CustomDeal } from "@/lib/custom-deal"
+import type { LockTravel, LockTravelSource } from "@/lib/lock-travel"
 import type Stripe from "stripe"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { getRuntimeEnvironmentTag } from "@/lib/runtime-env"
@@ -48,7 +49,14 @@ export type CrmDepositPaidEventEnvelope = {
     guest_child_count?: number
     invoice_details?: {
       total_cost?: number
+      /** The travel fee to bill (0 when waived); absent when nothing was measured or quoted. */
       travel_fee?: number
+      /** Driving miles from the base to the party address, when measured at lock (lib/lock-travel.ts). */
+      travel_miles?: number
+      /** How travel_fee was reached; the order system ignores the travel fields without it. */
+      travel_source?: LockTravelSource
+      /** The signed deal waived travel: $0 on purpose, the miles still recorded for chef pay. */
+      travel_waived?: boolean
       agreed_total?: number
       /** Per-party deal rules; the order system re-prices them on every change. */
       custom_deal?: CustomDeal
@@ -496,8 +504,11 @@ export function buildDepositPaidEventEnvelope(params: {
   source?: string
   /** Present when the session saved a card instead of taking a deposit (D-1006-04). */
   cardOnFile?: CrmCardOnFile
+  /** Travel and the standard address, settled as the lock completed (lib/lock-travel.ts). */
+  travel?: LockTravel
 }): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
   const source = resolveSource(params.source)
+  const travel = params.travel
   const deploymentEnvironment = getRuntimeEnvironmentTag()
   // Set server-side at checkout creation, only after its signature verified.
   // Rules the owner signed into the deposit link (free rentals, a per-head
@@ -574,17 +585,27 @@ export function buildDepositPaidEventEnvelope(params: {
           asString(params.session.customer_email),
         event_start: eventStart,
         event_timezone: "America/Los_Angeles",
-        event_address: asString(params.booking?.address) ?? asString(params.session.metadata?.location),
+        event_address:
+          asString(travel?.standardized ? travel.address : undefined) ??
+          asString(params.booking?.address) ??
+          asString(params.session.metadata?.location),
         guest_adult_count: typeof params.booking?.guest_adults === "number" ? params.booking.guest_adults : undefined,
         guest_child_count: typeof params.booking?.guest_kids === "number" ? params.booking.guest_kids : undefined,
         invoice_details:
           typeof params.booking?.total_cost === "number" ||
           typeof params.booking?.travel_fee === "number" ||
+          travel !== undefined ||
           agreedTotal !== undefined ||
           customDeal !== undefined
             ? {
                 total_cost: params.booking?.total_cost ?? undefined,
-                travel_fee: params.booking?.travel_fee ?? undefined,
+                // Measured at lock when there is a travel result: its fee is
+                // left out when nothing could be measured or quoted, so the
+                // order shows "unknown" rather than a placeholder $0.
+                travel_fee: travel ? (travel.fee ?? undefined) : (params.booking?.travel_fee ?? undefined),
+                travel_miles: travel?.miles ?? undefined,
+                travel_source: travel?.source,
+                travel_waived: travel?.waived ? true : undefined,
                 // Negotiated price, verified when the checkout was created. The
                 // order system turns it into a "Special rate" line on the invoice.
                 agreed_total: agreedTotal,

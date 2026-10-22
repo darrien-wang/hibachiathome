@@ -68,6 +68,42 @@ test("signing · a half-price-tables deal round-trips through sign / verify / de
   assert.equal(verifyDeal(LEAD, edited, sig), null)
 })
 
+test("travelWaived · kept only when it is really true, and a waiver alone is a deal", () => {
+  assert.deepEqual(normalizeDeal({ travelWaived: true }), { travelWaived: true })
+  assert.equal(normalizeDeal({ travelWaived: "true" }), null)
+  assert.equal(normalizeDeal({ travelWaived: 1 }), null)
+  assert.equal(normalizeDeal({ travelWaived: false }), null)
+  assert.deepEqual(normalizeDeal({ freeExtraIds: ["tables_chairs"], travelWaived: true }), { freeExtraIds: ["tables_chairs"], travelWaived: true })
+  assert.equal(normalizeDeal({ freeExtraIds: ["tables_chairs"] })?.travelWaived, undefined)
+})
+
+test("travelWaived · appended last and only when set: older deals still encode byte for byte", () => {
+  const json = (deal: Parameters<typeof encodeDeal>[0]) => Buffer.from(encodeDeal(deal), "base64url").toString("utf8")
+  assert.equal(json({ travelWaived: true }), '{"adultRate":null,"childRate":null,"freeExtraIds":[],"flatOff":null,"note":"","travelWaived":true}')
+  assert.equal(
+    json({ extraRates: { tables_chairs: 5 }, travelWaived: true }),
+    '{"adultRate":null,"childRate":null,"freeExtraIds":[],"flatOff":null,"note":"","extraRates":{"tables_chairs":5},"travelWaived":true}',
+  )
+  assert.equal(encodeDeal({ freeExtraIds: ["tables_chairs"], travelWaived: false }), encodeDeal({ freeExtraIds: ["tables_chairs"] }))
+  // The pinned pre-extraRates encoding is untouched (see above).
+  assert.equal(
+    encodeDeal({ freeExtraIds: ["tables_chairs"] }),
+    "eyJhZHVsdFJhdGUiOm51bGwsImNoaWxkUmF0ZSI6bnVsbCwiZnJlZUV4dHJhSWRzIjpbInRhYmxlc19jaGFpcnMiXSwiZmxhdE9mZiI6bnVsbCwibm90ZSI6IiJ9",
+  )
+})
+
+test("travelWaived · signed like the other rules: round-trips, and cannot be added to a signed link", () => {
+  process.env.AGREED_TOTAL_SECRET = "test-secret"
+  const deal = normalizeDeal({ freeExtraIds: ["tables_chairs"], travelWaived: true, note: "Lancaster, travel on us" })!
+  const encoded = encodeDeal(deal)
+  const sig = signDeal(LEAD, encoded)!
+  assert.deepEqual(verifyDeal(LEAD, encoded, sig), deal)
+  assert.deepEqual(decodeDeal(encoded), deal, "what the deposit webhook reads back from Stripe metadata")
+  const plain = encodeDeal({ freeExtraIds: ["tables_chairs"] })
+  const plainSig = signDeal(LEAD, plain)!
+  assert.equal(verifyDeal(LEAD, encodeDeal({ freeExtraIds: ["tables_chairs"], travelWaived: true }), plainSig), null, "editing a waiver in breaks the signature")
+})
+
 test("signing · an old free-tables link still verifies and decodes the same", () => {
   process.env.AGREED_TOTAL_SECRET = "test-secret"
   const encoded = "eyJhZHVsdFJhdGUiOm51bGwsImNoaWxkUmF0ZSI6bnVsbCwiZnJlZUV4dHJhSWRzIjpbInRhYmxlc19jaGFpcnMiXSwiZmxhdE9mZiI6bnVsbCwibm90ZSI6IiJ9"

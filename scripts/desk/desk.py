@@ -607,7 +607,9 @@ def cmd_link(a):
                       tables=heads if "tables_chairs" in rates else 0, utensils=heads if "utensils" in rates else 0)
         if p and p.get("ok") and p.get("price"):
             pr = p["price"]
-            est = round(max(pr["total"] - cut, MINIMUM_SPEND + (pr.get("travelFee") or 0)))
+            # A waived drive is not in the price the customer sees either.
+            waived = (pr.get("travelFee") or 0) if a.waive_travel else 0
+            est = round(max(pr["total"] - cut - waived, MINIMUM_SPEND + (pr.get("travelFee") or 0) - waived))
     q = {"source": "workbench", "location": a.city, "adults": str(a.adults), "kids": str(a.kids)}
     if est is not None:
         q["estimate_low"] = q["estimate_high"] = str(est)
@@ -634,15 +636,21 @@ def cmd_link(a):
         deal["extraRates"] = rates
     if a.flat_off:
         deal["flatOff"] = a.flat_off
+    if a.waive_travel:
+        # The drive is on the owner: the order bills $0 travel on purpose and
+        # still records the miles for the chef's pay (2026-10-21).
+        deal["travelWaived"] = True
     if deal:
         if not a.lead:
-            raise SystemExit("a deal (--free / --rate / --flat-off) is signed per lead: give --lead")
+            raise SystemExit("a deal (--free / --rate / --flat-off / --waive-travel) is signed per lead: give --lead")
         signed = site_post("/api/admin/custom-deal", {"leadId": a.lead, **deal, **({"note": a.deal_note} if a.deal_note else {})})
         if not signed.get("ok") or not signed.get("query"):
             raise SystemExit(dump(signed))
         dropped = sorted(set(rates) - set(((signed.get("deal") or {}).get("extraRates") or {})))
         if dropped:
             raise SystemExit(f"--rate {dropped}: the site would not sign that (not an extra a deal can price) - no link made")
+        if a.waive_travel and not (signed.get("deal") or {}).get("travelWaived"):
+            raise SystemExit("--waive-travel: the site did not sign the waiver (deployed before travelWaived?) - no link made")
         deal = signed.get("deal") or deal
         long_url += "&" + signed["query"]
     out = site_post("/api/admin/short-link", {"url": long_url, **({"leadId": a.lead} if a.lead else {})})
@@ -1555,6 +1563,9 @@ def main(argv=None):
                    help="deal: an extra at a set price per guest instead of the catalog's, e.g. tables_chairs=5 - Saturday's half price "
                         "(D-1017-01). Re-priced on the order when the headcount moves; the order puts the item on the party (deposit only)")
     p.add_argument("--flat-off", type=float, help="deal: dollars off the total (deposit only)")
+    p.add_argument("--waive-travel", action="store_true",
+                   help="deal: travel is on us - the order bills $0 travel and keeps the miles for chef pay (deposit only; "
+                        "an order that already exists: order set --travel-fee 0)")
     p.add_argument("--deal-note", help="deal: why, shown on the order")
     p.set_defaults(fn=cmd_link)
     # Calls: recordings on the lead, transcribed locally with the speakers

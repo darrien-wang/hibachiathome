@@ -12,6 +12,9 @@ import {
   type CrmCardOnFile,
 } from "@/lib/crm-integration"
 import { deliverCrmOutboxRecord, enqueueCrmOutboxEvent } from "@/lib/crm-outbox"
+import { decodeDeal } from "@/lib/custom-deal"
+import { escapeHtml } from "@/lib/escape-html"
+import { quotedTravel, resolveLockTravel, type LockTravel } from "@/lib/lock-travel"
 import { normalizeRhBookingNumber } from "@/lib/booking-number"
 import { trackDepositCompletedServer } from "@/lib/ga4-measurement-protocol"
 import { isChatgptCapiConfigured, sendChatgptDepositConversion } from "@/lib/chatgpt-ads-capi"
@@ -733,10 +736,101 @@ async function registerEventForIdempotency(
   return "error"
 }
 
+/**
+ * The lead's newest texted quote (landing_quote_text): the travel it quoted,
+ * whether it left travel pending, and the town it was for.
+ */
+async function latestTextedQuote(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  leadId: string | undefined,
+): Promise<{ travelFee: number | null; travelPending: boolean; city: string | null } | null> {
+  if (!leadId || !isLikelyUuid(leadId)) return null
+  const { data } = await supabase
+    .from("lead_touchpoints")
+    .select("raw_payload_json")
+    .eq("lead_id", leadId)
+    .eq("touchpoint_type", "landing_quote_text")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const payload = (data?.raw_payload_json ?? null) as Record<string, unknown> | null
+  if (!payload) return null
+  const computed = (payload.computed ?? {}) as Record<string, unknown>
+  const travelFee = Number(computed.travelFee)
+  return {
+    travelFee: Number.isFinite(travelFee) ? travelFee : null,
+    travelPending: payload.travelPending === true,
+    city: asNonEmptyString(payload.cityName) ?? null,
+  }
+}
+
+/**
+ * Travel and the order's address, settled as the lock completes
+ * (lib/lock-travel.ts, 2026-10-21). Until then every self-locked order came
+ * in at $0 travel - the placeholder booking's - and sometimes with an address
+ * the day map could not place ("210 Georgina Avenue"). Started as soon as the
+ * webhook arrives, alongside the booking update; never throws.
+ */
+async function lockTravelForSession(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  session: Stripe.Checkout.Session,
+): Promise<LockTravel | null> {
+  try {
+    const metadata = session.metadata ?? {}
+    let typed = asNonEmptyString(metadata.location)
+    if (!typed) {
+      // A booking from the old booking form carries its own address.
+      const { data } = await supabase.from("bookings").select("address").eq("stripe_session_id", session.id).maybeSingle()
+      typed = asNonEmptyString((data as { address?: unknown } | null)?.address)
+    }
+    const deal = decodeDeal(metadata.custom_deal)
+    const texted = await latestTextedQuote(supabase, asNonEmptyString(metadata.lead_id)).catch(() => null)
+    // The town the customer was quoted for: the link's place when they typed
+    // a street over it, else the texted quote's.
+    const place = asNonEmptyString(metadata.location_hint) ?? texted?.city ?? null
+    // A deal or an agreed total reshapes the link's estimate, so its travel
+    // part cannot be read off it.
+    const plainEstimate = !deal && !(Number(metadata.agreed_total) > 0)
+    const quotedFee = quotedTravel({
+      textedQuote: texted,
+      estimate: plainEstimate
+        ? {
+            amount: Number(metadata.estimate_high),
+            adults: Number(metadata.adults) || 0,
+            kids: Number(metadata.kids) || 0,
+            eventDate: asNonEmptyString(metadata.event_date) ?? null,
+          }
+        : null,
+      place: place ?? typed ?? null,
+    })
+    return await resolveLockTravel({ address: typed, cityHint: place, quotedFee, waived: deal?.travelWaived === true })
+  } catch (error) {
+    console.error("[stripe/webhook] Lock travel could not be settled:", { sessionId: session.id, error })
+    return null
+  }
+}
+
+/** The settled address, ZIP and travel fee onto the booking row the CRM snapshot is read from. */
+async function persistLockTravel(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  bookingId: string,
+  travel: LockTravel,
+) {
+  const patch: Record<string, unknown> = {}
+  if (travel.standardized && travel.address) patch.address = travel.address
+  if (travel.zip) patch.zip_code = travel.zip
+  if (travel.fee !== null) patch.travel_fee = travel.fee
+  if (Object.keys(patch).length === 0) return
+  const { error } = await supabase.from("bookings").update(patch).eq("id", bookingId)
+  if (error) console.error("[stripe/webhook] Failed to save lock travel on the booking:", { bookingId, error })
+}
+
 async function handleCheckoutSessionCompleted(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   session: Stripe.Checkout.Session,
 ) {
+  // Map lookups take a few seconds; they run while the booking is updated.
+  const lockTravelPromise = lockTravelForSession(supabase, session)
   const paymentIntentId = normalizePaymentIntentId(session.payment_intent)
   const cardOnFile = await readCardOnFile(session)
   const depositAmount = cardOnFile ? 0 : amountFromMinorUnits(session.amount_total)
@@ -869,6 +963,9 @@ async function handleCheckoutSessionCompleted(
     }
   }
 
+  const lockTravel = await lockTravelPromise
+  if (lockTravel && updatedBookingId) await persistLockTravel(supabase, updatedBookingId, lockTravel)
+
   const bookingSnapshot = await loadBookingCrmSnapshot(supabase, updatedBookingId)
 
   return {
@@ -879,6 +976,7 @@ async function handleCheckoutSessionCompleted(
     cardOnFile,
     bookingSnapshot,
     bookingSyncWarnings,
+    lockTravel,
   }
 }
 
@@ -1120,6 +1218,8 @@ async function sendOpsDepositPaidNotification(params: {
     bookingId?: string
     selfServiceLink?: string
   }
+  /** How the order's travel was settled at lock (lib/lock-travel.ts); null when that step itself failed. */
+  lockTravel?: LockTravel | null
 }): Promise<OpsEmailDeliveryResult> {
   const bookingId = params.customerNotification.bookingId
   const customerName =
@@ -1155,6 +1255,12 @@ async function sendOpsDepositPaidNotification(params: {
     asNonEmptyString(params.session.metadata?.source) ??
     "stripe_webhook"
   const selfServiceLink = asNonEmptyString(params.customerNotification.selfServiceLink) ?? "N/A"
+  // Travel on the order, and how it was reached. Unknown travel is never a
+  // quiet $0: it says so here and in the subject, so someone checks the address.
+  const travel = params.lockTravel
+  const travelUnknown = !travel || (travel.fee === null && !travel.waived)
+  const travelText = travel ? travel.summary : "NOT SETTLED - lock travel step failed: check the address and run desk travel"
+  const travelMark = travelUnknown ? "⚠ " : travel?.source === "quote" ? "(not measured) " : ""
 
   const lines = [
     "Deposit payment completed for Real Hibachi.",
@@ -1168,6 +1274,7 @@ async function sendOpsDepositPaidNotification(params: {
     `Event Date: ${eventDate}`,
     `Event Time: ${eventTime}`,
     `Location: ${eventAddress}`,
+    `Travel: ${travelMark}${travelText}`,
     `Guests: adults=${guestAdults}, kids=${guestKids}`,
     `Deposit Amount: ${depositAmountText}`,
     `Self-Service Link: ${selfServiceLink}`,
@@ -1185,6 +1292,7 @@ async function sendOpsDepositPaidNotification(params: {
     `<p><strong>Event Date:</strong> ${eventDate}</p>`,
     `<p><strong>Event Time:</strong> ${eventTime}</p>`,
     `<p><strong>Location:</strong> ${eventAddress}</p>`,
+    `<p><strong>Travel:</strong> ${escapeHtml(`${travelMark}${travelText}`)}</p>`,
     `<p><strong>Guests:</strong> adults=${guestAdults}, kids=${guestKids}</p>`,
     `<p><strong>Deposit Amount:</strong> ${depositAmountText}</p>`,
     selfServiceLink === "N/A"
@@ -1193,7 +1301,7 @@ async function sendOpsDepositPaidNotification(params: {
   ].join("")
 
   return sendSupportNotificationEmail({
-    subject: `Deposit Paid: ${bookingId ?? params.session.id}`,
+    subject: `${travelUnknown ? "⚠ Travel unknown · " : ""}Deposit Paid: ${bookingId ?? params.session.id}`,
     text: lines.join("\n"),
     html,
     replyTo: customerEmail !== "N/A" ? customerEmail : undefined,
@@ -1450,6 +1558,7 @@ export async function POST(request: NextRequest) {
         paymentIntentId: result.paymentIntentId,
         depositAmount: result.depositAmount,
         cardOnFile: result.cardOnFile ?? undefined,
+        travel: result.lockTravel ?? undefined,
       })
 
       let crmForwarded = false
@@ -1540,6 +1649,7 @@ export async function POST(request: NextRequest) {
         paymentIntentId: result.paymentIntentId,
         depositAmount: result.depositAmount,
         customerNotification,
+        lockTravel: result.lockTravel,
       })
 
       if (!customerNotification.email.delivered && customerNotification.email.attempted) {

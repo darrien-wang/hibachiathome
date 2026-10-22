@@ -33,6 +33,8 @@ type DepositStartPayload = {
   eventDate?: string
   eventTime?: string
   location?: string
+  /** The town the link named, when the customer typed a street over it. */
+  locationHint?: string
   adults?: number
   kids?: number
   tent10x10?: boolean
@@ -68,6 +70,7 @@ type NormalizedDepositStartPayload = {
   eventDate?: string
   eventTime?: string
   location?: string
+  locationHint?: string
   adults?: number
   kids?: number
   tent10x10?: boolean
@@ -286,6 +289,8 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
   // it for this exact lead, so nobody can hand themselves free tables by
   // editing the link.
   const deal = verifyDeal(leadIdForSig, normalizeString(payload.deal), normalizeString(payload.dealSig)) ?? undefined
+  const location = normalizeString(payload.location)
+  const locationHint = normalizeString(payload.locationHint)
 
   return {
     agreedTotal,
@@ -302,7 +307,10 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
     customerEmail: normalizeString(payload.customerEmail),
     eventDate: normalizeString(payload.eventDate),
     eventTime: normalizeString(payload.eventTime),
-    location: normalizeString(payload.location),
+    location,
+    // Lets the lock put a bare street line ("210 Georgina Avenue") in the
+    // town it was quoted for (lib/lock-travel.ts).
+    locationHint: locationHint && locationHint.toLowerCase() !== location?.toLowerCase() ? locationHint.slice(0, 120) : undefined,
     adults: normalizeNumber(payload.adults),
     kids: normalizeNumber(payload.kids),
     tent10x10: normalizeBoolean(payload.tent10x10),
@@ -391,6 +399,7 @@ function parseGetPayload(request: NextRequest): NormalizedDepositStartPayload {
     eventDate: params.get("event_date") ?? undefined,
     eventTime: params.get("event_time") ?? undefined,
     location: params.get("location") ?? undefined,
+    locationHint: params.get("location_hint") ?? undefined,
     adults: params.get("adults") ?? undefined,
     kids: params.get("kids") ?? undefined,
     tent10x10: params.get("tent_10x10") ?? undefined,
@@ -467,6 +476,7 @@ function buildMetadata(
     event_date: metadataField(payload.eventDate),
     event_time: metadataField(payload.eventTime),
     location: metadataField(payload.location),
+    location_hint: metadataField(payload.locationHint),
     adults: metadataField(payload.adults),
     kids: metadataField(payload.kids),
     tent_10x10: metadataField(payload.tent10x10),
@@ -638,6 +648,9 @@ async function persistPendingDepositState(params: {
     params.payload.source ? `deposit_source=${params.payload.source}` : undefined,
   ].filter(Boolean)
 
+  // Address, ZIP and travel are placeholders until the lock completes: the
+  // Stripe webhook then puts the address in "street, City, CA zip" form and
+  // measures the travel (lib/lock-travel.ts). Abandoned checkouts keep these.
   const placeholderBooking: Record<string, unknown> = {
     full_name: customerName,
     email: customerEmail,

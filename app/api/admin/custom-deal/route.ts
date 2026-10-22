@@ -6,10 +6,11 @@ import { encodeDeal, normalizeDeal, signDeal } from "@/lib/custom-deal"
 export const dynamic = "force-dynamic"
 
 // Staff-only: sign the owner's deal for a lead's deposit link.
-//   POST { leadId, adultRate?, childRate?, freeExtraIds?, extraRates?, flatOff?, note? }
+//   POST { leadId, adultRate?, childRate?, freeExtraIds?, extraRates?, flatOff?, travelWaived?, note? }
 //     -> { ok, deal, query }
 // extraRates bills an extra at a set price per unit, e.g. { tables_chairs: 5 }
-// for Saturday's half-price tables (D-1017-01).
+// for Saturday's half-price tables (D-1017-01). travelWaived: true puts the
+// travel on the owner - the order bills $0 travel and keeps the miles.
 // `query` appends to a /deposit/pay URL. Unlike agreed_total (one frozen
 // number), these rules travel to the order system and are re-priced whenever
 // the party changes - headcount, upgrades, rentals.
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const deal = normalizeDeal(body.deal ?? body)
   if (!deal) {
     return NextResponse.json(
-      { ok: false, error: "give at least one rule: adultRate, childRate, freeExtraIds, extraRates or flatOff" },
+      { ok: false, error: "give at least one rule: adultRate, childRate, freeExtraIds, extraRates, flatOff or travelWaived" },
       { status: 400 },
     )
   }

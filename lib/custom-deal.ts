@@ -20,6 +20,11 @@ export interface CustomDeal {
    */
   extraRates?: Record<string, number>
   flatOff?: number
+  /**
+   * Travel is on the owner for this party (2026-10-21): the order bills $0
+   * travel on purpose and still records the driving miles for chef pay.
+   */
+  travelWaived?: boolean
   note?: string
 }
 
@@ -82,6 +87,7 @@ export function normalizeDeal(input: unknown): CustomDeal | null {
   if (freeExtraIds.length > 0) deal.freeExtraIds = freeExtraIds
   if (Object.keys(extraRates).length > 0) deal.extraRates = extraRates
   if (flatOff !== undefined && flatOff > 0) deal.flatOff = flatOff
+  if (source.travelWaived === true) deal.travelWaived = true
   const note = typeof source.note === "string" ? source.note.trim().slice(0, 80) : ""
   if (note) deal.note = note
   const hasRule =
@@ -89,14 +95,16 @@ export function normalizeDeal(input: unknown): CustomDeal | null {
     deal.childRate !== undefined ||
     deal.freeExtraIds !== undefined ||
     deal.extraRates !== undefined ||
-    deal.flatOff !== undefined
+    deal.flatOff !== undefined ||
+    deal.travelWaived === true
   return hasRule ? deal : null
 }
 
 /**
  * Canonical JSON (fixed key order) so the same deal always signs the same.
- * `extraRates` (2026-10-17) is appended only when the deal has one, so every
- * deal from before it encodes byte for byte as it always did.
+ * `extraRates` (2026-10-17) and `travelWaived` (2026-10-21) are appended only
+ * when the deal has them, so every deal from before them encodes byte for
+ * byte as it always did.
  */
 export function encodeDeal(deal: CustomDeal): string {
   const canonical: Record<string, unknown> = {
@@ -108,6 +116,7 @@ export function encodeDeal(deal: CustomDeal): string {
   }
   const rateIds = Object.keys(deal.extraRates ?? {}).sort()
   if (rateIds.length > 0) canonical.extraRates = Object.fromEntries(rateIds.map((id) => [id, deal.extraRates![id]]))
+  if (deal.travelWaived === true) canonical.travelWaived = true
   return Buffer.from(JSON.stringify(canonical), "utf8").toString("base64url")
 }
 

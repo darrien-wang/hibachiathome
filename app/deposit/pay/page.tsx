@@ -535,6 +535,9 @@ function DepositPaymentPageInner() {
           eventDate: detailsEditable ? effectiveDate || undefined : booking.event_date,
           eventTime: detailsEditable ? effectiveTime || undefined : booking.event_time,
           location: detailsEditable ? effectiveLocation || undefined : booking.location,
+          // The town the link was quoted for, when a typed street replaced
+          // it: the lock reads "210 Georgina Avenue" in that town first.
+          locationHint: detailsEditable && locationInput.trim() && base.location ? base.location : undefined,
           adults: detailsEditable ? adultsInput : booking.guest_adults,
           kids: detailsEditable ? kidsInput : booking.guest_kids,
           tent10x10: booking.tent_10x10,
