@@ -76,6 +76,11 @@ const faqs = [
       "Standard at every event: vegetarian and vegan guests get tofu and extra vegetables at the same per-person rate, gluten-free guests can bring preferred sauces and we cook on a separate station, and we review allergy labels with you before the date. Collect your guests' needs and we plan the grill around them.",
   },
   {
+    question: "Can I hire someone to grill at my party instead of ordering BBQ trays?",
+    answer:
+      "Yes - that is what a hibachi chef is. The chef sets up a teppanyaki grill at your home, office or rental and cooks 2 proteins per guest, fried rice and vegetables live in front of everyone, fire show included. It suits parties of 10 to 40 who want dinner and the entertainment in one; we don't do ribs or brisket. See the on-site grill catering page for the full comparison.",
+  },
+  {
     question: "How far in advance should we book?",
     answer:
       "Weekend evening slots go first — two to three weeks ahead is comfortable for most dates, and longer for December and graduation season. Weekday and daytime slots are often available on shorter notice.",
@@ -221,9 +226,14 @@ export default function HibachiCateringHubPage() {
           heading="Hibachi Catering Questions"
           faqs={faqs}
           footer={
-            <Link href="/faq" className="font-semibold text-flame-700 underline">
-              View All FAQs
-            </Link>
+            <span className="flex flex-wrap gap-x-4 gap-y-1">
+              <Link href="/faq" className="font-semibold text-flame-700 underline">
+                View All FAQs
+              </Link>
+              <Link href="/on-site-grill-catering" className="font-semibold text-flame-700 underline">
+                On-site grill catering vs. BBQ
+              </Link>
+            </span>
           }
         />
 

@@ -18,6 +18,7 @@ const LAST_UPDATED: Record<string, string> = {
   "/es": "2026-09-03T00:00:00.000Z", // Spanish homepage launch
   "/es/preguntas-frecuentes": "2026-09-03T00:00:00.000Z", // Spanish FAQ launch
   "/mobile-hibachi": "2026-09-05T00:00:00.000Z", // themed LP launch
+  "/on-site-grill-catering": "2026-10-21T00:00:00.000Z", // bbq/grill long-tail page launch (D-1021-03)
   "/private-hibachi-chef": "2026-09-05T00:00:00.000Z", // themed LP launch
   "/hibachi-catering": "2026-09-05T00:00:00.000Z", // catering hub launch (was 404)
   "/hibachi-at-home": "2026-08-27T00:00:00.000Z", // weather policy copy
@@ -39,6 +40,7 @@ const STATIC_ROUTES = [
   "/hibachi-at-home", // Core at-home hibachi service page
   "/for-ai", // Facts and booking API for AI assistants (D-0917-06)
   "/mobile-hibachi", // Mobile-hibachi keyword family LP
+  "/on-site-grill-catering", // "on-site bbq catering" / "hire someone to grill" long tail
   "/private-hibachi-chef", // Private-chef keyword family LP
   "/hibachi-catering", // Catering hub (city pages hang under it)
   "/locations/la-orange-county", // Los Angeles page - highest priority
