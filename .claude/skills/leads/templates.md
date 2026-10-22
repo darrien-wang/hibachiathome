@@ -105,6 +105,7 @@ Hi, it's Rowling - [April 24] is a ways off, so no rush. Whenever you're ready, 
 - **问小孩年龄**：见 `answers.md` §吃什么。
 - **免费小孩确认**：`Quick check for tomorrow: are [three] of the kids 3-4 (those eat free), or are all [8] between 5 and 12?`
 - **师傅名字（前一天）**：`Your chef is [Blu] - he'll be there around [5] to set up. I'm still your contact, text me anytime.`
+- **请已锁单的客人挪一下时间**（同一位师傅两场接不上，老板 10-22）：问法中性、可选，不提另一场、不提排班；客人说不行就照旧。`Quick question for Saturday - would [3:00] work just as well for your group as [3:30]? If [3:30] is better, we'll keep it - no problem at all.` 客人问为什么，照实说"多一点时间把布置做好"这类对他有用的真话，不编理由。
 - **发票**（`desk order send` 自带）：`Here's your invoice for [Friday]: <link> - please look it over and reply "confirm" here if it's all right. A PDF copy is in your email too.`
 - **问来源**（只问系统归不了因的、锁单后一次，搭在客气话后）：`Got it, thank you! Just curious - how did you find us?`
 
