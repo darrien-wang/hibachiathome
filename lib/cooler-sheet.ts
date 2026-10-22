@@ -64,10 +64,6 @@ const VEGE_NET_SPLIT: Array<{ label: string; ratio: number }> = [
   { label: "洋葱", ratio: 0.3 },
   { label: "胡萝卜", ratio: 0.1 },
 ]
-// 熟饭 ≈ 生米 × 3（50 磅一袋生米 ≈ 2400 盎司熟饭）；美式量杯 1 杯生米约 7 盎司。
-// 第一次照这个煮，让后勤说一下实际用了几杯，再校准。
-const RICE_COOKED_PER_RAW = 3
-const RICE_CUP_OZ = 7
 
 type Line = { label: string; amount: string; note?: string }
 
@@ -93,9 +89,9 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   const vege: Line[] = []
   const vegeNet = sum.mixed_vege * VEGE_NET_PER_RAW
   if (vegeNet > 0) {
-    for (const v of VEGE_NET_SPLIT) vege.push({ label: `${v.label} 切好`, amount: `${nice(vegeNet * v.ratio)} 盎司`, note: lbNice(nice(vegeNet * v.ratio)) })
+    for (const v of VEGE_NET_SPLIT) vege.push({ label: v.label, amount: `${nice(vegeNet * v.ratio)} 盎司`, note: lbNice(nice(vegeNet * v.ratio)) })
     const volcanoes = parties.filter((p) => (p.work?.mixed_vege ?? 0) > 0).length
-    vege.push({ label: "洋葱火山 切好", amount: `${volcanoes} 个`, note: "一场一个" })
+    vege.push({ label: "洋葱火山", amount: `${volcanoes} 个`, note: "一场一个" })
   }
   // 洋葱碎：每 10 个人 10 盎司，大人小孩都算一个人；多切一点，加一成再往上凑到整 10
   // （老板 2026-10-22："86 个人大概切一个 100 盎司"）。和上面"洋葱 切好"（蔬菜混合里的）是两样东西。
@@ -106,15 +102,9 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   }
 
   const rice: Line[] = []
-  if (sum.fried_rice > 0) {
-    const rawOz = sum.fried_rice / RICE_COOKED_PER_RAW
-    // 写煮好的熟饭（老板 2026-10-22），带上每人多少；生米几杯只是顺手给个参照。
-    rice.push({
-      label: "熟米饭",
-      amount: `${up(sum.fried_rice)} 盎司`,
-      note: `每人 ${FRIED_RICE.adult} 盎司（小孩 ${FRIED_RICE.child}）· ${lb(sum.fried_rice)} · 大概要煮 ${up(rawOz / RICE_CUP_OZ)} 杯生米（美式量杯）`,
-    })
-  }
+  // 写煮好的熟饭，每人多少写出来；米饭小孩按大人的量算（老板 2026-10-22）。
+  const riceOz = parties.filter((p) => (p.work?.fried_rice ?? 0) > 0).reduce((n, p) => n + (p.adults + p.kids) * FRIED_RICE.adult, 0)
+  if (riceOz > 0) rice.push({ label: "熟米饭", amount: `${up(riceOz)} 盎司`, note: `每人 ${FRIED_RICE.adult} 盎司 · ${lb(riceOz)}` })
   const vegeShown = vegeNet > 0 ? VEGE_NET_SPLIT.reduce((n, v) => n + nice(vegeNet * v.ratio), 0) : 0
   return { meat, vege, vegeNet: vegeShown, rice }
 }
