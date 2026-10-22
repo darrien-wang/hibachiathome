@@ -49,10 +49,11 @@ export function coolerWork(items: PrepItem[], menuKnown: boolean): CoolerWork {
 }
 
 const up = (n: number) => Math.max(1, Math.ceil(n - 1e-9))
-// 数字尽量取整、好记（老板 2026-10-22）：一律往上凑——50 盎司以下凑到 5 的倍数，
-// 50 以上凑到 10 的倍数；磅数凑到半磅。多一点没关系，少了师傅不够用。
+const lb = (oz: number) => `约 ${Math.round((oz / 16) * 10) / 10} 磅`
+// 蔬菜和洋葱碎取整、好记（老板 2026-10-22，肉和米饭照实写）：往上凑——50 盎司以下
+// 凑到 5 的倍数，50 以上凑到 10 的倍数；磅数凑到半磅。多切一点没关系。
 const nice = (oz: number) => (oz <= 0 ? 0 : oz < 50 ? Math.ceil(oz / 5 - 1e-9) * 5 : Math.ceil(oz / 10 - 1e-9) * 10)
-const lb = (oz: number) => `约 ${Math.ceil((oz / 16) * 2 - 1e-9) / 2} 磅`
+const lbNice = (oz: number) => `约 ${Math.ceil((oz / 16) * 2 - 1e-9) / 2} 磅`
 
 // 切好的蔬菜每样写净重（老板 2026-10-22）：净重的四样比例和厨师备料单一致
 // （发票仓库 lib/pricing.ts VEGE_MIX：西葫芦/西兰花/洋葱各 30%、胡萝卜 10%，合计每人 5 盎司）。
@@ -77,7 +78,7 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   for (const p of parties) for (const id of WORK_IDS) sum[id] += p.work?.[id] ?? 0
   const meat: Line[] = []
   const cut = (id: keyof CoolerWork, label: string) => {
-    if (sum[id] > 0) meat.push({ label, amount: `${nice(sum[id])} 盎司`, note: lb(nice(sum[id])) })
+    if (sum[id] > 0) meat.push({ label, amount: `${up(sum[id])} 盎司`, note: lb(sum[id]) })
   }
   cut("chicken", "鸡胸肉 切块")
   cut("steak", "牛排 切块")
@@ -92,7 +93,7 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   const vege: Line[] = []
   const vegeNet = sum.mixed_vege * VEGE_NET_PER_RAW
   if (vegeNet > 0) {
-    for (const v of VEGE_NET_SPLIT) vege.push({ label: `${v.label} 切好`, amount: `${nice(vegeNet * v.ratio)} 盎司`, note: lb(nice(vegeNet * v.ratio)) })
+    for (const v of VEGE_NET_SPLIT) vege.push({ label: `${v.label} 切好`, amount: `${nice(vegeNet * v.ratio)} 盎司`, note: lbNice(nice(vegeNet * v.ratio)) })
     const volcanoes = parties.filter((p) => (p.work?.mixed_vege ?? 0) > 0).length
     vege.push({ label: "洋葱火山 切好", amount: `${volcanoes} 个`, note: "一场一个" })
   }
@@ -101,7 +102,7 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   const heads = parties.reduce((n, p) => n + p.adults + p.kids, 0)
   if (heads > 0) {
     const dice = Math.ceil((heads * ONION_DICE_OZ_PER_GUEST * 1.1) / 10) * 10
-    vege.push({ label: "洋葱碎", amount: `${dice} 盎司`, note: `${lb(dice)} · 每 10 个人 10 盎司，多切一点` })
+    vege.push({ label: "洋葱碎", amount: `${dice} 盎司`, note: `${lbNice(dice)} · 每 10 个人 10 盎司，多切一点` })
   }
 
   const rice: Line[] = []
@@ -110,8 +111,8 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
     // 写煮好的熟饭（老板 2026-10-22），带上每人多少；生米几杯只是顺手给个参照。
     rice.push({
       label: "熟米饭",
-      amount: `${nice(sum.fried_rice)} 盎司`,
-      note: `每人 ${FRIED_RICE.adult} 盎司（小孩 ${FRIED_RICE.child}）· ${lb(nice(sum.fried_rice))} · 大概要煮 ${up(rawOz / RICE_CUP_OZ)} 杯生米（美式量杯）`,
+      amount: `${up(sum.fried_rice)} 盎司`,
+      note: `每人 ${FRIED_RICE.adult} 盎司（小孩 ${FRIED_RICE.child}）· ${lb(sum.fried_rice)} · 大概要煮 ${up(rawOz / RICE_CUP_OZ)} 杯生米（美式量杯）`,
     })
   }
   const vegeShown = vegeNet > 0 ? VEGE_NET_SPLIT.reduce((n, v) => n + nice(vegeNet * v.ratio), 0) : 0
