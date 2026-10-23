@@ -35,6 +35,18 @@ test("parseGuests takes the first number", () => {
   assert.equal(parseGuests("twelve"), 0)
 })
 
+test("parseGuests: a range inside the 10-guest minimum is its top end, a bigger one its low end", () => {
+  // What the form actually got on 2026-10-21/22.
+  assert.equal(parseGuests("1-10"), 10)
+  assert.equal(parseGuests("10-15"), 10)
+  assert.equal(parseGuests("16-20"), 16)
+  assert.equal(parseGuests("5 to 8 people"), 8)
+  assert.equal(parseGuests("6 \u2013 10"), 10)
+  assert.equal(parseGuests("8"), 8)
+  // A backwards range is not a range.
+  assert.equal(parseGuests("10-1"), 10)
+})
+
 test("parseLead maps Meta field names onto the quote body", () => {
   const lead = parseLead(
     {

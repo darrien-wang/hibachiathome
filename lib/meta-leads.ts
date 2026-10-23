@@ -13,6 +13,8 @@
 // Page (META_LEADS_TOKEN; META_ACCESS_TOKEN as a fallback if the owner regenerates
 // that one with the extra scopes). Without it every call says so.
 
+import { MINIMUM_COVERS_GUESTS } from "@/lib/landing-quote-text"
+
 const GRAPH = "https://graph.facebook.com/v21.0"
 /** Real Hibachi Page (not a secret - it is on every Business Suite URL). */
 export const META_PAGE_ID = process.env.META_PAGE_ID?.trim() || "1278206205381427"
@@ -124,9 +126,22 @@ function firstValue(fields: MetaLeadField[], ...needles: string[]): string {
   return ""
 }
 
-/** "20", "about 20", "20-25 people", "20 adults + 4 kids" -> 20. 0 when no number. */
+/**
+ * "20", "about 20", "20 adults + 4 kids" -> 20. A range is its low end
+ * ("15-20" -> 15, as the hand quotes did), except one that sits inside the
+ * minimum: "1-10" is "up to 10", and quoting it as 1 made the text say
+ * "$599 for 1 adult" (Susan Romero and Ornetha Butler, 2026-10-22). The price
+ * is the minimum either way. 0 when no number.
+ */
 export function parseGuests(text: string): number {
-  const m = /(\d{1,3})/.exec(text ?? "")
+  const t = text ?? ""
+  const range = /(\d{1,3})\s*(?:-|\u2013|\u2014|to)\s*(\d{1,3})/i.exec(t)
+  if (range) {
+    const lo = Number(range[1])
+    const hi = Number(range[2])
+    if (hi >= lo && hi <= MINIMUM_COVERS_GUESTS) return hi
+  }
+  const m = /(\d{1,3})/.exec(t)
   return m ? Math.min(300, Math.max(0, Number(m[1]))) : 0
 }
 
