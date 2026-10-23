@@ -74,7 +74,7 @@ python scripts/desk/desk.py scan --no-write   # 只看不写
 - 每条发出去的用桶做前缀记备注：`[SOP:f_one]`、`[SOP:f_deadline]`、`[SOP:deposit_ask]`、`[SOP:tables]`、`[SOP:b_callback]`、`[SOP:g_menu]`……周报按前缀算每类的回复率和锁单率
 - 客人说的原因记 `[why]`，场合记 `[occasion]`，自报时间记 `[callback]`
 - 发完满 3 条的立刻 `desk hold <id> 14`；H 里 `needs_hold` 的也挂
-- `has_paid_order` 的把状态改 won；`travel_underquoted` 的**不对客更正**，备注里记"到时候认不认老板定"
+- `has_paid_order` 的把状态改 won；`travel_underquoted`（报价按城市、实际地址更远）**按实际路费收**（老板 10-22），改订单后马上一句话告诉客人新总价
 
 ## 7. 报告格式（固定）
 
