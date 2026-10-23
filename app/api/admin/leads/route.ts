@@ -3,6 +3,7 @@ import { CALL_TRANSCRIPT_PREFIX, callSummaryNote, summarizeCallTranscript } from
 import { resolveAdminActor, publicActor, type AdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
+import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
 import { describeChefPayRule, normalizeChefPayRule } from "@/lib/chef-pay"
@@ -484,6 +485,11 @@ export async function PATCH(request: NextRequest) {
     const dedupeKey = digits.length > 10 ? digits.slice(-10) : digits
     if (!dedupeKey) {
       return NextResponse.json({ error: "unusable phone" }, { status: 400 })
+    }
+    // 员工打进来的（师傅、后勤）：不建线索、不记通话、不做小结（老板 2026-10-23，
+    // Eason 打 213 问备货，App 把他建成了新线索还写了【来电小结】）。短信那边 10-13 已经这样。
+    if (isStaffNumber(await loadStaffDigits(supabase), phone)) {
+      return NextResponse.json({ ok: true, staff: true, skipped: true })
     }
 
     const { data: match } = await supabase
