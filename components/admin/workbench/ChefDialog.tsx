@@ -143,6 +143,9 @@ export function ChefDialog({
   const settledRecent = useMemo(() => shifts.filter((s) => s.settledAt && Date.now() - Date.parse(s.settledAt) < 60 * 86400000).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12), [shifts])
   const approvedReimb = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "approved")
   const pendingReceipts = (d?.files ?? []).filter((f) => f.kind === "receipt" && f.status === "pending")
+  // 补差 / 扣款：结过的场事后算错了，在下一期加一行（chef_files kind=other，金额带正负号）。
+  const approvedAdjust = (d?.files ?? []).filter((f) => f.kind === "other" && f.status === "approved" && f.amount_cents != null)
+  const adjustTotal = approvedAdjust.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
   const payTotal = openRows.reduce((a, s) => a + (s.paySettledAt ? 0 : s.payCents), 0)
   const tablesTotal = openRows.reduce((a, s) => a + s.tablesCents, 0)
   const travelTotal = openRows.reduce((a, s) => a + s.travelCents, 0)
@@ -153,7 +156,7 @@ export function ChefDialog({
   const tipTotal = openRows.reduce((a, s) => a + s.cardTipCents, 0)
   const reimbTotal = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
   // 好评不进周结（2026-09-28 起每月单独出单，见下方好评卡）。
-  const net = payTotal + tablesTotal + travelTotal + reimbTotal + tipTotal - cashTotal - prepFeeTotal
+  const net = payTotal + tablesTotal + travelTotal + reimbTotal + adjustTotal + tipTotal - cashTotal - prepFeeTotal
   const perf = d?.performance ?? []
   const good = perf.filter((p) => p.review === "good").length
   const bad = perf.filter((p) => p.review === "bad").length
@@ -202,9 +205,9 @@ export function ChefDialog({
   const addPerf = () =>
     post("perf", { action: "add_perf", id: chefId, event_date: perfForm.date, customer_label: perfForm.customer, review: perfForm.review || null, late_minutes: Number(perfForm.late) || 0, comment: perfForm.comment, order_id: perfForm.orderId || undefined }, "已记录").then(() => setPerfForm({ ...perfForm, open: false, comment: "", late: "0", review: "" }))
   const settleAll = async () => {
-    if (openRows.length === 0 && approvedReimb.length === 0) return
+    if (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0) return
     const what = net > 0 ? `付给 ${name} ${money(net)}` : net < 0 ? `向 ${name} 收 ${money(-net)}` : "标记已结清"
-    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销。`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
+    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销${approvedAdjust.length ? ` + ${approvedAdjust.length} 笔补差/扣款` : ""}。`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
     if (method === null) return
     const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
@@ -999,9 +1002,15 @@ export function ChefDialog({
                 <span>+ 已批报销（{approvedReimb.length} 张）</span>
                 <span>{money(reimbTotal)}</span>
               </div>
+              {approvedAdjust.map((f) => (
+                <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--color-line)", color: "var(--color-neutral-700)" }}>
+                  <span>{(f.amount_cents ?? 0) >= 0 ? "+ 补差" : "− 扣"}：{f.title || "调整"}</span>
+                  <span>{(f.amount_cents ?? 0) < 0 ? `−${money(-(f.amount_cents ?? 0))}` : money(f.amount_cents ?? 0)}</span>
+                </div>
+              ))}
               <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 0 4px" }}>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}{prepFeeTotal ? ` − 食材加工 ${money(prepFeeTotal)}` : ""}
+                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)}{adjustTotal ? ` ${adjustTotal < 0 ? "−" : "+"} 补差/扣款 ${money(Math.abs(adjustTotal))}` : ""} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}{prepFeeTotal ? ` − 食材加工 ${money(prepFeeTotal)}` : ""}
                 </span>
                 <strong className="num" style={{ fontSize: 20, whiteSpace: "nowrap", color: net < 0 ? "var(--color-accent-700)" : undefined }}>
                   {net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清"}
@@ -1011,7 +1020,7 @@ export function ChefDialog({
 
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {owner ? (
-                <button type="button" className="btn btn-primary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0)} onClick={() => void settleAll()}>
+                <button type="button" className="btn btn-primary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0)} onClick={() => void settleAll()}>
                   {busy === "settle" ? "结算中…" : net > 0 ? `付给厨师 ${money(net)} 并结清` : net < 0 ? `收到 ${money(-net)} 并结清` : "标记本期已结清"}
                 </button>
               ) : null}

@@ -1057,6 +1057,12 @@ export async function POST(request: NextRequest) {
         const early = picked.filter((x) => !x.method)
         const { data: approved } = await supabase.from("chef_files").select("id, amount_cents").eq("staff_member_id", body.id).eq("kind", "receipt").eq("status", "approved")
         const reimb = only ? [] : approved ?? []
+        // 补差 / 扣款（2026-10-23）：结过的场事后发现算错了——路费少给、食材加工费漏扣——
+        // 不动已经结的那张单，在下一期结算里加一行，名目写清楚。存在 chef_files 里
+        // kind="other"、status="approved"、amount_cents 带正负号（正 = 补给师傅，负 = 扣），title 是名目。
+        const { data: adjRows } = await supabase.from("chef_files").select("id, title, amount_cents").eq("staff_member_id", body.id).eq("kind", "other").eq("status", "approved").not("amount_cents", "is", null)
+        const adjust = only ? [] : ((adjRows ?? []) as Array<{ id: string; title: string | null; amount_cents: number | null }>)
+        const adjustCents = adjust.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
         // 好评奖励 2026-09-28 起每月单独结（settle_reviews 出自己的对账单），
         // 周结不再掺好评——这里恒为空，字段留着只为对账单快照结构不变。
         const reviewRows2: Array<{ id: string; platform: string; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url?: string | null; cents: number }> = []
@@ -1071,10 +1077,10 @@ export async function POST(request: NextRequest) {
         const cash = ready.reduce((a, x) => a + x.cashCents, 0)
         const tip = ready.reduce((a, x) => a + x.cardTipCents, 0)
         const reimbCents = reimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-        if (!picked.length && !reimb.length) {
+        if (!picked.length && !reimb.length && !adjust.length) {
           return NextResponse.json({ error: "没有可结的：先确认每场尾款怎么收的（还没办的场用\"提前结算\"，按师傅代收现金处理）。" }, { status: 400 })
         }
-        const net = pay + tables + travel + review + reimbCents + tip - cash - prepFee
+        const net = pay + tables + travel + review + reimbCents + adjustCents + tip - cash - prepFee
         const dates = picked.map((x) => x.date).filter(Boolean).sort()
         const rate = rateOf(chef)
         // 对账单快照：师傅链接里看到的每一行，都是此刻算好存死的。
@@ -1115,7 +1121,8 @@ export async function POST(request: NextRequest) {
             })),
           reviews: reviewRows2.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, url: r.url ?? null, cents: r.cents })),
           reimb: { count: reimb.length, cents: reimbCents },
-          totals: { payCents: pay, tablesCents: tables, travelCents: travel, prepFeeCents: prepFee, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, netCents: net },
+          adjustments: adjust.map((f) => ({ title: (f.title ?? "").trim() || "调整", cents: f.amount_cents ?? 0 })),
+          totals: { payCents: pay, tablesCents: tables, travelCents: travel, prepFeeCents: prepFee, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, adjustCents, netCents: net },
         }
         const { data: settlement, error } = await supabase
           .from("chef_settlements")
@@ -1172,6 +1179,10 @@ export async function POST(request: NextRequest) {
           const { error: e2 } = await supabase.from("chef_files").update({ status: "paid", settled_at: now, settlement_id: settlement.id }).in("id", reimb.map((f) => f.id))
           if (e2) throw e2
         }
+        if (adjust.length) {
+          const { error: e4 } = await supabase.from("chef_files").update({ status: "paid", settled_at: now, settlement_id: settlement.id }).in("id", adjust.map((f) => f.id))
+          if (e4) throw e4
+        }
         if (reviewRows2.length) {
           const { error: e3 } = await supabase.from("chef_review_bonuses").update({ settlement_id: settlement.id, settled_at: now }).in("id", reviewRows2.map((r) => r.id))
           if (e3) throw e3
@@ -1190,6 +1201,7 @@ export async function POST(request: NextRequest) {
           prepFeeCents: prepFee,
           reviewCents: review,
           reimbCents,
+          adjustCents,
           cashCents: cash,
           tipCents: tip,
           netCents: net,
