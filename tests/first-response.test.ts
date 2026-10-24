@@ -15,6 +15,9 @@ import {
   wallTime,
   wallToInstant,
   textSignerFor,
+  partyBillDue,
+  partyBillText,
+  payUrlFor,
 } from "../lib/first-response"
 import { priceInText, statedHeadcount } from "../lib/caller-card"
 
@@ -209,4 +212,32 @@ test("text signer · customers who first wrote before 10-09 17:20 PT keep Bling,
   assert.equal(textSignerFor("2026-10-10T00:20:00Z"), "Rowling")
   assert.equal(textSignerFor(null), "Rowling")
   assert.equal(textSignerFor("not a date"), "Rowling")
+})
+
+// ---- an hour into the party: the bill text -------------------------------------
+
+test("partyBillDue: from one hour after the start, not before, and not after four hours", () => {
+  const start = wallToInstant("2026-10-24T18:00:00+00:00")
+  const at = (min: number) => start + min * 60_000
+  assert.equal(partyBillDue({ startMs: start, now: at(59), balanceDueCents: 64100, sent: false }), false)
+  assert.equal(partyBillDue({ startMs: start, now: at(60), balanceDueCents: 64100, sent: false }), true)
+  assert.equal(partyBillDue({ startMs: start, now: at(239), balanceDueCents: 64100, sent: false }), true)
+  assert.equal(partyBillDue({ startMs: start, now: at(240), balanceDueCents: 64100, sent: false }), false)
+})
+
+test("partyBillDue: never twice, never when nothing is owed", () => {
+  const start = wallToInstant("2026-10-24T18:00:00+00:00")
+  const now = start + 70 * 60_000
+  assert.equal(partyBillDue({ startMs: start, now, balanceDueCents: 64100, sent: true }), false)
+  assert.equal(partyBillDue({ startMs: start, now, balanceDueCents: 0, sent: false }), false)
+  assert.equal(partyBillDue({ startMs: start, now, balanceDueCents: null, sent: false }), false)
+})
+
+test("partyBillText: first name, signer, the order's own pay link, cash still fine, never 'optional'", () => {
+  const text = partyBillText({ signer: "Bling", customerName: "Matthew Katz", payUrl: payUrlFor("d1233d22-a8f8-4ca3-8e40-78fe43c4495e") })
+  assert.match(text, /^Hi Matthew, Bling from Real Hibachi/)
+  assert.match(text, /https:\/\/www\.realhibachi\.com\/pay\?o=d1233d22-a8f8-4ca3-8e40-78fe43c4495e/)
+  assert.match(text, /Cash to your chef works too\.$/)
+  assert.doesNotMatch(text, /optional/i)
+  assert.match(partyBillText({ customerName: "", payUrl: "x" }), /^Hi, Rowling from Real Hibachi/)
 })

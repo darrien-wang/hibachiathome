@@ -66,6 +66,8 @@ export type WorkbenchSettings = {
     auto_quote_follow_up: boolean
     // 派对前联系确认：72 小时自动短信、48 小时没回提醒、前一天再发一条并催打电话（老板 2026-10-07）。
     party_contact_check: boolean
+    // 派对开始 1 小时后自动发账单短信（这单的 /pay 付款链接）——老板 2026-10-24。
+    party_bill_text: boolean
     grace_minutes: number
     renotify_minutes: number
     // 派对时段转接：老板在场上时，等太久的客人由备份号码接手（2026-10-04）。
@@ -182,6 +184,7 @@ export const DEFAULT_SETTINGS: WorkbenchSettings = {
     auto_first_response: true,
     auto_quote_follow_up: true,
     party_contact_check: true,
+    party_bill_text: false,
     grace_minutes: 5,
     renotify_minutes: 120,
     escalate_mode: "party_hours",
@@ -318,6 +321,7 @@ export function sanitizeSection<K extends SettingsSection>(section: K, raw: unkn
         auto_first_response: bool(r.auto_first_response, d.lead_watch.auto_first_response),
         auto_quote_follow_up: bool(r.auto_quote_follow_up, d.lead_watch.auto_quote_follow_up),
         party_contact_check: bool(r.party_contact_check, d.lead_watch.party_contact_check),
+        party_bill_text: bool(r.party_bill_text, d.lead_watch.party_bill_text),
         grace_minutes: num(r.grace_minutes, d.lead_watch.grace_minutes, 0, 120),
         renotify_minutes: num(r.renotify_minutes, d.lead_watch.renotify_minutes, 10, 1440),
         escalate_mode: r.escalate_mode === "off" || r.escalate_mode === "always" || r.escalate_mode === "party_hours" ? r.escalate_mode : d.lead_watch.escalate_mode,

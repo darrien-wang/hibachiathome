@@ -254,6 +254,9 @@ export function SettingsTab({
           <label className="check">
             <input type="checkbox" checked={w.party_contact_check} disabled={!canEdit} onChange={(e) => set("lead_watch", { party_contact_check: e.target.checked })} /> 派对前联系确认（72 小时自动短信，48 小时没回提醒，前一天再发一条并催打电话）
           </label>
+          <label className="check">
+            <input type="checkbox" checked={w.party_bill_text} disabled={!canEdit} onChange={(e) => set("lead_watch", { party_bill_text: e.target.checked })} /> 派对开始 1 小时后自动发账单短信（这单自己的付款链接，刷卡可加小费；现金给师傅照旧）
+          </label>
           {numField("留资后等", w.grace_minutes, (n) => set("lead_watch", { grace_minutes: n }), { suffix: "分钟再动（让第二步先落地）" })}
           {numField("同一条再提醒间隔", w.renotify_minutes, (n) => set("lead_watch", { renotify_minutes: n }), { suffix: "分钟", min: 10 })}
           <Field label="派对时段转接">

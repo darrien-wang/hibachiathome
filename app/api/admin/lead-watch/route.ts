@@ -7,11 +7,16 @@ import {
   PARTY_CONTACT_FIRST_TEXT_H,
   PARTY_CONTACT_MIN_ORDER_AGE_MS,
   PARTY_CONTACT_URGENT_H,
+  PARTY_BILL_AFTER_MS,
+  PARTY_BILL_LATEST_MS,
   type LandingContactPayload,
   instantToWallIso,
   partyContactFirstText,
   partyContactSecondText,
   partyContactStage,
+  partyBillDue,
+  partyBillText,
+  payUrlFor,
   ptDate,
   textSignerFor,
   quoteFollowUpPlan,
@@ -122,6 +127,7 @@ type WatchResult = {
   autoSent: unknown[]
   missedCallTexts?: unknown[]
   partyContact?: unknown[]
+  partyBill?: unknown[]
   needsHuman: unknown[]
   escalated?: unknown[]
   callbackRings?: unknown[]
@@ -786,6 +792,50 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     }
   }
 
+  // ---- an hour into the party: the bill (owner 2026-10-24) -----------------
+  // One text per order, an hour after the start, with the order's own /pay
+  // link. Only orders still owing something, never twice (pb:sent:<id>), and
+  // not later than PARTY_BILL_LATEST_MS after the start, so a late run or the
+  // first run after a deploy leaves old parties alone. No start time on file
+  // (event_time_tbd) - no text. Off until the owner turns it on (settings).
+  const partyBill: Array<Record<string, unknown>> = []
+  if (watch.party_bill_text) {
+    type Started = { id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string; balance_due_cents: number | null; source_metadata: Record<string, unknown> | null; created_at: string }
+    const { data: started } = await supabase
+      .from("orders")
+      .select("id, order_no, customer_name, customer_phone, event_start, balance_due_cents, source_metadata, created_at")
+      .eq("order_status", "active")
+      .eq("deposit_status", "paid_verified")
+      .gt("balance_due_cents", 0)
+      .gte("event_start", instantToWallIso(now - PARTY_BILL_LATEST_MS))
+      .lte("event_start", instantToWallIso(now - PARTY_BILL_AFTER_MS))
+      .limit(30)
+    const rows = (started ?? []) as Started[]
+    const { data: sentRows } = rows.length
+      ? await supabase.from("lead_watch_notified").select("key").in("key", rows.map((o) => `pb:sent:${o.id}`))
+      : { data: [] as Array<{ key: string }> }
+    const sentKeys = new Set((sentRows ?? []).map((r) => r.key as string))
+    const billLeadIds = rows.map((o) => String(((o.source_metadata ?? {}) as Record<string, unknown>).lead_id ?? "")).filter(Boolean)
+    const { data: billLeads } = billLeadIds.length
+      ? await supabase.from("leads").select("id, created_at").in("id", billLeadIds)
+      : { data: [] as Array<{ id: string; created_at: string }> }
+    const billLeadCreated = new Map((billLeads ?? []).map((l) => [l.id as string, l.created_at as string]))
+    for (const o of rows) {
+      const phone = toE164(o.customer_phone)
+      const meta = (o.source_metadata ?? {}) as Record<string, unknown>
+      if (!phone || isTestNumber(phone) || meta.event_time_tbd) continue
+      if (!partyBillDue({ startMs: wallToInstant(o.event_start), now, balanceDueCents: o.balance_due_cents, sent: sentKeys.has(`pb:sent:${o.id}`) })) continue
+      const signer = textSignerFor(billLeadCreated.get(String(meta.lead_id ?? "")) ?? o.created_at)
+      const text = partyBillText({ signer, customerName: o.customer_name, payUrl: payUrlFor(o.id) })
+      const sms = dryRun ? ({ ok: true, sid: "dry", status: "dry" } as const) : await sendSms(phone, text)
+      if (sms.ok && !dryRun) {
+        await supabase.from("lead_watch_notified").upsert({ key: `pb:sent:${o.id}`, kind: "pb", notified_at: new Date().toISOString() }, { onConflict: "key" })
+        await logAutoSms(supabase, phone, sms.sid, text, "party_bill", { order_id: o.id, order_no: o.order_no })
+      }
+      partyBill.push({ kind: "party_bill", orderId: o.id, orderNo: o.order_no, name: o.customer_name, phone, when: `${shortDate(o.event_start.slice(0, 10))} ${wallTime(o.event_start)}`, sms: sms.ok ? (dryRun ? "dry" : "sent") : sms.error, text })
+    }
+  }
+
   // ---- report each open item once (again after two hours; urgent ones every 10 min)
   const candidates: Candidate[] = [
     // A lead whose party is tomorrow or the day after gets no machine opener
@@ -868,5 +918,5 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   // (put through) or 3 (no call needed), ring again every ten minutes, three rings at most.
   const callbackRings = dryRun ? [] : await ringOpenCallbacks(supabase, now)
 
-  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, needsHuman, escalated, callbackRings, stillOpen: candidates.length }
+  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, partyBill, needsHuman, escalated, callbackRings, stillOpen: candidates.length }
 }

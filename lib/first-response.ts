@@ -315,3 +315,35 @@ export function partyContactStage(p: { hoursLeft: number; sentFirst: boolean; se
   if (p.hoursLeft <= PARTY_CONTACT_FLAG_H) return "flag_48h"
   return "wait"
 }
+
+// ---- an hour into the party: the bill text (owner 2026-10-24) ---------------
+// "party 预定时间开始后的 1 个小时，就自动发个 invoice 短信，方便后续用户结账".
+// One text per order with its own /pay link - the card price for the party's
+// address and the gratuity buttons on one page. Cash to the chef stays the
+// usual way and the text says so.
+
+/** How long after the start the bill text goes out. */
+export const PARTY_BILL_AFTER_MS = 60 * 60_000
+/** No later than this after the start: a late run, or the first run after a deploy, leaves old parties alone. */
+export const PARTY_BILL_LATEST_MS = 4 * 3600_000
+
+/** Is the bill text due for this order now? Only while something is owed, and only once. */
+export function partyBillDue(p: { startMs: number; now: number; balanceDueCents: number | null | undefined; sent: boolean }): boolean {
+  if (p.sent || !Number.isFinite(p.startMs)) return false
+  if (!(Number(p.balanceDueCents) > 0)) return false
+  const since = p.now - p.startMs
+  return since >= PARTY_BILL_AFTER_MS && since < PARTY_BILL_LATEST_MS
+}
+
+/** The order's own pay page (app/pay). */
+export const payUrlFor = (orderId: string) => `https://www.realhibachi.com/pay?o=${orderId}`
+
+/** The bill text, signed like the pre-party texts (textSignerFor). Never says "optional" (D-1023-01). */
+export function partyBillText(i: { signer?: "Bling" | "Rowling"; customerName?: string | null; payUrl: string }): string {
+  const name = firstName(i.customerName)
+  return (
+    `Hi${name ? ` ${name}` : ""}, ${i.signer ?? "Rowling"} from Real Hibachi - hope everyone's having a great time! ` +
+    `Whenever you're ready to settle up, your bill is right here, and you can pay by card in a few taps: ${i.payUrl} ` +
+    `Cash to your chef works too.`
+  )
+}
