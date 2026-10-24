@@ -68,6 +68,7 @@
 - **无麸质**：可以。**师傅带无麸质酱油和照烧**，单独台面先做；姜汁酱含酱油，无麸质客人的沙拉不放；春卷做不了无麸质。写进订单备注让师傅知道。
 - **鸡蛋过敏**：两种自制酱（yum yum、姜汁）都含蛋，不放。
 - **坚果/芝麻**：不承诺（饺子含芝麻和小麦）。答法：`Tell me the exact allergy and I'll check the labels for that day and tell you honestly whether we can serve them safely.`
+- **坚果（老板 10-24 确认）**：我们的用料里**没有任何坚果**——油、yum yum、姜汁酱、饺子、炒饭调料都不含花生和树坚果。客人问坚果可以直接答没有，再加一句过敏的客人师傅先在擦干净的铁板上做：`No peanuts or tree nuts in any of it, including the oil, the sauces, the gyoza and the fried rice. Your chef will also cook their plates first on a clean grill, just to be safe.` 写进订单备注让师傅知道。芝麻照旧：饺子含芝麻，问到照实说；整个场地无过敏原仍不承诺。
 - **酱料**（10-11 起都自制）：yum yum = 美乃滋、橙汁、菠萝汁、柠檬汁、糖、蒜粉、红椒粉、黑胡椒；姜汁酱含酱油、蛋、大豆、小麦。师傅把酱直接挤在盘子上，不用备碗（问了才说）。另外带 sriracha 辣酱。没有 Benihana 那种芥末酱（mustard sauce），客人问了照实说没有、提 sriracha（老板 10-21）。
 - **Kosher**：能做"买 kosher 认证的肉，不加价"。铁板餐具没有拉比监督——客人问到才说。
 - **春卷**：炸的、像小号 egg roll、全素，一盘 10 个。**饺子**是鸡肉馅。
