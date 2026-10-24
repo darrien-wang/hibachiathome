@@ -205,14 +205,10 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
     const k = `${s.order_id}|${s.staff_member_id}`
     if (!cashReported.has(k)) cashReported.set(k, Number(s.cash_collected_cents ?? 0))
   }
-  // 路费里程：只量还没定下路费（结过的场冻结在 travel_cents 里）、发票上又没有
-  // 50 mi 以上里程的单 —— 规则见 shiftOf。
+  // 路费里程：还没定下路费的单都按地址量一遍（结过的场冻结在 travel_cents 里），
+  // 和发票上的里程取大的 —— 规则见 shiftOf。
   const unpriced = new Set(((assignments ?? []) as Assignment[]).filter((a) => a.travel_cents == null).map((a) => a.order_id))
-  const needMiles = [...orderMap.values()].filter((o) => {
-    if (!unpriced.has(o.id)) return false
-    const m = partyComp(o).miles
-    return m == null || m <= TRAVEL_FREE_MILES
-  })
+  const needMiles = [...orderMap.values()].filter((o) => unpriced.has(o.id))
   const drive = await chefDriveMiles(supabase, needMiles)
   return { staff: (staff ?? []) as Staff[], assignments: (assignments ?? []) as Assignment[], orderMap, cashReported, drive }
 }
@@ -345,13 +341,14 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads) / n)
   // 食材加工费：后勤备的料，每个成人 $1（按发票上的大人数，不受特殊人头规则影响），同场平分。
   const prepFee = a.prep_fee_cents ?? (o.logi_prepped ? Math.round((comp.counts.adults * PREP_FEE_PER_ADULT_CENTS) / n) : 0)
-  // 发票上量过、而且超过 50 mi：客人就是按这个数付的路费，师傅照这个数。发票没量，
-  // 或者在 50 以内（客人路费手填 $0、里程被改成 50 都是这样），按地址实量 ——
-  // 客户那头免不免路费都照给师傅（2026-10-04，Niko/Nasim West Hills 53.7 mi）。
-  const invoiceCounts = comp.miles != null && comp.miles > TRAVEL_FREE_MILES
-  const measured = invoiceCounts ? undefined : drive.get(o.id)
-  const miles = measured?.miles ?? comp.miles
-  const milesSource = measured ? measured.source : comp.miles != null ? "invoice" : null
+  // 发票里程和按地址实量，取大的（老板 2026-10-23）：发票量少了师傅就吃亏——
+  // John 10/23 Desert Hot Springs 发票 94 mi、实际约 101 mi。以前只在发票没量或
+  // 不到 50 mi 时才实量（2026-10-04，Niko/Nasim West Hills 53.7 mi）。客户那头免不免
+  // 路费都照给师傅。
+  const measured = drive.get(o.id)
+  const useMeasured = measured != null && (comp.miles == null || measured.miles > comp.miles)
+  const miles = useMeasured ? measured.miles : comp.miles
+  const milesSource = useMeasured ? measured.source : comp.miles != null ? "invoice" : null
   const travel = a.travel_cents ?? travelCompCents(miles)
   const cash = a.cash_collected_cents ?? cashReported.get(`${o.id}|${a.staff_member_id}`) ?? 0
   return {

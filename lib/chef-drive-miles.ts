@@ -10,7 +10,8 @@ import { driveFromBase } from "@/lib/base-drive"
 // Niko 10/3 West Hills 实际 53.7 mi，结算里是 "?"；Bling 同天 Yucca Valley 106.6 mi
 // 也是 "?"。规则一直是"客户那头免不免路费都照给师傅"（2026-09-28），所以发票上
 // 没有 50 mi 以上里程的单，师傅这头自己量，按地址存一份（order_drive_miles），
-// 地址改了才重量。发票上量过、超过 50 mi 的照发票（客人按那个数付的路费）。
+// 地址改了才重量。2026-10-23 起每单都量，和发票里程取大的（发票 94 mi、实际 101 mi
+// 那次 John 少拿了 $7），规则在 app/api/admin/chefs/route.ts shiftOf。
 
 export type DriveMiles = { miles: number; source: string }
 
