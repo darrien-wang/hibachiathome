@@ -136,3 +136,20 @@ Verification completed:
 - booking-request and planner-unlock run offline before/after: only the nouns changed; plural parties are byte-identical. Output: `harness/verification/2026-10-22-guest-count-grammar/routes-diff.txt`.
 - Local production build in the browser (nothing submitted, traffic marked internal): landing card "1 adult · any day", /quote "Standard Plan · 1 guest", /rentals "1 guest", /deposit/pay "1 guest". Output: `harness/verification/2026-10-22-guest-count-grammar/browser-checks.txt`.
 - `tsc`: the same 95 pre-existing errors, none new. This is not a `harness/feature_list.json` item, so there is no status transition there.
+
+## DESK-FREE-APPETIZER - `desk order set --free-appetizer`: the customer's pick of the free appetizer (2026-10-24)
+
+Status: done.
+
+Why: the deposit page writes the free appetizer as gyoza, and customers text their pick (gyoza / edamame / spring rolls) every week. desk could add trays but not change which one is free; RH-20261024-2894 went gyoza -> spring rolls on 10-24 by a one-off script.
+
+What changed:
+- `scripts/desk/desk.py`: `order set --free-appetizer ID` (`_swap_free_appetizer`). The free trays move to the new appetizer in `partyExtras` (into its row if it has one), the lines name it ("... FREE appetizer: Edamame", "FREE: Edamame (feeds 3) x2"), and each line's amount moves by the trays' price difference (edamame is $5 a tray less), so the total does not change. The invoice engine prices the party before and after the swap; a total that moved is refused, nothing saved.
+- Which lines: `official_weekday` / `official_platter20` / `official_fullsetup_app` together with the `--free-item` gifts of the same appetizer; with no official line, the `--free-item` gifts when they are all one appetizer. More than one tray of it on the order (one per 10 guests, or some bought): the official line's amount says how many are free (tray price on top of the weekday per-head part), and when it does not, the command refuses. Also refused: the old three-item platter, gifts of different appetizers with no official line, the appetizer it already is, too few trays. `--dry` and the STALE-guarded save are the `set` op's; LF line endings kept.
+- `APPETIZER_LABELS` is shared with `--free-item`; `_little_kids` is factored out of `_deal_lines` (same result).
+- `.claude/skills/leads/tools.md`: the flag next to `--free-item`, and a note on what it does.
+
+Verification completed:
+- No test runner covers desk (`npm test` runs `tests/*.test.ts` only), so an offline harness ran the swap and the whole `order set` command with every site / invoice call patched: 45 checks pass (both price directions, the $599 minimum, several trays with some bought, a stale amount, gifts, every refusal, `--dry` saving nothing, the save's baseUpdatedAt / baseVersion, a drifted engine price refused, `--chefs` alongside, `--free-appetizer-trays` after the pick, `_deal_lines` unchanged). Output: `harness/verification/2026-10-24-desk-free-appetizer/harness-out.txt`.
+- Read-only against the live invoice engine (`--dry`, nothing saved) on RH-20261024-2894 (spring rolls now): to edamame moves extras $15 -> $10 and the weekday line $72.35 -> $67.35, TOTAL $668.25 before and after; spring_rolls again is refused. Output: `harness/verification/2026-10-24-desk-free-appetizer/dry-run.txt`.
+- This is not a `harness/feature_list.json` item, so there is no status transition there.

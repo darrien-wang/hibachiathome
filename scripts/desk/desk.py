@@ -63,12 +63,15 @@ PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "file
 SETUP_PRICES = {"tables_chairs": 10.0, "utensils": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 SETUP_LABELS = {"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}  # same, as the customer reads them
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
+WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
 DEAL_PROMO_IDS = ("deal_rate", "deal_free_extras", "deal_extra_rates", "deal_flat")  # invoice isCustomDealPromoId, in its order
+FREE_APPETIZER_PROMO_IDS = ("official_weekday", "official_platter20", "official_fullsetup_app")  # invoice bringsFreeAppetizer; never stacked
 MINIMUM_SPEND = 599  # config/pricing-rules.ts
 # Menu price of the appetizers a free-appetizer promo can bring, so changing
 # how many trays it brings moves the discount by the same amount and the
 # customer is never charged for what we gave them.
 APPETIZER_PRICES = {"gyoza": 15.0, "spring_rolls": 15.0, "edamame": 10.0}
+APPETIZER_LABELS = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10 pcs)", "edamame": "Edamame (feeds 3)"}  # invoice PARTY_EXTRAS labels
 # Whole-table protein servings (invoice PARTY_EXTRAS side_*, billed per serving; one serving = one
 # adult portion). How "a third protein for everyone" rides on an order that has no guest rows yet:
 # the church group RH-20261021-9381 wanted shrimp as the third protein for 15 = side_shrimp=15 ($150).
@@ -726,6 +729,15 @@ def _setup_units(data: dict, x: str) -> int:
     return next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
 
 
+def _little_kids(data: dict) -> int:
+    """Free 3-4 year olds the promotions count, as the engine reads them: the
+    planner's "Little kids (3-4) ×N" line or under5_auto (one when it gives no number)."""
+    hit = next((p for p in (data.get("promotions") or [])
+                if p.get("id") == "under5_auto" or re.match(r"little kids", str(p.get("label") or ""), re.I)), None)
+    m = re.search(r"×([0-9]+)", str(hit.get("label") or "")) if hit else None
+    return int(m.group(1)) if m else (1 if hit else 0)
+
+
 def _deal_lines(data: dict) -> list[dict]:
     """The order's deal lines priced from its rules (customDeal) against the party
     as it stands, line for line the invoice engine's customDealPromotions
@@ -748,10 +760,7 @@ def _deal_lines(data: dict) -> list[dict]:
     detailed = data.get("mode") == "detailed"
     # Free 3-4 year olds are flagged on the rows or counted on the planner's
     # "Little kids (3-4) ×N" line; countPaidChildren takes the larger.
-    hit = next((p for p in (data.get("promotions") or [])
-                if p.get("id") == "under5_auto" or re.match(r"little kids", str(p.get("label") or ""), re.I)), None)
-    m = re.search(r"×([0-9]+)", str(hit.get("label") or "")) if hit else None
-    little = int(m.group(1)) if m else (1 if hit else 0)
+    little = _little_kids(data)
     if detailed and rows:
         kids = [g for g in rows if g.get("isChild")]
         adults = len(rows) - len(kids)
@@ -785,6 +794,118 @@ def _deal_lines(data: dict) -> list[dict]:
     if flat > 0:
         lines.append({"id": "deal_flat", "label": f"Special discount ({deal['note']})" if deal.get("note") else "Special discount", "amount": flat})
     return lines
+
+
+# The free appetizer is the customer's pick of three (owner 2026-09-22). The
+# deposit page writes the default, gyoza, so the pick comes in a text - every
+# week. A line names its appetizer in the label, read the way the engine reads
+# it (freeAppetizerVariantFromLabel): "... + FREE appetizer: Gyoza" on the
+# official lines, "FREE: Gyoza (10 pcs) x2" from --free-item.
+OFFICIAL_APPETIZER = re.compile(r"free appetizer[^:]*:\s*(gyoza|edamame|spring rolls)", re.I)
+GIFT_APPETIZER = re.compile(r"FREE: (" + "|".join(map(re.escape, APPETIZER_LABELS.values())) + r") x(\d+)")
+
+
+def _paid_children(data: dict) -> int:
+    """Children at the child rate, as the engine's countPaidChildren counts them
+    for the weekday cut: the rows once there are rows, else the count, less the
+    free 3-4 year olds."""
+    rows = data.get("guests") or []
+    if data.get("mode") == "detailed" and rows:
+        kids = [g for g in rows if g.get("isChild")]
+        return max(0, len(kids) - max(sum(1 for g in kids if g.get("isLittle")), _little_kids(data)))
+    return max(0, int(data.get("childCount") or 0) - _little_kids(data))
+
+
+def _swap_free_appetizer(data: dict, new: str) -> list[str]:
+    """Make the order's free appetizer `new` (gyoza / edamame / spring_rolls).
+    Its trays move to `new` in partyExtras and its lines name `new`, as the
+    invoice tool's switch does (changeFreeAppetizer). Each line's amount moves
+    by the trays' price difference - exactly what the extras move by - so the
+    total does not change, and whatever else the line takes off (the weekday
+    per-head part, an amount re-stated by hand) stays. The lines: the official
+    one (Weekday Special / 20+ guests / full setup) with the --free-item gifts
+    of the same appetizer (more trays of it); with no official line, the
+    --free-item gifts if they are all one appetizer. Changes `data`, returns
+    the change lines."""
+    if new not in APPETIZER_PRICES:
+        raise SystemExit(f"--free-appetizer {new!r}: use one of {sorted(APPETIZER_PRICES)}")
+    promos = data.get("promotions") or []
+    official = [x for x in promos if x.get("id") in FREE_APPETIZER_PROMO_IDS]
+    label_id = {v: k for k, v in APPETIZER_LABELS.items()}
+    gifts = []  # (line, appetizer, trays)
+    for x in promos:
+        m = GIFT_APPETIZER.fullmatch(str(x.get("label") or ""))
+        if m:
+            gifts.append((x, label_id[m.group(1)], int(m.group(2))))
+    if len(official) > 1:
+        raise SystemExit(f"this order has {[x.get('id') for x in official]} - they never stack; fix it in the invoice tool")
+    line = official[0] if official else None
+    if line:
+        m = OFFICIAL_APPETIZER.search(str(line.get("label") or ""))
+        if not m:
+            raise SystemExit(f"{line.get('id')} {line.get('label')!r} names no single appetizer (an appetizer platter is all three) - "
+                             "nothing to swap; change it in the invoice tool")
+        old = m.group(1).lower().replace(" ", "_")
+    elif len({k for _, k, _ in gifts}) == 1:
+        old = gifts[0][1]
+    elif gifts:
+        raise SystemExit("this order's free trays are different appetizers (" + ", ".join(str(x.get("label")) for x, _, _ in gifts)
+                         + ") - desk will not guess which one they mean; change it in the invoice tool")
+    else:
+        raise SystemExit("this order has no free appetizer to swap: no " + " / ".join(FREE_APPETIZER_PROMO_IDS)
+                         + " line and no --free-item 'FREE:' line (trays they buy are --add-extra)")
+    if old == new:
+        raise SystemExit(f"--free-appetizer {new}: the free appetizer is already {new} - nothing to change")
+    for x, k, _ in gifts:
+        if k != old:
+            print(f"   ⚠ {x.get('label')} ({x.get('id')}) is a gift of its own - left as it is")
+    same = [(x, n) for x, k, n in gifts if k == old]
+    gifted = sum(n for _, n in same)
+    extras = data.setdefault("partyExtras", [])
+    row = next((e for e in extras if e.get("id") == old), None)
+    have = int(row.get("qty") or 0) if row else 0
+    # The trays each line gives: a --free-item line says so ("x2"); the official
+    # line gives what is left, one tray - unless more are left: one per 10
+    # guests (--free-appetizer-trays) or some of them bought. Then its amount
+    # says how many: their menu price on top of the weekday per-head part.
+    free = have - gifted
+    trays = free if line else 0
+    if line and free > 1:
+        heads = 0.0
+        if line["id"] == "official_weekday":
+            heads = WEEKDAY_ADULT_OFF * int(data.get("adultCount") or 0) + WEEKDAY_CHILD_OFF * _paid_children(data)
+        n = (float(line.get("amount") or 0) - heads) / APPETIZER_PRICES[old]
+        if abs(n - round(n)) > 0.001 or not 1 <= round(n) <= free:
+            raise SystemExit(f"{free} {old} trays could be {line['id']}'s, and its {money(line.get('amount'))} less the per-head part "
+                             f"{money(heads)} is not a whole number of {money(APPETIZER_PRICES[old])} trays from 1 to {free} - "
+                             f"re-state it first (--promo {line['id']}=<per-head part + {money(APPETIZER_PRICES[old])} a free tray>) "
+                             "or swap it in the invoice tool")
+        trays = round(n)
+    moved = trays + gifted
+    if (line and trays < 1) or moved < 1 or moved > have:
+        raise SystemExit(f"the free lines name {old}, but the order has {have} {old} tray(s) for them"
+                         f"{f' (--free-item gives {gifted})' if gifted else ''} - fix the trays first")
+    to = next((e for e in extras if e.get("id") == new), None)
+    had = int(to.get("qty") or 0) if to else 0
+    row["qty"] = have - moved
+    if to:
+        to["qty"] = had + moved
+    else:
+        extras.append({"id": new, "qty": moved})
+    data["partyExtras"] = [e for e in extras if int(e.get("qty") or 0) > 0]
+    delta = APPETIZER_PRICES[new] - APPETIZER_PRICES[old]
+    out = [f"free appetizer: {old} -> {new}, {moved} tray(s): partyExtras {old} {have} -> {have - moved}, {new} {had} -> {had + moved}"]
+    for x, n in ([(line, trays)] if line else []) + same:
+        was = float(x.get("amount") or 0)
+        if x is line:
+            m = OFFICIAL_APPETIZER.search(x["label"])
+            x["label"] = x["label"][:m.start(1)] + new.replace("_", " ").title() + x["label"][m.end(1):]
+        else:
+            x["label"] = f"FREE: {APPETIZER_LABELS[new]} x{n}"
+        x["amount"] = round(was + delta * n, 2)
+        out.append(f"promo {x.get('id')} '{x['label']}': {money(was)} -> {money(x['amount'])}"
+                   + (f" ({n} tray(s) x {delta:+.2f}, what the extras move by)" if delta else " (same price)"))
+    return out
 
 
 def _print_totals(inv: dict) -> None:
@@ -936,7 +1057,7 @@ def cmd_order(a):
             print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
         invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
                          a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.add_promo, a.remove_promo,
-                         a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo)
+                         a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo)
         if all(v in (None, False, []) for v in invoice_flags):
             return
     inv_order, prefill = _lookup(order)
@@ -966,6 +1087,23 @@ def cmd_order(a):
             new_notes = pathlib.Path(a.notes_file).read_bytes().decode("utf-8").strip()
             changes.append(f"specialNotes: {c.get('specialNotes')!r} -> {new_notes!r}")
             c["specialNotes"] = new_notes
+        if a.free_appetizer:
+            # The customer's pick, texted after the deposit page wrote gyoza
+            # (10-24 RH-20261024-2894 went to spring rolls by a one-off
+            # script). Free is free whichever tray it is, so the engine prices
+            # the party before and after the swap and a total that moved is
+            # refused: desk's tray prices are a copy of the engine's.
+            before = copy.deepcopy(data)
+            changes += _swap_free_appetizer(data, a.free_appetizer)
+            try:
+                was, now = _totals(before).get("finalTotal"), _totals(data).get("finalTotal")
+            except ApiError:
+                was = now = None  # the engine cannot price this party yet; the lines moved by what the trays did
+            if was is not None and now is not None:
+                if abs(float(now) - float(was)) > 0.005:
+                    raise SystemExit(f"--free-appetizer would move the total {money(was)} -> {money(now)} - nothing saved; "
+                                     f"desk's APPETIZER_PRICES {APPETIZER_PRICES} no longer match the invoice engine's")
+                changes.append(f"free appetizer: TOTAL {money(was)} before and after (invoice engine)")
         if a.free_appetizer_trays is not None:
             # The free appetizer used to be one tray whatever the party size, so
             # 21 people shared 10 gyoza (Annie Phan, 10/01). Owner 2026-10-01:
@@ -1146,7 +1284,7 @@ def cmd_order(a):
                     row["qty"] = int(row.get("qty") or 0) + n
                 else:
                     extras.append({"id": app_id, "qty": n})
-                label = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10 pcs)", "edamame": "Edamame (feeds 3)"}[app_id]
+                label = APPETIZER_LABELS[app_id]
                 amount = round(APPETIZER_PRICES[app_id] * n, 2)
                 promos.append({"id": f"{app_id}_{stamp}", "label": f"FREE: {label} x{n}", "amount": amount})
                 changes.append(f"free item: {app_id} +{n} in partyExtras, promo 'FREE: {label} x{n}' {money(amount)}")
@@ -1332,7 +1470,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1613,6 +1751,9 @@ def main(argv=None):
     p.add_argument("--travel-miles", type=float, help="driving miles from base (desk travel <address>); the invoice prices travel from this")
     p.add_argument("--travel-fee", help="fixed customer travel fee in dollars (a concession, e.g. the quoted amount); "
                                         "miles stay for the chef's pay; 'none' prices by miles again")
+    p.add_argument("--free-appetizer", metavar="ID", help="the customer's pick for the free appetizer: gyoza, edamame or spring_rolls (the deposit "
+                   "page writes gyoza). Its trays and its promotion line (Weekday Special / 20+ guests / full setup, and --free-item lines of "
+                   "the same tray) switch to it; the line moves by the trays' price difference, so the total stays the same.")
     p.add_argument("--free-appetizer-trays", type=int, metavar="N",
                    help="how many trays the free-appetizer promo brings (owner 2026-10-01: one per 10 guests). "
                         "Moves the promo's discount by the same amount, so the customer is not billed for it.")

@@ -1,0 +1,21 @@
+desk order set RH-20261024-2894 --free-appetizer, read-only against the live site and invoice engine, 2026-10-24.
+--dry: lookup and /api/invoice pricing only, nothing saved. The customer's name, phone, email, date and address are left out.
+
+$ python scripts/desk/desk.py order show RH-20261024-2894
+   10 大 3 小 · mode detailed · pay cash · deposit $0.00
+   + extra {'id': 'spring_rolls', 'qty': 1}
+   - promo Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Spring Rolls: $72.35
+   - promo Party Size Discount (10–14 adults): $30 off: $30.00
+   base $688.70 | promos -$102.35 | extras $15.00 | travel $66.90 | TOTAL $668.25 | deposit $0.00 | BALANCE $668.25
+   v2 · 现金 BALANCE $668.25 · Zelle/Venmo 给师傅 $694.98 · 刷卡 $748.52 = 现金 + 消费税 8.75% $58.47 + 手续费 3% $21.80
+
+$ python scripts/desk/desk.py order set RH-20261024-2894 --free-appetizer edamame --dry
+   free appetizer: spring_rolls -> edamame, 1 tray(s): partyExtras spring_rolls 1 -> 0, edamame 0 -> 1
+   promo official_weekday 'Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Edamame': $72.35 -> $67.35 (1 tray(s) x -5.00, what the extras move by)
+   free appetizer: TOTAL $668.25 before and after (invoice engine)
+   base $688.70 | promos -$97.35 | extras $10.00 | travel $66.90 | TOTAL $668.25 | deposit $0.00 | BALANCE $668.25
+   v2 · 现金 BALANCE $668.25 · Zelle/Venmo 给师傅 $694.98 · 刷卡 $748.52 = 现金 + 消费税 8.75% $58.47 + 手续费 3% $21.80
+DRY   not saved (--dry)
+
+$ python scripts/desk/desk.py order set RH-20261024-2894 --free-appetizer spring_rolls --dry
+--free-appetizer spring_rolls: the free appetizer is already spring_rolls - nothing to change

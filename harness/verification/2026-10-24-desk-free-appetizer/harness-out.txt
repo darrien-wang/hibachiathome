@@ -1,0 +1,69 @@
+desk order set --free-appetizer, offline: scripts/desk/desk.py imported with every site / invoice call patched
+(lookup returns the case's invoice, /api/invoice is a stand-in engine: quick counts, partyExtras, promotions, $599 minimum,
+save-invoice records the payload). Synthetic orders only. 2026-10-24.
+
+PASS  A gyoza->spring_rolls: no refusal
+PASS  A row moved, gyoza row gone
+PASS  A label names Spring Rolls, rest of label kept
+PASS  A amount unchanged (same price)
+PASS  A total unchanged
+PASS  A the date block's parser reads the new label
+   free appetizer: gyoza -> spring_rolls, 1 tray(s): partyExtras gyoza 1 -> 0, spring_rolls 0 -> 1
+   promo official_weekday 'Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Spring Rolls': $75.00 -> $75.00 (same price)
+PASS  B gyoza->edamame: amount -5
+PASS  B total unchanged
+   free appetizer: gyoza -> edamame, 1 tray(s): partyExtras gyoza 1 -> 0, edamame 0 -> 1
+   promo official_weekday 'Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Edamame': $75.00 -> $70.00 (1 tray(s) x -5.00, what the extras move by)
+PASS  C edamame->gyoza: amount +5, total unchanged
+PASS  C2 at the $599 minimum: total unchanged
+PASS  D 2 free + 1 bought: moves the 2 free
+PASS  D amount 155 -> 145
+PASS  D total unchanged
+   free appetizer: gyoza -> edamame, 2 tray(s): partyExtras gyoza 3 -> 1, edamame 0 -> 2
+   promo official_weekday 'Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Edamame': $155.00 -> $145.00 (2 tray(s) x -5.00, what the extras move by)
+PASS  E 1 free + 1 bought: moves 1
+PASS  F stale amount with 2 trays: refused
+PASS  F refused: data untouched
+   refusal: 2 gyoza trays could be official_weekday's, and its $80.00 less the per-head part $60.00 is not a whole number of $15.00 trays from 1 to 2 - re-state it first (--promo official_weekday=<per-head part + $15.00 a free tray>) or swap it in the invoice tool
+PASS  F2 stale amount, 1 tray: swapped, amount -5
+PASS  Q kids + little kid: infers 2 trays
+PASS  S detailed rows: 2 of 3 edamame are free, moved; +$10
+PASS  S total unchanged
+PASS  O platter20 2 trays: label, amount 20, total
+PASS  O2 full setup line: swapped
+PASS  P merges into the existing row (no second spring_rolls row)
+PASS  G official + same-tray gift: all 3 move
+PASS  G gift relabelled, amount 20
+PASS  G total unchanged
+   free appetizer: gyoza -> edamame, 3 tray(s): partyExtras gyoza 3 -> 0, edamame 0 -> 3
+   promo official_weekday 'Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Edamame': $75.00 -> $70.00 (1 tray(s) x -5.00, what the extras move by)
+   promo gyoza_1729 'FREE: Edamame (feeds 3) x2': $30.00 -> $20.00 (2 tray(s) x -5.00, what the extras move by)
+PASS  H gift of another tray left alone, with a note
+PASS  I gift only: swapped
+PASS  J gifts of different trays, no official line: refused, untouched
+PASS  J2 gift says x2 but 1 tray: refused
+PASS  K no free-appetizer line: refused
+PASS  L already that one: refused
+PASS  M not an id: refused with the ids
+PASS  N legacy platter: refused
+PASS  R official line, no tray on the order: refused
+PASS  CLI --dry: nothing saved
+PASS  CLI --dry: prints the swap, the promo move and the engine's TOTAL
+   free appetizer: gyoza -> edamame, 1 tray(s): partyExtras gyoza 1 -> 0, edamame 0 -> 1
+   promo official_weekday 'Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Edamame': $75.00 -> $70.00 (1 tray(s) x -5.00, what the extras move by)
+   free appetizer: TOTAL $628.80 before and after (invoice engine)
+   base $0.00 | promos -$0.00 | extras $0.00 | travel $0.00 | TOTAL $628.80 | deposit $0.00 | BALANCE $628.80
+   v2 · 现金 BALANCE $628.80 · Zelle/Venmo 给师傅 $653.95 · 刷卡 $628.80 = 现金 + 消费税 9.75% $0.00 + 手续费 3% $0.00
+DRY   not saved (--dry)
+
+PASS  CLI save: one save, STALE guard sent
+PASS  CLI save: invoiceData carries the swap, other lines untouched
+PASS  CLI save: the lookup's prefill is not mutated in place
+PASS  CLI price drift: refused, nothing saved
+   refusal: --free-appetizer would move the total $628.80 -> $630.80 - nothing saved; desk's APPETIZER_PRICES {'gyoza': 15.0, 'spring_rolls': 15.0, 'edamame': 10.0} no longer match the invoice engine's
+PASS  CLI --chefs + --free-appetizer: both handled
+PASS  CLI pick + trays: 2 edamame, amount 120 + 20
+PASS  CLI '--free-appetizer 2' is refused, not read as trays
+PASS  deal lines: little kids still read from the promo (1 paid child)
+
+45 passed, 0 failed
