@@ -67,6 +67,8 @@ export function ChefDialog({
   const [tab, setTab] = useState<ChefTabKey>(initialTab && !hiddenTab(initialTab) ? initialTab : "shifts")
   const [d, setD] = useState<ChefDetail | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  // 已结的场默认收起（老板 2026-10-23：九月结过的还一大串摆在本期结算里，框太长）。要撤销时点开。
+  const [showSettled, setShowSettled] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const today = ptToday()
   const thisWeekStart = weekStartOf(today)
@@ -917,7 +919,7 @@ export function ChefDialog({
                 <span />
               </div>
               {openRows.length === 0 ? <div style={{ padding: "10px 0", color: "var(--color-neutral-600)" }}>没有可结的场次。</div> : null}
-              {[...openRows, ...settledRecent].map((s) => {
+              {[...openRows, ...(showSettled ? settledRecent : [])].map((s) => {
                 const rowNet = shiftNet(s)
                 return (
                   <div key={s.assignmentId} style={{ display: "grid", gridTemplateColumns: SETTLE_COLS, gap: 10, padding: "7px 0", borderBottom: "1px solid var(--color-line)", alignItems: "center", opacity: s.settledAt ? 0.45 : 1 }}>
@@ -998,6 +1000,11 @@ export function ChefDialog({
                   </div>
                 )
               })}
+              {settledRecent.length ? (
+                <button type="button" className="btn btn-ghost btn-sm" style={{ margin: "4px 0", color: "var(--color-neutral-600)" }} onClick={() => setShowSettled((v) => !v)}>
+                  {showSettled ? "收起已结的场" : `已结的 ${settledRecent.length} 场（最近 60 天，要撤销点这里）▸`}
+                </button>
+              ) : null}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--color-line)", color: "var(--color-neutral-700)" }}>
                 <span>+ 已批报销（{approvedReimb.length} 张）</span>
                 <span>{money(reimbTotal)}</span>
