@@ -117,6 +117,8 @@ const STEAK_PACK_OZ = 51 // 3.2 lb（老板 2026-10-12：现在 Costco 买的一
 
 /** 宁多勿少（用户 09-22 定）：建议买量 = 需求 × 1.1 再向上取整到采购颗粒度。 */
 const BUFFER = 1.1
+/** 虾 16/20 规格一袋 32–40 只，采购按 32 算，宁多勿少（老板 2026-10-24；09-24 记的 43 只作废）。 */
+const SHRIMP_PER_BAG = 32
 
 function alt(id: string, qty: number, unit: string): string | undefined {
   const r1 = (n: number) => Math.round(n * 10) / 10
@@ -155,7 +157,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   if (id === "ribeye") return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp((qty * BUFFER) / 16)} lb`
   if (id === "edamame") return `1 份 = 1 袋（12oz），带 ${Math.ceil(qty)} 袋`
   if (id === "salmon") return `≈ ${r1(qty / 4)} 份，买 ${Math.max(1, Math.ceil((qty * BUFFER) / SALMON_PACK_OZ))} 盒（Costco 三文鱼整片 ≈2.57lb/盒）`
-  if (id === "shrimp") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / 43))} 袋（1 袋 = 43 只，09-24 实数）`
+  if (id === "shrimp") return `买 ${Math.max(1, Math.ceil((qty * BUFFER) / SHRIMP_PER_BAG))} 袋（16/20 规格，1 袋 ≈ 32–40 只，按 ${SHRIMP_PER_BAG} 算）`
   if (id === "eggs") return `带 ${Math.ceil(qty * BUFFER) + 1} 个（combo 装 2 盒一提 = 36 个，要 ${Math.max(1, Math.ceil((qty * BUFFER + 1) / EGGS_PER_BOX))} 提）`
   if (unit === "oz" && qty >= 16) return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp(qty / 16)} lb`
   return undefined
@@ -381,7 +383,7 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   salmon: { per: SALMON_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Atlantic Salmon Fillet ≈2.57lb/盒" },
   lobster_tail: { per: 6, noun: "个", desc: "1 个 = 1 位客人，1 盒 = 2 个", big: { noun: "盒", count: 2 } },
   scallops: { per: 1, noun: "个", desc: "1 个 ≈ 1 oz，每人 4 个；RD 5lb 袋 ≈ 20 人份", big: { noun: "袋", count: 80 } },
-  shrimp: { per: 1, noun: "只", desc: "1 袋 = 43 只", big: { noun: "袋", count: 43 } },
+  shrimp: { per: 1, noun: "只", desc: "16/20 规格，1 袋 ≈ 32–40 只（按 32 算）", big: { noun: "袋", count: SHRIMP_PER_BAG } },
   tofu: { per: 15, noun: "盒", desc: "16oz 盒 ≈ 3 人份" },
   // 生鲜
   mixed_vege: { per: 16, noun: "lb", desc: "西葫芦/西兰花/洋葱/胡萝卜随意配" },
