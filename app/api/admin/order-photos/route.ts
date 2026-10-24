@@ -67,3 +67,75 @@ export async function GET(request: NextRequest) {
     })),
   })
 }
+
+// ============================================================
+// Party media (write side, owner only) - 2026-10-24
+// ============================================================
+// Chefs sometimes send the party video over WeChat instead of the prep sheet
+// (a 54 s phone clip is ~100 MB; the sheet's link has also expired by the next
+// morning). This lets the workbench / desk file it on the order the same way the
+// prep sheet does: ask for a one-time signed upload URL, PUT the file straight
+// into the party-photos bucket (it never passes through this server), then
+// report it so it gets an order_photos row and shows in the media library.
+//
+//   POST { action: "slot", orderId, phase, type, size }  -> { path, url }
+//   POST { action: "done", orderId, phase, path }        -> { ok, id }
+
+const PHASES = new Set(["setup", "volcano", "after"])
+const MEDIA_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+}
+
+export async function POST(request: NextRequest) {
+  const actor = await resolveAdminActor(request)
+  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (actor.role !== "owner") return NextResponse.json({ error: "只有老板能补传派对素材" }, { status: 403 })
+  const supabase = createServerSupabaseClient()
+  if (!supabase) return NextResponse.json({ error: "supabase not configured" }, { status: 500 })
+  let body: Record<string, unknown>
+  try {
+    body = (await request.json()) as Record<string, unknown>
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 })
+  }
+  const orderId = String(body.orderId ?? "")
+  const phase = String(body.phase ?? "")
+  if (!UUID_RE.test(orderId)) return NextResponse.json({ error: "orderId required" }, { status: 400 })
+  if (!PHASES.has(phase)) return NextResponse.json({ error: "phase 只能是 setup / volcano / after" }, { status: 400 })
+
+  if (body.action === "slot") {
+    const type = String(body.type ?? "").toLowerCase()
+    const ext = MEDIA_TYPES[type]
+    if (!ext) return NextResponse.json({ error: "只收 jpg/png/webp/mp4/mov/webm" }, { status: 400 })
+    const path = `${orderId}/${phase}-${Date.now()}-w.${ext}`
+    const { data, error } = await supabase.storage.from("party-photos").createSignedUploadUrl(path)
+    if (error || !data) return NextResponse.json({ error: error?.message ?? "no upload url" }, { status: 500 })
+    return NextResponse.json({ ok: true, path, url: data.signedUrl })
+  }
+
+  if (body.action === "done") {
+    const path = String(body.path ?? "")
+    const m = new RegExp(`^${orderId}/${phase}-\d+-w\.(jpg|png|webp|mp4|mov|webm)$`).exec(path)
+    if (!m) return NextResponse.json({ error: "bad path" }, { status: 400 })
+    const name = path.slice(orderId.length + 1)
+    const { data: listed } = await supabase.storage.from("party-photos").list(orderId, { search: name, limit: 5 })
+    const obj = (listed ?? []).find((o) => o.name === name)
+    if (!obj) return NextResponse.json({ error: "not uploaded" }, { status: 400 })
+    const meta = (obj.metadata ?? {}) as { size?: number; mimetype?: string }
+    const contentType = meta.mimetype || Object.entries(MEDIA_TYPES).find(([, e]) => e === m[1])?.[0] || null
+    const { data: row, error } = await supabase
+      .from("order_photos")
+      .insert({ order_id: orderId, phase, storage_path: path, content_type: contentType, bytes: typeof meta.size === "number" ? meta.size : null, uploaded_by: `admin:${actor.alias}` })
+      .select("id")
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, id: row.id })
+  }
+
+  return NextResponse.json({ error: "unknown action" }, { status: 400 })
+}
