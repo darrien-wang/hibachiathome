@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
   if (body.action === "done") {
     const path = String(body.path ?? "")
-    const m = new RegExp(`^${orderId}/${phase}-\d+-w\.(jpg|png|webp|mp4|mov|webm)$`).exec(path)
+    const m = new RegExp(`^${orderId}/${phase}-\\d+-w\\.(jpg|png|webp|mp4|mov|webm)$`).exec(path)
     if (!m) return NextResponse.json({ error: "bad path" }, { status: 400 })
     const name = path.slice(orderId.length + 1)
     const { data: listed } = await supabase.storage.from("party-photos").list(orderId, { search: name, limit: 5 })
