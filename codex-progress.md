@@ -178,3 +178,24 @@ Verification completed:
 - Live, read-only: `desk price` 11 adults + 1 kid with 12 tables and utensils is $838.80 (the 10-22 number). `order set RH-20261022-0063 ... --dry` three ways: ✓ $898.70 as it is stored today (12 + 1 after a later add); `--retier` "already right"; removing three guests drops it to 9 paying heads, `official_party10` comes off, ✓ $719.00. Nothing saved. Output: `harness/verification/2026-10-24-desk-headcount-tier/live-dry-runs.txt`.
 - Live, read-only sweep: the 15 orders dated today or later, `order set <no> --time <its own time> --dry`: all ✓, no false alarm (weekday specials incl. a spring-rolls pick, the $599 minimum, travel, tables, a deal, 30 adults + 5 kids). Output: `harness/verification/2026-10-24-desk-headcount-tier/live-sweep.txt`.
 - No TypeScript changed (desk only reads `config/pricing-rules.ts`), so `npm test` was not needed. `scripts/selftest/lint-copy.py`: 0 hard-rule hits. This is not a `harness/feature_list.json` item, so there is no status transition there.
+
+## DESK-LITTLE-KIDS-LINE - `--guests-file` keeps the Little kids (3-4) line in step with its `little: true` rows (2026-10-24)
+
+Status: done.
+
+Why: a 3-4 year old entered through `--guests-file` (`little: true`) got no "Little kids (3-4) @ $0 ×N" line, so the toddler was billed at the $29.90 child rate unless someone typed `--add-promo under5_auto=29.90 --promo-label "... ×1"` by hand (the × through the shell). DESK-HEADCOUNT-TIER's total check reported it; owner 2026-10-24: make desk do it.
+
+What changed:
+- `scripts/desk/desk.py`:
+  - `--guests-file`: the list is the whole party, so its `little: true` rows set the order's `under5_auto` line as the planner writes it ("Little kids (3-4) @ $0 ×N", $29.90 a toddler), in place; with no little row in the list the line comes off and the change says why. `little: true` now makes a child row (without `child: true` it used to be an adult row) and needs no proteins (5 and under bring none, leads skill); everyone else still needs two.
+  - `--remove-guest` of a flagged 3-4 year old takes the line down by one (from the larger of the flagged rows and the line's ×N, never under the flagged rows left). A paying kid's removal leaves it alone.
+  - `_is_little_line` is the one test for the line (`_little_kids`, the total check).
+  - The total check's Weekday Special hint says the save re-prices an unchanged line by the rule (invoice D-1017-02, live: `/api/orders/lint` answers, a made-up route 404s), next to the `--promo` that sets it by hand. The warning above it is 935254c2's.
+- Checked against D-1017-02's reconcileEntitlements: it never touches the Little kids line, and its tier reads that line's ×N, so desk keeping the line right feeds the server's tier. It keeps desk's re-tiered party line (right id, no `auto` flag) and swaps it when a later planner save moves the headcount (the line counts as the rules' own then), so the two never double up.
+- `scripts/desk/selfcheck.py`: 7 new cases. `.claude/skills/leads/tools.md`: the toddler note (with a guest list it is automatic; quick mode is still `--add-promo`).
+
+Verification completed:
+- `python scripts/desk/selfcheck.py` (rebased on `4752ec5c`, with 935254c2's lint cases): 45 pass, 0 fail. Output: `harness/verification/2026-10-24-desk-little-kids-line/selfcheck.txt`.
+- With the line sync disabled, the 5 new line checks fail. Output: `harness/verification/2026-10-24-desk-little-kids-line/mutation.txt`.
+- Live, read-only: RH-20261015-3202's planner-written toddler row and line have exactly the shape desk writes (`under5_auto`, "Little kids (3-4) @ $0 ×1", 29.9); `--remove-guest` of that row with `--dry` takes the line to none and leaves TOTAL $752.90 (the toddler was free), ✓. Output: `harness/verification/2026-10-24-desk-little-kids-line/live-dry-run.txt`.
+- No TypeScript changed. This is not a `harness/feature_list.json` item, so there is no status transition there.

@@ -1,0 +1,10 @@
+# Live, read-only (2026-10-24 20:00 local): --dry, nothing saved; the child's name is masked.
+# RH-20261015-3202 as stored: 13 rows (12 adults + 1 child row flagged isLittle, 2 proteins), line under5_auto 'Little kids (3-4) @ $0 ×1' 29.9 - the same id, label and amount desk now writes.
+
+$ desk order set RH-20261015-3202 --remove-guest <the 3-4 year old's row> --dry
+   guest removed: <toddler> (chicken, shrimp); childCount: 1 -> 0
+   little kids: Little kids (3-4) @ $0 ×1 $29.90 -> none (<toddler> was a free 3-4 year old)
+   base $718.80 | promos -$30.00 | extras $0.00 | travel $64.10 | TOTAL $752.90 | deposit $0.00 | BALANCE $752.90
+   v2 · 现金 BALANCE $752.90 · Zelle/Venmo 给师傅 $783.02 · 刷卡 $843.34 = 现金 + 消费税 8.75% $65.88 + 手续费 3% $24.56
+   ✓ total check: TOTAL $752.90 = desk price 12 adults + 0 kids · 2026-10-23 (past) → $688.80 [Standard, party size -$30.00] + extras $0.00 - other promos $0.00 + travel $64.10  (no usable date - compared at the Standard rate the order's promotions imply)
+DRY   not saved (--dry)

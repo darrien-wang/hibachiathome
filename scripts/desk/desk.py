@@ -808,10 +808,31 @@ def _setup_units(data: dict, x: str) -> int:
 def _little_kids(data: dict) -> int:
     """Free 3-4 year olds the promotions count, as the engine reads them: the
     planner's "Little kids (3-4) ×N" line or under5_auto (one when it gives no number)."""
-    hit = next((p for p in (data.get("promotions") or [])
-                if p.get("id") == "under5_auto" or re.match(r"little kids", str(p.get("label") or ""), re.I)), None)
+    hit = next((p for p in (data.get("promotions") or []) if _is_little_line(p)), None)
     m = re.search(r"×([0-9]+)", str(hit.get("label") or "")) if hit else None
     return int(m.group(1)) if m else (1 if hit else 0)
+
+
+def _is_little_line(p: dict) -> bool:
+    return p.get("id") == "under5_auto" or bool(re.match(r"little kids", str(p.get("label") or ""), re.I))
+
+
+def _set_little_line(data: dict, n: int, changes: list, why: str) -> None:
+    """The order's Little kids line set to n free 3-4 year olds (none at 0), in
+    place, as the planner writes it: under5_auto, "Little kids (3-4) @ $0 ×N",
+    their child-rate rows refunded in full. Until 2026-10-24 desk left it to a
+    hand-typed --add-promo (the × through the shell), and a toddler row without
+    it was billed $29.90."""
+    promos = data.get("promotions") or []
+    stored = [p for p in promos if _is_little_line(p)]
+    new = {"id": "under5_auto", "label": f"Little kids (3-4) @ $0 ×{n}", "amount": math.floor(CHILD_PRICE * n * 100 + 0.5) / 100} if n > 0 else None
+    if [(p.get("id"), p.get("label"), float(p.get("amount") or 0)) for p in stored] == ([(new["id"], new["label"], new["amount"])] if new else []):
+        return
+    keep = [p for p in promos if not _is_little_line(p)]
+    at = sum(1 for p in promos[:promos.index(stored[0])] if not _is_little_line(p)) if stored else len(keep)
+    data["promotions"] = keep[:at] + ([new] if new else []) + keep[at:]
+    old = ", ".join(f"{p.get('label') or p.get('id')} {money(p.get('amount'))}" for p in stored) or "none"
+    changes.append(f"little kids: {old} -> {new['label'] + ' ' + money(new['amount']) if new else 'none'} ({why})")
 
 
 def _paid_heads(data: dict) -> tuple[int, int]:
@@ -932,7 +953,7 @@ def _price_check(data: dict, inv: dict) -> None:
         promos = data.get("promotions") or []
         party = [x for x in promos if _is_party_line(x)]
         weekday = [x for x in promos if str(x.get("id") or "").startswith("official_weekday")]
-        little = [x for x in promos if x.get("id") == "under5_auto" or re.match(r"little kids", str(x.get("label") or ""), re.I)]
+        little = [x for x in promos if _is_little_line(x)]
         import datetime as _dt
         from zoneinfo import ZoneInfo
         date = str((data.get("contactInfo") or {}).get("eventDate") or "")[:10]
@@ -1007,7 +1028,8 @@ def _price_check(data: dict, inv: dict) -> None:
             print(f"   !!!   likely fix: --retier (puts {right['id']} {money(right['amount'])} on for {heads} paying heads)" if right
                   else f"   !!!   likely fix: --retier (takes the party-size line off: {heads} paying heads earn none)")
         elif len(weekday) == 1:
-            print(f"   !!!   likely fix, if the Weekday Special is the stale line: --promo {weekday[0].get('id')}={amt(weekday[0]) + gap:.2f}")
+            print(f"   !!!   if the Weekday Special is the stale line: the save re-prices an unchanged one by the rule (invoice D-1017-02); "
+                  f"by hand: --promo {weekday[0].get('id')}={amt(weekday[0]) + gap:.2f}")
         print(bar)
     except (Exception, SystemExit) as why:  # advisory: never in the way of a save
         print(f"   (total check skipped: {why})")
@@ -1517,12 +1539,14 @@ def cmd_order(a):
                 bad = [x for x in prots if x not in PROTEIN_IDS]
                 if bad:
                     raise SystemExit(f"guest {i + 1} {r.get('name')!r}: unknown protein {bad} - ids are {sorted(PROTEIN_IDS)}")
-                if len(prots) < 2:
-                    raise SystemExit(f"guest {i + 1} {r.get('name')!r}: needs at least 2 proteins")
+                # A free 3-4 year old gets no proteins of their own (leads
+                # skill), so their row may list none; everyone else picks two.
+                if len(prots) < 2 and not r.get("little"):
+                    raise SystemExit(f"guest {i + 1} {r.get('name')!r}: needs at least 2 proteins (a free 3-4 year old: \"little\": true)")
                 row = {
                     "id": f"g{i + 1}_{stamp}",
                     "name": str(r.get("name") or f"Guest {i + 1}").strip(),
-                    "isChild": bool(r.get("child")),
+                    "isChild": bool(r.get("child") or r.get("little")),  # a 3-4 year old is a child row, refunded by the Little kids line
                     "proteins": prots,
                     "noodles": bool(r.get("noodles")),
                     "tablesChairs": bool(r.get("tables")),
@@ -1535,10 +1559,16 @@ def cmd_order(a):
                 new_rows.append(row)
             adults = sum(1 for g in new_rows if not g["isChild"])
             kids = len(new_rows) - adults
-            changes.append(f"guests: {len(data.get('guests') or [])} rows -> {len(new_rows)} ({adults} adults + {kids} kids)")
+            little = sum(1 for g in new_rows if g.get("isLittle"))
+            changes.append(f"guests: {len(data.get('guests') or [])} rows -> {len(new_rows)} ({adults} adults + {kids} kids"
+                           + (f", {little} of them 3-4" if little else "") + ")")
             changes.append(f"adultCount/childCount: {data.get('adultCount')}/{data.get('childCount')} -> {adults}/{kids}")
             data["guests"] = new_rows
             data["adultCount"], data["childCount"] = adults, kids
+            # The list is the whole party, so its little: true rows are all the
+            # free 3-4 year olds there are: the line says as many, or goes.
+            _set_little_line(data, little, changes, f"{little} little: true row(s) in the list" if little else
+                             "the list has no little: true row - a 3-4 year old who is coming needs one")
             if data.get("mode") != "detailed":
                 changes.append(f"mode: {data.get('mode')!r} -> 'detailed'")
                 data["mode"] = "detailed"
@@ -1722,6 +1752,12 @@ def cmd_order(a):
             before = int(data.get(key) or 0)
             data[key] = max(0, before - 1)
             changes.append(f"guest removed: {gone.get('name')} ({', '.join(gone.get('proteins') or ['no proteins'])}); {key}: {before} -> {data[key]}")
+            if gone.get("isChild") and gone.get("isLittle"):
+                # One free 3-4 year old fewer: the line counts the larger of the
+                # flagged rows and its own ×N (planner rows before 09-28 carry no
+                # flag), so it drops by one from that, never under the rows left.
+                flagged = sum(1 for g in data["guests"] if g.get("isChild") and g.get("isLittle"))
+                _set_little_line(data, max(flagged, _little_kids(data) - 1), changes, f"{gone.get('name')} was a free 3-4 year old")
         if a.remove_guest:
             # Same frozen-amount trap as --add-adult, the other way round (the
             # deal lines are re-priced below, the Weekday Special and the
@@ -2120,7 +2156,9 @@ def main(argv=None):
     p.add_argument("--remove-guest", nargs="+", action="extend", metavar="NAME", help="take guest rows off by name (exact, one row each): a guest who cancels. Other rows keep their ids and picks.")
     p.add_argument("--guests-file", help="JSON list of guests the customer sent, one per row: "
                    '[{"name": "Mom", "proteins": ["filet_mignon", "steak", "lobster_tail"], "tables": true}, {"name": "Tyson", "child": true, ...}]. '
-                   "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows.")
+                   "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows. "
+                   '{"name": "Mia", "little": true} is a free 3-4 year old (a child row, no proteins needed): the order\'s '
+                   "Little kids (3-4) @ $0 ×N line follows the list's little rows, and --remove-guest of one takes it down by one.")
     p.add_argument("--replace-guests", action="store_true", help="allow --guests-file to overwrite rows that already have picks")
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
     p.add_argument("--deal-rate", nargs="+", action="extend", metavar="ID=PRICE",

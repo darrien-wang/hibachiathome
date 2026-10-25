@@ -1,0 +1,9 @@
+# The new checks must fail when the line is not kept in step (patched in memory only, no file changed).
+
+## desk._set_little_line disabled
+FAIL  --guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $718.70
+FAIL    a list with one toddler on an order whose line said ×2: the line becomes ×1 in place, ✓ $718.70
+FAIL    a list with no toddler on an order with a ×1 line: the line comes off, said why, ✓ $718.70
+FAIL  --remove-guest of a toddler: the line drops to ×1 in place, ✓ $718.70
+FAIL    both toddlers: the line comes off
+5 FAILED

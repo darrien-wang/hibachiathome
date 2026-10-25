@@ -345,6 +345,45 @@ def main() -> int:
     r = Run(invoice(mode="detailed", adults=12, kids=2, guests=rows(12, 1, little=1), promos=[PARTY[10]]), "--time", "19:00", "--dry")
     check("a little kid's row billed at the child price (no $0 line): loud, $29.90 too much", r.has("TOTAL CHECK FAILED", "$29.90 too much"), r)
 
+    # --guests-file: the list's little: true rows are the Little kids line (owner 2026-10-24).
+    def guests_file(tmp: str, adults: int, kids: int, little: int) -> str:
+        people = ([{"name": f"A{i}", "proteins": ["chicken", "steak"]} for i in range(adults)]
+                  + [{"name": f"K{i}", "child": True, "proteins": ["chicken", "steak"]} for i in range(kids)]
+                  + [{"name": f"Mia{i}", "little": True} for i in range(little)])  # no "child", no proteins
+        f = pathlib.Path(tmp) / f"rows-{adults}-{kids}-{little}.json"
+        f.write_text(json.dumps(people), encoding="utf-8")
+        return str(f)
+
+    little_2 = dict(LITTLE_LINE, label="Little kids (3-4) @ $0 ×2", amount=59.8)
+    with tempfile.TemporaryDirectory() as tmp:
+        r = Run(quick_8_2, "--guests-file", guests_file(tmp, 12, 1, 1))
+        mia = next((g for g in r.data.get("guests") or [] if g.get("name") == "Mia0"), {})
+        check("--guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $718.70",
+              mia.get("isChild") is True and mia.get("isLittle") is True and mia.get("proteins") == [] and r.data.get("childCount") == 2
+              and r.data.get("promotions") == [LITTLE_LINE, PARTY[10]]
+              and r.has("little kids: none -> Little kids (3-4) @ $0 ×1 $29.90", "✓ total check: TOTAL $718.70"), r)
+        two_toddlers = invoice(mode="detailed", adults=12, kids=3, guests=rows(12, 1, little=2), promos=[little_2, PARTY[10]])
+        r = Run(two_toddlers, "--guests-file", guests_file(tmp, 12, 1, 1), "--replace-guests")
+        check("  a list with one toddler on an order whose line said ×2: the line becomes ×1 in place, ✓ $718.70",
+              r.data.get("promotions") == [LITTLE_LINE, PARTY[10]]
+              and r.has("Little kids (3-4) @ $0 ×2 $59.80 -> Little kids (3-4) @ $0 ×1 $29.90", "✓ total check: TOTAL $718.70"), r)
+        one_toddler = invoice(mode="detailed", adults=12, kids=2, guests=rows(12, 1, little=1), promos=[LITTLE_LINE, PARTY[10]])
+        r = Run(one_toddler, "--guests-file", guests_file(tmp, 12, 1, 0), "--replace-guests")
+        check("  a list with no toddler on an order with a ×1 line: the line comes off, said why, ✓ $718.70",
+              r.data.get("promotions") == [PARTY[10]] and r.has("-> none (the list has no little: true row", "✓ total check: TOTAL $718.70"), r)
+        bad = pathlib.Path(tmp) / "one-protein.json"
+        bad.write_text(json.dumps([{"name": "Ann", "proteins": ["chicken"]}]), encoding="utf-8")
+        r = Run(quick_8_2, "--guests-file", str(bad), "--dry")
+        check("  a guest who is not little still needs two proteins", "needs at least 2 proteins" in str(r.exit) and r.saved is None, r)
+    r = Run(two_toddlers, "--remove-guest", "Guest 15")
+    check("--remove-guest of a toddler: the line drops to ×1 in place, ✓ $718.70",
+          r.data.get("promotions") == [LITTLE_LINE, PARTY[10]] and r.data.get("childCount") == 2 and r.has("✓ total check: TOTAL $718.70"), r)
+    r = Run(two_toddlers, "--remove-guest", "Guest 14", "Guest 15")
+    check("  both toddlers: the line comes off", r.data.get("promotions") == [PARTY[10]] and r.has("✓ total check: TOTAL $718.70"), r)
+    r = Run(one_toddler, "--remove-guest", "Guest 13")
+    check("--remove-guest of a paying kid leaves the toddler's line alone, ✓ $688.80",
+          r.data.get("promotions") == [LITTLE_LINE, PARTY[10]] and "little kids:" not in r.out and r.has("✓ total check: TOTAL $688.80"), r)
+
     # The Weekday Special: its free appetizer nets out; a stale per-head cut is the gap.
     monday = invoice(adults=12, proteins=prot(chicken=(12, 0), steak=(12, 0)), extras=[{"id": "gyoza", "qty": 1}],
                      promos=[WEEKDAY_LINE, PARTY[10]], date=MONDAY)

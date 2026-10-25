@@ -54,7 +54,7 @@ python scripts/desk/desk.py order set  <单号> --travel-miles 69 --travel-fee 1
 python scripts/desk/desk.py order set  <单号> --proteins steak=15 chicken=15          # 只给了总数（快速模式）；只管菜，不改人数
 python scripts/desk/desk.py order set  <单号> --headcount 11/1 --dry                 # 没有逐人名单的单改人数：大人/5–12 岁小孩（快速模式、还没菜单的新单）
 python scripts/desk/desk.py order set  <单号> --retier --dry                         # 人数折扣那行按现在的人数重排（自查报 party size 不对时用）
-python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--replace-guests]   # 逐人名单 [{name, child?, little?, proteins:[...], allergy?, note?}]，每人 ≥2 种
+python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--replace-guests]   # 逐人名单 [{name, child?, little?, proteins:[...], allergy?, note?}]，每人 ≥2 种（little 的 3–4 岁可以不写）
 python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | edamame=1 | side_shrimp=15   # 买的加购 / 桌椅按人头 / 整桌蛋白份
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
 python scripts/desk/desk.py order set  <单号> --free-appetizer spring_rolls --dry      # 客人挑的免费前菜（押金页默认 gyoza）
@@ -74,7 +74,7 @@ python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 - `⚠ 缺项`（`order show` 末尾、`order set` 存完）是发票系统的订单检查。`!!` 拦备料单（发票工具 Send to Chef 弹清单，可 Send anyway）和 `order remind`（`--force` 才发）：该有的优惠/前菜没上、送的盘或特价送的东西订单上没有（师傅不会带）、人头优惠还按旧人数算、一周内路费没算、三天内菜单不全、派对页人数和发票对不上（三天内）。`!` 只提醒、不拦。
 - 几样加购可以写在同一个 `--add-extra` 后面（`--add-extra tables_chairs=10 utensils=10`），也可以分开写几遍；10-21 之前分开写只留最后一个（Yunnie 差点只加上餐具），已改成会累加。改完照样看 `--dry` 的 TOTAL。
 - 客人回短信挑免费前菜：`--free-appetizer edamame`（gyoza / edamame / spring_rolls）。托盘和优惠行（周中特价 / 20 人以上 / 全套那条，连同同一种的 `--free-item`）一起换；edamame 一盘便宜 $5，差价记在优惠行上，总价不变，引擎换前换后各算一次，总价动了就不存。同一种托盘不止一盘时按优惠行金额认送了几盘，认不出来会让你先 `--promo` 重设金额。
-- 5 岁以下的小孩按系统惯例记成 child + little 行，并加 `--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"`，否则多收钱。
+- 3–4 岁免费小孩：名单里写 `{"name": "Mia", "little": true}`（自动算小孩行，可以不写蛋白），desk 按名单里 little 行的个数自动加 / 改 / 删 `Little kids (3-4) @ $0 ×N`（under5_auto）那行；`--remove-guest` 拿掉一个 little 行，那行跟着减一。没有逐人名单（快速模式）的单还是手加：`--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"`。少了这行每人多收 $29.90，total check 会报。
 - 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的：派对前用 `--guests-file` 灌进订单（10-21 Stephanie 那单）。
 - 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
