@@ -742,6 +742,36 @@ def _lookup(order: dict) -> tuple[dict, dict]:
     return inv_order, look["prefill"]
 
 
+def _order_lint(order: dict) -> dict | None:
+    """What the order is missing that the customer is owed - the invoice app's
+    order lint (D-1017-02): an entitlement the rules give that is not on the
+    invoice, a free tray or a deal item the party does not carry, travel never
+    measured, no menu in the last three days, a planner that disagrees on the
+    headcount. None when it could not be asked."""
+    try:
+        res = site_get("/api/admin/orders/lint", {"id": order["id"]})
+    except ApiError as e:
+        print(f"   (订单检查没连上发票系统：{e.status})")
+        return None
+    return res if isinstance(res, dict) and res.get("ok") else None
+
+
+def _print_lint(lint: dict | None) -> int:
+    """The ⚠ 缺项 block: blocking items (!!) then warnings (!), each with its fix. Returns how many block."""
+    if lint is None:
+        return 0
+    blocking, warnings = lint.get("blocking") or [], lint.get("warnings") or []
+    if not blocking and not warnings:
+        print("   ✓ 缺项：无")
+        return 0
+    print(f"   ⚠ 缺项（{len(blocking)} 项拦着备料单和前一天的提醒）：" if blocking else "   ⚠ 缺项（提醒，不拦）：")
+    for mark, x in [("!!", x) for x in blocking] + [("! ", x) for x in warnings]:
+        print(f"     {mark} {x.get('messageZh') or x.get('message')}")
+        if x.get("fix"):
+            print(f"        改法：{x['fix']}")
+    return len(blocking)
+
+
 def _invoice_drift(before: dict, after: dict) -> list[str]:
     """What moved on an order between two reads of its invoice - printed when a save is refused as out of date."""
     lines = []
@@ -843,16 +873,17 @@ def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: 
 
 def _warn_frozen_weekday(data: dict) -> None:
     # Promotions are stored as a dollar amount, not a rule, so the per-head
-    # ones keep the number they were computed at and silently overcharge a new
-    # guest. Gregorio 2026-10-05: one late adult left the Weekday Special at 13
-    # adults and "Tables & Chairs on us" at 17 guests, $15 too little off. The
-    # deal lines are re-priced from the order's customDeal; nothing here can
-    # re-derive the Weekday Special from an amount, so say so loudly rather
-    # than guess (the total check below shows by how much).
+    # ones kept the number they were computed at and silently overcharged a
+    # new guest. Gregorio 2026-10-05: one late adult left the Weekday Special at
+    # 13 adults and "Tables & Chairs on us" at 17 guests, $15 too little off.
+    # Since 2026-10-24 the invoice engine moves a line sent back unchanged by
+    # the rule's own step when the order is saved ($5 an adult, $2.45 a child,
+    # D-1017-02) and the save says so; a --promo in the same command is yours
+    # and stands. Until the save, the total check below still shows the old one.
     for x in (data.get("promotions") or []):
         if str(x.get("id", "")).startswith("official_weekday"):
-            print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount - "
-                  f"re-state it with --promo {x.get('id')}=<amount> or the guests are mis-billed")
+            print(f"   · promo {x.get('id')} {money(x.get('amount'))} was priced for the old headcount - "
+                  "the save re-prices it by the rule (the invoice engine reports it below)")
 
 
 def _weekday_appetizer(line: dict, data: dict) -> float:
@@ -1266,6 +1297,7 @@ def cmd_order(a):
             data = row.get("invoice_data") or {}
         _print_invoice(order_no, data)
         _print_plan(row, detail.get("staffing"))
+        _print_lint(_order_lint(order))
         if row.get("internal_notes"):
             print(f"   内部备注(客户看不到): {str(row['internal_notes'])[:300]}")
         try:
@@ -1301,7 +1333,7 @@ def cmd_order(a):
             print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
         invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
                          a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.add_promo, a.remove_promo,
-                         a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo)
+                         a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None)
         if all(v in (None, False, []) for v in invoice_flags):
             return
     inv_order, prefill = _lookup(order)
@@ -1738,8 +1770,12 @@ def cmd_order(a):
                     raise SystemExit(f"--promo {pid}: this invoice has no such promotion ({[x.get('id') for x in promos]})")
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
+        if not changes and a.reconcile:
+            # Save the order as it stands: the invoice engine puts on what the
+            # rules owe the party (D-1017-02) and the answer lists it.
+            changes.append("reconcile: saved as it is, for the invoice engine to put on what the rules owe")
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo/--reconcile")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1768,7 +1804,7 @@ def cmd_order(a):
                 data["promotions"] = [x for x in promos if x not in weekday]
                 changes.append(f"promotions: removed {[x['id'] for x in weekday]} - {a.date} is not a weekday-special date")
             elif applies and not weekday:
-                print(f"   ⚠ {a.date} qualifies for the Weekday Special but the invoice has no official_weekday promo - add it in the invoice tool")
+                print(f"   · {a.date} qualifies for the Weekday Special: the save adds it with its free appetizer (the invoice engine)")
         # The deposit webhook seeds the customer-visible NOTES with a process
         # string; replacing or clearing it here is always right (it is
         # filtered at print time anyway, 09-25).
@@ -1821,6 +1857,22 @@ def cmd_order(a):
         # blank guests only and names the ones it kept, one line a kind.
         for line in res.get("plannerWarnings") or []:
             print(f"WARN  {line}")
+        # What the invoice engine put on, took off or re-priced on top of this
+        # copy (the rules, D-1017-02), then what the order still lacks.
+        applied = res.get("entitlementsApplied") or []
+        for c in applied:
+            print(f"   + 引擎按规则：{c.get('text') or c}")
+        if applied:
+            # The totals and the check above were this copy's; the order now
+            # holds the engine's, so both again on what was saved.
+            try:
+                saved = _lookup(order)[1]
+                after = _totals(saved)
+                _print_totals(after)
+                _price_check(saved, after)
+            except (ApiError, SystemExit) as e:
+                print(f"   (保存后的总价没取到：{e})")
+        _print_lint(res.get("lint") if isinstance(res.get("lint"), dict) else None)
         return
     if a.op == "remind":
         # Owner 2026-10-05: the text before the party says what is left to pay.
@@ -1863,6 +1915,17 @@ def cmd_order(a):
                     f"Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?")
         else:
             body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
+        # The day-before text goes out only on an order that carries what the
+        # customer is owed (D-1017-02) - the same check that holds the prep sheet.
+        lint = _order_lint(order)
+        blocked = _print_lint(lint)
+        if (blocked or lint is None) and not a.force:
+            why = "订单检查没连上发票系统，确认不了有没有缺项" if lint is None else f"订单还有 {blocked} 项缺项"
+            if a.dry:
+                print(f"DRY   {body}")
+                print(f"HOLD  {why}——正式发会被拦。改好（order set …）再发，或核过后加 --force")
+                return
+            raise SystemExit(f"not sent: {why}. 改好（order set …）再发，或核过后加 --force")
         if a.dry:
             print(f"DRY   {body}")
             return
@@ -2023,6 +2086,8 @@ def main(argv=None):
     p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind", "hold", "redate"]); p.add_argument("ident")
     p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date)")
     p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
+    p.add_argument("--force", action="store_true", help="remind: send even though the order lint lists what the order is missing (checked by a person)")
+    p.add_argument("--reconcile", action="store_true", help="set: save the order as it stands, so the invoice engine puts on what the rules owe (D-1017-02)")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")

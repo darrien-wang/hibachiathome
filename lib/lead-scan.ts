@@ -5,6 +5,7 @@ import { holdState, loadQuiet } from "@/lib/lead-hold"
 import { fetchLastByPeer, toE164, type LastByPeer } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { getCityTravel } from "@/config/city-travel"
+import { fetchOrderLints, gapsWithLint, type OrderLint } from "@/lib/order-lint-client"
 
 // The lead scan (线索扫描 skill, 2026-10-01): every open lead sorted into one
 // bucket, each bucket with one action. The buckets encode what the 09-27
@@ -70,6 +71,8 @@ export type ScanResult = {
   summary: Record<Bucket | "F", number>
   items: ScanItem[]
   orders: OrderGap[]
+  /** false when the invoice app's order lint could not be asked (G then lists the scan's own gaps only). */
+  orderLint?: false
 }
 
 type LeadRow = {
@@ -165,7 +168,7 @@ async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ da
   return out
 }
 
-export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts: { write?: boolean } = {}): Promise<ScanResult> {
+export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts: { write?: boolean; lint?: boolean } = {}): Promise<ScanResult> {
   const since = new Date(now - POOL_DAYS * DAY_MS).toISOString()
   const [leads, quiet, byPeer, orders] = await Promise.all([
     fetchAll<LeadRow>((from, to) =>
@@ -458,7 +461,12 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
   }
 
   // ---- G: paid, party soon, something missing ------------------------------
+  // What the scan sees on the row (address, menu, time), then what the invoice
+  // app's order lint says the customer is owed and the order does not carry
+  // (D-1017-02: a free appetizer owed by rule, a deal item not on the party,
+  // travel never measured...). Blocking items read "!!".
   const orderGaps: OrderGap[] = []
+  const lints = opts.lint === false ? new Map<string, OrderLint>() : await fetchOrderLints(orders.map((o) => o.id))
   for (const o of orders) {
     const inv = o.invoice_data ?? {}
     const guests = Array.isArray(inv.guests) ? (inv.guests as unknown[]) : []
@@ -467,10 +475,11 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const address = (o.event_address ?? "").trim()
     const addressOk = address.length >= 8 && /\d/.test(address) && !/^\d{5}$/.test(address)
     const meta = o.source_metadata ?? {}
-    const gaps: string[] = []
-    if (!addressOk) gaps.push(address ? `地址只有 "${address}"` : "没有地址")
-    if (!hasMenu) gaps.push("菜单空")
-    if (meta.event_time_tbd === true) gaps.push("时间待定")
+    const base: string[] = []
+    if (!addressOk) base.push(address ? `地址只有 "${address}"` : "没有地址")
+    if (!hasMenu) base.push("菜单空")
+    if (meta.event_time_tbd === true) base.push("时间待定")
+    const gaps = gapsWithLint(base, lints?.get(o.id))
     if (!gaps.length) continue
     const eventDay = o.event_start ? o.event_start.slice(0, 10) : null
     orderGaps.push({
@@ -505,5 +514,13 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     )
   }
 
-  return { serverTime: new Date(now).toISOString(), pool: leads.length, summary, items, orders: orderGaps }
+  return {
+    serverTime: new Date(now).toISOString(),
+    pool: leads.length,
+    summary,
+    items,
+    orders: orderGaps,
+    // false: the invoice app's order lint did not answer, so G shows only what the scan sees itself
+    ...(lints === null && orders.length > 0 ? { orderLint: false } : {}),
+  }
 }

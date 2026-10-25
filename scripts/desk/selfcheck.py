@@ -147,10 +147,12 @@ LITTLE_LINE = {"id": "under5_auto", "label": "Little kids (3-4) @ $0 ×1", "amou
 
 
 class Run:
-    """One `desk order set` against the fakes: its output, exit and what it would have saved."""
+    """One `desk order set` (or `op`) against the fakes: its output, exit and what it would have saved.
+    `reply` is added to save-invoice's answer; `lint` is the order lint the site answers (D-1017-02)."""
 
-    def __init__(self, prefill: dict, *args: str):
+    def __init__(self, prefill: dict, *args: str, op: str = "set", reply: dict | None = None, lint: dict | None = None):
         self.prefill, self.saved, self.priced = prefill, None, []
+        self.reply, self.lint, self.texted = reply or {}, lint, None
         desk._search = self.search
         desk.invoice_post = self.invoice_post
         desk.site_get = self.site_get
@@ -159,7 +161,7 @@ class Run:
         self.exit = None
         with contextlib.redirect_stdout(buf):
             try:
-                desk.main(["order", "set", ORDER_NO, *args])
+                desk.main(["order", op, ORDER_NO, *args])
             except SystemExit as e:
                 self.exit = e.code
         self.out = buf.getvalue()
@@ -173,19 +175,27 @@ class Run:
             return {"found": True, "order": {"orderNo": ORDER_NO, "updatedAt": "2030-01-01T00:00:00Z", "version": "v-selfcheck"},
                     "prefill": copy.deepcopy(self.prefill)}
         if path == "/api/invoice":
-            return {"invoice": fake_invoice(payload)}
+            # remind quotes the card bill only off an address-rated invoice
+            return {"invoice": {**fake_invoice(payload), **({"salesTaxRateSource": "address"} if self.lint is not None else {})}}
         if path == "/api/self-service/orders/save-invoice":
             self.saved = payload
-            return {"orderNo": ORDER_NO, "plannerSynced": False}
+            return {"orderNo": ORDER_NO, "plannerSynced": False, **self.reply}
         raise RuntimeError(f"selfcheck: unexpected invoice call {path}")
 
     def site_get(self, path, params=None, admin=True, timeout=90):
         if path == "/api/agent/price":
             self.priced.append(dict(params or {}))
             return fake_price(params or {})
+        if path == "/api/admin/orders/lint" and self.lint is not None:
+            return self.lint
+        if path == "/api/admin/orders" and self.lint is not None:
+            return {"order": {"customer_phone": "+15555550100", "source_metadata": {}}}
         raise RuntimeError(f"selfcheck: unexpected site read {path}")
 
     def site_post(self, path, payload, method="POST", timeout=90):
+        if path == "/api/admin/sms-thread" and self.lint is not None:
+            self.texted = payload
+            return {"sid": "SMselfcheck"}
         raise RuntimeError(f"selfcheck: a site write ({path}) - order set must not write to the site")
 
     @property
@@ -342,7 +352,7 @@ def main() -> int:
     check("a Monday order with its Weekday Special and free gyoza: ✓ $628.80", r.has("✓ total check: TOTAL $628.80", "Weekday Special (Mon-Thu)"), r)
     r = Run(monday, "--headcount", "13/0", "--proteins", "chicken=13", "steak=13", "--dry")
     check("--headcount 13/0 on it: the frozen weekday line is called out, the check is $5.00 too much, fix named",
-          r.has("promo official_weekday is still $75.00", "TOTAL CHECK FAILED", "$5.00 too much", "of which $15.00 is the free appetizer",
+          r.has("promo official_weekday $75.00 was priced for the old headcount", "the save re-prices it", "TOTAL CHECK FAILED", "$5.00 too much", "of which $15.00 is the free appetizer",
                 "--promo official_weekday=80.00") and "-> official_party" not in r.out and "--retier" not in r.out, r)
 
     r = Run(monday, "--free-appetizer", "edamame", "--dry")
@@ -373,6 +383,31 @@ def main() -> int:
     r = Run(past, "--time", "19:00", "--dry")
     check("a past Monday party: compared at the weekday rate its lines imply, ✓", r.has("✓ total check", "(past)", "no usable date")
           and all("date" not in p for p in r.priced), r)
+
+    # ---- the order lint (D-1017-02): what the engine put on, what is still missing ----
+    applied = {"entitlementsApplied": [{"id": "official_platter20", "action": "added", "label": "FREE appetizer (20+ guests): Gyoza", "amount": 15,
+                                        "text": 'added official_platter20 "FREE appetizer (20+ guests): Gyoza" -$15.00 [+1 gyoza]'}],
+               "lint": {"blocking": [], "warnings": [{"code": "travel_unmeasured", "message": "travel", "messageZh": "有地址但路费没算"}]}}
+    r = Run(invoice(adults=12, proteins=prot(chicken=(12, 0), steak=(12, 0)), promos=[PARTY[10]]), "--time", "19:00", reply=applied)
+    check("order set prints what the invoice engine added, the totals again, and the lint after the save",
+          r.has("引擎按规则：added official_platter20", "⚠ 缺项（提醒，不拦）", "有地址但路费没算") and r.out.count("total check") >= 2, r)
+    r = Run(invoice(adults=12, proteins=prot(chicken=(12, 0), steak=(12, 0)), promos=[PARTY[10]]), "--reconcile")
+    check("order set --reconcile saves the order as it stands", r.saved is not None and r.has("reconcile: saved as it is"), r)
+
+    tomorrow = (datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-8))) + datetime.timedelta(days=1)).date().isoformat()
+    party = invoice(adults=12, proteins=prot(chicken=(12, 0), steak=(12, 0)), promos=[PARTY[10]], date=tomorrow)
+    missing = {"ok": True, "blocking": [{"code": "entitlement_missing", "message": "owed", "messageZh": "按规则该有、发票上没有：FREE appetizer (20+ guests): Gyoza",
+                                         "fix": "order set <order> --reconcile"}], "warnings": []}
+    r = Run(party, op="show", lint=missing)
+    check("order show prints the ⚠ 缺项 block with the fix", r.has("⚠ 缺项（1 项拦着备料单和前一天的提醒）", "!! 按规则该有", "改法：order set <order> --reconcile"), r)
+    r = Run(party, op="remind", lint=missing)
+    check("order remind refuses an order the lint says is missing something", r.texted is None and "not sent" in str(r.exit) and r.has("!! 按规则该有"), r)
+    r = Run(party, "--dry", op="remind", lint=missing)
+    check("  --dry shows the text and that it would be held", r.texted is None and r.has("DRY   See you", "HOLD"), r)
+    r = Run(party, "--force", op="remind", lint=missing)
+    check("  --force sends it anyway", bool(r.texted) and r.has("OK    texted"), r)
+    r = Run(party, op="remind", lint={"ok": True, "blocking": [], "warnings": []})
+    check("  a clean order is texted as before", bool(r.texted) and r.has("✓ 缺项：无"), r)
 
     print()
     if FAILS:

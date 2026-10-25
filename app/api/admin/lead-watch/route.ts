@@ -31,6 +31,7 @@ import { loadQuiet } from "@/lib/lead-hold"
 import { cityForZip } from "@/lib/zip-city"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
+import { blockingLine, fetchOrderLints } from "@/lib/order-lint-client"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
@@ -707,6 +708,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   // (pc:sent / pc:sent24 / pc:ok), which the inbox reads to show the flags.
   const partyContact: Array<Record<string, unknown>> = []
   const partyCandidates: Candidate[] = []
+  // Orders at the 72h text or the 48h flag this run: their order lint (what
+  // the customer is owed and the order does not carry, D-1017-02) is asked for
+  // once, after the loop, and its blocking items go into the summary.
+  const lintSteps: Array<{ orderId: string; base: Record<string, unknown>; flag: Candidate | null }> = []
   if (watch.party_contact_check) {
     type Upcoming = { id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string; event_address: string | null; source_metadata: Record<string, unknown> | null; created_at: string }
     const { data: upcoming } = await supabase
@@ -782,13 +787,33 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       }
       // The flag itself (pcf:*) is written by every caller, cron included, so
       // the inbox / desk can show it; pc:48 / pc:24 are the reported-once keys.
+      if (step === "first_text") lintSteps.push({ orderId: o.id, base, flag: null })
       if (step === "flag_48h") {
         await setMark(`pcf:48:${o.id}`)
-        partyCandidates.push({ key: `pc:48:${o.id}`, item: { ...base, stage: "flag_48h", minutesWaiting, summary: "72 小时前的确认短信没回，再发一条或打个电话" }, urgent: false })
+        const flag: Candidate = { key: `pc:48:${o.id}`, item: { ...base, stage: "flag_48h", minutesWaiting, summary: "72 小时前的确认短信没回，再发一条或打个电话" }, urgent: false }
+        partyCandidates.push(flag)
+        lintSteps.push({ orderId: o.id, base, flag })
       } else if (step === "urgent_24h") {
         await setMark(`pcf:24:${o.id}`)
         partyCandidates.push({ key: `pc:24:${o.id}`, item: { ...base, stage: "urgent_24h", minutesWaiting, summary: "明天的派对还没联系上，打电话" }, urgent: true, renotifyMs: PARTY_CONTACT_RENOTIFY_24H_MS })
       }
+    }
+  }
+  // What the order still lacks, at the two steps where a person can still fix
+  // it before the prep sheet and the day-before reminder (which refuse while
+  // anything blocks): appended to the 48h flag, its own item at the 72h text.
+  if (lintSteps.length > 0) {
+    const lints = await fetchOrderLints(lintSteps.map((s) => s.orderId))
+    for (const s of lintSteps) {
+      const line = blockingLine(lints?.get(s.orderId))
+      if (!line) continue
+      if (s.flag) {
+        s.flag.item.summary = `${String(s.flag.item.summary)}；${line}`
+      } else {
+        partyCandidates.push({ key: `pc:lint:${s.orderId}`, item: { ...s.base, stage: "lint_72h", minutesWaiting: 0, summary: `72 小时确认短信已发；${line}` }, urgent: false })
+      }
+      const sent = partyContact.find((p) => p.orderId === s.orderId)
+      if (sent) sent.missing = (lints?.get(s.orderId)?.blocking ?? []).map((x) => x.messageZh)
     }
   }
 

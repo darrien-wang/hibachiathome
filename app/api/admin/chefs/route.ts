@@ -795,7 +795,19 @@ export async function POST(request: NextRequest) {
         if (!(ord as { invoice_data?: unknown } | null)?.invoice_data) {
           return NextResponse.json({ error: "这单还没在发票工具里存过发票，先保存一次发票再发备料单。" }, { status: 400 })
         }
-        type SheetResp = { ok?: boolean; url?: string; expiresAt?: string; resent?: boolean; error?: string; staff?: { name?: string }; sms?: { delivered?: boolean; error?: string } }
+        type Issue = { code?: string; message?: string; messageZh?: string }
+        type SheetResp = {
+          ok?: boolean
+          url?: string
+          expiresAt?: string
+          resent?: boolean
+          error?: string
+          message?: string
+          blocking?: Issue[]
+          lint?: Array<Issue & { severity?: string }>
+          staff?: { name?: string }
+          sms?: { delivered?: boolean; error?: string }
+        }
         let payload: SheetResp
         try {
           const res = await fetch(`${INVOICE_APP_ORIGIN}/api/chef-sheet/send`, {
@@ -808,9 +820,24 @@ export async function POST(request: NextRequest) {
               note: str(body.note, 300) || undefined,
               sendSms: body.send_sms !== false,
               sentBy: `workbench:${actor.alias}`,
+              // 发票工具说订单缺东西（order_lint / staffing_lint）时，看过了还要发 = force
+              ...(body.force === true ? { force: true } : {}),
             }),
           })
           payload = (await res.json().catch(() => ({}))) as SheetResp
+          // 订单缺客人该有的东西（D-1017-02）或派工不够：备料单不发，把缺什么带回工作台，
+          // 确认过了带 force:true 再发一次。
+          if (res.status === 409 && (payload.error === "order_lint" || payload.blocking || payload.lint)) {
+            const missing = [...(payload.blocking ?? []), ...(payload.lint ?? []).filter((x) => x.severity === "blocking")]
+            return NextResponse.json(
+              {
+                error: `备料单没发：${missing.map((x) => x.messageZh || x.message).join("；") || payload.message || payload.error}。改好发票再发，或确认后 force 发。`,
+                code: payload.error === "order_lint" ? "order_lint" : "staffing_lint",
+                blocking: missing,
+              },
+              { status: 409 },
+            )
+          }
           // 502/504 会被 Cloudflare 换成它自己的错误页，理由就丢了——
           // 用 400 把发票工具的原话带回工作台。
           if (!res.ok || !payload.ok) return NextResponse.json({ error: payload.error ?? `发票工具返回 ${res.status}` }, { status: 400 })
