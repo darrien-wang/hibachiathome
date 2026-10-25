@@ -1539,6 +1539,13 @@ def cmd_order(a):
             # (--add-adult, --free-item, --add-extra) may already be on the order.
             raise SystemExit(f"nothing was saved. Read it again (order show {order_no}), then re-run this command if it still applies.")
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
+        # A save lines the host's planner up with this invoice's counts, and
+        # until 2026-10-24 it deleted whoever was over them: RH-20261015-3202's
+        # under-5 Shiloh, named with two picks, would have gone with a save
+        # whose invoice had no little-kids line. The invoice app now removes
+        # blank guests only and names the ones it kept, one line a kind.
+        for line in res.get("plannerWarnings") or []:
+            print(f"WARN  {line}")
         return
     if a.op == "remind":
         # Owner 2026-10-05: the text before the party says what is left to pay.

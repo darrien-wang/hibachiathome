@@ -70,6 +70,7 @@ python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 - 客人回短信挑免费前菜：`--free-appetizer edamame`（gyoza / edamame / spring_rolls）。托盘和优惠行（周中特价 / 20 人以上 / 全套那条，连同同一种的 `--free-item`）一起换；edamame 一盘便宜 $5，差价记在优惠行上，总价不变，引擎换前换后各算一次，总价动了就不存。同一种托盘不止一盘时按优惠行金额认送了几盘，认不出来会让你先 `--promo` 重设金额。
 - 5 岁以下的小孩按系统惯例记成 child + little 行，并加 `--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"`，否则多收钱。
 - 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的：派对前用 `--guests-file` 灌进订单（10-21 Stephanie 那单）。
+- 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
 
 **电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了重设 promo。先例 RH-20261020-4480。
