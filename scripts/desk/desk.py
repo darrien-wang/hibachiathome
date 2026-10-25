@@ -28,8 +28,8 @@
   python scripts/desk/desk.py order set  <orderNo> --chefs 2 --grills 2 [--stations "two U shapes, each chef at an open end"]
                                    dispatch plan on the order (owner override; --plan-rule goes back to the headcount rule)
                                    [--proteins chicken=10 steak=10 shrimp=10]   totals texted by the customer
-  python scripts/desk/desk.py order set  <orderNo> --headcount 11/1 [--proteins chicken=11/1 steak=11/1] --dry
-                                   headcount of an order without guest rows (adults/kids 5-12). Any headcount change
+  python scripts/desk/desk.py order set  <orderNo> --headcount 11/1[/1] [--proteins chicken=11/1 steak=11/1] --dry
+                                   headcount of an order without guest rows (adults/kids 5-12[/free 3-4s]). Any headcount change
                                    re-tiers the official_party* line (--retier on its own fixes one already wrong);
                                    every set checks its TOTAL against desk price
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
@@ -1463,20 +1463,25 @@ def cmd_order(a):
             # --proteins moves only the servings and --add-adult wants rows, so
             # RH-20261022-0063 (8+2 -> 11+1, quick mode) had to be rewritten as
             # 12 guest rows (owner 2026-10-24). Kids are 5-12, as desk price
-            # takes them; free 3-4 year olds stay as the "Little kids ×N" line says.
-            m = re.fullmatch(r"(\d+)/(\d+)", a.headcount.strip())
+            # takes them. A third number is the free 3-4 year olds and sets the
+            # "Little kids ×N" line, so it is never typed through the shell;
+            # without it they stay as that line says.
+            m = re.fullmatch(r"(\d+)/(\d+)(?:/(\d+))?", a.headcount.strip())
             if not m or int(m.group(1)) + int(m.group(2)) < 1:
-                raise SystemExit("--headcount ADULTS/KIDS, e.g. 11/1 (11/0 with no kids; kids are 5-12)")
+                raise SystemExit("--headcount ADULTS/KIDS[/LITTLE], e.g. 11/1, or 11/1/2 with two free 3-4 year olds (kids are 5-12)")
             if data.get("mode") == "detailed" and data.get("guests"):
                 raise SystemExit(f"this order has {len(data['guests'])} guest rows, and the rows are its headcount - "
                                  "--add-adult / --add-child / --remove-guest, or --guests-file")
             if a.guests_file or a.add_adult or a.add_child or a.remove_guest:
                 raise SystemExit("--headcount is for an order without guest rows - not together with --guests-file / --add-adult / --add-child / --remove-guest")
             adults, kids = int(m.group(1)), int(m.group(2))
-            little = _little_kids(data)
+            little = _little_kids(data) if m.group(3) is None else int(m.group(3))
             changes.append(f"adultCount/childCount: {data.get('adultCount')}/{data.get('childCount')} -> {adults}/{kids + little}"
-                           + (f" ({kids} kids 5-12 + {little} free 3-4 on the Little kids line)" if little else ""))
+                           + (f" ({kids} kid{'' if kids == 1 else 's'} 5-12 + {little} free 3-4" + ("" if m.group(3) else " on the Little kids line") + ")"
+                              if little else ""))
             data["adultCount"], data["childCount"] = adults, kids + little
+            if m.group(3) is not None:
+                _set_little_line(data, little, changes, f"--headcount: {little} free 3-4 year old(s)" if little else "--headcount: no 3-4 year olds")
             # The menu and the per-guest setup are counted separately and stay
             # as they are unless this command sets them too.
             prot = [q for q in (data.get("quickCountItems") or []) if q.get("category") == "protein"]
@@ -2143,9 +2148,10 @@ def main(argv=None):
     p.add_argument("--proteins", nargs="+", action="extend", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
                    "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode. "
                    "The menu only - the headcount is --headcount.")
-    p.add_argument("--headcount", metavar="ADULTS/KIDS", help="the headcount of an order without guest rows (quick mode, or a fresh order before "
-                   "the menu): 11/1 = 11 adults + 1 kid 5-12, as desk price counts them; free 3-4 year olds stay as the order's Little kids "
-                   "line says. The party-size line follows, as it does for --guests-file / --add-adult / --add-child / --remove-guest.")
+    p.add_argument("--headcount", metavar="ADULTS/KIDS[/LITTLE]", help="the headcount of an order without guest rows (quick mode, or a fresh "
+                   "order before the menu): 11/1 = 11 adults + 1 kid 5-12, as desk price counts them. 11/1/2 adds two free 3-4 year olds and "
+                   "sets the order's Little kids (3-4) @ $0 ×N line to them (11/1/0 takes it off); 11/1 leaves that line as it is. "
+                   "The party-size line follows, as it does for --guests-file / --add-adult / --add-child / --remove-guest.")
     p.add_argument("--retier", action="store_true", help="put the party-size line (official_party*) right for the headcount the order has "
                    "now. Every headcount change does this by itself; this is for an order that was already wrong (the total check "
                    "names it). Leaves 61+ and an appreciation line standing in for the tier alone.")

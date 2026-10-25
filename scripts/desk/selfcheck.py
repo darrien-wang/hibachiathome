@@ -340,6 +340,31 @@ def main() -> int:
     check("--headcount 14/2 with a 'Little kids ×1' line: childCount 3, 15 paying heads -> official_party15, ✓",
           r.data.get("childCount") == 3 and r.data.get("promotions") == [LITTLE_LINE, PARTY[15]]
           and r.has("(2 kids 5-12 + 1 free 3-4 on the Little kids line)", "✓ total check: TOTAL $838.40"), r)
+    # --headcount's third number is the free 3-4 year olds: it sets the Little kids line (owner 2026-10-24).
+    r = Run(invoice(adults=12, promos=[PARTY[10]]), "--headcount", "12/1/1")
+    check("--headcount 12/1/1 on a quick-mode order: childCount 2, the Little kids ×1 line added, ✓ $718.70",
+          r.data.get("adultCount") == 12 and r.data.get("childCount") == 2 and r.data.get("promotions") == [PARTY[10], LITTLE_LINE]
+          and r.has("12/0 -> 12/2 (1 kid 5-12 + 1 free 3-4)", "little kids: none -> Little kids (3-4) @ $0 ×1 $29.90 (--headcount: 1 free",
+                    "✓ total check: TOTAL $718.70"), r)
+    toddler_quick = invoice(adults=12, kids=2, promos=[LITTLE_LINE, PARTY[10]])
+    r = Run(toddler_quick, "--headcount", "12/1/2")
+    check("  12/1/2 on an order whose line said ×1: childCount 3, the line ×2 in place, ✓ $718.70",
+          r.data.get("childCount") == 3 and r.data.get("promotions") == [dict(LITTLE_LINE, label="Little kids (3-4) @ $0 ×2", amount=59.8), PARTY[10]]
+          and r.has("✓ total check: TOTAL $718.70"), r)
+    r = Run(toddler_quick, "--headcount", "12/1/0")
+    check("  12/1/0: the line comes off, childCount 1, ✓ $718.70",
+          r.data.get("childCount") == 1 and r.data.get("promotions") == [PARTY[10]] and r.has("--headcount: no 3-4 year olds", "✓ total check: TOTAL $718.70"), r)
+    r = Run(invoice(adults=14, promos=[PARTY[10]]), "--headcount", "14/0/3")
+    check("  14/0/3: three toddlers never move the tier (official_party10 stays)",
+          r.data.get("childCount") == 3 and r.data.get("promotions") == [PARTY[10], dict(LITTLE_LINE, label="Little kids (3-4) @ $0 ×3", amount=89.7)]
+          and "-> official_party" not in r.out, r)
+    r = Run(invoice(mode="detailed", adults=12), "--headcount", "12/1/1")
+    check("  a fresh order (detailed, no rows yet) takes it too",
+          r.data.get("mode") == "detailed" and r.data.get("childCount") == 2 and LITTLE_LINE in (r.data.get("promotions") or []), r)
+    for bad_count in ("12/1/x", "12/1/1/1", "0/0/2"):
+        r = Run(invoice(adults=12, promos=[PARTY[10]]), "--headcount", bad_count, "--dry")
+        check(f"  --headcount {bad_count} is refused", "--headcount ADULTS/KIDS[/LITTLE]" in str(r.exit) and r.saved is None, r)
+
     r = Run(invoice(mode="detailed", adults=12, kids=2, guests=rows(12, 1, little=1), promos=[LITTLE_LINE, PARTY[10]]), "--time", "19:00", "--dry")
     check("a little kid's row with its $0 line: ✓", r.has("✓ total check: TOTAL $718.70"), r)
     r = Run(invoice(mode="detailed", adults=12, kids=2, guests=rows(12, 1, little=1), promos=[PARTY[10]]), "--time", "19:00", "--dry")

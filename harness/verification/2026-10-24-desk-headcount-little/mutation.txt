@@ -1,0 +1,14 @@
+# The new checks must fail when the line is not set (patched in memory only, no file changed).
+
+## desk._set_little_line disabled
+FAIL  --headcount 12/1/1 on a quick-mode order: childCount 2, the Little kids ×1 line added, ✓ $718.70
+FAIL    12/1/2 on an order whose line said ×1: childCount 3, the line ×2 in place, ✓ $718.70
+FAIL    12/1/0: the line comes off, childCount 1, ✓ $718.70
+FAIL    14/0/3: three toddlers never move the tier (official_party10 stays)
+FAIL    a fresh order (detailed, no rows yet) takes it too
+FAIL  --guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $718.70
+FAIL    a list with one toddler on an order whose line said ×2: the line becomes ×1 in place, ✓ $718.70
+FAIL    a list with no toddler on an order with a ×1 line: the line comes off, said why, ✓ $718.70
+FAIL  --remove-guest of a toddler: the line drops to ×1 in place, ✓ $718.70
+FAIL    both toddlers: the line comes off
+10 FAILED

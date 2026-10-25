@@ -199,3 +199,19 @@ Verification completed:
 - With the line sync disabled, the 5 new line checks fail. Output: `harness/verification/2026-10-24-desk-little-kids-line/mutation.txt`.
 - Live, read-only: RH-20261015-3202's planner-written toddler row and line have exactly the shape desk writes (`under5_auto`, "Little kids (3-4) @ $0 ×1", 29.9); `--remove-guest` of that row with `--dry` takes the line to none and leaves TOTAL $752.90 (the toddler was free), ✓. Output: `harness/verification/2026-10-24-desk-little-kids-line/live-dry-run.txt`.
 - No TypeScript changed. This is not a `harness/feature_list.json` item, so there is no status transition there.
+
+## DESK-HEADCOUNT-LITTLE - `--headcount ADULTS/KIDS/LITTLE`: free 3-4 year olds on an order without guest rows (2026-10-24)
+
+Status: done.
+
+Why: after DESK-LITTLE-KIDS-LINE a guest list keeps the Little kids line by itself, but an order without rows (quick mode, or a fresh order before the menu) still needed `--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"` typed by hand, the × through the shell. Owner 2026-10-24: a third number on `--headcount`.
+
+What changed:
+- `scripts/desk/desk.py`: `--headcount 11/1/2` = 11 adults + 1 kid 5-12 + 2 free 3-4 year olds: childCount 3 and the order's `under5_auto` line set to "Little kids (3-4) @ $0 ×2" ($59.80), in place, through `_set_little_line`; `11/1/0` takes the line off; `11/1` leaves it as it was (unchanged behaviour). The toddlers are not paying heads, so they never move the party-size tier. Same refusals as before (an order with rows; with `--guests-file` / `--add-*` / `--remove-guest`); at least one adult or kid 5-12.
+- `scripts/desk/selfcheck.py`: 8 new cases. `.claude/skills/leads/tools.md`: the `--headcount` line and the toddler note (no more hand-typed `--add-promo` for the line).
+
+Verification completed:
+- `python scripts/desk/selfcheck.py`: 53 pass, 0 fail. Output: `harness/verification/2026-10-24-desk-headcount-little/selfcheck.txt`.
+- With the line setter disabled, the 5 new line cases fail (and the 5 from DESK-LITTLE-KIDS-LINE). Output: `harness/verification/2026-10-24-desk-headcount-little/mutation.txt`.
+- Live, read-only: `order set RH-20261022-5789 --headcount 15/0/1 --dry` (a fresh 15-adult order): the line goes on ×1 $29.90, `official_party15` stays, TOTAL $838.50 as before (the toddler is free), ✓. Nothing saved. Output: `harness/verification/2026-10-24-desk-headcount-little/live-dry-run.txt`.
+- No TypeScript changed. This is not a `harness/feature_list.json` item, so there is no status transition there.

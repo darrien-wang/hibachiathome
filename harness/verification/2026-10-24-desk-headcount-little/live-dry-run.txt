@@ -1,0 +1,10 @@
+# Live, read-only (2026-10-24 22:58 local): --dry, nothing saved. RH-20261022-5789 is a fresh order (15 adults, no rows yet); one free 3-4 year old added.
+
+$ desk order set RH-20261022-5789 --headcount 15/0/1 --dry
+   adultCount/childCount: 15/0 -> 15/1 (0 kids 5-12 + 1 free 3-4)
+   little kids: none -> Little kids (3-4) @ $0 ×1 $29.90 (--headcount: 1 free 3-4 year old(s))
+   base $928.40 | promos -$104.90 | extras $15.00 | travel $0.00 | TOTAL $838.50 | deposit $0.00 | BALANCE $838.50
+   v2 · 现金 BALANCE $838.50 · Zelle/Venmo 给师傅 $872.04 · 刷卡 $965.13 = 现金 + 消费税 11.75% $98.52 + 手续费 3% $28.11
+   ✓ total check: TOTAL $838.50 = desk price 15 adults + 0 kids · 2026-10-30 → $838.50 [Standard, party size -$60.00] + extras $15.00 - other promos $15.00 + travel $0.00
+DRY   not saved (--dry)
+(exit 0)
