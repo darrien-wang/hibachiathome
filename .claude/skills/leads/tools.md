@@ -47,7 +47,8 @@ python scripts/desk/desk.py link short  <长链> --lead <id>
 **订单**
 ```bash
 python scripts/desk/desk.py order find <姓名|手机|单号>
-python scripts/desk/desk.py order show <单号> [--json]         # 菜单、加购、NOTES（客人看得到）、内部备注、派工、总价
+python scripts/desk/desk.py order show <单号> [--json]         # 菜单、加购、NOTES（客人看得到）、内部备注、派工、⚠ 缺项、总价
+python scripts/desk/desk.py order set  <单号> --reconcile             # 原样存一次，发票引擎按规则补上该有的（20+ 前菜、人数折扣…）
 python scripts/desk/desk.py order set  <单号> --date 2026-11-03 --time 18:00 --address "10756 McLennan Ave, Granada Hills, CA 91344" --dry
 python scripts/desk/desk.py order set  <单号> --travel-miles 69 --travel-fee 19
 python scripts/desk/desk.py order set  <单号> --proteins steak=15 chicken=15          # 只给了总数（快速模式）；只管菜，不改人数
@@ -63,12 +64,14 @@ python scripts/desk/desk.py order set  <单号> --chefs 2 --grills 2 --stations 
 python scripts/desk/desk.py order hold <单号> --why "寿星出城，另挑日期"      # 日期待定：派对还在、日期拿掉（日历「日期待定」栏）；客人改期就用它
 python scripts/desk/desk.py order redate <单号> --date 2026-11-14 [--time 18:00]   # 待定的单定了新日期
 python scripts/desk/desk.py order preview <单号>
-python scripts/desk/desk.py order remind <单号> --dry              # 前一天提醒，先 --dry
+python scripts/desk/desk.py order remind <单号> --dry              # 前一天提醒，先 --dry；有 !! 缺项不发，核过才 --force
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信请回 confirm（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
 - 改之前先 `--dry` 看 TOTAL；每次 `order set` 会自己拿 TOTAL 和 `desk price`（同样的大人/小孩/日期/桌椅餐具，加上订单自己的加购、优惠和路费）对一遍：对上打 `✓ total check`，差 $1 以上打一大段 `!!! TOTAL CHECK FAILED`，并写出可能的改法（`--retier`、`--promo official_weekday=…`）。存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
-- 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts`）；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行是冻结的金额，人数变了会提示用 `--promo` 改。
+- 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts`）；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行存的时候由发票引擎按新人数重算（每加一个大人 $5、小孩 $2.45，手改过的多送几盘照留）；同一条命令里 `--promo` 手改的照你的。
+- 存完多出 `+ 引擎按规则：…`（10-24 起，D-1017-02）：该给客人的由发票引擎每次保存时补上——人数折扣、周中特价、20 人以上 / 全套桌椅餐具送的前菜（连托盘，师傅单上才有）、特价规则那几行。手加的行（`--free-item` 送的盘、appreciation、custom）不动；按报价锁定的价格（as quoted / agreed total）不往上加，只在缺项里提醒。引擎补完会重印 TOTAL 和 total check。
+- `⚠ 缺项`（`order show` 末尾、`order set` 存完）是发票系统的订单检查。`!!` 拦备料单（发票工具 Send to Chef 弹清单，可 Send anyway）和 `order remind`（`--force` 才发）：该有的优惠/前菜没上、送的盘或特价送的东西订单上没有（师傅不会带）、人头优惠还按旧人数算、一周内路费没算、三天内菜单不全、派对页人数和发票对不上（三天内）。`!` 只提醒、不拦。
 - 几样加购可以写在同一个 `--add-extra` 后面（`--add-extra tables_chairs=10 utensils=10`），也可以分开写几遍；10-21 之前分开写只留最后一个（Yunnie 差点只加上餐具），已改成会累加。改完照样看 `--dry` 的 TOTAL。
 - 客人回短信挑免费前菜：`--free-appetizer edamame`（gyoza / edamame / spring_rolls）。托盘和优惠行（周中特价 / 20 人以上 / 全套那条，连同同一种的 `--free-item`）一起换；edamame 一盘便宜 $5，差价记在优惠行上，总价不变，引擎换前换后各算一次，总价动了就不存。同一种托盘不止一盘时按优惠行金额认送了几盘，认不出来会让你先 `--promo` 重设金额。
 - 5 岁以下的小孩按系统惯例记成 child + little 行，并加 `--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"`，否则多收钱。
