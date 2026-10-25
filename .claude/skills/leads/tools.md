@@ -50,7 +50,9 @@ python scripts/desk/desk.py order find <姓名|手机|单号>
 python scripts/desk/desk.py order show <单号> [--json]         # 菜单、加购、NOTES（客人看得到）、内部备注、派工、总价
 python scripts/desk/desk.py order set  <单号> --date 2026-11-03 --time 18:00 --address "10756 McLennan Ave, Granada Hills, CA 91344" --dry
 python scripts/desk/desk.py order set  <单号> --travel-miles 69 --travel-fee 19
-python scripts/desk/desk.py order set  <单号> --proteins steak=15 chicken=15          # 只给了总数（快速模式）
+python scripts/desk/desk.py order set  <单号> --proteins steak=15 chicken=15          # 只给了总数（快速模式）；只管菜，不改人数
+python scripts/desk/desk.py order set  <单号> --headcount 11/1 --dry                 # 没有逐人名单的单改人数：大人/5–12 岁小孩（快速模式、还没菜单的新单）
+python scripts/desk/desk.py order set  <单号> --retier --dry                         # 人数折扣那行按现在的人数重排（自查报 party size 不对时用）
 python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--replace-guests]   # 逐人名单 [{name, child?, little?, proteins:[...], allergy?, note?}]，每人 ≥2 种
 python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | edamame=1 | side_shrimp=15   # 买的加购 / 桌椅按人头 / 整桌蛋白份
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
@@ -65,7 +67,8 @@ python scripts/desk/desk.py order remind <单号> --dry              # 前一天
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信请回 confirm（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
-- 改之前先 `--dry` 看 TOTAL，和 `desk price` 对一遍；存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
+- 改之前先 `--dry` 看 TOTAL；每次 `order set` 会自己拿 TOTAL 和 `desk price`（同样的大人/小孩/日期/桌椅餐具，加上订单自己的加购、优惠和路费）对一遍：对上打 `✓ total check`，差 $1 以上打一大段 `!!! TOTAL CHECK FAILED`，并写出可能的改法（`--retier`、`--promo official_weekday=…`）。存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
+- 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts`）；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行是冻结的金额，人数变了会提示用 `--promo` 改。
 - 几样加购可以写在同一个 `--add-extra` 后面（`--add-extra tables_chairs=10 utensils=10`），也可以分开写几遍；10-21 之前分开写只留最后一个（Yunnie 差点只加上餐具），已改成会累加。改完照样看 `--dry` 的 TOTAL。
 - 客人回短信挑免费前菜：`--free-appetizer edamame`（gyoza / edamame / spring_rolls）。托盘和优惠行（周中特价 / 20 人以上 / 全套那条，连同同一种的 `--free-item`）一起换；edamame 一盘便宜 $5，差价记在优惠行上，总价不变，引擎换前换后各算一次，总价动了就不存。同一种托盘不止一盘时按优惠行金额认送了几盘，认不出来会让你先 `--promo` 重设金额。
 - 5 岁以下的小孩按系统惯例记成 child + little 行，并加 `--add-promo under5_auto=29.90 --promo-label "Little kids (3-4) @ $0 ×1"`，否则多收钱。
@@ -73,7 +76,7 @@ python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 - 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
 
-**电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了重设 promo。先例 RH-20261020-4480。
+**电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了用 `--headcount`（人数折扣自动换档，看 `--dry` 的 total check）。先例 RH-20261020-4480。
 
 ---
 

@@ -1,0 +1,386 @@
+# -*- coding: utf-8 -*-
+"""Offline self-check for desk's order set headcount rules (owner 2026-10-24).
+
+  python scripts/desk/selfcheck.py
+
+Nothing leaves this machine: the site and invoice calls go to two small fakes
+(the invoice engine's calcInvoiceTotal and the site's /api/agent/price), and a
+call that gets past them fails the run instead of reaching production.
+
+  - the party-size ladder desk reads from config/pricing-rules.ts is the
+    module's own export (evaluated with tsx; SKIP when npx is not there)
+  - --headcount on a quick-mode order: RH-20261022-0063, 8+2 -> 11+1
+  - the official_party* line follows every headcount change (--headcount,
+    --guests-file, --add-adult, --remove-guest) and no other line moves
+  - the TOTAL is held against desk price, and a wrong stored discount is loud
+"""
+from __future__ import annotations
+
+import contextlib
+import copy
+import datetime
+import io
+import json
+import pathlib
+import shutil
+import subprocess
+import sys
+import tempfile
+
+import _api
+import desk
+
+
+def _no_network(*args, **kwargs):
+    raise RuntimeError("selfcheck: a call reached the network layer")
+
+
+_api._call = _no_network
+
+# ------------------------------------------------------------- the engines --
+# Catalog numbers of the two engines, as fakes need them. The ladder itself is
+# desk's (checked against the TS export below), so a tier change needs nothing here.
+WEEKDAY_RATE = {"adult": 54.90, "child": 27.45}  # invoice WEEKDAY_SPECIAL: $5 / $2.45 off
+EXTRA_PRICES = {**desk.APPETIZER_PRICES, **desk.SETUP_PRICES, **desk.PROTEIN_SIDE_PRICES}
+EXTRA_PROTEIN = 10.0  # invoice EXTRA_REGULAR_PROTEIN_PRICE
+
+
+def r2(v: float) -> float:
+    return round(v + 1e-9, 2)
+
+
+def fake_invoice(d: dict) -> dict:
+    """calcInvoiceTotal for what these scenarios use (regular proteins, v2)."""
+    rows = d.get("guests") or []
+    mode = "quick" if d.get("mode") == "detailed" and not rows else d.get("mode")
+    base = upgrades = addons = 0.0
+    if mode == "detailed":
+        for g in rows:
+            base += desk.CHILD_PRICE if g.get("isChild") else desk.ADULT_PRICE
+            upgrades += max(0, len(g.get("proteins") or []) - 2) * EXTRA_PROTEIN
+            addons += 5 * bool(g.get("noodles")) + 10 * bool(g.get("tablesChairs")) + 5 * bool(g.get("utensils"))
+    else:
+        guests = d["adultCount"] + d["childCount"]
+        base = d["adultCount"] * desk.ADULT_PRICE + d["childCount"] * desk.CHILD_PRICE
+        qty = sum((q.get("qty") or 0) + (q.get("childQty") or 0) for q in d.get("quickCountItems") or [] if q.get("category") == "protein")
+        upgrades = max(0, qty - guests * 2) * EXTRA_PROTEIN
+    extras = sum(EXTRA_PRICES[e["id"]] * e["qty"] for e in d.get("partyExtras") or [])
+    subtotal = base + upgrades + addons + extras
+    promos = sum(float(p["amount"]) for p in d.get("promotions") or [])
+    adjusted = max(max(0.0, subtotal - promos), desk.MINIMUM_SPEND)
+    tf = d.get("travelFee") or {}
+    miles = tf.get("distanceMiles")
+    travel = tf["manualOverride"] if tf.get("manualOverride") is not None else (r2(max(0, miles - 50)) if miles else 0.0)
+    cash = r2(adjusted + travel)
+    tax = r2(cash * 0.1025)
+    return {"baseCost": r2(base), "proteinUpgrades": r2(upgrades), "addonsCost": r2(addons), "partyExtrasCost": r2(extras),
+            "subtotal": r2(subtotal), "promotionsTotal": r2(promos), "travelFee": travel, "adjustedTotal": r2(adjusted),
+            "creditCardFee": 0, "finalTotal": cash, "deposit": 0, "balanceDue": cash, "pricingTerms": "v2_by_method",
+            "cashTotal": cash, "cashBalanceDue": cash, "salesTax": tax, "salesTaxRate": 0.1025, "salesTaxRateSource": "default",
+            "cardProcessingFee": r2((cash + tax) * 0.03), "cardBalanceDue": r2((cash + tax) * 1.03)}
+
+
+def fake_price(params: dict) -> dict:
+    """/api/agent/price: calcSimpleEstimate by the date's rate, no zip."""
+    adults, kids = int(params.get("adults", 0)), int(params.get("kids", 0))
+    if adults + kids >= desk.party_tiers()[1]:
+        return {"ok": True, "customQuote": True}
+    tables, utensils = int(params.get("tables", 0)), int(params.get("utensils", 0))
+    line = desk.party_line(desk.tier_heads(adults, kids))
+    tier = float(line["amount"]) if line else 0.0
+
+    def quote(weekday: bool) -> dict:
+        a_rate, k_rate = (WEEKDAY_RATE["adult"], WEEKDAY_RATE["child"]) if weekday else (desk.ADULT_PRICE, desk.CHILD_PRICE)
+        food = r2(adults * a_rate + kids * k_rate)
+        rentals = tables * 10 + utensils * 5
+        after = max(0.0, food + rentals - tier)
+        base = max(after, desk.MINIMUM_SPEND)
+        return {"plan": "Weekday Special (Mon-Thu)" if weekday else "Standard", "foodSubtotal": food,
+                **({"rentals": {"tablesChairsGuests": tables, "tablewareGuests": utensils, "amount": rentals}} if rentals else {}),
+                "partySizeDiscount": r2(max(0.0, food + rentals - base)), "minimumApplied": after < desk.MINIMUM_SPEND,
+                "travelFee": 0, "total": r2(base)}
+
+    date = params.get("date")
+    if date:
+        weekday = datetime.date.fromisoformat(date).weekday() <= 3
+        return {"ok": True, "price": quote(weekday), "minimum": desk.MINIMUM_SPEND,
+                "weekdaySpecial": "applies to this date" if weekday else "Monday-Thursday only"}
+    return {"ok": True, "price": quote(False), "ifMondayToThursday": quote(True), "minimum": desk.MINIMUM_SPEND}
+
+
+# ------------------------------------------------------------ the harness --
+ORDER_NO = "RH-20300615-0001"
+SATURDAY, MONDAY = "2030-06-15", "2030-06-17"
+
+
+def invoice(*, mode="quick", adults=0, kids=0, guests=None, proteins=None, extras=None, promos=None, date=SATURDAY) -> dict:
+    return {
+        "contactInfo": {"clientName": "Self Check", "email": "selfcheck@example.com", "phone": "+15555550100", "eventDate": date,
+                        "eventTime": "18:00", "eventAddress": "1 Test St, Long Beach, CA 90802", "specialNotes": ""},
+        "adultCount": adults, "childCount": kids, "mode": mode, "guests": guests or [], "quickCountItems": proteins or [],
+        "partyWideAddons": [], "partyExtras": extras or [], "paymentMethod": "cash", "depositAmount": 0,
+        "promotions": promos or [], "customDeal": None,
+        "travelFee": {"homeZipcode": "", "ratePerMile": 1, "freeRadiusMiles": 50, "distanceMiles": 20, "manualOverride": None},
+        "selectedGratuityRate": None, "pricingTerms": "v2_by_method", "salesTaxRate": None,
+    }
+
+
+def rows(adults: int, kids: int = 0, little: int = 0, setup: bool = False) -> list[dict]:
+    out = []
+    for i in range(adults + kids + little):
+        out.append({"id": f"g{i + 1}", "name": f"Guest {i + 1}", "isChild": i >= adults, "proteins": ["chicken", "steak"],
+                    "noodles": False, "tablesChairs": setup, "utensils": setup, "foodAllergy": "", "note": "",
+                    **({"isLittle": True} if i >= adults + kids else {})})
+    return out
+
+
+def prot(**counts) -> list[dict]:
+    """chicken=(8, 2) -> the quick-mode protein item with 8 adult and 2 child servings."""
+    return [{"itemId": k, "category": "protein", "qty": a, **({"childQty": c} if c else {})} for k, (a, c) in counts.items()]
+
+
+PARTY = {n: desk.party_line(n) for n in (10, 15, 41)}
+FREE_GYOZA = {"id": "gyoza_1", "label": "FREE: Gyoza (10 pcs) x1", "amount": 15.0}
+WEEKDAY_LINE = {"id": "official_weekday", "label": "Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Gyoza",
+                "amount": 75.0}  # 12 adults: $15 gyoza + 12 x $5
+LITTLE_LINE = {"id": "under5_auto", "label": "Little kids (3-4) @ $0 ×1", "amount": 29.9}
+
+
+class Run:
+    """One `desk order set` against the fakes: its output, exit and what it would have saved."""
+
+    def __init__(self, prefill: dict, *args: str):
+        self.prefill, self.saved, self.priced = prefill, None, []
+        desk._search = self.search
+        desk.invoice_post = self.invoice_post
+        desk.site_get = self.site_get
+        desk.site_post = self.site_post
+        buf = io.StringIO()
+        self.exit = None
+        with contextlib.redirect_stdout(buf):
+            try:
+                desk.main(["order", "set", ORDER_NO, *args])
+            except SystemExit as e:
+                self.exit = e.code
+        self.out = buf.getvalue()
+
+    def search(self, text):
+        return [{"name": "Self Check", "email": "selfcheck@example.com", "phone": "+15555550100",
+                 "orders": [{"order_no": ORDER_NO, "id": "00000000-0000-4000-8000-000000000001"}]}]
+
+    def invoice_post(self, path, payload, timeout=120):
+        if path == "/api/self-service/orders/lookup":
+            return {"found": True, "order": {"orderNo": ORDER_NO, "updatedAt": "2030-01-01T00:00:00Z", "version": "v-selfcheck"},
+                    "prefill": copy.deepcopy(self.prefill)}
+        if path == "/api/invoice":
+            return {"invoice": fake_invoice(payload)}
+        if path == "/api/self-service/orders/save-invoice":
+            self.saved = payload
+            return {"orderNo": ORDER_NO, "plannerSynced": False}
+        raise RuntimeError(f"selfcheck: unexpected invoice call {path}")
+
+    def site_get(self, path, params=None, admin=True, timeout=90):
+        if path == "/api/agent/price":
+            self.priced.append(dict(params or {}))
+            return fake_price(params or {})
+        raise RuntimeError(f"selfcheck: unexpected site read {path}")
+
+    def site_post(self, path, payload, method="POST", timeout=90):
+        raise RuntimeError(f"selfcheck: a site write ({path}) - order set must not write to the site")
+
+    @property
+    def data(self) -> dict:
+        return (self.saved or {}).get("invoiceData") or {}
+
+    def has(self, *parts: str) -> bool:
+        return all(p in self.out for p in parts)
+
+
+FAILS: list[str] = []
+
+
+def check(name: str, ok: bool, run: Run | None = None, detail: str = "") -> None:
+    print(("PASS  " if ok else "FAIL  ") + name)
+    if not ok:
+        FAILS.append(name)
+        if detail:
+            print("      " + detail)
+        if run is not None:
+            print("      ---- desk said ----\n" + "\n".join("      | " + line for line in run.out.rstrip().splitlines()))
+            if run.exit not in (None, 0):
+                print(f"      | exit: {run.exit}")
+
+
+def tiers_match_the_ts_export() -> None:
+    npx = shutil.which("npx")
+    if not npx:
+        print("SKIP  tiers vs the TS export: no npx on PATH")
+        return
+    root = desk.ROOT
+    with tempfile.TemporaryDirectory() as tmp:
+        script = pathlib.Path(tmp) / "tiers.ts"
+        script.write_text(f"import {{ PARTY_SIZE_DISCOUNT_TIERS as t, PARTY_SIZE_CUSTOM_FROM as c, KID_TIER_WEIGHT as w }} "
+                          f"from '{(root / 'config' / 'pricing-rules').as_posix()}'\n"
+                          "console.log(JSON.stringify({ t, c, w }))\n", encoding="utf-8")
+        try:
+            res = subprocess.run([npx, "-y", "tsx", "--tsconfig", str(root / "tsconfig.json"), str(script)],
+                                 cwd=root, capture_output=True, text=True, timeout=180)
+        except (OSError, subprocess.TimeoutExpired) as why:
+            print(f"SKIP  tiers vs the TS export: tsx did not run ({why})")
+            return
+    if res.returncode != 0:
+        print(f"SKIP  tiers vs the TS export: tsx exit {res.returncode}: {res.stderr.strip()[:200]}")
+        return
+    ts = json.loads(res.stdout.strip().splitlines()[-1])
+    tiers, custom, weight = desk.party_tiers()
+    mine = [{"minGuests": t["min"], "maxGuests": t["max"], "amount": t["amount"]} for t in tiers]
+    check("tiers: desk's read of config/pricing-rules.ts equals the TS export", (mine, custom, weight) == (ts["t"], ts["c"], ts["w"]),
+          detail=f"desk {(mine, custom, weight)} / TS {(ts['t'], ts['c'], ts['w'])}")
+
+
+def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    tiers_match_the_ts_export()
+    check("tiers: 8+2 is 9 paying heads (no tier), 11+1 is 11 (official_party10 $30), 14+2 is 15 (official_party15 $60)",
+          desk.party_line(desk.tier_heads(8, 2)) is None
+          and PARTY[10] == {"id": "official_party10", "label": "Party Size Discount (10–14 adults): $30 off", "amount": 30}
+          and desk.party_line(desk.tier_heads(11, 1)) == PARTY[10] and desk.party_line(desk.tier_heads(14, 2))["id"] == "official_party15")
+
+    # RH-20261022-0063 (2026-10-22): quick mode, 8 adults + 2 kids -> 11 + 1.
+    quick_8_2 = invoice(adults=8, kids=2, proteins=prot(chicken=(8, 2), steak=(8, 2)),
+                        extras=[{"id": "tables_chairs", "qty": 10}, {"id": "utensils", "qty": 10}])
+    args = ["--headcount", "11/1", "--proteins", "chicken=11/1", "steak=11/1", "--add-extra", "tables_chairs=12", "utensils=12"]
+    r = Run(quick_8_2, *args, "--dry")
+    check("--headcount 11/1 on a quick-mode order: counts set, official_party10 added, TOTAL $838.80 = desk price, --dry saves nothing",
+          r.exit is None and r.saved is None and r.has("adultCount/childCount: 8/2 -> 11/1", "none -> official_party10 $30.00",
+                                                       "✓ total check: TOTAL $838.80", "DRY   not saved"), r)
+    r = Run(quick_8_2, *args)
+    d = r.data
+    check("  saved: 11/1, the menu, tables/utensils for 12, and exactly the official party10 line",
+          d.get("adultCount") == 11 and d.get("childCount") == 1 and d.get("mode") == "quick" and d.get("promotions") == [PARTY[10]]
+          and {q["itemId"]: (q["qty"], q.get("childQty")) for q in d.get("quickCountItems") or []} == {"chicken": (11, 1), "steak": (11, 1)}
+          and {e["id"]: e["qty"] for e in d.get("partyExtras") or []} == {"tables_chairs": 12, "utensils": 12}
+          and r.saved.get("baseVersion") == "v-selfcheck", r)
+    r = Run(quick_8_2, "--headcount", "11/1", "--dry")
+    check("--headcount alone says the menu and the per-guest setup still count the old party",
+          r.has("the menu is still chicken=8/2 steak=8/2", "pass --proteins", "tables_chairs is still billed for 10 guests, the party is now 12"), r)
+    r = Run(quick_8_2, "--add-adult", "1", "--dry")
+    check("--add-adult on a quick-mode order points at --headcount (not --proteins)",
+          "--headcount ADULTS/KIDS" in str(r.exit) and r.saved is None, r)
+    r = Run(invoice(mode="detailed", adults=5, guests=rows(5)), "--headcount", "6/0", "--dry")
+    check("--headcount refuses an order with guest rows", "guest rows" in str(r.exit), r)
+    r = Run(invoice(mode="detailed", adults=5), "--headcount", "6/0")
+    check("--headcount works on a fresh order (detailed, no rows yet)", r.data.get("adultCount") == 6 and r.data.get("mode") == "detailed", r)
+
+    # The stored order after the 10-22 rewrite, before the tier was added by hand.
+    rewritten = invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True))
+    r = Run(rewritten, "--time", "18:30", "--dry")
+    check("a stored order missing its tier: TOTAL CHECK FAILED, $868.80 vs desk price $838.80, $30.00 too much, fix named",
+          r.has("TOTAL CHECK FAILED", "$868.80", "$838.80", "$30.00 too much", "party size: order no line; desk price -$30.00 for 11 paying heads",
+                "likely fix: --retier (puts official_party10 $30.00 on for 11 paying heads)"), r)
+    r = Run(rewritten, "--retier")
+    check("  --retier on it: official_party10 added, nothing else, ✓ $838.80",
+          r.data.get("promotions") == [PARTY[10]] and r.data.get("guests") == rewritten["guests"] and r.has("✓ total check: TOTAL $838.80"), r)
+    r = Run(invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[10]]), "--time", "18:30", "--dry")
+    check("  the same order with official_party10: ✓", r.has("✓ total check: TOTAL $838.80") and "TOTAL CHECK FAILED" not in r.out, r)
+    r = Run(invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[15]]), "--retier", "--dry")
+    check("  --retier on a wrong tier (official_party15 for 11 heads) replaces it",
+          r.has("official_party15 $60.00 -> official_party10 $30.00", "✓ total check: TOTAL $838.80"), r)
+    r = Run(invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[10]]), "--retier", "--dry")
+    check("  --retier when the line is right: says so, nothing to change", r.has("is already right") and "nothing to change" in str(r.exit), r)
+
+    # Re-tier on rows: --remove-guest / --add-adult / --guests-file. Only the party line moves, in place.
+    courtesy = {"id": "courtesy_1", "label": "Courtesy credit", "amount": 10.0}
+    fifteen = invoice(mode="detailed", adults=15, guests=rows(15), extras=[{"id": "gyoza", "qty": 1}], promos=[FREE_GYOZA, PARTY[15], courtesy])
+    r = Run(fifteen, "--remove-guest", "Guest 15")
+    check("--remove-guest 15 -> 14: official_party15 $60 becomes official_party10 $30 in place, the other lines untouched, ✓",
+          r.data.get("promotions") == [FREE_GYOZA, PARTY[10], courtesy]
+          and r.has("official_party15 $60.00 -> official_party10 $30.00", "✓ total check: TOTAL $798.60"), r)
+    r = Run(invoice(mode="detailed", adults=14, guests=rows(14), promos=[PARTY[10]]), "--add-adult", "1")
+    check("--add-adult 14 -> 15: official_party10 becomes official_party15", r.data.get("promotions") == [PARTY[15]] and r.data.get("adultCount") == 15, r)
+    with tempfile.TemporaryDirectory() as tmp:
+        f = pathlib.Path(tmp) / "rows.json"
+        f.write_text(json.dumps([{"name": f"G{i}", "proteins": ["chicken", "steak"], "tables": True, "utensils": True} for i in range(16)]),
+                     encoding="utf-8")
+        r = Run(quick_8_2, "--guests-file", str(f))
+    check("--guests-file 16 adults on an 8+2 order: official_party15 $60 added, rows carry the setup, ✓ $1,138.40",
+          r.data.get("promotions") == [PARTY[15]] and r.data.get("mode") == "detailed" and not r.data.get("partyExtras")
+          and r.has("✓ total check: TOTAL $1,138.40"), r)
+
+    # The edges of the ladder.
+    r = Run(invoice(adults=10, proteins=prot(chicken=(10, 0), steak=(10, 0)), promos=[PARTY[10]]), "--headcount", "9/0")
+    check("under 10 paying heads: the party line comes off, and the $599 minimum check still matches",
+          r.data.get("promotions") == [] and r.has("official_party10 $30.00 -> none (under 10)", "✓ total check: TOTAL $599.00", "minimum"), r)
+    r = Run(invoice(adults=50, promos=[PARTY[41]]), "--headcount", "61/0")
+    check("61+ is a custom quote: line left as it is, said so, check skipped",
+          r.data.get("promotions") == [PARTY[41]] and r.has("custom quote (61+)", "(total check skipped"), r)
+
+    # Appreciation stands in for the tier (leads skill: they do not stack unless the owner says so).
+    teacher = {"id": "appreciation_teacher", "label": "Teacher Appreciation: $50 off", "amount": 50.0}
+    r = Run(invoice(adults=9, promos=[teacher]), "--headcount", "12/0")
+    check("appreciation on the order: no party line added, said why, ✓ with the stand-in noted",
+          r.data.get("promotions") == [teacher] and r.has("not added - appreciation_teacher", "✓ total check: TOTAL $668.80", "stands in"), r)
+    r = Run(invoice(adults=12, promos=[PARTY[10]]), "--remove-promo", "official_party10", "--add-promo", "appreciation_teacher=50",
+            "--promo-label", "Teacher Appreciation: $50 off", "--headcount", "13/0", "--dry")
+    check("--remove-promo official_party10 in the same command: not put back",
+          r.has("not put back", "✓ total check: TOTAL $728.70") and "-> official_party10" not in r.out, r)
+
+    # Free 3-4 year olds: kept on top of --headcount's kids, never in the tier.
+    r = Run(invoice(adults=10, kids=3, promos=[LITTLE_LINE, PARTY[10]]), "--headcount", "14/2")
+    check("--headcount 14/2 with a 'Little kids ×1' line: childCount 3, 15 paying heads -> official_party15, ✓",
+          r.data.get("childCount") == 3 and r.data.get("promotions") == [LITTLE_LINE, PARTY[15]]
+          and r.has("(2 kids 5-12 + 1 free 3-4 on the Little kids line)", "✓ total check: TOTAL $838.40"), r)
+    r = Run(invoice(mode="detailed", adults=12, kids=2, guests=rows(12, 1, little=1), promos=[LITTLE_LINE, PARTY[10]]), "--time", "19:00", "--dry")
+    check("a little kid's row with its $0 line: ✓", r.has("✓ total check: TOTAL $718.70"), r)
+    r = Run(invoice(mode="detailed", adults=12, kids=2, guests=rows(12, 1, little=1), promos=[PARTY[10]]), "--time", "19:00", "--dry")
+    check("a little kid's row billed at the child price (no $0 line): loud, $29.90 too much", r.has("TOTAL CHECK FAILED", "$29.90 too much"), r)
+
+    # The Weekday Special: its free appetizer nets out; a stale per-head cut is the gap.
+    monday = invoice(adults=12, proteins=prot(chicken=(12, 0), steak=(12, 0)), extras=[{"id": "gyoza", "qty": 1}],
+                     promos=[WEEKDAY_LINE, PARTY[10]], date=MONDAY)
+    r = Run(monday, "--time", "19:00", "--dry")
+    check("a Monday order with its Weekday Special and free gyoza: ✓ $628.80", r.has("✓ total check: TOTAL $628.80", "Weekday Special (Mon-Thu)"), r)
+    r = Run(monday, "--headcount", "13/0", "--proteins", "chicken=13", "steak=13", "--dry")
+    check("--headcount 13/0 on it: the frozen weekday line is called out, the check is $5.00 too much, fix named",
+          r.has("promo official_weekday is still $75.00", "TOTAL CHECK FAILED", "$5.00 too much", "of which $15.00 is the free appetizer",
+                "--promo official_weekday=80.00") and "-> official_party" not in r.out and "--retier" not in r.out, r)
+
+    r = Run(monday, "--free-appetizer", "edamame", "--dry")
+    check("--free-appetizer edamame on it (the line drops $5 with the tray): ✓ $628.80, the free edamame netted",
+          r.has("✓ total check: TOTAL $628.80", "extras $10.00 - other promos $10.00"), r)
+    # One free tray per 10 guests rides on the weekday line; a tray they bought does not.
+    def monday_20(line_amount: float) -> dict:
+        return invoice(adults=20, proteins=prot(chicken=(20, 0), steak=(20, 0)), extras=[{"id": "gyoza", "qty": 2}], date=MONDAY,
+                       promos=[dict(WEEKDAY_LINE, amount=line_amount), PARTY[15]])
+    r = Run(monday_20(130.0), "--time", "19:00", "--dry")
+    check("20 adults on a Monday, two free gyoza on the weekday line ($30 + 20 x $5): ✓ $1,038.00",
+          r.has("✓ total check: TOTAL $1,038.00", "extras $30.00 - other promos $30.00"), r)
+    r = Run(monday_20(115.0), "--time", "19:00", "--dry")
+    check("  the same with one of the two gyoza bought ($15 + 20 x $5): ✓ $1,053.00, the bought tray billed",
+          r.has("✓ total check: TOTAL $1,053.00", "extras $30.00 - other promos $15.00"), r)
+    no_tray = copy.deepcopy(monday)
+    no_tray["partyExtras"] = []
+    r = Run(no_tray, "--time", "19:00", "--dry")
+    check("a weekday line refunding a gyoza the order does not carry: loud, $15.00 too little", r.has("TOTAL CHECK FAILED", "$15.00 too little"), r)
+
+    # The minimum must not raise a false alarm when the order has a paid tray.
+    r = Run(invoice(adults=6, proteins=prot(chicken=(6, 0), steak=(6, 0)), extras=[{"id": "gyoza", "qty": 1}]), "--time", "19:00", "--dry")
+    check("6 adults + a paid gyoza tray under the $599 minimum: ✓ $599.00", r.has("✓ total check: TOTAL $599.00"), r)
+
+    # A past date: the engine prices neither, the order's own lines say which rate it was sold at.
+    past = copy.deepcopy(monday)
+    past["contactInfo"]["eventDate"] = "2026-10-05"
+    r = Run(past, "--time", "19:00", "--dry")
+    check("a past Monday party: compared at the weekday rate its lines imply, ✓", r.has("✓ total check", "(past)", "no usable date")
+          and all("date" not in p for p in r.priced), r)
+
+    print()
+    if FAILS:
+        print(f"{len(FAILS)} FAILED")
+        return 1
+    print("all passed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

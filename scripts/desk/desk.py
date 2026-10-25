@@ -28,6 +28,10 @@
   python scripts/desk/desk.py order set  <orderNo> --chefs 2 --grills 2 [--stations "two U shapes, each chef at an open end"]
                                    dispatch plan on the order (owner override; --plan-rule goes back to the headcount rule)
                                    [--proteins chicken=10 steak=10 shrimp=10]   totals texted by the customer
+  python scripts/desk/desk.py order set  <orderNo> --headcount 11/1 [--proteins chicken=11/1 steak=11/1] --dry
+                                   headcount of an order without guest rows (adults/kids 5-12). Any headcount change
+                                   re-tiers the official_party* line (--retier on its own fixes one already wrong);
+                                   every set checks its TOTAL against desk price
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link asking them to reply "confirm" (the normal way)
@@ -38,12 +42,14 @@
 
 Every write goes through the workbench / invoice APIs, so it lands in the
 timeline and passes the same brakes as the UI. Rules live in the leads skill;
-this file only fetches, prints and posts.
+this file only fetches, prints and posts. `python scripts/desk/selfcheck.py`
+runs the order set headcount rules offline (no network).
 """
 from __future__ import annotations
 
 import argparse
 import copy
+import functools
 import json
 import math
 import pathlib
@@ -52,7 +58,7 @@ import sys
 import time
 import urllib.parse
 
-from _api import ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
+from _api import ROOT, ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
 
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned)\s", re.I)
 THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
@@ -77,6 +83,46 @@ APPETIZER_LABELS = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10
 # the church group RH-20261021-9381 wanted shrimp as the third protein for 15 = side_shrimp=15 ($150).
 PROTEIN_SIDE_PRICES = {"side_chicken": 10.0, "side_steak": 10.0, "side_shrimp": 10.0, "side_salmon": 10.0,
                        "side_tofu": 10.0, "side_scallops": 16.0, "side_filet_mignon": 18.0, "side_lobster_tail": 22.0}
+# The Party Size Discount ladder is the site's (config/pricing-rules.ts, which
+# the invoice engine mirrors). Read from that file, never copied here, so a new
+# tier reaches desk with the site.
+PRICING_RULES = ROOT / "config" / "pricing-rules.ts"
+
+
+@functools.lru_cache(maxsize=None)
+def party_tiers() -> tuple[tuple[dict, ...], int, float]:
+    """(tiers, custom quote from, kid weight): PARTY_SIZE_DISCOUNT_TIERS,
+    PARTY_SIZE_CUSTOM_FROM and KID_TIER_WEIGHT from config/pricing-rules.ts.
+    Refuses rather than guesses when the file stops reading that way."""
+    text = PRICING_RULES.read_text(encoding="utf-8")
+    body = re.search(r"export const PARTY_SIZE_DISCOUNT_TIERS = \[(.*?)\]", text, re.S)
+    custom = re.search(r"export const PARTY_SIZE_CUSTOM_FROM = (\d+)", text)
+    weight = re.search(r"export const KID_TIER_WEIGHT = (\d+(?:\.\d+)?)", text)
+    tiers = []
+    for obj in re.findall(r"\{([^{}]*)\}", body.group(1) if body else ""):
+        v = dict(re.findall(r"(minGuests|maxGuests|amount)\s*:\s*(\d+(?:\.\d+)?)", obj))
+        if len(v) == 3:
+            tiers.append({"min": int(v["minGuests"]), "max": int(v["maxGuests"]), "amount": float(v["amount"])})
+    ordered = all(t["min"] <= t["max"] for t in tiers) and all(b["min"] > a["max"] for a, b in zip(tiers, tiers[1:]))
+    if not (tiers and ordered and custom and weight):
+        raise SystemExit(f"could not read the party-size tiers from {PRICING_RULES} (PARTY_SIZE_DISCOUNT_TIERS / PARTY_SIZE_CUSTOM_FROM / "
+                         "KID_TIER_WEIGHT) - desk will not guess them; fix party_tiers() for the file's new shape")
+    return tuple(tiers), int(custom.group(1)), float(weight.group(1))
+
+
+def tier_heads(adults: int, kids: int) -> int:
+    """Paying heads the ladder counts: an adult 1, a kid 5-12 half, floored (tierHeadcount)."""
+    return math.floor(max(0, adults) + max(0, kids) * party_tiers()[2])
+
+
+def party_line(heads: int) -> dict | None:
+    """The official_party* line for this many paying heads, as the invoice
+    writes it (partySizePromoFor + OFFICIAL_PROMOS); None outside the ladder."""
+    tier = next((t for t in party_tiers()[0] if t["min"] <= heads <= t["max"]), None)
+    if not tier:
+        return None
+    amount = int(tier["amount"]) if tier["amount"].is_integer() else tier["amount"]
+    return {"id": f"official_party{tier['min']}", "label": f"Party Size Discount ({tier['min']}–{tier['max']} adults): ${amount} off", "amount": amount}
 
 
 def is_tapback(body: str) -> bool:
@@ -738,6 +784,204 @@ def _little_kids(data: dict) -> int:
     return int(m.group(1)) if m else (1 if hit else 0)
 
 
+def _paid_heads(data: dict) -> tuple[int, int]:
+    """(adults, paying kids 5-12) as the invoice's paidGuestCount counts them
+    for the party-size tier: the booking's adults and _paid_children."""
+    return max(0, int(data.get("adultCount") or 0)), _paid_children(data)
+
+
+def _is_party_line(p: dict) -> bool:
+    return str(p.get("id") or "").startswith("official_party")
+
+
+def _party_s(adults: int, kids: int) -> str:
+    return f"{adults} adult{'' if adults == 1 else 's'} + {kids} kid{'' if kids == 1 else 's'}"
+
+
+def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: bool = False) -> None:
+    """The party-size line follows the headcount. It is a stored amount like
+    every promotion, so a headcount desk moved kept the old tier: RH-20261022-0063
+    went from 8+2 to 11+1 and kept no line, $30 too much (owner 2026-10-24).
+    Replaces the official_party* line(s) with the tier for the new paying heads
+    and touches no other line. `asked` (--retier) also says when it is right."""
+    promos = data.get("promotions") or []
+    stored = [p for p in promos if _is_party_line(p)]
+    adults, kids = _paid_heads(data)
+    heads = tier_heads(adults, kids)
+    who = f"{heads} paying heads ({_party_s(adults, kids)}, a kid 5-12 counts half)"
+    old = ", ".join(f"{p.get('id')} {money(p.get('amount'))}" for p in stored) or "none"
+    if heads >= party_tiers()[1]:
+        print(f"   ⚠ party size: {who} is a custom quote ({party_tiers()[1]}+) - desk leaves the party-size line as it is ({old}); price it by hand")
+        return
+    new = party_line(heads)
+    if removed_by_hand and not stored:
+        if new:
+            print(f"   party size: {who} earns {new['id']} {money(new['amount'])} - not put back, the line came off with --remove-promo in this command")
+        return
+    if new and not stored:
+        stand_in = next((p for p in promos if str(p.get("id") or "").startswith("appreciation")), None)
+        if stand_in:
+            # leads skill: appreciation $50 does not stack with the party-size
+            # discount unless the owner says so for that party.
+            print(f"   ⚠ party size: {who} earns {new['id']} {money(new['amount'])}, not added - {stand_in.get('id')} "
+                  f"{money(stand_in.get('amount'))} stands in for it (they do not stack unless the owner says so)")
+            return
+    if [(p.get("id"), float(p.get("amount") or 0)) for p in stored] == ([(new["id"], float(new["amount"]))] if new else []):
+        if asked:
+            print(f"   party size: {who} - {old} is already right")
+        return
+    keep = [p for p in promos if not _is_party_line(p)]
+    at = sum(1 for p in promos[:promos.index(stored[0])] if not _is_party_line(p)) if stored else len(keep)
+    data["promotions"] = keep[:at] + ([new] if new else []) + keep[at:]
+    now = f"{new['id']} {money(new['amount'])} \"{new['label']}\"" if new else f"none (under {party_tiers()[0][0]['min']})"
+    changes.append(f"party size: {who} - {old} -> {now}")
+    for p in keep:
+        if re.search(r"party.?size", str(p.get("label") or ""), re.I):
+            print(f"   ⚠ promo {p.get('id')} {p.get('label')!r} {money(p.get('amount'))} reads like a party-size discount but is not an "
+                  "official_party line - left alone; --remove-promo it if the official line now covers it")
+
+
+def _warn_frozen_weekday(data: dict) -> None:
+    # Promotions are stored as a dollar amount, not a rule, so the per-head
+    # ones keep the number they were computed at and silently overcharge a new
+    # guest. Gregorio 2026-10-05: one late adult left the Weekday Special at 13
+    # adults and "Tables & Chairs on us" at 17 guests, $15 too little off. The
+    # deal lines are re-priced from the order's customDeal; nothing here can
+    # re-derive the Weekday Special from an amount, so say so loudly rather
+    # than guess (the total check below shows by how much).
+    for x in (data.get("promotions") or []):
+        if str(x.get("id", "")).startswith("official_weekday"):
+            print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount - "
+                  f"re-state it with --promo {x.get('id')}=<amount> or the guests are mis-billed")
+
+
+def _weekday_appetizer(line: dict, data: dict) -> float:
+    """What of a Weekday Special line refunds free trays on the order (they ride
+    in partyExtras, so the two net out); the rest is its per-head cut. Trays
+    counted as _swap_free_appetizer counts them: one, unless the order has more
+    of that appetizer than the --free-item gifts and one - then the amount over
+    the per-head part says how many (one per 10 guests, or some bought). A tray
+    the line refunds but the order does not carry is not netted, so it shows."""
+    label = str(line.get("label") or "")
+    if re.search(r"appetizer platter", label, re.I):  # before 09-22: one of each
+        return sum(APPETIZER_PRICES.values())
+    m = OFFICIAL_APPETIZER.search(label)
+    if not m:
+        return 0.0
+    app = m.group(1).lower().replace(" ", "_")
+    price = APPETIZER_PRICES[app]
+    have = next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == app), 0)
+    gifts = (GIFT_APPETIZER.fullmatch(str(x.get("label") or "")) for x in (data.get("promotions") or []))
+    free = have - sum(int(g.group(2)) for g in gifts if g and g.group(1) == APPETIZER_LABELS[app])
+    trays = 1
+    if free > 1:
+        adults, kids = _paid_heads(data)
+        heads = WEEKDAY_ADULT_OFF * adults + WEEKDAY_CHILD_OFF * kids
+        trays = min(free, max(1, round((float(line.get("amount") or 0) - heads) / price)))
+    return min(trays, max(0, free)) * price
+
+
+def _price_check(data: dict, inv: dict) -> None:
+    """The order's TOTAL against desk price for the same party (owner
+    2026-10-24): RH-20261022-0063 stood at $868.80 with no party-size line
+    while desk price said $838.80, and nothing on the dry run showed it.
+
+    Expected = desk price (adults, kids 5-12, date, tables, utensils) + what
+    the order adds that desk price does not know (upgrades, trays, noodles,
+    sides) - its own promotions (free appetizers, deals, appreciation, FREE:
+    trays) + its travel, at the $599 minimum like the invoice. The lines desk
+    price stands for are the party-size tier, the Weekday Special's per-head
+    cut and the free 3-4 year olds, so a wrong one of those is the gap."""
+    try:
+        adults, kids = _paid_heads(data)
+        if adults + kids < 1:
+            print("   (total check skipped: no paying guests on the order)")
+            return
+        tables, utensils = _setup_units(data, "tables_chairs"), _setup_units(data, "utensils")
+        promos = data.get("promotions") or []
+        party = [x for x in promos if _is_party_line(x)]
+        weekday = [x for x in promos if str(x.get("id") or "").startswith("official_weekday")]
+        little = [x for x in promos if x.get("id") == "under5_auto" or re.match(r"little kids", str(x.get("label") or ""), re.I)]
+        import datetime as _dt
+        from zoneinfo import ZoneInfo
+        date = str((data.get("contactInfo") or {}).get("eventDate") or "")[:10]
+        usable = bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", date)) and date >= _dt.datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
+        p = price_for(adults, kids, date if usable else None, None, tables, utensils)
+        if not p or not p.get("ok"):
+            print("   (total check skipped: desk price did not answer)")
+            return
+        if p.get("customQuote"):
+            print(f"   (total check skipped: {_party_s(adults, kids)} is a custom quote, no desk price)")
+            return
+        # No date, or one already past (the engine prices neither): the order's
+        # own Weekday Special line says which rate it was sold at.
+        pr = p["price"] if usable or not weekday else (p.get("ifMondayToThursday") or p["price"])
+        food = float(pr.get("foodSubtotal") or 0)
+        rentals = float((pr.get("rentals") or {}).get("amount") or 0)
+        if pr.get("minimumApplied"):
+            # The engine's discount is what the minimum left of it; the invoice
+            # takes the whole tier before its own minimum.
+            line = party_line(tier_heads(adults, kids))
+            tier = float(line["amount"]) if line else 0.0
+        else:
+            tier = float(pr.get("partySizeDiscount") or 0)
+        stand_in = None
+        if tier and not party:
+            stand_in = next((x for x in promos if str(x.get("id") or "").startswith("appreciation")), None)
+            if stand_in:
+                tier = 0.0  # appreciation in place of the tier (they do not stack)
+        amt = lambda x: float(x.get("amount") or 0)
+        appetizers = sum(_weekday_appetizer(x, data) for x in weekday)
+        own = [x for x in promos if not (_is_party_line(x) or x in weekday or x in little)]
+        other = round(sum(amt(x) for x in own) + appetizers, 2)
+        extras = round(float(inv.get("subtotal") or 0) - float(inv.get("baseCost") or 0)
+                       - tables * SETUP_PRICES["tables_chairs"] - utensils * SETUP_PRICES["utensils"], 2)
+        travel = float(inv.get("travelFee") or 0)
+        floor = float(p.get("minimum") or MINIMUM_SPEND)
+        raw = food + rentals - tier + extras - other
+        expected = round(max(raw, floor) + travel, 2)
+        total = float(inv["cashTotal"]) if inv.get("cashTotal") is not None else float(inv.get("finalTotal") or 0) - float(inv.get("creditCardFee") or 0)
+        gap = round(total - expected, 2)
+        party_s = (_party_s(adults, kids)
+                   + (f" · {date}" if usable else " · no date" if not date else f" · {date} (past)")
+                   + (f" · tables {tables}" if tables else "") + (f" · utensils {utensils}" if utensils else ""))
+        tier_s = f"-{money(tier)}" if tier else "none"
+        sums = (f"desk price {party_s} → {money(pr.get('total'))} [{pr.get('plan')}, party size {tier_s}]"
+                f" + extras {money(extras)} - other promos {money(other)} + travel {money(travel)}"
+                + (f", at the {money(floor)} minimum" if raw < floor else ""))
+        notes = ([f"no usable date - compared at the {pr.get('plan')} rate the order's promotions imply"] if not usable else []) + (
+            [f"{stand_in.get('id')} stands in for the party-size discount"] if stand_in else [])
+        if abs(gap) <= 1:
+            print(f"   ✓ total check: TOTAL {money(total)} = {sums}" + (f"  ({'; '.join(notes)})" if notes else ""))
+            return
+        bar = "   " + "!" * 75
+        print(bar)
+        print(f"   !!! TOTAL CHECK FAILED: the order's TOTAL is {money(total)}, desk price makes it {money(expected)}"
+              f" - {money(abs(gap))} too {'much' if gap > 0 else 'little'}")
+        print(f"   !!!   {sums} = {money(expected)}")
+        for n in notes:
+            print(f"   !!!   {n}")
+        heads = tier_heads(adults, kids)
+        stored_party = ", ".join(f"{x.get('id')} -{money(amt(x))}" for x in party) or "no line"
+        print(f"   !!!   party size: order {stored_party}; desk price {tier_s} for {heads} paying heads")
+        for x in weekday:
+            a_ = _weekday_appetizer(x, data)
+            print(f"   !!!   weekday: {x.get('id')} -{money(amt(x))}" + (f" (of which {money(a_)} is the free appetizer)" if a_ else "")
+                  + f"; desk price prices this date at {pr.get('plan')}")
+        for x in little:
+            print(f"   !!!   little kids: {x.get('label')} -{money(amt(x))}")
+        print("   !!!   a stored discount is probably wrong (party size / Weekday Special / little kids) - fix it before this goes out")
+        if not stand_in and abs(sum(amt(x) for x in party) - tier) > 0.005:
+            right = party_line(heads)
+            print(f"   !!!   likely fix: --retier (puts {right['id']} {money(right['amount'])} on for {heads} paying heads)" if right
+                  else f"   !!!   likely fix: --retier (takes the party-size line off: {heads} paying heads earn none)")
+        elif len(weekday) == 1:
+            print(f"   !!!   likely fix, if the Weekday Special is the stale line: --promo {weekday[0].get('id')}={amt(weekday[0]) + gap:.2f}")
+        print(bar)
+    except (Exception, SystemExit) as why:  # advisory: never in the way of a save
+        print(f"   (total check skipped: {why})")
+
+
 def _deal_lines(data: dict) -> list[dict]:
     """The order's deal lines priced from its rules (customDeal) against the party
     as it stands, line for line the invoice engine's customDealPromotions
@@ -1056,7 +1300,7 @@ def cmd_order(a):
         for w in res.get("lint") or []:
             print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
         invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
-                         a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.add_promo, a.remove_promo,
+                         a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.add_promo, a.remove_promo,
                          a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo)
         if all(v in (None, False, []) for v in invoice_flags):
             return
@@ -1159,6 +1403,39 @@ def cmd_order(a):
             tf.setdefault("freeRadiusMiles", 50)
             tf.setdefault("distanceMiles", None)
             tf.setdefault("homeZipcode", tf.get("homeZipcode") or "")
+        if a.headcount:
+            # An order without guest rows (quick mode, or a fresh order before
+            # the menu) carries the party as two counts, and they had no flag:
+            # --proteins moves only the servings and --add-adult wants rows, so
+            # RH-20261022-0063 (8+2 -> 11+1, quick mode) had to be rewritten as
+            # 12 guest rows (owner 2026-10-24). Kids are 5-12, as desk price
+            # takes them; free 3-4 year olds stay as the "Little kids ×N" line says.
+            m = re.fullmatch(r"(\d+)/(\d+)", a.headcount.strip())
+            if not m or int(m.group(1)) + int(m.group(2)) < 1:
+                raise SystemExit("--headcount ADULTS/KIDS, e.g. 11/1 (11/0 with no kids; kids are 5-12)")
+            if data.get("mode") == "detailed" and data.get("guests"):
+                raise SystemExit(f"this order has {len(data['guests'])} guest rows, and the rows are its headcount - "
+                                 "--add-adult / --add-child / --remove-guest, or --guests-file")
+            if a.guests_file or a.add_adult or a.add_child or a.remove_guest:
+                raise SystemExit("--headcount is for an order without guest rows - not together with --guests-file / --add-adult / --add-child / --remove-guest")
+            adults, kids = int(m.group(1)), int(m.group(2))
+            little = _little_kids(data)
+            changes.append(f"adultCount/childCount: {data.get('adultCount')}/{data.get('childCount')} -> {adults}/{kids + little}"
+                           + (f" ({kids} kids 5-12 + {little} free 3-4 on the Little kids line)" if little else ""))
+            data["adultCount"], data["childCount"] = adults, kids + little
+            # The menu and the per-guest setup are counted separately and stay
+            # as they are unless this command sets them too.
+            prot = [q for q in (data.get("quickCountItems") or []) if q.get("category") == "protein"]
+            served = (sum(int(q.get("qty") or 0) for q in prot), sum(int(q.get("childQty") or 0) for q in prot))
+            if prot and not a.proteins and served != (2 * adults, 2 * kids):
+                menu = " ".join(f"{q.get('itemId')}={q.get('qty')}" + (f"/{q['childQty']}" if q.get("childQty") else "") for q in prot)
+                print(f"   ⚠ the menu is still {menu} ({served[0]} adult + {served[1]} kid servings); two each for {_party_s(adults, kids)} "
+                      f"is {2 * adults} + {2 * kids} - pass --proteins with the new counts")
+            for x in SETUP_PRICES:
+                qty = next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
+                if qty and qty != adults + kids + little and not any(e.split("=")[0] == x for e in (a.add_extra or [])):
+                    print(f"   ⚠ {x} is still billed for {qty} guests, the party is now {adults + kids + little} - "
+                          f"--add-extra {x}={adults + kids + little} if they all get it")
         if a.proteins:
             # A customer who texts "chicken, steak and shrimp for 15" has given
             # totals, not a pick per guest - that is what quick mode is for.
@@ -1243,9 +1520,6 @@ def cmd_order(a):
                 data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES]
                 changes.append("partyExtras: dropped " + ", ".join(f"{e.get('id')}={e.get('qty')}" for e in setup_lines)
                                + " (the rows carry tables/utensils now)")
-            for x in (data.get("promotions") or []):
-                if re.search(r"party size", str(x.get("label") or ""), re.I):
-                    print(f"   ⚠ {x.get('label')} is stored as {money(x.get('amount'))} - check it still fits {adults} adults (10-14 $30 / 15-24 $60 / 25-30 $90 / 31-40 $120)")
         if a.remove_promo or a.add_promo:
             # A published offer that replaces another (teacher appreciation $50
             # in place of the party-size discount - they do not stack, skill 5):
@@ -1381,7 +1655,7 @@ def cmd_order(a):
             is_child = kind == "child"
             guests = data.setdefault("guests", [])
             if data.get("mode") == "quick":
-                raise SystemExit("this order carries party-wide counts, not guest rows - change the headcount with --proteins instead")
+                raise SystemExit("this order carries party-wide counts, not guest rows - change the headcount with --headcount ADULTS/KIDS")
             like = next((g for g in reversed(guests) if bool(g.get("isChild")) == is_child), None)
             if like is None:
                 raise SystemExit(f"no existing {kind} row to copy - add the first one in the planner so the proteins are the guest's own")
@@ -1398,17 +1672,6 @@ def cmd_order(a):
                 })
             data[key] = before + count
             changes.append(f"{key}: {before} -> {before + count} (copied {', '.join(like.get('proteins') or ['no proteins'])})")
-            # Promotions are stored as a dollar amount, not a rule, so the
-            # per-head ones keep the number they were computed at and silently
-            # overcharge the new guest. Gregorio 2026-10-05: one late adult left
-            # the Weekday Special at 13 adults and "Tables & Chairs on us" at 17
-            # guests, $15 too little off. The deal lines are re-priced from the
-            # order's customDeal below; nothing here can re-derive the Weekday
-            # Special from an amount, so say so loudly rather than guess.
-            stale = [x for x in (data.get("promotions") or []) if str(x.get("id", "")).startswith("official_weekday")]
-            for x in stale:
-                print(f"   ⚠ promo {x.get('id')} is still {money(x.get('amount'))}, computed for the OLD headcount - "
-                      f"re-state it with --promo {x.get('id')}=<amount> or the extra guest is overcharged")
         # "Randy can't make it" the night before (Eileen 10-16, 32 named rows):
         # one row off by name, every other row keeps its id and picks so the
         # planner reconciles without touching anyone else. The name must match
@@ -1416,7 +1679,7 @@ def cmd_order(a):
         for who in (a.remove_guest or []):
             guests = data.get("guests") or []
             if data.get("mode") == "quick" or not guests:
-                raise SystemExit("this order carries party-wide counts, not guest rows - change the headcount with --proteins instead")
+                raise SystemExit("this order carries party-wide counts, not guest rows - change the headcount with --headcount ADULTS/KIDS")
             hits = [g for g in guests if str(g.get("name") or "").strip().lower() == who.strip().lower()]
             if len(hits) != 1:
                 raise SystemExit(f"--remove-guest {who!r}: {len(hits)} rows have that name - rows are: "
@@ -1429,18 +1692,24 @@ def cmd_order(a):
             changes.append(f"guest removed: {gone.get('name')} ({', '.join(gone.get('proteins') or ['no proteins'])}); {key}: {before} -> {data[key]}")
         if a.remove_guest:
             # Same frozen-amount trap as --add-adult, the other way round (the
-            # deal lines are re-priced below).
+            # deal lines are re-priced below, the Weekday Special and the
+            # party size next).
             for x in (data.get("promotions") or []):
                 pid = str(x.get("id", ""))
-                if not pid.startswith("deal_") and re.search(r"official_weekday|party|tables|free", pid, re.I):
+                if not pid.startswith("deal_") and re.search(r"tables|free", pid, re.I):
                     print(f"   ⚠ promo {x.get('id')} {x.get('label')!r} is still {money(x.get('amount'))} - check it still fits the new headcount")
+        moved = bool(a.headcount or a.guests_file or a.add_adult or a.add_child or a.remove_guest)
+        if moved:
+            _warn_frozen_weekday(data)
+        if moved or a.retier:
+            _retier_party_size(data, changes, any(str(x).startswith("official_party") for x in (a.remove_promo or [])), asked=a.retier)
         # The deal lines are stored amounts as well, but the order keeps the deal
         # itself as rules (customDeal), so they follow whatever moved what they
         # count: the guest rows, the switch between rows and counts, or the
         # party-wide setup line a fresh order bills its tables from. The planner
         # and the staff tool re-price them the same way. --deal-free /
         # --deal-rate land here too, after any rows the command changed.
-        recount = bool(a.guests_file or a.add_adult or a.add_child or a.remove_guest or data.get("mode") != prefill.get("mode")
+        recount = bool(a.headcount or a.guests_file or a.add_adult or a.add_child or a.remove_guest or data.get("mode") != prefill.get("mode")
                        or any(x.split("=")[0] in SETUP_PRICES for x in (a.add_extra or [])))
         if a.deal_free or a.deal_rate or (recount and data.get("customDeal")):
             promos = data.get("promotions") or []
@@ -1470,7 +1739,7 @@ def cmd_order(a):
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -1511,10 +1780,16 @@ def cmd_order(a):
         # Price it before saving when the engine can: a party whose menu is not
         # in yet has no guest rows, and /api/invoice refuses detailed mode
         # without them, while save-invoice (lib/invoice-validate.ts) accepts it.
+        # Then hold the TOTAL against desk price, so a wrong stored discount
+        # shows on the dry run.
         try:
-            _print_totals(_totals(data))
+            inv = _totals(data)
         except ApiError as e:
+            inv = None
             print(f"   totals: 引擎暂时算不了（{(e.payload.get('errors') if isinstance(e.payload, dict) else e.payload)}）- 菜单录进来后再看")
+        if inv:
+            _print_totals(inv)
+            _price_check(data, inv)
         # --dry used to be ignored here: `order set ... --dry` saved for real
         # (Stacy's notes, 2026-10-09). It is a preview now, like `remind --dry`.
         if a.dry:
@@ -1765,7 +2040,14 @@ def main(argv=None):
                    help="how many trays the free-appetizer promo brings (owner 2026-10-01: one per 10 guests). "
                         "Moves the promo's discount by the same amount, so the customer is not billed for it.")
     p.add_argument("--proteins", nargs="+", action="extend", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
-                   "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode.")
+                   "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode. "
+                   "The menu only - the headcount is --headcount.")
+    p.add_argument("--headcount", metavar="ADULTS/KIDS", help="the headcount of an order without guest rows (quick mode, or a fresh order before "
+                   "the menu): 11/1 = 11 adults + 1 kid 5-12, as desk price counts them; free 3-4 year olds stay as the order's Little kids "
+                   "line says. The party-size line follows, as it does for --guests-file / --add-adult / --add-child / --remove-guest.")
+    p.add_argument("--retier", action="store_true", help="put the party-size line (official_party*) right for the headcount the order has "
+                   "now. Every headcount change does this by itself; this is for an order that was already wrong (the total check "
+                   "names it). Leaves 61+ and an appreciation line standing in for the tier alone.")
     p.add_argument("--add-adult", type=int, metavar="N", help="add N adults to a party whose guests are already picked. The new rows copy "
                    "the last adult's proteins and their tables/utensils flags, so a late 'can I bring one more' keeps billing the same way "
                    "as everyone else. Check the printed rows before sending - proteins are a guess until the guest says otherwise.")

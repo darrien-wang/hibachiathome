@@ -1,0 +1,29 @@
+# Live, read-only (2026-10-24 17:30 local, rebased on a534d57e): desk price is a GET; every order set below is --dry (nothing saved).
+# RH-20261022-0063 today: 12 adult rows + 1 child row (a 13th adult was added after the 10-22 rewrite), FREE gyoza, official_party10.
+
+$ desk price --adults 11 --kids 1 --date 2026-10-25 --tables 12 --utensils 12   # the 10-22 number
+2026-10-25: 11 大人 + 1 小孩 → $838.80  [Standard]  食 $688.80 + 租赁 $180.00 − 人数折扣 $30 + 路费 $0.00
+
+$ desk order set RH-20261022-0063 --time 18:00 --dry
+   eventTime: '18:00' -> '18:00'
+   base $748.70 | promos -$45.00 | extras $15.00 | travel $0.00 | TOTAL $898.70 | deposit $0.00 | BALANCE $898.70
+   v2 · 现金 BALANCE $898.70 · Zelle/Venmo 给师傅 $934.65 · 刷卡 $1,029.79 = 现金 + 消费税 11.25% $101.10 + 手续费 3% $29.99
+   ✓ total check: TOTAL $898.70 = desk price 12 adults + 1 kid · 2026-10-24 · tables 12 · utensils 12 → $898.70 [Standard, party size -$30.00] + extras $15.00 - other promos $15.00 + travel $0.00
+DRY   not saved (--dry)
+(exit 0)
+
+$ desk order set RH-20261022-0063 --retier --dry
+   party size: 12 paying heads (12 adults + 1 kid, a kid 5-12 counts half) - official_party10 $30.00 is already right
+nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo
+(exit 1)
+
+$ desk order set RH-20261022-0063 --remove-guest Guest\ 13 Guest\ 11 Guest\ 10 --dry
+   guest removed: Guest 13 (steak, shrimp); adultCount: 12 -> 11
+   guest removed: Guest 11 (chicken, steak); adultCount: 11 -> 10
+   guest removed: Guest 10 (chicken, steak); adultCount: 10 -> 9
+   party size: 9 paying heads (9 adults + 1 kid, a kid 5-12 counts half) - official_party10 $30.00 -> none (under 10)
+   base $569.00 | promos -$15.00 | extras $15.00 | travel $0.00 | TOTAL $719.00 | deposit $0.00 | BALANCE $719.00
+   v2 · 现金 BALANCE $719.00 · Zelle/Venmo 给师傅 $747.76 · 刷卡 $823.89 = 现金 + 消费税 11.25% $80.89 + 手续费 3% $24.00
+   ✓ total check: TOTAL $719.00 = desk price 9 adults + 1 kid · 2026-10-24 · tables 10 · utensils 10 → $719.00 [Standard, party size none] + extras $15.00 - other promos $15.00 + travel $0.00
+DRY   not saved (--dry)
+(exit 0)

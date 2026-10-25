@@ -1,0 +1,31 @@
+# The self-check must fail when the logic it guards is broken (patched in memory only, no file changed).
+
+## desk._retier_party_size disabled
+FAIL  --headcount 11/1 on a quick-mode order: counts set, official_party10 added, TOTAL $838.80 = desk price, --dry saves nothing
+FAIL    saved: 11/1, the menu, tables/utensils for 12, and exactly the official party10 line
+FAIL    --retier on it: official_party10 added, nothing else, ✓ $838.80
+FAIL    --retier on a wrong tier (official_party15 for 11 heads) replaces it
+FAIL    --retier when the line is right: says so, nothing to change
+FAIL  --remove-guest 15 -> 14: official_party15 $60 becomes official_party10 $30 in place, the other lines untouched, ✓
+FAIL  --add-adult 14 -> 15: official_party10 becomes official_party15
+FAIL  --guests-file 16 adults on an 8+2 order: official_party15 $60 added, rows carry the setup, ✓ $1,138.40
+FAIL  under 10 paying heads: the party line comes off, and the $599 minimum check still matches
+FAIL  61+ is a custom quote: line left as it is, said so, check skipped
+FAIL  appreciation on the order: no party line added, said why, ✓ with the stand-in noted
+FAIL  --remove-promo official_party10 in the same command: not put back
+FAIL  --headcount 14/2 with a 'Little kids ×1' line: childCount 3, 15 paying heads -> official_party15, ✓
+13 FAILED
+
+## desk._weekday_appetizer returns 0 (a Weekday Special's free gyoza no longer netted out)
+FAIL  a Monday order with its Weekday Special and free gyoza: ✓ $628.80
+FAIL  --headcount 13/0 on it: the frozen weekday line is called out, the check is $5.00 too much, fix named
+FAIL  --free-appetizer edamame on it (the line drops $5 with the tray): ✓ $628.80, the free edamame netted
+FAIL  20 adults on a Monday, two free gyoza on the weekday line ($30 + 20 x $5): ✓ $1,038.00
+FAIL    the same with one of the two gyoza bought ($15 + 20 x $5): ✓ $1,053.00, the bought tray billed
+FAIL  a past Monday party: compared at the weekday rate its lines imply, ✓
+6 FAILED
+
+## desk._weekday_appetizer always one tray (the line's tray count not read from its amount)
+FAIL  20 adults on a Monday, two free gyoza on the weekday line ($30 + 20 x $5): ✓ $1,038.00
+FAIL  a weekday line refunding a gyoza the order does not carry: loud, $15.00 too little
+2 FAILED
