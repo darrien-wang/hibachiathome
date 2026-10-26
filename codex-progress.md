@@ -236,5 +236,28 @@ Verification completed:
 - No texts sent; `desk scan` ran only with `--no-write`; nothing was written to leads. This is not a `harness/feature_list.json` item, so there is no status transition there.
 
 Left for later (read-only evidence in `harness/verification/2026-10-25-lead-scan-courtesy-ladder/followups.txt`):
-- A tapback-last lead is the same dead end (H "最后一条是点赞，不用回", no next action); kept as is, as asked. 8 live, 4 of them with a `[callback]` (805-455-1668 since 09-28, 760-333-6986, 585-704-3872, 845-519-7333).
+- A tapback-last lead is the same dead end (H "最后一条是点赞，不用回", no next action); kept as is, as asked. 8 live, 4 of them with a `[callback]` (805-455-1668 since 09-28, 760-333-6986, 585-704-3872, 845-519-7333). Done the same day: LEAD-SCAN-REACTION-LADDER below.
 - A thanks we did answer (so not the last word) still voids a `[callback]` set before it: 562-236-7929 ("Thanks" right after the note) went dormant on 10-21 instead of B. Measuring every lead's `[callback]` from its last real message would fix that, but B has no "we already followed up" check, so 626-428-5292 would read B again after today's b_callback text; it needs a rule for when a B is done.
+
+## LEAD-SCAN-REACTION-LADDER - A lead whose last word is a reaction goes down the hold / `[callback]` / follow-up ladder; a reaction never restarts the 3-text count (2026-10-25)
+
+Status: done.
+
+Why: the same dead end as LEAD-SCAN-COURTESY-LADDER above, for a reaction ("Liked …", 👍): H "最后一条是点赞，不用回" with no next action, ahead of the hold / B / D branches. 8 live leads, 4 with a `[callback]`; 805-455-1668 ("Let me talk to my husband", then a like on our "take your time") sat four weeks. Owner 2026-10-25: the same hold / `[callback]` / D checks, and the reaction itself is still never answered.
+
+What changed:
+- `lib/lead-scan.ts`:
+  - A reaction-last lead takes the "we spoke last" ladder like a thanks past its window (`doneWith`): never A; an active hold is H 挂起到, a `[callback]` is B, a hold that ran out is dormant, otherwise the 20-hour spacing, the cap and D "（客人最后只点了个赞，那个不回）". The hold and the `[callback]` are measured from the last real message, as for the thanks. The `tapback_last` flag stays.
+  - The "不用回" quiet branch skips those leads: the desk acks a reaction (leads §1.6), and with the ack on, the lead fell back into a stop with no next action.
+  - A reaction does not restart the 3-text count (`countFrom`: the customer's last word other than a reaction; a thanks still restarts it). Otherwise a customer who likes every follow-up reads "第 1 条" forever.
+  - Twilio's +1 for a text sent from the phone app counts only when that text came after the customer's last word; before, one sent before a thanks made D read "第 2 条".
+  - The newest real inbound (judged instead of a trailing reaction or thanks) is the later of Twilio's `lastRealIn` and the timeline's, so photos or a question followed by a like still read as owed an answer when they are older than Twilio's last 1000 texts (they would otherwise read reaction-last and get a follow-up instead of a reply).
+- `tests/lead-scan-courtesy.test.ts`: the tapback test now expects the ladder. New: a like right after our text → H 刚发过, then D "第 2 条" at 46 h with the desk's ack on (the run counts our text before the like); a like after a `[callback]` → H 挂起到 while the hold runs, B after it; a customer who liked all three texts → H cap with `needs_hold`; photos then a like, timeline only → A; our phone-app text before a thanks → D "第 1 条", run 0. The courtesy D case now carries the desk's ack too.
+- `.claude/skills/lead-scan/SKILL.md`: H no longer lists 点赞; B and D say a reaction counts as us speaking last and does not restart the count; `tapback_last` says the like is acked and the bucket goes on.
+
+Verification completed:
+- `npm test`: 324 pass, 0 fail. Output: `harness/verification/2026-10-25-lead-scan-reaction-ladder/npm-test.txt`.
+- The tests bite (copies in the session scratchpad): HEAD 10af7837 fails 5 of the file's 10; a reaction restarting the count fails 2; the ack still a stop fails 1; the real message from Twilio only fails 1; the phone-app +1 before the customer's word fails 1; the hold and `[callback]` from the last word fail 4. Output: `harness/verification/2026-10-25-lead-scan-reaction-ladder/mutation.txt`.
+- `npm run lint:copy`: 0 hard-rule hits. Output: `harness/verification/2026-10-25-lead-scan-reaction-ladder/lint-copy.txt`. `tsc`: no errors in `lib/lead-scan.ts` or the test.
+- Read-only on the live pool before pushing (HEAD 10af7837 and the change in one process on the same rows; write-guarded Supabase, Twilio list GETs only): exactly the 8 reaction-last leads move. B: 805-455-1668 (talk to my husband) and 585-704-3872 (mother-in-law to call Monday). D "第 2 条": 845-519-7333 (her 10-21 / 10-22 questions voided the 10-14 hold and `[callback]`), 760-567-5043, and 818-388-4745 with F (tables_asked). H with a next action at the hold's end: 760-333-6986 (10-29, `[callback]`) and 949-280-3212 (11-14). Dormant: 805-539-3134 (hold ran out 10-09). Two more leads' run went up by one with no bucket change (805-750-5662 on hold, 650-823-0090 dormant). Output: `harness/verification/2026-10-25-lead-scan-reaction-ladder/live-scan-diff.txt`.
+- No texts sent; `desk scan` only with `--no-write`; nothing written to leads. Not a `harness/feature_list.json` item, so there is no status transition there.

@@ -274,9 +274,13 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     // thing to judge: "Loved …" 30 s after three patio photos put 909-268-7235
     // in H "最后一条是点赞" for two days (2026-10-05). When the newest inbound
     // with content came after our last text, judge that one. An MMS has an
-    // empty body: say so instead of reading it as courtesy.
-    if (tw?.lastRealIn && (!lastOutAt || tw.lastRealIn.at > lastOutAt) && (isTapback(lastInBody) || courtesyOnly(lastInBody))) {
-      lastInBody = tw.lastRealIn.body.trim() || (tw.lastRealIn.media > 0 ? `[${tw.lastRealIn.media} photo(s)]` : lastInBody)
+    // empty body: say so instead of reading it as courtesy. The timeline keeps
+    // what is older than Twilio's last 1000 texts, so the newest one with
+    // content is the later of the two records.
+    const timelineRealIn = [...inbound].reverse().find((m) => m.media > 0 || !notAQuestion(m.body)) ?? null
+    const realIn = timelineRealIn && (!tw?.lastRealIn || timelineRealIn.at > tw.lastRealIn.at) ? timelineRealIn : (tw?.lastRealIn ?? null)
+    if (realIn && (!lastOutAt || realIn.at > lastOutAt) && (isTapback(lastInBody) || courtesyOnly(lastInBody))) {
+      lastInBody = realIn.body.trim() || (realIn.media > 0 ? `[${realIn.media} photo(s)]` : lastInBody)
     }
     const manualOut = outbound.filter((m) => !AUTOMATED.test(m.body))
     const lastManualOutAt = manualOut.length ? manualOut[manualOut.length - 1].at : null
@@ -289,10 +293,19 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const lastFormAt = lastForm?.occurred_at ?? null
     const lastCustomerAt = later(later(later(lastInAt, lastCallAt), lastFormAt), lastEmailInAt)
 
-    let run = outbound.filter((m) => !lastCustomerAt || m.at > lastCustomerAt).length
+    // A reaction ("Liked …", 👍) is a gesture, not a reply (owner 2026-09-25):
+    // it does not restart the 3-text count. A lead whose last word is a
+    // reaction gets the follow-up ladder (below), so one who likes every text
+    // would otherwise be followed up forever. A thanks does restart it: it is
+    // a message, and we answer it.
+    const reactionLast = isTapback(lastInBody) && lastInAt === lastCustomerAt
+    const lastWordIn = [...inbound].reverse().find((m) => m.media > 0 || !isTapback(m.body))
+    const countFrom = reactionLast ? later(later(later(later(lastWordIn?.at ?? null, realIn?.at ?? null), lastCallAt), lastFormAt), lastEmailInAt) : lastCustomerAt
+    let run = outbound.filter((m) => !countFrom || m.at > countFrom).length
     // Compared straight, the carrier's stamp counted every desk / workbench text
-    // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04).
-    if (tw?.lastOutAt && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
+    // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04). Only a
+    // text after the customer's last word is part of the run.
+    if (tw?.lastOutAt && (!countFrom || Date.parse(tw.lastOutAt) > Date.parse(countFrom)) && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
 
     const callbackNote = [...notes].reverse().find((n) => /^\s*\[callback\]/i.test(n.note)) ?? null
     const hint = hintFromRows([...tps].reverse().filter((t) => HINT_TYPES.includes(t.touchpoint_type)) as HintRow[])
@@ -336,22 +349,22 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const lastIsEmail = Boolean(lastEmailInAt && lastEmailInAt === lastCustomerAt)
     const lastInIsTapback = !lastIsCall && isTapback(lastInBody)
     const lastInIsCourtesy = !lastIsCall && !lastInIsTapback && courtesyOnly(lastInBody)
-    // The 2-hour window only decides whether we still owe the one-line close
-    // (leads §1.6). Past it the thanks is done with: nobody sends the close
-    // late, and it is not the customer coming back either, so the rest of the
-    // ladder reads the lead as if we spoke last. A hold or a [callback] set
-    // before the thanks still stands - both are measured from the customer's
-    // last real message (more than a reaction or a thanks, or photos) - and a
-    // follow-up keeps the 20-hour spacing and the 3-text cap. Filed as a stop
-    // instead ("不再补", no next action), 626-428-5292 went 25 days without a
-    // word: she was checking with the other hosts and would get back to us,
-    // then "I appreciate it!", a [callback] on file; five more sat with her
-    // (2026-10-24).
-    const courtesyDone = customerLast && !lastIsForm && !lastIsEmail && lastInIsCourtesy && now - Date.parse(lastInAt!) > COURTESY_WINDOW_MS
-    const realIn = [...inbound].reverse().find((m) => m.media > 0 || !notAQuestion(m.body))
-    const spokeAt = courtesyDone ? later(later(later(later(realIn?.at ?? null, tw?.lastRealIn?.at ?? null), lastCallAt), lastFormAt), lastEmailInAt) : lastCustomerAt
+    // Two last words we do not answer: a reaction never (owner 2026-09-25), a
+    // thanks once its 2-hour window has passed - the window only decides
+    // whether the one-line close is still owed (leads §1.6). Neither is the
+    // customer coming back, so the rest of the ladder reads the lead as if we
+    // spoke last: a hold or a [callback] set before it still stands - both are
+    // measured from the customer's last real message - and a follow-up keeps
+    // the 20-hour spacing and the 3-text cap. Filed as stops instead (no next
+    // action), 626-428-5292 went 25 days without a word after "I appreciate
+    // it!" with a [callback] on file (five more with her, 2026-10-24), and
+    // 805-455-1668 four weeks after liking our "take your time", her own
+    // [callback] on file too (2026-10-25).
+    const doneWith = customerLast && !lastIsForm && !lastIsEmail && (lastInIsTapback || (lastInIsCourtesy && now - Date.parse(lastInAt!) > COURTESY_WINDOW_MS))
+    const spokeAt = doneWith ? later(later(later(realIn?.at ?? null, lastCallAt), lastFormAt), lastEmailInAt) : lastCustomerAt
     const hold = holdState(lead, spokeAt, now)
     const holdActive = hold === "active"
+    if (doneWith && lastInIsTapback) flags.push("tapback_last")
 
     if (lead.sms_blocked_at) {
       bucket = "H"
@@ -377,19 +390,16 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     } else if (customerLast && lastIsEmail) {
       bucket = "A"
       reason = "客人发了邮件，欠回复（用邮件回）"
-    } else if (customerLast && lastInIsTapback) {
-      bucket = "H"
-      reason = "最后一条是点赞，不用回"
-      nextActionAt = null
-      flags.push("tapback_last")
     } else if (customerLast && lastIsCall) {
       bucket = "A"
       reason = `来电 ${lastCallAt!.slice(0, 16)} 之后我们没再写过`
-    } else if (customerLast && quiet.quiet(phone, Date.parse(lastInAt!)) && !lastInIsCourtesy) {
+    } else if (customerLast && !doneWith && quiet.quiet(phone, Date.parse(lastInAt!)) && !lastInIsCourtesy) {
+      // Not for a reaction or a thanks we are done with: the desk acks those
+      // (leads §1.6), and "不用回" here is a stop with no next action.
       bucket = "H"
       reason = lead.acked_until && Date.parse(lead.acked_until) >= Date.parse(lastInAt!) ? "已标「不用回」" : "挂起中（客人自设节奏）"
       nextActionAt = lead.hold_until
-    } else if (customerLast && !courtesyDone) {
+    } else if (customerLast && !doneWith) {
       bucket = "A"
       reason = lastInIsCourtesy ? "客气话，回一句收尾" : "客人最后说话，欠回复"
     } else if (
@@ -443,7 +453,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       nextActionAt = new Date(recent[0] + DAY_MS).toISOString()
     } else {
       bucket = "D"
-      reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条${run + 1 >= CAP ? "（最后一条）" : ""}到期${courtesyDone ? "（客人最后回的是客气话，那句不补）" : ""}`
+      reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条${run + 1 >= CAP ? "（最后一条）" : ""}到期${doneWith ? (lastInIsTapback ? "（客人最后只点了个赞，那个不回）" : "（客人最后回的是客气话，那句不补）") : ""}`
     }
     const objection = (bucket === "D" || bucket === "E") && objectionWords
 

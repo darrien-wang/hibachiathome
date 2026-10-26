@@ -1,0 +1,61 @@
+# Read-only, 2026-10-25 18:49 PT: the live pool through HEAD 10af7837 and the change in one process, same instant, same rows (scanLeads write:false lint:false; a Supabase proxy that throws on insert/upsert/update/delete/rpc; Twilio list GETs only). Every lead whose bucket, reason or next action differs:
+
+scan at 10-25 18:49 PT · pool 275 / 275
+summary before {"A":1,"B":0,"C":1,"D":8,"E":1,"F":1,"G":10,"H":264}
+summary after  {"A":1,"B":2,"C":1,"D":11,"E":1,"F":2,"G":10,"H":259}
+
++18054551668 · 4615 Mount Bigelow Dr, San Diego, CA 92111 · 15 人 · run 1 · lastSpeaker customer 09-28 16:45 · hold 10-01 16:44
+  flags name_unknown tapback_last · callback yes
+  before H  最后一条是点赞，不用回  · next null
+  after  B  承诺到期：16:41 'Ahhhh. Ok I see. Let me talk to my husband.' - the ball is hers. Replied with one c  · next 10-25 18:49
+
++15857043872 · Santa Clarita · 14 人 · run 1 · lastSpeaker customer 10-17 16:59 · hold 10-19 16:58
+  flags name_unknown tables_asked tapback_last · callback yes
+  before H  最后一条是点赞，不用回  · next null
+  after  B  承诺到期：10-17 16:57 'It might be 16 total. My mother in law would like to call on Monday!' -> 婆婆周一  · next 10-25 18:49
+
++18455197333 · Santa Barbara · 12 人 · run 1 · lastSpeaker customer 10-22 10:25 · hold 10-28 09:51
+  flags name_unknown tapback_last · callback yes
+  before H  最后一条是点赞，不用回  · next null
+  after  D  沉默 80 小时，第 2 条到期（客人最后只点了个赞，那个不回）  · next 10-25 18:49
+
++17605675043 · Palm Springs · 28 人 · run 1 · lastSpeaker customer 10-10 16:23 · hold null
+  flags name_unknown tapback_last · callback no
+  before H  最后一条是点赞，不用回  · next null
+  after  D  沉默 362 小时，第 2 条到期（客人最后只点了个赞，那个不回）  · next 10-25 18:49
+
++18183884745 · Pasadena · 15 人 · run 1 · lastSpeaker customer 10-22 14:20 · hold null
+  flags name_unknown tables_asked tapback_last · callback no
+  before H  最后一条是点赞，不用回  · next null
+  after  DF  沉默 76 小时，第 2 条到期（客人最后只点了个赞，那个不回）  · next 10-25 18:49
+
++18055393134 · Santa Barbara · 13 人 · run 1 · lastSpeaker customer 09-25 16:31 · hold 10-09 15:34
+  flags name_unknown tapback_last · callback no
+  before H  最后一条是点赞，不用回  · next null
+  after  H  休眠：挂起 2026-10-09 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
++17603336986 · Palm Springs · 30 人 · run 1 · lastSpeaker customer 10-15 10:09 · hold 10-29 10:08
+  flags name_unknown tables_asked tapback_last · callback yes
+  before H  最后一条是点赞，不用回  · next null
+  after  H  挂起到 2026-10-29（客人自设节奏）  · next 10-29 10:08
+
++19492803212 · Palm Springs · 15 人 · run 1 · lastSpeaker customer 10-15 15:02 · hold 11-14 13:45
+  flags name_unknown tapback_last · callback no
+  before H  最后一条是点赞，不用回  · next null
+  after  H  挂起到 2026-11-14  · next 11-14 13:45
+
+8 of 275 leads moved; 0 were in H "客气话 … 不再补" before, 0 after
+
+# Same, a minute later: every lead whose run or flags differ (bucket before -> after)
+
++18054551668 H->B run 0->1 flags [name_unknown tapback_last] -> [name_unknown tapback_last]
++15857043872 H->B run 0->1 flags [name_unknown tables_asked tapback_last] -> [name_unknown tables_asked tapback_last]
++18455197333 H->D run 0->1 flags [name_unknown tapback_last] -> [name_unknown tapback_last]
++17605675043 H->D run 0->1 flags [name_unknown tapback_last] -> [name_unknown tapback_last]
++18183884745 H->D run 0->1 flags [name_unknown tables_asked tapback_last] -> [name_unknown tables_asked tapback_last]
++18057505662 H->H run 2->3 flags [budget_words] -> [budget_words]
++16508230090 H->H run 1->2 flags [] -> []
++18055393134 H->H run 0->1 flags [name_unknown tapback_last] -> [name_unknown tapback_last]
++17603336986 H->H run 0->1 flags [name_unknown tables_asked tapback_last] -> [name_unknown tables_asked tapback_last]
++19492803212 H->H run 0->1 flags [name_unknown tapback_last] -> [name_unknown tapback_last]
+10 leads with a different run or flags

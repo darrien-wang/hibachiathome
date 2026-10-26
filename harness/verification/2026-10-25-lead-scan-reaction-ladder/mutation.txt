@@ -1,0 +1,37 @@
+# tests/lead-scan-courtesy.test.ts against: the change, HEAD 10af7837 (courtesy fix only), and five single-point regressions of it - a reaction restarts the 3-text count (countFrom = lastCustomerAt); the desk's ack is still a stop (quiet branch without !doneWith); the real message from Twilio only (no timeline); the phone-app +1 even before the customer's last word; the hold and [callback] measured from the last word (spokeAt = lastCustomerAt). Copies in the session scratchpad; the worktree file was not touched.
+
+===== fixed
+ℹ pass 10
+ℹ fail 0
+===== m0-head-10af7837
+✖ scan courtesy · our text from the phone app before the thanks is not part of the run (3.0457ms)
+✖ scan reaction · never answered, then the usual spacing; it does not restart the count (0.826ms)
+✖ scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both (0.6692ms)
+✖ scan reaction · a customer who likes every text is still capped at 3 (0.4582ms)
+✖ scan reaction · photos then a like, older than Twilio's record: the photos are owed an answer → A (0.4896ms)
+ℹ pass 5
+ℹ fail 5
+===== m1-reaction-restarts-count
+✖ scan reaction · never answered, then the usual spacing; it does not restart the count (3.0342ms)
+✖ scan reaction · a customer who likes every text is still capped at 3 (0.9685ms)
+ℹ pass 8
+ℹ fail 2
+===== m2-ack-is-a-stop
+✖ scan reaction · never answered, then the usual spacing; it does not restart the count (2.4608ms)
+ℹ pass 9
+ℹ fail 1
+===== m3-twilio-only-real-message
+✖ scan reaction · photos then a like, older than Twilio's record: the photos are owed an answer → A (2.7621ms)
+ℹ pass 9
+ℹ fail 1
+===== m4-phone-app-text-always-counts
+✖ scan courtesy · our text from the phone app before the thanks is not part of the run (3.0288ms)
+ℹ pass 9
+ℹ fail 1
+===== m5-hold-callback-from-last-word
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (8.538ms)
+✖ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.5604ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (18.317ms)
+✖ scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both (0.6567ms)
+ℹ pass 6
+ℹ fail 4

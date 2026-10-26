@@ -4,7 +4,9 @@
 // H "最后一条是客气话，已过 2 小时，不再补" with no next action, ahead of her
 // [callback], and nobody wrote for 25 days (2026-10-24, five more like her).
 // The window only decides whether the one-line close is still owed; after it
-// the lead reads as if we spoke last.
+// the lead reads as if we spoke last. A reaction ("Liked …") is never
+// answered and was the same stop: 805-455-1668 liked our "take your time"
+// with a [callback] on file and sat four weeks (2026-10-25).
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
@@ -45,7 +47,7 @@ function fakeSupabase(tables: Record<string, Row[]>) {
 const PHONE = "+16265550142"
 type Tp = { at: string; type: string; payload: Row }
 const sent = (at: string, body: string): Tp => ({ at, type: "sms_outbound", payload: { body } })
-const got = (at: string, body: string): Tp => ({ at, type: "sms_inbound", payload: { Body: body, NumMedia: "0" } })
+const got = (at: string, body: string, media = 0): Tp => ({ at, type: "sms_inbound", payload: { Body: body, NumMedia: String(media) } })
 const note = (at: string, text: string): Tp => ({ at, type: "agent_note", payload: { note: text } })
 
 function pool(thread: Tp[], lead: Row = {}) {
@@ -81,12 +83,14 @@ test("scan courtesy · inside 2 hours the thanks is owed the one-line close → 
 })
 
 test("scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap", async () => {
-  const early = await scanAt(pool(thanked), "2026-10-17T12:00:00Z")
+  // The desk acks a thanks it will not answer (leads §1.6); the ack is not a stop.
+  const acked = { acked_until: "2026-10-17T01:00:00Z" }
+  const early = await scanAt(pool(thanked, acked), "2026-10-17T12:00:00Z")
   assert.equal(early.bucket, "H", "15 hours after our text: the usual spacing, not a stop")
   assert.equal(early.reason, "我们 2026-10-16T20:38 刚发过，第 2 天再看")
   assert.equal(early.nextActionAt, "2026-10-17T16:38:00.000Z")
 
-  const due = await scanAt(pool(thanked), "2026-10-18T19:00:00Z")
+  const due = await scanAt(pool(thanked, acked), "2026-10-18T19:00:00Z")
   assert.equal(due.bucket, "D")
   assert.equal(due.reason, "沉默 46 小时，第 1 条到期（客人最后回的是客气话，那句不补）")
   assert.equal(due.nextActionAt, "2026-10-18T19:00:00.000Z")
@@ -138,15 +142,19 @@ test("scan courtesy · past 2 hours on an active hold → H until the hold, thou
   assert.equal(after.nextActionAt, null)
 })
 
-test("scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later)", async () => {
+/** The carrier stamps a text a second after the timeline logs it. */
+const stamp = (at: string) => new Date(Date.parse(at) + 1000).toISOString()
+
+/** Runs fn with Twilio's two message lists answering from `thread`. */
+async function withTwilio<T>(thread: Tp[], fn: () => Promise<T>): Promise<T> {
   const ours = ourSmsNumber()
-  const stamp = (at: string) => new Date(Date.parse(at) + 1000).toISOString()
-  const msg = (t: Tp, i: number): TwilioMessage => {
-    const inbound = t.type === "sms_inbound"
-    const body = String(inbound ? t.payload.Body : t.payload.body)
-    return { sid: `SM${i}`, direction: inbound ? "inbound" : "outbound-api", body, from: inbound ? PHONE : ours, to: inbound ? ours : PHONE, status: inbound ? "received" : "delivered", date_sent: stamp(t.at), date_created: stamp(t.at), num_media: "0" }
-  }
-  const texts = hosts.filter((t) => t.type !== "agent_note").map(msg)
+  const texts = thread
+    .filter((t) => t.type !== "agent_note")
+    .map((t, i): TwilioMessage => {
+      const inbound = t.type === "sms_inbound"
+      const body = String(inbound ? t.payload.Body : t.payload.body)
+      return { sid: `SM${i}`, direction: inbound ? "inbound" : "outbound-api", body, from: inbound ? PHONE : ours, to: inbound ? ours : PHONE, status: inbound ? "received" : "delivered", date_sent: stamp(t.at), date_created: stamp(t.at), num_media: String(t.payload.NumMedia ?? "0") }
+    })
   const saved = globalThis.fetch
   process.env.TWILIO_ACCOUNT_SID = "ACtest"
   process.env.TWILIO_AUTH_TOKEN = "test"
@@ -157,19 +165,94 @@ test("scan courtesy · the same when the thread comes from Twilio (the carrier s
     return new Response(JSON.stringify({ messages: texts.filter((m) => (m.direction === "inbound") !== outbound) }), { status: 200 })
   }) as typeof fetch
   try {
-    const it = await scanAt(pool(hosts, hostsHold), "2026-10-24T19:00:00Z")
-    assert.equal(it.bucket, "B")
-    assert.equal(it.lastAt, stamp("2026-09-29T23:42:00Z"), "Twilio's copy of the thanks was read")
+    return await fn()
   } finally {
     globalThis.fetch = saved
     delete process.env.TWILIO_ACCOUNT_SID
     delete process.env.TWILIO_AUTH_TOKEN
   }
+}
+
+test("scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later)", async () => {
+  const it = await withTwilio(hosts, () => scanAt(pool(hosts, hostsHold), "2026-10-24T19:00:00Z"))
+  assert.equal(it.bucket, "B")
+  assert.equal(it.lastAt, stamp("2026-09-29T23:42:00Z"), "Twilio's copy of the thanks was read")
 })
 
-test("scan courtesy · a reaction is still never answered (the tapback branch is unchanged)", async () => {
-  const it = await scanAt(pool([...vacation, got("2026-10-16T20:38:35Z", "Loved “Any night that week works!”")]), "2026-10-18T19:00:00Z")
+test("scan courtesy · our text from the phone app before the thanks is not part of the run", async () => {
+  // The link went out from the phone app: Twilio has it, the timeline does not.
+  const timeline = thanked.filter((t) => t.at !== "2026-10-16T20:38:00Z")
+  const it = await withTwilio(thanked, () => scanAt(pool(timeline), "2026-10-18T19:00:00Z"))
+  assert.equal(it.bucket, "D")
+  assert.equal(it.run, 0)
+  assert.match(it.reason, /^沉默 46 小时，第 1 条到期/)
+})
+
+test("scan reaction · never answered, then the usual spacing; it does not restart the count", async () => {
+  // Liked instead of thanked, and acked by the desk two minutes later.
+  const liked = pool([...vacation, got("2026-10-16T20:38:35Z", "Loved “Any night that week works!”")], { acked_until: "2026-10-16T20:40:00Z" })
+  const soon = await scanAt(liked, "2026-10-16T21:00:00Z")
+  assert.equal(soon.bucket, "H", "not A: a reaction gets no reply")
+  assert.equal(soon.reason, "我们 2026-10-16T20:38 刚发过，第 2 天再看")
+  assert.equal(soon.nextActionAt, "2026-10-17T16:38:00.000Z")
+
+  const due = await scanAt(liked, "2026-10-18T19:00:00Z")
+  assert.equal(due.bucket, "D")
+  assert.equal(due.reason, "沉默 46 小时，第 2 条到期（客人最后只点了个赞，那个不回）", "our link after \"Dec 28 - Jan 2\" still counts")
+  assert.equal(due.run, 1)
+  assert.ok(due.flags.includes("tapback_last"))
+})
+
+// 805-455-1668 (09-28): "Let me talk to my husband", our "take your time" with a [callback] and a hold, then a like.
+const husband = [
+  sent("2026-09-28T23:30:00Z", "Real Hibachi: your Oxnard hibachi price is $599.00 for 10 adults (Standard (any day))."),
+  got("2026-09-28T23:38:00Z", "So the $599 covers up to 10 people?"),
+  sent("2026-09-28T23:40:00Z", "Yes - up to 10 guests for $599, and each extra adult is $59.90."),
+  got("2026-09-28T23:41:00Z", "Ahhhh. Ok I see. Let me talk to my husband."),
+  sent("2026-09-28T23:44:00Z", "Of course - take your time. I'll be here when you're ready."),
+  note("2026-09-28T23:44:30Z", "[callback] 16:41 'Ahhhh. Ok I see. Let me talk to my husband.' - the ball is hers"),
+  got("2026-09-28T23:45:00Z", "Liked “Of course - take your time. I'll be here when you're ready.”"),
+]
+const husbandHold = { hold_set_at: "2026-09-28T23:44:40Z", hold_until: "2026-10-05T23:44:40Z" }
+
+test("scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both", async () => {
+  const held = await scanAt(pool(husband, husbandHold), "2026-10-01T19:00:00Z")
+  assert.equal(held.bucket, "H")
+  assert.equal(held.reason, "挂起到 2026-10-05（客人自设节奏）")
+  assert.equal(held.nextActionAt, "2026-10-05T23:44:40Z")
+
+  const due = await scanAt(pool(husband, husbandHold), "2026-10-25T19:00:00Z")
+  assert.equal(due.bucket, "B")
+  assert.match(due.reason, /^承诺到期：16:41 'Ahhhh\. Ok I see\. Let me talk to my husband\.'/)
+})
+
+test("scan reaction · a customer who likes every text is still capped at 3", async () => {
+  const liker = [
+    got("2026-10-01T18:00:00Z", "We're thinking about a birthday dinner for 12, maybe in November"),
+    sent("2026-10-01T18:02:00Z", "Love it! For 12 it's $718.80 any night. Which weekend are you thinking?"),
+    got("2026-10-01T18:03:00Z", "Liked “Love it! For 12 it's $718.80 any night. Which weekend are you thinking?”"),
+    sent("2026-10-02T18:10:00Z", "Figured November is filling up for you - want me to check a Saturday?"),
+    got("2026-10-02T18:30:00Z", "Liked “Figured November is filling up for you - want me to check a Saturday?”"),
+    sent("2026-10-03T18:15:00Z", "Happy to hold a night whenever you're ready."),
+    got("2026-10-03T18:20:00Z", "Loved “Happy to hold a night whenever you're ready.”"),
+  ]
+  const it = await scanAt(pool(liker), "2026-10-04T19:00:00Z")
   assert.equal(it.bucket, "H")
-  assert.equal(it.reason, "最后一条是点赞，不用回")
-  assert.equal(it.nextActionAt, null)
+  assert.equal(it.run, 3)
+  assert.equal(it.reason, "已连发 3 条无回复，满 3 条封顶——还没挂起，挂 14 天")
+  assert.ok(it.flags.includes("needs_hold"))
+})
+
+test("scan reaction · photos then a like, older than Twilio's record: the photos are owed an answer → A", async () => {
+  // 909-268-7235's thread (10-05), read from the timeline alone.
+  const photos = [
+    sent("2026-10-05T17:46:00Z", "We do - they're normally $10 a guest."),
+    sent("2026-10-05T17:47:15Z", "Send me a photo if you're not sure."),
+    got("2026-10-05T18:10:10Z", "", 2),
+    got("2026-10-05T18:11:22Z", "", 1),
+    got("2026-10-05T18:11:51Z", "Loved “We do - they're normally $10 a guest.”"),
+  ]
+  const it = await scanAt(pool(photos), "2026-10-05T19:00:00Z")
+  assert.equal(it.bucket, "A")
+  assert.equal(it.reason, "客人最后说话，欠回复")
 })
