@@ -1,0 +1,24 @@
+# After the push of 12014fca to main (2026-10-26 ~11:48 PT). GETs only.
+
+## Local build before the push (pnpm build in the worktree): exit 0
+homepage .next/server/app/index.html  size: 77113 | h1: 1 | jsonld: 4
+
+## GET https://www.realhibachi.com/_release/ready, every 15 s until it named the pushed commit: ~90 s
+deployment.gitCommitSha = 12014fca9f1891ff6b527948f86077ac4c90b63d
+
+## bash .claude/skills/deploy/scripts/verify-live.sh
+=== 1. Homepage SSR ===
+size: 80836 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+## python scripts/desk/desk.py scan --no-write --json (production, write=0): summary line, the H line, and 818-388-4745
+扫描 10-26 11:50 PT · 池 274 · A 2 · C 1 · G 11 · B 0 · F 1 · E 0 · D 2 · H 269
+H 停 · 269 · 不发；needs_hold 的挂起：满 3 条的挂 14 天，[callback] 没挂起的挂到他说的那天
++18183884745  H  flags name_unknown tables_asked needs_hold  [callback] 没挂起：挂到他说的那天，到点再进 B（10:37 'She's looking at weather' (sister deciding on Sun 11/1, Pasadena 15 at 5,）  · next None
+leads with a reason starting [callback] 没挂起: 1 | leads in B: 0
