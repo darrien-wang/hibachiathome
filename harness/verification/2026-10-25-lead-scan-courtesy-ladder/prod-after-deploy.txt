@@ -1,0 +1,28 @@
+# After the push of 4ce8f22d to main (2026-10-25 ~17:15 PT). GETs only.
+
+## Local build before the push (CI=true pnpm install --frozen-lockfile in the worktree, then pnpm build): exit 0
+homepage .next/server/app/index.html  size: 77113 | h1: 1 | jsonld: 4
+
+## GET https://www.realhibachi.com/_release/ready, every 15 s until it named the pushed commit: ~75 s
+deployment.gitCommitSha = 4ce8f22d6dac50f62fe984a2baa9cb411d4b52dc
+
+## bash .claude/skills/deploy/scripts/verify-live.sh
+=== 1. Homepage SSR ===
+size: 80836 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+## python scripts/desk/desk.py scan --no-write --json (production, write=0): summary line and the six leads from the 10-24 report
+扫描 10-25 17:17 PT · 池 274 · A 0 · C 1 · G 10 · B 0 · F 1 · E 1 · D 7 · H 265
++17604428028  H  休眠：挂起 2026-09-30 到期，之后客人没说过话——不再主动发，他开口立即接  · next None
++16264285292  E  派对 2026-10-31 还有 6 天，没付押金  · next 2026-10-26T00:17:05.598Z
++17147455497  D  沉默 93 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 2026-10-26T00:17:05.598Z
++19166269315  DF  沉默 238 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 2026-10-26T00:17:05.598Z
++13182780047  D  沉默 219 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 2026-10-26T00:17:05.598Z
++18183952263  D  沉默 139 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 2026-10-26T00:17:05.598Z
+leads still in H 最后一条是客气话 … 不再补: 0
