@@ -1,0 +1,31 @@
+# After the push of 85520ce9 to main (2026-10-25 ~18:53 PT). GETs only.
+
+## Local build before the push (pnpm build in the worktree): exit 0
+homepage .next/server/app/index.html  size: 77113 | h1: 1 | jsonld: 4
+
+## GET https://www.realhibachi.com/_release/ready, every 15 s until it named the pushed commit: ~90 s
+deployment.gitCommitSha = 85520ce913479f5c59010fad4fc345006c3e8a04
+
+## bash .claude/skills/deploy/scripts/verify-live.sh
+=== 1. Homepage SSR ===
+size: 80836 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+## python scripts/desk/desk.py scan --no-write --json (production, write=0): summary line and the eight reaction-last leads
+扫描 10-25 18:54 PT · 池 275 · A 1 · C 1 · G 10 · B 2 · F 2 · E 1 · D 11 · H 259
++18054551668  B  run 1  承诺到期：16:41 'Ahhhh. Ok I see. Let me talk to my husband.' - the ball is hers. Replied with one c  · next 2026-10-26T01:54:25.170Z
++15857043872  B  run 1  承诺到期：10-17 16:57 'It might be 16 total. My mother in law would like to call on Monday!' -> 婆婆周一  · next 2026-10-26T01:54:25.170Z
++18455197333  D  run 1  沉默 80 小时，第 2 条到期（客人最后只点了个赞，那个不回）  · next 2026-10-26T01:54:25.170Z
++17605675043  D  run 1  沉默 362 小时，第 2 条到期（客人最后只点了个赞，那个不回）  · next 2026-10-26T01:54:25.170Z
++18183884745  DF  run 1  沉默 76 小时，第 2 条到期（客人最后只点了个赞，那个不回）  · next 2026-10-26T01:54:25.170Z
++17603336986  H  run 1  挂起到 2026-10-29（客人自设节奏）  · next 2026-10-29T17:08:59.611+00:00
++19492803212  H  run 1  挂起到 2026-11-14  · next 2026-11-14T21:45:26.213+00:00
++18055393134  H  run 1  休眠：挂起 2026-10-09 到期，之后客人没说过话——不再主动发，他开口立即接  · next None
+leads still in H 最后一条是点赞: 0
+leads still in H 最后一条是客气话 … 不再补: 0
