@@ -1,0 +1,46 @@
+# Read-only, 2026-10-25 ~17:00 PT. Not changed by this fix; the evidence behind the two follow-ups in codex-progress.md.
+
+## 1. Tapback-last leads: H "最后一条是点赞，不用回", next action null (the tapback branch was kept as is)
+8 leads, 4 with a [callback]:
+   +18054551668  last word 2026-09-28  [callback] 16:41 'Ahhhh. Ok I see. Let me talk to my husband.' - the ball is her
+   +18455197333  last word 2026-10-22  [callback] 10-14 09:49 'Still sorting through some things and working on confirm
+   +18055393134  last word 2026-09-25
+   +17605675043  last word 2026-10-10
+   +17603336986  last word 2026-10-15  [callback] 10-15 10:08 her words: 'We are still looking for location to hold din
+   +19492803212  last word 2026-10-15
+   +15857043872  last word 2026-10-17  [callback] 10-17 16:57 'It might be 16 total. My mother in law would like to cal
+   +18183884745  last word 2026-10-22
+
+## 2. Every lead with a [callback], its bucket under the fix, and what the customer said after the note
+##    ("<= only thanks/reactions": the note was voided by a thanks or a reaction alone)
+
+29 leads with a [callback]; buckets: {"E":1,"D":1,"H":27}
++16264285292 E · 派对 2026-10-31 还有 6 天，没付押金 · note 09-29 16:40 · after it: "I appreciate it! " 09-29 16:42  <= only thanks/reactions
++18183952263 D · 沉默 139 小时，第 1 条到期（客人最后回的是客气话，那句不补） · note 10-19 21:23 · after it: "How much more for money mignon per perso" 10-19 21:25 | "Perfect thank you " 10-19 21:29
++16268073409 H · 挂起到 2026-10-27（客人自设节奏） · note 09-24 20:30 · after it: nothing
++18057505662 H · 挂起到 2026-10-27（客人自设节奏） · note 09-23 11:09 · after it: nothing
++18054551668 H · 最后一条是点赞，不用回 · note 09-28 16:44 · after it: "Liked “Of course - take your time. I'll " 09-28 16:45  <= only thanks/reactions
++18455197333 H · 最后一条是点赞，不用回 · note 10-14 09:51 · after it: "Liked “Sounds good - no rush! Whenever t" 10-14 09:56 | "Hi Rowling! I don't think we're going to" 10-21 07:27 | "Will be the same as the first inquiry!" 10-21 08:31 | "I think it would be an early dinner thin" 10-22 10:22 | "Thank you!" 10-22 10:23 | "Is the reservation cancellable up to a c" 10-22 10:24 | "Liked “Yes - you can cancel or move the " 10-22 10:25
++18183980959 H · 挂起到 2026-10-27（客人自设节奏） · note 10-13 16:14 · after it: nothing
++13102930380 H · 挂起到 2026-10-29（客人自设节奏） · note 10-14 09:52 · after it: "Loved “No problem at all - just text me " 10-14 09:52 | "Yes, I will definitely let you know when" 10-14 09:52
++13183326496 H · 挂起到 2026-10-28（客人自设节奏） · note 10-14 10:27 · after it: nothing
++13107395610 H · 挂起到 2026-10-29（客人自设节奏） · note 10-08 16:03 · after it: nothing
++17603336986 H · 最后一条是点赞，不用回 · note 10-15 10:08 · after it: "Loved “Of course - good luck with the se" 10-15 10:09  <= only thanks/reactions
++13235564923 H · 挂起到 2026-10-30（客人自设节奏） · note 10-15 07:46 · after it: "Thanks!" 10-15 07:47 | call_inbound 10-15 12:36
++15857043872 H · 最后一条是点赞，不用回 · note 10-17 16:58 · after it: "Loved “Sounds great! She can call us at " 10-17 16:59  <= only thanks/reactions
++17608986688 H · 挂起到 2026-11-02（客人自设节奏） · note 10-19 09:58 · after it: nothing
++13109899977 H · 挂起到 2026-11-09（客人自设节奏） · note 10-18 18:11 · after it: nothing
++19092058918 H · 挂起到 2026-11-02（客人自设节奏） · note 10-19 10:02 · after it: nothing
++13233467994 H · 挂起到 2026-11-02（客人自设节奏） · note 10-19 16:29 · after it: nothing
++17608994200 H · 休眠：挂起 2026-10-25 到期，之后客人没说过话——不再主动发，他开口立即接 · note 10-20 09:25 · after it: "Awesome! " 10-20 09:32 | "Date is 12/4" 10-20 09:34 | "Perfect I will be in touched. " 10-20 09:40
++17602181716 H · 挂起到 2026-11-03（客人自设节奏） · note 10-20 11:42 · after it: nothing
++19525679990 H · 挂起到 2026-11-03（客人自设节奏） · note 10-20 15:54 · after it: nothing
++15622367929 H · 休眠：挂起 2026-10-21 到期，之后客人没说过话——不再主动发，他开口立即接 · note 10-19 16:58 · after it: "Thanks" 10-19 16:58  <= only thanks/reactions
++17605344964 H · 挂起到 2026-10-27（客人自设节奏） · note 10-14 12:23 · after it: nothing
++12313833404 H · 挂起到 2026-10-27（客人自设节奏） · note 10-14 16:15 · after it: nothing
++17144200304 H · 挂起到 2026-11-05（客人自设节奏） · note 10-06 17:21 · after it: nothing
++14242418417 H · 挂起到 2026-10-31（客人自设节奏） · note 10-24 10:05 · after it: nothing
++17752348365 H · 挂起到 2026-10-30（客人自设节奏） · note 10-23 15:21 · after it: nothing
++15629779503 H · 挂起到 2026-10-27（客人自设节奏） · note 10-24 12:36 · after it: nothing
++16198861622 H · 24 小时内已发 2 条（含自动报价），刹车会拦，等最早那条过 24 小时 · note 10-24 19:06 · after it: "Ok. Thank you." 10-24 19:07 | "Do I just text back on this line?" 10-24 19:07 | "Sorry one more question.  Does that incl" 10-24 19:17 | "Awesome. Thank you" 10-24 19:25
++13238840100 H · 挂起到 2026-10-30（客人自设节奏） · note 10-24 20:12 · after it: nothing

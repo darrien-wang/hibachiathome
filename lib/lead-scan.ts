@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { courtesyOnly, isTapback } from "@/lib/courtesy-text"
+import { courtesyOnly, isTapback, notAQuestion } from "@/lib/courtesy-text"
 import { HINT_TYPES, hintFromRows, type HintRow } from "@/lib/lead-event-hint"
 import { holdState, loadQuiet } from "@/lib/lead-hold"
 import { fetchLastByPeer, toE164, type LastByPeer } from "@/lib/sms-thread"
@@ -238,7 +238,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
   for (const lead of leads) {
     const tps = byLead.get(lead.id) ?? []
     const phone = toE164(lead.phone)
-    const inbound = tps.filter((t) => t.touchpoint_type === "sms_inbound").map((t) => ({ at: t.occurred_at, body: str(t.raw_payload_json?.Body ?? t.raw_payload_json?.body) }))
+    const inbound = tps
+      .filter((t) => t.touchpoint_type === "sms_inbound")
+      .map((t) => ({ at: t.occurred_at, body: str(t.raw_payload_json?.Body ?? t.raw_payload_json?.body), media: num(t.raw_payload_json?.NumMedia ?? t.raw_payload_json?.media) }))
     const outbound = tps.filter((t) => t.touchpoint_type === "sms_outbound").map((t) => ({ at: t.occurred_at, body: str(t.raw_payload_json?.body ?? t.raw_payload_json?.Body) }))
     const calls = tps.filter((t) => t.touchpoint_type === "call_inbound").map((t) => t.occurred_at)
     // Email is a conversation too (support@ in via the Gmail script, out via
@@ -292,8 +294,6 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04).
     if (tw?.lastOutAt && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
 
-    const hold = holdState(lead, lastCustomerAt, now)
-    const holdActive = hold === "active"
     const callbackNote = [...notes].reverse().find((n) => /^\s*\[callback\]/i.test(n.note)) ?? null
     const hint = hintFromRows([...tps].reverse().filter((t) => HINT_TYPES.includes(t.touchpoint_type)) as HintRow[])
     const eventDate = hint && /^\d{4}-\d{2}-\d{2}$/.test(hint.date) ? hint.date : null
@@ -336,6 +336,22 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const lastIsEmail = Boolean(lastEmailInAt && lastEmailInAt === lastCustomerAt)
     const lastInIsTapback = !lastIsCall && isTapback(lastInBody)
     const lastInIsCourtesy = !lastIsCall && !lastInIsTapback && courtesyOnly(lastInBody)
+    // The 2-hour window only decides whether we still owe the one-line close
+    // (leads §1.6). Past it the thanks is done with: nobody sends the close
+    // late, and it is not the customer coming back either, so the rest of the
+    // ladder reads the lead as if we spoke last. A hold or a [callback] set
+    // before the thanks still stands - both are measured from the customer's
+    // last real message (more than a reaction or a thanks, or photos) - and a
+    // follow-up keeps the 20-hour spacing and the 3-text cap. Filed as a stop
+    // instead ("不再补", no next action), 626-428-5292 went 25 days without a
+    // word: she was checking with the other hosts and would get back to us,
+    // then "I appreciate it!", a [callback] on file; five more sat with her
+    // (2026-10-24).
+    const courtesyDone = customerLast && !lastIsForm && !lastIsEmail && lastInIsCourtesy && now - Date.parse(lastInAt!) > COURTESY_WINDOW_MS
+    const realIn = [...inbound].reverse().find((m) => m.media > 0 || !notAQuestion(m.body))
+    const spokeAt = courtesyDone ? later(later(later(later(realIn?.at ?? null, tw?.lastRealIn?.at ?? null), lastCallAt), lastFormAt), lastEmailInAt) : lastCustomerAt
+    const hold = holdState(lead, spokeAt, now)
+    const holdActive = hold === "active"
 
     if (lead.sms_blocked_at) {
       bucket = "H"
@@ -369,15 +385,11 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     } else if (customerLast && lastIsCall) {
       bucket = "A"
       reason = `来电 ${lastCallAt!.slice(0, 16)} 之后我们没再写过`
-    } else if (customerLast && lastInIsCourtesy && now - Date.parse(lastInAt!) > COURTESY_WINDOW_MS) {
-      bucket = "H"
-      reason = "最后一条是客气话，已过 2 小时，不再补"
-      nextActionAt = null
     } else if (customerLast && quiet.quiet(phone, Date.parse(lastInAt!)) && !lastInIsCourtesy) {
       bucket = "H"
       reason = lead.acked_until && Date.parse(lead.acked_until) >= Date.parse(lastInAt!) ? "已标「不用回」" : "挂起中（客人自设节奏）"
       nextActionAt = lead.hold_until
-    } else if (customerLast) {
+    } else if (customerLast && !courtesyDone) {
       bucket = "A"
       reason = lastInIsCourtesy ? "客气话，回一句收尾" : "客人最后说话，欠回复"
     } else if (
@@ -397,7 +409,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = `挂起到 ${lead.hold_until!.slice(0, 10)}${callbackNote ? "（客人自设节奏）" : ""}`
       nextActionAt = lead.hold_until
-    } else if (callbackNote && (!lastCustomerAt || lastCustomerAt <= callbackNote.at)) {
+    } else if (callbackNote && (!spokeAt || spokeAt <= callbackNote.at)) {
       bucket = "B"
       reason = `承诺到期：${callbackNote.note.replace(/^\s*\[callback\]\s*/i, "").slice(0, 90)}`
     } else if (hold === "dormant") {
@@ -431,7 +443,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       nextActionAt = new Date(recent[0] + DAY_MS).toISOString()
     } else {
       bucket = "D"
-      reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条${run + 1 >= CAP ? "（最后一条）" : ""}到期`
+      reason = `沉默 ${Math.floor((now - Date.parse(lastOutAt!)) / 3600_000)} 小时，第 ${run + 1} 条${run + 1 >= CAP ? "（最后一条）" : ""}到期${courtesyDone ? "（客人最后回的是客气话，那句不补）" : ""}`
     }
     const objection = (bucket === "D" || bucket === "E") && objectionWords
 

@@ -1,0 +1,27 @@
+# Read-only, 2026-10-25 17:04 PT: the live pool through HEAD's classifier and the fixed one in one process, same instant, same rows (scanLeads write:false lint:false; a Supabase proxy that throws on insert/upsert/update/delete/rpc; Twilio list GETs only). Every lead whose bucket, reason or next action differs:
+
+scan at 10-25 17:04 PT · pool 274 / 274
+summary before {"A":0,"B":0,"C":1,"D":3,"E":1,"F":0,"G":10,"H":269}
+summary after  {"A":0,"B":0,"C":1,"D":7,"E":1,"F":1,"G":10,"H":265}
+
++17147455497 · Huntington Beach · 24 人 · run 0 · lastSpeaker customer 10-21 19:58 · hold null
+  before H  最后一条是客气话，已过 2 小时，不再补  · next null
+  after  D  沉默 93 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 10-25 17:04
+
++19166269315 · LA & Orange County · 13 人 · run 0 · lastSpeaker customer 10-15 18:48 · hold null
+  before H  最后一条是客气话，已过 2 小时，不再补  · next null
+  after  DF  沉默 238 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 10-25 17:04
+
++13182780047 · Palm Springs · 11 人 · run 0 · lastSpeaker customer 10-16 13:38 · hold null
+  before H  最后一条是客气话，已过 2 小时，不再补  · next null
+  after  D  沉默 219 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 10-25 17:04
+
++18183952263 · Northridge 91324 · 21 人 · run 0 · lastSpeaker customer 10-19 21:29 · hold 10-22 21:23
+  before H  最后一条是客气话，已过 2 小时，不再补  · next null
+  after  D  沉默 139 小时，第 1 条到期（客人最后回的是客气话，那句不补）  · next 10-25 17:04
+
++17604428028 · Palm Springs · 10 人 · run 0 · lastSpeaker customer 09-28 11:21 · hold 09-30 11:13
+  before H  最后一条是客气话，已过 2 小时，不再补  · next null
+  after  H  休眠：挂起 2026-09-30 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
+5 of 274 leads moved; 5 were in H "客气话 … 不再补" before, 0 after

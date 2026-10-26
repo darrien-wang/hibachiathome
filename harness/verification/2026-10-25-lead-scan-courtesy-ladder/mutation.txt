@@ -1,0 +1,46 @@
+# tests/lead-scan-courtesy.test.ts run against: the fix, HEAD 70867b79 (pre-fix), a naive fall-through (hold/[callback] measured from the thanks: spokeAt = lastCustomerAt), and Twilio's newest inbound in place of its newest real one (tw.lastInAt for tw.lastRealIn.at). Copies in the session scratchpad; the worktree file was not touched.
+
+===== fixed
+✔ scan courtesy · inside 2 hours the thanks is owed the one-line close → A (11.9126ms)
+✔ scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap (0.7115ms)
+✔ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (5.6274ms)
+✔ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.528ms)
+✔ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (16.4117ms)
+✔ scan courtesy · a reaction is still never answered (the tapback branch is unchanged) (0.6429ms)
+ℹ pass 6
+ℹ fail 0
+===== m0-head
+✔ scan courtesy · inside 2 hours the thanks is owed the one-line close → A (15.8846ms)
+✖ scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap (4.0088ms)
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (7.3849ms)
+✖ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.6113ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (21.0006ms)
+✔ scan courtesy · a reaction is still never answered (the tapback branch is unchanged) (0.6827ms)
+ℹ pass 2
+ℹ fail 4
+✖ scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap (4.0088ms)
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (7.3849ms)
+✖ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.6113ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (21.0006ms)
+===== m1-naive
+✔ scan courtesy · inside 2 hours the thanks is owed the one-line close → A (12.3984ms)
+✔ scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap (0.8444ms)
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (7.5871ms)
+✖ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.5132ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (15.7327ms)
+✔ scan courtesy · a reaction is still never answered (the tapback branch is unchanged) (1.2463ms)
+ℹ pass 3
+ℹ fail 3
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (7.5871ms)
+✖ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.5132ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (15.7327ms)
+===== m2-twilio-last
+✔ scan courtesy · inside 2 hours the thanks is owed the one-line close → A (13.8224ms)
+✔ scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap (0.8656ms)
+✔ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (6.6976ms)
+✔ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (0.6452ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (19.8342ms)
+✔ scan courtesy · a reaction is still never answered (the tapback branch is unchanged) (0.4498ms)
+ℹ pass 5
+ℹ fail 1
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (19.8342ms)
