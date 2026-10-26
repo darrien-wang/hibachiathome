@@ -287,4 +287,23 @@ Verification completed:
 
 Noticed, not changed:
 - The leads skill says `desk send` clears the hold ("会清掉挂起，先发后挂"); nothing in desk.py or the send route touches `hold_until` (626-428-5292 kept her 10-01 hold after the 10-25 text).
-- A `[callback]` written with no hold is B at once (818-388-4745, 10-26 10:37): the scan has no other due date for it.
+- A `[callback]` written with no hold is B at once (818-388-4745, 10-26 10:37): the scan has no other due date for it. Done the same day: LEAD-SCAN-CALLBACK-NEEDS-HOLD below.
+
+## LEAD-SCAN-CALLBACK-NEEDS-HOLD - A `[callback]` with no hold of its own reads H `needs_hold`, not B at once (2026-10-26)
+
+Status: done.
+
+Why: owner 2026-10-26: "a [callback] with no hold should not be B at once: read it H with a needs_hold flag (set the hold to the day they named) until a hold exists." The hold is the only due date the scan has for a `[callback]`; with none, B came the moment the note went in. 818-388-4745 read B minutes after "She's looking at weather" (her sister deciding on Sunday 11/1).
+
+What changed:
+- `lib/lead-scan.ts`: an open `[callback]` (valid, not chased) whose hold state is "none" is H "[callback] 没挂起：挂到他说的那天，到点再进 B（…）" with `needs_hold` and no next action. "None" is the scan's hold state, not an empty `hold_until`: never held, or held before what the customer said since (a hold they have spoken past does not date a newer promise). A running hold is H 挂起到 as before; one that ran out is B as before. A hold set a few seconds before the note still dates it (the hold state does not look at the note's time).
+- `scripts/desk/desk.py`: the H line of `desk scan` says which hold a `needs_hold` wants (14 days after the cap; the named day for a `[callback]`).
+- `.claude/skills/lead-scan/SKILL.md`: B says the due date comes from the hold; H lists the unheld `[callback]` and how long to hold; §6 the same.
+- `tests/lead-scan-courtesy.test.ts`: 818-388-4745's thread with no hold → H `needs_hold`; held to Sunday → H 挂起到, then B on 11-02; with an old hold that ran out before she wrote → H `needs_hold`.
+
+Verification completed:
+- `npm test`: 329 pass, 0 fail. Output: `harness/verification/2026-10-26-lead-scan-callback-needs-hold/npm-test.txt`.
+- The tests bite: HEAD 25794697 fails the 2 new tests; "no hold" read as an empty `hold_until` fails the old-hold test; an expired hold read as no hold fails 6 (every B after a hold). Output: `harness/verification/2026-10-26-lead-scan-callback-needs-hold/mutation.txt`.
+- `npm run lint:copy`: 0 hard-rule hits. `python scripts/desk/selfcheck.py` (Python 3.10.6): all 53 pass. `tsc`: no errors in `lib/lead-scan.ts` or the test. Outputs: `lint-copy.txt`, `desk-selfcheck.txt` in the same folder.
+- Read-only on the live pool before pushing (HEAD 25794697 and the change in one process on the same rows; write-guarded Supabase, Twilio list GETs only), 10-26 11:47 PT: one lead moves, 818-388-4745 B → H `needs_hold`; the same with the clock at 11-10 (the 17 `[callback]`s due by then all have a hold that ran out and stay B). No other run or flag change. Output: `harness/verification/2026-10-26-lead-scan-callback-needs-hold/live-scan-diff.txt`.
+- No texts sent; `desk scan` only with `--no-write`; nothing written to leads. Not a `harness/feature_list.json` item, so there is no status transition there.

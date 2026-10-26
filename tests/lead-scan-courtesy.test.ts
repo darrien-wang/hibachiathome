@@ -279,6 +279,37 @@ test("scan callback · a b_callback sent hours before the hold ran out still end
   assert.match(it.reason, /^休眠：挂起 2026-10-14 到期/)
 })
 
+// 818-388-4745 (10-26): "She's looking at weather", our answer and a [callback] - and no hold.
+const weather = [
+  sent("2026-10-26T17:20:00Z", "Sunday 11/1 at 5 works for 15 in Pasadena. Want me to hold it?"),
+  got("2026-10-26T17:37:00Z", "She's looking at weather"),
+  sent("2026-10-26T17:39:00Z", "Of course - happy to keep Sunday penciled in while she checks."),
+  note("2026-10-26T17:39:30Z", "[callback] 10:37 'She's looking at weather' (sister deciding on Sun 11/1)"),
+]
+
+test("scan callback · no hold: H needs_hold, not B at once; held to the day they named, B then", async () => {
+  const unheld = await scanAt(pool(weather), "2026-10-26T18:32:00Z")
+  assert.equal(unheld.bucket, "H")
+  assert.equal(unheld.reason, "[callback] 没挂起：挂到他说的那天，到点再进 B（10:37 'She's looking at weather' (sister deciding on Sun 11/1)）")
+  assert.equal(unheld.nextActionAt, null)
+  assert.ok(unheld.flags.includes("needs_hold"))
+
+  const sunday = { hold_set_at: "2026-10-26T18:40:00Z", hold_until: "2026-11-01T17:00:00Z" }
+  const held = await scanAt(pool(weather, sunday), "2026-10-28T19:00:00Z")
+  assert.equal(held.reason, "挂起到 2026-11-01（客人自设节奏）")
+  assert.ok(!held.flags.includes("needs_hold"))
+  const due = await scanAt(pool(weather, sunday), "2026-11-02T19:00:00Z")
+  assert.equal(due.bucket, "B")
+  assert.match(due.reason, /^承诺到期：10:37 'She's looking at weather'/)
+})
+
+test("scan callback · a hold the customer has spoken past since does not date a newer [callback]", async () => {
+  // Our 14-day hold from before she came back ran out on 10-24.
+  const it = await scanAt(pool(weather, { hold_set_at: "2026-10-10T18:00:00Z", hold_until: "2026-10-24T18:00:00Z" }), "2026-10-26T18:32:00Z")
+  assert.equal(it.bucket, "H")
+  assert.ok(it.flags.includes("needs_hold"))
+})
+
 test("scan reaction · a customer who likes every text is still capped at 3", async () => {
   const liker = [
     got("2026-10-01T18:00:00Z", "We're thinking about a birthday dinner for 12, maybe in November"),

@@ -1,0 +1,18 @@
+
+> my-v0-project@0.1.0 lint:copy
+> python scripts/selftest/lint-copy.py
+
+[19.90] 0 处 — 押金已改留卡 $0（D-1006-04）；$19.90 只能出现在 v1 历史说明里
+[refundable-deposit] 0 处 — 没有押金就没有退押金；取消政策是 48h 免费 / 48h 内 $99
+[72h] 0 处 — 改期/取消窗口是 48 小时（D-1006-04）
+[all-inclusive] 0 处 — 刷卡要加税和手续费，不能说全包（10-06 广告也下架了）
+[cash-discount] 0 处 — D-1006-05 起不说 cash discount；现金价 = 标价含税
+[no-fees] 0 处 — 刷卡列 Stripe 手续费，不能承诺 no fees（desk v1 分支那句除外）
+[x1.10] 0 处 — ×1.10 的刷卡价是 10-06 上午的旧 v2，已被 D-1006-05 取代
+[stripe-2.9] 0 处 — 刷卡手续费 10-07 起是固定 3%（老板定），不再写 2.9% + 30¢
+[4pct-v2] (软，只报不算) 1 处 — 4% 手续费只属于 v1；v2 刷卡是 2.9%+30¢，Zelle/Venmo ×1.04 另有规则
+   marketing:app/pay/PayClient.tsx:469  {v2 ? "The cash price includes sales tax reimbursement computed to the nearest mill." : "Prices include the 4% card processing fee."}
+[tax-before-commit] 0 处 — 定下来之前（报价/跟进/公开页）一个字不提税（D-1005-01 补充、D-1006-05）
+[deposit-public] 0 处 — 公开页不提押金，也不把 no deposit 当卖点（D-0913-01、D-1006-04）
+
+共 1 处命中（硬规则 0 处），1 条规则有命中。

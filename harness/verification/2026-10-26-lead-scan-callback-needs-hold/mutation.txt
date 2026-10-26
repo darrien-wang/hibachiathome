@@ -1,0 +1,23 @@
+# tests/lead-scan-courtesy.test.ts against: the change, HEAD 25794697, 'no hold' read as an empty hold_until only (a hold the customer has spoken past since still dating the note), and an expired hold read as no hold too (hold !== "active"). Copies in the session scratchpad; the worktree file was not touched.
+
+===== fixed
+ℹ pass 15
+ℹ fail 0
+===== m0-head-25794697
+✖ scan callback · no hold: H needs_hold, not B at once; held to the day they named, B then (2.3552ms)
+✖ scan callback · a hold the customer has spoken past since does not date a newer [callback] (0.429ms)
+ℹ pass 13
+ℹ fail 2
+===== m1-no-hold-means-empty-hold_until
+✖ scan callback · a hold the customer has spoken past since does not date a newer [callback] (2.2822ms)
+ℹ pass 14
+ℹ fail 1
+===== m2-an-expired-hold-is-no-hold
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (10.1891ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (17.983ms)
+✖ scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both (0.9083ms)
+✖ scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B (1.0779ms)
+✖ scan callback · B once: done after the b_callback, and not back after a hold set after it (0.5764ms)
+✖ scan callback · no hold: H needs_hold, not B at once; held to the day they named, B then (0.7135ms)
+ℹ pass 9
+ℹ fail 6

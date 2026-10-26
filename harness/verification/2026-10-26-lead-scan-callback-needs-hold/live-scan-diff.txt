@@ -1,0 +1,30 @@
+# Read-only, 2026-10-26 11:47 PT: the live pool through HEAD 25794697 and the change in one process, same instant, same rows (scanLeads write:false lint:false; a Supabase proxy that throws on insert/upsert/update/delete/rpc; Twilio list GETs only). Every lead whose bucket, reason or next action differs:
+
+scan at 10-26 11:47 PT · pool 274 / 274
+summary before {"A":2,"B":1,"C":1,"D":2,"E":0,"F":1,"G":11,"H":268}
+summary after  {"A":2,"B":0,"C":1,"D":2,"E":0,"F":1,"G":11,"H":269}
+
++18183884745 · Pasadena · 15 人 · run 1 · lastSpeaker us 10-26 10:39 · hold null
+  flags name_unknown tables_asked needs_hold · callback yes
+  before B  承诺到期：10:37 'She's looking at weather' (sister deciding on Sun 11/1, Pasadena 15 at 5, $838.50).  · next 10-26 11:47
+  after  H  [callback] 没挂起：挂到他说的那天，到点再进 B（10:37 'She's looking at weather' (sister deciding on Sun 11/1, Pasadena 15 at 5,）  · next null
+
+1 of 274 leads moved; 0 were in H "客气话 … 不再补" before, 0 after
+
+# Same, every lead whose run or flags differ:
+
++18183884745 B->H run 1->1 flags [name_unknown tables_asked] -> [name_unknown tables_asked needs_hold]
+1 leads with a different run or flags
+
+# Today's rows with the clock moved to 2026-11-10, the whole pool:
+
+scan at 11-10 11:00 PT · pool 274 / 274
+summary before {"A":0,"B":18,"C":0,"D":12,"E":1,"F":4,"G":6,"H":243}
+summary after  {"A":0,"B":17,"C":0,"D":12,"E":1,"F":4,"G":6,"H":244}
+
++18183884745 · Pasadena · 15 人 · run 1 · lastSpeaker us 10-26 10:39 · hold null
+  flags name_unknown tables_asked needs_hold · callback yes
+  before B  承诺到期：10:37 'She's looking at weather' (sister deciding on Sun 11/1, Pasadena 15 at 5, $838.50).  · next 11-10 11:00
+  after  H  [callback] 没挂起：挂到他说的那天，到点再进 B（10:37 'She's looking at weather' (sister deciding on Sun 11/1, Pasadena 15 at 5,）  · next null
+
+1 of 274 leads moved; 0 were in H "客气话 … 不再补" before, 0 after

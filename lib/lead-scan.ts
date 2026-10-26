@@ -379,6 +379,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const words = [...inbound.filter((m) => m.media > 0 || !isTapback(m.body)).map((m) => m.at), ...calls, ...forms.map((f) => f.occurred_at), ...emailsIn].map((at) => Date.parse(at))
     const followUps = [...manualOut.map((m) => m.at), ...emailsOut, ...(phoneAppOutAt ? [phoneAppOutAt] : [])].filter((at) => !words.some((w) => w <= Date.parse(at) && Date.parse(at) - w < COURTESY_WINDOW_MS))
     const callbackChased = Boolean(callbackNote && followUps.some((at) => Date.parse(at) > Date.parse(callbackNote.at)))
+    const callbackOpen = Boolean(callbackNote && (!spokeAt || spokeAt <= callbackNote.at) && !callbackChased)
 
     if (lead.sms_blocked_at) {
       bucket = "H"
@@ -433,9 +434,19 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = `挂起到 ${lead.hold_until!.slice(0, 10)}${callbackNote ? "（客人自设节奏）" : ""}`
       nextActionAt = lead.hold_until
-    } else if (callbackNote && (!spokeAt || spokeAt <= callbackNote.at) && !callbackChased) {
+    } else if (callbackOpen && hold === "none") {
+      // The hold is the day a [callback] comes due on. With none - never set,
+      // or set before what the customer said since - B came at once: 818-388-4745
+      // read B the moment her note went in, minutes after "she's looking at
+      // weather", her sister deciding on Sunday. Held to the day they named, it
+      // comes back as B then (owner 2026-10-26).
+      bucket = "H"
+      reason = `[callback] 没挂起：挂到他说的那天，到点再进 B（${callbackNote!.note.replace(/^\s*\[callback\]\s*/i, "").slice(0, 80)}）`
+      nextActionAt = null
+      flags.push("needs_hold")
+    } else if (callbackOpen) {
       bucket = "B"
-      reason = `承诺到期：${callbackNote.note.replace(/^\s*\[callback\]\s*/i, "").slice(0, 90)}`
+      reason = `承诺到期：${callbackNote!.note.replace(/^\s*\[callback\]\s*/i, "").slice(0, 90)}`
     } else if (hold === "dormant") {
       // Our own hold ran out and they never spoke since: dormant, not due
       // (lib/lead-hold.ts holdState). Before E too - a party date getting close
