@@ -1,0 +1,30 @@
+# After the push of f4549009 to main (2026-10-26 ~11:39 PT). GETs only.
+
+## Local build before the push (pnpm build in the worktree): exit 0
+homepage .next/server/app/index.html  size: 77113 | h1: 1 | jsonld: 4
+
+## GET https://www.realhibachi.com/_release/ready, every 15 s until it named the pushed commit: ~75 s
+deployment.gitCommitSha = f4549009bdcd46683b11c64a2193d20d26bcd715
+
+## bash .claude/skills/deploy/scripts/verify-live.sh
+=== 1. Homepage SSR ===
+size: 80836 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+## python scripts/desk/desk.py scan --no-write --json (production, write=0): summary line and the [callback] leads named in the entry
+扫描 10-26 11:41 PT · 池 274 · A 3 · C 1 · G 11 · B 1 · F 1 · E 0 · D 2 · H 267
++15857043872  H  run 2  休眠：挂起 2026-10-19 到期，之后客人没说过话——不再主动发，他开口立即接  · next None
++18183884745  B  run 1  承诺到期：10:37 'She's looking at weather' (sister deciding on Sun 11/1, Pasadena 15 at 5, $838.50).  · next 2026-10-26T18:41:09.030Z
++15622367929  H  run 1  休眠：挂起 2026-10-21 到期，之后客人没说过话——不再主动发，他开口立即接  · next None
++17144200304  H  run 3  挂起到 2026-11-05（客人自设节奏）  · next 2026-11-05T23:01:26.859+00:00
++13107395610  H  run 2  挂起到 2026-10-29（客人自设节奏）  · next 2026-10-29T22:56:01.05+00:00
++13102930380  H  run 1  挂起到 2026-10-29（客人自设节奏）  · next 2026-10-29T17:02:37.954+00:00
++16268073409  H  run 1  挂起到 2026-10-27（客人自设节奏）  · next 2026-10-27T18:47:41.339+00:00
++17605344964  H  run 2  挂起到 2026-10-27（客人自设节奏）  · next 2026-10-27T17:01:36.629+00:00
++12313833404  H  run 2  挂起到 2026-10-27（客人自设节奏）  · next 2026-10-27T17:01:37.338+00:00
