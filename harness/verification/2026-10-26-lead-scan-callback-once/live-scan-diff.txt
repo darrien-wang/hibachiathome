@@ -1,0 +1,147 @@
+# Read-only, 2026-10-26 11:32 PT: the live pool through HEAD 6101a358 and the change in one process, same instant, same rows (scanLeads write:false lint:false; a Supabase proxy that throws on insert/upsert/update/delete/rpc; Twilio list GETs only). Every lead whose bucket, reason or next action differs:
+
+scan at 10-26 11:32 PT · pool 274 / 274
+summary before {"A":3,"B":1,"C":1,"D":2,"E":0,"F":1,"G":11,"H":267}
+summary after  {"A":3,"B":1,"C":1,"D":2,"E":0,"F":1,"G":11,"H":267}
+
++15857043872 · Santa Clarita · 14 人 · run 2 · lastSpeaker us 10-26 10:03 · hold 10-19 16:58
+  flags name_unknown tables_asked · callback yes
+  before H  我们 2026-10-26T17:03 刚发过，第 2 天再看  · next 10-27 06:03
+  after  H  休眠：挂起 2026-10-19 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
+1 of 274 leads moved; 0 were in H "客气话 … 不再补" before, 0 after
+
+# Same, every lead whose run or flags differ:
+
+0 leads with a different run or flags
+
+# Every open lead with a [callback], HEAD vs the change, today:
+
++18183952263 qualified last customer 10-26 11:31 hold 11-09 09:14 run 0
+   HEAD A 来电 2026-10-26T18:31 之后我们没再写过
+   new  A 来电 2026-10-26T18:31 之后我们没再写过
++18183884745 qualified last us 10-26 10:39 hold - run 1
+   HEAD B 承诺到期：10:37 'She's looking at weather' (sister deciding on Su
+   new  B 承诺到期：10:37 'She's looking at weather' (sister deciding on Su
++16268073409 qualified last us 09-25 11:09 hold 10-27 11:47 run 1
+   HEAD H 挂起到 2026-10-27（客人自设节奏）
+   new  H 挂起到 2026-10-27（客人自设节奏）
++18057505662 qualified last us 09-23 11:02 hold 10-27 11:47 run 3
+   HEAD H 挂起到 2026-10-27（客人自设节奏）
+   new  H 挂起到 2026-10-27（客人自设节奏）
++18455197333 qualified last us 10-26 10:14 hold 11-09 09:14 run 2
+   HEAD H 挂起到 2026-11-09（客人自设节奏）
+   new  H 挂起到 2026-11-09（客人自设节奏）
++18183980959 qualified last us 10-12 15:50 hold 10-27 16:14 run 1
+   HEAD H 挂起到 2026-10-27（客人自设节奏）
+   new  H 挂起到 2026-10-27（客人自设节奏）
++13102930380 qualified last us 10-14 10:11 hold 10-29 10:02 run 1
+   HEAD H 挂起到 2026-10-29（客人自设节奏）
+   new  H 挂起到 2026-10-29（客人自设节奏）
++13183326496 qualified last us 10-14 10:27 hold 10-28 10:27 run 1
+   HEAD H 挂起到 2026-10-28（客人自设节奏）
+   new  H 挂起到 2026-10-28（客人自设节奏）
++13107395610 qualified last us 10-15 10:02 hold 10-29 15:56 run 2
+   HEAD H 挂起到 2026-10-29（客人自设节奏）
+   new  H 挂起到 2026-10-29（客人自设节奏）
++17603336986 qualified last customer 10-15 10:09 hold 10-29 10:08 run 1
+   HEAD H 挂起到 2026-10-29（客人自设节奏）
+   new  H 挂起到 2026-10-29（客人自设节奏）
++13235564923 qualified last us 10-16 16:16 hold 10-30 16:16 run 2
+   HEAD H 挂起到 2026-10-30（客人自设节奏）
+   new  H 挂起到 2026-10-30（客人自设节奏）
++17608986688 qualified last us 10-18 09:59 hold 11-02 08:58 run 2
+   HEAD H 挂起到 2026-11-02（客人自设节奏）
+   new  H 挂起到 2026-11-02（客人自设节奏）
++13109899977 qualified last us 10-18 18:11 hold 11-08 17:11 run 1
+   HEAD H 挂起到 2026-11-09（客人自设节奏）
+   new  H 挂起到 2026-11-09（客人自设节奏）
++19092058918 qualified last us 10-19 10:02 hold 11-02 14:54 run 1
+   HEAD H 挂起到 2026-11-02（客人自设节奏）
+   new  H 挂起到 2026-11-02（客人自设节奏）
++13233467994 qualified last us 10-19 16:29 hold 11-02 15:29 run 1
+   HEAD H 挂起到 2026-11-02（客人自设节奏）
+   new  H 挂起到 2026-11-02（客人自设节奏）
++17608994200 qualified last us 10-20 09:42 hold 10-25 10:02 run 1
+   HEAD H 休眠：挂起 2026-10-25 到期，之后客人没说过话——不再主动发，他开口立即接
+   new  H 休眠：挂起 2026-10-25 到期，之后客人没说过话——不再主动发，他开口立即接
++17602181716 qualified last us 10-20 11:42 hold 11-03 10:42 run 1
+   HEAD H 挂起到 2026-11-03（客人自设节奏）
+   new  H 挂起到 2026-11-03（客人自设节奏）
++19525679990 qualified last us 10-20 15:54 hold 11-03 14:54 run 1
+   HEAD H 挂起到 2026-11-03（客人自设节奏）
+   new  H 挂起到 2026-11-03（客人自设节奏）
++15622367929 qualified last us 10-21 10:13 hold 10-21 15:46 run 1
+   HEAD H 休眠：挂起 2026-10-21 到期，之后客人没说过话——不再主动发，他开口立即接
+   new  H 休眠：挂起 2026-10-21 到期，之后客人没说过话——不再主动发，他开口立即接
++17605344964 qualified last us 10-22 16:01 hold 10-27 10:01 run 2
+   HEAD H 挂起到 2026-10-27（客人自设节奏）
+   new  H 挂起到 2026-10-27（客人自设节奏）
++12313833404 qualified last us 10-22 16:01 hold 10-27 10:01 run 2
+   HEAD H 挂起到 2026-10-27（客人自设节奏）
+   new  H 挂起到 2026-10-27（客人自设节奏）
++17144200304 qualified last us 10-22 16:01 hold 11-05 15:01 run 3
+   HEAD H 挂起到 2026-11-05（客人自设节奏）
+   new  H 挂起到 2026-11-05（客人自设节奏）
++14242418417 qualified last us 10-23 13:55 hold 10-31 10:05 run 1
+   HEAD H 挂起到 2026-10-31（客人自设节奏）
+   new  H 挂起到 2026-10-31（客人自设节奏）
++17752348365 qualified last us 10-23 15:21 hold 10-30 16:01 run 0
+   HEAD H 挂起到 2026-10-30（客人自设节奏）
+   new  H 挂起到 2026-10-30（客人自设节奏）
++15629779503 qualified last us 10-24 12:36 hold 10-27 16:01 run 1
+   HEAD H 挂起到 2026-10-27（客人自设节奏）
+   new  H 挂起到 2026-10-27（客人自设节奏）
++16198861622 qualified last us 10-24 19:57 hold 11-09 09:03 run 1
+   HEAD H 挂起到 2026-11-09（客人自设节奏）
+   new  H 挂起到 2026-11-09（客人自设节奏）
++13238840100 qualified last us 10-24 20:12 hold 10-29 20:12 run 1
+   HEAD H 挂起到 2026-10-30（客人自设节奏）
+   new  H 挂起到 2026-10-30（客人自设节奏）
++17143133991 qualified last customer 10-25 18:08 hold 11-08 17:07 run 0
+   HEAD H 挂起到 2026-11-09（客人自设节奏）
+   new  H 挂起到 2026-11-09（客人自设节奏）
++13105059314 qualified last customer 10-26 07:04 hold 11-02 06:03 run 1
+   HEAD H 挂起到 2026-11-02（客人自设节奏）
+   new  H 挂起到 2026-11-02（客人自设节奏）
++15857043872 qualified last us 10-26 10:03 hold 10-19 16:58 run 2
+   HEAD H 我们 2026-10-26T17:03 刚发过，第 2 天再看
+   new  H 休眠：挂起 2026-10-19 到期，之后客人没说过话——不再主动发，他开口立即接
+
+# Today's rows with the clock moved to 2026-11-10 (past the running holds), the whole pool, HEAD vs the change:
+
+scan at 11-10 11:00 PT · pool 274 / 274
+summary before {"A":1,"B":23,"C":0,"D":12,"E":1,"F":4,"G":6,"H":237}
+summary after  {"A":1,"B":18,"C":0,"D":11,"E":1,"F":3,"G":6,"H":243}
+
++16268073409 · Palm Springs · 15 人 · run 1 · lastSpeaker us 09-25 11:09 · hold 10-27 11:47
+  flags name_unknown tables_asked · callback yes
+  before B  承诺到期：Friday 2026-09-25 is today for her - owner approved one line for Friday morning and nothin  · next 11-10 11:00
+  after  H  休眠：挂起 2026-10-27 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
++13107395610 · La Quinta · 35 人 · run 2 · lastSpeaker us 10-15 10:02 · hold 10-29 15:56
+  flags name_unknown · callback yes
+  before B  承诺到期：10-06 17:45 'I am in L.A. right now. I am going out there next week. Want to see if I have  · next 11-10 11:00
+  after  H  休眠：挂起 2026-10-29 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
++17605344964 · Palm Springs · 20 人 · run 2 · lastSpeaker us 10-22 16:01 · hold 10-27 10:01
+  flags name_unknown · callback yes
+  before B  承诺到期：10-14 12:22 'We are close to locking a date in, I'll let you know' (Palm Springs 20). Her   · next 11-10 11:00
+  after  H  休眠：挂起 2026-10-27 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
++12313833404 · Los Angeles · 12 人 · run 2 · lastSpeaker us 10-22 16:01 · hold 10-27 10:01
+  flags name_unknown tables_asked · callback yes
+  before B  承诺到期：10-14 16:14 'still confirming everything will know by next week' (Nov 21, 12, tables offer  · next 11-10 11:00
+  after  H  休眠：挂起 2026-10-27 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
++17144200304 · - · ? 人 · run 3 · lastSpeaker us 10-22 16:01 · hold 11-05 15:01
+  flags name_unknown · callback yes
+  before B  承诺到期：10-06 17:20 他回 'Yes will confirm by next week' → 圣诞节 20 人仍 pencil；10/13 之前一条都不发，他来了再接。回了一句  · next 11-10 11:00
+  after  H  休眠：挂起 2026-11-05 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
++15857043872 · Santa Clarita · 14 人 · run 2 · lastSpeaker us 10-26 10:03 · hold 10-19 16:58
+  flags name_unknown tables_asked · callback yes
+  before DF  沉默 361 小时，第 3 条（最后一条）到期  · next 11-10 11:00
+  after  H  休眠：挂起 2026-10-19 到期，之后客人没说过话——不再主动发，他开口立即接  · next null
+
+6 of 274 leads moved; 0 were in H "客气话 … 不再补" before, 0 after

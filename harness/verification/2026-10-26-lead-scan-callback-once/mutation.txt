@@ -1,0 +1,38 @@
+# tests/lead-scan-courtesy.test.ts against: the change, HEAD 6101a358, and five single-point regressions of it - an answered thanks voids the [callback] (lastCustomerAt as its watermark); an answered thanks voids the hold (holdState from lastCustomerAt); no B-done check; our answers count as follow-ups (no 2-hour filter); and the literal rule, a follow-up only after the current hold ran out. Copies in the session scratchpad; the worktree file was not touched.
+
+===== fixed
+ℹ pass 13
+ℹ fail 0
+===== m0-head-6101a358
+✖ scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B (2.9577ms)
+✖ scan callback · B once: done after the b_callback, and not back after a hold set after it (0.7332ms)
+✖ scan callback · a b_callback sent hours before the hold ran out still ends B (0.3655ms)
+ℹ pass 10
+ℹ fail 3
+===== m1-thanks-voids-callback
+✖ scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note (8.8081ms)
+✖ scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later) (15.9779ms)
+✖ scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both (0.9991ms)
+✖ scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B (0.8573ms)
+ℹ pass 9
+ℹ fail 4
+===== m2-thanks-voids-hold
+✖ scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it (2.959ms)
+✖ scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both (0.7129ms)
+✖ scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B (0.6289ms)
+ℹ pass 10
+ℹ fail 3
+===== m3-no-b-done-check
+✖ scan callback · B once: done after the b_callback, and not back after a hold set after it (2.4849ms)
+✖ scan callback · a b_callback sent hours before the hold ran out still ends B (0.4206ms)
+ℹ pass 11
+ℹ fail 2
+===== m4-answers-count-as-follow-ups
+✖ scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B (2.6815ms)
+ℹ pass 12
+ℹ fail 1
+===== m5-literal-texted-after-hold-ran-out
+✖ scan callback · B once: done after the b_callback, and not back after a hold set after it (2.3103ms)
+✖ scan callback · a b_callback sent hours before the hold ran out still ends B (0.3788ms)
+ℹ pass 11
+ℹ fail 2

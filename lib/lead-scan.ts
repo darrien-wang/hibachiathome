@@ -305,7 +305,8 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     // Compared straight, the carrier's stamp counted every desk / workbench text
     // twice: 603-714-3132 read "3 sent, cap reached" after 2 (10-04). Only a
     // text after the customer's last word is part of the run.
-    if (tw?.lastOutAt && (!countFrom || Date.parse(tw.lastOutAt) > Date.parse(countFrom)) && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS)) run += 1
+    const phoneAppOutAt = tw?.lastOutAt && (!dbLastOut || Date.parse(tw.lastOutAt) - Date.parse(dbLastOut) > TWILIO_LAG_MS) ? tw.lastOutAt : null
+    if (phoneAppOutAt && (!countFrom || Date.parse(phoneAppOutAt) > Date.parse(countFrom))) run += 1
 
     const callbackNote = [...notes].reverse().find((n) => /^\s*\[callback\]/i.test(n.note)) ?? null
     const hint = hintFromRows([...tps].reverse().filter((t) => HINT_TYPES.includes(t.touchpoint_type)) as HintRow[])
@@ -353,18 +354,31 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     // thanks once its 2-hour window has passed - the window only decides
     // whether the one-line close is still owed (leads §1.6). Neither is the
     // customer coming back, so the rest of the ladder reads the lead as if we
-    // spoke last: a hold or a [callback] set before it still stands - both are
-    // measured from the customer's last real message - and a follow-up keeps
-    // the 20-hour spacing and the 3-text cap. Filed as stops instead (no next
-    // action), 626-428-5292 went 25 days without a word after "I appreciate
-    // it!" with a [callback] on file (five more with her, 2026-10-24), and
-    // 805-455-1668 four weeks after liking our "take your time", her own
-    // [callback] on file too (2026-10-25).
+    // spoke last, and a follow-up keeps the 20-hour spacing and the 3-text cap.
+    // Filed as stops instead (no next action), 626-428-5292 went 25 days
+    // without a word after "I appreciate it!" with a [callback] on file (five
+    // more with her, 2026-10-24), and 805-455-1668 four weeks after liking our
+    // "take your time", her own [callback] on file too (2026-10-25).
     const doneWith = customerLast && !lastIsForm && !lastIsEmail && (lastInIsTapback || (lastInIsCourtesy && now - Date.parse(lastInAt!) > COURTESY_WINDOW_MS))
-    const spokeAt = doneWith ? later(later(later(realIn?.at ?? null, lastCallAt), lastFormAt), lastEmailInAt) : lastCustomerAt
+    if (doneWith && lastInIsTapback) flags.push("tapback_last")
+    // Holds and [callback]s are measured from the customer's last real message:
+    // a thanks or a reaction, answered or not, is never the customer coming
+    // back (owner 2026-10-26). Counted, a thanks after the note voided both,
+    // and a [callback] was lost the moment we answered it.
+    const spokeAt = later(later(later(realIn?.at ?? null, lastCallAt), lastFormAt), lastEmailInAt)
     const hold = holdState(lead, spokeAt, now)
     const holdActive = hold === "active"
-    if (doneWith && lastInIsTapback) flags.push("tapback_last")
+    // B is one follow-up (owner 2026-10-26): once we have followed up after the
+    // [callback] note, the promise has been chased and the lead takes the rest
+    // of the ladder - not B again after its b_callback, nor after a hold set
+    // after it (714-420-0304 was held again after each of its two). A follow-up
+    // is a text or an email of ours with no word from the customer (a reaction
+    // is not one) in the 2 hours before it: the "take your time" sent with the
+    // note and the close on a later thanks are answers; a b_callback sent hours
+    // before the hold ran out is not (562-236-7929, 10-21 10:13 against 15:46).
+    const words = [...inbound.filter((m) => m.media > 0 || !isTapback(m.body)).map((m) => m.at), ...calls, ...forms.map((f) => f.occurred_at), ...emailsIn].map((at) => Date.parse(at))
+    const followUps = [...manualOut.map((m) => m.at), ...emailsOut, ...(phoneAppOutAt ? [phoneAppOutAt] : [])].filter((at) => !words.some((w) => w <= Date.parse(at) && Date.parse(at) - w < COURTESY_WINDOW_MS))
+    const callbackChased = Boolean(callbackNote && followUps.some((at) => Date.parse(at) > Date.parse(callbackNote.at)))
 
     if (lead.sms_blocked_at) {
       bucket = "H"
@@ -419,7 +433,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = `挂起到 ${lead.hold_until!.slice(0, 10)}${callbackNote ? "（客人自设节奏）" : ""}`
       nextActionAt = lead.hold_until
-    } else if (callbackNote && (!spokeAt || spokeAt <= callbackNote.at)) {
+    } else if (callbackNote && (!spokeAt || spokeAt <= callbackNote.at) && !callbackChased) {
       bucket = "B"
       reason = `承诺到期：${callbackNote.note.replace(/^\s*\[callback\]\s*/i, "").slice(0, 90)}`
     } else if (hold === "dormant") {

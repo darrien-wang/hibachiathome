@@ -237,7 +237,7 @@ Verification completed:
 
 Left for later (read-only evidence in `harness/verification/2026-10-25-lead-scan-courtesy-ladder/followups.txt`):
 - A tapback-last lead is the same dead end (H "最后一条是点赞，不用回", no next action); kept as is, as asked. 8 live, 4 of them with a `[callback]` (805-455-1668 since 09-28, 760-333-6986, 585-704-3872, 845-519-7333). Done the same day: LEAD-SCAN-REACTION-LADDER below.
-- A thanks we did answer (so not the last word) still voids a `[callback]` set before it: 562-236-7929 ("Thanks" right after the note) went dormant on 10-21 instead of B. Measuring every lead's `[callback]` from its last real message would fix that, but B has no "we already followed up" check, so 626-428-5292 would read B again after today's b_callback text; it needs a rule for when a B is done.
+- A thanks we did answer (so not the last word) still voids a `[callback]` set before it: 562-236-7929 ("Thanks" right after the note) went dormant on 10-21 instead of B. Measuring every lead's `[callback]` from its last real message would fix that, but B has no "we already followed up" check, so 626-428-5292 would read B again after today's b_callback text; it needs a rule for when a B is done. Done 10-26: LEAD-SCAN-CALLBACK-ONCE below (562-236-7929 had in fact had her b_callback at 10-21 10:13, so dormant was right for her).
 
 ## LEAD-SCAN-REACTION-LADDER - A lead whose last word is a reaction goes down the hold / `[callback]` / follow-up ladder; a reaction never restarts the 3-text count (2026-10-25)
 
@@ -262,3 +262,28 @@ Verification completed:
 - Read-only on the live pool before pushing (HEAD 10af7837 and the change in one process on the same rows; write-guarded Supabase, Twilio list GETs only): exactly the 8 reaction-last leads move. B: 805-455-1668 (talk to my husband) and 585-704-3872 (mother-in-law to call Monday). D "第 2 条": 845-519-7333 (her 10-21 / 10-22 questions voided the 10-14 hold and `[callback]`), 760-567-5043, and 818-388-4745 with F (tables_asked). H with a next action at the hold's end: 760-333-6986 (10-29, `[callback]`) and 949-280-3212 (11-14). Dormant: 805-539-3134 (hold ran out 10-09). Two more leads' run went up by one with no bucket change (805-750-5662 on hold, 650-823-0090 dormant). Output: `harness/verification/2026-10-25-lead-scan-reaction-ladder/live-scan-diff.txt`.
 - Deployed 85520ce9 (local `pnpm build` first: exit 0, homepage SSR 77113 bytes, h1 1, jsonld 4). `/_release/ready` named it after ~90 s; `verify-live.sh` green. Production `desk scan --no-write` at 10-25 18:54 PT: the same eight moves as the local diff (B 0 → 2, D 8 → 11 with F 1 → 2, H 264 → 259); no lead left in H "最后一条是点赞" or H "不再补". Output: `harness/verification/2026-10-25-lead-scan-reaction-ladder/prod-after-deploy.txt`.
 - No texts sent; `desk scan` only with `--no-write`; nothing written to leads. Not a `harness/feature_list.json` item, so there is no status transition there.
+
+## LEAD-SCAN-CALLBACK-ONCE - A thanks or a like never voids a hold or a `[callback]`; B is one follow-up (2026-10-26)
+
+Status: done.
+
+Why: owner 2026-10-26, the follow-up to the two entries above: "a thanks or a like (answered or not) never voids a [callback]; B ends once we have texted after the hold ran out (so a lead is not B again right after its b_callback)". The `[callback]` watermark was the customer's last contact, so a thanks after the note voided it as soon as we answered the thanks; and B had no "done" at all - a lead stayed B after its b_callback until it was held again, and came back to B when that hold ran out.
+
+What changed:
+- `lib/lead-scan.ts`:
+  - The hold and the `[callback]` are always measured from the customer's last real message (`spokeAt`: text that is more than a thanks or a reaction, or photos; calls, site forms, emails), answered or not. The hold had to go with the `[callback]`: counted, an answered thanks after the hold voided it, and B (or D) came the next day instead of on the day the customer named.
+  - B is done once we have followed up after the `[callback]` note (`callbackChased`): a text or an email of ours with no word from the customer in the 2 hours before it (a reaction is not a word), counting a phone-app text Twilio has and the timeline does not. The "take your time" sent with the note and the close on a later thanks are answers, so they do not end it. After that the lead takes the rest of the ladder; with the hold run out and nothing real since, that is dormant.
+  - Why not the rule as worded ("texted after the hold ran out"): in the live data 562-236-7929's b_callback went out at 10-21 10:13, 5½ hours before her hold ran out at 15:46, and the desk re-holds after a b_callback (714-420-0304 after each of its two, 310-739-5610, 310-293-0380); read literally, every one of them would have been B again. The rule as worded is one of the mutants below and fails two tests.
+- `tests/lead-scan-courtesy.test.ts`: an answered thanks keeps the hold (H 挂起到 at 36 h) and the `[callback]` (B once the hold ran out); B, then the b_callback, then dormant an hour later, H 挂起到 through a re-hold and dormant after it; a b_callback sent 7 hours before the hold ran out still ends B.
+- `.claude/skills/lead-scan/SKILL.md`: B says a thanks or a like (answered or not) is not the customer speaking and that B is one follow-up; H says a hold stands through a thanks or a like.
+
+Verification completed:
+- `npm test`: 327 pass, 0 fail. Output: `harness/verification/2026-10-26-lead-scan-callback-once/npm-test.txt`.
+- The tests bite (copies in the session scratchpad): HEAD 6101a358 fails the 3 new tests; an answered thanks voiding the `[callback]` fails 4; voiding the hold fails 3; no B-done check fails 2; answers counted as follow-ups fails 1; the rule as worded (a follow-up only after the current hold ran out) fails 2. Output: `harness/verification/2026-10-26-lead-scan-callback-once/mutation.txt`.
+- `npm run lint:copy`: 0 hard-rule hits. `tsc`: no errors in `lib/lead-scan.ts` or the test.
+- Read-only on the live pool before pushing (HEAD 6101a358 and the change in one process on the same rows; write-guarded Supabase, Twilio list GETs only), 10-26 11:32 PT: one lead moves. 585-704-3872 got her b_callback at 10:03 that morning; she reads H 休眠 (hold ran out 10-19, only a like since) instead of "刚发过" with a third text due the next day. No run or flag changes. The same rows with the clock moved to 11-10: the whole pool differs in exactly six leads, all `[callback]` leads already followed up after their note - five that HEAD would put back in B after their re-holds (626-807-3409, 310-739-5610, 760-534-4964, 231-383-3404, 714-420-0304 for the third time) and 585-704-3872's third text - all dormant instead; the 18 `[callback]`s not yet followed up are B under both. Output: `harness/verification/2026-10-26-lead-scan-callback-once/live-scan-diff.txt`.
+- No texts sent; `desk scan` only with `--no-write`; nothing written to leads. Not a `harness/feature_list.json` item, so there is no status transition there.
+
+Noticed, not changed:
+- The leads skill says `desk send` clears the hold ("会清掉挂起，先发后挂"); nothing in desk.py or the send route touches `hold_until` (626-428-5292 kept her 10-01 hold after the 10-25 text).
+- A `[callback]` written with no hold is B at once (818-388-4745, 10-26 10:37): the scan has no other due date for it.

@@ -6,7 +6,9 @@
 // The window only decides whether the one-line close is still owed; after it
 // the lead reads as if we spoke last. A reaction ("Liked …") is never
 // answered and was the same stop: 805-455-1668 liked our "take your time"
-// with a [callback] on file and sat four weeks (2026-10-25).
+// with a [callback] on file and sat four weeks (2026-10-25). Neither, answered
+// or not, voids a hold or a [callback], and B is one follow-up: once we have
+// followed up after the note it is done, re-held or not (2026-10-26).
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
@@ -224,6 +226,57 @@ test("scan reaction · after a [callback]: H while the hold runs, then B, though
   const due = await scanAt(pool(husband, husbandHold), "2026-10-25T19:00:00Z")
   assert.equal(due.bucket, "B")
   assert.match(due.reason, /^承诺到期：16:41 'Ahhhh\. Ok I see\. Let me talk to my husband\.'/)
+})
+
+test("scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B", async () => {
+  // 626-428-5292's thread with the close sent on her "I appreciate it!".
+  const answered = [...hosts, sent("2026-09-29T23:50:00Z", "Anytime! Enjoy the planning.")]
+  const held = await scanAt(pool(answered, hostsHold), "2026-10-01T12:00:00Z")
+  assert.equal(held.bucket, "H", "not a follow-up 36 hours in: she named the pace")
+  assert.equal(held.reason, "挂起到 2026-10-01（客人自设节奏）")
+
+  const due = await scanAt(pool(answered, hostsHold), "2026-10-24T19:00:00Z")
+  assert.equal(due.bucket, "B", "the close is an answer, not the follow-up")
+  assert.match(due.reason, /^承诺到期：her words 09-29 16:36/)
+})
+
+// 714-420-0304 (10-06): "Yes will confirm by next week", our "talk then", a [callback] and a 7-day hold.
+const confirm = [
+  sent("2026-10-06T23:50:00Z", "Real Hibachi: your Irvine hibachi price is $958.20 for 18 adults (Standard (any day))."),
+  got("2026-10-07T00:15:00Z", "Thanks! Can we do the 19th of December?"),
+  sent("2026-10-07T00:17:00Z", "Saturday, Dec 19 is open on our end! Want me to hold it for you?"),
+  got("2026-10-07T00:20:00Z", "Yes will confirm by next week"),
+  sent("2026-10-07T00:21:00Z", "Sounds good - talk then!"),
+  note("2026-10-07T00:21:30Z", "[callback] 10-06 17:20 'Yes will confirm by next week'"),
+]
+const confirmHold = { hold_set_at: "2026-10-07T00:21:40Z", hold_until: "2026-10-14T00:21:40Z" }
+const bCallback = (at: string) => sent(at, "Hi! Checking in on Dec 19 - did you get a chance to confirm with everyone?")
+
+test("scan callback · B once: done after the b_callback, and not back after a hold set after it", async () => {
+  const due = await scanAt(pool(confirm, confirmHold), "2026-10-14T19:00:00Z")
+  assert.equal(due.bucket, "B")
+  assert.equal(due.reason, "承诺到期：10-06 17:20 'Yes will confirm by next week'")
+
+  const chased = [...confirm, bCallback("2026-10-14T17:38:00Z")]
+  const after = await scanAt(pool(chased, confirmHold), "2026-10-14T19:00:00Z")
+  assert.equal(after.bucket, "H", "not B again an hour after its follow-up")
+  assert.match(after.reason, /^休眠：挂起 2026-10-14 到期/)
+
+  // The desk holds it again for a week; when that runs out it is still done.
+  const reheld = { hold_set_at: "2026-10-15T17:02:00Z", hold_until: "2026-10-22T17:02:00Z" }
+  const during = await scanAt(pool(chased, reheld), "2026-10-18T19:00:00Z")
+  assert.equal(during.reason, "挂起到 2026-10-22（客人自设节奏）")
+  const later = await scanAt(pool(chased, reheld), "2026-10-23T19:00:00Z")
+  assert.equal(later.bucket, "H")
+  assert.match(later.reason, /^休眠：挂起 2026-10-22 到期/)
+})
+
+test("scan callback · a b_callback sent hours before the hold ran out still ends B", async () => {
+  // 562-236-7929 got hers at 10:13 the day her hold ran out at 15:46.
+  const early = [...confirm, bCallback("2026-10-13T17:13:00Z")]
+  const it = await scanAt(pool(early, confirmHold), "2026-10-14T19:00:00Z")
+  assert.equal(it.bucket, "H")
+  assert.match(it.reason, /^休眠：挂起 2026-10-14 到期/)
 })
 
 test("scan reaction · a customer who likes every text is still capped at 3", async () => {
