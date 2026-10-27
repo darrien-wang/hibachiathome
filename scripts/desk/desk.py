@@ -740,17 +740,36 @@ CHANNEL_NAMES = {"yelp": "Yelp", "facebook": "Facebook", "instagram": "Instagram
 
 
 def _pt_iso(s: str) -> str:
-    """'2026-10-26 18:21' or '10-26 18:21', Pacific (the time the channel shows) -> UTC ISO."""
+    """'2026-10-26 18:21' or '10-26 18:21' (':05' seconds to keep same-minute lines in order),
+    Pacific - the time the channel shows -> UTC ISO."""
     s = s.strip()
-    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%m-%d %H:%M"):
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%m-%d %H:%M:%S"):
         try:
             d = _dt.datetime.strptime(s, fmt)
         except ValueError:
             continue
-        if fmt == "%m-%d %H:%M":
+        if fmt.startswith("%m-"):
             d = d.replace(year=_dt.datetime.now(PACIFIC).year)
         return d.replace(tzinfo=PACIFIC).astimezone(_dt.timezone.utc).isoformat()
     raise SystemExit(f"--at {s!r}: use 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM', Pacific time")
+
+
+def cmd_newlead(a):
+    """A lead for a conversation that started outside the site (Yelp / Facebook /
+    Instagram / a call): the workbench tracks every channel's leads (owner 2026-10-26).
+    Name it the way the channel mail does - "Brenda Q. (Yelp)", "Maria (Facebook)" -
+    so a later Yelp message from her lands on it."""
+    body = {"name": a.name, "channel": a.via, "message": read_text_arg(a.message, a.body_file) or ""}
+    if a.phone:
+        body["phone"] = a.phone
+    if a.email:
+        body["email"] = a.email
+    try:
+        out = site_post("/api/admin/leads", body)
+    except ApiError as e:
+        print(f"FAIL  newlead {e.status} {e.payload}")
+        sys.exit(2)
+    print(f"OK    newlead  {out.get('leadId')}{'  (already on file)' if out.get('deduped') else ''}")
 
 
 def cmd_channel(a):
@@ -2285,10 +2304,14 @@ def main(argv=None):
     p.set_defaults(fn=cmd_heard)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
     p = sp.add_parser("contacted"); p.add_argument("lead"); p.set_defaults(fn=cmd_contacted)
+    p = sp.add_parser("newlead", help="a lead for a Yelp / Facebook / Instagram / phone conversation")
+    p.add_argument("name"); p.add_argument("--via", required=True, choices=["yelp", "facebook", "instagram", "phone", "sms", "wechat", "walk_in", "referral", "other"])
+    p.add_argument("--phone"); p.add_argument("--email"); p.add_argument("--message"); p.add_argument("--body-file")
+    p.set_defaults(fn=cmd_newlead)
     p = sp.add_parser("channel", help="copy a Yelp / Facebook / Instagram message into the lead's conversation")
     p.add_argument("lead"); p.add_argument("direction", choices=["in", "out"], help="in = the customer, out = us")
     p.add_argument("text", nargs="?"); p.add_argument("--via", required=True, choices=sorted(CHANNEL_NAMES))
-    p.add_argument("--at", help="when the channel shows it, Pacific: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM' (default now)")
+    p.add_argument("--at", help="when the channel shows it, Pacific: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM', ':SS' to order same-minute lines (default now)")
     p.add_argument("--author", help="who wrote it, when not the customer or Rowling"); p.add_argument("--body-file")
     p.set_defaults(fn=cmd_channel)
     p = sp.add_parser("ack"); p.add_argument("lead"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_ack)
