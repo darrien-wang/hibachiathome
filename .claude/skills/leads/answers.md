@@ -76,7 +76,7 @@
 
 ## 现场
 
-- **厨师人数**：每位厨师 28 人以内，刚过一点也一位（老板 10-13），客人自己要求加人再问老板。**短信里写了 "two chefs / each chef / two stations" 就是承诺**，系统会记到派工计划里，没打算派两位就别写复数。
+- **厨师人数**：每位厨师 28 人以内，刚过一点也一位（老板 10-13），客人自己要求加人再问老板。**60 人左右两位师傅 + 一位助手、两台灶就够**，不一定要三台（老板 10-26，Temecula 婚礼场地放不下三台时这么答的）。**短信里写了 "two chefs / each chef / two stations" 就是承诺**，系统会记到派工计划里，没打算派两位就别写复数。
 - **到达**：开席前 10–30 分钟（人多早到）；订了桌椅的提前 1 小时摆台。
 - **多久**：表演加吃饭约 90 分钟，师傅边做边上（网站城市页同口径），客人之后可以接着聚。**最早开场**：做过中午 12 点的；网站写 10 月到 5 月适合办午饭场。比中午更早的，老板还没定口径。
 - **"当天要准备什么 / 要不要插座"**：这是在担心，答一个轻松具体的场景（09-19），分两条发：`Here's the day: your chef arrives 10-30 min before start, lays a waterproof mat, sets the grill and hooks up the propane - no outlet, no power needed.` / `If you booked tables and dishes, we set them and you just host. If you're using your own, have them set before we arrive.`
