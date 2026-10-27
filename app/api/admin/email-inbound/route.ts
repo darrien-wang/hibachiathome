@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { platformOf } from "@/lib/heard-from"
 import { facebookLeadName, parseFacebookNotification } from "@/lib/fb-notification"
+import { type YelpNotification, parseYelpNotification, yelpFirstName, yelpLeadName } from "@/lib/yelp-notification"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -101,6 +102,11 @@ export async function POST(request: NextRequest) {
   // system mail and falls through to the filter below.
   const fb = parseFacebookNotification(from.email, str(body.subject, 500), str(body.text, MAX_TEXT))
   if (fb) return fileFacebookMessage(supabase, fb, body, caller)
+  // Yelp quote requests and customer messages (lib/yelp-notification.ts);
+  // reviews, ad offers and account mail from yelp.com fall through to the
+  // system filter below.
+  const yelp = parseYelpNotification(from.email, str(body.subject, 500), str(body.text, MAX_TEXT))
+  if (yelp) return fileYelpMessage(supabase, yelp, body, caller)
   const bulk = isBulkOrSystem(from.email, body.listUnsubscribe === true)
   if (bulk) return NextResponse.json({ ok: true, skipped: bulk })
   // Our own people writing from personal addresses. Since 10-09 the script also files The Knot /
@@ -262,4 +268,97 @@ async function fileFacebookMessage(
   })
   if (tpError && (tpError as { code?: string }).code !== "23505") return NextResponse.json({ ok: false, error: tpError.message }, { status: 500 })
   return NextResponse.json({ ok: true, leadId, facebook: fb, snippet })
+}
+
+/**
+ * File one Yelp request / message. The request ("Brenda") and her later
+ * messages ("Brenda Q.") land on the same lead: Yelp source + same first name
+ * within 120 days. The lead carries utm_source "yelp" so rh_resolve_channel
+ * puts it in the Yelp channel, and its bookings count toward Yelp.
+ */
+async function fileYelpMessage(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  yelp: YelpNotification,
+  body: Record<string, unknown>,
+  caller: "actor" | "script",
+) {
+  const messageId = str(body.messageId, 200)
+  const externalId = `email:${messageId}`
+  const subject = str(body.subject, 500) || "(no subject)"
+  const text = str(body.text, MAX_TEXT)
+  const snippet = text.replace(/\s+/g, " ").trim().slice(0, SNIPPET)
+  const receivedMs = Date.parse(str(body.receivedAt, 60))
+  const receivedAt = Number.isFinite(receivedMs) ? new Date(receivedMs).toISOString() : new Date().toISOString()
+  const head =
+    yelp.kind === "reply_failed"
+      ? "⚠ Yelp: our e-mailed reply was refused (thread older than 10 days) - reply in Yelp for Business"
+      : `⭐ Yelp ${yelp.kind === "request" ? "quote request" : "message"}${yelp.replyTo ? " (reply to this e-mail lands in Yelp)" : ""}`
+  const latestMessage = `${head}: ${subject}${snippet ? ` — ${snippet}` : ""}`.slice(0, 500)
+  const payload = { from: str(body.from, 500), subject, text, snippet, gmailUrl: str(body.gmailUrl, 500) || null, receivedAt, via: "gmail_script", caller, yelp }
+
+  const { data: dup } = await supabase.from("lead_touchpoints").select("lead_id").eq("external_touchpoint_id", externalId).limit(1).maybeSingle()
+  if (dup) return NextResponse.json({ ok: true, duplicate: true, leadId: dup.lead_id })
+
+  const nowIso = new Date().toISOString()
+  const first = yelpFirstName(yelp.name)
+  let leadId: string | null = null
+  if (first) {
+    const { data: same } = await supabase
+      .from("leads")
+      .select("id, touchpoint_count, guest_count, city_or_zip")
+      .eq("lead_source", "yelp")
+      .ilike("full_name", `${first.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
+      .gte("created_at", new Date(Date.now() - 120 * 86400_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (same) {
+      leadId = String(same.id)
+      await supabase
+        .from("leads")
+        .update({
+          latest_message: latestMessage,
+          last_seen_at: nowIso,
+          updated_at: nowIso,
+          touchpoint_count: (Number(same.touchpoint_count) || 1) + 1,
+          ...(same.guest_count == null && yelp.guests ? { guest_count: yelp.guests } : {}),
+          ...(!same.city_or_zip && yelp.zip ? { city_or_zip: yelp.zip } : {}),
+        })
+        .eq("id", leadId)
+    }
+  }
+  if (!leadId) {
+    const { data: created, error } = await supabase
+      .from("leads")
+      .insert({
+        full_name: yelpLeadName(yelp),
+        status: "new",
+        lead_source: "yelp",
+        lead_channel: "yelp",
+        utm_source: "yelp",
+        lead_type: "booking_inquiry",
+        guest_count: yelp.guests,
+        city_or_zip: yelp.zip,
+        latest_message: latestMessage,
+        first_message: latestMessage,
+        touchpoint_count: 1,
+        last_seen_at: nowIso,
+        created_at: nowIso,
+        updated_at: nowIso,
+      })
+      .select("id")
+      .single()
+    if (error || !created) return NextResponse.json({ ok: false, error: error?.message ?? "lead insert failed" }, { status: 500 })
+    leadId = String(created.id)
+  }
+  const { error: tpError } = await supabase.from("lead_touchpoints").insert({
+    lead_id: leadId,
+    touchpoint_type: "email_inbound",
+    touchpoint_source: "gmail_script",
+    external_touchpoint_id: externalId,
+    raw_payload_json: payload,
+    occurred_at: receivedAt,
+  })
+  if (tpError && (tpError as { code?: string }).code !== "23505") return NextResponse.json({ ok: false, error: tpError.message }, { status: 500 })
+  return NextResponse.json({ ok: true, leadId, yelp: { kind: yelp.kind, name: yelp.name }, snippet })
 }

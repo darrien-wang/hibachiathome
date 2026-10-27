@@ -17,7 +17,8 @@
  */
 const API_URL = "https://www.realhibachi.com/api/admin/email-inbound";
 const LABEL_NAME = "rh-ingested";
-const QUERY = '(to:support@realhibachi.com OR from:member.theknot.com OR from:member.weddingwire.com OR (from:zola.com subject:"New Zola inquiry")) -subject:"waiting to hear back"';
+// 10-26 起也收 Yelp 询价和客人消息（darrien.wang@gmail.com 的过滤器转来的；服务端只认询价/消息，评价和广告信跳过）。
+const QUERY = '(to:support@realhibachi.com OR from:member.theknot.com OR from:member.weddingwire.com OR (from:zola.com subject:"New Zola inquiry") OR from:messaging.yelp.com OR (from:no-reply@yelp.com subject:message)) -subject:"waiting to hear back"';
 const MAX_THREADS = 40; const OVERLAP_MS = 10 * 60 * 1000;
 
 function ingestSupportInbox() {
