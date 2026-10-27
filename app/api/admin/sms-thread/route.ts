@@ -10,6 +10,7 @@ import { reconcileThread } from "@/lib/sms-reconcile"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { ASKS_SOURCE } from "@/lib/heard-from"
 import { captureStaffingPromise } from "@/lib/promise-capture"
+import { loadChannelMessages } from "@/lib/channel-messages"
 
 export const dynamic = "force-dynamic"
 
@@ -36,30 +37,40 @@ export async function GET(request: NextRequest) {
   const phoneParam = toE164(request.nextUrl.searchParams.get("phone"))
   if (phoneParam) phones.push(phoneParam)
   const leadId = request.nextUrl.searchParams.get("leadId")?.trim()
+  const leadIds: string[] = []
   if (leadId && /^[0-9a-f-]{36}$/i.test(leadId)) {
     const supabase = createServerSupabaseClient()
     if (supabase) {
-      const { data } = await supabase.from("leads").select("phone").or(`id.eq.${leadId},merged_into.eq.${leadId}`)
+      const { data } = await supabase.from("leads").select("id, phone").or(`id.eq.${leadId},merged_into.eq.${leadId}`)
       for (const row of data ?? []) {
+        leadIds.push(String((row as { id: string }).id))
         const p = toE164((row as { phone: string | null }).phone)
         if (p) phones.push(p)
       }
     }
   }
   const unique = Array.from(new Set(phones))
-  if (unique.length === 0) return NextResponse.json({ error: "no phone for this lead" }, { status: 400 })
-  const messages = await fetchSmsThreads(unique, 80)
+  // Yelp / Facebook / Instagram messages the desk copied in (lib/channel-messages.ts)
+  // sit in the same conversation, in time order: a lead from a channel has no number.
+  const supabaseForChannel = leadIds.length ? createServerSupabaseClient() : null
+  const channelMessages = supabaseForChannel ? await loadChannelMessages(supabaseForChannel, leadIds).catch(() => []) : []
+  if (unique.length === 0) {
+    if (leadIds.length) return NextResponse.json({ ok: true, phones: [], messages: channelMessages, synced: 0 })
+    return NextResponse.json({ error: "no phone for this lead" }, { status: 400 })
+  }
+  const sms = await fetchSmsThreads(unique, 80)
+  const messages = [...sms, ...channelMessages].sort((a, b) => a.at.localeCompare(b.at))
   // Opening the conversation heals its timeline: anything sent outside the
   // workbench (the app, a script, an agent calling Twilio directly) is copied
   // into lead_touchpoints here, keyed by SID so it only happens once. The
   // thread is already in hand, so this adds no Twilio calls. See
   // lib/sms-reconcile.ts.
   let synced = 0
-  if (leadId && /^[0-9a-f-]{36}$/i.test(leadId) && messages.length > 0) {
+  if (leadId && /^[0-9a-f-]{36}$/i.test(leadId) && sms.length > 0) {
     const supabase = createServerSupabaseClient()
     if (supabase) {
       try {
-        synced = (await reconcileThread(supabase, leadId, messages)).inserted
+        synced = (await reconcileThread(supabase, leadId, sms)).inserted
       } catch (err) {
         console.error("[sms-thread] reconcile failed", err)
       }

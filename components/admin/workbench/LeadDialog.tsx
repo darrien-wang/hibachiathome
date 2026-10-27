@@ -208,6 +208,9 @@ export function LeadDialog({
     (!lead.last_inbound_at || Date.parse(lead.last_inbound_at) <= Date.parse(lead.acked_until)))
   const resp = firstRespText(lead.response_seconds, settings.targets.first_response_sla_minutes)
   const fname = firstName(lead.full_name)
+  // A Yelp / Facebook / Instagram conversation is answered there; the desk copies
+  // each message into this thread (lib/channel-messages.ts, owner 2026-10-26).
+  const chatChannel = ({ yelp: "Yelp", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>)[lead.lead_channel ?? ""] ?? (lead.lead_source === "yelp" ? "Yelp" : null)
 
   // ---- links the owner sends ------------------------------------------
   const depositLink = useCallback(async (): Promise<string> => {
@@ -468,7 +471,10 @@ export function LeadDialog({
             onSent={onSent}
             header={
               <div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <span>短信对话 · {settings.business.support_phone}</span>
+                <span>
+                  {lead.phone ? `短信对话 · ${settings.business.support_phone}` : "对话"}
+                  {chatChannel ? ` + ${chatChannel}（在 ${chatChannel} 回，原话抄进来）` : ""}
+                </span>
                 {/* 报警在哪，关掉它的开关就在哪（老板 2026-09-27）。右栏那颗
                     「不用回」一直都在，但决定"这条我不回了"的那一秒，人看的是
                     这行红字，不是右栏。同一个动作，同一条水位线。 */}

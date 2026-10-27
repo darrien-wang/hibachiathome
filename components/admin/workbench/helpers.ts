@@ -232,6 +232,8 @@ export const EVENT_LABELS: Record<string, string> = {
   sms_inbound: "收到短信",
   sms_outbound: "发出短信（213 线）",
   sms_failed: "⚠️ 短信未送达",
+  channel_inbound: "💬 客人（Yelp / FB / IG 原话）",
+  channel_outbound: "💬 我们（Yelp / FB / IG 回复）",
   call_inbound: "来电",
   call_recording: "通话录音",
   agent_first_response: "✓ 首次联系",

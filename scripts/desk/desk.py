@@ -259,8 +259,11 @@ def render_card(c: dict) -> None:
     # Forms the customer filled on the site are their lines in the conversation
     # ("客 … [网站·报价页点了在线订] …"): a reply through the site is a reply.
     forms = [{"direction": "inbound", "at": f.get("at"), "body": f"[网站·{f.get('label') or f.get('type')}] {f.get('summary') or ''}"} for f in (c.get("forms") or [])]
-    merged = sorted(thread + forms, key=lambda m: m.get("at") or "")
-    print(f"   对话 ({len(thread)}{f' + 网站 {len(forms)}' if forms else ''}):")
+    # Yelp / Facebook / Instagram messages copied in with `desk channel` are lines of it too.
+    chans = [{"direction": m.get("direction"), "at": m.get("at"), "body": f"[{CHANNEL_NAMES.get(m.get('channel') or '', m.get('channel') or '渠道')}] {m.get('body') or ''}"}
+             for m in (c.get("channelMessages") or [])]
+    merged = sorted(thread + forms + chans, key=lambda m: m.get("at") or "")
+    print(f"   对话 ({len(thread)}{f' + 网站 {len(forms)}' if forms else ''}{f' + 渠道 {len(chans)}' if chans else ''}):")
     for m in merged[-14:]:
         print(fmt_msg(m))
     seen = seen_line(thread)
@@ -731,6 +734,38 @@ def cmd_chef_rule(a):
 
 def cmd_note(a):
     _patch({"action": "add_note", "leadId": a.lead, "note": read_text_arg(a.note, a.body_file)})
+
+
+CHANNEL_NAMES = {"yelp": "Yelp", "facebook": "Facebook", "instagram": "Instagram"}
+
+
+def _pt_iso(s: str) -> str:
+    """'2026-10-26 18:21' or '10-26 18:21', Pacific (the time the channel shows) -> UTC ISO."""
+    s = s.strip()
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%m-%d %H:%M"):
+        try:
+            d = _dt.datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+        if fmt == "%m-%d %H:%M":
+            d = d.replace(year=_dt.datetime.now(PACIFIC).year)
+        return d.replace(tzinfo=PACIFIC).astimezone(_dt.timezone.utc).isoformat()
+    raise SystemExit(f"--at {s!r}: use 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM', Pacific time")
+
+
+def cmd_channel(a):
+    """Copy one Yelp / Facebook / Instagram message into the lead's conversation
+    (owner 2026-10-26: the workbench keeps every lead's whole conversation).
+    Both sides, as written, at the time the channel shows; the same message twice lands once."""
+    text = (read_text_arg(a.text, a.body_file) or "").strip()
+    if not text:
+        raise SystemExit("the message text: an argument or --body-file")
+    payload = {"action": "channel_message", "leadId": a.lead, "channel": a.via, "direction": a.direction, "text": text}
+    if a.at:
+        payload["at"] = _pt_iso(a.at)
+    if a.author:
+        payload["author"] = a.author
+    _patch(payload)
 
 
 def cmd_hold(a):
@@ -2250,6 +2285,12 @@ def main(argv=None):
     p.set_defaults(fn=cmd_heard)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
     p = sp.add_parser("contacted"); p.add_argument("lead"); p.set_defaults(fn=cmd_contacted)
+    p = sp.add_parser("channel", help="copy a Yelp / Facebook / Instagram message into the lead's conversation")
+    p.add_argument("lead"); p.add_argument("direction", choices=["in", "out"], help="in = the customer, out = us")
+    p.add_argument("text", nargs="?"); p.add_argument("--via", required=True, choices=sorted(CHANNEL_NAMES))
+    p.add_argument("--at", help="when the channel shows it, Pacific: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM' (default now)")
+    p.add_argument("--author", help="who wrote it, when not the customer or Rowling"); p.add_argument("--body-file")
+    p.set_defaults(fn=cmd_channel)
     p = sp.add_parser("ack"); p.add_argument("lead"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_ack)
     p = sp.add_parser("callback", help="ring the owner's App: this customer wants a phone call"); p.add_argument("lead"); p.add_argument("--why"); p.set_defaults(fn=cmd_callback)
     p = sp.add_parser("fields"); p.add_argument("lead"); p.add_argument("pairs", nargs="+"); p.set_defaults(fn=cmd_fields)

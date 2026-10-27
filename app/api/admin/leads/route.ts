@@ -8,6 +8,7 @@ import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
 import { describeChefPayRule, normalizeChefPayRule } from "@/lib/chef-pay"
 import { payloadColumns, payloadFrom } from "@/lib/payload-select"
+import { CHANNEL_IN, CHANNEL_LABELS, CHANNEL_OUT, channelMessageKey, isMessageChannel } from "@/lib/channel-messages"
 
 export const dynamic = "force-dynamic"
 
@@ -111,9 +112,9 @@ export async function GET(request: NextRequest) {
   // merged in below. The automated landing quote is OUR message: it counts
   // as outbound for timing but is labelled "auto" so a lead that only ever
   // got the robot's price still reads as needing a human.
-  const INBOUND_TYPES = ["sms_inbound", "call_inbound", "landing_contact", "contact_form", "contact_intent", "quote_book_online", "manual_entry", "planner_unlock"]
+  const INBOUND_TYPES = ["sms_inbound", "call_inbound", "landing_contact", "contact_form", "contact_intent", "quote_book_online", "manual_entry", "planner_unlock", CHANNEL_IN]
   const AUTO_TYPES = ["landing_quote_text"]
-  const OUTBOUND_TYPES = ["sms_outbound", FIRST_RESPONSE_TYPE, "sms_failed"]
+  const OUTBOUND_TYPES = ["sms_outbound", FIRST_RESPONSE_TYPE, "sms_failed", CHANNEL_OUT]
   const HINT_KEYS = ["eventDate", "event_date", "partyDate", "date"] as const
   const lastInbound: Record<string, string> = {}
   const lastOutbound: Record<string, string> = {}
@@ -342,6 +343,11 @@ export async function PATCH(request: NextRequest) {
     channel?: string
     /** set_chef_rule：发票上几位大人按小孩算师傅工钱（"all" = 全部），null 或 clear:true 撤销。 */
     adultsAsKids?: number | "all" | null
+    /** channel_message：Yelp / Facebook / Instagram 里的一条原话，in = 客人，out = 我们；at 是渠道里显示的时间。 */
+    direction?: "in" | "out"
+    text?: string
+    at?: string
+    author?: string
   }
   try {
     body = await request.json()
@@ -721,6 +727,64 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       const missing = error.code === "23503"
       return NextResponse.json({ error: missing ? "lead not found" : error.message }, { status: missing ? 404 : 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // 渠道里的原话抄进工作台（老板 2026-10-26）：Yelp / Facebook / Instagram 的对话
+  // 没有接口能读，巡查回一条就抄一条，客人的、我们的都抄，时间用渠道里显示的。
+  // 同一条抄两次只落一次（lib/channel-messages.ts）。
+  if (body.action === "channel_message") {
+    if (!supabase) return NextResponse.json({ error: "database not configured" }, { status: 500 })
+    const channel = body.channel
+    const direction = body.direction
+    const text = (body.text ?? "").trim()
+    if (!isMessageChannel(channel)) {
+      return NextResponse.json({ error: `channel must be one of ${Object.keys(CHANNEL_LABELS).join(", ")}` }, { status: 400 })
+    }
+    if (direction !== "in" && direction !== "out") {
+      return NextResponse.json({ error: "direction must be in or out" }, { status: 400 })
+    }
+    if (!text) {
+      return NextResponse.json({ error: "text required" }, { status: 400 })
+    }
+    const atMs = body.at ? Date.parse(body.at) : Date.now()
+    if (!Number.isFinite(atMs) || atMs > Date.now() + 5 * 60_000) {
+      return NextResponse.json({ error: "at must be a time that has passed" }, { status: 400 })
+    }
+    const at = new Date(atMs).toISOString()
+    const { error } = await supabase.from("lead_touchpoints").insert({
+      lead_id: leadId,
+      touchpoint_type: direction === "in" ? CHANNEL_IN : CHANNEL_OUT,
+      touchpoint_source: channel,
+      external_touchpoint_id: channelMessageKey(leadId, direction, at, text),
+      occurred_at: at,
+      raw_payload_json: { channel, body: text.slice(0, 4000), author: (body.author ?? "").trim().slice(0, 80) || null, actor: actor.alias },
+    })
+    if (error?.code === "23505") return NextResponse.json({ ok: true, duplicate: true })
+    if (error) {
+      const missing = error.code === "23503"
+      return NextResponse.json({ error: missing ? "lead not found" : error.message }, { status: missing ? 404 : 500 })
+    }
+    if (direction === "in") {
+      // The list's preview and "最近一条" read latest_message, like a Yelp mail.
+      await supabase
+        .from("leads")
+        .update({ latest_message: `[${CHANNEL_LABELS[channel]}] ${text}`.slice(0, 500), updated_at: new Date().toISOString() })
+        .eq("id", leadId)
+    } else {
+      // Our first reply in the channel is the lead's first response, at the time it went out.
+      const { data: first } = await supabase.from("lead_touchpoints").select("id").eq("lead_id", leadId).eq("touchpoint_type", FIRST_RESPONSE_TYPE).limit(1)
+      if (!first || first.length === 0) {
+        await supabase.from("lead_touchpoints").insert({
+          lead_id: leadId,
+          touchpoint_type: FIRST_RESPONSE_TYPE,
+          touchpoint_source: "admin_dashboard",
+          occurred_at: at,
+          raw_payload_json: { actor: actor.alias, via: channel },
+        })
+        await supabase.from("leads").update({ status: "qualified", updated_at: new Date().toISOString() }).eq("id", leadId).eq("status", "new")
+      }
     }
     return NextResponse.json({ ok: true })
   }

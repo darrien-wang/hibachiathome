@@ -162,7 +162,7 @@ async function buildCard(
           .from("lead_touchpoints")
           .select("touchpoint_type, occurred_at, raw_payload_json")
           .eq("lead_id", lead.id)
-          .in("touchpoint_type", ["agent_note", "agent_first_response", "call_inbound", "call_recording", "email_inbound", "email_outbound", ...CUSTOMER_FORM_TYPES])
+          .in("touchpoint_type", ["agent_note", "agent_first_response", "call_inbound", "call_recording", "email_inbound", "email_outbound", "channel_inbound", "channel_outbound", ...CUSTOMER_FORM_TYPES])
           .order("occurred_at", { ascending: false })
           .limit(60)
           .then((r) => (r.data ?? []) as Touchpoint[])
@@ -215,6 +215,17 @@ async function buildCard(
     }))
     .reverse()
     .slice(-12)
+  // Yelp / Facebook / Instagram messages the desk copied in (lib/channel-messages.ts), newest last.
+  const channelMessages = touchpoints
+    .filter((t) => t.touchpoint_type === "channel_inbound" || t.touchpoint_type === "channel_outbound")
+    .map((t) => ({
+      at: t.occurred_at,
+      direction: t.touchpoint_type === "channel_inbound" ? "inbound" : "outbound",
+      channel: String(t.raw_payload_json?.channel ?? ""),
+      body: String(t.raw_payload_json?.body ?? ""),
+    }))
+    .reverse()
+    .slice(-30)
   const firstResponseAt = touchpoints.find((t) => t.touchpoint_type === "agent_first_response")?.occurred_at ?? null
 
   // Ask "how did you find us" only when the system can't place them, they have
@@ -301,6 +312,7 @@ async function buildCard(
     holdNotes,
     calls,
     emails,
+    channelMessages,
     // Lines that are not a message: pre-party contact flags from lead-watch.
     alerts: (input.events ?? []).filter((e) => e.kind === "party_contact").map((e) => ({ kind: e.kind, title: e.title, body: e.body })),
     forms,

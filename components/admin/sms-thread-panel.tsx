@@ -25,6 +25,8 @@ type SmsMessage = {
   status: string
   media: number
   peer: string
+  /** Set on a Yelp / Facebook / Instagram message the desk copied in (lib/channel-messages.ts). */
+  channel?: string
 }
 
 export type QuickReplyChip = { id: string; label: string; body: string }
@@ -277,7 +279,7 @@ export function SmsThreadPanel({
               )}
               {m.media > 0 && Array.from({ length: m.media }).map((_, i) => <Attachment key={`${m.sid}-${i}`} adminKey={adminKey} sid={m.sid} index={i} />)}
               <div className="wb-bubble-meta" style={{ textAlign: mine ? "right" : "left" }}>
-                {mine ? "我们 · 213" : label} · {stamp(m.at)}
+                {m.channel ? `${mine ? "我们" : label} · ${m.channel}` : mine ? "我们 · 213" : label} · {stamp(m.at)}
                 {mine && m.status && m.status !== "delivered" ? ` · ${m.status}` : ""}
               </div>
             </div>

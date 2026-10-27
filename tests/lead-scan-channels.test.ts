@@ -98,3 +98,33 @@ test("scan channels · a site lead that left nothing is still unreachable", asyn
   assert.equal(it.bucket, "H")
   assert.equal(it.reason, "没留电话也没留邮箱，联系不上（点了发短信但没发出来）")
 })
+
+// Messages copied in with `desk channel` (lib/channel-messages.ts): who spoke last in the channel.
+const chIn = (at: string, body: string): Tp => ({ at, type: "channel_inbound", payload: { channel: "facebook", body } })
+const chOut = (at: string, body: string): Tp => ({ at, type: "channel_outbound", payload: { channel: "facebook", body } })
+const FB = { full_name: "Martir Pamela (Facebook)", lead_source: "manual_facebook", lead_channel: "facebook" }
+
+test("scan channels · the customer's Messenger message copied in is owed an answer; ours after it ends that", async () => {
+  const asked = [chIn("2026-10-14T03:31:00Z", "I have 30 adult guest, Palmdale ca. November 22, Sunday @ 3PM")]
+  const open = await scanAt(pool(asked, FB), "2026-10-14T04:00:00Z")
+  assert.equal(open.bucket, "A")
+  assert.equal(open.reason, "客人在 Facebook 发了消息，去 Facebook 回，回完 desk ack")
+
+  const answered = [...asked, chOut("2026-10-21T19:20:00Z", "Hi Martir! Sunday, Nov 22 at 3 PM works for your 30 in Palmdale: it's $1,742 total with travel.")]
+  const after = await scanAt(pool(answered, FB), "2026-10-27T17:00:00Z")
+  assert.equal(after.bucket, "H")
+  assert.equal(after.reason, "Facebook 对话，我们最后说话：在 Facebook 里等他回（巡查盯着，跟进人工定）")
+})
+
+test("scan channels · an Instagram lead who moved to texts: the texts decide", async () => {
+  const ig = { full_name: "Tiffany", lead_source: "manual_instagram", lead_channel: "instagram", phone: "+19495550134" }
+  const thread = [
+    { at: "2026-10-26T17:01:00Z", type: "channel_inbound", payload: { channel: "instagram", body: "Hey there do u have availability this week for a family dinner party" } },
+    { at: "2026-10-26T19:02:00Z", type: "sms_outbound", payload: { body: "Hi Tiffany! It's Rowling from Real Hibachi - here's our pricing." } },
+    { at: "2026-10-26T19:03:00Z", type: "channel_outbound", payload: { channel: "instagram", body: "Just texted you our pricing from (213) 770-7788" } },
+    { at: "2026-10-26T19:30:00Z", type: "sms_inbound", payload: { Body: "Saturday works, how much for 12?", NumMedia: "0" } },
+  ]
+  const it = await scanAt(pool(thread, ig), "2026-10-26T19:40:00Z")
+  assert.equal(it.bucket, "A")
+  assert.equal(it.reason, "客人最后说话，欠回复")
+})

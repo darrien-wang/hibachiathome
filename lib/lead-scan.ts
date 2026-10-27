@@ -123,6 +123,8 @@ const SCAN_TYPES = Array.from(
     "sms_outbound",
     "email_outbound",
     "email_inbound",
+    "channel_inbound",
+    "channel_outbound",
     "deposit_checkout_started",
     "payment_failed",
     "planner_opened",
@@ -268,6 +270,15 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const emailsOut = tps.filter((t) => t.touchpoint_type === "email_outbound").map((t) => t.occurred_at)
     const lastEmailInAt = emailsIn.length ? emailsIn[emailsIn.length - 1] : null
     const lastEmailOutAt = emailsOut.length ? emailsOut[emailsOut.length - 1] : null
+    // Yelp / Facebook / Instagram: the messages the desk copied in (lib/channel-messages.ts),
+    // and on a lead the Yelp or Marketplace mail filed, that mail - the channel talking,
+    // not an e-mail to answer by e-mail.
+    const where = replyChannel(lead)
+    const channelMail = where === "Yelp" || where === "Marketplace"
+    const channelIn = tps.filter((t) => t.touchpoint_type === "channel_inbound").map((t) => t.occurred_at)
+    const channelOut = tps.filter((t) => t.touchpoint_type === "channel_outbound").map((t) => t.occurred_at)
+    const lastChannelInAt = later(channelIn.length ? channelIn[channelIn.length - 1] : null, channelMail ? lastEmailInAt : null)
+    const lastChannelOutAt = channelOut.length ? channelOut[channelOut.length - 1] : null
     const notes = tps.filter((t) => t.touchpoint_type === "agent_note").map((t) => ({ at: t.occurred_at, note: str(t.raw_payload_json?.note) }))
     const quotes = tps.filter((t) => t.touchpoint_type === "landing_quote_text")
     // Only quotes the customer shaped say anything about the party: a revisit
@@ -286,7 +297,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     let lastInBody = inbound.length ? inbound[inbound.length - 1].body : ""
     if (tw?.last.direction === "inbound" && tw.lastInAt && (!inbound.length || tw.lastInAt > inbound[inbound.length - 1].at)) lastInBody = tw.last.body
     const dbLastOut = outbound.length ? outbound[outbound.length - 1].at : null
-    const lastOutAt = later(later(dbLastOut, tw?.lastOutAt ?? null), lastEmailOutAt)
+    const lastOutAt = later(later(later(dbLastOut, tw?.lastOutAt ?? null), lastEmailOutAt), lastChannelOutAt)
     // A reaction or a "thanks" after a real message (or photos) is not the
     // thing to judge: "Loved …" 30 s after three patio photos put 909-268-7235
     // in H "最后一条是点赞" for two days (2026-10-05). When the newest inbound
@@ -308,7 +319,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const forms = tps.filter((t) => (CUSTOMER_FORM_TYPES as readonly string[]).includes(t.touchpoint_type) && firstOutAt && t.occurred_at > firstOutAt)
     const lastForm = forms.length ? forms[forms.length - 1] : null
     const lastFormAt = lastForm?.occurred_at ?? null
-    const lastCustomerAt = later(later(later(lastInAt, lastCallAt), lastFormAt), lastEmailInAt)
+    const lastCustomerAt = later(later(later(later(lastInAt, lastCallAt), lastFormAt), lastEmailInAt), lastChannelInAt)
 
     // A reaction ("Liked …", 👍) is a gesture, not a reply (owner 2026-09-25):
     // it does not restart the 3-text count. A lead whose last word is a
@@ -365,10 +376,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const lastIsCall = Boolean(lastCallAt && (!lastInAt || lastCallAt > lastInAt))
     const lastIsForm = Boolean(lastFormAt && lastFormAt === lastCustomerAt)
     const lastIsEmail = Boolean(lastEmailInAt && lastEmailInAt === lastCustomerAt)
-    // Yelp and Marketplace leads are filed by their notification mail: an
-    // e-mail on one is the channel talking, not a message to answer by e-mail.
-    const where = replyChannel(lead)
-    const channelMail = where === "Yelp" || where === "Marketplace"
+    // Who spoke last did so in the channel: the customer's last word, or ours.
+    const lastIsChannel = Boolean(lastChannelInAt && lastChannelInAt === lastCustomerAt)
+    const weLastInChannel = Boolean(lastChannelOutAt && lastChannelOutAt === lastOutAt)
     const lastInIsTapback = !lastIsCall && isTapback(lastInBody)
     const lastInIsCourtesy = !lastIsCall && !lastInIsTapback && courtesyOnly(lastInBody)
     // Two last words we do not answer: a reaction never (owner 2026-09-25), a
@@ -410,16 +420,15 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = "同号已有付押金订单，状态该是 won"
       nextActionAt = null
-    } else if (where && ((!phone && !str(lead.email).trim()) || (channelMail && customerLast && lastIsEmail))) {
+    } else if (where && ((!phone && !str(lead.email).trim()) || (customerLast ? lastIsChannel : weLastInChannel))) {
       // A Yelp / Facebook / Instagram conversation is answered in that channel,
       // not "联系不上": the desk patrols those inboxes (owner 2026-10-26: every
-      // channel's leads tracked in the workbench). A message the Yelp or
-      // Facebook mail filed is the customer speaking until the desk acks it
-      // after answering in the channel - with a number on the lead too, or it
-      // read "客人发了邮件，欠回复（用邮件回）" forever. Messenger and Instagram
-      // DMs only show in the patrol, so as far as the timeline knows we spoke
-      // last. Brenda Q. and Kyle B. (Yelp, 10-26) read "没留电话也没留邮箱，联系不上".
-      const unanswered = customerLast && lastIsEmail && !(lead.acked_until && Date.parse(lead.acked_until) >= Date.parse(lastEmailInAt!))
+      // channel's leads tracked in the workbench). The customer's last message
+      // there - copied in, or the Yelp / Marketplace mail - is owed an answer
+      // until ours is copied in after it or the desk acks it, with a number on
+      // the lead too (it read "客人发了邮件，欠回复（用邮件回）" forever).
+      // Brenda Q. and Kyle B. (Yelp, 10-26) read "没留电话也没留邮箱，联系不上".
+      const unanswered = customerLast && lastIsChannel && !(lead.acked_until && Date.parse(lead.acked_until) >= Date.parse(lastChannelInAt!))
       bucket = unanswered ? "A" : "H"
       reason = unanswered
         ? where === "Marketplace"
