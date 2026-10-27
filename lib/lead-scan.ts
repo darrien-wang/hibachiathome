@@ -88,8 +88,10 @@ type LeadRow = {
   hold_set_at: string | null
   acked_until: string | null
   sms_blocked_at: string | null
+  lead_source?: string | null
+  lead_channel?: string | null
 }
-type TP = { lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+type TP ={ lead_id: string; touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
 type OrderRow = {
   id: string
   order_no: string | null
@@ -148,6 +150,21 @@ const slug = (city: string) => city.toLowerCase().trim().replace(/[^a-z0-9]+/g, 
 const later = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b)
 const digits10 = (phone: string | null | undefined) => String(phone ?? "").replace(/\D/g, "").slice(-10)
 
+/**
+ * Where a lead with no number and no e-mail is answered: a Yelp, Facebook or
+ * Instagram conversation (filed by the Yelp / Facebook mail, or by hand from
+ * the workbench), or null for a lead that really left nothing.
+ */
+function replyChannel(lead: LeadRow): string | null {
+  const src = str(lead.lead_source)
+  const ch = str(lead.lead_channel)
+  if (src === "yelp" || ch === "yelp") return "Yelp"
+  if (src === "facebook_marketplace" || ch === "facebook_marketplace") return "Marketplace"
+  if (ch === "facebook" || src === "manual_facebook") return "Facebook"
+  if (ch === "instagram" || src === "manual_instagram") return "Instagram"
+  return null
+}
+
 function daysUntil(date: string | null, now: number): number | null {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
   // Party dates are wall-clock days; compare on Pacific calendar days.
@@ -174,7 +191,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     fetchAll<LeadRow>((from, to) =>
       supabase
         .from("leads")
-        .select("id, created_at, full_name, phone, email, status, city_or_zip, guest_count, hold_until, hold_set_at, acked_until, sms_blocked_at")
+        .select("id, created_at, full_name, phone, email, status, city_or_zip, guest_count, hold_until, hold_set_at, acked_until, sms_blocked_at, lead_source, lead_channel")
         .not("status", "in", "(won,lost,disqualified)")
         .is("merged_into", null)
         .gte("created_at", since)
@@ -348,6 +365,10 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     const lastIsCall = Boolean(lastCallAt && (!lastInAt || lastCallAt > lastInAt))
     const lastIsForm = Boolean(lastFormAt && lastFormAt === lastCustomerAt)
     const lastIsEmail = Boolean(lastEmailInAt && lastEmailInAt === lastCustomerAt)
+    // Yelp and Marketplace leads are filed by their notification mail: an
+    // e-mail on one is the channel talking, not a message to answer by e-mail.
+    const where = replyChannel(lead)
+    const channelMail = where === "Yelp" || where === "Marketplace"
     const lastInIsTapback = !lastIsCall && isTapback(lastInBody)
     const lastInIsCourtesy = !lastIsCall && !lastInIsTapback && courtesyOnly(lastInBody)
     // Two last words we do not answer: a reaction never (owner 2026-09-25), a
@@ -389,6 +410,23 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
       bucket = "H"
       reason = "同号已有付押金订单，状态该是 won"
       nextActionAt = null
+    } else if (where && ((!phone && !str(lead.email).trim()) || (channelMail && customerLast && lastIsEmail))) {
+      // A Yelp / Facebook / Instagram conversation is answered in that channel,
+      // not "联系不上": the desk patrols those inboxes (owner 2026-10-26: every
+      // channel's leads tracked in the workbench). A message the Yelp or
+      // Facebook mail filed is the customer speaking until the desk acks it
+      // after answering in the channel - with a number on the lead too, or it
+      // read "客人发了邮件，欠回复（用邮件回）" forever. Messenger and Instagram
+      // DMs only show in the patrol, so as far as the timeline knows we spoke
+      // last. Brenda Q. and Kyle B. (Yelp, 10-26) read "没留电话也没留邮箱，联系不上".
+      const unanswered = customerLast && lastIsEmail && !(lead.acked_until && Date.parse(lead.acked_until) >= Date.parse(lastEmailInAt!))
+      bucket = unanswered ? "A" : "H"
+      reason = unanswered
+        ? where === "Marketplace"
+          ? "客人在 Marketplace 发了消息（老板个人号）：拟稿给老板发，发完 desk ack"
+          : `客人在 ${where} 发了消息，去 ${where} 回，回完 desk ack`
+        : `${where} 对话，我们最后说话：在 ${where} 里等他回（巡查盯着，跟进人工定）`
+      if (!unanswered) nextActionAt = null
     } else if (!phone && !str(lead.email).trim()) {
       // A "Text us" tap leaves a placeholder lead that waits for the text; when
       // the text never comes there is no number and no email to answer. The
