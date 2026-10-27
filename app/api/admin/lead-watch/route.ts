@@ -643,6 +643,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     const startedAt = new Date(c.start_time ?? c.date_created).getTime()
     if (!from || isTestNumber(from) || Number.isNaN(startedAt)) continue
     if (now - startedAt > MISSED_CALL_LOOKBACK_MS || now - startedAt < MISSED_CALL_GRACE_MS) continue
+    // Only a call that has ended can have been missed: the owner was five
+    // minutes into a call picked up in the app when this texted the caller
+    // "sorry we missed your call" (2026-10-27 10:35).
+    if (c.status === "in-progress" || c.status === "ringing" || c.status === "queued") continue
     if (c.status === "completed" && (Number(c.duration) || 0) >= 20) continue
     // Anyone (the handler, a person, the app) already texted after the call.
     if ((lastOut.get(from) ?? 0) >= startedAt) continue
