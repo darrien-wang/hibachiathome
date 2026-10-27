@@ -128,9 +128,10 @@ def dump(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=1)
 
 
-def pt(iso: str | None) -> str:
+def pt(iso: str | None, seconds: bool = False) -> str:
     """ISO timestamp -> 'MM-DD HH:MM PT' (customers and the desk share the
-    Pacific clock; the API speaks UTC)."""
+    Pacific clock; the API speaks UTC). `seconds` adds :SS - two texts can
+    share a minute."""
     if not iso:
         return "-"
     from datetime import datetime, timezone
@@ -142,7 +143,7 @@ def pt(iso: str | None) -> str:
         return iso[:16]
     if t.tzinfo is None:
         t = t.replace(tzinfo=timezone.utc)
-    return t.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%m-%d %H:%M")
+    return t.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%m-%d %H:%M:%S" if seconds else "%m-%d %H:%M")
 
 
 # ---------------------------------------------------------------- media ----

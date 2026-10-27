@@ -1,0 +1,77 @@
+# Live replay, read-only, run 2026-10-26 17:12 PT. Threads: GET /api/admin/sms-thread?phone= (Twilio), cut to
+# what it held one second before each reply; staff list: GET /api/admin/chefs. No POST left this machine.
+
+## JT Possehl 10-21, tables answer - 2026-10-21 20:06:33 PT - as sent (no --seen)
+=> stopped by the guard (exit 2)
+UNREAD +13038271576  客人 3 秒前刚发来，你没读过（⏳刚到，可能还在打字）：
+   客 10-21 20:05:30  Hey!   We are in town to celebrate our buddy getting married.   I don't think our Airbnb will have enough seating.
+   客 10-21 20:06:18  We'll probably need tables and chairs too.
+   客 10-21 20:06:30  When do you need the menu buy?
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-21T20:06:30-07:00
+
+## JT Possehl 10-21, tables answer - 2026-10-21 20:06:33 PT - --seen of the text it answered (2026-10-21T20:06:18-07:00)
+=> stopped by the guard (exit 2)
+UNREAD +13038271576  你读到的是 --seen 2026-10-21T20:06:18-07:00，客人之后又发了 1 条：
+   客 10-21 20:06:30  When do you need the menu buy?
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-21T20:06:30-07:00
+
+## JT Possehl 10-21, tables answer - 2026-10-21 20:06:33 PT - --force, no --seen
+=> stopped by the guard (exit 2)
+UNREAD +13038271576  客人 3 秒前刚发来，你没读过（⏳刚到，可能还在打字）：
+   客 10-21 20:05:30  Hey!   We are in town to celebrate our buddy getting married.   I don't think our Airbnb will have enough seating.
+   客 10-21 20:06:18  We'll probably need tables and chairs too.
+   客 10-21 20:06:30  When do you need the menu buy?
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-21T20:06:30-07:00
+      --force 只放行服务器的刹车，不跳过这一道
+
+## JT Possehl 10-21, tables answer - 2026-10-21 20:06:33 PT - --seen of their newest text (2026-10-21T20:06:30-07:00)
+=> passed the guard; the replay blocked the send itself (site_post) - nothing sent
+
+## JT Possehl 10-23, bill reply - 2026-10-23 20:01:53 PT - as sent (no --seen)
+=> stopped by the guard (exit 2)
+UNREAD +13038271576  客人 50 秒前刚发来，你没读过（⏳刚到，可能还在打字）：
+   客 10-23 20:00:55  We want to pay with card bc we are all lazy
+   客 10-23 20:01:03  I apologize
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-23T20:01:03-07:00
+
+## JT Possehl 10-23, bill reply - 2026-10-23 20:01:53 PT - --seen of the text it answered (2026-10-23T20:00:12-07:00)
+=> stopped by the guard (exit 2)
+UNREAD +13038271576  你读到的是 --seen 2026-10-23T20:00:12-07:00，客人之后又发了 2 条：
+   客 10-23 20:00:55  We want to pay with card bc we are all lazy
+   客 10-23 20:01:03  I apologize
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-23T20:01:03-07:00
+
+## JT Possehl 10-23, bill reply - 2026-10-23 20:01:53 PT - --force, no --seen
+=> stopped by the guard (exit 2)
+UNREAD +13038271576  客人 50 秒前刚发来，你没读过（⏳刚到，可能还在打字）：
+   客 10-23 20:00:55  We want to pay with card bc we are all lazy
+   客 10-23 20:01:03  I apologize
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-23T20:01:03-07:00
+      --force 只放行服务器的刹车，不跳过这一道
+
+## JT Possehl 10-23, bill reply - 2026-10-23 20:01:53 PT - --seen of their newest text (2026-10-23T20:01:03-07:00)
+=> passed the guard; the replay blocked the send itself (site_post) - nothing sent
+
+## prom lead 10-24, after-party question - 2026-10-24 18:54:23 PT - as sent (no --seen)
+=> stopped by the guard (exit 2)
+UNREAD +16198861622  客人 5 秒前刚发来，你没读过（⏳刚到，可能还在打字）：
+   客 10-24 18:53:36  Just getting quotes. Its my son's prom.
+   客 10-24 18:54:18  Its a small private school that doesn't do a prom. So we are looking to do one
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-24T18:54:18-07:00
+
+## prom lead 10-24, after-party question - 2026-10-24 18:54:23 PT - --seen of the text it answered (2026-10-24T18:53:36-07:00)
+=> stopped by the guard (exit 2)
+UNREAD +16198861622  你读到的是 --seen 2026-10-24T18:53:36-07:00，客人之后又发了 1 条：
+   客 10-24 18:54:18  Its a small private school that doesn't do a prom. So we are looking to do one
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-24T18:54:18-07:00
+
+## prom lead 10-24, after-party question - 2026-10-24 18:54:23 PT - --force, no --seen
+=> stopped by the guard (exit 2)
+UNREAD +16198861622  客人 5 秒前刚发来，你没读过（⏳刚到，可能还在打字）：
+   客 10-24 18:53:36  Just getting quotes. Its my son's prom.
+   客 10-24 18:54:18  Its a small private school that doesn't do a prom. So we are looking to do one
+      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen 2026-10-24T18:54:18-07:00
+      --force 只放行服务器的刹车，不跳过这一道
+
+## prom lead 10-24, after-party question - 2026-10-24 18:54:23 PT - --seen of their newest text (2026-10-24T18:54:18-07:00)
+=> passed the guard; the replay blocked the send itself (site_post) - nothing sent

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Offline self-check for desk's order set headcount rules (owner 2026-10-24).
+"""Offline self-check for desk's order set headcount rules (owner 2026-10-24)
+and desk send's unread guard (2026-10-26).
 
   python scripts/desk/selfcheck.py
 
@@ -13,6 +14,10 @@ call that gets past them fails the run instead of reaching production.
   - the official_party* line follows every headcount change (--headcount,
     --guests-file, --add-adult, --remove-guest) and no other line moves
   - the TOTAL is held against desk price, and a wrong stored discount is loud
+  - desk send stops over a customer text the sender has not read (the three
+    replies of 10-21..24, replayed on fake threads at the second they went
+    out), --seen lets it through, --force does not, staff numbers and our own
+    texts never stop it
 """
 from __future__ import annotations
 
@@ -248,6 +253,193 @@ def tiers_match_the_ts_export() -> None:
           detail=f"desk {(mine, custom, weight)} / TS {(ts['t'], ts['c'], ts['w'])}")
 
 
+# ----------------------------------------------- desk send: unread texts --
+# The three replies that went out over a text nobody had read (desk.py, unread
+# guard), on 555 numbers, replayed at the second each reply went out.
+PROM_PHONE, JT_PHONE, CHEF_PHONE = "+16195550142", "+13035550176", "+16265550188"
+LEAD_ID = "00000000-0000-4000-8000-000000000042"
+REPLY = "Congrats to your son - prom is a big one! Is it a dinner before they head out, or an after-party?"
+
+
+def wall(text: str) -> datetime.datetime:
+    """'2026-10-24 18:54:18' on the Pacific clock, as UTC."""
+    return datetime.datetime.fromisoformat(text).replace(tzinfo=desk.PACIFIC).astimezone(datetime.timezone.utc)
+
+
+def sms(phone: str, direction: str, when: str, body: str) -> dict:
+    """One message as GET /api/admin/sms-thread hands it over (`when` on the Pacific clock)."""
+    return {"sid": f"SM{direction[:2]}{when}", "direction": direction, "body": body, "at": wall(when).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "status": "received" if direction == "inbound" else "delivered", "media": 0, "peer": phone}
+
+
+# The prom lead, 10-24: their second text landed at 18:54:18, our "before they head out, or an after-party?" at 18:54:23.
+PROM = [
+    sms(PROM_PHONE, "outbound", "2026-10-24 18:49:31", "Real Hibachi: your San Diego hibachi price is $1,770.00 for 30 adults (Standard (any day), Sat, May 15, 2027)."),
+    sms(PROM_PHONE, "outbound", "2026-10-24 18:52:01", "Hi! Rowling from Real Hibachi 👋 Sat, May 15 is open on our end for your 30 in San Diego — what's the celebration?"),
+    sms(PROM_PHONE, "inbound", "2026-10-24 18:53:36", "Just getting quotes. Its my son's prom. "),
+    sms(PROM_PHONE, "inbound", "2026-10-24 18:54:18", "Its a small private school that doesn't do a prom. So we are looking to do one"),
+]
+PROM_LATER = PROM + [
+    sms(PROM_PHONE, "outbound", "2026-10-24 18:54:23", REPLY),
+    sms(PROM_PHONE, "inbound", "2026-10-24 18:55:32", "A dinner before hand "),
+    sms(PROM_PHONE, "inbound", "2026-10-24 18:56:44", "4 or 5? What is the total time to cook  approximately? Take down time? Set up time? "),
+    sms(PROM_PHONE, "outbound", "2026-10-24 18:57:32", "Either works! Dinner and the show run about an hour and a half."),
+]
+# JT Possehl, 10-21: our answer about tables went 3 s after "When do you need the menu buy?".
+JT_TABLES = [
+    sms(JT_PHONE, "outbound", "2026-10-21 18:43:01", "Hi! Rowling from Real Hibachi 👋 Fri, Oct 23 is open on our end for your 9 in Palm Springs — what's the celebration?"),
+    sms(JT_PHONE, "inbound", "2026-10-21 20:05:30", "Hey!   We are in town to celebrate our buddy getting married.   I don't think our Airbnb will have enough seating."),
+    sms(JT_PHONE, "inbound", "2026-10-21 20:06:18", "We'll probably need tables and chairs too. "),
+    sms(JT_PHONE, "inbound", "2026-10-21 20:06:30", "When do you need the menu buy? "),
+]
+# JT Possehl, 10-23: "I just emailed the complete bill" went at 20:01:53, after "We want to pay with card" and "I apologize".
+JT_BILL = [
+    sms(JT_PHONE, "outbound", "2026-10-23 13:05:08", "Quick update for tonight: your chef will be John instead of Jason."),
+    sms(JT_PHONE, "inbound", "2026-10-23 13:08:10", "Loved “Quick update for tonight: your chef will be John instead of Jason.”"),
+    sms(JT_PHONE, "inbound", "2026-10-23 19:59:57", "Hey man, John did amazing."),
+    sms(JT_PHONE, "inbound", "2026-10-23 20:00:12", "Please forward me the complete bill "),
+    sms(JT_PHONE, "inbound", "2026-10-23 20:00:55", "We want to pay with card bc we are all lazy "),
+    sms(JT_PHONE, "inbound", "2026-10-23 20:01:03", "I apologize "),
+]
+
+
+class SendRun:
+    """One `desk send` (or `desk thread`) against a fake thread, at the second `at` on the Pacific clock: its output,
+    exit, what it posted (None = nothing sent), what it read, and the pictures it uploaded."""
+
+    def __init__(self, thread: list[dict], *args: str, at: str, phone: str = PROM_PHONE, staff: tuple[str, ...] = (), cmd: str = "send"):
+        self.thread, self.staff = thread, staff
+        self.posted, self.reads, self.uploads = None, [], []
+        desk.site_get, desk.site_post, desk._now = self.site_get, self.site_post, lambda: wall(at)
+        _api.upload_sales_media = lambda local, dest, content_type="image/jpeg": self.uploads.append(dest) or dest
+        _api.signed_sales_media_url = lambda dest, ttl_seconds=3600: f"https://media.example/{dest}"
+        buf = io.StringIO()
+        self.exit = None
+        with contextlib.redirect_stdout(buf):
+            try:
+                desk.main([cmd, phone, *(["--body", REPLY] if cmd == "send" else []), *args])
+            except SystemExit as e:
+                self.exit = e.code
+        self.out = buf.getvalue()
+
+    def site_get(self, path, params=None, admin=True, timeout=90):
+        self.reads.append(path)
+        if path == "/api/admin/sms-thread" and list(params or {}) == ["phone"]:
+            return {"ok": True, "phones": [params["phone"]], "messages": copy.deepcopy(self.thread)}
+        if path == "/api/admin/chefs":
+            return {"ok": True, "chefs": [{"name": "Staff", "phone": p, "status": "active"} for p in self.staff]}
+        raise RuntimeError(f"selfcheck: unexpected site read {path} {params}")
+
+    def site_post(self, path, payload, method="POST", timeout=90):
+        if path == "/api/admin/sms-thread":
+            self.posted = payload
+            return {"ok": True, "sid": "SMselfcheck", "status": "queued"}
+        raise RuntimeError(f"selfcheck: unexpected site write {path}")
+
+    @property
+    def stopped(self) -> bool:
+        """Refused with nothing sent: exit 2, no post, no upload, said why."""
+        return self.exit == 2 and self.posted is None and not self.uploads and "UNREAD" in self.out
+
+    @property
+    def sent(self) -> bool:
+        return self.exit is None and self.posted is not None and "OK    " in self.out
+
+    def has(self, *parts: str) -> bool:
+        return all(p in self.out for p in parts)
+
+
+def send_checks() -> None:
+    kept = desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url
+    try:
+        _send_checks()
+    finally:
+        desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url = kept
+
+
+def _send_checks() -> None:
+    reply_at = "2026-10-24 18:54:23"
+    r = SendRun(PROM, at=reply_at)
+    check("send: the prom reply 5 s after the customer's second text, no --seen: stopped (exit 2, nothing sent), both fresh texts and the exact --seen printed",
+          r.stopped and r.has("5 秒前刚发来", "18:53:36  Just getting quotes", "18:54:18  Its a small private school that doesn't do a prom",
+                              "--seen 2026-10-24T18:54:18-07:00"), r)
+    r = SendRun(PROM, "--seen", "18:53", at=reply_at)
+    check("  --seen 18:53 (their first text, the one we answered): stopped, only the text after it printed",
+          r.stopped and r.has("之后又发了 1 条", "doesn't do a prom") and "son's prom" not in r.out and "第一条算" not in r.out, r)
+    r = SendRun(PROM, "--seen", "2026-10-24T18:53:36-07:00", at=reply_at)
+    check("  --seen to the second of their first text: stopped", r.stopped and r.has("doesn't do a prom"), r)
+    r = SendRun(PROM, "--force", at=reply_at)
+    check("  --force alone does not skip it: stopped, and says so", r.stopped and r.has("doesn't do a prom", "--force 只放行服务器的刹车"), r)
+    r = SendRun(PROM, "--seen", "18:54", at=reply_at)
+    check("  --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds",
+          r.stopped and r.has("只到分钟", "--seen 2026-10-24T18:54:18-07:00"), r)
+    r = SendRun(PROM, "--seen", "2026-10-24T18:54:18-07:00", "--lead", LEAD_ID, at=reply_at)
+    p = r.posted or {}
+    check("  --seen to the second of their last text: sent, the payload as before (phone, body, lead, no force), staff list never read",
+          r.sent and p.get("phone") == PROM_PHONE and p.get("body") == REPLY and p.get("leadId") == LEAD_ID and "force" not in p
+          and r.reads == ["/api/admin/sms-thread"], r)
+    r = SendRun(PROM, "--force", "--seen", "2026-10-25T01:54:18Z", at=reply_at)
+    check("  --force with --seen (the API's UTC form): sent, force still passed on to the server's brakes", r.sent and (r.posted or {}).get("force") is True, r)
+    r = SendRun(PROM, "--media", "patio.jpg", at=reply_at)
+    check("  a picture is stopped the same way, before anything is uploaded", r.stopped, r)
+    r = SendRun(PROM, "--media", "patio.jpg", "--seen", "10-24 18:54:18", at=reply_at)
+    check("  ... and goes with --seen (MM-DD HH:MM:SS): uploaded and sent with its link",
+          r.exit is None and len(r.uploads) == 1 and str((r.posted or {}).get("mediaUrl", "")).startswith("https://media.example/sent/"), r)
+    r = SendRun(PROM, "--seen", "6pm", at=reply_at)
+    check("  a --seen desk cannot read is refused before anything is read or sent", "--seen '6pm'" in str(r.exit) and not r.reads and r.posted is None, r)
+
+    later = "2026-10-24 18:58:30"
+    r = SendRun(PROM_LATER, "--seen", "18:57", at=later)
+    check("  --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed",
+          r.stopped and r.has("对不上客人的任何一条短信", "18:56:44  4 or 5?", "--seen 2026-10-24T18:56:44-07:00"), r)
+    r = SendRun(PROM_LATER, "--seen", "18:56", at=later)
+    check("  --seen 18:56 (HH:MM of their last text, 106 s old, alone in its minute): sent", r.sent, r)
+    r = SendRun(PROM_LATER, at=later)
+    check("  no --seen, their last text 106 s old: sent (only the last 90 s are checked without --seen)", r.sent, r)
+    ours = PROM_LATER + [sms(PROM_PHONE, "outbound", "2026-10-24 19:30:00", "Anytime!")]
+    r = SendRun(ours, at="2026-10-24 19:30:20")
+    check("  our own text 20 s before (any desk, the App, the machine) is not one of theirs: sent", r.sent, r)
+    r = SendRun([], at="2026-10-24 18:49:00")
+    check("  a number with no texts at all: sent", r.sent, r)
+
+    r = SendRun(JT_TABLES, at="2026-10-21 20:06:33", phone=JT_PHONE)
+    check("send: JT's 10-21 tables answer, 3 s after 'When do you need the menu buy?', no --seen: stopped, both fresh texts printed",
+          r.stopped and r.has("20:06:18  We'll probably need tables", "20:06:30  When do you need the menu buy?"), r)
+    r = SendRun(JT_TABLES, "--seen", "20:06", at="2026-10-21 20:08:00", phone=JT_PHONE)
+    check("  --seen 20:06 two minutes on, two of JT's texts in that minute: stopped on the second (HH:MM names the first)",
+          r.stopped and r.has("之后又发了 1 条", "按那一分钟客人的第一条算", "When do you need the menu buy?") and "need tables" not in r.out, r)
+    r = SendRun(JT_TABLES, "--seen", "2026-10-21T20:06:30-07:00", at="2026-10-21 20:08:00", phone=JT_PHONE)
+    check("  --seen to the second of the later one: sent", r.sent, r)
+    r = SendRun(JT_BILL, "--seen", "2026-10-23T20:00:12-07:00", at="2026-10-23 20:01:53", phone=JT_PHONE)
+    check("send: JT's 10-23 bill reply, read up to 'Please forward me the complete bill': stopped, the two texts after it printed",
+          r.stopped and r.has("之后又发了 2 条", "20:00:55  We want to pay with card", "20:01:03  I apologize") and "forward me" not in r.out, r)
+    r = SendRun(JT_BILL, at="2026-10-23 20:01:53", phone=JT_PHONE)
+    check("  the same with no --seen: stopped on the 90 s rule (58 s and 50 s old)", r.stopped and r.has("pay with card", "I apologize"), r)
+    r = SendRun(JT_BILL[:2], at="2026-10-23 13:08:40", phone=JT_PHONE)
+    check("  a tapback is a text of theirs too (Loved … 30 s before): stopped", r.stopped and r.has("[tapback·不用回]"), r)
+
+    chef = [sms(CHEF_PHONE, "outbound", "2026-10-24 15:00:00", "Prep sheet for Saturday is up."), sms(CHEF_PHONE, "inbound", "2026-10-24 15:00:40", "好的")]
+    r = SendRun(chef, at="2026-10-24 15:01:00", phone=CHEF_PHONE, staff=("(626) 555-0188",))
+    check("send: a staff number's 好的 20 s before does not stop a text to them (not a lead)", r.sent and r.has("员工号码"), r)
+    r = SendRun(chef, at="2026-10-24 15:01:00", phone=CHEF_PHONE, staff=("(626) 555-0199",))
+    check("  the same number when it is not on the staff list: stopped", r.stopped and r.reads == ["/api/admin/sms-thread", "/api/admin/chefs"], r)
+
+    r = SendRun(PROM, at=reply_at, cmd="thread")
+    check("thread: ends with the --seen for a reply, to the second of their last text",
+          r.out.rstrip().splitlines()[-1] == "   回复带 --seen 2026-10-24T18:54:18-07:00（客人最后一条 10-24 18:54:18）", r)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        desk.render_card({"phone": PROM_PHONE, "thread": PROM_LATER})
+    check("card: the same line under the conversation", "   回复带 --seen 2026-10-24T18:56:44-07:00（客人最后一条 10-24 18:56:44）" in buf.getvalue(),
+          detail=buf.getvalue())
+    start, end, exact = desk.parse_seen("23:58", wall("2026-10-25 00:03:00"))
+    check("--seen 23:58 read at 00:03 is last night's minute", (start, end - start, exact) == (wall("2026-10-24 23:58:00"), datetime.timedelta(minutes=1), False),
+          detail=f"{start} {end} {exact}")
+    start, end, exact = desk.parse_seen("12-31 23:59:30", wall("2027-01-01 00:10:00"))
+    check("--seen 12-31 23:59:30 early on New Year's Day is last year's, that second", (start, end - start, exact) == (wall("2026-12-31 23:59:30"), datetime.timedelta(seconds=1), True),
+          detail=f"{start} {end} {exact}")
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     tiers_match_the_ts_export()
@@ -472,6 +664,8 @@ def main() -> int:
     check("  --force sends it anyway", bool(r.texted) and r.has("OK    texted"), r)
     r = Run(party, op="remind", lint={"ok": True, "blocking": [], "warnings": []})
     check("  a clean order is texted as before", bool(r.texted) and r.has("✓ 缺项：无"), r)
+
+    send_checks()
 
     print()
     if FAILS:

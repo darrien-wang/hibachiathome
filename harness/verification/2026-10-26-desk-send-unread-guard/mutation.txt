@@ -1,0 +1,68 @@
+# The new desk send checks must fail when the guard is broken (each mutant is desk.py patched in memory, no file changed).
+
+## check_unread never called
+FAIL  send: the prom reply 5 s after the customer's second text, no --seen: stopped (exit 2, nothing sent), both fresh texts and the exact --seen printed
+FAIL    --seen 18:53 (their first text, the one we answered): stopped, only the text after it printed
+FAIL    --seen to the second of their first text: stopped
+FAIL    --force alone does not skip it: stopped, and says so
+FAIL    --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds
+FAIL    --seen to the second of their last text: sent, the payload as before (phone, body, lead, no force), staff list never read
+FAIL    a picture is stopped the same way, before anything is uploaded
+FAIL    a --seen desk cannot read is refused before anything is read or sent
+FAIL    --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed
+FAIL  send: JT's 10-21 tables answer, 3 s after 'When do you need the menu buy?', no --seen: stopped, both fresh texts printed
+FAIL    --seen 20:06 two minutes on, two of JT's texts in that minute: stopped on the second (HH:MM names the first)
+FAIL  send: JT's 10-23 bill reply, read up to 'Please forward me the complete bill': stopped, the two texts after it printed
+FAIL    the same with no --seen: stopped on the 90 s rule (58 s and 50 s old)
+FAIL    a tapback is a text of theirs too (Loved … 30 s before): stopped
+FAIL  send: a staff number's 好的 20 s before does not stop a text to them (not a lead)
+FAIL    the same number when it is not on the staff list: stopped
+
+## --force skips the check
+FAIL    --force alone does not skip it: stopped, and says so
+
+## our own texts counted as the customer's
+FAIL    --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed
+FAIL    --seen 18:56 (HH:MM of their last text, 106 s old, alone in its minute): sent
+FAIL    no --seen, their last text 106 s old: sent (only the last 90 s are checked without --seen)
+FAIL    our own text 20 s before (any desk, the App, the machine) is not one of theirs: sent
+
+## staff numbers checked like leads
+FAIL  send: a staff number's 好的 20 s before does not stop a text to them (not a lead)
+FAIL    the same number when it is not on the staff list: stopped
+
+## HH:MM names the last text of its minute
+FAIL    --seen 20:06 two minutes on, two of JT's texts in that minute: stopped on the second (HH:MM names the first)
+
+## HH:MM trusted for a text from the last 90 s
+FAIL    --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds
+
+## no 90 s window without --seen
+FAIL  send: the prom reply 5 s after the customer's second text, no --seen: stopped (exit 2, nothing sent), both fresh texts and the exact --seen printed
+FAIL    --force alone does not skip it: stopped, and says so
+FAIL    --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds
+FAIL    a picture is stopped the same way, before anything is uploaded
+FAIL  send: JT's 10-21 tables answer, 3 s after 'When do you need the menu buy?', no --seen: stopped, both fresh texts printed
+FAIL    the same with no --seen: stopped on the 90 s rule (58 s and 50 s old)
+FAIL    a tapback is a text of theirs too (Loved … 30 s before): stopped
+FAIL  send: a staff number's 好的 20 s before does not stop a text to them (not a lead)
+FAIL    the same number when it is not on the staff list: stopped
+
+## a --seen after their last text passes
+FAIL    --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed
+
+## --seen without a zone read as UTC
+FAIL    --seen 18:53 (their first text, the one we answered): stopped, only the text after it printed
+FAIL    --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds
+FAIL    ... and goes with --seen (MM-DD HH:MM:SS): uploaded and sent with its link
+FAIL    --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed
+FAIL    --seen 18:56 (HH:MM of their last text, 106 s old, alone in its minute): sent
+FAIL    --seen 20:06 two minutes on, two of JT's texts in that minute: stopped on the second (HH:MM names the first)
+FAIL  --seen 23:58 read at 00:03 is last night's minute
+FAIL  --seen 12-31 23:59:30 early on New Year's Day is last year's, that second
+
+## no --seen line under the conversation
+FAIL  thread: ends with the --seen for a reply, to the second of their last text
+FAIL  card: the same line under the conversation
+
+every mutant caught

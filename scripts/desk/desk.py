@@ -4,11 +4,13 @@
   python scripts/desk/desk.py next                         what is waiting, one full card each (one call)
   python scripts/desk/desk.py card   <phone|leadId>        the same card for one customer
   python scripts/desk/desk.py scan   [--bucket D] [--no-write] every open lead in a bucket with its reason (线索扫描 skill)
-  python scripts/desk/desk.py thread <phone|leadId>        the Twilio conversation, oldest first
+  python scripts/desk/desk.py thread <phone|leadId>        the Twilio conversation, oldest first, then the --seen for a reply
   python scripts/desk/desk.py search <text>                name / phone / email / order no
   python scripts/desk/desk.py price  --adults 24 [--kids 0] [--date 2026-10-13] [--zip 90802] [--alt-date ...]
   python scripts/desk/desk.py travel <destination>
-  python scripts/desk/desk.py send   <phone> [body] --lead <id> [--body-file f] [--force]
+  python scripts/desk/desk.py send   <phone> [body] --lead <id> [--body-file f] --seen <when> [--force]
+                                   --seen = the customer's last text you read (desk thread / card print it). A text of
+                                   theirs after it - with no --seen, one from the last 90 s - stops the send; --force does not
   python scripts/desk/desk.py email  <to> --subject s [--body-file f] [--lead id] [--cc a b]   from support@, logged on the lead
   python scripts/desk/desk.py note   <leadId> [note] [--body-file f]
   python scripts/desk/desk.py hold   <leadId> <days>       0 clears
@@ -49,6 +51,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import datetime as _dt
 import functools
 import json
 import math
@@ -57,6 +60,7 @@ import re
 import sys
 import time
 import urllib.parse
+from zoneinfo import ZoneInfo
 
 from _api import ROOT, ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
 
@@ -145,7 +149,7 @@ def money(v) -> str:
 
 
 # ---------------------------------------------------------------- renderers --
-def fmt_msg(m: dict) -> str:
+def fmt_msg(m: dict, seconds: bool = False) -> str:
     who = "客" if m.get("direction") == "inbound" else "我"
     body = (m.get("body") or "").replace("\n", " ").strip()
     media = int(m.get("media") or 0)  # an MMS has no text; three patio photos printed as blank lines once (10-05)
@@ -154,7 +158,7 @@ def fmt_msg(m: dict) -> str:
     elif media:
         body = f"{body}  [+{media} 张图片]"
     tag = "  [tapback·不用回]" if m.get("tapback") or (m.get("direction") == "inbound" and is_tapback(body)) else ""
-    return f"   {who} {pt(m.get('at'))}  {body}{tag}"
+    return f"   {who} {pt(m.get('at'), seconds)}  {body}{tag}"
 
 
 def brake_line(stats: dict) -> str:
@@ -259,6 +263,9 @@ def render_card(c: dict) -> None:
     print(f"   对话 ({len(thread)}{f' + 网站 {len(forms)}' if forms else ''}):")
     for m in merged[-14:]:
         print(fmt_msg(m))
+    seen = seen_line(thread)
+    if seen:
+        print(seen)
     print("   刹车: " + brake_line(stats))
 
 
@@ -359,6 +366,9 @@ def cmd_thread(a):
     print(f"{', '.join(d.get('phones') or [])} · {len(msgs)} 条")
     for m in msgs:
         print(fmt_msg(m))
+    seen = seen_line(msgs)
+    if seen:
+        print(seen)
 
 
 def _search(text: str) -> list[dict]:
@@ -417,10 +427,172 @@ def cmd_travel(a):
     print(dump(site_get("/api/quote/travel-fee", {"destination": a.destination}, admin=False)))
 
 
+# ------------------------------------------------------------ unread guard --
+# Three replies went out over a text nobody had read, each from `desk thread`
+# and `desk send` run in one shell command: JT Possehl's "When do you need the
+# menu buy?" 3 s before our answer about tables (10-21), JT's "We want to pay
+# with card" 58 s before "I just emailed the complete bill" (10-23), and a prom
+# lead's "small private school that doesn't do a prom" 5 s before we asked
+# "before they head out, or an after-party?" (10-24). So send reads the thread
+# itself (Twilio, the GET `desk thread` makes) and will not go out over a
+# customer text the sender has not accounted for: one after the text --seen
+# names, or, with no --seen, one from the last 90 s (the inbox's
+# "⏳刚到，可能还在打字"). Only the customer's texts count - ours never do,
+# whoever sent them - and a staff number is not a lead (a chef's "好的" is no
+# reason to stop). --force is for the server's brakes and does not skip this;
+# --seen does.
+UNREAD_WINDOW_S = 90
+PACIFIC = ZoneInfo("America/Los_Angeles")
+SEEN_FORM = re.compile(r"(?:(?:(?P<y>\d{4})-)?(?P<mo>\d{1,2})-(?P<d>\d{1,2})[T ])?(?P<h>\d{1,2}):(?P<mi>\d{2})"
+                       r"(?::(?P<s>\d{2})(?:\.\d+)?)?(?P<tz>Z|[+-]\d{2}:?\d{2})?", re.I)
+
+
+def _now() -> _dt.datetime:
+    return _dt.datetime.now(_dt.timezone.utc)
+
+
+def _at(iso: str | None) -> _dt.datetime | None:
+    try:
+        t = _dt.datetime.fromisoformat((iso or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=_dt.timezone.utc)
+
+
+def seen_value(iso: str) -> str:
+    """The --seen that names this text to the second, on the Pacific clock."""
+    return _at(iso).astimezone(PACIFIC).isoformat(timespec="seconds")
+
+
+def seen_line(msgs: list[dict]) -> str | None:
+    """The line under a conversation that hands the reply its --seen: the customer's newest text."""
+    theirs = [m for m in msgs if m.get("direction") == "inbound" and _at(m.get("at"))]
+    if not theirs:
+        return None
+    last = max(theirs, key=lambda m: _at(m["at"]))
+    return f"   回复带 --seen {seen_value(last['at'])}（客人最后一条 {pt(last['at'], True)}）"
+
+
+def parse_seen(text: str, now: _dt.datetime) -> tuple[_dt.datetime, _dt.datetime, bool]:
+    """--seen as the span it names, [start, end), and whether it is exact. With
+    seconds (what desk prints) it is that second; HH:MM, MM-DD HH:MM or
+    YYYY-MM-DD HH:MM is the whole minute. No zone = Pacific; no date = the
+    latest such time that has passed (at 00:05, 23:58 is last night)."""
+    m = SEEN_FORM.fullmatch((text or "").strip())
+    if not m:
+        raise SystemExit(f"--seen {text!r}: 写你读到的客人最后一条的时间——desk thread / card 在对话下面打的那个"
+                         "（2026-10-24T18:54:18-07:00），或 18:54、10-24 18:54（太平洋时间）")
+    tz = (m["tz"] or "").upper()
+    if not tz:
+        zone = PACIFIC
+    elif tz == "Z":
+        zone = _dt.timezone.utc
+    else:
+        zone = _dt.timezone((-1 if tz[0] == "-" else 1) * _dt.timedelta(hours=int(tz[1:3]), minutes=int(tz[-2:])))
+    local = now.astimezone(zone)
+
+    def on(day: _dt.date) -> _dt.datetime:
+        return _dt.datetime(day.year, day.month, day.day, int(m["h"]), int(m["mi"]), int(m["s"] or 0), tzinfo=zone)
+
+    try:
+        if m["mo"]:
+            t = on(_dt.date(int(m["y"] or local.year), int(m["mo"]), int(m["d"])))
+            if not m["y"] and t > now + _dt.timedelta(days=1):
+                t = on(_dt.date(local.year - 1, int(m["mo"]), int(m["d"])))
+        else:
+            t = on(local.date())
+            if t > now + _dt.timedelta(minutes=5):
+                t = on(local.date() - _dt.timedelta(days=1))
+    except ValueError as e:
+        raise SystemExit(f"--seen {text!r}: {e}")
+    exact = m["s"] is not None
+    return t, t + _dt.timedelta(seconds=1 if exact else 60), exact
+
+
+def unread_inbound(msgs: list[dict], seen: tuple | None, now: _dt.datetime) -> tuple[str, list[dict]]:
+    """The customer's texts a send would talk over, oldest first, and why:
+      fresh   - no --seen, and they texted in the last 90 s
+      newer   - they texted after the one --seen names (HH:MM names the first
+                of that minute: a second text in it may be the unread one)
+      unnamed - --seen names none of their texts (their last one comes back)
+      minute  - HH:MM names a text from the last 90 s, which the clock would
+                too: that needs the seconds
+    ("", []) = clear to send. Only inbound texts count."""
+    theirs = sorted(((_at(m.get("at")), m) for m in msgs if m.get("direction") == "inbound" and _at(m.get("at"))),
+                    key=lambda p: p[0])
+    if not theirs:
+        return "", []
+
+    def fresh(t: _dt.datetime) -> bool:
+        return (now - t).total_seconds() < UNREAD_WINDOW_S
+
+    if seen is None:
+        hits = [m for t, m in theirs if fresh(t)]
+        return ("fresh", hits) if hits else ("", [])
+    start, end, exact = seen
+    named = [t for t, _ in theirs if start <= t < end]
+    if not named:
+        after = [m for t, m in theirs if t >= end]
+        return ("newer", after) if after else ("unnamed", [theirs[-1][1]])
+    after = [m for t, m in theirs if t > named[0]]
+    if after:
+        return "newer", after
+    if not exact and fresh(named[0]):
+        return "minute", [m for t, m in theirs if t == named[0]]
+    return "", []
+
+
+def is_staff_phone(phone: str) -> bool:
+    """A chef's, logistics' or the owner's number (the staff list): not a lead (lib/staff-phones.ts)."""
+    digits = re.sub(r"\D", "", phone)[-10:]
+    try:
+        staff = site_get("/api/admin/chefs").get("chefs") or []
+    except ApiError:
+        return False
+    return any(re.sub(r"\D", "", s.get("phone") or "")[-10:] == digits for s in staff)
+
+
+def check_unread(phone: str, seen_arg: str | None, forced: bool) -> None:
+    """Stop the send (exit 2, nothing sent) over a customer text the sender has not read."""
+    now = _now()
+    seen = parse_seen(seen_arg, now) if seen_arg else None
+    msgs = site_get("/api/admin/sms-thread", {"phone": phone}).get("messages") or []
+    why, hits = unread_inbound(msgs, seen, now)
+    if not hits:
+        return
+    # Read only when there is something to stop for, so a send to a customer pays nothing for it.
+    if is_staff_phone(phone):
+        print(f"      {phone} 是员工号码，不是线索：不查未读")
+        return
+    newest = hits[-1]
+    age = max(0, round((now - _at(newest["at"])).total_seconds()))
+    if why == "fresh":
+        head = f"客人 {age} 秒前刚发来，你没读过（⏳刚到，可能还在打字）"
+    elif why == "newer":
+        head = f"你读到的是 --seen {seen_arg}，客人之后又发了 {len(hits)} 条"
+        if not seen[2] and _at(hits[0]["at"]) < seen[1]:
+            head += "（HH:MM 按那一分钟客人的第一条算）"
+    elif why == "unnamed":
+        head = f"--seen {seen_arg} 对不上客人的任何一条短信（要写你读到的客人最后一条），最后一条是"
+    else:
+        head = f"--seen {seen_arg} 只到分钟，那条 {age} 秒前才到：分钟分不清读过的和刚到的，要写到秒"
+    print(f"UNREAD {phone}  {head}：")
+    if len(hits) > 6:
+        print(f"   …更早还有 {len(hits) - 6} 条")
+    for m in hits[-6:]:
+        print(fmt_msg(m, seconds=True))
+    print(f"      没发。读完再写，稿子要接上客人最后一句；改好再发，带 --seen {seen_value(newest['at'])}")
+    if forced:
+        print("      --force 只放行服务器的刹车，不跳过这一道")
+    sys.exit(2)
+
+
 def cmd_send(a):
     # argparse cannot take a positional after `--lead <id>`, so the body may
     # also come as --body / --body-file (the file is the safe path on Windows).
     body = read_text_arg(a.body_opt or a.body, a.body_file)
+    phone = e164(a.phone)
+    check_unread(phone, a.seen, a.force)
     if a.media:
         # A picture goes through the same send route as a text (2026-10-08): the
         # duplicate brake, the follow-up caps and the timeline all apply. Upload
@@ -431,7 +603,7 @@ def cmd_send(a):
         dest = f"sent/{datetime.date.today().isoformat()}/{re.sub(r'[^A-Za-z0-9._-]', '_', src.name)}"
         ctype = "image/png" if src.suffix.lower() == ".png" else "image/jpeg"
         upload_sales_media(str(src), dest, ctype)
-        payload = {"phone": e164(a.phone), "body": body, "session": desk_session(), "mediaUrl": signed_sales_media_url(dest)}
+        payload = {"phone": phone, "body": body, "session": desk_session(), "mediaUrl": signed_sales_media_url(dest)}
         if a.lead:
             payload["leadId"] = a.lead
         if a.force:
@@ -449,7 +621,7 @@ def cmd_send(a):
     # Which desk is sending: the server refuses a text when another session
     # answered this number minutes ago and the customer has not spoken since
     # (brake just_answered, 2026-10-07 - two desks answered Eileen 17 s apart).
-    payload = {"phone": e164(a.phone), "body": body, "session": desk_session()}
+    payload = {"phone": phone, "body": body, "session": desk_session()}
     if a.lead:
         payload["leadId"] = a.lead
     if a.force:
@@ -2060,6 +2232,9 @@ def main(argv=None):
     p = sp.add_parser("travel"); p.add_argument("destination"); p.set_defaults(fn=cmd_travel)
     p = sp.add_parser("send"); p.add_argument("phone"); p.add_argument("body", nargs="?"); p.add_argument("--lead")
     p.add_argument("--body", dest="body_opt"); p.add_argument("--body-file"); p.add_argument("--force", action="store_true")
+    p.add_argument("--seen", metavar="WHEN", help="the customer's last text you read: the value desk thread / card print under the "
+                   "conversation (2026-10-24T18:54:18-07:00), or HH:MM / MM-DD HH:MM Pacific. A text of theirs after it - with no "
+                   "--seen, one from the last 90 s - stops the send, printed, exit 2. --force does not skip this")
     p.add_argument("--media", help="a local jpg/png to attach (MMS; same route and brakes as a text)"); p.set_defaults(fn=cmd_send)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)

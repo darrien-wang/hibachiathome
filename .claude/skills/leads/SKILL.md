@@ -81,7 +81,7 @@ description: >-
 ① 读 → ② 判型 → ③ 算价 → ④ 写 → ⑤ 发 → ⑥ 记 → ⑦ 报
 ```
 
-**① 读**：`desk next`（收件箱，一张卡就是全部）或 `desk card <手机|lead>`。**发任何东西前读完整条对话**，先在心里写一行上下文卡：`日期 | 时段 | 人数 | 场合 | 他最后一句 | 我们最后一句`。卡上有的不再问，我们说过的不再说。客人短信里出现过日期，再问"哪天/哪个周末"会被系统 409 `asked_known_date` 拦下。客人上一句之后，别的会话、机器或手机在 15 分钟回复窗口内已经回过他（409 `just_answered`）：读完对话再决定，同一件事**不补发、不 force**；确实是另一件该说的事（比如他刚自己锁了单），等窗口过了再发。客人打过电话的，先看来电小结或 `desk transcribe`，电话里说过的不再问。
+**① 读**：`desk next`（收件箱，一张卡就是全部）或 `desk card <手机|lead>`（只看对话用 `desk thread <手机>`）。**读是单独一步**：自己跑一次、看完输出再写，不和 `desk send` 串在同一条命令里——10-21..24 三条回复都是串着跑的，客人几秒前刚发的那条没人看见（JT Possehl 两次；prom 那位的 "small private school that doesn't do a prom" 早我们 5 秒）。卡和 thread 在对话下面打一行 `回复带 --seen <客人最后一条的时间>`，⑤ 发的时候带上。**发任何东西前读完整条对话**，先在心里写一行上下文卡：`日期 | 时段 | 人数 | 场合 | 他最后一句 | 我们最后一句`。卡上有的不再问，我们说过的不再说。客人短信里出现过日期，再问"哪天/哪个周末"会被系统 409 `asked_known_date` 拦下。客人上一句之后，别的会话、机器或手机在 15 分钟回复窗口内已经回过他（409 `just_answered`）：读完对话再决定，同一件事**不补发、不 force**；确实是另一件该说的事（比如他刚自己锁了单），等窗口过了再发。客人打过电话的，先看来电小结或 `desk transcribe`，电话里说过的不再问。
 
 **② 判型**：
 
@@ -102,7 +102,7 @@ description: >-
 
 **④ 写**：原则在 §1、§5，句式在 `templates.md`，事实在 `answers.md`。
 
-**⑤ 发**：`desk send <手机> --lead <id> --body-file f.txt`（非 ASCII 用 file）。刹车 409（daily 每 24 小时主动 2 条 / spacing 3 小时 / followup_cap 3 条 / sweep 10 分钟 6 条 / asked_known_date / just_answered）**默认就是对的**。`--force` 只用于两种：答应过客人的回复（电话里说了"马上发链接"），或老板点过头的那一条。`desk send` 会清掉挂起，所以**先发后挂**。首条报价手机、邮箱都有的，短信之外再发一封稍长的邮件（09-14；机器的模板 A 就是这样双发的）；之后客人在哪个渠道说话就在哪回。
+**⑤ 发**：`desk send <手机> --lead <id> --body-file f.txt --seen <① 打出的时间>`（非 ASCII 用 file）。发之前 desk 自己再读一遍 Twilio 对话：客人在 `--seen` 那条之后又发了（没带 `--seen`：90 秒内刚到的），就**不发**，打出那几条、exit 2——读完，稿子还接得上就带它打出的新 `--seen` 发，接不上就改了再发（细则见 `tools.md`）。刹车 409（daily 每 24 小时主动 2 条 / spacing 3 小时 / followup_cap 3 条 / sweep 10 分钟 6 条 / asked_known_date / just_answered）**默认就是对的**。`--force` 只用于两种：答应过客人的回复（电话里说了"马上发链接"），或老板点过头的那一条；它只放行服务器刹车，**不跳过未读这一道**。`desk send` 会清掉挂起，所以**先发后挂**。首条报价手机、邮箱都有的，短信之外再发一封稍长的邮件（09-14；机器的模板 A 就是这样双发的）；之后客人在哪个渠道说话就在哪回。
 
 **⑥ 记**：`desk note <lead> "<标签> 人话"`。标签：`[SOP:类型]`（每条外发的用途：first_response / f_one / f_deadline / deposit_ask / tables / g_menu / b_callback / answer …，周报按它算效果）、`[occasion]` 场合、`[why]` 客人说的原因、`[callback]` 他定的回话时间、`[data]` 日期人数地址、`[owner]` 老板拍板、`[default30]` 老板 30 分钟没回按建议做、`[concession]` 让步、`[won]`/`[lost]`（流失要和 `[why]` 一起写）。人数、名字当场 `desk fields` 回写。
 

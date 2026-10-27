@@ -1,0 +1,6 @@
+# python scripts/desk/desk.py thread 6198861622 (live, read-only GET by phone): first line and the last three
++16198861622 · 18 条
+   ...
+   客 10-24 19:25  Awesome. Thank you
+   我 10-24 19:57  Anytime! 😊
+   回复带 --seen 2026-10-24T19:25:54-07:00（客人最后一条 10-24 19:25:54）

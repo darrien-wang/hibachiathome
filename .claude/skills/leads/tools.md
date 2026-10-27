@@ -9,12 +9,12 @@
 ```bash
 python scripts/desk/desk.py next                         # 收件箱：每个待办一张完整卡（线索 + 标签 + 报价 + 全对话 + 刹车预演）
 python scripts/desk/desk.py card   <手机|leadId>          # 单条卡
-python scripts/desk/desk.py thread <手机|leadId>          # 只看对话（Twilio 为准，旧→新，tapback 已标）
+python scripts/desk/desk.py thread <手机|leadId>          # 只看对话（Twilio 为准，旧→新，tapback 已标）；最后一行是回复要带的 --seen
 python scripts/desk/desk.py search <姓名|手机|邮箱|单号>
 python scripts/desk/desk.py price  --adults 24 --kids 0 --date 2026-11-07 --zip 92780 [--tables 18 --utensils 18]   # 引擎价，禁止手算
 python scripts/desk/desk.py travel "<地址或 zip>"         # 里程和路费
-python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt [--force]   # 发短信；会清掉挂起，先发后挂
-python scripts/desk/desk.py send   <手机> --lead <id> --body "..." --media photo.jpg     # 发图（只用于回复）
+python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt --seen <时间> [--force]   # 发短信；会清掉挂起，先发后挂
+python scripts/desk/desk.py send   <手机> --lead <id> --body "..." --media photo.jpg --seen <时间>     # 发图（只用于回复）
 python scripts/desk/desk.py email  <to> --lead <id> --subject "..." --body-file e.txt [--cc x] [--attach W-9.pdf]
 python scripts/desk/desk.py note   <leadId> "[SOP:f_one] ..."     # 备注标签见 SKILL §3 ⑥
 python scripts/desk/desk.py hold   <leadId> <天数>                 # 等客户回；0 撤销
@@ -29,6 +29,12 @@ python scripts/desk/desk.py chef-rule <leadId> --kids all --note "..."   # 发�
 python scripts/desk/desk.py scan [--bucket D] [--no-write]          # 全池分桶（lead-scan skill）
 python scripts/desk/desk.py report day|week [--date 2026-10-17]      # 日报/周报的数
 ```
+
+**`send --seen`（10-26 起）**：写你读到的客人最后一条的时间，就是 `desk card` / `desk thread` 在对话下面打的那行 `回复带 --seen 2026-10-24T18:54:18-07:00` 里的值（也认 `18:54`、`10-24 18:54`，太平洋时间）。发之前 desk 自己再读一遍 Twilio 对话，客人在那条之后又发了（没带 `--seen` 时：90 秒内刚到的），就**不发**：打出那几条和新的 `--seen`，exit 2。读完，稿子还接得上就带新的 `--seen` 发，接不上就改了再发。
+- `--force` 只放行服务器刹车，**不跳过这一道**；要发就得带 `--seen`。
+- `HH:MM` 认那一分钟客人的第一条，同一分钟后面那条算没读；那条是 90 秒内刚到的，`HH:MM` 不算数（分不清你读过还是只看了表），要写到秒。`--seen` 对不上客人任何一条短信也不发。
+- 只算客人发来的：我们自己发的（别的会话、App、机器）不算；员工号码（师傅、后勤、老板）不查。
+- 读和发分两次跑，不串在同一条命令里：串着跑，等于没读。
 
 **锁单链接**（全部先签规则再缩短）
 ```bash

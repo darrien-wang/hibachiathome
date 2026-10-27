@@ -308,3 +308,30 @@ Verification completed:
 - Read-only on the live pool before pushing (HEAD 25794697 and the change in one process on the same rows; write-guarded Supabase, Twilio list GETs only), 10-26 11:47 PT: one lead moves, 818-388-4745 B → H `needs_hold`; the same with the clock at 11-10 (the 17 `[callback]`s due by then all have a hold that ran out and stay B). No other run or flag change. Output: `harness/verification/2026-10-26-lead-scan-callback-needs-hold/live-scan-diff.txt`.
 - Deployed 12014fca (local `pnpm build` first: exit 0, homepage SSR 77113 bytes, h1 1, jsonld 4). `/_release/ready` named it after ~90 s; `verify-live.sh` green. Production `desk scan --no-write` at 10-26 11:50 PT matches the local run (B 0, H 269): 818-388-4745 H `needs_hold`, and the H line names the hold to set. Output: `harness/verification/2026-10-26-lead-scan-callback-needs-hold/prod-after-deploy.txt`.
 - No texts sent; `desk scan` only with `--no-write`; nothing written to leads. Not a `harness/feature_list.json` item, so there is no status transition there.
+
+## DESK-SEND-UNREAD-GUARD - `desk send` will not go out over a customer text the sender has not read; `--seen` (2026-10-26)
+
+Status: done.
+
+Why: three replies went out without the customer's latest text, because `desk thread <phone>` and `desk send` ran in one shell command and the newer text was never read: JT Possehl twice (10-21 20:06:33 PT, 3 s after "When do you need the menu buy?"; 10-23 20:01:53, 58 s after "We want to pay with card" and 50 s after "I apologize") and a prom lead (10-24 18:54:23, 5 s after "small private school that doesn't do a prom", asking "before they head out, or an after-party?"). Owner 2026-10-26: `desk send` refuses when the customer has a text the sender has not accounted for; `--force` must not skip that.
+
+What changed:
+- `scripts/desk/desk.py`:
+  - `desk send` reads the thread first (GET `/api/admin/sms-thread?phone=`, Twilio - what `desk thread` reads; by phone only, so no reconcile write) and refuses - exit 2, nothing uploaded or posted - when the customer has a text after the one `--seen` names, or, with no `--seen`, one from the last 90 s. It prints those texts to the second and the exact `--seen` to re-run with.
+  - `--seen` takes the value desk prints (`2026-10-24T18:54:18-07:00`; any ISO time, the API's `...Z` too) or HH:MM / MM-DD HH:MM[:SS] on the Pacific clock (no date = the latest such time that has passed). With seconds it names that text. HH:MM names the customer's first text of that minute (a second one in it counts as unread) and is refused for a text from the last 90 s, which the clock would name too. A `--seen` that names none of their texts is refused.
+  - Only inbound texts count; ours (any desk, the App, the machine) never do. A staff number goes through (staff list from GET `/api/admin/chefs`, read only when there is something to stop for).
+  - `--force` still overrides the server's brakes, not this check; `--force --seen` sends with force as before.
+  - `desk thread` and every card end the conversation with `回复带 --seen <客人最后一条>`. `pt()` and `fmt_msg` take `seconds`.
+- `scripts/desk/selfcheck.py`: 27 new checks - the three replies on 555 numbers at the second each went out (as sent, with the `--seen` of the text they answered, with `--force`), the `--seen` forms, a picture stopped before its upload, our own text, a number with no texts, staff vs not, the thread and card line, date rollover.
+- `.claude/skills/leads/SKILL.md` §3: ① reading is its own step, never chained with send; the card / thread line gives the `--seen`. ⑤ send with `--seen`, what a refusal means, `--force` does not skip it. `.claude/skills/leads/tools.md`: the flag, its forms, the HH:MM rule, the thread line.
+
+Verification completed:
+- `python scripts/desk/selfcheck.py` (Python 3.10.6): 80 pass, 0 fail (53 before). Output: `harness/verification/2026-10-26-desk-send-unread-guard/selfcheck.txt`.
+- The tests bite: ten in-memory mutants of desk.py (guard not called, `--force` skips it, our own texts counted, staff checked, HH:MM names the minute's last text, HH:MM trusted for a fresh text, no 90 s window, a later `--seen` passes, zone-less `--seen` read as UTC, no `--seen` line) each fail 1-16 of the new checks. Output: `mutation.txt`.
+- Live, read-only: the three replies replayed through the real `desk send` against the live Twilio threads, cut to one second before each went out (POSTs blocked in the harness): each is stopped as sent, with the `--seen` of the text it answered, and with `--force`; each passes the guard only with the `--seen` of the newest customer text. Output: `live-replay.txt`. `desk thread 6198861622` (GET by phone) ends with the new line, naming the customer's 19:25:54 text and not our later 19:57 reply. Output: `live-thread.txt`.
+- No TypeScript changed (`npm test` runs `tests/*.test.ts`, none of which touch desk). No texts sent, nothing written to leads. Not a `harness/feature_list.json` item, so there is no status transition there.
+
+Noticed, not changed:
+- The check runs on the desk just before the POST; a text that lands between that read and the send (about a second) is still missed. Closing it would take the send route refusing a seen time the desk passes - a site change and a deploy.
+- `order send` and `order remind` text through the route directly and do not go through this check.
+- Four old one-off scheduled-task folders (annie-wed-evening-confirm, f-one-batch-1002, glendale-deadline-1002, nasim-friday-confirm) call `desk send` without `--seen`; none of them is an active task.
