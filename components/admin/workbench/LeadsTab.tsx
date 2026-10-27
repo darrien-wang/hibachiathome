@@ -48,6 +48,7 @@ const MANUAL_CHANNELS = [
   ["sms", "短信"],
   ["facebook", "Facebook"],
   ["instagram", "Instagram"],
+  ["yelp", "Yelp"],
   ["wechat", "微信"],
   ["walk_in", "当面"],
   ["referral", "转介绍"],

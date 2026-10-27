@@ -17,7 +17,7 @@ const EDIT_TYPE = "agent_edit"
 const NOTE_TYPE = "agent_note"
 const MERGE_TYPE = "agent_merge"
 const ALLOWED_STATUSES = ["new", "qualified", "disqualified", "won", "lost"] as const
-const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "wechat", "walk_in", "referral", "other"] as const
+const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "yelp", "wechat", "walk_in", "referral", "other"] as const
 const EDITABLE_FIELDS = ["full_name", "phone", "email", "city_or_zip", "guest_count"] as const
 
 type Actor = AdminActor
@@ -285,6 +285,12 @@ export async function POST(request: NextRequest) {
     ? (body.channel as string)
     : "other"
 
+  // A Yelp conversation entered by hand files exactly like one the Yelp mail
+  // filed itself (email-inbound fileYelpMessage): lead_source "yelp" so a later
+  // Yelp message from the same first name lands on it, utm_source "yelp" so the
+  // board counts it as Yelp (owner 2026-10-26: every channel's leads tracked here).
+  const isYelp = channel === "yelp"
+
   const supabase = createServerSupabaseClient()
   try {
     const result = await upsertLeadFromContact(supabase, {
@@ -292,8 +298,9 @@ export async function POST(request: NextRequest) {
       phone: phone || undefined,
       email: (body.email ?? "").trim() || undefined,
       message: (body.message ?? "").trim() || `Manual entry (${channel})`,
-      leadSource: `manual_${channel}`,
+      leadSource: isYelp ? "yelp" : `manual_${channel}`,
       leadChannel: channel,
+      ...(isYelp ? { attribution: { utm_source: "yelp" } } : {}),
       touchpointType: "manual_entry",
       touchpointSource: "admin_dashboard",
       rawPayload: { channel, actor: actor.alias },
