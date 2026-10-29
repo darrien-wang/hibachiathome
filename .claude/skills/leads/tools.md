@@ -20,6 +20,7 @@ python scripts/desk/desk.py note   <leadId> "[SOP:f_one] ..."     # 备注标签
 python scripts/desk/desk.py hold   <leadId> <天数>                 # 等客户回；0 撤销
 python scripts/desk/desk.py status <leadId> won|lost|disqualified|qualified|new
 python scripts/desk/desk.py ack    <leadId> [--clear]              # 「不用回」：tapback、过时的客气话
+python scripts/desk/desk.py block  <leadId> --why "SEO 代理推销"     # 推销来电：以后打 213 直接挂断（不响、不建线索、不发短信），线索标无效；--clear 撤销。只拦通话里听出来是推销的号码，不按区号拦（老板 10-28）
 python scripts/desk/desk.py fields <leadId> full_name="Ana" guest_count=15 city_or_zip="Granada Hills"
 python scripts/desk/desk.py heard  <leadId> "客人原话" [--as friend]   # 来源（D-1010-02）
 python scripts/desk/desk.py callback <leadId> --why "原话"           # 给老板 App 响铃回电

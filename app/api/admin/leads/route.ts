@@ -3,7 +3,7 @@ import { CALL_TRANSCRIPT_PREFIX, callSummaryNote, summarizeCallTranscript } from
 import { resolveAdminActor, publicActor, type AdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
-import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
+import { isStaffNumber, loadStaffDigits, phoneDigits10 } from "@/lib/staff-phones"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
 import { describeChefPayRule, normalizeChefPayRule } from "@/lib/chef-pay"
@@ -634,6 +634,40 @@ export async function PATCH(request: NextRequest) {
     }
     await logEvent(supabase, leadId, STATUS_CHANGE_TYPE, actor, { status })
     return NextResponse.json({ ok: true })
+  }
+
+  // 推销电话拦在 213 订餐线外（老板 2026-10-28：「不允许他们打这个 booking line，影响正常客人」）。
+  // 以后这个号码打来直接 <Reject>，见 lib/blocked-callers.ts。clear:true 撤销。
+  // 订过派对的号码不拦：拦错一个客人比多接一通推销贵。
+  if (body.action === "block_caller") {
+    if (!supabase) return NextResponse.json({ error: "database not configured" }, { status: 500 })
+    const { data: row } = await supabase.from("leads").select("phone, normalized_phone").eq("id", leadId).maybeSingle()
+    const lead = row as { phone: string | null; normalized_phone: string | null } | null
+    if (!lead) return NextResponse.json({ error: "lead not found" }, { status: 404 })
+    const digits = phoneDigits10(lead.phone ?? lead.normalized_phone)
+    if (!digits) return NextResponse.json({ error: "lead has no phone" }, { status: 400 })
+    if (body.clear === true) {
+      const { error } = await supabase.from("blocked_callers").delete().eq("phone_digits", digits)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      await logEvent(supabase, leadId, NOTE_TYPE, actor, { note: "[block] 撤销拦截：这个号码打 213 照常响铃" })
+      return NextResponse.json({ ok: true, digits, blocked: false })
+    }
+    const { data: won } = await supabase.from("leads").select("id").eq("normalized_phone", digits).eq("status", "won").limit(1)
+    if (won && won.length > 0) {
+      return NextResponse.json({ error: "this number has booked a party; not blocking it" }, { status: 409 })
+    }
+    const why = String(body.note ?? "").trim().slice(0, 300)
+    const nowIso = new Date().toISOString()
+    const { error } = await supabase
+      .from("blocked_callers")
+      .upsert({ phone_digits: digits, lead_id: leadId, reason: why || null, blocked_by: actor.alias, blocked_at: nowIso }, { onConflict: "phone_digits" })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await supabase.from("leads").update({ status: "disqualified", updated_at: nowIso, acked_until: nowIso }).eq("id", leadId)
+    await logEvent(supabase, leadId, STATUS_CHANGE_TYPE, actor, { status: "disqualified" })
+    await logEvent(supabase, leadId, NOTE_TYPE, actor, {
+      note: `[block] 推销电话，213 线已拦截：以后打来直接挂断（对方听到空号提示），不响铃、不建线索、不发短信${why ? `。${why}` : ""}`,
+    })
+    return NextResponse.json({ ok: true, digits, blocked: true })
   }
 
   // Field corrections (typos in name/phone/etc). Full before/after audit trail.

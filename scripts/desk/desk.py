@@ -17,6 +17,7 @@
   python scripts/desk/desk.py status <leadId> <new|qualified|won|lost|disqualified>
   python scripts/desk/desk.py contacted <leadId>
   python scripts/desk/desk.py ack    <leadId> [--clear]    「不用回」watermark - tapbacks only
+  python scripts/desk/desk.py block  <leadId> [--why "..."] [--clear]   a sales pitch: its calls to 213 are rejected, lead disqualified
   python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip=Long\\ Beach
   python scripts/desk/desk.py link deposit --lead <id> --adults 24 --city "Long Beach" [--kids 0]
                                    [--date 2026-10-13] [--time 18:00] [--email e] [--name n] [--est 1258]
@@ -793,6 +794,18 @@ def cmd_hold(a):
 
 def cmd_status(a):
     _patch({"action": "set_status", "leadId": a.lead, "status": a.status})
+
+
+def cmd_block(a):
+    """Keep an identified sales pitch off the 213 booking line (owner 2026-10-28): its calls are
+    rejected before they ring - no lead, no missed-call text - and the lead is marked disqualified.
+    Only for a number the call itself showed is selling something; never by area code."""
+    payload = {"action": "block_caller", "leadId": a.lead}
+    if a.clear:
+        payload["clear"] = True
+    elif a.why:
+        payload["note"] = a.why
+    _patch(payload)
 
 
 def cmd_contacted(a):
@@ -2304,6 +2317,8 @@ def main(argv=None):
     p.set_defaults(fn=cmd_heard)
     p = sp.add_parser("status"); p.add_argument("lead"); p.add_argument("status", choices=["new", "qualified", "won", "lost", "disqualified"]); p.set_defaults(fn=cmd_status)
     p = sp.add_parser("contacted"); p.add_argument("lead"); p.set_defaults(fn=cmd_contacted)
+    p = sp.add_parser("block", help="a sales pitch: its calls to 213 are rejected before they ring")
+    p.add_argument("lead"); p.add_argument("--why"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_block)
     p = sp.add_parser("newlead", help="a lead for a Yelp / Facebook / Instagram / phone conversation")
     p.add_argument("name"); p.add_argument("--via", required=True, choices=["yelp", "facebook", "instagram", "phone", "sms", "wechat", "walk_in", "referral", "other"])
     p.add_argument("--phone"); p.add_argument("--email"); p.add_argument("--message"); p.add_argument("--body-file")

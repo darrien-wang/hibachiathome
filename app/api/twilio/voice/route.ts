@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
+import { isBlockedNumber, loadBlockedDigits, noteBlockedCall } from "@/lib/blocked-callers"
 import { callerCardFor, clientLeg } from "@/lib/caller-card"
 import { APP_RING_SECONDS, escapeXml, ringIdentities } from "@/lib/twilio-identity"
 import { RECORDING_NOTICE, recordingAttributes } from "@/lib/twilio-recording"
@@ -43,9 +44,18 @@ export async function POST(request: NextRequest) {
   const from = params.From ?? ""
   const callSid = params.CallSid ?? ""
 
+  const supabase = createServerSupabaseClient()
+
+  // A sales pitch we have already identified (lib/blocked-callers.ts, owner
+  // 2026-10-28) never rings the booking line: <Reject> as the first verb is
+  // not answered and not billed. No lead, no missed-call text.
+  if (supabase && from && from !== "Anonymous" && isBlockedNumber(await loadBlockedDigits(supabase), from)) {
+    await noteBlockedCall(supabase, from)
+    return twiml(`<Reject reason="rejected"/>`)
+  }
+
   // Who is calling, for the ring screen (lib/caller-card.ts): looked up while
   // the lead is written below, so it adds no wait of its own.
-  const supabase = createServerSupabaseClient()
   const cardLookup = supabase && from !== "Anonymous" ? callerCardFor(supabase, from) : Promise.resolve(null)
 
   // Log the inbound call as a lead touchpoint so it shows up on the workbench.

@@ -30,6 +30,7 @@ import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { loadQuiet } from "@/lib/lead-hold"
 import { cityForZip } from "@/lib/zip-city"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
+import { isBlockedNumber, loadBlockedDigits } from "@/lib/blocked-callers"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { blockingLine, fetchOrderLints } from "@/lib/order-lint-client"
 import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
@@ -637,11 +638,14 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   // and 5 of the 18 bookings started with a phone call. Same text and the same
   // CallSid key as the handler (lib/missed-call.ts), so nobody is texted twice.
   const missedCallTexts: Array<Record<string, unknown>> = []
+  // A blocked sales pitch is rejected on purpose, not missed (lib/blocked-callers.ts).
+  const blocked = await loadBlockedDigits(supabase)
   for (const c of await listTwilioCalls(ours)) {
     if (!(c.direction ?? "").startsWith("inbound")) continue
     const from = toE164(c.from)
     const startedAt = new Date(c.start_time ?? c.date_created).getTime()
     if (!from || isTestNumber(from) || Number.isNaN(startedAt)) continue
+    if (isBlockedNumber(blocked, from)) continue
     if (now - startedAt > MISSED_CALL_LOOKBACK_MS || now - startedAt < MISSED_CALL_GRACE_MS) continue
     // Only a call that has ended can have been missed: the owner was five
     // minutes into a call picked up in the app when this texted the caller
