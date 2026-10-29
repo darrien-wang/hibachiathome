@@ -45,18 +45,27 @@ export async function driveFromBase(origin: string, destination: string): Promis
 }
 
 /**
- * What a bare ZIP is sent to the router as: its USPS town with it, else the
- * ZIP anchored to California. The number alone is never geocoded - "90202"
- * (Bell) matched a place 882 driving miles away and the price API quoted an
- * $832 travel fee (2026-10-29).
+ * Where a bare ZIP is looked up, best first. The number alone is never
+ * geocoded - "90202" (Bell) matched a place 882 driving miles away and the
+ * price API quoted an $832 travel fee (2026-10-29). The ZIP's own area comes
+ * first because a big city's town lookup lands downtown: "92109, CA" is
+ * Pacific Beach, 6 miles short of "San Diego, CA". PO-box ZIPs (90202, 90707)
+ * are not in the map data, so their USPS town answers for them.
  */
-export function zipDestination(zip: string): string {
+export function zipDestinations(zip: string): string[] {
   const z = zip.trim().slice(0, 5)
   const town = cityForZip(z)
-  return town ? `${town}, CA ${z}` : `${z}, CA`
+  return town ? [`${z}, CA`, `${town}, CA`] : [`${z}, CA`]
 }
 
-/** driveFromBase for a ZIP, with the same guard and fallbacks as an address. */
-export function driveFromBaseToZip(origin: string, zip: string): Promise<BaseDrive> {
-  return driveFromBase(origin, zipDestination(zip))
+/** driveFromBase for a ZIP, with the same guard as an address. */
+export async function driveFromBaseToZip(origin: string, zip: string): Promise<BaseDrive> {
+  const [first, ...rest] = zipDestinations(zip)
+  const drive = await driveFromBase(origin, first)
+  if (drive.ok) return drive
+  for (const candidate of rest) {
+    const town = await driveFromBase(origin, candidate)
+    if (town.ok) return { ...town, approximate: true }
+  }
+  return drive
 }
