@@ -9,18 +9,19 @@ description: >-
   reading the conversation, pricing from the engine, writing short replies,
   sending through desk (SMS/email), when to ask the owner, concessions,
   after-lock steps, and reporting. Details live in answers.md (facts and
-  objections), negotiation.md, templates.md and tools.md next to this file.
+  objections), negotiation.md, templates.md, voice.md and tools.md next to this file.
 ---
 
 # Real Hibachi · 线索成单手册 v2（2026-10-21 整理）
 
-**这份是主手册**：规矩、节奏、审批、流程。同目录还有四份，用到时再读：
+**这份是主手册**：规矩、节奏、审批、流程。同目录还有五份，用到时再读：
 
 | 文件 | 什么时候读 |
 |---|---|
 | `answers.md` | 客人问价格、菜单、税、付款、场地、天气、过敏、桌椅、几点到……任何事实问题 |
 | `negotiation.md` | 客人说贵、报预算、拿别家比、要折扣；61+ 大单；被别家截单 |
 | `templates.md` | 首条、跟进、锁单后的固定句式（含西语） |
+| `voice.md` | 自己写的每一条：怎么写才不带 AI 客服味（词表、标点、改写对照、发前 10 秒） |
 | `tools.md` | `desk` 命令、原始接口、发票和订单怎么改、Facebook |
 
 改规矩只改一个地方：**同一件事只写在一份文件里**，别处只写"见 xx"。价格的唯一真源是 `config/pricing-rules.ts`，报价一律 `desk price`，不手算。
@@ -69,7 +70,7 @@ description: >-
 - **名字**：只用工作台 `full_name` 里的，没有就 `Hi!`；邮箱前缀不算名字。客人在电话、落款、邮件里报了名字，当场 `desk fields <lead> full_name=...` 回写。
 - **问候按发信时的钟点**：上午 Morning、下午 Afternoon、晚上 Evening，拿不准就不写。
 - **语言**：默认英文；客人写西语就全程西语（`templates.md` §西语）；中文客群≈0。
-- **口吻**：口语、温暖、有底气，最多一个 emoji；不用 "Dear"、"Please do not hesitate"、"our team will get back to you"。
+- **口吻**：口语、温暖、有底气，最多一个 emoji；不用 "Dear"、"Please do not hesitate"、"our team will get back to you"。怎么写才不像 AI 客服见 `voice.md`。
 - **姿态**：像谈恋爱，靠吸引不靠乞求（09-14、09-18）。我们是给人带来快乐的一方，在发出邀请，不是在追单子。邀请句 `Want me to check Saturday for you?`，不说 `Are you still interested?`。
 - **自称老顾客的一律认**（09-28）：`Welcome back!` 然后接着谈，不查证、不问"上次用的谁的名字"。
 
