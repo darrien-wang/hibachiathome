@@ -21,7 +21,7 @@
 3. 现金折扣，底线之上。
 4. 桌椅最后（成本 $4/人，不比现金折扣便宜）。**例外：订之前主动问桌椅，桌椅就是那一个让步，第一个用**（周六最多半价，其他日子最多免费，D-1017-01）。
 
-只让一次；让了就签进链接，写清有效期（`Good through Sunday - here's the link with that price locked in.`）。锁单后又要东西（蚕食）：报价或换回报，不白给（`Happy to add tables - $10 a guest.`）。
+只让一次；让了就签进链接，写清有效期（`Good through Sunday. Here's the link with that price locked in.`）。锁单后又要东西（蚕食）：报价或换回报，不白给（`Happy to add tables - $10 a guest.`）。
 
 ## 3. 分情况
 
@@ -35,12 +35,12 @@
 
 ## 4. 别家报价更低
 
-1. **先问对方含什么**：`Happy to look at it - does that price include 2 proteins per person, travel, and tables?` 常见：单蛋白、路费另算、桌椅另算、押金不退、无保险。
+1. **先问对方含什么**：`Sure, I can look at it. Does that price include 2 proteins per person, travel, and tables?` 常见：单蛋白、路费另算、桌椅另算、押金不退、无保险。
 2. **先讲差异，不先降价**：只讲具体事实，不说"我们最好"，不点名说别家怎样。老板 10-21 定的两条：
    - **肉**：牛肉是 Costco 的 USDA Choice，前一天买、不冷冻，真黄油做；$45 一位的价位一般用冷冻牛肉，一吃就吃得出来。所以我们的食材成本就是高。
    - **sake**：很多家说带 sake 只带一点；我们带足 2 加仑给大人，很少有派对喝得完（不说 unlimited）。
    - 另外：到场承诺；持证有保险。
-   例句：`Since you mentioned $45 a plate: our beef is USDA Choice from Costco, bought fresh the day before and never frozen - at that price it's usually frozen, and you can taste it. And we bring a full 2 gallons of sake for the adults - few parties ever finish it.`
+   例句：`Since you mentioned $45 a plate: our beef is USDA Choice from Costco, bought fresh the day before and never frozen. At that price it's usually frozen, and you can taste it. And we bring a full 2 gallons of sake for the adults - few parties ever finish it.`
 3. **还要价再让**，底线之上自己定；低于底线问老板，一句话说清别家价和包含项。
 4. **说法主动、干脆、带条件**：`I'll match that - $54.90/adult for your Saturday if we lock it today. Want me to send the link?` 不说 please、不说 we really want your business。
 5. **记情报**：`[COMP] 竞品名 / 报价 / 包含项 / 客人最后怎么定`，汇报里单列一行。价目表不因为一次让价改。
@@ -81,9 +81,9 @@
 
 三条分开发；他刚回过话就立刻发，隔太久就别发了：
 
-1. `Appreciate you telling me - no hard feelings at all. One thing worth knowing before it's locked in: our beef and chicken are bought fresh the day before your party, never frozen, and everything's cooked in real butter.`
-2. `Seafood is the one exception - shrimp and salmon come in frozen, ours and everyone's, because that's the only way they travel safely. I'd rather say that than pretend otherwise.`
-3. `If you're open to it, send me what they quoted and what the upgrades are, and I'll see whether I can get there for [his 59th / your party]. Our food costs more, so I may not be able to match it - but I'd rather check than assume.`
+1. `Appreciate you telling me, no hard feelings at all. One thing worth knowing before it's locked in: our beef and chicken are bought fresh the day before your party, never frozen, and everything's cooked in real butter.`
+2. `Seafood is the one exception. Shrimp and salmon come in frozen, ours and everyone's, because that's the only way they travel safely. I'd rather say that than pretend otherwise.`
+3. `If you're open to it, send me what they quoted and what the upgrades are, and I'll see whether I can get there for [his 59th / your party]. Our food costs more, so I may not be able to match it, but I'd rather check than assume.`
 
 客人还在比、还没拒绝的，用前两条 + `If someone quotes you lower, send me what they're offering and I'll see what I can do on my end.` 他回了数再动：先用交换（周中价、桌椅让价、送前菜），底线之上自己定，匹配不了就照实说、留好印象，不第二次挽留。记 `[compete]`。
 

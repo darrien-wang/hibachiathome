@@ -39,7 +39,7 @@
 - **标价 = 现金价，含税**。定下来之前一个字不提税和付款方式，只报标价。
 - **算总账时**（发票、派对前提醒）才列两张账，数字全由系统出：现金给师傅 = 标价；刷卡 = 标价 + 派对地址实际销售税 + Stripe 3%（借记卡不加）+ 可选 20% 小费。固定问一句 `Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?`
 - **Zelle/Venmo**：客人不问不提。问了才说可以直接给师傅本人，金额 = 现金价 × 1.04（`desk price`、订单弹窗有这个数）。公司的 Zelle/Venmo 账号**永不对客**。
-- **PayPal 也收**（老板 10-24）：和 Venmo/Zelle 一样直接给师傅本人，现金价 × 1.04。客人问到"现金价包不包括 PayPal/Venmo"这类问题时，把不付现金的价差一次说清：`Here's how it comes out - cash $X; PayPal, Venmo or Zelle to your chef $Y; card $Z (that one includes sales tax and card processing).`（三个数都从 `desk order show` 那行抄。）
+- **PayPal 也收**（老板 10-24）：和 Venmo/Zelle 一样直接给师傅本人，现金价 × 1.04。客人问到"现金价包不包括 PayPal/Venmo"这类问题时，把不付现金的价差一次说清：`Here's how it comes out. Cash is $X, PayPal, Venmo or Zelle to your chef is $Y, and card is $Z, since that one includes sales tax and card processing.`（三个数都从 `desk order show` 那行抄。）
 - **公司客户**（要 W-9、公司付款）：标价 + 派对地址销售税；刷卡再加 3%。支票、ACH 收不收没定，问老板。W-9 和保险证明在 `D:\desktop\RealHibachi\company-docs`，客人要了才发。
 - **小费**：不含；20–25% 惯例，100% 给厨师。不淡化，问了就直说 `Not included - 20-25% is customary, and 100% of it goes to the chefs.`
 - **口径是 optional，展示里不说 optional**（老板 10-23，D-1023-01）：发票、派对前提醒、邮件、主动开口都不写这个词（发票小费栏 10-23 已删 "Optional —"，只留它是给什么的）。客人直接问"是不是必须给"才答 `It's optional - 20-25% is customary, and 100% of it goes to your chef.`
@@ -62,8 +62,8 @@
 - **牛肉**：标准牛排是 Costco 的 USDA Choice top sirloin，不冷冻、前一天买；问产地答 `Costco's beef in California comes mostly from Harris Ranch in the Central Valley.` 虾是冷冻袋装的（问了照实说）。
 - **同一种选两次**可以（只吃鸡就两份鸡）；只选豆腐的默认双份豆腐。
 - **白米饭**：客人要可以带，替代炒饭（老板 10-22）；写进订单备注让师傅知道。
-- **12–14 岁**：一般按大人订 `Kids that age usually eat like adults - our kids' plates have half the protein, so I'd book them as adults.`
-- **5–12 岁有的单要问大概几岁**（10-05）：`Quick one on the kids - roughly how old are they? Kids' plates are half portions - plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry.`
+- **12–14 岁**：一般按大人订 `Kids that age usually eat like adults. Our kids' plates have half the protein, so I'd book them as adults.`
+- **5–12 岁有的单要问大概几岁**（10-05）：`Quick one on the kids: roughly how old are they? Kids' plates are half portions. That's plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry.`
 - **素/纯素**：豆腐 + 蔬菜，同价。
 - **无麸质**：可以。**师傅带无麸质酱油和照烧**，单独台面先做；姜汁酱含酱油，无麸质客人的沙拉不放；春卷做不了无麸质。写进订单备注让师傅知道。
 - **鸡蛋过敏**：两种自制酱（yum yum、姜汁）都含蛋，不放。
@@ -79,20 +79,20 @@
 - **厨师人数**：每位厨师 28 人以内，刚过一点也一位（老板 10-13），客人自己要求加人再问老板。**60 人左右两位师傅 + 一位助手、两台灶就够**，不一定要三台（老板 10-26，Temecula 婚礼场地放不下三台时这么答的）。**短信里写了 "two chefs / each chef / two stations" 就是承诺**，系统会记到派工计划里，没打算派两位就别写复数。
 - **到达**：开席前 10–30 分钟（人多早到）；订了桌椅的提前 1 小时摆台。
 - **多久**：表演加吃饭约 90 分钟，师傅边做边上（网站城市页同口径），客人之后可以接着聚。**最早开场**：做过中午 12 点的；网站写 10 月到 5 月适合办午饭场。比中午更早的，老板还没定口径。
-- **"当天要准备什么 / 要不要插座"**：这是在担心，答一个轻松具体的场景（09-19），分两条发：`Here's the day: your chef arrives 10-30 min before start, lays a waterproof mat, sets the grill and hooks up the propane - no outlet, no power needed.` / `If you booked tables and dishes, we set them and you just host. If you're using your own, have them set before we arrive.`
-- **场地**：只在户外做（patio、deck、balcony、车道、帐篷下），座位可以在室内。用比喻不报尺寸：`A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill - send me a photo if you're not sure.` 铺防水防油垫，走前清理。不用插座、不用电，用丙烷。**草地只要平也可以放灶**；客人坐自己的圆桌、不围着灶坐也可以（婚礼这种摆法）——老板 10-26 确认（Temecula 婚礼 60 人发平面图问三台灶放哪）。
+- **"当天要准备什么 / 要不要插座"**：这是在担心，答一个轻松具体的场景（09-19），分两条发：`Here's the day: your chef arrives 10-30 min before start, lays a waterproof mat, sets the grill and hooks up the propane. No outlet or power needed.` / `If you booked tables and dishes, we set them and you just host. If you're using your own, have them set before we arrive.`
+- **场地**：只在户外做（patio、deck、balcony、车道、帐篷下），座位可以在室内。用比喻不报尺寸：`A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill. Send me a photo if you're not sure.` 铺防水防油垫，走前清理。不用插座、不用电，用丙烷。**草地只要平也可以放灶**；客人坐自己的圆桌、不围着灶坐也可以（婚礼这种摆法）——老板 10-26 确认（Temecula 婚礼 60 人发平面图问三台灶放哪）。
 - **灯**：我们不带灯，师傅戴头灯；客人那边太暗要自己备串灯。被问才答。
 - **下雨、大风**（D-1019-03，老板待最终确认，现在照此答）：下雨在带顶的露台或客人备的 10×10 帐篷下做（我们不带帐篷）；大风或红旗预警不安全时，免费改期或取消，48 小时内也不收 $99（以官方 NWS 预警为准）。
 - **最晚几点开场**：不报"最晚"，问他打算几点 `What time do you have in mind? Later starts usually work.` 半夜 12 点以后要先问师傅（这一层不对客说）。
-- **接食游戏**：扔西葫芦，不扔虾 `Yes - the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu.`
-- **酒**：`We bring sake for the adults - it's included.` 只在客人问饮料时说（或比价时当差异讲，见 `negotiation.md` §4）；带足 2 加仑，很少有派对喝得完（老板 10-21），不说 unlimited。喷酒枪客人提了可以认，不主动对带小孩的派对提。
+- **接食游戏**：扔西葫芦，不扔虾 `Yes, the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu.`
+- **酒**：`We bring sake for the adults, it's included.` 只在客人问饮料时说（或比价时当差异讲，见 `negotiation.md` §4）；带足 2 加仑，很少有派对喝得完（老板 10-21），不说 unlimited。喷酒枪客人提了可以认，不主动对带小孩的派对提。
 - **软饮**：$5/位，或客人自备。
 
 ## 桌椅、餐具
 
 - **价格**：桌椅 + 黑桌布 $10/人；盘子餐具 $5/人；全套 $15/人。白桌布每张 +$5（一桌一张，4 人一桌）；只要桌布 $5 一张（适合 6 英尺桌）。筷子跟餐具包走，要就带、不加钱。带租赁的总价用 `desk price --tables N --utensils N`：租赁算在 $599 最低消费和人数折扣之前（10 位大人全套 = $719，不是 $749，D-1009-04），不在引擎价上手加。
 - **长什么样**：发 `/rentals` 实拍（已订的客人带 `?lead_id=`，在页面上选了直接进订单）。椅子是铝框 + 黑色塑料靠背；桌子是 6 英尺折叠桌；4 人一桌；没有白椅子（户外难保持干净）；白桌布是弹力布贴合桌套、带褶裙，不是塑料。
-- **材质**（客人问"塑料还是布""是不是一次性"）：黑白桌布都是布的，用完我们带走；盘子餐具是好一点的硬塑料一次性款（银边白盘、金色刀叉），用完不用洗、不用还。`The tablecloths are fabric, and the plates and utensils are the nicer hard-plastic kind - disposable, so there's nothing to wash.`（10-23 按库存——盘具全是消耗品、桌布是周转品——和实拍照片 hard-plastic-plates 写的，等老板确认。）
+- **材质**（客人问"塑料还是布""是不是一次性"）：黑白桌布都是布的，用完我们带走；盘子餐具是好一点的硬塑料一次性款（银边白盘、金色刀叉），用完不用洗、不用还。`The tablecloths are fabric, and the plates and utensils are the nicer hard-plastic kind. They're disposable, so there's nothing to wash.`（10-23 按库存——盘具全是消耗品、桌布是周转品——和实拍照片 hard-plastic-plates 写的，等老板确认。）
 - **主题盘具**（黑金边、蓝白瓷、红黑）：派对在 7 天以外直接答可以（D-1007-07）；7 天以内先问老板。不对客说"要去网上订"。
 - **订前问桌椅**：这是那一次让步，见 SKILL §5.6。锁单后才问的照常收费。
 - **桌椅只随派对租，不单租**；每天同价（周中不免费）。
