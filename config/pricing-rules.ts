@@ -576,15 +576,20 @@ export function isPromotionActive(id: PromotionId): boolean {
 // ---------------------------------------------------------------
 // Returning customer discount
 // ---------------------------------------------------------------
-// $60 off per 10 full guests (adults + children 5-12; under-5s do not
-// count). Conditional on the customer having booked before, so it lives
+// A flat $50 off (owner 2026-10-29, D-1029-01). It was $60 per 10 guests,
+// set 08-31 before the Party Size Discount went on every party (09-13):
+// stacked in full it took a Saturday 20 to $50.90 a head, and the owner
+// wants a weekend party to average about $55. Stacks with the Party Size
+// Discount, standard tier only, never under the $599 minimum, and only one
+// of the $50 thank-yous (returning, party-guest card, appreciation) per
+// party. Conditional on the customer having booked before, so it lives
 // outside PROMOTIONS — those apply to every quote automatically.
-export const RETURNING_CUSTOMER_DISCOUNT_PER_10_GUESTS = 60
-export const RETURNING_CUSTOMER_DISCOUNT_REMARK = "Returning customer — $60 off per 10 guests"
+export const RETURNING_CUSTOMER_DISCOUNT = 50
+export const RETURNING_CUSTOMER_DISCOUNT_REMARK = "Returning customer — $50 off"
 
 export function calcReturningCustomerDiscount(fullGuestCount: number): number {
   if (!Number.isFinite(fullGuestCount) || fullGuestCount <= 0) return 0
-  return RETURNING_CUSTOMER_DISCOUNT_PER_10_GUESTS * Math.floor(fullGuestCount / 10)
+  return RETURNING_CUSTOMER_DISCOUNT
 }
 
 // Flat $50 off for people who attended a Real Hibachi party and hold one of

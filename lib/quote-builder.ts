@@ -57,7 +57,7 @@ export type QuoteInput = {
   addOns: QuoteAddOns
   /**
    * How the customer already knows us (standard tier only, never stacks):
-   * "returning" — booked before, $60 off per 10 full guests;
+   * "returning" — booked before, flat $50 off (owner 2026-10-29; was $60 per 10 guests);
    * "party_guest" — attended one of our parties and holds a printed card, flat $50 off.
    */
   loyaltyStatus?: "returning" | "party_guest"
@@ -249,9 +249,13 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   const floorHigh = Math.max(subtotalRange.high - partySizeDiscount, MINIMUM_SPEND)
   const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotalRange.low - floorLow))
 
+  // A thank-you never takes a party under the $599 minimum (owner 2026-10-29):
+  // a party already at the minimum gets no loyalty dollars.
+  const loyaltyLow = Math.min(loyaltyDiscount, Math.max(0, floorLow - MINIMUM_SPEND))
+  const loyaltyHigh = Math.min(loyaltyDiscount, Math.max(0, floorHigh - MINIMUM_SPEND))
   const totalBeforeTravelRange: QuoteRange = {
-    low: Math.max(floorLow - loyaltyDiscount, 0),
-    high: Math.max(floorHigh - loyaltyDiscount, 0),
+    low: roundCurrency(floorLow - loyaltyLow),
+    high: roundCurrency(floorHigh - loyaltyHigh),
   }
 
   const effectiveBase = Math.max(packageSubtotal, MINIMUM_SPEND)
@@ -286,7 +290,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     partySizeDiscountApplied,
     partySizeDiscountLabel: partySizeDiscountApplied > 0 ? partySizeDiscountLabel({ adults, kids }) : null,
     addOnTotalRange,
-    loyaltyDiscount,
+    loyaltyDiscount: roundCurrency(loyaltyLow),
     totalRange,
     weekdaySaver: {
       isWeekdayEligible,
