@@ -21,7 +21,7 @@ description: >-
 | `answers.md` | 客人问价格、菜单、税、付款、场地、天气、过敏、桌椅、几点到……任何事实问题 |
 | `negotiation.md` | 客人说贵、报预算、拿别家比、要折扣；61+ 大单；被别家截单 |
 | `templates.md` | 首条、跟进、锁单后的固定句式（含西语） |
-| `voice.md` | 自己写的每一条：怎么写才不带 AI 客服味（词表、标点、改写对照、发前 10 秒） |
+| `voice.md` | **每次写对客英文之前都读**（不是用到才读）：怎么写才不带 AI 客服味，§2 十条规则、§4 照抄就自然的回法、§5 改写对照 |
 | `tools.md` | `desk` 命令、原始接口、发票和订单怎么改、Facebook |
 
 改规矩只改一个地方：**同一件事只写在一份文件里**，别处只写"见 xx"。价格的唯一真源是 `config/pricing-rules.ts`，报价一律 `desk price`，不手算。
@@ -101,9 +101,9 @@ description: >-
 
 **③ 算价**：`desk price --adults N --kids K --date YYYY-MM-DD --zip Z [--tables N --utensils N]`。短信里不出现没过引擎的数。31–60 人照阶梯直接报引擎价，不自己加让价；61+ 见 `negotiation.md`。
 
-**④ 写**：原则在 §1、§5，句式在 `templates.md`，事实在 `answers.md`。
+**④ 写**：原则在 §1、§5，句式在 `templates.md`，事实在 `answers.md`，**口吻按 `voice.md`**：第一句答他刚问的；客人那句话在 `voice.md` §4 表里有的，照那个回法写；写完自己过一遍 §6，不靠 ⑤ 的检查兜底。
 
-**⑤ 发**：`desk send <手机> --lead <id> --body-file f.txt --seen <① 打出的时间>`（非 ASCII 用 file）。发之前 desk 自己再读一遍 Twilio 对话：客人在 `--seen` 那条之后又发了（没带 `--seen`：90 秒内刚到的），就**不发**，打出那几条、exit 2——读完，稿子还接得上就带它打出的新 `--seen` 发，接不上就改了再发（细则见 `tools.md`）。刹车 409（daily 每 24 小时主动 2 条 / spacing 3 小时 / followup_cap 3 条 / sweep 10 分钟 6 条 / asked_known_date / just_answered）**默认就是对的**。`--force` 只用于两种：答应过客人的回复（电话里说了"马上发链接"），或老板点过头的那一条；它只放行服务器刹车，**不跳过未读这一道**。未读之后 desk 还按 `voice.md` §6 数一遍稿子（`!`、emoji、情绪词开头、`your 17`、禁词……），✗ 的命中就不发、打出规则，改了再发，确实该这么写的带 `--voice-ok`；· 的只提醒。`desk send` 会清掉挂起，所以**先发后挂**。首条报价手机、邮箱都有的，短信之外再发一封稍长的邮件（09-14；机器的模板 A 就是这样双发的）；之后客人在哪个渠道说话就在哪回。
+**⑤ 发**：`desk send <手机> --lead <id> --body-file f.txt --seen <① 打出的时间>`（非 ASCII 用 file）。发之前 desk 自己再读一遍 Twilio 对话：客人在 `--seen` 那条之后又发了（没带 `--seen`：90 秒内刚到的），就**不发**，打出那几条、exit 2——读完，稿子还接得上就带它打出的新 `--seen` 发，接不上就改了再发（细则见 `tools.md`）。刹车 409（daily 每 24 小时主动 2 条 / spacing 3 小时 / followup_cap 3 条 / sweep 10 分钟 6 条 / asked_known_date / just_answered）**默认就是对的**。`--force` 只用于两种：答应过客人的回复（电话里说了"马上发链接"），或老板点过头的那一条；它只放行服务器刹车，**不跳过未读这一道**。未读之后 desk 还按 `voice.md` §6 数一遍稿子（`!`、emoji、情绪词开头、`your 17`、禁词……），✗ 的命中就不发、打出规则；· 的只提醒。被拦了：照打出的那条规则改写（不是删掉那个词就完，整句按 `voice.md` §4 重写），带同一个 `--seen` 再发，客人那边什么都看不到。`--voice-ok` 只给确实该这么写的（引用客人的原话、客人自己先用了那个词），用了在 `desk note` 里写一句为什么（`[voice-ok] 引用他的 "amazing"`）。同一条规则一周被拦好几次，说明 `voice.md` 或句式库哪里还在教错的写法，报给老板改源头。`desk send` 会清掉挂起，所以**先发后挂**。首条报价手机、邮箱都有的，短信之外再发一封稍长的邮件（09-14；机器的模板 A 就是这样双发的）；之后客人在哪个渠道说话就在哪回。
 
 **⑥ 记**：`desk note <lead> "<标签> 人话"`。标签：`[SOP:类型]`（每条外发的用途：first_response / f_one / f_deadline / deposit_ask / tables / g_menu / b_callback / answer …，周报按它算效果）、`[occasion]` 场合、`[why]` 客人说的原因、`[callback]` 他定的回话时间、`[data]` 日期人数地址、`[owner]` 老板拍板、`[default30]` 老板 30 分钟没回按建议做、`[concession]` 让步、`[won]`/`[lost]`（流失要和 `[why]` 一起写）。人数、名字当场 `desk fields` 回写。
 
