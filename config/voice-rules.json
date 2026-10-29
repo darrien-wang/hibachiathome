@@ -1,0 +1,37 @@
+{
+  "_about": "What makes a customer text read like an AI support bot (owner 2026-10-29, .claude/skills/leads/voice.md). One list for both checks: scripts/desk/desk.py voice_check (every desk send) and lib/voice-check.ts (tests/voice-check.test.ts runs every machine-written text through it). Patterns are regex fragments that read the same in Python and JavaScript, matched case-insensitively.",
+  "limits": {
+    "bangs": 1,
+    "emoji": 1,
+    "splices": 1,
+    "reintroHours": 24
+  },
+  "openers": [
+    "perfect", "absolutely", "of course", "totally", "great question", "great choice", "good news",
+    "love (?:it|that)", "yay", "certainly", "wonderful", "amazing"
+  ],
+  "reactionOpeners": [
+    "done", "got it", "no rush", "no worries", "no problem(?: at all)?", "sounds good", "yes", "yep", "great",
+    "awesome", "easy", "ha", "okay", "ok", "sure", "good question", "congrats", "thanks", "thank you",
+    "correct", "exactly", "nice", "gotcha"
+  ],
+  "headcountNouns": [
+    "adults?", "guests?", "people", "kids?", "children", "boys", "girls", "friends", "ladies", "guys", "family",
+    "coworkers", "employees", "students", "members", "folks", "plates", "portions?", "teens", "seniors", "of you"
+  ],
+  "banned": [
+    "thank you for reaching out", "thanks for your interest", "hope this (?:message )?finds you well", "hope you're doing well",
+    "i'd be (?:happy|glad) to", "happy to help", "i (?:completely )?understand your", "let me know if you have any",
+    "is there anything else", "feel free to", "don't hesitate", "hope this helps", "look forward to serving",
+    "have a (?:wonderful|great) day", "our pleasure",
+    "apologi[sz]e for (?:any|the) inconvenience", "appreciate your patience", "rest assured", "sorry for any confusion",
+    "unforgettable", "a night to remember", "seamless", "elevate", "curated", "premium experience", "memorable experience",
+    "exceptional", "an amazing \\w+", "we're (?:so )?excited", "so happy too", "can't wait to cook",
+    "additionally", "furthermore", "moreover", "that being said", "please note that", "not just (?:a |an )?\\w+, it's",
+    "whether you're", "here's what you need to know", "one nice thing about", "quick heads-up",
+    "just checking in", "touching base", "haven't heard back", "sorry to bother", "please let me know",
+    "whenever you get a chance", "still interested", "any update", "love to have your business", "hope to hear from you",
+    "take your time"
+  ],
+  "greetings": ["hi", "hey", "hello", "morning", "afternoon", "evening", "good"]
+}

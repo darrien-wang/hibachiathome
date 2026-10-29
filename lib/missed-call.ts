@@ -4,7 +4,7 @@
 
 // Opens with the house signature so the SMS brakes read it as automated.
 export const MISSED_CALL_TEXT =
-  "Real Hibachi: sorry we missed your call - text here with your date and city and we'll answer right away."
+  "Real Hibachi: sorry we missed your call. Text your date and city here and we'll answer right away."
 
 export function missedCallTouchpointId(callSid: string): string {
   return `missed:${callSid}`

@@ -125,7 +125,7 @@ test("template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum
   const one = templateAMessage({ adults: 1, kids: 0, cityName: "La Puente", travelFee: 0 })
   assert.equal(
     one.sms,
-    "Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 1 adult in La Puente it's $599.00 any day of the week, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show). That's our 10-guest minimum, so it covers up to 10 guests. What date are you thinking?",
+    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 1 adult in La Puente it's $599.00 any day of the week, no travel fee. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. That's our 10-guest minimum, so it covers up to 10 guests. What date are you thinking?",
   )
   assert.match(one.emailText, /^- 1 adult, Fri-Sun: \$599\.00 total$/m)
   assert.match(one.emailText, /^- That's our 10-guest minimum, so it covers up to 10 guests\.$/m)
@@ -137,14 +137,14 @@ test("template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum
 
 test("template A: travel stays its own phrase, and more than 10 on the minimum are all covered", () => {
   const bigBear = templateAMessage({ adults: 4, cityName: "Big Bear Lake", travelFee: 33 })
-  assert.match(bigBear.sms, /it's \$599\.00 any day of the week, plus about \$33 travel \(.*\)\. That's our 10-guest minimum, so it covers up to 10 guests\. What date/)
+  assert.match(bigBear.sms, /it's \$599\.00 any day of the week, plus about \$33 travel\. Each guest gets .*\. That's our 10-guest minimum, so it covers up to 10 guests\. What date/)
   assert.match(templateAMessage({ adults: 2, kids: 9, cityName: "Downey" }).sms, /That's our \$599 minimum, which covers all 11 guests\./)
 })
 
-test("template A: no note once Fri-Sun clears the minimum - 15 adults reads exactly as before", () => {
+test("template A: no note once Fri-Sun clears the minimum (wording per leads voice.md 2026-10-29)", () => {
   assert.equal(
     templateAMessage({ adults: 15, cityName: "Anaheim" }).sms,
-    "Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 15 adults in Anaheim it's $838.50 Fri-Sun or $763.50 Mon-Thu, no travel fee (2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?",
+    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 15 adults in Anaheim it's $838.50 Fri-Sun or $763.50 Mon-Thu, no travel fee. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. What date are you thinking?",
   )
   assert.doesNotMatch(templateAMessage({ adults: 11, cityName: "Torrance" }).sms, /minimum/, "$628.90 Fri-Sun or $599.00 Mon-Thu")
 })
@@ -190,12 +190,12 @@ test("first party-contact text: name, day, wall time, street only", () => {
     address: "452 North Monterey Road, Palm Springs, CA 92262",
     now: Date.parse("2026-10-07T20:00:00Z"),
   })
-  assert.equal(text, "Hi Ellen, Bling from Real Hibachi 👋 Your hibachi party is Sat, Oct 10 at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or let me know if anything's changed.")
+  assert.equal(text, "Hi Ellen, it's Bling from Real Hibachi. Your party is Saturday the 10th at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or tell me what changed.")
 })
 
 test("first party-contact text without a usable name or address", () => {
   const text = partyContactFirstText({ customerName: "+1 (310) 555-0100", eventStart: "2026-10-11T17:00:00+00:00", address: "", now: 0 })
-  assert.equal(text, "Hi, Rowling from Real Hibachi 👋 Your hibachi party is Sun, Oct 11 at 5 PM. Reply YES if everything's still set, or let me know if anything's changed.")
+  assert.equal(text, "Hi, it's Rowling from Real Hibachi. Your party is Sunday, Oct 11 at 5 PM. Reply YES if everything's still set, or tell me what changed.")
 })
 
 test("second text says tomorrow or today by the PT calendar", () => {
@@ -203,7 +203,7 @@ test("second text says tomorrow or today by the PT calendar", () => {
   // Oct 12, 7 PM PDT = Oct 13 02:00Z
   assert.equal(
     partyContactSecondText({ ...base, now: Date.parse("2026-10-13T02:00:00Z") }),
-    "Hi Carlos, Rowling here - just making sure we're all set for tomorrow at 6:30 PM at 5556 Myrtle Ave. Could you reply so I know you got this? 🙏",
+    "Hi Carlos, it's Rowling. Just making sure we're set for tomorrow at 6:30 PM at 5556 Myrtle Ave. Could you reply so I know you got this?",
   )
   // Oct 13, 8 AM PDT = 15:00Z
   assert.match(partyContactSecondText({ ...base, now: Date.parse("2026-10-13T15:00:00Z") }), /set for today at 6:30 PM/)
@@ -253,9 +253,9 @@ test("partyBillDue: never twice, never when nothing is owed", () => {
 
 test("partyBillText: first name, signer, the order's own pay link, cash still fine, never 'optional'", () => {
   const text = partyBillText({ signer: "Bling", customerName: "Matthew Katz", payUrl: payUrlFor("d1233d22-a8f8-4ca3-8e40-78fe43c4495e") })
-  assert.match(text, /^Hi Matthew, Bling from Real Hibachi/)
+  assert.match(text, /^Hi Matthew, it's Bling from Real Hibachi\. Hope the party's going well\./)
   assert.match(text, /https:\/\/www\.realhibachi\.com\/pay\?o=d1233d22-a8f8-4ca3-8e40-78fe43c4495e/)
   assert.match(text, /Cash to your chef works too\.$/)
   assert.doesNotMatch(text, /optional/i)
-  assert.match(partyBillText({ customerName: "", payUrl: "x" }), /^Hi, Rowling from Real Hibachi/)
+  assert.match(partyBillText({ customerName: "", payUrl: "x" }), /^Hi, it's Rowling from Real Hibachi/)
 })

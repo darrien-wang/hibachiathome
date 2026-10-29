@@ -178,11 +178,11 @@ export function draftSms(campaign: Campaign, c: CustomerRow, lastEvent: Customer
   const what = occasion === "birthday" ? "birthday party" : occasion === "bachelorette" ? "bachelorette party" : occasion === "wedding" ? "wedding celebration" : occasion === "graduation" ? "graduation party" : "party"
   switch (campaign) {
     case "anniversary":
-      return `${hi}it's ${sender} from Real Hibachi. We cooked for your ${what}${where}${lastWhen}! That date is coming around again — want the chef back this year? Reply YES and I'll send open dates, with ${REMINDER_OFFER} as a thank-you. Reply STOP to opt out.`
+      return `${hi}it's ${sender} from Real Hibachi. We cooked for your ${what}${where}${lastWhen}, and that date is coming around again. Want the chef back this year? Reply YES and I'll send open dates, with ${REMINDER_OFFER} as a thank-you. Reply STOP to opt out.`
     case "winback":
-      return `${hi}it's ${sender} from Real Hibachi. It's been a while since we cooked at your place${where} — any celebrations coming up? Reply with a date and I'll check the chef calendar, with ${REMINDER_OFFER} for coming back. Reply STOP to opt out.`
+      return `${hi}it's ${sender} from Real Hibachi. It's been a while since we cooked at your place${where}. Any celebrations coming up? Reply with a date and I'll check the chef calendar, with ${REMINDER_OFFER} for coming back. Reply STOP to opt out.`
     case "referral":
-      return `${hi}${sender} from Real Hibachi here. Thanks again for having us${where}${lastWhen}! If a friend books a party, you get $50 and they get $50 off — just have them text REFER to this number. Reply STOP to opt out.`
+      return `${hi}${sender} from Real Hibachi here. Thanks again for having us${where}${lastWhen}! If a friend books a party, you get $50 and they get $50 off. Just have them text REFER to this number. Reply STOP to opt out.`
     default:
       return ""
   }

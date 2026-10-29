@@ -1,0 +1,104 @@
+PASS  tiers: desk's read of config/pricing-rules.ts equals the TS export
+PASS  tiers: 8+2 is 9 paying heads (no tier), 11+1 is 11 (official_party10 $30), 14+2 is 15 (official_party15 $60)
+PASS  --headcount 11/1 on a quick-mode order: counts set, official_party10 added, TOTAL $838.80 = desk price, --dry saves nothing
+PASS    saved: 11/1, the menu, tables/utensils for 12, and exactly the official party10 line
+PASS  --headcount alone says the menu and the per-guest setup still count the old party
+PASS  --add-adult on a quick-mode order points at --headcount (not --proteins)
+PASS  --headcount refuses an order with guest rows
+PASS  --headcount works on a fresh order (detailed, no rows yet)
+PASS  a stored order missing its tier: TOTAL CHECK FAILED, $868.80 vs desk price $838.80, $30.00 too much, fix named
+PASS    --retier on it: official_party10 added, nothing else, ✓ $838.80
+PASS    the same order with official_party10: ✓
+PASS    --retier on a wrong tier (official_party15 for 11 heads) replaces it
+PASS    --retier when the line is right: says so, nothing to change
+PASS  --remove-guest 15 -> 14: official_party15 $60 becomes official_party10 $30 in place, the other lines untouched, ✓
+PASS  --add-adult 14 -> 15: official_party10 becomes official_party15
+PASS  --guests-file 16 adults on an 8+2 order: official_party15 $60 added, rows carry the setup, ✓ $1,138.40
+PASS  under 10 paying heads: the party line comes off, and the $599 minimum check still matches
+PASS  61+ is a custom quote: line left as it is, said so, check skipped
+PASS  appreciation on the order: no party line added, said why, ✓ with the stand-in noted
+PASS  --remove-promo official_party10 in the same command: not put back
+PASS  --headcount 14/2 with a 'Little kids ×1' line: childCount 3, 15 paying heads -> official_party15, ✓
+PASS  --headcount 12/1/1 on a quick-mode order: childCount 2, the Little kids ×1 line added, ✓ $718.70
+PASS    12/1/2 on an order whose line said ×1: childCount 3, the line ×2 in place, ✓ $718.70
+PASS    12/1/0: the line comes off, childCount 1, ✓ $718.70
+PASS    14/0/3: three toddlers never move the tier (official_party10 stays)
+PASS    a fresh order (detailed, no rows yet) takes it too
+PASS    --headcount 12/1/x is refused
+PASS    --headcount 12/1/1/1 is refused
+PASS    --headcount 0/0/2 is refused
+PASS  a little kid's row with its $0 line: ✓
+PASS  a little kid's row billed at the child price (no $0 line): loud, $29.90 too much
+PASS  --guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $718.70
+PASS    a list with one toddler on an order whose line said ×2: the line becomes ×1 in place, ✓ $718.70
+PASS    a list with no toddler on an order with a ×1 line: the line comes off, said why, ✓ $718.70
+PASS    a guest who is not little still needs two proteins
+PASS  --remove-guest of a toddler: the line drops to ×1 in place, ✓ $718.70
+PASS    both toddlers: the line comes off
+PASS  --remove-guest of a paying kid leaves the toddler's line alone, ✓ $688.80
+PASS  a Monday order with its Weekday Special and free gyoza: ✓ $628.80
+PASS  --headcount 13/0 on it: the frozen weekday line is called out, the check is $5.00 too much, fix named
+PASS  --free-appetizer edamame on it (the line drops $5 with the tray): ✓ $628.80, the free edamame netted
+PASS  20 adults on a Monday, two free gyoza on the weekday line ($30 + 20 x $5): ✓ $1,038.00
+PASS    the same with one of the two gyoza bought ($15 + 20 x $5): ✓ $1,053.00, the bought tray billed
+PASS  a weekday line refunding a gyoza the order does not carry: loud, $15.00 too little
+PASS  6 adults + a paid gyoza tray under the $599 minimum: ✓ $599.00
+PASS  a past Monday party: compared at the weekday rate its lines imply, ✓
+PASS  order set prints what the invoice engine added, the totals again, and the lint after the save
+PASS  order set --reconcile saves the order as it stands
+PASS  order show prints the ⚠ 缺项 block with the fix
+PASS  order remind refuses an order the lint says is missing something
+PASS    --dry shows the text and that it would be held
+PASS    --force sends it anyway
+PASS    a clean order is texted as before
+PASS  send: the prom reply 5 s after the customer's second text, no --seen: stopped (exit 2, nothing sent), both fresh texts and the exact --seen printed
+PASS    --seen 18:53 (their first text, the one we answered): stopped, only the text after it printed
+PASS    --seen to the second of their first text: stopped
+PASS    --force alone does not skip it: stopped, and says so
+PASS    --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds
+PASS    --seen to the second of their last text: sent, the payload as before (phone, body, lead, no force), staff list never read
+PASS    --force with --seen (the API's UTC form): sent, force still passed on to the server's brakes
+PASS    a picture is stopped the same way, before anything is uploaded
+PASS    ... and goes with --seen (MM-DD HH:MM:SS): uploaded and sent with its link
+PASS    a --seen desk cannot read is refused before anything is read or sent
+PASS    --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed
+PASS    --seen 18:56 (HH:MM of their last text, 106 s old, alone in its minute): sent
+PASS    no --seen, their last text 106 s old: sent (only the last 90 s are checked without --seen)
+PASS    our own text 20 s before (any desk, the App, the machine) is not one of theirs: sent
+PASS    a number with no texts at all: sent
+PASS  send: JT's 10-21 tables answer, 3 s after 'When do you need the menu buy?', no --seen: stopped, both fresh texts printed
+PASS    --seen 20:06 two minutes on, two of JT's texts in that minute: stopped on the second (HH:MM names the first)
+PASS    --seen to the second of the later one: sent
+PASS  send: JT's 10-23 bill reply, read up to 'Please forward me the complete bill': stopped, the two texts after it printed
+PASS    the same with no --seen: stopped on the 90 s rule (58 s and 50 s old)
+PASS    a tapback is a text of theirs too (Loved … 30 s before): stopped
+PASS  send: a staff number's 好的 20 s before does not stop a text to them (not a lead)
+PASS    the same number when it is not on the staff list: stopped
+PASS  voice: 'Perfect - ... ! 🥩🍤' is stopped (exit 2, nothing sent): emotion-word opener and two emoji named
+PASS    two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke stop it; the two ' - ' are a note
+PASS    'Great question!' and 'Let me know if you have any' stop it; the parenthesis is a note
+PASS    the same first two words as our last text ('Either works'): a note, sent
+PASS    'No rush - ' opener: a note, sent
+PASS    two texts that both open 'Hi, it's ...' days apart: no same-opener note, sent clean
+PASS    the first text a person sends gives the name even though the customer wrote first: sent clean
+PASS    'your 16 adults' (a noun after the number) is ordinary English: sent clean
+PASS    'nothing is charged today' after only the site's automatic quote said it: sent clean (the first link a person sends says it)
+PASS    'nothing is charged today' said to this customer before: named
+PASS    an em dash: named
+PASS    --voice-ok: sent, the hits still printed
+PASS    clean: 'Congrats to your son - prom is a big one! Is it a dinner bef' sent, no VOICE line
+PASS    clean: 'Yes, noon works. Your chef will get there around 11:30 to se' sent, no VOICE line
+PASS    clean: "Happy birthday! When's the party?" sent, no VOICE line
+PASS    clean: '30 people is $1,707 with tax if you pay cash.' sent, no VOICE line
+PASS    clean: 'Got it, 7:30 then.' sent, no VOICE line
+PASS    clean: 'Anytime. See you on the 17th.' sent, no VOICE line
+PASS    clean: 'Could you send me the street address when you have a minute?' sent, no VOICE line
+PASS    clean: "Your chef is Blu. He'll be there around 5 to set up. 🔥" sent, no VOICE line
+PASS    clean: "Hi, it's Rowling from Real Hibachi. Saturday the 18th is ope" sent, no VOICE line
+PASS    unread comes first: the prom reply with no --seen stops on UNREAD, the voice check is not reached
+PASS  thread: ends with the --seen for a reply, to the second of their last text
+PASS  card: the same line under the conversation
+PASS  --seen 23:58 read at 00:03 is last night's minute
+PASS  --seen 12-31 23:59:30 early on New Year's Day is last year's, that second
+
+all passed

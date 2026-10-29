@@ -1,0 +1,2156 @@
+
+> my-v0-project@0.1.0 test
+> npx -y tsx --tsconfig ./tsconfig.json --test tests/*.test.ts
+
+TAP version 13
+# Subtest: address · real addresses customers sent are still found
+ok 1 - address · real addresses customers sent are still found
+  ---
+  duration_ms: 2.84737
+  type: 'test'
+  ...
+# Subtest: address · prices, headcounts and durations are not addresses
+ok 2 - address · prices, headcounts and durations are not addresses
+  ---
+  duration_ms: 0.406183
+  type: 'test'
+  ...
+# Subtest: address · a price earlier in the text does not hide a real address after it
+ok 3 - address · a price earlier in the text does not hide a real address after it
+  ---
+  duration_ms: 0.194065
+  type: 'test'
+  ...
+# Subtest: a bare street line gets the town it was quoted for (RH-20261022-0063: '210 Georgina Avenue')
+ok 4 - a bare street line gets the town it was quoted for (RH-20261022-0063: '210 Georgina Avenue')
+  ---
+  duration_ms: 30.229003
+  type: 'test'
+  ...
+# Subtest: a bare street line with no town: OpenStreetMap places it when Southern California has only one
+ok 5 - a bare street line with no town: OpenStreetMap places it when Southern California has only one
+  ---
+  duration_ms: 2.140806
+  type: 'test'
+  ...
+# Subtest: a street several towns share, with nothing to choose between them, is not guessed
+ok 6 - a street several towns share, with nothing to choose between them, is not guessed
+  ---
+  duration_ms: 2.037119
+  type: 'test'
+  ...
+# Subtest: a full address without commas is read by the Census (RH-20261022-5789)
+ok 7 - a full address without commas is read by the Census (RH-20261022-5789)
+  ---
+  duration_ms: 0.812076
+  type: 'test'
+  ...
+# Subtest: a trailing ', USA' is dropped and the Census form kept (RH-20261022-7105)
+ok 8 - a trailing ', USA' is dropped and the Census form kept (RH-20261022-7105)
+  ---
+  duration_ms: 1.677786
+  type: 'test'
+  ...
+# Subtest: the city is the USPS name for the ZIP, not the Census's place name
+ok 9 - the city is the USPS name for the ZIP, not the Census's place name
+  ---
+  duration_ms: 1.168288
+  type: 'test'
+  ...
+# Subtest: the apartment or unit the customer typed is kept - the Census drops it, the chef needs it
+ok 10 - the apartment or unit the customer typed is kept - the Census drops it, the chef needs it
+  ---
+  duration_ms: 2.039723
+  type: 'test'
+  ...
+# Subtest: with every service down, an address that carries its ZIP is still put in form from what was typed
+ok 11 - with every service down, an address that carries its ZIP is still put in form from what was typed
+  ---
+  duration_ms: 1.421113
+  type: 'test'
+  ...
+# Subtest: nothing to standardize without a house number; a Census match outside California is refused
+ok 12 - nothing to standardize without a house number; a Census match outside California is refused
+  ---
+  duration_ms: 1.784466
+  type: 'test'
+  ...
+# Subtest: tidyStreet: the street line the way Google and USPS print it
+ok 13 - tidyStreet: the street line the way Google and USPS print it
+  ---
+  duration_ms: 0.680926
+  type: 'test'
+  ...
+# Subtest: a blocked number matches however Twilio writes the caller
+ok 14 - a blocked number matches however Twilio writes the caller
+  ---
+  duration_ms: 0.989184
+  type: 'test'
+  ...
+# Subtest: no database, or a failed read, blocks nobody - every call rings
+ok 15 - no database, or a failed read, blocks nobody - every call rings
+  ---
+  duration_ms: 0.349487
+  type: 'test'
+  ...
+# Subtest: rows read back as ten digits
+ok 16 - rows read back as ten digits
+  ---
+  duration_ms: 0.777043
+  type: 'test'
+  ...
+# Subtest: counting a rejected call never throws
+ok 17 - counting a rejected call never throws
+  ---
+  duration_ms: 0.324349
+  type: 'test'
+  ...
+# Subtest: callback · Jose's two texts on 10-09 ring
+ok 18 - callback · Jose's two texts on 10-09 ring
+  ---
+  duration_ms: 2.56142
+  type: 'test'
+  ...
+# Subtest: callback · other ways of asking for a call
+ok 19 - callback · other ways of asking for a call
+  ---
+  duration_ms: 0.194433
+  type: 'test'
+  ...
+# Subtest: callback · not a request for us to call
+ok 20 - callback · not a request for us to call
+  ---
+  duration_ms: 0.192304
+  type: 'test'
+  ...
+# Subtest: callback · the ring says a name, or the last four digits
+ok 21 - callback · the ring says a name, or the last four digits
+  ---
+  duration_ms: 0.409785
+  type: 'test'
+  ...
+# Subtest: callback · rings 8 AM to 10 PM Pacific only
+ok 22 - callback · rings 8 AM to 10 PM Pacific only
+  ---
+  duration_ms: 14.790055
+  type: 'test'
+  ...
+# Subtest: caller card · April after the 11:28 concession
+ok 23 - caller card · April after the 11:28 concession
+  ---
+  duration_ms: 21.408424
+  type: 'test'
+  ...
+# Subtest: caller card · April at 11:15: the $1,337.40 we had texted, as written
+ok 24 - caller card · April at 11:15: the $1,337.40 we had texted, as written
+  ---
+  duration_ms: 0.648667
+  type: 'test'
+  ...
+# Subtest: caller card · a number we know nothing about gets no card
+ok 25 - caller card · a number we know nothing about gets no card
+  ---
+  duration_ms: 0.293201
+  type: 'test'
+  ...
+# Subtest: caller card · no name: the party still shows (the number is on screen anyway)
+ok 26 - caller card · no name: the party still shows (the number is on screen anyway)
+  ---
+  duration_ms: 0.355008
+  type: 'test'
+  ...
+# Subtest: caller card · a booked party: total, start time, locked, 今天 / 明天 / 日期待定
+ok 27 - caller card · a booked party: total, start time, locked, 今天 / 明天 / 日期待定
+  ---
+  duration_ms: 0.69194
+  type: 'test'
+  ...
+# Subtest: caller card · a returning customer says so
+ok 28 - caller card · a returning customer says so
+  ---
+  duration_ms: 0.283127
+  type: 'test'
+  ...
+# Subtest: caller card · dates and money read the way they were quoted
+ok 29 - caller card · dates and money read the way they were quoted
+  ---
+  duration_ms: 0.491361
+  type: 'test'
+  ...
+# Subtest: caller card · the price is the one the text gives, not its parts
+ok 30 - caller card · the price is the one the text gives, not its parts
+  ---
+  duration_ms: 3.110202
+  type: 'test'
+  ...
+# Subtest: caller card · the name we greeted them by
+ok 31 - caller card · the name we greeted them by
+  ---
+  duration_ms: 0.588637
+  type: 'test'
+  ...
+# Subtest: caller card · names; a phone number or a stand-in is no name
+ok 32 - caller card · names; a phone number or a stand-in is no name
+  ---
+  duration_ms: 1.068123
+  type: 'test'
+  ...
+# Subtest: caller card · a note's date without a year is the next one after the note
+ok 33 - caller card · a note's date without a year is the next one after the note
+  ---
+  duration_ms: 0.681486
+  type: 'test'
+  ...
+# Subtest: caller card · the party size a price was for
+ok 34 - caller card · the party size a price was for
+  ---
+  duration_ms: 1.129361
+  type: 'test'
+  ...
+# Subtest: caller card · April's timeline: her name from our greeting, Monday from the note, $1,225
+ok 35 - caller card · April's timeline: her name from our greeting, Monday from the note, $1,225
+  ---
+  duration_ms: 1.153511
+  type: 'test'
+  ...
+# Subtest: caller card · 'OWNER DECISION 09-28' in a note is not Dec 9: the party date is the real one
+ok 36 - caller card · 'OWNER DECISION 09-28' in a note is not Dec 9: the party date is the real one
+  ---
+  duration_ms: 0.225042
+  type: 'test'
+  ...
+# Subtest: caller card · a price for another headcount is passed over (912-944-5781: 30, not the 15 we asked about)
+ok 37 - caller card · a price for another headcount is passed over (912-944-5781: 30, not the 15 we asked about)
+  ---
+  duration_ms: 0.264353
+  type: 'test'
+  ...
+# Subtest: caller card · rides on the App leg as one parameter that survives the trip
+ok 38 - caller card · rides on the App leg as one parameter that survives the trip
+  ---
+  duration_ms: 0.969044
+  type: 'test'
+  ...
+# Subtest: caller card · line 2: the customer's last text and the channel (owner 2026-10-20)
+ok 39 - caller card · line 2: the customer's last text and the channel (owner 2026-10-20)
+  ---
+  duration_ms: 0.308262
+  type: 'test'
+  ...
+# Subtest: caller card · both lines travel in one card; nothing known reads 新号码 · 无记录
+ok 40 - caller card · both lines travel in one card; nothing known reads 新号码 · 无记录
+  ---
+  duration_ms: 0.763329
+  type: 'test'
+  ...
+# Subtest: textDate · 今天 / 昨天 / 月日
+ok 41 - textDate · 今天 / 昨天 / 月日
+  ---
+  duration_ms: 0.120098
+  type: 'test'
+  ...
+# Subtest: chef rule · April: 35 invoice adults, all counted as kids -> 17.5 heads, $227.50
+ok 42 - chef rule · April: 35 invoice adults, all counted as kids -> 17.5 heads, $227.50
+  ---
+  duration_ms: 1.525735
+  type: 'test'
+  ...
+# Subtest: chef rule · a number moves only that many adults; more than there are moves them all
+ok 43 - chef rule · a number moves only that many adults; more than there are moves them all
+  ---
+  duration_ms: 0.218968
+  type: 'test'
+  ...
+# Subtest: chef rule · no rule or a bad rule changes nothing
+ok 44 - chef rule · no rule or a bad rule changes nothing
+  ---
+  duration_ms: 0.159163
+  type: 'test'
+  ...
+# Subtest: competitor watch · only Southern California ads and known competitors make the list, newest first, no repeats
+ok 45 - competitor watch · only Southern California ads and known competitors make the list, newest first, no repeats
+  ---
+  duration_ms: 15.192253
+  type: 'test'
+  ...
+# Subtest: competitor watch · reviews: only this week's count, only ≤3★ are complaints
+ok 46 - competitor watch · reviews: only this week's count, only ≤3★ are complaints
+  ---
+  duration_ms: 0.859356
+  type: 'test'
+  ...
+# Subtest: competitor watch · Google Ads: an advertiser the Center does not know is a plain line, not an error
+ok 47 - competitor watch · Google Ads: an advertiser the Center does not know is a plain line, not an error
+  ---
+  duration_ms: 0.6023
+  type: 'test'
+  ...
+# Subtest: competitor watch · the report reads top to bottom on a phone
+ok 48 - competitor watch · the report reads top to bottom on a phone
+  ---
+  duration_ms: 0.678407
+  type: 'test'
+  ...
+# Subtest: coolerWork: only what logistics processes ahead - meat, tofu, vegetables, rice
+ok 49 - coolerWork: only what logistics processes ahead - meat, tofu, vegetables, rice
+  ---
+  duration_ms: 3.370251
+  type: 'test'
+  ...
+# Subtest: coolerWork: menu not in yet - no meat or tofu, vegetables and rice by headcount
+ok 50 - coolerWork: menu not in yet - no meat or tofu, vegetables and rice by headcount
+  ---
+  duration_ms: 0.485758
+  type: 'test'
+  ...
+# Subtest: workLines: parties merged into one total; one onion volcano per party
+ok 51 - workLines: parties merged into one total; one onion volcano per party
+  ---
+  duration_ms: 1.932288
+  type: 'test'
+  ...
+# Subtest: coolerSheetHtml: one merged page, owner on it, no customer or price fields
+ok 52 - coolerSheetHtml: one merged page, owner on it, no customer or price fields
+  ---
+  duration_ms: 1.867016
+  type: 'test'
+  ...
+# Subtest: counted · one is singular, everything else plural, zero included
+ok 53 - counted · one is singular, everything else plural, zero included
+  ---
+  duration_ms: 1.100897
+  type: 'test'
+  ...
+# Subtest: counted · an irregular plural is given: 1 baby, 2 babies
+ok 54 - counted · an irregular plural is given: 1 baby, 2 babies
+  ---
+  duration_ms: 0.302399
+  type: 'test'
+  ...
+# Subtest: counted · the landing quote's party line is built from it and reads the same
+ok 55 - counted · the landing quote's party line is built from it and reads the same
+  ---
+  duration_ms: 0.200781
+  type: 'test'
+  ...
+# Subtest: English iMessage reactions are tapbacks
+ok 56 - English iMessage reactions are tapbacks
+  ---
+  duration_ms: 1.514541
+  type: 'test'
+  ...
+# Subtest: Spanish iPhone reactions are tapbacks too
+ok 57 - Spanish iPhone reactions are tapbacks too
+  ---
+  duration_ms: 0.297535
+  type: 'test'
+  ...
+# Subtest: Italian iPhone and Android emoji reactions are tapbacks
+ok 58 - Italian iPhone and Android emoji reactions are tapbacks
+  ---
+  duration_ms: 0.524937
+  type: 'test'
+  ...
+# Subtest: Spanish sentences that only start like a reaction are real messages
+ok 59 - Spanish sentences that only start like a reaction are real messages
+  ---
+  duration_ms: 1.172458
+  type: 'test'
+  ...
+# Subtest: extraRates · a known extra at a rate >= 0 is kept, rounded to cents
+ok 60 - extraRates · a known extra at a rate >= 0 is kept, rounded to cents
+  ---
+  duration_ms: 1.708569
+  type: 'test'
+  ...
+# Subtest: extraRates · unknown ids, negative / non-finite rates and non-objects are dropped
+ok 61 - extraRates · unknown ids, negative / non-finite rates and non-objects are dropped
+  ---
+  duration_ms: 0.410474
+  type: 'test'
+  ...
+# Subtest: extraRates · counts as a rule on its own, and an extra that is free is not also discounted
+ok 62 - extraRates · counts as a rule on its own, and an extra that is free is not also discounted
+  ---
+  duration_ms: 0.350439
+  type: 'test'
+  ...
+# Subtest: encodeDeal · a deal without extraRates encodes byte for byte as before (texted links keep verifying)
+ok 63 - encodeDeal · a deal without extraRates encodes byte for byte as before (texted links keep verifying)
+  ---
+  duration_ms: 0.327946
+  type: 'test'
+  ...
+# Subtest: encodeDeal · extraRates is appended last with its ids sorted, so the same deal always signs the same
+ok 64 - encodeDeal · extraRates is appended last with its ids sorted, so the same deal always signs the same
+  ---
+  duration_ms: 0.377454
+  type: 'test'
+  ...
+# Subtest: signing · a half-price-tables deal round-trips through sign / verify / decode, and is bound to the lead
+ok 65 - signing · a half-price-tables deal round-trips through sign / verify / decode, and is bound to the lead
+  ---
+  duration_ms: 0.684806
+  type: 'test'
+  ...
+# Subtest: travelWaived · kept only when it is really true, and a waiver alone is a deal
+ok 66 - travelWaived · kept only when it is really true, and a waiver alone is a deal
+  ---
+  duration_ms: 0.340145
+  type: 'test'
+  ...
+# Subtest: travelWaived · appended last and only when set: older deals still encode byte for byte
+ok 67 - travelWaived · appended last and only when set: older deals still encode byte for byte
+  ---
+  duration_ms: 0.264857
+  type: 'test'
+  ...
+# Subtest: travelWaived · signed like the other rules: round-trips, and cannot be added to a signed link
+ok 68 - travelWaived · signed like the other rules: round-trips, and cannot be added to a signed link
+  ---
+  duration_ms: 0.543369
+  type: 'test'
+  ...
+# Subtest: signing · an old free-tables link still verifies and decodes the same
+ok 69 - signing · an old free-tables link still verifies and decodes the same
+  ---
+  duration_ms: 0.517596
+  type: 'test'
+  ...
+# Subtest: conversation · a customer who texted us in the last two weeks is in a conversation
+ok 70 - conversation · a customer who texted us in the last two weeks is in a conversation
+  ---
+  duration_ms: 0.974462
+  type: 'test'
+  ...
+# Subtest: conversation · only our own texts (an auto quote and template B) is not a conversation
+ok 71 - conversation · only our own texts (an auto quote and template B) is not a conversation
+  ---
+  duration_ms: 0.21711
+  type: 'test'
+  ...
+# Subtest: conversation · a reply older than two weeks does not count; a booked party always does
+ok 72 - conversation · a reply older than two weeks does not count; a booked party always does
+  ---
+  duration_ms: 0.1959
+  type: 'test'
+  ...
+# Subtest: form line · step 1 hides the card default, step 2 shows the pick and flags an untouched 15
+ok 73 - form line · step 1 hides the card default, step 2 shows the pick and flags an untouched 15
+  ---
+  duration_ms: 0.741971
+  type: 'test'
+  ...
+# Subtest: mirror · GUESTS_PER_CHEF is the invoice engine's
+ok 74 - mirror · GUESTS_PER_CHEF is the invoice engine's
+  ---
+  duration_ms: 0.918924
+  type: 'test'
+  ...
+# Subtest: rule · the plan's chef count and the quote's calcChefCount agree at every party size that matters
+ok 75 - rule · the plan's chef count and the quote's calcChefCount agree at every party size that matters
+  ---
+  duration_ms: 0.351072
+  type: 'test'
+  ...
+# Subtest: order · paid heads and the plan off an order row (Eileen: 29 adults + 2 kids, no plan column)
+ok 76 - order · paid heads and the plan off an order row (Eileen: 29 adults + 2 kids, no plan column)
+  ---
+  duration_ms: 0.574767
+  type: 'test'
+  ...
+# Subtest: order · hours to the party compare Pacific wall clocks (event_start is stored as if UTC)
+ok 77 - order · hours to the party compare Pacific wall clocks (event_start is stored as if UTC)
+  ---
+  duration_ms: 14.994454
+  type: 'test'
+  ...
+# Subtest: order · lint: Eileen as dispatched the day before (promise 2/2, one lead chef + helper) blocks
+ok 78 - order · lint: Eileen as dispatched the day before (promise 2/2, one lead chef + helper) blocks
+  ---
+  duration_ms: 1.657282
+  type: 'test'
+  ...
+# Subtest: promise · the desk's own texts
+ok 79 - promise · the desk's own texts
+  ---
+  duration_ms: 3.032132
+  type: 'test'
+  ...
+# Subtest: lint · a one-chef owner plan on 30 heads is flagged against the rule, one week out as a warning
+ok 80 - lint · a one-chef owner plan on 30 heads is flagged against the rule, one week out as a warning
+  ---
+  duration_ms: 0.248088
+  type: 'test'
+  ...
+# Subtest: wording · every "one chef serves up to N guests" says 28
+ok 81 - wording · every "one chef serves up to N guests" says 28
+  ---
+  duration_ms: 5.372657
+  type: 'test'
+  ...
+# Subtest: dispatch: no tables - the pair arrives 34 minutes early when the first party runs long
+ok 82 - dispatch: no tables - the pair arrives 34 minutes early when the first party runs long
+  ---
+  duration_ms: 2.369666
+  type: 'test'
+  ...
+# Subtest: dispatch: a table setup on either party takes half an hour out of the gap
+ok 83 - dispatch: a table setup on either party takes half an hour out of the gap
+  ---
+  duration_ms: 0.860915
+  type: 'test'
+  ...
+# Subtest: dispatch: when the half hour does not fit, the safe plan sends a second chef
+ok 84 - dispatch: when the half hour does not fit, the safe plan sends a second chef
+  ---
+  duration_ms: 0.731751
+  type: 'test'
+  ...
+# Subtest: dup · another desk answered 4 minutes ago and the customer is silent: blocked
+ok 85 - dup · another desk answered 4 minutes ago and the customer is silent: blocked
+  ---
+  duration_ms: 1.439343
+  type: 'test'
+  ...
+# Subtest: dup · the same desk adding a second line is fine
+ok 86 - dup · the same desk adding a second line is fine
+  ---
+  duration_ms: 0.209813
+  type: 'test'
+  ...
+# Subtest: dup · the customer spoke again after the other desk's answer: fine
+ok 87 - dup · the customer spoke again after the other desk's answer: fine
+  ---
+  duration_ms: 0.139826
+  type: 'test'
+  ...
+# Subtest: dup · outside the window or an automated quote does not block
+ok 88 - dup · outside the window or an automated quote does not block
+  ---
+  duration_ms: 0.169381
+  type: 'test'
+  ...
+# Subtest: dup · an unknown sender (the machine's first response) counts as someone else
+ok 89 - dup · an unknown sender (the machine's first response) counts as someone else
+  ---
+  duration_ms: 0.140403
+  type: 'test'
+  ...
+# Subtest: dup · my own line after the other desk's does not hide theirs
+ok 90 - dup · my own line after the other desk's does not hide theirs
+  ---
+  duration_ms: 0.131188
+  type: 'test'
+  ...
+# Subtest: no attachments is fine
+ok 91 - no attachments is fine
+  ---
+  duration_ms: 1.535052
+  type: 'test'
+  ...
+# Subtest: a W-9 and an insurance certificate pass through
+ok 92 - a W-9 and an insurance certificate pass through
+  ---
+  duration_ms: 0.59408
+  type: 'test'
+  ...
+# Subtest: names that are not plain pdf/png/jpg files are refused
+ok 93 - names that are not plain pdf/png/jpg files are refused
+  ---
+  duration_ms: 0.189883
+  type: 'test'
+  ...
+# Subtest: content must be base64, and the total has to fit a request
+ok 94 - content must be base64, and the total has to fit a request
+  ---
+  duration_ms: 11.371259
+  type: 'test'
+  ...
+# Subtest: Messenger message notifications become a named lead
+ok 95 - Messenger message notifications become a named lead
+  ---
+  duration_ms: 2.739385
+  type: 'test'
+  ...
+# Subtest: Marketplace mail is tagged marketplace, with or without a parsed name
+ok 96 - Marketplace mail is tagged marketplace, with or without a parsed name
+  ---
+  duration_ms: 0.644374
+  type: 'test'
+  ...
+# Subtest: other Facebook mail and other senders stay filtered
+ok 97 - other Facebook mail and other senders stay filtered
+  ---
+  duration_ms: 0.16805
+  type: 'test'
+  ...
+# Subtest: wallToInstant: 6:30 PM PDT wall time is 01:30Z the next day
+ok 98 - wallToInstant: 6:30 PM PDT wall time is 01:30Z the next day
+  ---
+  duration_ms: 22.219442
+  type: 'test'
+  ...
+# Subtest: wallToInstant: PST (after the November change) uses the -8 offset
+ok 99 - wallToInstant: PST (after the November change) uses the -8 offset
+  ---
+  duration_ms: 0.944309
+  type: 'test'
+  ...
+# Subtest: instantToWallIso round-trips
+ok 100 - instantToWallIso round-trips
+  ---
+  duration_ms: 1.01659
+  type: 'test'
+  ...
+# Subtest: ptDate: 11 PM PDT is still the same PT day
+ok 101 - ptDate: 11 PM PDT is still the same PT day
+  ---
+  duration_ms: 0.46915
+  type: 'test'
+  ...
+# Subtest: shortDate / wallTime formatting
+ok 102 - shortDate / wallTime formatting
+  ---
+  duration_ms: 1.218395
+  type: 'test'
+  ...
+# Subtest: template B, dated: the date is open + what's the celebration (D-1008-02; wording per leads voice.md 2026-10-29)
+ok 103 - template B, dated: the date is open + what's the celebration (D-1008-02; wording per leads voice.md 2026-10-29)
+  ---
+  duration_ms: 2.280126
+  type: 'test'
+  ...
+# Subtest: spokenDate: 'Saturday the 18th' inside two weeks, 'Saturday, Oct 18' beyond
+ok 104 - spokenDate: 'Saturday the 18th' inside two weeks, 'Saturday, Oct 18' beyond
+  ---
+  duration_ms: 1.965112
+  type: 'test'
+  ...
+# Subtest: template B, no date: asks the occasion, never the date or the start time
+ok 105 - template B, no date: asks the occasion, never the date or the start time
+  ---
+  duration_ms: 0.289775
+  type: 'test'
+  ...
+# Subtest: template B on the page's default leave-quote: no count (10-10 the real 13 + 4 arrived the same minute)
+ok 106 - template B on the page's default leave-quote: no count (10-10 the real 13 + 4 arrived the same minute)
+  ---
+  duration_ms: 0.582417
+  type: 'test'
+  ...
+# Subtest: template B: ZIPs, region labels and missing cities fall back to the plain line
+ok 107 - template B: ZIPs, region labels and missing cities fall back to the plain line
+  ---
+  duration_ms: 0.909903
+  type: 'test'
+  ...
+# Subtest: template A says one price when both nights hit the minimum, and no travel promise for a region
+ok 108 - template A says one price when both nights hit the minimum, and no travel promise for a region
+  ---
+  duration_ms: 0.486286
+  type: 'test'
+  ...
+# Subtest: template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum, not a price a head (2026-10-22)
+ok 109 - template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum, not a price a head (2026-10-22)
+  ---
+  duration_ms: 10.495985
+  type: 'test'
+  ...
+# Subtest: template A: travel stays its own phrase, and more than 10 on the minimum are all covered
+ok 110 - template A: travel stays its own phrase, and more than 10 on the minimum are all covered
+  ---
+  duration_ms: 1.585019
+  type: 'test'
+  ...
+# Subtest: template A: no note once Fri-Sun clears the minimum (wording per leads voice.md 2026-10-29)
+ok 111 - template A: no note once Fri-Sun clears the minimum (wording per leads voice.md 2026-10-29)
+  ---
+  duration_ms: 1.335887
+  type: 'test'
+  ...
+# Subtest: template A: the note shows exactly when the price is the minimum on both nights
+ok 112 - template A: the note shows exactly when the price is the minimum on both nights
+  ---
+  duration_ms: 48.753094
+  type: 'test'
+  ...
+# Subtest: placeName capitalizes what the customer typed, and keeps ZIPs and regions out
+ok 113 - placeName capitalizes what the customer typed, and keeps ZIPs and regions out
+  ---
+  duration_ms: 0.178828
+  type: 'test'
+  ...
+# Subtest: template B hands edge cases to a person
+ok 114 - template B hands edge cases to a person
+  ---
+  duration_ms: 1.770264
+  type: 'test'
+  ...
+# Subtest: first party-contact text: name, day, wall time, street only
+ok 115 - first party-contact text: name, day, wall time, street only
+  ---
+  duration_ms: 1.020736
+  type: 'test'
+  ...
+# Subtest: first party-contact text without a usable name or address
+ok 116 - first party-contact text without a usable name or address
+  ---
+  duration_ms: 0.872233
+  type: 'test'
+  ...
+# Subtest: second text says tomorrow or today by the PT calendar
+ok 117 - second text says tomorrow or today by the PT calendar
+  ---
+  duration_ms: 0.84487
+  type: 'test'
+  ...
+# Subtest: partyContactStage ladder
+ok 118 - partyContactStage ladder
+  ---
+  duration_ms: 0.551229
+  type: 'test'
+  ...
+# Subtest: text signer · customers who first wrote before 10-09 17:20 PT keep Bling, new ones get Rowling
+ok 119 - text signer · customers who first wrote before 10-09 17:20 PT keep Bling, new ones get Rowling
+  ---
+  duration_ms: 0.266981
+  type: 'test'
+  ...
+# Subtest: partyBillDue: from one hour after the start, not before, and not after four hours
+ok 120 - partyBillDue: from one hour after the start, not before, and not after four hours
+  ---
+  duration_ms: 0.804893
+  type: 'test'
+  ...
+# Subtest: partyBillDue: never twice, never when nothing is owed
+ok 121 - partyBillDue: never twice, never when nothing is owed
+  ---
+  duration_ms: 0.527658
+  type: 'test'
+  ...
+# Subtest: partyBillText: first name, signer, the order's own pay link, cash still fine, never 'optional'
+ok 122 - partyBillText: first name, signer, the order's own pay link, cash still fine, never 'optional'
+  ---
+  duration_ms: 0.47507
+  type: 'test'
+  ...
+# Subtest: cron · the derived key is the same HMAC pgcrypto computes in the cron job
+ok 123 - cron · the derived key is the same HMAC pgcrypto computes in the cron job
+  ---
+  duration_ms: 1.553899
+  type: 'test'
+  ...
+# Subtest: cron · only ?consumer=cron with the purpose key gets in; the raw lead-watch key does not
+ok 124 - cron · only ?consumer=cron with the purpose key gets in; the raw lead-watch key does not
+  ---
+  duration_ms: 38.83135
+  type: 'test'
+  ...
+# Subtest: sync · nothing changed on Google = nothing to write (the 15-minute cron must not rewrite every row)
+ok 125 - sync · nothing changed on Google = nothing to write (the 15-minute cron must not rewrite every row)
+  ---
+  duration_ms: 21.879144
+  type: 'test'
+  ...
+# Subtest: sync · a new reply on Google (e.g. typed in the business dashboard) is taken over, reply_by cleared
+ok 126 - sync · a new reply on Google (e.g. typed in the business dashboard) is taken over, reply_by cleared
+  ---
+  duration_ms: 0.424872
+  type: 'test'
+  ...
+# Subtest: sync · only the moderation state moved (PENDING -> APPROVED): just that field
+ok 127 - sync · only the moderation state moved (PENDING -> APPROVED): just that field
+  ---
+  duration_ms: 0.390711
+  type: 'test'
+  ...
+# Subtest: sync · reply deleted on Google clears ours
+ok 128 - sync · reply deleted on Google clears ours
+  ---
+  duration_ms: 0.300374
+  type: 'test'
+  ...
+# Subtest: sync · first link sets the id; only empty fields are filled, hand edits are left alone
+ok 129 - sync · first link sets the id; only empty fields are filled, hand edits are left alone
+  ---
+  duration_ms: 0.812694
+  type: 'test'
+  ...
+# Subtest: sync · a page-truncated body is replaced by Google's full text
+ok 130 - sync · a page-truncated body is replaced by Google's full text
+  ---
+  duration_ms: 8.416361
+  type: 'test'
+  ...
+# Subtest: sync · photos: stored once when the row has none, never overwritten
+ok 131 - sync · photos: stored once when the row has none, never overwritten
+  ---
+  duration_ms: 1.389573
+  type: 'test'
+  ...
+# Subtest: merge · same signature as the importer's fuzzyFilter (reviewer + first 25 chars, whitespace/case folded)
+ok 132 - merge · same signature as the importer's fuzzyFilter (reviewer + first 25 chars, whitespace/case folded)
+  ---
+  duration_ms: 1.520837
+  type: 'test'
+  ...
+# Subtest: merge · already linked by gbp_review_id wins over everything
+ok 133 - merge · already linked by gbp_review_id wins over everything
+  ---
+  duration_ms: 1.090796
+  type: 'test'
+  ...
+# Subtest: merge · external_key equal to the id (raw, g2_ or gbp_ prefix) links by key
+ok 134 - merge · external_key equal to the id (raw, g2_ or gbp_ prefix) links by key
+  ---
+  duration_ms: 0.254486
+  type: 'test'
+  ...
+# Subtest: merge · reviewer + body prefix links; a page-truncated body still matches
+ok 135 - merge · reviewer + body prefix links; a page-truncated body still matches
+  ---
+  duration_ms: 0.905004
+  type: 'test'
+  ...
+# Subtest: merge · Google's translated form matches the page text on either half
+ok 136 - merge · Google's translated form matches the page text on either half
+  ---
+  duration_ms: 0.491037
+  type: 'test'
+  ...
+# Subtest: merge · no body: same reviewer within ±3 days links by date (nearest wins)
+ok 137 - merge · no body: same reviewer within ±3 days links by date (nearest wins)
+  ---
+  duration_ms: 0.326184
+  type: 'test'
+  ...
+# Subtest: merge · old review whose date was guessed from '3 months ago': unique name on both sides still links
+ok 138 - merge · old review whose date was guessed from '3 months ago': unique name on both sides still links
+  ---
+  duration_ms: 0.732516
+  type: 'test'
+  ...
+# Subtest: merge · common name twice on Google: no name-only guess, the unmatched one is reported as a suspect
+ok 139 - merge · common name twice on Google: no name-only guess, the unmatched one is reported as a suspect
+  ---
+  duration_ms: 0.448403
+  type: 'test'
+  ...
+# Subtest: merge · anonymous reviewers never link by name or date
+ok 140 - merge · anonymous reviewers never link by name or date
+  ---
+  duration_ms: 0.374112
+  type: 'test'
+  ...
+# Subtest: merge · one ledger row is never linked twice; a duplicate row in the ledger shows up as missing, the one with money wins
+ok 141 - merge · one ledger row is never linked twice; a duplicate row in the ledger shows up as missing, the one with money wins
+  ---
+  duration_ms: 0.437848
+  type: 'test'
+  ...
+# Subtest: merge · a row already tied to another Google id is not fuzzy-matched to a new review
+ok 142 - merge · a row already tied to another Google id is not fuzzy-matched to a new review
+  ---
+  duration_ms: 0.222479
+  type: 'test'
+  ...
+# Subtest: merge · deleted on Google: reported missing, never dropped
+ok 143 - merge · deleted on Google: reported missing, never dropped
+  ---
+  duration_ms: 0.145073
+  type: 'test'
+  ...
+# Subtest: merge · a stronger rule is not stolen by a weaker one on another review
+ok 144 - merge · a stronger rule is not stolen by a weaker one on another review
+  ---
+  duration_ms: 0.188213
+  type: 'test'
+  ...
+# Subtest: gbp · the auth URL asks for offline access, the business scope, PKCE S256 and the loopback redirect
+ok 145 - gbp · the auth URL asks for offline access, the business scope, PKCE S256 and the loopback redirect
+  ---
+  duration_ms: 1.781248
+  type: 'test'
+  ...
+# Subtest: gbp · the client id's leading number is the GCP project the quota is billed to
+ok 146 - gbp · the client id's leading number is the GCP project the quota is billed to
+  ---
+  duration_ms: 0.254854
+  type: 'test'
+  ...
+# Subtest: gbp · pasted address: full URL, no scheme, query only all work; cancel and junk are explained
+ok 147 - gbp · pasted address: full URL, no scheme, query only all work; cancel and junk are explained
+  ---
+  duration_ms: 0.866269
+  type: 'test'
+  ...
+# Subtest: gbp · refresh token sealing round-trips, and a different secret or a tampered blob gives null
+ok 148 - gbp · refresh token sealing round-trips, and a different secret or a tampered blob gives null
+  ---
+  duration_ms: 1.499976
+  type: 'test'
+  ...
+# Subtest: gbp · email comes out of the id_token payload
+ok 149 - gbp · email comes out of the id_token payload
+  ---
+  duration_ms: 0.253905
+  type: 'test'
+  ...
+# Subtest: gbp · reply text: trimmed, never empty, at most 4096 UTF-8 bytes
+ok 150 - gbp · reply text: trimmed, never empty, at most 4096 UTF-8 bytes
+  ---
+  duration_ms: 0.223861
+  type: 'test'
+  ...
+# Subtest: gbp · picking the location: our Place ID first, a single location next, otherwise ask
+ok 151 - gbp · picking the location: our Place ID first, a single location next, otherwise ask
+  ---
+  duration_ms: 0.283463
+  type: 'test'
+  ...
+# Subtest: gbp · review mapping: stars, Pacific date, id from name when reviewId is missing
+ok 152 - gbp · review mapping: stars, Pacific date, id from name when reviewId is missing
+  ---
+  duration_ms: 18.593615
+  type: 'test'
+  ...
+# Subtest: gbp · Google errors become a Chinese hint the owner can act on
+ok 153 - gbp · Google errors become a Chinese hint the owner can act on
+  ---
+  duration_ms: 1.826045
+  type: 'test'
+  ...
+# Subtest: heard · our question is recognised in a sent text, however it's worded
+ok 154 - heard · our question is recognised in a sent text, however it's worded
+  ---
+  duration_ms: 1.158964
+  type: 'test'
+  ...
+# Subtest: heard · answers land in the right bucket
+ok 155 - heard · answers land in the right bucket
+  ---
+  duration_ms: 3.185662
+  type: 'test'
+  ...
+# Subtest: heard · platform inquiries are placed by the sender's domain
+ok 156 - heard · platform inquiries are placed by the sender's domain
+  ---
+  duration_ms: 1.043947
+  type: 'test'
+  ...
+# Subtest: heard · a platform's notification text on the 213 line is the platform, a customer naming it is not
+ok 157 - heard · a platform's notification text on the 213 line is the platform, a customer naming it is not
+  ---
+  duration_ms: 0.340435
+  type: 'test'
+  ...
+# Subtest: heard · ask only unknown leads, only after booking, only once
+ok 158 - heard · ask only unknown leads, only after booking, only once
+  ---
+  duration_ms: 0.205406
+  type: 'test'
+  ...
+# Subtest: heard · party stage from the contact's orders, by wall date in PT
+ok 159 - heard · party stage from the contact's orders, by wall date in PT
+  ---
+  duration_ms: 0.370424
+  type: 'test'
+  ...
+# Subtest: undelivered · carrier-blocked and marked lost, email on file, not emailed → still open
+ok 160 - undelivered · carrier-blocked and marked lost, email on file, not emailed → still open
+  ---
+  duration_ms: 1.200414
+  type: 'test'
+  ...
+# Subtest: undelivered · an email after the text closes it
+ok 161 - undelivered · an email after the text closes it
+  ---
+  duration_ms: 0.364143
+  type: 'test'
+  ...
+# Subtest: undelivered · an email from before the text does not count
+ok 162 - undelivered · an email from before the text does not count
+  ---
+  duration_ms: 0.173258
+  type: 'test'
+  ...
+# Subtest: undelivered · lost for any other reason, or blocked with no email → off the list
+ok 163 - undelivered · lost for any other reason, or blocked with no email → off the list
+  ---
+  duration_ms: 0.166872
+  type: 'test'
+  ...
+# Subtest: undelivered · an opt-out never comes back, a disqualified lead never shows
+ok 164 - undelivered · an opt-out never comes back, a disqualified lead never shows
+  ---
+  duration_ms: 0.272379
+  type: 'test'
+  ...
+# Subtest: undelivered · an open lead with no receipt shows until it is emailed
+ok 165 - undelivered · an open lead with no receipt shows until it is emailed
+  ---
+  duration_ms: 0.160659
+  type: 'test'
+  ...
+# Subtest: landing quote · one adult and one kid are singular
+ok 166 - landing quote · one adult and one kid are singular
+  ---
+  duration_ms: 1.685379
+  type: 'test'
+  ...
+# Subtest: landing quote · the minimum covers 10 guests because 10 x $59.90 = $599, both read from config
+ok 167 - landing quote · the minimum covers 10 guests because 10 x $59.90 = $599, both read from config
+  ---
+  duration_ms: 0.431342
+  type: 'test'
+  ...
+# Subtest: landing quote · Susan Romero, 1 adult: the $599 is the 10-guest minimum, not a price a head
+ok 168 - landing quote · Susan Romero, 1 adult: the $599 is the 10-guest minimum, not a price a head
+  ---
+  duration_ms: 0.465156
+  type: 'test'
+  ...
+# Subtest: landing quote · every party of up to 10 pays exactly the minimum, any mix, either rate - so 'covers up to 10' is true
+ok 169 - landing quote · every party of up to 10 pays exactly the minimum, any mix, either rate - so 'covers up to 10' is true
+  ---
+  duration_ms: 1.089762
+  type: 'test'
+  ...
+# Subtest: landing quote · no note once the food clears the minimum
+ok 170 - landing quote · no note once the food clears the minimum
+  ---
+  duration_ms: 0.356443
+  type: 'test'
+  ...
+# Subtest: landing quote · more than 10 on the minimum (kids, or the Mon-Thu rate): it covers them all
+ok 171 - landing quote · more than 10 on the minimum (kids, or the Mon-Thu rate): it covers them all
+  ---
+  duration_ms: 24.084808
+  type: 'test'
+  ...
+# Subtest: landing quote · with travel the total is the minimum plus travel, and the note says both
+ok 172 - landing quote · with travel the total is the minimum plus travel, and the note says both
+  ---
+  duration_ms: 0.591157
+  type: 'test'
+  ...
+# Subtest: landing quote · the caller card still reads the price and the party (not the 10) off the new texts
+ok 173 - landing quote · the caller card still reads the price and the party (not the 10) off the new texts
+  ---
+  duration_ms: 5.490827
+  type: 'test'
+  ...
+# Subtest: photos followed by a tapback: the photos are what needs an answer
+ok 174 - photos followed by a tapback: the photos are what needs an answer
+  ---
+  duration_ms: 2.23925
+  type: 'test'
+  ...
+# Subtest: a question followed by thanks: the question is what to judge
+ok 175 - a question followed by thanks: the question is what to judge
+  ---
+  duration_ms: 1.953523
+  type: 'test'
+  ...
+# Subtest: only a reaction after our text: nothing real is waiting
+ok 176 - only a reaction after our text: nothing real is waiting
+  ---
+  duration_ms: 0.608052
+  type: 'test'
+  ...
+# Subtest: we answered after the photos: not waiting
+ok 177 - we answered after the photos: not waiting
+  ---
+  duration_ms: 0.312873
+  type: 'test'
+  ...
+# Subtest: delivery · three texts that never got a receipt: no delivered time, status sent
+ok 178 - delivery · three texts that never got a receipt: no delivered time, status sent
+  ---
+  duration_ms: 0.189944
+  type: 'test'
+  ...
+# Subtest: delivery · a number that received earlier texts keeps its delivered time even if the newest is still sending
+ok 179 - delivery · a number that received earlier texts keeps its delivered time even if the newest is still sending
+  ---
+  duration_ms: 0.16251
+  type: 'test'
+  ...
+# Subtest: hold · ran out with the customer silent since → dormant
+ok 180 - hold · ran out with the customer silent since → dormant
+  ---
+  duration_ms: 1.186219
+  type: 'test'
+  ...
+# Subtest: hold · still running → active
+ok 181 - hold · still running → active
+  ---
+  duration_ms: 0.184103
+  type: 'test'
+  ...
+# Subtest: hold · the customer spoke after we held it → none, running or not
+ok 182 - hold · the customer spoke after we held it → none, running or not
+  ---
+  duration_ms: 0.143516
+  type: 'test'
+  ...
+# Subtest: hold · never held, or no set time to judge by → none
+ok 183 - hold · never held, or no set time to judge by → none
+  ---
+  duration_ms: 0.112096
+  type: 'test'
+  ...
+# Subtest: hold · Supabase and Twilio timestamps compare as instants
+ok 184 - hold · Supabase and Twilio timestamps compare as instants
+  ---
+  duration_ms: 0.16206
+  type: 'test'
+  ...
+# Subtest: scan channels · a Yelp conversation entered by hand → H, answered in Yelp, no next action
+ok 185 - scan channels · a Yelp conversation entered by hand → H, answered in Yelp, no next action
+  ---
+  duration_ms: 8.972249
+  type: 'test'
+  ...
+# Subtest: scan channels · a Yelp message the mail filed is the customer speaking until acked
+ok 186 - scan channels · a Yelp message the mail filed is the customer speaking until acked
+  ---
+  duration_ms: 9.588119
+  type: 'test'
+  ...
+# Subtest: scan channels · a Yelp lead with her number: the Yelp mail is not an e-mail to answer by e-mail
+ok 187 - scan channels · a Yelp lead with her number: the Yelp mail is not an e-mail to answer by e-mail
+  ---
+  duration_ms: 0.589457
+  type: 'test'
+  ...
+# Subtest: scan channels · a Messenger conversation entered by hand → H in Facebook
+ok 188 - scan channels · a Messenger conversation entered by hand → H in Facebook
+  ---
+  duration_ms: 1.017934
+  type: 'test'
+  ...
+# Subtest: scan channels · a site lead that left nothing is still unreachable
+ok 189 - scan channels · a site lead that left nothing is still unreachable
+  ---
+  duration_ms: 0.463723
+  type: 'test'
+  ...
+# Subtest: scan channels · the customer's Messenger message copied in is owed an answer; ours after it ends that
+ok 190 - scan channels · the customer's Messenger message copied in is owed an answer; ours after it ends that
+  ---
+  duration_ms: 11.098016
+  type: 'test'
+  ...
+# Subtest: scan channels · an Instagram lead who moved to texts: the texts decide
+ok 191 - scan channels · an Instagram lead who moved to texts: the texts decide
+  ---
+  duration_ms: 1.590653
+  type: 'test'
+  ...
+# Subtest: scan courtesy · inside 2 hours the thanks is owed the one-line close → A
+ok 192 - scan courtesy · inside 2 hours the thanks is owed the one-line close → A
+  ---
+  duration_ms: 14.39999
+  type: 'test'
+  ...
+# Subtest: scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap
+ok 193 - scan courtesy · past 2 hours, nothing on file → D once our last text is 20 hours old, under the cap
+  ---
+  duration_ms: 1.682814
+  type: 'test'
+  ...
+# Subtest: scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note
+ok 194 - scan courtesy · past 2 hours with a [callback] and the hold run out → B, though the thanks came after the note
+  ---
+  duration_ms: 8.972058
+  type: 'test'
+  ...
+# Subtest: scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it
+ok 195 - scan courtesy · past 2 hours on an active hold → H until the hold, though the thanks came after it
+  ---
+  duration_ms: 1.373037
+  type: 'test'
+  ...
+# Subtest: scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later)
+ok 196 - scan courtesy · the same when the thread comes from Twilio (the carrier stamps a second later)
+  ---
+  duration_ms: 22.498193
+  type: 'test'
+  ...
+# Subtest: scan courtesy · our text from the phone app before the thanks is not part of the run
+ok 197 - scan courtesy · our text from the phone app before the thanks is not part of the run
+  ---
+  duration_ms: 1.931193
+  type: 'test'
+  ...
+# Subtest: scan reaction · never answered, then the usual spacing; it does not restart the count
+ok 198 - scan reaction · never answered, then the usual spacing; it does not restart the count
+  ---
+  duration_ms: 1.11276
+  type: 'test'
+  ...
+# Subtest: scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both
+ok 199 - scan reaction · after a [callback]: H while the hold runs, then B, though the like came after both
+  ---
+  duration_ms: 0.998762
+  type: 'test'
+  ...
+# Subtest: scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B
+ok 200 - scan callback · a thanks we answered keeps the hold and the [callback]: H while it runs, then B
+  ---
+  duration_ms: 1.417261
+  type: 'test'
+  ...
+# Subtest: scan callback · B once: done after the b_callback, and not back after a hold set after it
+ok 201 - scan callback · B once: done after the b_callback, and not back after a hold set after it
+  ---
+  duration_ms: 1.685479
+  type: 'test'
+  ...
+# Subtest: scan callback · a b_callback sent hours before the hold ran out still ends B
+ok 202 - scan callback · a b_callback sent hours before the hold ran out still ends B
+  ---
+  duration_ms: 1.362086
+  type: 'test'
+  ...
+# Subtest: scan callback · no hold: H needs_hold, not B at once; held to the day they named, B then
+ok 203 - scan callback · no hold: H needs_hold, not B at once; held to the day they named, B then
+  ---
+  duration_ms: 1.071691
+  type: 'test'
+  ...
+# Subtest: scan callback · a hold the customer has spoken past since does not date a newer [callback]
+ok 204 - scan callback · a hold the customer has spoken past since does not date a newer [callback]
+  ---
+  duration_ms: 0.510139
+  type: 'test'
+  ...
+# Subtest: scan reaction · a customer who likes every text is still capped at 3
+ok 205 - scan reaction · a customer who likes every text is still capped at 3
+  ---
+  duration_ms: 0.727596
+  type: 'test'
+  ...
+# Subtest: scan reaction · photos then a like, older than Twilio's record: the photos are owed an answer → A
+ok 206 - scan reaction · photos then a like, older than Twilio's record: the photos are owed an answer → A
+  ---
+  duration_ms: 0.380165
+  type: 'test'
+  ...
+# Subtest: scan quotes · auto leave with 15 adults, no kids, no date is a revisit
+ok 207 - scan quotes · auto leave with 15 adults, no kids, no date is a revisit
+  ---
+  duration_ms: 0.784704
+  type: 'test'
+  ...
+# Subtest: scan quotes · anything the customer touched counts
+ok 208 - scan quotes · anything the customer touched counts
+  ---
+  duration_ms: 0.181135
+  type: 'test'
+  ...
+# Subtest: measured at the address the customer entered, with the quote's rule (RH-20261022-7105: $44, not $0)
+ok 209 - measured at the address the customer entered, with the quote's rule (RH-20261022-7105: $44, not $0)
+  ---
+  duration_ms: 4.62534
+  type: 'test'
+  ...
+# Subtest: a signed waiver: $0 on purpose, the miles still recorded for chef pay (RH-20261022-5789)
+ok 210 - a signed waiver: $0 on purpose, the miles still recorded for chef pay (RH-20261022-5789)
+  ---
+  duration_ms: 0.519932
+  type: 'test'
+  ...
+# Subtest: a bare street line gets its city and zip, then is measured (RH-20261022-0063)
+ok 211 - a bare street line gets its city and zip, then is measured (RH-20261022-0063)
+  ---
+  duration_ms: 0.980268
+  type: 'test'
+  ...
+# Subtest: only a town on the link: the town is measured, and the order keeps what was typed (10-20 Indio party)
+ok 212 - only a town on the link: the town is measured, and the order keeps what was typed (10-20 Indio party)
+  ---
+  duration_ms: 0.599281
+  type: 'test'
+  ...
+# Subtest: a street nobody can place is never routed on its own: the quoted town is measured instead
+ok 213 - a street nobody can place is never routed on its own: the quoted town is measured instead
+  ---
+  duration_ms: 0.548479
+  type: 'test'
+  ...
+# Subtest: not measurable - a region, no address, the map down: the travel in the customer's quote stands
+ok 214 - not measurable - a region, no address, the map down: the travel in the customer's quote stands
+  ---
+  duration_ms: 0.682316
+  type: 'test'
+  ...
+# Subtest: nothing measured and nothing quoted: unknown, said out loud - never a silent $0
+ok 215 - nothing measured and nothing quoted: unknown, said out loud - never a silent $0
+  ---
+  duration_ms: 0.623663
+  type: 'test'
+  ...
+# Subtest: a lookup that hangs gives up at the deadline and falls back to the quote
+ok 216 - a lookup that hangs gives up at the deadline and falls back to the quote
+  ---
+  duration_ms: 31.554173
+  type: 'test'
+  ...
+# Subtest: quotedTravel: the texted quote first, then the link's estimate, then the published town travel
+ok 217 - quotedTravel: the texted quote first, then the link's estimate, then the published town travel
+  ---
+  duration_ms: 2.510252
+  type: 'test'
+  ...
+# Subtest: travelFromEstimate reads the weekday price the quote used, and ignores rounding
+ok 218 - travelFromEstimate reads the weekday price the quote used, and ignores rounding
+  ---
+  duration_ms: 1.002053
+  type: 'test'
+  ...
+# Subtest: cityQuery: a town or a bare ZIP the router can find; a region is not one
+ok 219 - cityQuery: a town or a bare ZIP the router can find; a region is not one
+  ---
+  duration_ms: 0.346448
+  type: 'test'
+  ...
+# Subtest: the deposit event carries the measured travel and the standard address
+ok 220 - the deposit event carries the measured travel and the standard address
+  ---
+  duration_ms: 2.14137
+  type: 'test'
+  ...
+# Subtest: a waiver rides as travel_waived with the deal; unknown travel is left out, not sent as $0
+ok 221 - a waiver rides as travel_waived with the deal; unknown travel is left out, not sent as $0
+  ---
+  duration_ms: 1.898077
+  type: 'test'
+  ...
+# Subtest: without a lock-travel result the event is exactly what it was before
+ok 222 - without a lock-travel result the event is exactly what it was before
+  ---
+  duration_ms: 0.424389
+  type: 'test'
+  ...
+# Subtest: logisticsRow: 27 adults at $1 a head is $27
+ok 223 - logisticsRow: 27 adults at $1 a head is $27
+  ---
+  duration_ms: 1.116386
+  type: 'test'
+  ...
+# Subtest: logisticsRow: a paying kid is half a head, a free little is none
+ok 224 - logisticsRow: a paying kid is half a head, a free little is none
+  ---
+  duration_ms: 0.852875
+  type: 'test'
+  ...
+# Subtest: logisticsLedgerRows: only the orders marked as hers are owed, each paid once
+ok 225 - logisticsLedgerRows: only the orders marked as hers are owed, each paid once
+  ---
+  duration_ms: 8.848836
+  type: 'test'
+  ...
+# Subtest: phones become E.164 digits, US by default
+ok 226 - phones become E.164 digits, US by default
+  ---
+  duration_ms: 1.840968
+  type: 'test'
+  ...
+# Subtest: fbc carries the click time in ms and the fbclid
+ok 227 - fbc carries the click time in ms and the fbclid
+  ---
+  duration_ms: 0.412496
+  type: 'test'
+  ...
+# Subtest: a reply that says no is not a Contact
+ok 228 - a reply that says no is not a Contact
+  ---
+  duration_ms: 0.777902
+  type: 'test'
+  ...
+# Subtest: Purchase goes out as a website event with hashed contact and value
+ok 229 - Purchase goes out as a website event with hashed contact and value
+  ---
+  duration_ms: 1.941966
+  type: 'test'
+  ...
+# Subtest: Schedule carries the booking value like Purchase
+ok 230 - Schedule carries the booking value like Purchase
+  ---
+  duration_ms: 0.398536
+  type: 'test'
+  ...
+# Subtest: without the browser's user agent the event is system_generated and has no value for Contact
+ok 231 - without the browser's user agent the event is system_generated and has no value for Contact
+  ---
+  duration_ms: 0.291656
+  type: 'test'
+  ...
+# Subtest: meta-leads health · mail on the 15th failure in a row, then every 360, never in between
+ok 232 - meta-leads health · mail on the 15th failure in a row, then every 360, never in between
+  ---
+  duration_ms: 0.988001
+  type: 'test'
+  ...
+# Subtest: meta-leads health · a run of failures counts up, keeps the last good time, and alerts exactly once in the first half hour
+ok 233 - meta-leads health · a run of failures counts up, keeps the last good time, and alerts exactly once in the first half hour
+  ---
+  duration_ms: 0.713582
+  type: 'test'
+  ...
+# Subtest: meta-leads health · success resets the streak; it is a recovery only if it had alerted
+ok 234 - meta-leads health · success resets the streak; it is a recovery only if it had alerted
+  ---
+  duration_ms: 0.22835
+  type: 'test'
+  ...
+# Subtest: meta-leads health · a missing or broken row starts clean
+ok 235 - meta-leads health · a missing or broken row starts clean
+  ---
+  duration_ms: 0.807104
+  type: 'test'
+  ...
+# Subtest: meta-leads health · the mails say what is waiting and what fixes it
+ok 236 - meta-leads health · the mails say what is waiting and what fixes it
+  ---
+  duration_ms: 0.41768
+  type: 'test'
+  ...
+# Subtest: parsePartyDate: the ways people type a date
+ok 237 - parsePartyDate: the ways people type a date
+  ---
+  duration_ms: 1.924597
+  type: 'test'
+  ...
+# Subtest: parsePartyDate: no date is no date
+ok 238 - parsePartyDate: no date is no date
+  ---
+  duration_ms: 0.502282
+  type: 'test'
+  ...
+# Subtest: parseGuests takes the first number
+ok 239 - parseGuests takes the first number
+  ---
+  duration_ms: 0.399627
+  type: 'test'
+  ...
+# Subtest: parseGuests: a range inside the 10-guest minimum is its top end, a bigger one its low end
+ok 240 - parseGuests: a range inside the 10-guest minimum is its top end, a bigger one its low end
+  ---
+  duration_ms: 0.19694
+  type: 'test'
+  ...
+# Subtest: parseLead maps Meta field names onto the quote body
+ok 241 - parseLead maps Meta field names onto the quote body
+  ---
+  duration_ms: 0.430608
+  type: 'test'
+  ...
+# Subtest: parseLead falls back to first + last name and loose field names
+ok 242 - parseLead falls back to first + last name and loose field names
+  ---
+  duration_ms: 0.283841
+  type: 'test'
+  ...
+# node:internal/modules/cjs/loader:1383
+#   const err = new Error(message);
+#               ^
+# Error: Cannot find module 'react'
+# Require stack:
+# - /home/user/hibachiathome/components/meta-pixel.tsx
+# - /home/user/hibachiathome/lib/tracking.ts
+# - /home/user/hibachiathome/tests/meta-pixel-lead.test.ts
+#     at node:internal/modules/cjs/loader:1383:15
+#     at nextResolveSimple (/root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:23:1010)
+#     at /root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:4512
+#     at /root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2830
+#     at resolveTsPaths (/root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:23:762)
+#     at /root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:23:1203
+#     at j._resolveFilename (file:///root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-nyXW-TH3.mjs:2:18825)
+#     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+#     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+#     at Function._load (node:internal/modules/cjs/loader:1192:37) {
+#   code: 'MODULE_NOT_FOUND',
+#   requireStack: [
+#     '/home/user/hibachiathome/components/meta-pixel.tsx',
+#     '/home/user/hibachiathome/lib/tracking.ts',
+#     '/home/user/hibachiathome/tests/meta-pixel-lead.test.ts'
+#   ]
+# }
+# Node.js v22.22.0
+# Subtest: tests/meta-pixel-lead.test.ts
+not ok 36 - tests/meta-pixel-lead.test.ts
+  ---
+  duration_ms: 378.72206
+  type: 'test'
+  location: '/home/user/hibachiathome/tests/meta-pixel-lead.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: monid · a quick endpoint answers in one round trip, in the shape monid expects
+ok 244 - monid · a quick endpoint answers in one round trip, in the shape monid expects
+  ---
+  duration_ms: 34.657299
+  type: 'test'
+  ...
+# Subtest: monid · a slow endpoint is polled until it settles
+ok 245 - monid · a slow endpoint is polled until it settles
+  ---
+  duration_ms: 1.635865
+  type: 'test'
+  ...
+# Subtest: monid · blocked, failed, unpaid, timed out and keyless are errors, never throws
+ok 246 - monid · blocked, failed, unpaid, timed out and keyless are errors, never throws
+  ---
+  duration_ms: 4.152846
+  type: 'test'
+  ...
+# Subtest: monid · the rows inside each provider's shape
+ok 247 - monid · the rows inside each provider's shape
+  ---
+  duration_ms: 0.627076
+  type: 'test'
+  ...
+# Subtest: gaps: the scan's own first, then blocking (!!) and warnings, 菜单空 once
+ok 248 - gaps: the scan's own first, then blocking (!!) and warnings, 菜单空 once
+  ---
+  duration_ms: 1.848479
+  type: 'test'
+  ...
+# Subtest: the summary line says what blocks, nothing when nothing does
+ok 249 - the summary line says what blocks, nothing when nothing does
+  ---
+  duration_ms: 0.488486
+  type: 'test'
+  ...
+# Subtest: fetchOrderLints asks the invoice app once, with the shared token, and keys the answer by order
+ok 250 - fetchOrderLints asks the invoice app once, with the shared token, and keys the answer by order
+  ---
+  duration_ms: 31.553365
+  type: 'test'
+  ...
+# Subtest: an invoice app that does not answer is null, never a clean order
+ok 251 - an invoice app that does not answer is null, never a clean order
+  ---
+  duration_ms: 1.186548
+  type: 'test'
+  ...
+# Subtest: no ids, no call
+ok 252 - no ids, no call
+  ---
+  duration_ms: 0.235705
+  type: 'test'
+  ...
+# Subtest: partyHeadCounts: detailed rows - adults, paying kids, free littles
+ok 253 - partyHeadCounts: detailed rows - adults, paying kids, free littles
+  ---
+  duration_ms: 1.863997
+  type: 'test'
+  ...
+# Subtest: partyHeadCounts: the under-5 promo line outranks the row flags
+ok 254 - partyHeadCounts: the under-5 promo line outranks the row flags
+  ---
+  duration_ms: 0.436887
+  type: 'test'
+  ...
+# Subtest: partyHeadCounts: no guest rows yet falls back to the headline counts
+ok 255 - partyHeadCounts: no guest rows yet falls back to the headline counts
+  ---
+  duration_ms: 0.176508
+  type: 'test'
+  ...
+# Subtest: monthlyStats: adults 1, paying kids 0.5, free kids 0; cancelled out; money only when allowed
+ok 256 - monthlyStats: adults 1, paying kids 0.5, free kids 0; cancelled out; money only when allowed
+  ---
+  duration_ms: 11.055197
+  type: 'test'
+  ...
+# Subtest: /pay · v2-cash-20: the card charge equals the invoice's cardBalanceDue
+ok 257 - /pay · v2-cash-20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 1.371193
+  type: 'test'
+  ...
+# Subtest: /pay · v2-cash-20: paying the full card balance settles the party and leaves exactly the tip
+ok 258 - /pay · v2-cash-20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.742484
+  type: 'test'
+  ...
+# Subtest: /pay · v2-card-20: the card charge equals the invoice's cardBalanceDue
+ok 259 - /pay · v2-card-20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.180826
+  type: 'test'
+  ...
+# Subtest: /pay · v2-card-20: paying the full card balance settles the party and leaves exactly the tip
+ok 260 - /pay · v2-card-20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.089086
+  type: 'test'
+  ...
+# Subtest: /pay · v2-card-20-tip20: the card charge equals the invoice's cardBalanceDue
+ok 261 - /pay · v2-card-20-tip20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.188944
+  type: 'test'
+  ...
+# Subtest: /pay · v2-card-20-tip20: paying the full card balance settles the party and leaves exactly the tip
+ok 262 - /pay · v2-card-20-tip20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.159194
+  type: 'test'
+  ...
+# Subtest: /pay · v2-debit-20: the card charge equals the invoice's cardBalanceDue
+ok 263 - /pay · v2-debit-20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.110457
+  type: 'test'
+  ...
+# Subtest: /pay · v2-debit-20: paying the full card balance settles the party and leaves exactly the tip
+ok 264 - /pay · v2-debit-20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.088894
+  type: 'test'
+  ...
+# Subtest: /pay · v2-cash-20-dep1990: the card charge equals the invoice's cardBalanceDue
+ok 265 - /pay · v2-cash-20-dep1990: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.356446
+  type: 'test'
+  ...
+# Subtest: /pay · v2-cash-20-dep1990: paying the full card balance settles the party and leaves exactly the tip
+ok 266 - /pay · v2-cash-20-dep1990: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.333739
+  type: 'test'
+  ...
+# Subtest: /pay · v2-min-8a2k-travel: the card charge equals the invoice's cardBalanceDue
+ok 267 - /pay · v2-min-8a2k-travel: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.096825
+  type: 'test'
+  ...
+# Subtest: /pay · v2-min-8a2k-travel: paying the full card balance settles the party and leaves exactly the tip
+ok 268 - /pay · v2-min-8a2k-travel: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.137081
+  type: 'test'
+  ...
+# Subtest: /pay · v2-rate-default: the card charge equals the invoice's cardBalanceDue
+ok 269 - /pay · v2-rate-default: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.073402
+  type: 'test'
+  ...
+# Subtest: /pay · v2-rate-default: paying the full card balance settles the party and leaves exactly the tip
+ok 270 - /pay · v2-rate-default: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.059094
+  type: 'test'
+  ...
+# Subtest: /pay · v1-cash-20: the card charge equals the invoice's cardBalanceDue
+ok 271 - /pay · v1-cash-20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.055776
+  type: 'test'
+  ...
+# Subtest: /pay · v1-cash-20: paying the full card balance settles the party and leaves exactly the tip
+ok 272 - /pay · v1-cash-20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.098359
+  type: 'test'
+  ...
+# Subtest: /pay · v1-card-20: the card charge equals the invoice's cardBalanceDue
+ok 273 - /pay · v1-card-20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.064568
+  type: 'test'
+  ...
+# Subtest: /pay · v1-card-20: paying the full card balance settles the party and leaves exactly the tip
+ok 274 - /pay · v1-card-20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.114095
+  type: 'test'
+  ...
+# Subtest: /pay · v1-card-20-tip20: the card charge equals the invoice's cardBalanceDue
+ok 275 - /pay · v1-card-20-tip20: the card charge equals the invoice's cardBalanceDue
+  ---
+  duration_ms: 0.063785
+  type: 'test'
+  ...
+# Subtest: /pay · v1-card-20-tip20: paying the full card balance settles the party and leaves exactly the tip
+ok 276 - /pay · v1-card-20-tip20: paying the full card balance settles the party and leaves exactly the tip
+  ---
+  duration_ms: 0.146304
+  type: 'test'
+  ...
+# Subtest: /pay · v2: a payment smaller than tax + fee buys nothing toward the balance, and never goes negative
+ok 277 - /pay · v2: a payment smaller than tax + fee buys nothing toward the balance, and never goes negative
+  ---
+  duration_ms: 0.291474
+  type: 'test'
+  ...
+# Subtest: /pay · v1: ×1.04 both ways, the tip is in the 4% too
+ok 278 - /pay · v1: ×1.04 both ways, the tip is in the 4% too
+  ---
+  duration_ms: 0.127276
+  type: 'test'
+  ...
+# Subtest: /pay · the Stripe line never prints a cash-basis amount
+ok 279 - /pay · the Stripe line never prints a cash-basis amount
+  ---
+  duration_ms: 0.308473
+  type: 'test'
+  ...
+# Subtest: select fragment aliases each key and keeps its case
+ok 280 - select fragment aliases each key and keeps its case
+  ---
+  duration_ms: 1.040661
+  type: 'test'
+  ...
+# Subtest: a key that could change the query is refused
+ok 281 - a key that could change the query is refused
+  ---
+  duration_ms: 0.42375
+  type: 'test'
+  ...
+# Subtest: the payload comes back with only the keys that had a value, types kept
+ok 282 - the payload comes back with only the keys that had a value, types kept
+  ---
+  duration_ms: 0.762825
+  type: 'test'
+  ...
+# [phone-line-type] lookup failed { e164: '+13105550100', status: 503 }
+# [phone-line-type] lookup error { e164: '+13105550100', error: 'socket hang up' }
+# Subtest: line type · only lines that cannot take a text are ruled out
+ok 283 - line type · only lines that cannot take a text are ruled out
+  ---
+  duration_ms: 1.059473
+  type: 'test'
+  ...
+# Subtest: line type · the stored reason names the line, not a carrier error code
+ok 284 - line type · the stored reason names the line, not a carrier error code
+  ---
+  duration_ms: 0.247657
+  type: 'test'
+  ...
+# Subtest: line type · Twilio's body parses, and anything odd is unknown
+ok 285 - line type · Twilio's body parses, and anything odd is unknown
+  ---
+  duration_ms: 0.843674
+  type: 'test'
+  ...
+# Subtest: line type · a cached answer never calls Twilio
+ok 286 - line type · a cached answer never calls Twilio
+  ---
+  duration_ms: 0.611666
+  type: 'test'
+  ...
+# Subtest: line type · a fresh answer comes from Twilio and is written back
+ok 287 - line type · a fresh answer comes from Twilio and is written back
+  ---
+  duration_ms: 24.555776
+  type: 'test'
+  ...
+# Subtest: line type · Twilio down, no credentials, or a timeout = unknown, nothing cached
+ok 288 - line type · Twilio down, no credentials, or a timeout = unknown, nothing cached
+  ---
+  duration_ms: 2.953167
+  type: 'test'
+  ...
+# Subtest: phone · a US number with a plus and no 1 gets the 1
+ok 289 - phone · a US number with a plus and no 1 gets the 1
+  ---
+  duration_ms: 0.965352
+  type: 'test'
+  ...
+# Subtest: phone · the usual US shapes
+ok 290 - phone · the usual US shapes
+  ---
+  duration_ms: 0.375812
+  type: 'test'
+  ...
+# Subtest: phone · real international numbers are left alone
+ok 291 - phone · real international numbers are left alone
+  ---
+  duration_ms: 0.138431
+  type: 'test'
+  ...
+# Subtest: phone · junk is rejected
+ok 292 - phone · junk is rejected
+  ---
+  duration_ms: 0.171966
+  type: 'test'
+  ...
+# Subtest: prep · steak portions are untouched: 4.5 oz an adult, 2.25 oz a kid
+ok 293 - prep · steak portions are untouched: 4.5 oz an adult, 2.25 oz a kid
+  ---
+  duration_ms: 2.534568
+  type: 'test'
+  ...
+# Subtest: prep · steak is bought in Costco top sirloin packs (about 3.2 lb): need x 1.1, rounded up to whole packs
+ok 294 - prep · steak is bought in Costco top sirloin packs (about 3.2 lb): need x 1.1, rounded up to whole packs
+  ---
+  duration_ms: 1.483434
+  type: 'test'
+  ...
+# Subtest: prep · the warehouse planner buys the same number of steak packs as the order page says
+ok 295 - prep · the warehouse planner buys the same number of steak packs as the order page says
+  ---
+  duration_ms: 6.288664
+  type: 'test'
+  ...
+# Subtest: prep · two parties on one day: the steak hint is recomputed on the day's total
+ok 296 - prep · two parties on one day: the steak hint is recomputed on the day's total
+  ---
+  duration_ms: 0.689218
+  type: 'test'
+  ...
+# Subtest: mirror · the constants are the invoice engine's
+ok 297 - mirror · the constants are the invoice engine's
+  ---
+  duration_ms: 1.164759
+  type: 'test'
+  ...
+# Subtest: mirror · salesTaxOn and cardProcessingFeeOn reproduce the engine's tax and fee on every v2 bill
+ok 298 - mirror · salesTaxOn and cardProcessingFeeOn reproduce the engine's tax and fee on every v2 bill
+  ---
+  duration_ms: 0.496983
+  type: 'test'
+  ...
+# Subtest: mirror · pricingTermsFor flips at 2026-10-06 00:00 PT like the engine
+ok 299 - mirror · pricingTermsFor flips at 2026-10-06 00:00 PT like the engine
+  ---
+  duration_ms: 0.185902
+  type: 'test'
+  ...
+# Subtest: mirror · zelleVenmoPriceOf is cash x 1.04, rounded to the cent
+ok 300 - mirror · zelleVenmoPriceOf is cash x 1.04, rounded to the cent
+  ---
+  duration_ms: 0.201032
+  type: 'test'
+  ...
+# Subtest: floor · Whitney 60 on a Sunday at $54.90: $3,114, $51.90 a head, full service
+ok 301 - floor · Whitney 60 on a Sunday at $54.90: $3,114, $51.90 a head, full service
+  ---
+  duration_ms: 4.497417
+  type: 'test'
+  ...
+# Subtest: floor · the same party with free tables counts $4 a head: $47.90 is under $50, so it runs semi-buffet
+ok 302 - floor · the same party with free tables counts $4 a head: $47.90 is under $50, so it runs semi-buffet
+  ---
+  duration_ms: 27.316616
+  type: 'test'
+  ...
+# Subtest: floor · 40+ guests: $45 a head is the floor (semi-buffet), $44 needs the owner; under 40 the weekend floor stays $50
+ok 303 - floor · 40+ guests: $45 a head is the floor (semi-buffet), $44 needs the owner; under 40 the weekend floor stays $50
+  ---
+  duration_ms: 1.155025
+  type: 'test'
+  ...
+# Subtest: floor · weekday 40+ gets no extra room: $45 is already the floor and stays full service
+ok 304 - floor · weekday 40+ gets no extra room: $45 is already the floor and stays full service
+  ---
+  duration_ms: 0.470259
+  type: 'test'
+  ...
+# Subtest: floor · list price is always above the floor, weekend and weekday, with or without kids
+ok 305 - floor · list price is always above the floor, weekend and weekday, with or without kids
+  ---
+  duration_ms: 1.38051
+  type: 'test'
+  ...
+# Subtest: floor · kids weigh half a head: 10 adults + 10 kids at list price is $41.90 a body but $55.87 a weighted head
+ok 306 - floor · kids weigh half a head: 10 adults + 10 kids at list price is $41.90 a body but $55.87 a weighted head
+  ---
+  duration_ms: 0.373957
+  type: 'test'
+  ...
+# Subtest: floor · weekday floor is $45: 35 on a Tuesday at $47 a head clears it, $44 does not
+ok 307 - floor · weekday floor is $45: 35 on a Tuesday at $47 a head clears it, $44 does not
+  ---
+  duration_ms: 0.444557
+  type: 'test'
+  ...
+# Subtest: floor · travel never counts toward the per-head take
+ok 308 - floor · travel never counts toward the per-head take
+  ---
+  duration_ms: 0.271376
+  type: 'test'
+  ...
+# Subtest: signing · appetizers are never signed into the link; tables and utensils are
+ok 309 - signing · appetizers are never signed into the link; tables and utensils are
+  ---
+  duration_ms: 0.743316
+  type: 'test'
+  ...
+# Subtest: signing · a weekday special rate is signed with the $5 added back (the invoice measures from $59.90)
+ok 310 - signing · a weekday special rate is signed with the $5 added back (the invoice measures from $59.90)
+  ---
+  duration_ms: 0.810419
+  type: 'test'
+  ...
+# Subtest: tables · Saturday half price (D-1017-01): $5 a guest is billed inside the total and signed as a rate, not a dollar amount
+ok 311 - tables · Saturday half price (D-1017-01): $5 a guest is billed inside the total and signed as a rate, not a dollar amount
+  ---
+  duration_ms: 1.538265
+  type: 'test'
+  ...
+# Subtest: tables · half price is no concession on the floor: $5 paid covers the $4 they cost, and the $5 is not food
+ok 312 - tables · half price is no concession on the floor: $5 paid covers the $4 they cost, and the $5 is not food
+  ---
+  duration_ms: 0.401174
+  type: 'test'
+  ...
+# Subtest: tables · at the $599 minimum the half-price tables sit inside it, as the invoice bills them
+ok 313 - tables · at the $599 minimum the half-price tables sit inside it, as the invoice bills them
+  ---
+  duration_ms: 0.660927
+  type: 'test'
+  ...
+# Subtest: tables · free wins over a rate, and a rate at or above $10 (or zero) is not a deal
+ok 314 - tables · free wins over a rate, and a rate at or above $10 (or zero) is not a deal
+  ---
+  duration_ms: 0.445727
+  type: 'test'
+  ...
+# Subtest: tables · isSaturday reads the party date (D-1017-01: Saturdays get half price at most)
+ok 315 - tables · isSaturday reads the party date (D-1017-01: Saturdays get half price at most)
+  ---
+  duration_ms: 0.502088
+  type: 'test'
+  ...
+# Subtest: reddit via monid · listing rows become the posts the rest of the pipeline knows
+ok 316 - reddit via monid · listing rows become the posts the rest of the pipeline knows
+  ---
+  duration_ms: 2.615763
+  type: 'test'
+  ...
+# Subtest: facebook · a person asking stays, a business selling goes
+ok 317 - facebook · a person asking stays, a business selling goes
+  ---
+  duration_ms: 9.264009
+  type: 'test'
+  ...
+# Subtest: reddit via monid · when monid is out (402), the same round falls back to the public feed
+ok 318 - reddit via monid · when monid is out (402), the same round falls back to the public feed
+  ---
+  duration_ms: 44.477503
+  type: 'test'
+  ...
+# node:internal/modules/cjs/loader:1383
+#   const err = new Error(message);
+#               ^
+# Error: Cannot find module 'react'
+# Require stack:
+# - /home/user/hibachiathome/components/meta-pixel.tsx
+# - /home/user/hibachiathome/lib/tracking.ts
+# - /home/user/hibachiathome/tests/referrer-source.test.ts
+#     at node:internal/modules/cjs/loader:1383:15
+#     at nextResolveSimple (/root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:23:1010)
+#     at /root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:4512
+#     at /root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2830
+#     at resolveTsPaths (/root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:23:762)
+#     at /root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-B1c7OH6V.cjs:23:1203
+#     at j._resolveFilename (file:///root/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-nyXW-TH3.mjs:2:18825)
+#     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+#     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+#     at Function._load (node:internal/modules/cjs/loader:1192:37) {
+#   code: 'MODULE_NOT_FOUND',
+#   requireStack: [
+#     '/home/user/hibachiathome/components/meta-pixel.tsx',
+#     '/home/user/hibachiathome/lib/tracking.ts',
+#     '/home/user/hibachiathome/tests/referrer-source.test.ts'
+#   ]
+# }
+# Node.js v22.22.0
+# Subtest: tests/referrer-source.test.ts
+not ok 48 - tests/referrer-source.test.ts
+  ---
+  duration_ms: 404.043614
+  type: 'test'
+  location: '/home/user/hibachiathome/tests/referrer-source.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: rentals · 10 adults with the full setup is $719, like the invoice and /quote
+ok 320 - rentals · 10 adults with the full setup is $719, like the invoice and /quote
+  ---
+  duration_ms: 1.912288
+  type: 'test'
+  ...
+# Subtest: rentals · without rentals nothing changes
+ok 321 - rentals · without rentals nothing changes
+  ---
+  duration_ms: 0.354379
+  type: 'test'
+  ...
+# Subtest: rentals · a small party: rentals fill the minimum before it is charged
+ok 322 - rentals · a small party: rentals fill the minimum before it is charged
+  ---
+  duration_ms: 0.303045
+  type: 'test'
+  ...
+# Subtest: audit · photos then a tapback: the photos are open
+ok 323 - audit · photos then a tapback: the photos are open
+  ---
+  duration_ms: 1.345343
+  type: 'test'
+  ...
+# Subtest: audit · a question followed by thanks is still open, from the question
+ok 324 - audit · a question followed by thanks is still open, from the question
+  ---
+  duration_ms: 2.101887
+  type: 'test'
+  ...
+# Subtest: audit · a website form after our text is open; a bare thanks or a reaction is not
+ok 325 - audit · a website form after our text is open; a bare thanks or a reaction is not
+  ---
+  duration_ms: 0.678464
+  type: 'test'
+  ...
+# Subtest: audit · anything we sent after it closes the turn; mixed timestamp formats compare as instants
+ok 326 - audit · anything we sent after it closes the turn; mixed timestamp formats compare as instants
+  ---
+  duration_ms: 0.1899
+  type: 'test'
+  ...
+# Subtest: audit · only a person's decision silences it
+ok 327 - audit · only a person's decision silences it
+  ---
+  duration_ms: 0.407357
+  type: 'test'
+  ...
+# Subtest: audit · emails and forms always need an answer; STOP never does
+ok 328 - audit · emails and forms always need an answer; STOP never does
+  ---
+  duration_ms: 0.2055
+  type: 'test'
+  ...
+# Subtest: ring · first three hours always; then one 14-minute window every three hours, 8 AM-11 PM PT
+ok 329 - ring · first three hours always; then one 14-minute window every three hours, 8 AM-11 PM PT
+  ---
+  duration_ms: 0.272457
+  type: 'test'
+  ...
+# Subtest: phone digits: E.164, dashes and a leading 1 all land on the same ten digits
+ok 330 - phone digits: E.164, dashes and a leading 1 all land on the same ten digits
+  ---
+  duration_ms: 1.481336
+  type: 'test'
+  ...
+# Subtest: a staff number matches however Twilio or the workbench wrote it
+ok 331 - a staff number matches however Twilio or the workbench wrote it
+  ---
+  duration_ms: 0.475172
+  type: 'test'
+  ...
+# Subtest: no database, or a failed read, means nobody is staff - the inbox keeps working
+ok 332 - no database, or a failed read, means nobody is staff - the inbox keeps working
+  ---
+  duration_ms: 0.566214
+  type: 'test'
+  ...
+# Subtest: staff rows with blank or short phones are skipped
+ok 333 - staff rows with blank or short phones are skipped
+  ---
+  duration_ms: 1.354759
+  type: 'test'
+  ...
+# Subtest: voice: the 10-28/29 texts that read like a bot are stopped, by the same rules desk uses
+ok 334 - voice: the 10-28/29 texts that read like a bot are stopped, by the same rules desk uses
+  ---
+  duration_ms: 6.116142
+  type: 'test'
+  ...
+# Subtest: voice: ordinary English is left alone
+ok 335 - voice: ordinary English is left alone
+  ---
+  duration_ms: 1.175843
+  type: 'test'
+  ...
+# Subtest: voice: every machine-written text is clean - template B
+ok 336 - voice: every machine-written text is clean - template B
+  ---
+  duration_ms: 21.221829
+  type: 'test'
+  ...
+# Subtest: voice: every machine-written text is clean - template A
+ok 337 - voice: every machine-written text is clean - template A
+  ---
+  duration_ms: 11.276171
+  type: 'test'
+  ...
+# Subtest: voice: every machine-written text is clean - pre-party, bill, missed call
+ok 338 - voice: every machine-written text is clean - pre-party, bill, missed call
+  ---
+  duration_ms: 2.156785
+  type: 'test'
+  ...
+# Subtest: voice: every machine-written text is clean - returning-customer drafts
+ok 339 - voice: every machine-written text is clean - returning-customer drafts
+  ---
+  duration_ms: 0.91651
+  type: 'test'
+  ...
+# Subtest: a Request a Quote becomes a named request with guests and ZIP
+ok 340 - a Request a Quote becomes a named request with guests and ZIP
+  ---
+  duration_ms: 3.907235
+  type: 'test'
+  ...
+# Subtest: follow-up messages and reminders file on the customer, guests read from free text
+ok 341 - follow-up messages and reminders file on the customer, guests read from free text
+  ---
+  duration_ms: 0.859208
+  type: 'test'
+  ...
+# Subtest: a refused e-mailed reply is flagged, not a new customer message
+ok 342 - a refused e-mailed reply is flagged, not a new customer message
+  ---
+  duration_ms: 0.46095
+  type: 'test'
+  ...
+# Subtest: reviews, ad offers and non-Yelp senders stay filtered
+ok 343 - reviews, ad offers and non-Yelp senders stay filtered
+  ---
+  duration_ms: 0.290935
+  type: 'test'
+  ...
+# Subtest: lead names and first-name matching
+ok 344 - lead names and first-name matching
+  ---
+  duration_ms: 0.413296
+  type: 'test'
+  ...
+# Subtest: a bare CA ZIP becomes its town
+ok 345 - a bare CA ZIP becomes its town
+  ---
+  duration_ms: 1.170212
+  type: 'test'
+  ...
+# Subtest: anything else gives nothing
+ok 346 - anything else gives nothing
+  ---
+  duration_ms: 0.20517
+  type: 'test'
+  ...
+1..346
+# tests 346
+# suites 0
+# pass 344
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5848.902802

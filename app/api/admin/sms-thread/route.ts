@@ -117,7 +117,7 @@ const ASKS_FOR_DATE =
 // Template A, "our system should've texted you a price and didn't" (leads
 // skill §3.1), and how long after the contact step it may go out by hand -
 // the same 5 minutes as lead-watch's grace_minutes default.
-const SAYS_NO_PRICE_WAS_SENT = /should(?:'|’)?ve texted you a price|should have texted you a price/i
+const SAYS_NO_PRICE_WAS_SENT = /should(?:'|’)?ve texted you a price|should have texted you a price|supposed to text you a price/i
 const TEMPLATE_A_MIN_AGE_MIN = 5
 const MENTIONS_A_DATE =
   /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(st|nd|rd|th)?\b|\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b|\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\.?,?\s+(the\s+)?\d{1,2}(st|nd|rd|th)?\b|\bthe\s+\d{1,2}(st|nd|rd|th)\b/i

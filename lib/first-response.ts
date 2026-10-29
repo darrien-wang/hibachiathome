@@ -221,17 +221,18 @@ export function templateAMessage(p: LandingContactPayload): { sms: string; email
   // fee is its own phrase here.
   const minimum = minimumNote(weekendEst, adults + kids)
   const { where, price, travelSms, travelEmail } = templateAWording({ weekend: money(weekend), weekday: money(weekday), travel, city })
+  // Wording per leads voice.md (owner 2026-10-29): full stops, no parenthesis.
   const sms =
-    `Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. ` +
+    `Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. ` +
     // Listed price only: nothing about tax or payment method is brought up
     // before the booking is confirmed (owner 2026-10-06); the invoice and the
     // pay page carry the itemised bills.
-    `For ${guests}${where} it's ${price}${travelSms} ` +
-    `(2 proteins each + fried rice, veggies, salad and the chef show). ${minimum ? `That's ${minimum}. ` : ""}What date are you thinking?`
+    `For ${guests}${where} it's ${price}${travelSms}. ` +
+    `Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. ${minimum ? `That's ${minimum}. ` : ""}What date are you thinking?`
   const emailText = [
     "Hi there,",
     "",
-    "Rowling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away - it didn't, sorry about that. Here it is:",
+    "Rowling here from Real Hibachi. You left your number and email on our site a few minutes ago and our system should have texted you a price right away. It didn't, sorry about that. Here it is:",
     "",
     `- ${guests}, Fri-Sun: ${money(weekend)} total`,
     `- Same party Mon-Thu: ${money(weekday)} (+ a free appetizer of your choice: gyoza, edamame or spring rolls)`,
@@ -295,14 +296,14 @@ const shortAddress = (address: string | null | undefined) => {
   return a.split(",")[0]?.trim() ?? ""
 }
 
-/** 72h: the confirmation text. */
+/** 72h: the confirmation text. Wording per leads voice.md (owner 2026-10-29). */
 export function partyContactFirstText(i: PartyContactInput): string {
   const name = firstName(i.customerName)
-  const when = `${shortDate(i.eventStart.slice(0, 10))} at ${wallTime(i.eventStart)}`
+  const when = `${spokenDate(i.eventStart.slice(0, 10), ptDate(i.now))} at ${wallTime(i.eventStart)}`
   const where = shortAddress(i.address)
   return (
-    `Hi${name ? ` ${name}` : ""}, ${i.signer ?? "Rowling"} from Real Hibachi 👋 Your hibachi party is ${when}${where ? ` at ${where}` : ""}. ` +
-    `Reply YES if everything's still set, or let me know if anything's changed.`
+    `Hi${name ? ` ${name}` : ""}, it's ${i.signer ?? "Rowling"} from Real Hibachi. Your party is ${when}${where ? ` at ${where}` : ""}. ` +
+    `Reply YES if everything's still set, or tell me what changed.`
   )
 }
 
@@ -312,8 +313,8 @@ export function partyContactSecondText(i: PartyContactInput): string {
   const sameDay = ptDate(i.now) === i.eventStart.slice(0, 10)
   const where = shortAddress(i.address)
   return (
-    `Hi${name ? ` ${name}` : ""}, ${i.signer ?? "Rowling"} here - just making sure we're all set for ${sameDay ? "today" : "tomorrow"} at ${wallTime(i.eventStart)}${where ? ` at ${where}` : ""}. ` +
-    `Could you reply so I know you got this? 🙏`
+    `Hi${name ? ` ${name}` : ""}, it's ${i.signer ?? "Rowling"}. Just making sure we're set for ${sameDay ? "today" : "tomorrow"} at ${wallTime(i.eventStart)}${where ? ` at ${where}` : ""}. ` +
+    `Could you reply so I know you got this?`
   )
 }
 
@@ -360,8 +361,8 @@ export const payUrlFor = (orderId: string) => `https://www.realhibachi.com/pay?o
 export function partyBillText(i: { signer?: "Bling" | "Rowling"; customerName?: string | null; payUrl: string }): string {
   const name = firstName(i.customerName)
   return (
-    `Hi${name ? ` ${name}` : ""}, ${i.signer ?? "Rowling"} from Real Hibachi - hope everyone's having a great time! ` +
-    `Whenever you're ready to settle up, your bill is right here, and you can pay by card in a few taps: ${i.payUrl} ` +
+    `Hi${name ? ` ${name}` : ""}, it's ${i.signer ?? "Rowling"} from Real Hibachi. Hope the party's going well. ` +
+    `Whenever you're ready to settle up, your bill is here and you can pay by card: ${i.payUrl} ` +
     `Cash to your chef works too.`
   )
 }

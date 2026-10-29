@@ -605,23 +605,23 @@ def check_unread(phone: str, seen_arg: str | None, forced: bool, msgs: list[dict
 #   note - fine once, a tell when it is every text (a single " - " after
 #          "Yes" is ordinary English); printed, and the text goes
 # Only the English matters: a text to a chef is in Chinese and never hits.
-VOICE_SPLICES = 1          # " - " joins per text before a note
-VOICE_BANGS = 1            # "!" per text
-VOICE_EMOJI = 1            # emoji per text
-VOICE_REINTRO_H = 24       # "Hi, it's Rowling" again while they spoke this recently: no
+# The lists live in config/voice-rules.json, shared with lib/voice-check.ts
+# (tests/voice-check.test.ts holds every machine-written text to them).
+VOICE_RULES = json.loads((ROOT / "config" / "voice-rules.json").read_text(encoding="utf-8"))
+_vl = VOICE_RULES["limits"]
+VOICE_SPLICES = _vl["splices"]          # " - " joins per text before a note
+VOICE_BANGS = _vl["bangs"]              # "!" per text
+VOICE_EMOJI = _vl["emoji"]              # emoji per text
+VOICE_REINTRO_H = _vl["reintroHours"]   # "Hi, it's Rowling" again while they spoke this recently: no
+_alt = lambda key: "|".join(VOICE_RULES[key])
 VOICE_HI = r"^(?:hi\b[^.!?]{0,40}?[-,.!]\s*)?"
-VOICE_OPENER = re.compile(
-    VOICE_HI + r"(?:perfect|absolutely|of course|totally|great question|great choice|good news|love (?:it|that)|yay|certainly|wonderful|amazing)\b",
-    re.I)
+VOICE_OPENER = re.compile(VOICE_HI + rf"(?:{_alt('openers')})\b", re.I)
 # "No rush - ", "Got it - ", "Done - ": a reaction word, then the splice.
-VOICE_SPLICE_OPENER = re.compile(
-    VOICE_HI + r"(?:done|got it|no rush|no worries|no problem(?: at all)?|sounds good|yes|yep|great|awesome|easy|ha|okay|ok|sure|"
-    r"good question|congrats|thanks|thank you|correct|exactly|nice|gotcha) - ", re.I)
+VOICE_SPLICE_OPENER = re.compile(VOICE_HI + rf"(?:{_alt('reactionOpeners')}) - ", re.I)
 # "your 17" with no noun after it; "your 16 adults and 3 kids" is ordinary English.
 VOICE_YOUR_N = re.compile(
     r"\b(?:for|of|with|and|is|plan for) your (\d{1,3})\b"
-    r"(?!\s*(?:[:%/+]|-year|(?:am|pm|th|st|nd|rd|adults?|guests?|people|kids?|children|boys|girls|friends|ladies|guys|"
-    r"family|coworkers|employees|students|members|folks|plates|portions?|teens|seniors|of you)\b))", re.I)
+    rf"(?!\s*(?:[:%/+]|-year|(?:am|pm|th|st|nd|rd|{_alt('headcountNouns')})\b))", re.I)
 VOICE_REINTRO = re.compile(r"^hi\b[^.?]{0,30}\b(?:it's |it is |this is )?rowling\b", re.I)
 VOICE_NAMED = re.compile(r"\b(?:Rowling|Bling)\b")
 VOICE_EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF]")
@@ -634,18 +634,8 @@ VOICE_ONCE = [
     ("X it is", re.compile(r"\b\w+ it is[.!,]", re.I)),
 ]
 VOICE_SYSTEM_TEXT = re.compile(r"^Real Hibachi:")
-VOICE_GREETING = {"hi", "hey", "hello", "morning", "afternoon", "evening", "good"}
-VOICE_BANNED = re.compile(
-    r"\b(?:thank you for reaching out|thanks for your interest|hope this (?:message )?finds you well|hope you're doing well|"
-    r"i'd be (?:happy|glad) to|happy to help|i (?:completely )?understand your|let me know if you have any|is there anything else|"
-    r"feel free to|don't hesitate|hope this helps|look forward to serving|have a (?:wonderful|great) day|our pleasure|"
-    r"apologi[sz]e for (?:any|the) inconvenience|appreciate your patience|rest assured|sorry for any confusion|"
-    r"unforgettable|a night to remember|seamless|elevate|curated|premium experience|memorable experience|exceptional|"
-    r"an amazing \w+|we're (?:so )?excited|so happy too|can't wait to cook|"
-    r"additionally|furthermore|moreover|that being said|please note that|not just (?:a |an )?\w+, it's|whether you're|"
-    r"here's what you need to know|one nice thing about|quick heads-up|"
-    r"just checking in|touching base|haven't heard back|sorry to bother|please let me know|whenever you get a chance|"
-    r"still interested|any update|love to have your business|hope to hear from you|take your time)\b", re.I)
+VOICE_GREETING = set(VOICE_RULES["greetings"])
+VOICE_BANNED = re.compile(rf"\b(?:{_alt('banned')})\b", re.I)
 
 
 def voice_check(body: str, msgs: list[dict], now: _dt.datetime) -> list[tuple[str, str]]:
@@ -2319,11 +2309,12 @@ def cmd_order(a):
             card = float(inv.get("cardBalanceDue") or 0)
             tax = float(inv.get("salesTax") or 0)
             fee = float(inv.get("cardProcessingFee") or 0)
-            body = (f"See you {when} at {at}! Your balance is {money(cash)} cash to your chef, "
-                    f"or {money(card)} by card ({money(cash)} + {money(tax)} sales tax + {money(fee)} card processing fee charged by Stripe). "
-                    f"Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?")
+            # Wording per leads voice.md (owner 2026-10-29): no parenthesis, no "charged by Stripe".
+            body = (f"See you {when} at {at}. Your balance is {money(cash)} cash to your chef, "
+                    f"or {money(card)} by card, since {money(tax)} sales tax and a {money(fee)} card fee get added. "
+                    f"Want the 20% gratuity for your chef on the card too, or will you tip in person?")
         else:
-            body = f"See you {when} at {at}! Your balance is {money(balance)} - cash to your chef at the end is easiest, no fees."
+            body = f"See you {when} at {at}. Your balance is {money(balance)}, and cash to your chef at the end is easiest, no fees."
         # The day-before text goes out only on an order that carries what the
         # customer is owed (D-1017-02) - the same check that holds the prep sheet.
         lint = _order_lint(order)
@@ -2389,7 +2380,7 @@ def cmd_order(a):
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
                 import datetime as _dt
                 day = _dt.date.fromisoformat(date).strftime("%A")
-            body = (f"Here's your invoice{' for ' + day if day else ''}: {short} - please look it over and reply "
+            body = (f"Here's your invoice{' for ' + day if day else ''}: {short} Please look it over and reply "
                     f"\"confirm\" here if it's all right. A PDF copy is in your email too.")
             # The session id lets the just_answered brake tell this desk from
             # another one. Without it Tonia 10-13 got the invoice email but not
