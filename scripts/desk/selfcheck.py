@@ -307,7 +307,8 @@ class SendRun:
     """One `desk send` (or `desk thread`) against a fake thread, at the second `at` on the Pacific clock: its output,
     exit, what it posted (None = nothing sent), what it read, and the pictures it uploaded."""
 
-    def __init__(self, thread: list[dict], *args: str, at: str, phone: str = PROM_PHONE, staff: tuple[str, ...] = (), cmd: str = "send"):
+    def __init__(self, thread: list[dict], *args: str, at: str, phone: str = PROM_PHONE, staff: tuple[str, ...] = (), cmd: str = "send",
+                 body: str = REPLY):
         self.thread, self.staff = thread, staff
         self.posted, self.reads, self.uploads = None, [], []
         desk.site_get, desk.site_post, desk._now = self.site_get, self.site_post, lambda: wall(at)
@@ -317,7 +318,7 @@ class SendRun:
         self.exit = None
         with contextlib.redirect_stdout(buf):
             try:
-                desk.main([cmd, phone, *(["--body", REPLY] if cmd == "send" else []), *args])
+                desk.main([cmd, phone, *(["--body", body] if cmd == "send" else []), *args])
             except SystemExit as e:
                 self.exit = e.code
         self.out = buf.getvalue()
@@ -344,6 +345,11 @@ class SendRun:
     @property
     def sent(self) -> bool:
         return self.exit is None and self.posted is not None and "OK    " in self.out
+
+    @property
+    def voiced(self) -> bool:
+        """Refused by the voice check: exit 2, no post, said which rule."""
+        return self.exit == 2 and self.posted is None and "VOICE" in self.out and "UNREAD" not in self.out
 
     def has(self, *parts: str) -> bool:
         return all(p in self.out for p in parts)
@@ -423,6 +429,34 @@ def _send_checks() -> None:
     check("send: a staff number's 好的 20 s before does not stop a text to them (not a lead)", r.sent and r.has("员工号码"), r)
     r = SendRun(chef, at="2026-10-24 15:01:00", phone=CHEF_PHONE, staff=("(626) 555-0199",))
     check("  the same number when it is not on the staff list: stopped", r.stopped and r.reads == ["/api/admin/sms-thread", "/api/admin/chefs"], r)
+
+    # Voice (leads voice.md §2, owner 2026-10-29): what reads like a bot is stopped, printed, --voice-ok sends it.
+    ok_seen = ("--seen", "2026-10-24T18:54:18-07:00")
+    r = SendRun(PROM, *ok_seen, at=reply_at, body="Perfect - steak and shrimp for everyone, it's on your order! 🥩🍤")
+    check("voice: 'Perfect - ... ! 🥩🍤' is stopped (exit 2, nothing sent): emotion-word opener and two emoji named",
+          r.voiced and r.has("情绪词开头「Perfect", "emoji 2 个"), r)
+    r = SendRun(PROM, *ok_seen, at=reply_at, body="Hi Jacob! Rowling from Real Hibachi 👋 Yes, 12:00 works - your chef arrives around 11:30 - so you can start right at noon! Is Dec 5 still the plan for your 17?")
+    check("  two ' - ', two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke: all four named",
+          r.voiced and r.has("\" - \" 用了 2 次", "感叹号 2 个", "your 17", "别再 Hi, it's Rowling"), r)
+    r = SendRun(PROM, *ok_seen, at=reply_at, body="Great question! Paying cash on the day, sales tax is already included (card adds a small fee). Let me know if you have any questions.")
+    check("  'Great question!', a parenthesis and 'Let me know if you have any': named", r.voiced and r.has("Great question", "括号", "Let me know if you have any"), r)
+    r = SendRun(PROM_LATER, "--seen", "18:56", at=later, body="Either works! Dinner and the show run about an hour and a half.")
+    check("  the same first two words as our last text ('Either works'): named", r.voiced and r.has("和我上一条开头一样"), r)
+    once = PROM + [sms(PROM_PHONE, "outbound", "2026-10-24 18:54:23", "Here's the link - it just saves a card, nothing is charged today: https://x.y/z")]
+    r = SendRun(once, "--seen", "18:54:18", at="2026-10-24 19:00:00", body="Same link works. It just saves a card, nothing is charged today.")
+    check("  'nothing is charged today' said to this customer before: named", r.voiced and r.has("已经听过一次了"), r)
+    r = SendRun(PROM, *ok_seen, at=reply_at, body="Sat, May 15 is open on our end for your 30 — what's the celebration?")
+    check("  an em dash: named", r.voiced and r.has("长破折号"), r)
+    r = SendRun(PROM, "--voice-ok", *ok_seen, at=reply_at, body="Perfect - steak and shrimp for everyone, it's on your order! 🥩🍤")
+    check("  --voice-ok: sent, the hits still printed", r.sent and r.has("VOICE", "照发", "Perfect"), r)
+    for body in (REPLY, "Yes, noon works. Your chef will get there around 11:30 to set up.", "Happy birthday! When's the party?",
+                 "30 people is $1,707 with tax if you pay cash.", "Got it, 7:30 then.", "Anytime. See you on the 17th.",
+                 "Could you send me the street address when you have a minute?", "Your chef is Blu. He'll be there around 5 to set up. 🔥",
+                 "Hi, it's Rowling from Real Hibachi. Saturday the 18th is open for the 15 of you in Palm Springs. What's the celebration?"):
+        r = SendRun(PROM_LATER, "--seen", "2026-10-24T18:56:44-07:00", at="2026-10-26 12:00:00", body=body)
+        check(f"  clean: {body[:60]!r} sent, no VOICE line", r.sent and "VOICE" not in r.out, r)
+    r = SendRun(PROM, at=reply_at, body="Perfect - steak and shrimp for everyone!")
+    check("  unread comes first: the prom reply with no --seen stops on UNREAD, the voice check is not reached", r.stopped and "VOICE" not in r.out, r)
 
     r = SendRun(PROM, at=reply_at, cmd="thread")
     check("thread: ends with the --seen for a reply, to the second of their last text",

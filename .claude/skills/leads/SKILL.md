@@ -103,7 +103,7 @@ description: >-
 
 **④ 写**：原则在 §1、§5，句式在 `templates.md`，事实在 `answers.md`。
 
-**⑤ 发**：`desk send <手机> --lead <id> --body-file f.txt --seen <① 打出的时间>`（非 ASCII 用 file）。发之前 desk 自己再读一遍 Twilio 对话：客人在 `--seen` 那条之后又发了（没带 `--seen`：90 秒内刚到的），就**不发**，打出那几条、exit 2——读完，稿子还接得上就带它打出的新 `--seen` 发，接不上就改了再发（细则见 `tools.md`）。刹车 409（daily 每 24 小时主动 2 条 / spacing 3 小时 / followup_cap 3 条 / sweep 10 分钟 6 条 / asked_known_date / just_answered）**默认就是对的**。`--force` 只用于两种：答应过客人的回复（电话里说了"马上发链接"），或老板点过头的那一条；它只放行服务器刹车，**不跳过未读这一道**。`desk send` 会清掉挂起，所以**先发后挂**。首条报价手机、邮箱都有的，短信之外再发一封稍长的邮件（09-14；机器的模板 A 就是这样双发的）；之后客人在哪个渠道说话就在哪回。
+**⑤ 发**：`desk send <手机> --lead <id> --body-file f.txt --seen <① 打出的时间>`（非 ASCII 用 file）。发之前 desk 自己再读一遍 Twilio 对话：客人在 `--seen` 那条之后又发了（没带 `--seen`：90 秒内刚到的），就**不发**，打出那几条、exit 2——读完，稿子还接得上就带它打出的新 `--seen` 发，接不上就改了再发（细则见 `tools.md`）。刹车 409（daily 每 24 小时主动 2 条 / spacing 3 小时 / followup_cap 3 条 / sweep 10 分钟 6 条 / asked_known_date / just_answered）**默认就是对的**。`--force` 只用于两种：答应过客人的回复（电话里说了"马上发链接"），或老板点过头的那一条；它只放行服务器刹车，**不跳过未读这一道**。未读之后 desk 还按 `voice.md` §2 数一遍稿子（` - `、`!`、emoji、情绪词开头、`your 17`、禁词……），命中就不发、打出规则；改了再发，确实该这么写的带 `--voice-ok`。`desk send` 会清掉挂起，所以**先发后挂**。首条报价手机、邮箱都有的，短信之外再发一封稍长的邮件（09-14；机器的模板 A 就是这样双发的）；之后客人在哪个渠道说话就在哪回。
 
 **⑥ 记**：`desk note <lead> "<标签> 人话"`。标签：`[SOP:类型]`（每条外发的用途：first_response / f_one / f_deadline / deposit_ask / tables / g_menu / b_callback / answer …，周报按它算效果）、`[occasion]` 场合、`[why]` 客人说的原因、`[callback]` 他定的回话时间、`[data]` 日期人数地址、`[owner]` 老板拍板、`[default30]` 老板 30 分钟没回按建议做、`[concession]` 让步、`[won]`/`[lost]`（流失要和 `[why]` 一起写）。人数、名字当场 `desk fields` 回写。
 

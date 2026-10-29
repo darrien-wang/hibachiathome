@@ -72,7 +72,7 @@
 
 | 客人 | 回 |
 |---|---|
-| `Thank you!` / `Thanks so much` | `Anytime.` / `You got it.` / `Of course. See you on the 17th.` |
+| `Thank you!` / `Thanks so much` | `Anytime.` / `You got it.` / `See you on the 17th.` |
 | `Ok sounds good` / `Cool` | `Great, talk soon.`（或者 tapback 规则，SKILL §1.6） |
 | `Still trying to decide` / `Not yet` | `No problem. Just text me when you know.` |
 | `Confirming with the team` / `I'll ask my wife` | `Sounds good, I'm here.` |
@@ -153,20 +153,18 @@
 ## 6. 发前 10 秒（在 SKILL §0 四问之后）
 
 1. 第一句是不是在答他刚问的？他问的每件都答到了吗？
-2. 数一下：` - ` ≤1 个？`!` ≤1 个？emoji 0 或 1 个？
-3. 开头是不是 §2.3 的情绪词？对话中间是不是又写了 `Hi, it's Rowling`？
-4. 有没有 `your 17` 这种人数、全写的日期、括号、§3 词表里的词？
-5. 他手上已经有的那句（`nothing is charged today` 之类）是不是又说了一遍？
-6. 和我上一条、和我刚给别人发的那条，是不是一个模子？
+2. 他手上已经有的那句（`nothing is charged today` 之类）是不是又说了一遍？
+3. 和我上一条、和我刚给别人发的那条，是不是一个模子？
+
+数得出来的那些（` - `、`!`、emoji、情绪词开头、`your 17`、括号、§3 词表、对话中间又报名字、同一句说第二次、和上一条开头一样）**`desk send` 自己会查**（老板 2026-10-29）：命中就不发，打出是哪条规则，exit 2。改了再发；这句确实就该这么写（比如客人自己先用了那个词、引用他的话），带 `--voice-ok`，命中的规则照样打出来。规则和阈值在 `scripts/desk/desk.py` 的 `voice_check`，改规矩两边一起改。它只查英文，发给师傅的中文不会命中。
 
 ---
 
-## 7. 机器模板的待办（要老板点头再改代码）
+## 7. 机器模板
 
-机器发的也有同样的痕迹，改了要动 `lib/first-response.ts` 和测试（`tests/first-response.test.ts`、`scripts/desk/selfcheck.py`）：
-
-- 模板 B：`Hi! Rowling from Real Hibachi 👋 Sat, Oct 18 is open on our end for your 15 in Palm Springs — what's the celebration?` 有长破折号和 `your 15`。建议：`Hi, it's Rowling from Real Hibachi. Saturday the 18th is open for the 15 of you in Palm Springs. What's the celebration?`（没日期：`Hi, it's Rowling from Real Hibachi. Got your quote for 15. What's the celebration?`）
-- 模板 A：`our system should've texted you a price and didn't, sorry about that` 一开口先讲系统故障，也偏机器。建议另议。
+- **模板 B 已改**（2026-10-29，`lib/first-response.ts`）：`Hi, it's Rowling from Real Hibachi. Saturday the 18th is open for the 15 of you in Palm Springs. What's the celebration?`。两周内的日期说 `Saturday the 18th`，更远的说 `Saturday, May 15`；没日期 `Saw your quote for 15 in Temecula.`。
+- **模板 A 待议**：`our system should've texted you a price and didn't, sorry about that` 一开口先讲系统故障，也偏机器。
+- **派对前确认、账单短信**（`partyContactFirstText` 等）还是 `Hi X, Rowling from Real Hibachi 👋` 开头，待议。
 
 ---
 
