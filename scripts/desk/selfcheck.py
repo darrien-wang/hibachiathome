@@ -308,7 +308,9 @@ class SendRun:
     exit, what it posted (None = nothing sent), what it read, and the pictures it uploaded."""
 
     def __init__(self, thread: list[dict], *args: str, at: str, phone: str = PROM_PHONE, staff: tuple[str, ...] = (), cmd: str = "send",
-                 body: str = REPLY):
+                 body: str = REPLY, log: list[dict] | None = None):
+        if log is not None:  # what this machine logged before the run (voice log); None keeps what earlier runs left
+            desk.VOICE_LOG.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in log), encoding="utf-8")
         self.thread, self.staff = thread, staff
         self.posted, self.reads, self.uploads = None, [], []
         desk.site_get, desk.site_post, desk._now = self.site_get, self.site_post, lambda: wall(at)
@@ -360,12 +362,20 @@ class SendRun:
         return all(p in self.out for p in parts)
 
 
+def voice_rec(event: str, phone: str, body: str, when: str, hits: list | None = None) -> dict:
+    """One line of desk's voice log, as `desk send` writes it (`when` on the Pacific clock)."""
+    return {"t": wall(when).isoformat(timespec="seconds"), "event": event, "phone": phone, "body": body,
+            "hits": hits or [], "voice_ok": False, "session": "selfcheck"}
+
+
 def send_checks() -> None:
-    kept = desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url
-    try:
-        _send_checks()
-    finally:
-        desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url = kept
+    kept = desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url, desk.VOICE_LOG
+    with tempfile.TemporaryDirectory() as tmp:
+        desk.VOICE_LOG = pathlib.Path(tmp) / "desk-voice.jsonl"  # never the real log in ~/.realhibachi
+        try:
+            _send_checks()
+        finally:
+            desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url, desk.VOICE_LOG = kept
 
 
 def _send_checks() -> None:
@@ -478,6 +488,60 @@ def _send_checks() -> None:
         check(f"  clean: {body[:60]!r} sent, no VOICE line", r.sent and "VOICE" not in r.out, r)
     r = SendRun(PROM, at=reply_at, body="Perfect - steak and shrimp for everyone!")
     check("  unread comes first: the prom reply with no --seen stops on UNREAD, the voice check is not reached", r.stopped and "VOICE" not in r.out, r)
+
+    # One opening for many people, and a first sentence that does not answer (owner 2026-10-29): notes, sent anyway.
+    later_seen = ("--seen", "2026-10-24T18:56:44-07:00")
+    moldy = "Hi, it's Rowling - figured you're still sorting out the details. Is the 7th still the plan?"
+    two_others = [voice_rec("sent", "+16195550001", "Hi, it's Rowling - figured you're still picking a date. Did a weekend win?", "2026-10-26 10:00:00"),
+                  voice_rec("sent", "+16195550002", "Hi! Rowling here - figured you're still comparing calendars.", "2026-10-26 10:05:00")]
+    r = SendRun(PROM_LATER, *later_seen, at="2026-10-26 12:00:00", body=moldy, log=two_others)
+    check("voice: an opening this machine sent 2 other customers in 24 h ('figured you're still'): a note, sent",
+          r.noted and r.has("「figured you're still …」", "2 位别的客人"), r)
+    r = SendRun(PROM_LATER, *later_seen, at="2026-10-26 12:00:00", body=moldy, log=two_others[:1])
+    check("  sent to 1 other customer: no note", r.sent and "VOICE" not in r.out, r)
+    r = SendRun(PROM_LATER, *later_seen, at="2026-10-27 12:00:00", body=moldy, log=two_others)
+    check("  the two others 26 h back: no note", r.sent and "VOICE" not in r.out, r)
+    same_phone = [voice_rec("sent", PROM_PHONE, moldy, "2026-10-26 10:00:00"), voice_rec("sent", PROM_PHONE, moldy, "2026-10-26 10:05:00")]
+    r = SendRun(PROM_LATER, *later_seen, at="2026-10-26 12:00:00", body=moldy, log=same_phone)
+    check("  sent before to this same customer only: not 'other customers', no note", r.sent and "VOICE" not in r.out, r)
+
+    asked = PROM_LATER + [sms(PROM_PHONE, "inbound", "2026-10-24 19:10:00", "Do you provide tables and chairs?")]
+    asked_seen = ("--seen", "2026-10-24T19:10:00-07:00")
+    r = SendRun(asked, *asked_seen, at="2026-10-24 19:11:00", body="5:30 works great. Tables and chairs are $10 a guest.", log=[])
+    check("voice: they asked about tables, our first sentence '5:30 works great.': a note naming both, sent",
+          r.noted and r.has("第一句先答他问的", "Do you provide tables and chairs?", "5:30 works great."), r)
+    for body in ("Yes, tables and chairs are $10 a guest.", "We do. They're $10 a guest with linens.", "Tables and chairs are $10 a guest, linens included."):
+        r = SendRun(asked, *asked_seen, at="2026-10-24 19:11:00", body=body, log=[])
+        check(f"  {body[:40]!r}: answers first, clean", r.sent and "VOICE" not in r.out, r)
+    thanked = PROM_LATER + [sms(PROM_PHONE, "inbound", "2026-10-24 19:10:00", "Thank you! Does that include gratuity?")]
+    r = SendRun(thanked, *asked_seen, at="2026-10-24 19:11:00", body="You're welcome! Gratuity isn't included, 20-25% is customary.", log=[])
+    check("  'You're welcome!' first when they asked about gratuity: a note", r.noted and r.has("第一句先答他问的", "You're welcome!"), r)
+    r = SendRun(thanked, *asked_seen, at="2026-10-24 19:11:00", body="Not included. 20-25% is customary, and all of it goes to your chef.", log=[])
+    check("  'Not included. ...': clean", r.sent and "VOICE" not in r.out, r)
+    first_q = [PROM[0], sms(PROM_PHONE, "inbound", "2026-10-24 18:53:36", "How much for 25 guests?")]
+    r = SendRun(first_q, "--seen", "2026-10-24T18:53:36-07:00", at="2026-10-24 18:54:00", log=[],
+                body="Hi, it's Rowling from Real Hibachi. 25 people is $1,407.50 if you pay cash.")
+    check("  a first text: the name intro, then the price for 'How much for 25 guests?': clean", r.sent and "VOICE" not in r.out, r)
+    tapped = PROM_LATER + [sms(PROM_PHONE, "inbound", "2026-10-24 19:10:00", "Loved “Either works! Dinner and the show run about an hour and a half.”")]
+    r = SendRun(tapped, *asked_seen, at="2026-10-24 19:11:00", body="Sounds good, see you then.", log=[])
+    check("  a tapback is not a question: clean", r.sent and "VOICE" not in r.out, r)
+
+    # The log the daily report reads: a stop, then the rewrite that went 4 min later.
+    r = SendRun(PROM, *ok_seen, at=reply_at, body="Perfect - steak and shrimp for everyone! 🥩🍤", log=[])
+    logged = [json.loads(x) for x in desk.VOICE_LOG.read_text(encoding="utf-8").splitlines()]
+    check("voice log: a stop is a line (event stop, phone, the rule)",
+          r.voiced and len(logged) == 1 and logged[0]["event"] == "stop" and logged[0]["phone"] == PROM_PHONE
+          and any("情绪词开头" in h[1] for h in logged[0]["hits"]), r)
+    r = SendRun(PROM, *ok_seen, at="2026-10-24 18:58:23", body="Steak and shrimp for everyone, got it.")
+    logged = [json.loads(x) for x in desk.VOICE_LOG.read_text(encoding="utf-8").splitlines()]
+    check("  the rewrite 4 min later: sent, a sent line after it", r.sent and [x["event"] for x in logged] == ["stop", "sent"], r)
+    buf = io.StringIO()
+    desk._now = lambda: wall("2026-10-24 23:00:00")
+    with contextlib.redirect_stdout(buf):
+        desk.main(["voice-log", "--date", "2026-10-24"])
+    out = buf.getvalue()
+    check("  desk voice-log: 1 sent, 1 stop, the opener rule counted, the rewrite took 4 min",
+          "发出 1 条" in out and "拦下 1 次" in out and "情绪词开头" in out and "4 分钟后改好发出" in out, detail=out)
 
     r = SendRun(PROM, at=reply_at, cmd="thread")
     check("thread: ends with the --seen for a reply, to the second of their last text",

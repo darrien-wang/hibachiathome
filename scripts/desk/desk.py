@@ -12,7 +12,11 @@
                                    --seen = the customer's last text you read (desk thread / card print it). A text of
                                    theirs after it - with no --seen, one from the last 90 s - stops the send; --force does not
                                    A text that reads like a bot (voice.md §2: " - " twice, "!" twice, "Perfect -",
-                                   "your 17", a banned phrase...) stops it too, printed; --voice-ok sends it as written
+                                   "your 17", a banned phrase...) stops it too, printed; --voice-ok sends it as written.
+                                   Notes, sent anyway: an opening already sent to 2 other customers in 24 h, a first
+                                   sentence that does not answer the question they just asked
+  python scripts/desk/desk.py voice-log [--date YYYY-MM-DD]   what the voice check did on this machine that day: stops,
+                                   how long each rewrite took, notes, --voice-ok (the daily report reads it)
   python scripts/desk/desk.py email  <to> --subject s [--body-file f] [--lead id] [--cc a b]   from support@, logged on the lead
   python scripts/desk/desk.py note   <leadId> [note] [--body-file f]
   python scripts/desk/desk.py hold   <leadId> <days>       0 clears
@@ -55,6 +59,7 @@ from __future__ import annotations
 import argparse
 import copy
 import datetime as _dt
+import difflib
 import functools
 import json
 import math
@@ -636,9 +641,111 @@ VOICE_ONCE = [
 VOICE_SYSTEM_TEXT = re.compile(r"^Real Hibachi:")
 VOICE_GREETING = set(VOICE_RULES["greetings"])
 VOICE_BANNED = re.compile(rf"\b(?:{_alt('banned')})\b", re.I)
+# Two more notes after the 10-22..10-28 backtest (owner 2026-10-29); neither stops a send.
+# One mold for many people: 22 follow-ups that week opened "Hi, it's Rowling - figured you're still ..."
+# (5 replies). An opening - the first three words once the greeting and our name are off - that this
+# machine already sent to VOICE_SAME_FRAME other customers in the last 24 h gets a note (read from VOICE_LOG).
+# A first sentence that does not answer: 7 of 30 replies to a question led with "You're welcome!",
+# "Good morning, Matthew!" or "5:30 works great!" (they had asked about tables). Read, not understood:
+# they asked something since our last text, and our first sentence (after a first text's name intro)
+# is a pleasantry, or shares no word with the question and does not open like an answer.
+# Every stop and every text sent with its notes is a line in VOICE_LOG; `desk voice-log` sums a day
+# for the daily report (owner 10-29: does the check slow a reply or cost a booking).
+VOICE_LOG = pathlib.Path.home() / ".realhibachi" / "desk-voice.jsonl"
+VOICE_SAME_FRAME = 2
+VOICE_LEAD_IN = re.compile(r"^(?:(?:hi|hey|hello)\b[^.!?]{0,40}?(?:[.!?]+|\s-\s)\s*)?"
+                           r"(?:(?:it's |this is )?(?:rowling|bling)\b[^.!?-]{0,25}?(?:[.!?]+|\s-\s)\s*)?", re.I)
+# "Loved “…”" from an iPhone, "❤️ to “…”" from Android: a reaction, not a question.
+VOICE_TAPBACK = re.compile(r"^(?:(?:loved|liked|laughed at|emphasized|disliked|questioned)\s+|\W{0,3}\S{1,4}\W{0,3}\s+to\s+)[“\"]", re.I)
+# A question: a "?" outside a link, a wh-word opening a sentence, or "can you" / "do we" / "is it"... ("Will do" is not one).
+VOICE_ASKED = re.compile(r"\?|(?:^|[.!\n]\s*)(?:how|what|what's|when|where|which|who|why)\b|(?:^|[.!\n]\s*)"
+                         r"(?:can|could|do|does|is|are|will|would|should|did|may)\s+(?:you|u|we|i|it|they|that|this|there|he|she|my|our|"
+                         r"the|your|everyone|anyone|someone|y'all)\b", re.I)
+VOICE_URL = re.compile(r"https?://\S+")
+VOICE_SMALLTALK = re.compile(r"^(?:hi|hey|hello|good (?:morning|afternoon|evening)|morning|you(?:'re| are) (?:so |very )?welcome|"
+                             r"thanks|thank you|no apolog\w*|no worries|anytime)\b", re.I)
+VOICE_ANSWERISH = re.compile(r"^(?:yes|yep|yeah|yup|no|nope|not|sure|either|both|neither|of course|absolutely|definitely|yay|"
+                             r"correct|right|exactly|we|it|it's|they|they're|that's|there|around|about|only|you can|you don't|you do|you'll)\b", re.I)
+VOICE_NUMBER_Q = re.compile(r"how much|how many|how long|what time|\bwhen\b|price|cost|\bfees?\b|total|\$|what date|which day|budget", re.I)
+VOICE_FILLER = frozenset(
+    "the and for with you your are was what how does can will did that this there have has get got just also would could "
+    "should about any some our its them they their then than from into been were want need know like much many when where "
+    "which who why one more please thanks thank hey hello yes yeah okay i'm we're you're it's that's there's what's let's "
+    "u ur pls thx".split())
 
 
-def voice_check(body: str, msgs: list[dict], now: _dt.datetime) -> list[tuple[str, str]]:
+def voice_frame(body: str) -> str:
+    """The first three words once the greeting and our name are off - what a batch of follow-ups shares."""
+    rest = VOICE_LEAD_IN.sub("", (body or "").strip(), count=1)
+    words = re.sub(r"[^\w' ]", " ", rest).lower().split()
+    return " ".join(words[:3]) if len(words) >= 3 else ""
+
+
+def _voice_words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9']+", (text or "").lower())
+
+
+def voice_unanswered(body: str, msgs: list[dict]) -> tuple[str, str] | None:
+    """(their question, our first sentence) when that sentence does not look like the answer; None when it does,
+    or nothing was asked since our last text."""
+    last_ours = max((i for i, m in enumerate(msgs) if m.get("direction") == "outbound"), default=-1)
+    asked = [(m.get("body") or "").strip() for m in msgs[last_ours + 1:]
+             if m.get("direction") == "inbound" and not VOICE_TAPBACK.match((m.get("body") or "").strip())
+             and VOICE_ASKED.search(VOICE_URL.sub(" ", m.get("body") or ""))]
+    if not asked:
+        return None
+    sentences = [s for s in re.split(r"(?<=[.!?])\s+", (body or "").strip()) if s]
+    named = any(VOICE_NAMED.search(m.get("body") or "") for m in msgs
+                if m.get("direction") == "outbound" and not VOICE_SYSTEM_TEXT.match((m.get("body") or "").strip()))
+    # A first text gives the name first (SKILL §2): the answer is the sentence after it.
+    while len(sentences) > 1 and not named and (VOICE_REINTRO.match(sentences[0])
+                                                  or re.fullmatch(r"(?:hi|hey|hello)\b[^.!?]{0,20}[.!?]", sentences[0], re.I)):
+        sentences.pop(0)
+    first = sentences[0] if sentences else ""
+    q = " ".join(asked)
+    want = {w for w in _voice_words(q) if (len(w) >= 3 or w.isdigit()) and w not in VOICE_FILLER}
+    said = _voice_words(first)
+    overlap = any(w in want or (len(w) >= 5 and any(len(x) >= 5 and difflib.SequenceMatcher(None, w, x).ratio() >= 0.8 for x in want))
+                  for w in said if w not in VOICE_FILLER)
+    numbered = bool(VOICE_NUMBER_Q.search(q) and re.search(r"[\d$]", first))
+    small = bool(VOICE_SMALLTALK.match(first)) and len(said) <= 5
+    # Only a short sentence is judged on words: a long one ("Every guest gets 2 proteins...") is the answer more often than not.
+    if small or (len(said) <= 6 and not (overlap or numbered or VOICE_ANSWERISH.match(first))):
+        return asked[-1], first
+    return None
+
+
+def voice_others(phone: str, now: _dt.datetime) -> list[dict]:
+    """What this machine sent other customers in the 24 h before `now` (VOICE_LOG; nothing when it cannot be read)."""
+    out = []
+    try:
+        lines = VOICE_LOG.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        try:
+            r = json.loads(line)
+        except ValueError:
+            continue
+        t = _at(r.get("t"))
+        if r.get("event") == "sent" and r.get("phone") != phone and t and 0 <= (now - t).total_seconds() <= 24 * 3600:
+            out.append(r)
+    return out
+
+
+def voice_log(event: str, phone: str, body: str, hits, ok: bool = False) -> None:
+    """One line per stop / send in VOICE_LOG. A write that fails never stops a send."""
+    try:
+        VOICE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        rec = {"t": _now().isoformat(timespec="seconds"), "event": event, "phone": phone, "body": body,
+               "hits": [list(h) for h in hits or []], "voice_ok": bool(ok), "session": desk_session()}
+        with VOICE_LOG.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def voice_check(body: str, msgs: list[dict], now: _dt.datetime, others: list[dict] = ()) -> list[tuple[str, str]]:
     """What in this text reads like a bot, as (level, line): level "stop" or "note"; [] = clean."""
     b = (body or "").strip()
     hits: list[tuple[str, str]] = []
@@ -685,14 +792,23 @@ def voice_check(body: str, msgs: list[dict], now: _dt.datetime) -> list[tuple[st
         h = head(ours[-1].strip())
         if h and h == head(b) and h.split()[0] not in VOICE_GREETING:
             note(f"和我上一条开头一样（「{h}」）：换个开头")
+    f = voice_frame(b)
+    if f:
+        n = len({o.get("phone") for o in others if voice_frame(o.get("body") or "") == f})
+        if n >= VOICE_SAME_FRAME:
+            note(f"「{f} …」这样开头的，24 小时内已经发给 {n} 位别的客人：一个人一个人写，换个开头")
+    miss = voice_unanswered(b, msgs)
+    if miss:
+        note(f"他问了「{miss[0][:60]}」，你第一句是「{miss[1][:60]}」：第一句先答他问的（voice.md §2 第 1 条）")
     return hits
 
 
-def check_voice(body: str, msgs: list[dict], ok: bool) -> None:
-    """Stop the send over a sure tell unless --voice-ok; print the notes and send."""
-    hits = voice_check(body, msgs, _now())
+def check_voice(body: str, msgs: list[dict], ok: bool, phone: str = "") -> list[tuple[str, str]]:
+    """Stop the send over a sure tell unless --voice-ok; print the notes and send. The hits go back for the log."""
+    now = _now()
+    hits = voice_check(body, msgs, now, voice_others(phone, now))
     if not hits:
-        return
+        return hits
     stops = [line for level, line in hits if level == "stop"]
     if stops:
         print(f"VOICE {'（--voice-ok，照发）' if ok else ''}读起来像机器（leads voice.md §2）：")
@@ -701,9 +817,57 @@ def check_voice(body: str, msgs: list[dict], ok: bool) -> None:
     for level, line in hits:
         print(f"   {'✗' if level == 'stop' else '·'} {line}")
     if not stops or ok:
-        return
+        return hits
     print("      没发。改了 ✗ 那几条再发；这句确实就该这么写，带 --voice-ok")
+    voice_log("stop", phone, body, hits)
     sys.exit(2)
+
+
+def cmd_voice_log(a):
+    """What the voice check did on this machine on one Pacific day, for the daily report (owner 2026-10-29: the week
+    after it went live, does it slow a reply or cost a booking). A stop with no send to that number within 30 min is
+    the one to look at."""
+    day = _dt.date.fromisoformat(a.date) if a.date else _now().astimezone(PACIFIC).date()
+    rows = []
+    try:
+        lines = VOICE_LOG.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        lines = []
+    for line in lines:
+        try:
+            r = json.loads(line)
+        except ValueError:
+            continue
+        r["_t"] = _at(r.get("t"))
+        if r["_t"] and r["_t"].astimezone(PACIFIC).date() == day:
+            rows.append(r)
+    sent = [r for r in rows if r.get("event") == "sent"]
+    stops = [r for r in rows if r.get("event") == "stop"]
+    noted = [r for r in sent if r.get("hits")]
+    print(f"文风检查 {day}（本机 desk send）：发出 {len(sent)} 条，其中带提醒 {len(noted)}、--voice-ok "
+          f"{sum(1 for r in sent if r.get('voice_ok'))}；拦下 {len(stops)} 次")
+    tally: dict[str, int] = {}
+    for r in rows:
+        for level, line in r.get("hits") or []:
+            if r.get("event") == "sent" and level == "stop" and not r.get("voice_ok"):
+                continue
+            key = ("✗ " if level == "stop" else "· ") + re.sub(r"「[^」]*」", "「…」", line.split("：")[0])
+            key = "· 第一句没答他问的" if "第一句先答" in line else ("· 同一个开头发给多位客人" if "位别的客人" in line else key)
+            tally[key] = tally.get(key, 0) + 1
+    for key, n in sorted(tally.items(), key=lambda kv: -kv[1]):
+        print(f"   {n:3}  {key}")
+    waits = []
+    for s in stops:
+        after = [r["_t"] for r in sent if r.get("phone") == s.get("phone") and r["_t"] >= s["_t"]]
+        mins = (min(after) - s["_t"]).total_seconds() / 60 if after else None
+        waits.append(mins)
+        when = s["_t"].astimezone(PACIFIC).strftime("%H:%M")
+        tail = f"{mins:.0f} 分钟后改好发出" if mins is not None and mins <= 30 else (
+            f"{mins:.0f} 分钟后才发出 ⚠" if mins is not None else "之后没发出 ⚠")
+        print(f"   {when} {s.get('phone', '')[-4:]}  {tail}  ← {(s.get('body') or '')[:60]!r}")
+    done = sorted(w for w in waits if w is not None)
+    if done:
+        print(f"   改写耗时：中位 {done[len(done) // 2]:.0f} 分钟、最长 {done[-1]:.0f} 分钟；30 分钟内没发出 {sum(1 for w in waits if w is None or w > 30)} 次")
 
 
 def cmd_send(a):
@@ -715,7 +879,7 @@ def cmd_send(a):
         parse_seen(a.seen, _now())  # a --seen desk cannot read is refused before anything is read
     msgs = site_get("/api/admin/sms-thread", {"phone": phone}).get("messages") or []
     check_unread(phone, a.seen, a.force, msgs)
-    check_voice(body, msgs, a.voice_ok)
+    hits = check_voice(body, msgs, a.voice_ok, phone)
     if a.media:
         # A picture goes through the same send route as a text (2026-10-08): the
         # duplicate brake, the follow-up caps and the timeline all apply. Upload
@@ -740,6 +904,7 @@ def cmd_send(a):
             sys.exit(2)
         print(f"OK    {payload['phone']}  {out.get('sid', '')}  {out.get('status', '')}  +1 media ({src.name})")
         print(f"      {body}")
+        voice_log("sent", phone, body, hits, a.voice_ok)
         return
     # Which desk is sending: the server refuses a text when another session
     # answered this number minutes ago and the customer has not spoken since
@@ -760,6 +925,7 @@ def cmd_send(a):
         sys.exit(2)
     print(f"OK    {payload['phone']}  {out.get('sid', '')}  {out.get('status', '')}")
     print(f"      {body}")
+    voice_log("sent", phone, body, hits, a.voice_ok)
 
 
 def cmd_email(a):
@@ -2426,6 +2592,7 @@ def main(argv=None):
     p.add_argument("--voice-ok", action="store_true", help="send even though the text trips the voice check (leads voice.md §2): "
                    "for the sentence that is right as written")
     p.set_defaults(fn=cmd_send)
+    p = sp.add_parser("voice-log"); p.add_argument("--date", help="YYYY-MM-DD (Pacific), default today"); p.set_defaults(fn=cmd_voice_log)
     p = sp.add_parser("note"); p.add_argument("lead"); p.add_argument("note", nargs="?"); p.add_argument("--body-file"); p.set_defaults(fn=cmd_note)
     p = sp.add_parser("hold"); p.add_argument("lead"); p.add_argument("days", type=int); p.set_defaults(fn=cmd_hold)
     p = sp.add_parser("chef-rule", help="chef pay counts invoice adults as kids (half heads) for this lead's party")
