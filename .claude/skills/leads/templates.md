@@ -63,7 +63,7 @@ Real Hibachi · (213) 770-7788
 - **报城市后给价 + 链接 + 问时间**：`Tustin is inside our free 50 miles, so 18 people on Saturday the 7th is $1,018.20. The headcount can change up to the day before. Here's the link to lock the date. It just saves a card, nothing is charged today: <link> What time are you thinking?`
 - **人数在涨**：`Congrats on the bigger crowd! Hibachi scales well. The group discount grows with the headcount, 20+ gets a free appetizer, and past 28 we send a second chef so everyone eats at once. Roughly how many are you expecting now?`
 - **改了时间地点、马上要锁**：`Yes to both. [Saturday the 24th at 3:30 at your place in Granada Hills] works, and it's still $[988.50]. Here's the link with [3:30] and [Granada Hills] filled in: <link>`
-- **订前问桌椅**（周六）：`They're normally $10 a guest, but if you lock the date I'll do them at half price, $5 a guest.`（周日到周五：`We do. They're normally $10 a guest, but lock the date today and I'll include them.`；没日期：`Pick your date and lock it, and I'll take care of the tables.`）
+- **问桌椅**（照价答，D-1029-02）：`We do. Tables, chairs and linens are $10 a guest, and plates and silverware are $5.` 要总价就过 `desk price --tables N --utensils N` 报一个数。客人拿别家比价或说超预算时，桌椅才是最后一张牌（周五–日最多半价、周一–四最多免费、节假日不给）：`If it helps, lock the date and I'll do the tables at half price.`
 - **模板 L · 他以为要等人数定了才能订**（10-01）：`You don't need the final number to lock [the 7th]. The link just saves a card to hold the date, nothing is charged today, and the headcount can change later: <link>` 发完挂 3–5 天，之后不追。
 - **确认类，一句话**：`Done, 7:30.` / `Got it, 7:30 then.`（`X it is` 一个客人最多用一次）
 - **客气收尾**：`You too, enjoy your night.` / `Anytime.` / `You got it.` / `Sounds good, talk soon.`（大多不带 emoji，见 `voice.md` §4）

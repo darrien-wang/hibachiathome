@@ -697,7 +697,7 @@ export function LeadDialog({
                 </div>
               ) : null}
               {tables === "free" && isSaturday(qDate || lead.event_hint) ? (
-                <div style={{ color: "var(--color-warning-700, #b45309)" }}>周六的派对桌椅最多半价（D-1017-01），免费要老板点头</div>
+                <div style={{ color: "var(--color-warning-700, #b45309)" }}>桌椅只在客人比价或超预算时让：周五–日最多半价，周一–四最多免费，节假日不给（D-1029-02）</div>
               ) : null}
               {quote.freebiesZh.length ? <div>送：{quote.freebiesZh.join("、")}，共值 ${quote.freeValue}，不进总价</div> : null}
               {appId ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>前菜不签进押金链接，付押金后发票里按盘数加上（发出后记在承诺里）</div> : null}
