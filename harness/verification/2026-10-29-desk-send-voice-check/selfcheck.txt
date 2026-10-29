@@ -75,9 +75,14 @@ PASS    a tapback is a text of theirs too (Loved … 30 s before): stopped
 PASS  send: a staff number's 好的 20 s before does not stop a text to them (not a lead)
 PASS    the same number when it is not on the staff list: stopped
 PASS  voice: 'Perfect - ... ! 🥩🍤' is stopped (exit 2, nothing sent): emotion-word opener and two emoji named
-PASS    two ' - ', two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke: all four named
-PASS    'Great question!', a parenthesis and 'Let me know if you have any': named
-PASS    the same first two words as our last text ('Either works'): named
+PASS    two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke stop it; the two ' - ' are a note
+PASS    'Great question!' and 'Let me know if you have any' stop it; the parenthesis is a note
+PASS    the same first two words as our last text ('Either works'): a note, sent
+PASS    'No rush - ' opener: a note, sent
+PASS    two texts that both open 'Hi, it's ...' days apart: no same-opener note, sent clean
+PASS    the first text a person sends gives the name even though the customer wrote first: sent clean
+PASS    'your 16 adults' (a noun after the number) is ordinary English: sent clean
+PASS    'nothing is charged today' after only the site's automatic quote said it: sent clean (the first link a person sends says it)
 PASS    'nothing is charged today' said to this customer before: named
 PASS    an em dash: named
 PASS    --voice-ok: sent, the hits still printed

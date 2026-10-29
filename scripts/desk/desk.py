@@ -598,98 +598,121 @@ def check_unread(phone: str, seen_arg: str | None, forced: bool, msgs: list[dict
 # the countable rules are checked here, before anything goes out. Of the 775
 # hand-sent texts 10-15..10-29, 87% spliced two halves with " - ", 55% carried
 # a "!", 20% re-introduced "Hi, it's Rowling" mid-conversation, 7% said
-# "your 17" for a headcount. A hit stops the send (exit 2, nothing sent) and
-# names the rule; --voice-ok sends anyway, for the sentence that is right as
-# written. Only the English matters: a text to a chef is in Chinese and
-# never hits.
-VOICE_SPLICES = 1          # " - " joins per text
+# "your 17" for a headcount. Two levels, set by a backtest over every text the
+# workbench sent 09-12..10-29 (harness/verification/2026-10-29-desk-send-voice-check):
+#   stop - a sure tell; the send stops (exit 2, nothing sent) and names the
+#          rule, --voice-ok sends it as written
+#   note - fine once, a tell when it is every text (a single " - " after
+#          "Yes" is ordinary English); printed, and the text goes
+# Only the English matters: a text to a chef is in Chinese and never hits.
+VOICE_SPLICES = 1          # " - " joins per text before a note
 VOICE_BANGS = 1            # "!" per text
 VOICE_EMOJI = 1            # emoji per text
 VOICE_REINTRO_H = 24       # "Hi, it's Rowling" again while they spoke this recently: no
+VOICE_HI = r"^(?:hi\b[^.!?]{0,40}?[-,.!]\s*)?"
 VOICE_OPENER = re.compile(
-    r"^(?:hi\b[^.!?]{0,40}?[-,.!]\s*)?(?:perfect|absolutely|of course|totally|great question|great choice|good news|love (?:it|that)|yay|certainly|wonderful|amazing)\b",
+    VOICE_HI + r"(?:perfect|absolutely|of course|totally|great question|great choice|good news|love (?:it|that)|yay|certainly|wonderful|amazing)\b",
     re.I)
-# "Perfect - ", "No rush - ", "Got it - ", "Done - ": one or two words, then the splice.
-VOICE_SPLICE_OPENER = re.compile(r"^(?:hi\b[^.!?]{0,40}?[-,.!]\s*)?[A-Za-z']+(?: [A-Za-z']+)? - ")
-VOICE_YOUR_N = re.compile(r"\b(?:for|of|with|and|is|plan for) your (\d{1,3})\b(?!\s*(?::|am|pm|-year|th|st|nd|rd|%|/))", re.I)
+# "No rush - ", "Got it - ", "Done - ": a reaction word, then the splice.
+VOICE_SPLICE_OPENER = re.compile(
+    VOICE_HI + r"(?:done|got it|no rush|no worries|no problem(?: at all)?|sounds good|yes|yep|great|awesome|easy|ha|okay|ok|sure|"
+    r"good question|congrats|thanks|thank you|correct|exactly|nice|gotcha) - ", re.I)
+# "your 17" with no noun after it; "your 16 adults and 3 kids" is ordinary English.
+VOICE_YOUR_N = re.compile(
+    r"\b(?:for|of|with|and|is|plan for) your (\d{1,3})\b"
+    r"(?!\s*(?:[:%/+]|-year|(?:am|pm|th|st|nd|rd|adults?|guests?|people|kids?|children|boys|girls|friends|ladies|guys|"
+    r"family|coworkers|employees|students|members|folks|plates|portions?|teens|seniors|of you)\b))", re.I)
 VOICE_REINTRO = re.compile(r"^hi\b[^.?]{0,30}\b(?:it's |it is |this is )?rowling\b", re.I)
-VOICE_EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
-# One per customer (SKILL §1.9): said once, not again.
+VOICE_NAMED = re.compile(r"\b(?:Rowling|Bling)\b")
+VOICE_EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+# One per customer (SKILL §1.9): said once, not again. The site's automatic
+# quote ("Real Hibachi: your ... price is ...") does not count - the first
+# link a person sends still says it (templates.md).
 VOICE_ONCE = [
     ("nothing is charged today", re.compile(r"nothing (?:is )?charged today", re.I)),
     ("the headcount can change", re.compile(r"(?:headcount|count|number) can (?:still )?(?:change|grow)", re.I)),
     ("X it is", re.compile(r"\b\w+ it is[.!,]", re.I)),
 ]
+VOICE_SYSTEM_TEXT = re.compile(r"^Real Hibachi:")
+VOICE_GREETING = {"hi", "hey", "hello", "morning", "afternoon", "evening", "good"}
 VOICE_BANNED = re.compile(
     r"\b(?:thank you for reaching out|thanks for your interest|hope this (?:message )?finds you well|hope you're doing well|"
     r"i'd be (?:happy|glad) to|happy to help|i (?:completely )?understand your|let me know if you have any|is there anything else|"
     r"feel free to|don't hesitate|hope this helps|look forward to serving|have a (?:wonderful|great) day|our pleasure|"
     r"apologi[sz]e for (?:any|the) inconvenience|appreciate your patience|rest assured|sorry for any confusion|"
-    r"unforgettable|a night to remember|seamless|elevate|curated|premium experience|memorable experience|exceptional|the whole show|"
+    r"unforgettable|a night to remember|seamless|elevate|curated|premium experience|memorable experience|exceptional|"
     r"an amazing \w+|we're (?:so )?excited|so happy too|can't wait to cook|"
     r"additionally|furthermore|moreover|that being said|please note that|not just (?:a |an )?\w+, it's|whether you're|"
     r"here's what you need to know|one nice thing about|quick heads-up|"
     r"just checking in|touching base|haven't heard back|sorry to bother|please let me know|whenever you get a chance|"
-    r"still interested|any update\?|love to have your business|hope to hear from you|take your time)\b", re.I)
+    r"still interested|any update|love to have your business|hope to hear from you|take your time)\b", re.I)
 
 
-def voice_check(body: str, msgs: list[dict], now: _dt.datetime) -> list[str]:
-    """What in this text reads like a bot, one line each; [] = clean."""
+def voice_check(body: str, msgs: list[dict], now: _dt.datetime) -> list[tuple[str, str]]:
+    """What in this text reads like a bot, as (level, line): level "stop" or "note"; [] = clean."""
     b = (body or "").strip()
-    hits: list[str] = []
+    hits: list[tuple[str, str]] = []
+    stop = lambda line: hits.append(("stop", line))
+    note = lambda line: hits.append(("note", line))
     ours = [m.get("body") or "" for m in msgs if m.get("direction") == "outbound"]
     theirs = [m for m in msgs if m.get("direction") == "inbound" and _at(m.get("at"))]
     if "—" in b:
-        hits.append("长破折号 —：手机上没人打这个，换句号或 \" - \"")
-    n = b.count(" - ")
-    if n > VOICE_SPLICES:
-        hits.append(f"\" - \" 用了 {n} 次（最多 {VOICE_SPLICES}）：想停顿就用句号，拆成两句")
-    m = VOICE_SPLICE_OPENER.match(b)
-    if m:
-        hits.append(f"「{m.group(0).strip()}」：反应词 + \" - \" 的开头，87% 的短信都这样；用句号，或者直接从答案开始")
+        stop("长破折号 —：手机上没人打这个，换句号")
     n = b.count("!")
     if n > VOICE_BANGS:
-        hits.append(f"感叹号 {n} 个（最多 {VOICE_BANGS}）")
+        stop(f"感叹号 {n} 个（最多 {VOICE_BANGS}）")
     n = len(VOICE_EMOJI_RE.findall(b))
     if n > VOICE_EMOJI:
-        hits.append(f"emoji {n} 个（最多 {VOICE_EMOJI}）")
+        stop(f"emoji {n} 个（最多 {VOICE_EMOJI}）")
     m = VOICE_OPENER.match(b)
     if m:
-        hits.append(f"情绪词开头「{m.group(0).strip()}」：直接从答案开始（Yes, noon works. / Got it. / Sure.）")
+        stop(f"情绪词开头「{m.group(0).strip()}」：直接从答案开始（Yes, noon works. / Got it. / Sure.）")
     m = VOICE_YOUR_N.search(b)
     if m:
-        hits.append(f"「{m.group(0)}」：人数说 {m.group(1)} people / {m.group(1)} guests / the {m.group(1)} of you，不说 your {m.group(1)}")
-    if "(" in b:
-        hits.append("括号：不用括号塞信息，写成一句话或删掉")
+        stop(f"「{m.group(0)}」：人数说 {m.group(1)} people / {m.group(1)} guests / the {m.group(1)} of you，不说光秃秃的 your {m.group(1)}")
     m = VOICE_BANNED.search(b)
     if m:
-        hits.append(f"「{m.group(0)}」：voice.md §3 / SKILL §8 的词，不写")
-    if VOICE_REINTRO.match(b) and theirs:
+        stop(f"「{m.group(0)}」：voice.md §3 / SKILL §8 的词，不写")
+    said = [o for o in ours if not VOICE_SYSTEM_TEXT.match(o.strip())]
+    # The first text a person sends still gives the name (SKILL §2), even when the customer wrote first.
+    if VOICE_REINTRO.match(b) and theirs and any(VOICE_NAMED.search(o) for o in said):
         last = max(_at(x["at"]) for x in theirs)
         if (now - last).total_seconds() < VOICE_REINTRO_H * 3600:
-            hits.append(f"客人 {VOICE_REINTRO_H} 小时内说过话，别再 Hi, it's Rowling：直接接话")
+            stop(f"已经报过名字、客人 {VOICE_REINTRO_H} 小时内说过话，别再 Hi, it's Rowling：直接接话")
     for name, rx in VOICE_ONCE:
-        if rx.search(b) and any(rx.search(o) for o in ours):
-            hits.append(f"「{name}」这个客人已经听过一次了：不重复")
+        if rx.search(b) and any(rx.search(o) for o in said):
+            stop(f"「{name}」这个客人已经听过一次了：不重复")
+    n = b.count(" - ")
+    if n > VOICE_SPLICES:
+        note(f"\" - \" 用了 {n} 次：想停顿就用句号，拆成两句")
+    m = VOICE_SPLICE_OPENER.match(b)
+    if m:
+        note(f"「{m.group(0).strip()}」：反应词 + \" - \" 开头，偶尔可以，条条都这样就像机器")
+    if "(" in b:
+        note("括号：能写成一句话就别用括号")
     if ours:
-        prev = ours[-1].strip()
         head = lambda s: " ".join(re.sub(r"[^\w' ]", " ", s).lower().split()[:2])
-        if prev and head(prev) and head(prev) == head(b):
-            hits.append(f"和我上一条开头一样（「{head(prev)}」）：换个开头")
+        h = head(ours[-1].strip())
+        if h and h == head(b) and h.split()[0] not in VOICE_GREETING:
+            note(f"和我上一条开头一样（「{h}」）：换个开头")
     return hits
 
 
 def check_voice(body: str, msgs: list[dict], ok: bool) -> None:
-    """Stop the send over a text that reads like a bot, unless --voice-ok."""
+    """Stop the send over a sure tell unless --voice-ok; print the notes and send."""
     hits = voice_check(body, msgs, _now())
     if not hits:
         return
-    print(f"VOICE {'（--voice-ok，照发）' if ok else ''}读起来像机器（leads voice.md §2）：")
-    for h in hits:
-        print(f"   · {h}")
-    if ok:
+    stops = [line for level, line in hits if level == "stop"]
+    if stops:
+        print(f"VOICE {'（--voice-ok，照发）' if ok else ''}读起来像机器（leads voice.md §2）：")
+    else:
+        print("VOICE 提醒（照发）：")
+    for level, line in hits:
+        print(f"   {'✗' if level == 'stop' else '·'} {line}")
+    if not stops or ok:
         return
-    print("      没发。改了再发；这句确实就该这么写，带 --voice-ok")
+    print("      没发。改了 ✗ 那几条再发；这句确实就该这么写，带 --voice-ok")
     sys.exit(2)
 
 

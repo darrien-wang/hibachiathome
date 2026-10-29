@@ -351,6 +351,11 @@ class SendRun:
         """Refused by the voice check: exit 2, no post, said which rule."""
         return self.exit == 2 and self.posted is None and "VOICE" in self.out and "UNREAD" not in self.out
 
+    @property
+    def noted(self) -> bool:
+        """Sent, with voice notes printed and nothing that stops."""
+        return self.sent and "VOICE 提醒（照发）" in self.out and "✗" not in self.out
+
     def has(self, *parts: str) -> bool:
         return all(p in self.out for p in parts)
 
@@ -436,12 +441,28 @@ def _send_checks() -> None:
     check("voice: 'Perfect - ... ! 🥩🍤' is stopped (exit 2, nothing sent): emotion-word opener and two emoji named",
           r.voiced and r.has("情绪词开头「Perfect", "emoji 2 个"), r)
     r = SendRun(PROM, *ok_seen, at=reply_at, body="Hi Jacob! Rowling from Real Hibachi 👋 Yes, 12:00 works - your chef arrives around 11:30 - so you can start right at noon! Is Dec 5 still the plan for your 17?")
-    check("  two ' - ', two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke: all four named",
-          r.voiced and r.has("\" - \" 用了 2 次", "感叹号 2 个", "your 17", "别再 Hi, it's Rowling"), r)
+    check("  two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke stop it; the two ' - ' are a note",
+          r.voiced and r.has("✗ 感叹号 2 个", "✗ 「plan for your 17」", "✗ 已经报过名字、客人 24 小时内说过话", "· \" - \" 用了 2 次"), r)
     r = SendRun(PROM, *ok_seen, at=reply_at, body="Great question! Paying cash on the day, sales tax is already included (card adds a small fee). Let me know if you have any questions.")
-    check("  'Great question!', a parenthesis and 'Let me know if you have any': named", r.voiced and r.has("Great question", "括号", "Let me know if you have any"), r)
-    r = SendRun(PROM_LATER, "--seen", "18:56", at=later, body="Either works! Dinner and the show run about an hour and a half.")
-    check("  the same first two words as our last text ('Either works'): named", r.voiced and r.has("和我上一条开头一样"), r)
+    check("  'Great question!' and 'Let me know if you have any' stop it; the parenthesis is a note",
+          r.voiced and r.has("✗ 情绪词开头「Great question", "✗ 「Let me know if you have any」", "· 括号"), r)
+    r = SendRun(PROM_LATER, "--seen", "18:56", at=later, body="Either works. Dinner and the show run about an hour and a half.")
+    check("  the same first two words as our last text ('Either works'): a note, sent", r.noted and r.has("和我上一条开头一样"), r)
+    r = SendRun(PROM_LATER, "--seen", "18:56", at=later, body="No rush - just text me once you've picked a day.")
+    check("  'No rush - ' opener: a note, sent", r.noted and r.has("「No rush -」"), r)
+    greeted = PROM + [sms(PROM_PHONE, "outbound", "2026-10-24 18:54:23", "Hi, it's Rowling from Real Hibachi. Saturday works.")]
+    r = SendRun(greeted, *ok_seen, at="2026-10-27 10:00:00", body="Hi, it's Rowling. Has the group landed on a weekend yet?")
+    check("  two texts that both open 'Hi, it's ...' days apart: no same-opener note, sent clean", r.sent and "VOICE" not in r.out, r)
+    first = [m for m in PROM if "Rowling" not in m["body"]]
+    r = SendRun(first, *ok_seen, at=reply_at, body="Hi, it's Rowling from Real Hibachi. Yes, Temecula's in our area. Roughly how many people?")
+    check("  the first text a person sends gives the name even though the customer wrote first: sent clean", r.sent and "VOICE" not in r.out, r)
+    r = SendRun(PROM, *ok_seen, at=reply_at, body="For your 16 adults and 3 kids it's $991.10 all in.")
+    check("  'your 16 adults' (a noun after the number) is ordinary English: sent clean", r.sent and "VOICE" not in r.out, r)
+    quoted = [sms(PROM_PHONE, "outbound", "2026-10-24 18:49:31", "Real Hibachi: your San Diego hibachi price is $1,770.00 for 30 adults. "
+                  "Lock your date here - card on file, nothing charged today: https://x.y/q")] + PROM[1:]
+    r = SendRun(quoted, *ok_seen, at=reply_at, body="Here's the link to lock it. It just saves a card, nothing is charged today: https://x.y/z")
+    check("  'nothing is charged today' after only the site's automatic quote said it: sent clean (the first link a person sends says it)",
+          r.sent and "VOICE" not in r.out, r)
     once = PROM + [sms(PROM_PHONE, "outbound", "2026-10-24 18:54:23", "Here's the link - it just saves a card, nothing is charged today: https://x.y/z")]
     r = SendRun(once, "--seen", "18:54:18", at="2026-10-24 19:00:00", body="Same link works. It just saves a card, nothing is charged today.")
     check("  'nothing is charged today' said to this customer before: named", r.voiced and r.has("已经听过一次了"), r)
