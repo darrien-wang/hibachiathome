@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
-import { getDrivingMiles } from "@/lib/travel-distance"
+import { driveFromBaseToZip } from "@/lib/base-drive"
+import { cityForZip } from "@/lib/zip-city"
 import { toE164 } from "@/lib/sms-thread"
 import { calcTravelFee } from "@/config/pricing-rules"
 import { POST as landingQuote } from "@/app/api/landing-quote/route"
@@ -103,13 +104,12 @@ export async function POST(request: NextRequest) {
   let travelFee = 0
   let city = str(body.city, 60)
   if (zip) {
-    try {
-      const r = await getDrivingMiles(ORIGIN_ZIP, zip)
-      travelFee = Math.round(calcTravelFee(r.drivingMiles))
-      // label reads "92618, Orange County Great Park, Irvine, Orange County, ..."
-      if (!city) city = r.destination.label.split(",").map((s) => s.trim()).find((s) => s && !/^\d/.test(s) && !/park|county/i.test(s)) ?? ""
-    } catch {
-      // unmeasurable: quote without travel and let the team confirm it
+    // Unmeasurable: quote without travel and let the team confirm it.
+    const drive = await driveFromBaseToZip(ORIGIN_ZIP, zip)
+    if (drive.ok) travelFee = Math.round(calcTravelFee(drive.result.drivingMiles))
+    // A geocoder label reads "92618, Orange County Great Park, Irvine, Orange County, ..."
+    if (!city) {
+      city = cityForZip(zip) || (drive.ok ? drive.result.destination.label.split(",").map((s) => s.trim()).find((s) => s && !/^\d/.test(s) && !/park|county/i.test(s)) ?? "" : "")
     }
   }
 

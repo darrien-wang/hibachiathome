@@ -9,7 +9,7 @@ import { holdState, loadQuiet } from "@/lib/lead-hold"
 import { reconcileThread } from "@/lib/sms-reconcile"
 import { fetchSmsThreads, toE164, type SmsMessage } from "@/lib/sms-thread"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { getDrivingMiles } from "@/lib/travel-distance"
+import { driveFromBaseToZip } from "@/lib/base-drive"
 import { HEARD_LABELS, SOURCE_QUESTION, isHeardChannel, partyStage, sourceAsk } from "@/lib/heard-from"
 import { homeBaseOrigin } from "@/config/home-base"
 import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekdayEligibility } from "@/config/pricing-rules"
@@ -125,11 +125,10 @@ async function priceFor(row: LeadRow, hint: LeadEventHint | null) {
   let travelFee = 0
   let travelKnown = false
   if (zip) {
-    try {
-      travelFee = Math.round(calcTravelFee((await getDrivingMiles(ORIGIN_ZIP, zip)).drivingMiles))
+    const drive = await driveFromBaseToZip(ORIGIN_ZIP, zip)
+    if (drive.ok) {
+      travelFee = Math.round(calcTravelFee(drive.result.drivingMiles))
       travelKnown = true
-    } catch {
-      travelKnown = false
     }
   }
   const one = (weekday: boolean) => {

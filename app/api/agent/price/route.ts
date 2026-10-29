@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
-import { getDrivingMiles } from "@/lib/travel-distance"
+import { driveFromBaseToZip } from "@/lib/base-drive"
 import { homeBaseOrigin } from "@/config/home-base"
 import {
   FREE_CHANGE_HOURS,
@@ -90,10 +90,10 @@ export async function GET(request: Request) {
     note: zip ? "" : `Pass zip for the exact travel fee. The first ${TRAVEL_FREE_RADIUS_MILES} driving miles are free.`,
   }
   if (zip) {
-    try {
-      const r = await getDrivingMiles(ORIGIN_ZIP, zip)
-      travel = { fee: Math.round(calcTravelFee(r.drivingMiles)), drivingMiles: r.drivingMiles, note: "" }
-    } catch {
+    const drive = await driveFromBaseToZip(ORIGIN_ZIP, zip)
+    if (drive.ok) {
+      travel = { fee: Math.round(calcTravelFee(drive.result.drivingMiles)), drivingMiles: drive.result.drivingMiles, note: "" }
+    } else {
       travel.note = "Could not measure the drive right now; the team confirms any travel fee before the deposit."
     }
   }
