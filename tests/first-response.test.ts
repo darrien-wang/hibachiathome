@@ -10,6 +10,7 @@ import {
   ptDate,
   quoteFollowUpPlan,
   shortDate,
+  spokenDate,
   templateAMessage,
   templateAWording,
   wallTime,
@@ -54,17 +55,34 @@ test("shortDate / wallTime formatting", () => {
 
 const today = "2026-10-07"
 
-test("template B, dated: the date is open + what's the celebration (D-1008-02)", () => {
+test("template B, dated: the date is open + what's the celebration (D-1008-02; wording per leads voice.md 2026-10-29)", () => {
   const plan = quoteFollowUpPlan({ adults: 12, kids: 3, eventDate: "2026-10-18", city: "Palm Springs", todayPt: today })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Rowling from Real Hibachi 👋 Sun, Oct 18 is open on our end for your 15 in Palm Springs — what's the celebration?")
+  assert.equal(plan.text, "Hi, it's Rowling from Real Hibachi. Sunday the 18th is open for the 15 of you in Palm Springs. What's the celebration?")
   assert.equal(plan.dated, true)
+  // Beyond two weeks the month is said; never an em dash, a 👋 or "your 15".
+  const far = quoteFollowUpPlan({ adults: 30, kids: 0, eventDate: "2027-05-15", city: "San Diego", todayPt: today })
+  assert.ok(far.send)
+  assert.equal(far.text, "Hi, it's Rowling from Real Hibachi. Saturday, May 15 is open for the 30 of you in San Diego. What's the celebration?")
+  assert.doesNotMatch(far.text, /—|👋|your \d/)
+})
+
+test("spokenDate: 'Saturday the 18th' inside two weeks, 'Saturday, Oct 18' beyond", () => {
+  assert.equal(spokenDate("2026-10-17", "2026-10-07"), "Saturday the 17th")
+  assert.equal(spokenDate("2026-10-21", "2026-10-07"), "Wednesday the 21st")
+  assert.equal(spokenDate("2026-10-22", "2026-10-09"), "Thursday the 22nd")
+  assert.equal(spokenDate("2026-10-23", "2026-10-10"), "Friday the 23rd")
+  assert.equal(spokenDate("2026-11-11", "2026-10-30"), "Wednesday the 11th")
+  // Day 14 is still "the 21st"; day 15 says the month.
+  assert.equal(spokenDate("2026-10-22", "2026-10-07"), "Thursday, Oct 22")
+  assert.equal(spokenDate("2027-05-15", "2026-10-07"), "Saturday, May 15")
+  assert.equal(spokenDate("nope", "2026-10-07"), "")
 })
 
 test("template B, no date: asks the occasion, never the date or the start time", () => {
   const plan = quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: null, city: "Temecula", todayPt: today })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Rowling from Real Hibachi 👋 10 in Temecula — what's the celebration?")
+  assert.equal(plan.text, "Hi, it's Rowling from Real Hibachi. Saw your quote for 10 in Temecula. What's the celebration?")
   assert.equal(plan.dated, false)
   assert.doesNotMatch(plan.text, /which date|4 PM|7 PM/)
 })
@@ -72,12 +90,12 @@ test("template B, no date: asks the occasion, never the date or the start time",
 test("template B on the page's default leave-quote: no count (10-10 the real 13 + 4 arrived the same minute)", () => {
   const plan = quoteFollowUpPlan({ adults: 15, kids: 0, city: "Palm Springs", todayPt: today, numberUnknown: true })
   assert.ok(plan.send)
-  assert.equal(plan.text, "Hi! Rowling from Real Hibachi 👋 Saw your quote — what's the celebration?")
+  assert.equal(plan.text, "Hi, it's Rowling from Real Hibachi. Saw your quote. What's the celebration?")
   assert.doesNotMatch(plan.text, /15/)
 })
 
 test("template B: ZIPs, region labels and missing cities fall back to the plain line", () => {
-  const plain = "Hi! Rowling from Real Hibachi 👋 Saw your quote for 15 — what's the celebration?"
+  const plain = "Hi, it's Rowling from Real Hibachi. Saw your quote for 15. What's the celebration?"
   for (const city of [null, "", "92270", "LA & Orange County", "Southern California"]) {
     const plan = quoteFollowUpPlan({ adults: 15, kids: 0, city, todayPt: today })
     assert.ok(plan.send)
@@ -85,7 +103,7 @@ test("template B: ZIPs, region labels and missing cities fall back to the plain 
   }
   const lower = quoteFollowUpPlan({ adults: 10, kids: 0, city: "irvine", todayPt: today })
   assert.ok(lower.send)
-  assert.equal(lower.text, "Hi! Rowling from Real Hibachi 👋 10 in Irvine — what's the celebration?")
+  assert.equal(lower.text, "Hi, it's Rowling from Real Hibachi. Saw your quote for 10 in Irvine. What's the celebration?")
 })
 
 test("template A says one price when both nights hit the minimum, and no travel promise for a region", () => {

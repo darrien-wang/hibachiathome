@@ -156,6 +156,8 @@ test("caller card · the party size a price was for", () => {
     ["Got it - 21 adults and a child comes to $1,227.80 all in", 22],
     ["Done. Tue, Oct 13 for 24 at $1,257.60 all in", 24],
     ["Saw you ran it for 15 - that's $838.50 all in for Sat, Oct 17. Is it closer to 15 or 30?", 15],
+    // Template B since 2026-10-29 (leads voice.md).
+    ["Hi, it's Rowling from Real Hibachi. Saturday the 18th is open for the 15 of you in Palm Springs. What's the celebration?", 15],
     ["Your total comes to $1,355.25 ($1,335.35 on the day).", null],
     ["Lock it for 10/17 at 7 - the chef stays for 2 hours", null],
   ]

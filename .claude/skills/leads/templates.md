@@ -11,10 +11,10 @@
 Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 15 adults it's $838.50 Fri-Sun, or $763.50 Mon-Thu (2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?
 ```
 
-**B · 报价已发**（机器在报价 2 分钟后发；供核对和手发时用）
+**B · 报价已发**（机器在报价 2 分钟后发，措辞在 `lib/first-response.ts`；供核对和手发时用。两周内的日期说 `Saturday the 18th`，更远的说 `Saturday, May 15`）
 ```
-Hi! Rowling from Real Hibachi 👋 [Sat, Oct 18] is open on our end for your [N] in [City] - what's the celebration?
-Hi! Rowling from Real Hibachi 👋 Saw your quote for [N] - what's the celebration?      ← 没日期或没像样的城市名
+Hi, it's Rowling from Real Hibachi. [Saturday the 18th] is open for the [N] of you in [City]. What's the celebration?
+Hi, it's Rowling from Real Hibachi. Saw your quote for [N] in [City]. What's the celebration?      ← 没日期（没像样的城市名就去掉 in [City]）
 ```
 
 **C · 客人先问**：≤2 句答 + 一个问题。

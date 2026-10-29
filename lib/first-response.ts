@@ -123,15 +123,33 @@ export function quoteFollowUpPlan(i: QuoteFollowUpInput): QuoteFollowUpPlan {
     if (days < QUOTE_FOLLOW_UP_MIN_DAYS) return { send: false, reason: "date_within_48h" }
   }
   const place = placeName(i.city)
-  const head = "Hi! Rowling from Real Hibachi 👋"
-  if (i.numberUnknown) return { send: true, text: `${head} Saw your quote — what's the celebration?`, dated: false }
+  // Owner 2026-10-29 (leads voice.md): no em dash, no 👋, no "your 15" for a
+  // headcount, the date the way a person says it. Full stops, one question.
+  const head = "Hi, it's Rowling from Real Hibachi."
+  const ask = "What's the celebration?"
+  if (i.numberUnknown) return { send: true, text: `${head} Saw your quote. ${ask}`, dated: false }
   const text = date
-    ? `${head} ${shortDate(date)} is open on our end for your ${guests}${place ? ` in ${place}` : ""} — what's the celebration?`
-    : place
-      ? `${head} ${guests} in ${place} — what's the celebration?`
-      : `${head} Saw your quote for ${guests} — what's the celebration?`
+    ? `${head} ${spokenDate(date, i.todayPt)} is open for the ${guests} of you${place ? ` in ${place}` : ""}. ${ask}`
+    : `${head} Saw your quote for ${guests}${place ? ` in ${place}` : ""}. ${ask}`
   return { send: true, text, dated: Boolean(date) }
 }
+
+/**
+ * A date the way it is said in a text: "Saturday the 18th" when it is within
+ * the next two weeks (the month is understood), "Saturday, Oct 18" beyond that.
+ */
+export const SPOKEN_DATE_NEAR_DAYS = 14
+export function spokenDate(isoDate: string, todayPt: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
+  if (!m) return ""
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })
+  const days = daysBetween(todayPt, isoDate)
+  if (days >= 0 && days <= SPOKEN_DATE_NEAR_DAYS) return `${weekday} the ${ordinal(Number(m[3]))}`
+  return `${weekday}, ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
+}
+
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`
 
 /**
  * A town the customer would say themselves, or "" - the quote card's cityName

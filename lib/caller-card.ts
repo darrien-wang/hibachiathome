@@ -195,7 +195,7 @@ export function priceInText(body: string | null | undefined): number | null {
 
 const COUNTED = /\b(\d{1,3})\s+(?:adults?|guests?|people|boys|girls)\b(?:\s*(?:and|\+|&|,|plus)\s*(\d{1,2}|an?|one)\s+(?:kids?|child(?:ren)?)\b)?/i
 const FOR_N =
-  /\bfor\s+(?:all\s+|your\s+)?(\d{1,3})\b(?![/:.,%-]?\d)(?!\+)(?!\s*(?:hours?|hrs?|min(?:ute)?s?|am|pm|days?|weeks?|miles?|mi|chefs?|trays?|proteins?|tables?|chairs?)\b)/i
+  /\bfor\s+(?:all\s+|your\s+|the\s+)?(\d{1,3})\b(?![/:.,%-]?\d)(?!\+)(?!\s*(?:hours?|hrs?|min(?:ute)?s?|am|pm|days?|weeks?|miles?|mi|chefs?|trays?|proteins?|tables?|chairs?)\b)/i
 
 /** The party size a text prices: "25 adults + 3 kids" -> 28, "for all 35" -> 35; null when it names none. */
 export function statedHeadcount(body: string | null | undefined): number | null {
