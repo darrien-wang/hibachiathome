@@ -100,6 +100,6 @@
 ## 档期、范围
 
 - **"X 号有空吗"**：一律按开着回 `open on our end`，直接接，不问老板（D-1009-01）；临时单照样要时间、地址、菜单。
-- **"你们去 X 吗"**：南加州单程 2.5 小时内都去；报路费前先 `desk travel`。**驾车超过 150 英里的**（Lompoc 这种）也去，但路费之外加 call out fee，每位师傅 $50（老板 10-30，D-1030-02），报价时就算进总价并说清楚：`Lompoc is over 150 miles from us, so on top of travel there's a $50 call-out fee for your chef.` 引擎和锁单链接还不会自动加：链接用 `--est` 写含这笔的总价，锁单后 `order set --travel-fee <路费+50×师傅数>` 并进路费。
+- **"你们去 X 吗"**：南加州单程 2.5 小时内都去；报路费前先 `desk travel`。**驾车超过 150 英里的**（Lompoc 这种）也去，但路费之外加 call out fee，每位师傅 $50，这笔全给师傅（老板 10-30，D-1030-02），报价时就算进总价并说清楚：`Lompoc is over 150 miles from us, so on top of travel there's a $50 call-out fee for your chef.` 引擎和锁单链接还不会自动加：链接用 `--est` 写含这笔的总价，锁单后 `order set --travel-fee <路费+50×师傅数>` 并进路费。
 - **点名要 Bling**：那天 Bling 已有安排，派另一位招牌师傅（D-1013-02）。点名别的师傅照常查档期。
 - **只要邮件联系、别打电话**：照办，备注写 email only。
