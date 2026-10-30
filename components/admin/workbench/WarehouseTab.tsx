@@ -950,6 +950,9 @@ type PlanResp = {
   guestTotal: number
 }
 
+/** "24 大 2 小" / "19 大" */
+const heads = (adults: number, kids: number) => `${adults} 大${kids ? ` ${kids} 小` : ""}`
+
 // 多久没盘就该再看一眼。生鲜一周内进出好几轮，超过这个数的"在库"不值得信。
 const STALE_DAYS = 7
 
@@ -1144,7 +1147,8 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             <div key={i} className="notice danger">{w}</div>
           ))}
           <div style={{ fontSize: 13, color: MUTED }}>
-            共 {resp.orders.length} 单 · {resp.guestTotal} 人：{resp.orders.map((o) => `${o.dateLabel} ${o.name}（${o.adults + o.kids}）`).join(" · ")}
+            {/* 大人小孩分开写（老板 2026-10-29）：份量按小孩半份算，只写总人数看不出差在哪 */}
+            共 {resp.orders.length} 单 · {heads(resp.orders.reduce((n, o) => n + o.adults, 0), resp.orders.reduce((n, o) => n + o.kids, 0))}：{resp.orders.map((o) => `${o.dateLabel} ${o.name}（${heads(o.adults, o.kids)}）`).join(" · ")}
           </div>
 
           {groups.storeKeys.length === 0 ? <div className="notice">都够，不用买。</div> : null}
