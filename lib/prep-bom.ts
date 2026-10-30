@@ -183,7 +183,8 @@ export type OrderPrep = {
   /** 蛋白质选择是否已知（false = 只按人头算了主食蔬菜蛋，蛋白缺口要人工问）。 */
   menuKnown: boolean
   /** 每种蛋白的份数（人份，不是重量），给"按单"一行用。 */
-  proteinServings: Array<{ id: string; label: string; servings: number }>
+  /** adults / kids: 份数拆开（整桌加点算大人份），备货页每行要写多少份（2026-10-29）。 */
+  proteinServings: Array<{ id: string; label: string; servings: number; adults: number; kids: number }>
   items: PrepItem[]
 }
 
@@ -239,7 +240,7 @@ export function orderPrep(
     const portion = PROTEIN_PORTIONS[pid]
     const servings = (servA[pid] ?? 0) + (servK[pid] ?? 0)
     if (!portion || servings <= 0) continue
-    proteinServings.push({ id: pid, label: PROTEIN_LABELS[pid] ?? pid, servings })
+    proteinServings.push({ id: pid, label: PROTEIN_LABELS[pid] ?? pid, servings, adults: servA[pid] ?? 0, kids: servK[pid] ?? 0 })
     const qty = r1((servA[pid] ?? 0) * portion.adult + (servK[pid] ?? 0) * portion.child)
     items.push({ id: pid, label: PROTEIN_LABELS[pid] ?? pid, qty, unit: portion.unit, alt: alt(pid, qty, portion.unit), group: "protein" })
   }

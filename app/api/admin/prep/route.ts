@@ -70,11 +70,22 @@ export async function GET(request: NextRequest) {
   )
 
   const allItems: PrepItem[] = []
+  // 每一行是多少份（老板 2026-10-29「单项这里需要展示多少份」）：蛋白按点了的份数，
+  // 饭、菜、沙拉、酱、蛋按人头。大人小孩分开，小孩是半份。
+  const servings: Record<string, { adults: number; kids: number }> = {}
+  const addServ = (id: string, a: number, k: number) => {
+    const cur = servings[id] ?? (servings[id] = { adults: 0, kids: 0 })
+    cur.adults += a
+    cur.kids += k
+  }
+  const PER_HEAD = ["fried_rice", "salad", "mixed_vege", "zucchini", "broccoli", "onion", "carrots", "ginger_sauce", "ginger_dressing", "garlic_butter", "eggs", "fried_rice_seasoning"]
   const orders = rows.map((r) => {
     const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
     const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
     if (prep.menuKnown) allItems.push(...prep.items)
     else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
+    if (prep.menuKnown) for (const ps of prep.proteinServings) addServ(ps.id, ps.adults, ps.kids)
+    for (const id of PER_HEAD) addServ(id, prep.adults, prep.kids)
     const t = new Date(r.event_start as string)
     return {
       id: r.id,
@@ -149,6 +160,7 @@ export async function GET(request: NextRequest) {
       byOrders,
       stores,
       orderCount: orders.length,
+      servings,
       guestTotal: orders.reduce((n, o) => n + o.adults + o.kids, 0),
       orders,
       // pack = 这一行的采购单位，页面用它把缺口翻成"买几瓶/几盒"。

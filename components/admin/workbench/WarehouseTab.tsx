@@ -948,6 +948,8 @@ type PlanResp = {
   stores: Record<string, { channel: string | null; pack: string | null }>
   warnings: string[]
   guestTotal: number
+  /** 每行多少份，大人小孩分开（2026-10-29） */
+  servings?: Record<string, { adults: number; kids: number }>
 }
 
 /** "24 大 2 小" / "19 大" */
@@ -1166,6 +1168,11 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                       要 {row.pack && row.pack.per !== 1 ? `${r1(row.qty)} ${row.unit}（≈ ${fmtNeed(row.qty, row.pack, row.unit)}）` : fmtNeed(row.qty, row.pack, row.unit)} · 在库 {fmtCount(have, row.pack, row.unit)}
                       {row.pack?.desc ? ` · ${row.pack.desc}` : ""}
                     </div>
+                    {resp.servings?.[row.id] && resp.servings[row.id].adults + resp.servings[row.id].kids > 0 ? (
+                      <div style={{ fontSize: 12.5, color: INK, fontWeight: 600, marginTop: 2 }}>
+                        {resp.servings[row.id].adults + resp.servings[row.id].kids} 份（{heads(resp.servings[row.id].adults, resp.servings[row.id].kids)}）
+                      </div>
+                    ) : null}
                     {basisOf(row.id) ? <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>按 {basisOf(row.id)}</div> : null}
                   </div>
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
