@@ -98,6 +98,23 @@ def book(parties, week: dt.date):
     return last, this
 
 
+_chains: dict[str, set] = {}
+
+
+def chain_pairs(day: str) -> set:
+    """日历排班图稳妥版里接得上的两场（带真实车程，拖满也不迟到）。只认这一版，宁可少连。"""
+    if day not in _chains:
+        d = site_get("/api/admin/day-map", {"date": day})
+        safe = next((p for p in d.get("plans") or [] if p.get("key") == "safe"), None)
+        _chains[day] = {(l["fromId"], l["toId"]) for l in (safe or {}).get("links") or [] if l.get("grade") in ("solid", "ontime")}
+    return _chains[day]
+
+
+def chains_with_blu(busy: dict, p: dict) -> bool:
+    pairs = chain_pairs(p["day"])
+    return any((q["id"], p["id"]) in pairs or (p["id"], q["id"]) in pairs for q in busy.get(BIG_LEAD, []) if q["day"] == p["day"])
+
+
 def minutes(at: str) -> int:
     return int(at[11:13]) * 60 + int(at[14:16])
 
@@ -107,7 +124,7 @@ def clash(busy: dict, name: str, p: dict) -> bool:
 
 
 def can_go(busy, name, p, share, led=False) -> bool:
-    if clash(busy, name, p):
+    if clash(busy, name, p) and not (name == BIG_LEAD and chains_with_blu(busy, p)):
         return False
     if name == "John" and near_sd(p["addr"]):
         return False
@@ -195,7 +212,8 @@ def cmd_suggest(week, include_far=False):
                 pool = rest
             owed = [n for n in pool if this.get(n, 0) < TARGET_MIN]
             first_for_junior = junior_ok and junior_count == 0
-            if BIG_LEAD in pool and (p["heads"] > BIG_TABLE or (blu_behind() and not first_for_junior)):
+            # Blu 能连台尽可能连（老板 2026-10-30）。
+            if BIG_LEAD in pool and (chains_with_blu(busy, p) or p["heads"] > BIG_TABLE or (blu_behind() and not first_for_junior)):
                 who = BIG_LEAD
             elif junior_ok and (junior_count == 0 or not owed):
                 who = JUNIOR
