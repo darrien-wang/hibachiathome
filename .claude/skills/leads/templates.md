@@ -65,7 +65,7 @@ Real Hibachi · (213) 770-7788
 - **改了时间地点、马上要锁**：`Yes to both. [Saturday the 24th at 3:30 at your place in Granada Hills] works, and it's still $[988.50]. Here's the link with [3:30] and [Granada Hills] filled in: <link>`
 - **问桌椅**（照价答，D-1029-02）：`We do. Tables, chairs and linens are $10 a guest, and plates and silverware are $5.` 要总价就过 `desk price --tables N --utensils N` 报一个数。客人拿别家比价或说超预算时，桌椅才是最后一张牌（周五–日最多半价、周一–四最多免费、节假日不给）：`If it helps, lock the date and I'll do the tables at half price.`
 - **模板 L · 他以为要等人数定了才能订**（10-01）：`You don't need the final number to lock [the 7th]. The link just saves a card to hold the date, nothing is charged today, and the headcount can change later: <link>` 发完挂 3–5 天，之后不追。
-- **模板 I · 第二轮介绍自己**（10-30，D-1030-09，一位客人一次）：`Everything's cooked right in front of your guests, with USDA Choice beef we buy the day before and sauces we make ourselves. Your chef does the onion volcano, the egg toss and the zucchini toss, and each one has their own style. Our [69] Google reviews are all five stars. [What time are you thinking for dinner?]`
+- **模板 I · 第二轮介绍自己**（10-30，D-1030-09，一位客人一次）：`Everything's cooked right in front of your guests, with USDA Choice beef we buy the day before and sauces we make ourselves. Each chef has their own style, and our [69] Google reviews are all five stars. [What time are you thinking for dinner?]`
 - **模板 S · 他要和家人商量**（10-30，D-1030-05）：`Here's a note you can forward: "Hibachi chef at our place on [Saturday, Nov 14]. $[1,138] for [20] of us covers the food and the chef[, plus a free appetizer]. The headcount can change up to the day before." Text me once you've talked it over.` 不带链接；价格先过 `desk price`；有送的才写 free appetizer；小费、桌椅、税不问不提。
 - **问预算**（10-30，D-1030-06，一条线索只问一次）：`Is there a budget you're trying to stay under?`
 - **确认类，一句话**：`Done, 7:30.` / `Got it, 7:30 then.`（`X it is` 一个客人最多用一次）
@@ -86,8 +86,8 @@ Hi, it's Rowling. [April 24] is a ways off, so no rush. The link holds the date 
 ```
 **f_intro · 从没回过话的人**（10-30，D-1030-09，对比到 11/27）：号码末位单数发这条，双数发上面的 f_one，不挑人。记 `[SOP:f_intro]`，批量发时开头在这两句里换：
 ```
-Hi, it's Rowling. A quote can't show you the night: your chef cooks in front of everyone, onion volcano and zucchini toss included, and our [69] Google reviews are all five stars. [Is Saturday the 14th still the plan? / Has the group landed on a weekend yet?]
-Hi, it's Rowling. One thing a quote leaves out: your chef cooks in front of everyone, onion volcano and egg toss included, and our [69] Google reviews are all five stars. [Is Saturday the 14th still the plan? / Has the group landed on a weekend yet?]
+Hi, it's Rowling. A quote can't show you the night: your chef cooks right in front of everyone, with USDA Choice beef we buy the day before and sauces we make ourselves. Our [69] Google reviews are all five stars. [Is Saturday the 14th still the plan? / Has the group landed on a weekend yet?]
+Hi, it's Rowling. One thing a quote leaves out: everything's cooked right in front of your guests, with USDA Choice beef we buy the day before and sauces we make ourselves. Our [69] Google reviews are all five stars. [Is Saturday the 14th still the plan? / Has the group landed on a weekend yet?]
 ```
 不用 "Last note from me" / "last check-in so I don't crowd your texts"。这几句是骨架，不是成品：从他最后说的那句话写起，连着给几个人发时开头要换，不要每条都是 `figured you're still...`（`voice.md` §2）。
 
