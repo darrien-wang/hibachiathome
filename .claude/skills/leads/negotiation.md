@@ -14,6 +14,16 @@
 - 例：60 人周日 $54.90 − $180 = $3,114 ÷ 60 = $51.90 ✓。
 - **发票人头和师傅工钱人头不一样**（比如 12–13 岁的孩子按大人记份量、按小孩算价）：谈定的当下就 `desk chef-rule <lead> --kids all --note "…"`，锁单后订单自动带上，派工和结账都按它算；不靠事后手改工钱（老板 10-10）。
 
+## 1.5 说贵、超预算：先讲料，再谈价（老板 10-30，D-1030-08）
+
+老板：「我们不应该只是想办法说降价」「我们的成本天然就是比他们 45 用冷冻肉的要高」。
+
+1. 客人说贵、说超预算、报了一个低的数：第一条不提降价，先说这个价买到什么。他没报数就接一句问预算，报了就不问：
+   `Here's what goes into that price: USDA Choice beef from Costco, bought the day before and never frozen, real butter, big shrimp, and our own yum yum sauce and ginger dressing, made here every week. Is there a budget you're trying to stay under?`
+2. **用料只说查得到的**：牛肉、鸡肉可以说 fresh、never frozen。**虾是冷冻袋装的，只说 big，不说 fresh。** 两种酱说 made here every week，**不说 customers love it**：10-30 查过，63 条评价和客人短信里没有人提到这两样酱，有了真实原话再用原话。Costco 只在短信里说，官网照旧不写（`config/sourcing.ts`）。
+3. 不提别家。客人自己报了低价或提了别家，才用 §4 那句 `At that price it's usually frozen`。
+4. 讲完他还卡在价上，才走 §2 的小赢，只让一次。
+
 ## 2. 小赢的顺序（按我们的真实成本从低到高）
 
 1. 调日期或时间：周中价 $54.90 + 送前菜；白天场。零成本。
@@ -40,7 +50,7 @@
    - **肉**：牛肉是 Costco 的 USDA Choice，前一天买、不冷冻，真黄油做；$45 一位的价位一般用冷冻牛肉，一吃就吃得出来。所以我们的食材成本就是高。
    - **sake**：很多家说带 sake 只带一点；我们带足 2 加仑给大人，很少有派对喝得完（不说 unlimited）。
    - 另外：到场承诺；持证有保险。
-   例句：`Since you mentioned $45 a plate: our beef is USDA Choice from Costco, bought fresh the day before and never frozen. At that price it's usually frozen, and you can taste it. And we bring a full 2 gallons of sake for the adults - few parties ever finish it.`
+   例句：`Since you mentioned $45 a plate: our beef is USDA Choice from Costco, bought fresh the day before and never frozen. At that price it's usually frozen, and you can taste it. Our yum yum sauce and ginger dressing are made here every week, and we bring a full 2 gallons of sake for the adults - few parties ever finish it.`
 3. **还要价再让**，底线之上自己定；低于底线问老板，一句话说清别家价和包含项。
 4. **说法主动、干脆、带条件**：`I'll match that - $54.90/adult for your Saturday if we lock it today. Want me to send the link?` 不说 please、不说 we really want your business。
 5. **记情报**：`[COMP] 竞品名 / 报价 / 包含项 / 客人最后怎么定`，汇报里单列一行。价目表不因为一次让价改。

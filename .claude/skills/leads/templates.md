@@ -95,6 +95,7 @@ Hi, it's Rowling. [April 24] is a ways off, so no rush. The link holds the date 
 
 - **问原因**（SKILL §0）：`That makes sense. If you don't mind me asking, what tipped it? It helps us get better.`
 - **祝福收尾**：`Sounds like a good plan. Hope everyone has a blast!`
+- 说贵、超预算：先讲料，不先降价，见 `negotiation.md` §1.5。
 - 原因是别家更便宜：`negotiation.md` §7 挽留一次。
 - **送 $50 下次用**（老板 10-26）：客人明说不订、**而且说了清楚真实的原因**（钱改买了礼物、家里出事、换了安排、选了别家并说了为什么），收尾之后单发一条；敷衍的不算（"no thanks"、"maybe later"、不说原因、已读不回）。`One more thing. Thanks for being so honest with us. Here's $50 off your next hibachi party whenever you're ready. Just text this number and mention it, and we'll take it off. 🎁` 线索记 `[credit] $50 off next booking`；客人回来时报价用 `desk link deposit ... --flat-off 50 --deal-note "goodwill credit <日期>" --est <减完的总价>`。一次一用，和别的让价叠加时仍守让价底线。
 
