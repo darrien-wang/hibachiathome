@@ -21,6 +21,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from _api import site_get, site_post  # noqa: E402
 
 LEADS = ["Blu", "Gary", "John"]  # 每周 30–40，超过 15 人的桌只给他们
+BIG_LEAD = "Blu"  # 大单尽可能给 Blu，每周人数要排第一
+BIG_TABLE = 20  # 超过这个数算大单，Blu 优先，不看两周账
+JOHN_MAX_HEADS = 20  # John 也偏新手，每人分到的人数不超过这个数（上限是暂定的，老板还没给数）
 JUNIOR = "Eason"  # 只炒每人 15 以下，一周 1–2 单就行，量大时多接
 HELPER = "易非"  # 不独立出台，不进轮转；超过 28 人的单有空才带
 RANK = LEADS + [JUNIOR]
@@ -105,7 +108,7 @@ def clash(busy: dict, name: str, p: dict) -> bool:
 def can_go(busy, name, p, share) -> bool:
     if clash(busy, name, p):
         return False
-    if name == "John" and near_sd(p["addr"]):
+    if name == "John" and (near_sd(p["addr"]) or share > JOHN_MAX_HEADS):
         return False
     return not (name == JUNIOR and share > JUNIOR_MAX_HEADS)
 
@@ -128,6 +131,8 @@ def show_ledger(last, this):
             floor, roof = TARGET_MIN * 2, TARGET_MAX * 2
             note = f"差 {fmt(floor - both)} 到 {floor}，优先补" if both < floor else (f"超过 {roof}" if both > roof else f"在 {floor}–{roof}")
         print(f"{n:<8}{fmt(last.get(n, 0)):>7}{fmt(this.get(n, 0)):>7}{fmt(both):>7}  {note}")
+    if this.get(BIG_LEAD, 0) <= max(this.get(n, 0) for n in LEADS if n != BIG_LEAD):
+        print(f"注意：{BIG_LEAD} 这周人数不是第一。")
 
 
 def cmd_ledger(week):
@@ -159,6 +164,9 @@ def cmd_suggest(week, include_far=False):
     def two_week(n):
         return last.get(n, 0) + this.get(n, 0)
 
+    def blu_behind():
+        return this.get(BIG_LEAD, 0) <= max(this.get(n, 0) for n in LEADS if n != BIG_LEAD)
+
     def take(p, n, share):
         this[n] = this.get(n, 0) + share
         busy.setdefault(n, []).append(p)
@@ -176,7 +184,10 @@ def cmd_suggest(week, include_far=False):
             small = share <= JUNIOR_MAX_HEADS
             junior_ok = small and JUNIOR not in team and can_go(busy, JUNIOR, p, share)
             owed = [n for n in pool if this.get(n, 0) < TARGET_MIN]
-            if junior_ok and (junior_count == 0 or not owed):
+            first_for_junior = junior_ok and junior_count == 0
+            if BIG_LEAD in pool and (p["heads"] > BIG_TABLE or (blu_behind() and not first_for_junior)):
+                who = BIG_LEAD
+            elif junior_ok and (junior_count == 0 or not owed):
                 who = JUNIOR
                 junior_count += 1
             elif pool:
