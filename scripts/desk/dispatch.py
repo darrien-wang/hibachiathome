@@ -23,7 +23,8 @@ from _api import site_get, site_post  # noqa: E402
 LEADS = ["Blu", "Gary", "John"]  # 每周 30–40，超过 15 人的桌只给他们
 BIG_LEAD = "Blu"  # 大单尽可能给 Blu，每周人数要排第一
 BIG_TABLE = 20  # 超过这个数算大单，Blu 优先，不看两周账
-JOHN_MAX_HEADS = 20  # John 也偏新手，每人分到的人数不超过这个数（上限是暂定的，老板还没给数）
+JOHN_MAX_HEADS = 20  # John 也偏新手，单独炒不超过这个数
+VETERANS = ["Blu", "Gary"]  # 老手。两位及以上的单有一位带队，其余的人不受人数上限
 JUNIOR = "Eason"  # 只炒每人 15 以下，一周 1–2 单就行，量大时多接
 HELPER = "易非"  # 不独立出台，不进轮转；超过 28 人的单有空才带
 RANK = LEADS + [JUNIOR]
@@ -105,10 +106,14 @@ def clash(busy: dict, name: str, p: dict) -> bool:
     return any(q["day"] == p["day"] and abs(minutes(q["at"]) - minutes(p["at"])) < MIN_GAP_MIN for q in busy.get(name, []))
 
 
-def can_go(busy, name, p, share) -> bool:
+def can_go(busy, name, p, share, led=False) -> bool:
     if clash(busy, name, p):
         return False
-    if name == "John" and (near_sd(p["addr"]) or share > JOHN_MAX_HEADS):
+    if name == "John" and near_sd(p["addr"]):
+        return False
+    if led:
+        return True
+    if name == "John" and share > JOHN_MAX_HEADS:
         return False
     return not (name == JUNIOR and share > JUNIOR_MAX_HEADS)
 
@@ -180,9 +185,10 @@ def cmd_suggest(week, include_far=False):
         share = p["heads"] / p["need"]
         team = []
         for _ in range(p["need"]):
-            pool = [n for n in LEADS if n not in team and can_go(busy, n, p, share)]
-            small = share <= JUNIOR_MAX_HEADS
-            junior_ok = small and JUNIOR not in team and can_go(busy, JUNIOR, p, share)
+            led = any(n in VETERANS for n in team)
+            first_of_many = p["need"] > 1 and not team
+            pool = [n for n in (VETERANS if first_of_many else LEADS) if n not in team and can_go(busy, n, p, share, led)]
+            junior_ok = not first_of_many and JUNIOR not in team and can_go(busy, JUNIOR, p, share, led)
             owed = [n for n in pool if this.get(n, 0) < TARGET_MIN]
             first_for_junior = junior_ok and junior_count == 0
             if BIG_LEAD in pool and (p["heads"] > BIG_TABLE or (blu_behind() and not first_for_junior)):
