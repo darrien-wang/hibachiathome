@@ -67,12 +67,12 @@ export const occasionPages: OccasionPage[] = [
       },
       {
         title: "The guest of honor eats first",
-        description: "First plate, biggest shrimp catch, and the chef makes sure everyone knows whose day it is.",
+        description: "First plate, first turn at the zucchini catch, and the chef makes sure everyone knows whose day it is.",
       },
       {
         title: "Games between courses",
         description:
-          "Egg toss, shrimp catch, the legendary squeeze-bottle challenge — the table is laughing before the first course lands.",
+          "Egg toss, zucchini catch, the legendary squeeze-bottle challenge — the table is laughing before the first course lands.",
       },
     ],
     photos: [
@@ -400,7 +400,7 @@ export const occasionPages: OccasionPage[] = [
       "Skip the impossible reservation: a private hibachi chef brings dinner and a fire show to your bachelorette weekend house. Southern California, from $59.90/adult.",
     intro: [
       "Try getting a table for twelve on a Saturday night. Now try doing it where everyone can hear each other, phones can charge, and nobody has to pick a designated driver. That's the bachelorette math that ends with a chef coming to you.",
-      "The show is the icebreaker between the college friends and the work friends — by the shrimp toss, everyone's on the same team. And the Airbnb backyard just became the best restaurant in town.",
+      "The show is the icebreaker between the college friends and the work friends — by the zucchini catch, everyone's on the same team. And the Airbnb backyard just became the best restaurant in town.",
     ],
     moments: [
       {
@@ -824,7 +824,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         title: "The boss gets called up",
         description:
-          "Egg toss, shrimp catch, the squeeze-bottle challenge. The manager who booked it usually goes first, and the crew doesn't let them forget it.",
+          "Egg toss, zucchini catch, the squeeze-bottle challenge. The manager who booked it usually goes first, and the crew doesn't let them forget it.",
       },
       {
         title: "A quote you can forward upstairs",
