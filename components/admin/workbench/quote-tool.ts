@@ -128,7 +128,7 @@ export type QuoteBreakdown = {
   belowFloor: boolean
   /** The party already gets a free appetizer (Weekday Special or 20+). */
   autoAppetizer: boolean
-  /** How many trays of it: one per 10 paying guests, at least one; 0 when none. */
+  /** The least a deal quotes: one tray per 10 paying guests, at least one; 0 when none. The invoice gives it by the head. */
   autoAppetizerTrays: number
   /** Value of what we give away (appetizers, tables, place settings) - not in the total. */
   freeValue: number
@@ -205,9 +205,9 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const autoAppetizer =
     heads > 0 &&
     (q.weekdaySpecial || (earnsLargePartyAppetizer({ adults, kids }) && (LARGE_PARTY_APPETIZER_UNTIL === null || (q.eventDate || today) <= LARGE_PARTY_APPETIZER_UNTIL)))
-  // One tray per 10 paying guests, at least one (owner 2026-10-01, after 21
-  // people shared one tray of gyoza; Annie Phan's 21 got 2). The invoice still
-  // seeds 1 - `desk order set --free-appetizer-trays` raises it.
+  // The party gets it by the head (owner 2026-10-30, invoice freeAppetizerQty:
+  // one piece a guest, a serving of edamame per five), set when the order saves.
+  // This count is only the floor under a deal's trays.
   const autoAppetizerTrays = autoAppetizer ? Math.max(1, Math.floor(count / 10)) : 0
 
   const freebies: string[] = []
@@ -225,11 +225,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     freebiesZh.push(`${def.zh} ${trays} 盘（$${value}${autoAppetizerTrays ? `，含本来就送的 ${autoAppetizerTrays} 盘` : ""}）`)
   } else if (autoAppetizerTrays) {
     // Already theirs; worth saying when the owner is listing what they get.
-    freebies.push(
-      autoAppetizerTrays === 1
-        ? "An appetizer of your choice (gyoza, spring rolls or edamame)"
-        : `${autoAppetizerTrays} appetizer trays of your choice (gyoza, spring rolls or edamame)`,
-    )
+    freebies.push("An appetizer of your choice (gyoza, spring rolls or edamame)")
   }
   if (q.freeTables && heads > 0) {
     freeValue += TABLES_PER_GUEST * heads

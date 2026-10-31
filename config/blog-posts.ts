@@ -514,7 +514,7 @@ You do provide the tables, chairs, plates, and utensils — or you can rent them
 
 ## The Weekday Special: $54.90 an adult, plus a free appetizer (your pick)
 
-Monday through Thursday, at any party size, the rate is **$54.90 per adult** instead of $59.90, and a free appetizer of your choice — gyoza, edamame or spring rolls, one tray for the table — comes with it. Same chef, same grill, same show, same full menu, premium upgrades included. That's the whole difference.
+Monday through Thursday, at any party size, the rate is **$54.90 per adult** instead of $59.90, and a free appetizer of your choice — gyoza or spring rolls for every guest, or edamame for the table — comes with it. Same chef, same grill, same show, same full menu, premium upgrades included. That's the whole difference.
 
 What it saves, in real numbers:
 

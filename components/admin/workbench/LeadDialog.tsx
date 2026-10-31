@@ -655,7 +655,7 @@ export function LeadDialog({
                 <input type="checkbox" checked={freeUtensils} onChange={(e) => setFreeUtensils(e.target.checked)} />
                 餐具
               </label>
-              {quote.autoAppetizerTrays ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{weekday ? "周中" : "20 人以上"}本来就送 {quote.autoAppetizerTrays} 盘前菜（每 10 人 1 盘）</span> : null}
+              {quote.autoAppetizerTrays ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{weekday ? "周中" : "20 人以上"}本来就送前菜（按人头，毛豆每 5 人 1 份）</span> : null}
             </div>
             <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.65, color: "var(--color-neutral-700)" }}>
               <div>
