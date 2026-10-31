@@ -19,8 +19,8 @@
 老板：「我们不应该只是想办法说降价」「我们的成本天然就是比他们 45 用冷冻肉的要高」。
 
 1. 客人说贵、说超预算、报了一个低的数：第一条不提降价，先说这个价买到什么。他没报数就接一句问预算，报了就不问：
-   `Here's what goes into that price: USDA Choice beef from Costco, bought the day before and never frozen, real butter, big shrimp, and our own yum yum sauce and ginger dressing, made here every week. Is there a budget you're trying to stay under?`
-2. **用料只说查得到的**：牛肉、鸡肉可以说 fresh、never frozen。**虾是冷冻袋装的，只说 big，不说 fresh。** 两种酱说 made here every week，**不说 customers love it**：10-30 查过，63 条评价和客人短信里没有人提到这两样酱，有了真实原话再用原话。Costco 只在短信里说，官网照旧不写（`config/sourcing.ts`）。
+   `Here's what goes into that price: USDA Choice beef from Costco, bought the day before and never frozen, cooked in real butter, plus our own yum yum sauce and ginger dressing, made here every week. Guests tell our chefs they love them. Is there a 2. **用料的说法**（老板 10-30）：只提牛肉，不冷冻、提前一天买。**虾都是冷冻的，不提。** 两种酱的好评来自师傅带回来的客人反馈，所以可以说 `Guests tell our chefs they love them`，不说评价里怎么写（63 条评价和客人短信里没人提到）。Costco 只在短信里说，官网照旧不写（`config/sourcing.ts`）。
+只在短信里说，官网照旧不写（`config/sourcing.ts`）。
 3. 不提别家。客人自己报了低价或提了别家，才用 §4 那句 `At that price it's usually frozen`。
 4. 讲完他还卡在价上，才走 §2 的小赢，只让一次。
 
