@@ -2,38 +2,43 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
+import { ChefShare } from "./ChefShare"
 import { Chip, Dialog, DialogHead, Field } from "./ui"
-import { addDays, dowZh, md, money, prettyPhone, ptToday } from "./helpers"
+import { addDays, dowZh, md, money, prettyPhone, ptToday, type OrderRow } from "./helpers"
 import { ROLE_LABELS, shiftNet, weekStartOf, type ChefSummary, type MediaItem, type StaffRole } from "./chef-types"
 import { BILLING_LABELS, rateLabel } from "@/lib/chef-pay"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
-// 员工（厨师 / 后勤）· 名单（按周看场次、工价、评价、结余）+ 素材库（按天看所有师傅传的照片视频）.
+// 员工（厨师 / 后勤）· 名单（按周看场次、工价、评价、结余）+ 份额（每位师傅占这周总人数的比例）+ 素材库（按天看所有师傅传的照片视频）.
 
 export type ChefTabKey = "shifts" | "profile" | "perf" | "docs" | "settle" | "files"
 
 export function ChefsTab({
   adminKey,
   chefs,
+  orders,
   settings,
   isMobile,
   viewerRole,
   sensitive,
   initialView,
   onOpenChef,
+  onOpenOrder,
   onChanged,
 }: {
   adminKey: string
   chefs: ChefSummary[]
+  orders: OrderRow[]
   settings: WorkbenchSettings
   isMobile: boolean
   viewerRole: "owner" | "agent" | null
   sensitive: boolean
   initialView?: "list" | "media" | null
   onOpenChef: (id: string, tab?: ChefTabKey) => void
+  onOpenOrder: (id: string) => void
   onChanged: () => Promise<void> | void
 }) {
-  const [view, setView] = useState<"list" | "media">(initialView ?? "list")
+  const [view, setView] = useState<"list" | "share" | "media">(initialView ?? "list")
   const today = ptToday()
   const thisWeekStart = weekStartOf(today)
   const [week, setWeek] = useState(thisWeekStart)
@@ -81,11 +86,14 @@ export function ChefsTab({
           <Chip active={view === "list"} onClick={() => setView("list")}>
             名单
           </Chip>
+          <Chip active={view === "share"} onClick={() => setView("share")} style={{ marginLeft: -1 }}>
+            份额
+          </Chip>
           <Chip active={view === "media"} onClick={() => setView("media")} style={{ marginLeft: -1 }}>
             素材库 · 按天
           </Chip>
         </div>
-        {view === "list" ? (
+        {view !== "media" ? (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap" }}>
             <button type="button" className="btn btn-secondary btn-icon" onClick={() => setWeek(addDays(week, -7))} aria-label="上一周">
               ‹
@@ -101,7 +109,7 @@ export function ChefsTab({
                 回到本周
               </button>
             ) : null}
-            {sensitive ? (
+            {sensitive && view === "list" ? (
               <button type="button" className="btn btn-secondary" style={{ whiteSpace: "nowrap" }} onClick={() => setShowAdd(true)}>
                 + 添加员工
               </button>
@@ -111,6 +119,7 @@ export function ChefsTab({
       </div>
 
       {view === "media" ? <MediaLibrary adminKey={adminKey} isMobile={isMobile} /> : null}
+      {view === "share" ? <ChefShare chefs={chefs} orders={orders} week={week} weekEnd={weekEnd} isMobile={isMobile} onOpenOrder={onOpenOrder} /> : null}
 
       {view === "list" ? (
         <>

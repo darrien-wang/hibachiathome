@@ -297,7 +297,7 @@ export default function Workbench() {
         ) : tab === "planner" ? (
           <PlannerTab adminKey={key} live={data.planner} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
         ) : tab === "chefs" ? (
-          <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} sensitive={canChefMoney} initialView={chefView} onOpenChef={openChef} onChanged={data.refreshChefs} />
+          <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} orders={data.orders} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} sensitive={canChefMoney} initialView={chefView} onOpenChef={openChef} onOpenOrder={openOrder} onChanged={data.refreshChefs} />
         ) : tab === "customers" ? (
           <CustomersTab adminKey={key} leads={data.leads} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onCall={onCall} onOpenLead={openLead} />
         ) : tab === "reviews" ? (
