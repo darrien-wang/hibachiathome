@@ -65,6 +65,8 @@ Real Hibachi · (213) 770-7788
 - **改了时间地点、马上要锁**：`Yes to both. [Saturday the 24th at 3:30 at your place in Granada Hills] works, and it's still $[988.50]. Here's the link with [3:30] and [Granada Hills] filled in: <link>`
 - **问桌椅**（照价答，D-1029-02）：`We do. Tables, chairs and linens are $10 a guest, and plates and silverware are $5.` 要总价就过 `desk price --tables N --utensils N` 报一个数。客人拿别家比价或说超预算时，桌椅才是最后一张牌（周五–日最多半价、周一–四最多免费、节假日不给）：`If it helps, lock the date and I'll do the tables at half price.`
 - **模板 L · 他以为要等人数定了才能订**（10-01）：`You don't need the final number to lock [the 7th]. The link just saves a card to hold the date, nothing is charged today, and the headcount can change later: <link>` 发完挂 3–5 天，之后不追。
+- **模板 S · 他要和家人商量**（10-30，D-1030-05）：`Here's a note you can forward: "Hibachi chef at our place on [Saturday, Nov 14]. $[1,138] for [20] of us covers the food, the chef and the fire show[, plus a free appetizer]. The headcount can change up to the day before." Text me once you've talked it over.` 不带链接；价格先过 `desk price`；有送的才写 free appetizer；小费、桌椅、税不问不提。
+- **问预算**（10-30，D-1030-06，一条线索只问一次）：`Is there a budget you're trying to stay under?`
 - **确认类，一句话**：`Done, 7:30.` / `Got it, 7:30 then.`（`X it is` 一个客人最多用一次）
 - **客气收尾**：`You too, enjoy your night.` / `Anytime.` / `You got it.` / `Sounds good, talk soon.`（大多不带 emoji，见 `voice.md` §4）
 - **他说要电话**：`Got it. We'll call you from 213-770-7788 shortly.`
