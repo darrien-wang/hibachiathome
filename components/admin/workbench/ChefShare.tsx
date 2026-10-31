@@ -111,9 +111,8 @@ export function ChefShare({ chefs, orders, week, weekEnd, isMobile, onOpenOrder 
   const hovered = slices.find((s) => s.key === hoverKey) ?? null
   const pick = (key: string) => setPickedKey((cur) => (cur === key ? null : key))
   const caption = hovered ?? picked
-  const rangeName = weeks === 2 ? "这两周" : "这周"
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 860 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex" }}>
           <Chip small active={weeks === 1} onClick={() => setWeeks(1)}>
@@ -124,11 +123,10 @@ export function ChefShare({ chefs, orders, week, weekEnd, isMobile, onOpenOrder 
           </Chip>
         </div>
         <div style={{ fontSize: 15 }}>
-          {weeks === 2 ? `${md(from)} – ${md(weekEnd)} ` : ""}
-          {rangeName}共 <strong>{heads(totalHeads)}</strong> 人 · {partyCount} 单 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>小孩算半个，帮手不算</span>
+          {weeks === 2 ? `${md(from)} – ${md(weekEnd)} 两周` : ""}共 <strong>{heads(totalHeads)}</strong> 人 · {partyCount} 单 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>小孩算半个，帮手不算</span>
         </div>
       </div>
-      {!slices.length ? <div style={{ fontSize: 14, color: "var(--color-neutral-600)", padding: "24px 0" }}>{rangeName}还没有单。</div> : null}
+      {!slices.length ? <div style={{ fontSize: 14, color: "var(--color-neutral-600)", padding: "24px 0" }}>这段时间还没有单。</div> : null}
       {slices.length ? <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : `${PIE_SIZE + 24}px minmax(0, 1fr)`, gap: 24, alignItems: "center" }}>
         <div>
           <Pie slices={slices} picked={picked?.key ?? null} onPick={pick} onHover={setHoverKey} />
@@ -153,7 +151,7 @@ export function ChefShare({ chefs, orders, week, weekEnd, isMobile, onOpenOrder 
       {picked ? (
         <div>
           <div style={{ fontWeight: 700, fontSize: 15, paddingBottom: 6, borderBottom: "2px solid var(--color-text)" }}>
-            {picked.label} {rangeName}的单 · {heads(picked.heads)} 人
+            {picked.label} 的单 · {heads(picked.heads)} 人
           </div>
           {picked.parties.map((p) => (
             <PartyRow key={`${p.orderId}-${p.chefName ?? ""}`} p={p} showChef={picked.key === OTHER_KEY} onOpen={onOpenOrder} />
