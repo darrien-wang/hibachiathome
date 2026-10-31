@@ -81,8 +81,8 @@ const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料�
 // 份量表的 4 oz 是熟面；面吸水，干:熟 ≈ 1:3（重量，老板 2026-09-30）。
 // 采购买的是干面（RD 10 lb/箱），所以清单里按干重算：熟面 ÷ 3。
 const NOODLE_COOKED_PER_DRY = 3
-const PORTION_POLICY = { gyozaPcs: 10, springRollPcs: 10, edamameFeeds: 3, diyRiceOz: 4 as number | null }
-const LEGACY_PORTION_POLICY = { gyozaPcs: 12, springRollPcs: 12, edamameFeeds: 2, diyRiceOz: null as number | null }
+const PORTION_POLICY = { gyozaPcs: 10, springRollPcs: 10, diyRiceOz: 4 as number | null }
+const LEGACY_PORTION_POLICY = { gyozaPcs: 12, springRollPcs: 12, diyRiceOz: null as number | null }
 const PORTION_POLICY_CUTOFF_MS = Date.parse("2026-09-02T00:00:00Z")
 const MISC_PER_PERSON = [
   { id: "oil", label: "Cooking Oil 油", amount: 1, unit: "tbsp" },
@@ -307,7 +307,7 @@ export function orderPrep(
     // 送的前菜按人头（2026-10-30，发票 freeAppetizerQty）：盘数可以是 2.6（26 个）。
     if (e.id === "gyoza") items.push({ id: "gyoza", label: "Gyoza 煎饺 (Tai Pei)", qty: Math.round(qty * policy.gyozaPcs), unit: "pcs", group: "frozen" })
     if (e.id === "spring_rolls") items.push({ id: "spring_rolls", label: "Spring Rolls 春卷 (Tai Pei)", qty: Math.round(qty * policy.springRollPcs), unit: "pcs", group: "frozen" })
-    if (e.id === "edamame") items.push({ id: "edamame", label: `Edamame 毛豆（每份喂 ${policy.edamameFeeds} 人）`, qty, unit: "份", group: "frozen" })
+    if (e.id === "edamame") items.push({ id: "edamame", label: "Edamame 毛豆", qty, unit: "份", group: "frozen" })
     if ((e.id === "diy_rice_shrimp" || e.id === "diy_rice_chicken") && policy.diyRiceOz) {
       const label = e.id === "diy_rice_shrimp" ? "Shrimp（DIY 炒饭）" : "Chicken（DIY 炒饭）"
       items.push({ id: e.id, label, qty: r1(policy.diyRiceOz * qty), unit: "oz", group: "frozen" })
@@ -399,7 +399,7 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   // 冻品 · 前菜 · 面
   gyoza: { per: 1, noun: "个", desc: "46.5oz 袋 ≈ 40 个", big: { noun: "袋", count: 40 } },
   spring_rolls: { per: 1, noun: "个", desc: "24.5oz 盒 ≈ 8 个", big: { noun: "盒", count: 8 } },
-  edamame: { per: 1, noun: "袋", desc: "1 袋 = 1 份，喂 3 人" },
+  edamame: { per: 1, noun: "袋", desc: "1 袋 = 1 份" },
   noodles: { per: 16, noun: "lb", desc: "RD pasta 10lb/箱（干面）", big: { noun: "箱", count: 10 } },
   // 调料与大宗
   fried_rice: { per: 2400, noun: "袋", desc: "50lb 生米 ≈ 2400oz 熟饭" },

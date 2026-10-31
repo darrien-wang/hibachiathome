@@ -776,6 +776,18 @@ def main() -> int:
     check("  moved to a Saturday: the line goes and takes its 2.6, the bought tray stays",
           gyoza(r) == 1 and not any(p["id"] == "official_weekday" for p in r.data.get("promotions") or []) and r.has("gyoza qty -2.6"), r)
 
+    # "(feeds 3)" came off the menu (2026-10-30): a gift saved with it is still edamame, and what desk writes does not say it.
+    def gift_on(app: str, label: str, amount: float) -> dict:
+        return invoice(adults=12, proteins=prot(chicken=(12, 0), steak=(12, 0)), extras=[{"id": app, "qty": 2}],
+                       promos=[{"id": f"{app}_1", "label": label, "amount": amount}, PARTY[10]])
+    r = Run(gift_on("edamame", "FREE: Edamame (feeds 3) x2", 20.0), "--free-appetizer", "gyoza")
+    check("a gift saved as 'FREE: Edamame (feeds 3) x2' still swaps", gyoza(r) == 2 and gyoza(r, "edamame") == 0
+          and r.data["promotions"][0]["label"] == "FREE: Gyoza (10 pcs) x2" and r.data["promotions"][0]["amount"] == 30.0, r)
+    r = Run(gift_on("gyoza", "FREE: Gyoza (10 pcs) x2", 30.0), "--free-appetizer", "edamame")
+    check("  swapped the other way it says 'FREE: Edamame x2'", gyoza(r, "edamame") == 2 and r.data["promotions"][0]["label"] == "FREE: Edamame x2", r)
+    r = Run(gift_on("edamame", "FREE: Edamame x2", 20.0), "--free-appetizer", "spring_rolls")
+    check("  and that new label swaps too", gyoza(r, "spring_rolls") == 2 and r.data["promotions"][0]["label"] == "FREE: Spring Rolls (10 pcs) x2", r)
+
     # The minimum must not raise a false alarm when the order has a paid tray.
     r = Run(invoice(adults=6, proteins=prot(chicken=(6, 0), steak=(6, 0)), extras=[{"id": "gyoza", "qty": 1}]), "--time", "19:00", "--dry")
     check("6 adults + a paid gyoza tray under the $599 minimum: ✓ $599.00", r.has("✓ total check: TOTAL $599.00"), r)

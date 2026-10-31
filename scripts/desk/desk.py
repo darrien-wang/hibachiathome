@@ -89,7 +89,7 @@ MINIMUM_SPEND = 599  # config/pricing-rules.ts
 # how many trays it brings moves the discount by the same amount and the
 # customer is never charged for what we gave them.
 APPETIZER_PRICES = {"gyoza": 15.0, "spring_rolls": 15.0, "edamame": 10.0}
-APPETIZER_LABELS = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10 pcs)", "edamame": "Edamame (feeds 3)"}  # invoice PARTY_EXTRAS labels
+APPETIZER_LABELS = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10 pcs)", "edamame": "Edamame"}  # invoice PARTY_EXTRAS labels
 
 
 def tray_qty(x) -> int | float:
@@ -1459,7 +1459,7 @@ def _weekday_appetizer(line: dict, data: dict) -> float:
     price = APPETIZER_PRICES[app]
     have = next((tray_qty(e.get("qty")) for e in (data.get("partyExtras") or []) if e.get("id") == app), 0)
     gifts = (GIFT_APPETIZER.fullmatch(str(x.get("label") or "")) for x in (data.get("promotions") or []))
-    free = tray_qty(have - sum(int(g.group(2)) for g in gifts if g and g.group(1) == APPETIZER_LABELS[app]))
+    free = tray_qty(have - sum(int(g.group(2)) for g in gifts if g and GIFT_LABELS[g.group(1)] == app))
     trays = 1
     if free > 1:
         adults, kids = _paid_heads(data)
@@ -1635,7 +1635,8 @@ def _deal_lines(data: dict) -> list[dict]:
 # it (freeAppetizerVariantFromLabel): "... + FREE appetizer: Gyoza" on the
 # official lines, "FREE: Gyoza (10 pcs) x2" from --free-item.
 OFFICIAL_APPETIZER = re.compile(r"free appetizer[^:]*:\s*(gyoza|edamame|spring rolls)", re.I)
-GIFT_APPETIZER = re.compile(r"FREE: (" + "|".join(map(re.escape, APPETIZER_LABELS.values())) + r") x(\d+)")
+GIFT_LABELS = {**{v: k for k, v in APPETIZER_LABELS.items()}, "Edamame (feeds 3)": "edamame"}  # lines saved before 2026-10-30 say it
+GIFT_APPETIZER = re.compile(r"FREE: (" + "|".join(map(re.escape, GIFT_LABELS)) + r") x(\d+)")
 
 
 def _paid_children(data: dict) -> int:
@@ -1664,12 +1665,11 @@ def _swap_free_appetizer(data: dict, new: str) -> list[str]:
         raise SystemExit(f"--free-appetizer {new!r}: use one of {sorted(APPETIZER_PRICES)}")
     promos = data.get("promotions") or []
     official = [x for x in promos if x.get("id") in FREE_APPETIZER_PROMO_IDS]
-    label_id = {v: k for k, v in APPETIZER_LABELS.items()}
     gifts = []  # (line, appetizer, trays)
     for x in promos:
         m = GIFT_APPETIZER.fullmatch(str(x.get("label") or ""))
         if m:
-            gifts.append((x, label_id[m.group(1)], int(m.group(2))))
+            gifts.append((x, GIFT_LABELS[m.group(1)], int(m.group(2))))
     if len(official) > 1:
         raise SystemExit(f"this order has {[x.get('id') for x in official]} - they never stack; fix it in the invoice tool")
     line = official[0] if official else None

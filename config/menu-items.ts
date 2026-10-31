@@ -141,7 +141,7 @@ export const sides: MenuItem[] = [
   {
     id: "edamame",
     name: "Edamame",
-    description: "Steamed soybeans lightly salted (feeds 3)",
+    description: "Steamed soybeans lightly salted",
     price: 10,
     category: "side",
     allergens: ["soy"],
