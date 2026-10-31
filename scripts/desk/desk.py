@@ -80,6 +80,8 @@ THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
 PROTEIN_IDS = {"chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"}
 SETUP_PRICES = {"tables_chairs": 10.0, "utensils": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 SETUP_LABELS = {"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}  # same, as the customer reads them
+# Billed per cloth, not per guest, so not a SETUP_PRICES item. $5 in black or white (owner 10-31).
+CLOTH_PRICES = {"white_linen": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
 WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
 DEAL_PROMO_IDS = ("deal_rate", "deal_free_extras", "deal_extra_rates", "deal_flat")  # invoice isCustomDealPromoId, in its order
@@ -2178,10 +2180,18 @@ def cmd_order(a):
             has_rows = data.get("mode") == "detailed" and bool(data.get("guests"))
             for pair in a.add_extra:
                 m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
-                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES}:
-                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES})}")
+                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES}:
+                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES})}")
                 app_id, n = m.group(1), int(m.group(2))
                 row = next((e for e in extras if e.get("id") == app_id), None)
+                if app_id in CLOTH_PRICES:
+                    was = int(row.get("qty") or 0) if row else 0
+                    if row:
+                        row["qty"] = n
+                    else:
+                        extras.append({"id": app_id, "qty": n})
+                    changes.append(f"tablecloths: {was} -> {n} at {money(CLOTH_PRICES[app_id])} each")
+                    continue
                 if app_id in SETUP_PRICES:
                     if has_rows:
                         raise SystemExit(f"--add-extra {pair!r}: this order has guest rows - put {app_id} on the rows (--guests-file)")
@@ -2731,7 +2741,7 @@ def main(argv=None):
                         "+ the matching 'Tables & Chairs at $5/guest' line at the current count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
-    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; or a setup item for N guests before the rows exist: utensils=18")
+    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; a setup item for N guests before the rows exist: utensils=18; or tablecloths by count, either color: white_linen=3")
     p.add_argument("--remove-promo", nargs="+", action="extend", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
