@@ -189,6 +189,10 @@ def cmd_suggest(week, include_far=False):
             first_of_many = p["need"] > 1 and not team
             pool = [n for n in (VETERANS if first_of_many else LEADS) if n not in team and can_go(busy, n, p, share, led)]
             junior_ok = not first_of_many and JUNIOR not in team and can_go(busy, JUNIOR, p, share, led)
+            # 有老手带队了，第二位先找非老手，老手留给同一天别的大单。
+            rest = [n for n in pool if n not in VETERANS]
+            if led and (rest or junior_ok):
+                pool = rest
             owed = [n for n in pool if this.get(n, 0) < TARGET_MIN]
             first_for_junior = junior_ok and junior_count == 0
             if BIG_LEAD in pool and (p["heads"] > BIG_TABLE or (blu_behind() and not first_for_junior)):
