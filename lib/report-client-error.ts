@@ -14,6 +14,7 @@
 export type ClientErrorSource =
   | "error_boundary"
   | "global_error_boundary"
+  | "quiet_boundary"
   | "window_onerror"
   | "unhandled_rejection"
 
@@ -100,6 +101,22 @@ export function reportClientError(error: unknown, source: ClientErrorSource): vo
     // Same: swallow everything. A failed report is invisible; a throwing
     // reporter would replace the error boundary with a blank page again.
   }
+}
+
+// A crash screen is usually one bad load, so it gets one fresh try: once per
+// path per tab. No sessionStorage means no reload, because without it nothing
+// could stop a loop. The short wait lets the keepalive report leave first.
+export function reloadOnceAfterCrash(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const key = `rh_crash_reload:${window.location.pathname}`
+    if (window.sessionStorage.getItem(key)) return false
+    window.sessionStorage.setItem(key, "1")
+  } catch {
+    return false
+  }
+  window.setTimeout(() => window.location.reload(), 300)
+  return true
 }
 
 // React error boundaries only catch errors thrown during render. Everything

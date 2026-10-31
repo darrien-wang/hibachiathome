@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { phone, smsHref } from "@/config/site"
-import { reportClientError } from "@/lib/report-client-error"
+import { reloadOnceAfterCrash, reportClientError } from "@/lib/report-client-error"
 
 // Page-level crash screen. Next.js's built-in fallback is a bare line of black
 // serif text on white — a paid visitor who hits it is simply gone. This one
@@ -18,12 +18,13 @@ export default function Error({
 }) {
   useEffect(() => {
     reportClientError(error, "error_boundary")
+    reloadOnceAfterCrash()
   }, [error])
 
   const smsLink = smsHref()
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center gap-5 px-6 py-16 text-center">
+    <div data-nosnippet className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center gap-5 px-6 py-16 text-center">
       <h1 className="text-2xl font-semibold text-gray-900">This page hit a snag</h1>
       <p className="text-gray-600">
         Sorry — something broke on our end, not yours. Reloading usually fixes it, and if it

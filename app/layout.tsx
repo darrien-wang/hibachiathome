@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 import { TrackingBootstrap } from "@/components/tracking-bootstrap"
 import { HideOnAdmin } from "@/components/hide-on-admin"
+import { QuietBoundary } from "@/components/quiet-boundary"
 import { ChatgptPixel } from "@/components/chatgpt-pixel"
 import { MetaPixel } from "@/components/meta-pixel"
 import LanguageSuggestBanner from "@/components/language-suggest-banner"
@@ -146,23 +147,35 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
         {/* Keep client-only trackers inside their own Suspense boundary so a
             useSearchParams() bailout never swallows the page content below. */}
         <Suspense fallback={null}>
-          <HideOnAdmin>
-            <TrackingBootstrap />
-            <ChatgptPixel />
-            <MetaPixel />
-          </HideOnAdmin>
+          <QuietBoundary>
+            <HideOnAdmin>
+              <TrackingBootstrap />
+              <ChatgptPixel />
+              <MetaPixel />
+            </HideOnAdmin>
+          </QuietBoundary>
         </Suspense>
-        <HideOnAdmin>
-          <LanguageSuggestBanner />
-          <Header />
-        </HideOnAdmin>
+        <QuietBoundary>
+          <HideOnAdmin>
+            <LanguageSuggestBanner />
+          </HideOnAdmin>
+        </QuietBoundary>
+        <QuietBoundary>
+          <HideOnAdmin>
+            <Header />
+          </HideOnAdmin>
+        </QuietBoundary>
         <main>{children}</main>
-        <HideOnAdmin>
-          <Footer />
-        </HideOnAdmin>
-        <HideOnAdmin>
-          <Analytics />
-        </HideOnAdmin>
+        <QuietBoundary>
+          <HideOnAdmin>
+            <Footer />
+          </HideOnAdmin>
+        </QuietBoundary>
+        <QuietBoundary>
+          <HideOnAdmin>
+            <Analytics />
+          </HideOnAdmin>
+        </QuietBoundary>
       </body>
     </html>
   )

@@ -1,13 +1,15 @@
 "use client"
 
 import { useEffect } from "react"
-import { reportClientError } from "@/lib/report-client-error"
+import { reloadOnceAfterCrash, reportClientError } from "@/lib/report-client-error"
 import { phone, smsHref } from "@/config/site"
 
 // Last resort: this replaces the root layout, so Header, Footer and
 // globals.css are all gone by the time it renders. Everything here is inline
 // styles and plain anchors on purpose — no imports that could themselves be
-// the thing that failed.
+// the thing that failed. The title, description and data-nosnippet are for
+// search: on 2026-10-27 Google rendered this screen as the homepage and used the
+// apology as our snippet, with no title at all.
 export default function GlobalError({
   error,
   reset,
@@ -17,10 +19,18 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     reportClientError(error, "global_error_boundary")
+    reloadOnceAfterCrash()
   }, [error])
 
   return (
     <html lang="en">
+      <head>
+        <title>Hibachi at Home Los Angeles, OC &amp; SoCal | Real Hibachi</title>
+        <meta
+          name="description"
+          content="Private hibachi chef at your home in Los Angeles, Orange County, San Diego and all of Southern California."
+        />
+      </head>
       <body
         style={{
           margin: 0,
@@ -35,7 +45,7 @@ export default function GlobalError({
           color: "#1f2937",
         }}
       >
-        <div style={{ maxWidth: "28rem", textAlign: "center" }}>
+        <div data-nosnippet style={{ maxWidth: "28rem", textAlign: "center" }}>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 600, margin: "0 0 12px" }}>
             This page hit a snag
           </h1>
