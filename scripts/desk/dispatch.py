@@ -102,11 +102,12 @@ _chains: dict[str, set] = {}
 
 
 def chain_pairs(day: str) -> set:
-    """日历排班图稳妥版里接得上的两场（带真实车程，拖满也不迟到）。只认这一版，宁可少连。"""
+    """日历排班图稳妥版里宽裕的两场（真实车程，桌椅多留的时间也算了，拖满还早到）。
+    连台能宽裕就尽可能宽裕（老板 2026-10-30），踩点的 ontime 不自动连，留给老板定。"""
     if day not in _chains:
         d = site_get("/api/admin/day-map", {"date": day})
         safe = next((p for p in d.get("plans") or [] if p.get("key") == "safe"), None)
-        _chains[day] = {(l["fromId"], l["toId"]) for l in (safe or {}).get("links") or [] if l.get("grade") in ("solid", "ontime")}
+        _chains[day] = {(l["fromId"], l["toId"]) for l in (safe or {}).get("links") or [] if l.get("grade") == "solid"}
     return _chains[day]
 
 
