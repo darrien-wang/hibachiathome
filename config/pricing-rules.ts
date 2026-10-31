@@ -300,9 +300,10 @@ export const WEEKDAY_SPECIAL = {
   // weekday rate is only a nudge, so it is not paired with a worse menu; the
   // thing that makes it feel like a gift rather than a discount is the free
   // appetizer. 2026-09-22 (owner): it is ONE appetizer of the customer's choice
-  // — gyoza, edamame or spring rolls, one tray for the table (default gyoza) —
-  // no longer the 3-item platter. `value` is the most it can be worth ($15).
-  // The key keeps its old name so imports don't break.
+  // — gyoza, edamame or spring rolls (default gyoza) — no longer the 3-item
+  // platter. 2026-10-30 (owner): by the head, not by the tray; the invoice bills
+  // what is brought and takes it off again, so no total here changes. `value` is
+  // the price of one tray ($15). The key keeps its old name so imports don't break.
   appetizerPlatter: {
     label: "Free appetizer of your choice",
     detail: "gyoza, edamame or spring rolls",

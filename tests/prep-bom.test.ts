@@ -41,3 +41,10 @@ test("prep · two parties on one day: the steak hint is recomputed on the day's 
   assert.equal(day?.qty, 72)
   assert.equal(packsInHint(day?.alt), 2) // 79.2 oz with the buffer; one pack each would have been 2 as well
 })
+
+test("prep · a free appetizer goes by the head: 2.6 trays are 26 rolls, 1.1 trays 11 gyoza, whole pieces", () => {
+  const inv = { mode: "quick", adultCount: 26, childCount: 0, quickCountItems: [], partyExtras: [{ id: "spring_rolls", qty: 2.6 }, { id: "gyoza", qty: 1.1 }] }
+  const items = orderPrep(inv as never, "2026-10-12T00:00:00Z", 26, 0).items
+  assert.equal(items.find((i) => i.id === "spring_rolls")?.qty, 26)
+  assert.equal(items.find((i) => i.id === "gyoza")?.qty, 11)
+})

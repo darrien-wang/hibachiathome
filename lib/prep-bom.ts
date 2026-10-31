@@ -304,8 +304,9 @@ export function orderPrep(
   for (const e of extras) {
     const qty = e.qty ?? 0
     if (qty <= 0) continue
-    if (e.id === "gyoza") items.push({ id: "gyoza", label: "Gyoza 煎饺 (Tai Pei)", qty: qty * policy.gyozaPcs, unit: "pcs", group: "frozen" })
-    if (e.id === "spring_rolls") items.push({ id: "spring_rolls", label: "Spring Rolls 春卷 (Tai Pei)", qty: qty * policy.springRollPcs, unit: "pcs", group: "frozen" })
+    // 送的前菜按人头（2026-10-30，发票 freeAppetizerQty）：盘数可以是 2.6（26 个）。
+    if (e.id === "gyoza") items.push({ id: "gyoza", label: "Gyoza 煎饺 (Tai Pei)", qty: Math.round(qty * policy.gyozaPcs), unit: "pcs", group: "frozen" })
+    if (e.id === "spring_rolls") items.push({ id: "spring_rolls", label: "Spring Rolls 春卷 (Tai Pei)", qty: Math.round(qty * policy.springRollPcs), unit: "pcs", group: "frozen" })
     if (e.id === "edamame") items.push({ id: "edamame", label: `Edamame 毛豆（每份喂 ${policy.edamameFeeds} 人）`, qty, unit: "份", group: "frozen" })
     if ((e.id === "diy_rice_shrimp" || e.id === "diy_rice_chicken") && policy.diyRiceOz) {
       const label = e.id === "diy_rice_shrimp" ? "Shrimp（DIY 炒饭）" : "Chicken（DIY 炒饭）"
@@ -468,9 +469,9 @@ export function basisOf(id: string): string | null {
   if (id === "salad") return `每人 ${SALAD.adult} 份（约 1 oz），小孩一半`
   if (id === "eggs") return "每人 1 个"
   if (id === "noodles") return `点了面的每人 ${NOODLE_PORTION.adult} oz 熟面（小孩 ${NOODLE_PORTION.child}），按干面 = 熟面 ÷ ${NOODLE_COOKED_PER_DRY}`
-  if (id === "gyoza") return `每份前菜 ${PORTION_POLICY.gyozaPcs} 个`
-  if (id === "spring_rolls") return `每份前菜 ${PORTION_POLICY.springRollPcs} 个`
-  if (id === "edamame") return "每份前菜 1 袋"
+  if (id === "gyoza") return `加购一盘 ${PORTION_POLICY.gyozaPcs} 个；送的每人 1 个`
+  if (id === "spring_rolls") return `加购一盘 ${PORTION_POLICY.springRollPcs} 个；送的每人 1 个`
+  if (id === "edamame") return "每份 1 袋；送的每 5 人 1 份"
   if (id === "lime") return "有海鲜的单，每 10 人半个"
   const m = MISC_PER_PERSON.find((x) => x.id === id)
   if (m) return `每人 ${m.amount} ${m.unit}`

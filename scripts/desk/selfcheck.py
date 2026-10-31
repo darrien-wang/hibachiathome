@@ -748,6 +748,34 @@ def main() -> int:
     r = Run(no_tray, "--time", "19:00", "--dry")
     check("a weekday line refunding a gyoza the order does not carry: loud, $15.00 too little", r.has("TOTAL CHECK FAILED", "$15.00 too little"), r)
 
+    # The free appetizer goes by the head (2026-10-30): a tray row is 2.6 of them, and nothing here may truncate it.
+    def monday_26(line_amount: float, trays: float) -> dict:
+        return invoice(adults=26, proteins=prot(chicken=(26, 0), steak=(26, 0)), extras=[{"id": "gyoza", "qty": trays}], date=MONDAY,
+                       promos=[dict(WEEKDAY_LINE, amount=line_amount), desk.party_line(26)])
+    gyoza = lambda r, id_="gyoza": next((e["qty"] for e in r.data.get("partyExtras") or [] if e["id"] == id_), 0)  # noqa: E731
+    r = Run(monday_26(169.0, 2.6), "--time", "19:00", "--dry")
+    check("26 adults on a Monday, 26 gyoza by the head (2.6 trays, $39 + 26 x $5): ✓ $1,337.40",
+          r.has("✓ total check: TOTAL $1,337.40", "extras $39.00 - other promos $39.00"), r)
+    r = Run(monday_26(169.0, 3.6), "--time", "19:00", "--dry")
+    check("  the same with a tray they bought: ✓ $1,352.40, the bought tray billed",
+          r.has("✓ total check: TOTAL $1,352.40", "extras $54.00 - other promos $39.00"), r)
+    r = Run(monday_26(169.0, 2.6), "--add-extra", "gyoza=1")
+    check("  --add-extra on it keeps the pieces (3.6 trays)", gyoza(r) == 3.6, r)
+    r = Run(monday_26(169.0, 2.6), "--free-item", "gyoza=1")
+    check("  --free-item on it keeps the pieces (3.6 trays)", gyoza(r) == 3.6 and r.data["promotions"][-1]["label"] == "FREE: Gyoza (10 pcs) x1", r)
+    r = Run(monday_26(169.0, 2.6), "--free-appetizer", "spring_rolls")
+    check("  --free-appetizer spring_rolls moves all 2.6 and the same money", gyoza(r, "spring_rolls") == 2.6 and gyoza(r) == 0
+          and r.data["promotions"][0]["amount"] == 169.0 and "Spring Rolls" in r.data["promotions"][0]["label"], r)
+    r = Run(monday_26(169.0, 2.6), "--free-appetizer", "edamame")
+    check("  --free-appetizer edamame: the count crosses at the new price, the save settles it by the head",
+          gyoza(r, "edamame") == 2.6 and r.data["promotions"][0]["amount"] == 156.0 and r.has("TOTAL $"), r)
+    r = Run(monday_26(169.0, 2.6), "--free-appetizer-trays", "3")
+    check("  --free-appetizer-trays 3 is above the rule: $6 more on the line, three trays",
+          gyoza(r) == 3 and r.data["promotions"][0]["amount"] == 175.0, r)
+    r = Run(monday_26(169.0, 3.6), "--date", SATURDAY, "--time", "19:00")
+    check("  moved to a Saturday: the line goes and takes its 2.6, the bought tray stays",
+          gyoza(r) == 1 and not any(p["id"] == "official_weekday" for p in r.data.get("promotions") or []) and r.has("gyoza qty -2.6"), r)
+
     # The minimum must not raise a false alarm when the order has a paid tray.
     r = Run(invoice(adults=6, proteins=prot(chicken=(6, 0), steak=(6, 0)), extras=[{"id": "gyoza", "qty": 1}]), "--time", "19:00", "--dry")
     check("6 adults + a paid gyoza tray under the $599 minimum: ✓ $599.00", r.has("✓ total check: TOTAL $599.00"), r)

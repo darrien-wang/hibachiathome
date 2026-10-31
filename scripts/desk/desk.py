@@ -90,6 +90,16 @@ MINIMUM_SPEND = 599  # config/pricing-rules.ts
 # customer is never charged for what we gave them.
 APPETIZER_PRICES = {"gyoza": 15.0, "spring_rolls": 15.0, "edamame": 10.0}
 APPETIZER_LABELS = {"gyoza": "Gyoza (10 pcs)", "spring_rolls": "Spring Rolls (10 pcs)", "edamame": "Edamame (feeds 3)"}  # invoice PARTY_EXTRAS labels
+
+
+def tray_qty(x) -> int | float:
+    """A partyExtras count, as the invoice's trayQty keeps it. The free appetizer
+    goes by the head since 2026-10-30, so a tray row moves by the piece (26 spring
+    rolls = 2.6 trays): int() on one would drop the pieces and bill the difference."""
+    q = round(float(x or 0), 1)
+    return int(q) if q.is_integer() else q
+
+
 # Whole-table protein servings (invoice PARTY_EXTRAS side_*, billed per serving; one serving = one
 # adult portion). How "a third protein for everyone" rides on an order that has no guest rows yet:
 # the church group RH-20261021-9381 wanted shrimp as the third protein for 15 = side_shrimp=15 ($150).
@@ -1436,8 +1446,9 @@ def _weekday_appetizer(line: dict, data: dict) -> float:
     in partyExtras, so the two net out); the rest is its per-head cut. Trays
     counted as _swap_free_appetizer counts them: one, unless the order has more
     of that appetizer than the --free-item gifts and one - then the amount over
-    the per-head part says how many (one per 10 guests, or some bought). A tray
-    the line refunds but the order does not carry is not netted, so it shows."""
+    the per-head part says how many (by the head, 2.6 for 26 guests, or some
+    bought). A tray the line refunds but the order does not carry is not netted,
+    so it shows."""
     label = str(line.get("label") or "")
     if re.search(r"appetizer platter", label, re.I):  # before 09-22: one of each
         return sum(APPETIZER_PRICES.values())
@@ -1446,14 +1457,15 @@ def _weekday_appetizer(line: dict, data: dict) -> float:
         return 0.0
     app = m.group(1).lower().replace(" ", "_")
     price = APPETIZER_PRICES[app]
-    have = next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == app), 0)
+    have = next((tray_qty(e.get("qty")) for e in (data.get("partyExtras") or []) if e.get("id") == app), 0)
     gifts = (GIFT_APPETIZER.fullmatch(str(x.get("label") or "")) for x in (data.get("promotions") or []))
-    free = have - sum(int(g.group(2)) for g in gifts if g and g.group(1) == APPETIZER_LABELS[app])
+    free = tray_qty(have - sum(int(g.group(2)) for g in gifts if g and g.group(1) == APPETIZER_LABELS[app]))
     trays = 1
     if free > 1:
         adults, kids = _paid_heads(data)
         heads = WEEKDAY_ADULT_OFF * adults + WEEKDAY_CHILD_OFF * kids
-        trays = min(free, max(1, round((float(line.get("amount") or 0) - heads) / price)))
+        n = round((float(line.get("amount") or 0) - heads) / price, 1)
+        trays = min(free, n if n > 0 else 1)
     return min(trays, max(0, free)) * price
 
 
@@ -1684,38 +1696,39 @@ def _swap_free_appetizer(data: dict, new: str) -> list[str]:
     gifted = sum(n for _, n in same)
     extras = data.setdefault("partyExtras", [])
     row = next((e for e in extras if e.get("id") == old), None)
-    have = int(row.get("qty") or 0) if row else 0
+    have = tray_qty(row.get("qty")) if row else 0
     # The trays each line gives: a --free-item line says so ("x2"); the official
-    # line gives what is left, one tray - unless more are left: one per 10
-    # guests (--free-appetizer-trays) or some of them bought. Then its amount
-    # says how many: their menu price on top of the weekday per-head part.
-    free = have - gifted
+    # line gives what is left - unless some of that was bought. Its amount says
+    # how many it gives: their menu price on top of the weekday per-head part,
+    # by the piece since the free appetizer goes by the head. The save then puts
+    # the count the new appetizer owes the heads on it, line and row together.
+    free = tray_qty(have - gifted)
     trays = free if line else 0
     if line and free > 1:
         heads = 0.0
         if line["id"] == "official_weekday":
             heads = WEEKDAY_ADULT_OFF * int(data.get("adultCount") or 0) + WEEKDAY_CHILD_OFF * _paid_children(data)
         n = (float(line.get("amount") or 0) - heads) / APPETIZER_PRICES[old]
-        if abs(n - round(n)) > 0.001 or not 1 <= round(n) <= free:
+        if abs(n - round(n, 1)) > 0.001 or not 0 < round(n, 1) <= free:
             raise SystemExit(f"{free} {old} trays could be {line['id']}'s, and its {money(line.get('amount'))} less the per-head part "
-                             f"{money(heads)} is not a whole number of {money(APPETIZER_PRICES[old])} trays from 1 to {free} - "
+                             f"{money(heads)} is no count of {money(APPETIZER_PRICES[old])} trays up to {free} - "
                              f"re-state it first (--promo {line['id']}=<per-head part + {money(APPETIZER_PRICES[old])} a free tray>) "
                              "or swap it in the invoice tool")
-        trays = round(n)
-    moved = trays + gifted
-    if (line and trays < 1) or moved < 1 or moved > have:
+        trays = tray_qty(n)
+    moved = tray_qty(trays + gifted)
+    if (line and trays <= 0) or moved <= 0 or moved > have:
         raise SystemExit(f"the free lines name {old}, but the order has {have} {old} tray(s) for them"
                          f"{f' (--free-item gives {gifted})' if gifted else ''} - fix the trays first")
     to = next((e for e in extras if e.get("id") == new), None)
-    had = int(to.get("qty") or 0) if to else 0
-    row["qty"] = have - moved
+    had = tray_qty(to.get("qty")) if to else 0
+    row["qty"] = tray_qty(have - moved)
     if to:
-        to["qty"] = had + moved
+        to["qty"] = tray_qty(had + moved)
     else:
         extras.append({"id": new, "qty": moved})
-    data["partyExtras"] = [e for e in extras if int(e.get("qty") or 0) > 0]
+    data["partyExtras"] = [e for e in extras if float(e.get("qty") or 0) > 0]
     delta = APPETIZER_PRICES[new] - APPETIZER_PRICES[old]
-    out = [f"free appetizer: {old} -> {new}, {moved} tray(s): partyExtras {old} {have} -> {have - moved}, {new} {had} -> {had + moved}"]
+    out = [f"free appetizer: {old} -> {new}, {moved} tray(s): partyExtras {old} {have} -> {tray_qty(have - moved)}, {new} {had} -> {tray_qty(had + moved)}"]
     for x, n in ([(line, trays)] if line else []) + same:
         was = float(x.get("amount") or 0)
         if x is line:
@@ -1928,11 +1941,12 @@ def cmd_order(a):
                 changes.append(f"free appetizer: TOTAL {money(was)} before and after (invoice engine)")
         if a.free_appetizer_trays is not None:
             # The free appetizer used to be one tray whatever the party size, so
-            # 21 people shared 10 gyoza (Annie Phan, 10/01). Owner 2026-10-01:
-            # give a tray per 10 guests. The promo line and the extras have to
-            # move together - the promo's amount includes the menu price of what
-            # it brings, so raising the trays without raising the amount would
-            # bill the customer for the gift.
+            # 21 people shared 10 gyoza (Annie Phan, 10/01). Since 2026-10-30 the
+            # engine gives it by the head on every save, so this is only for more
+            # than one each: below the rule the save brings it back up. The promo
+            # line and the extras have to move together - the promo's amount
+            # includes the menu price of what it brings, so raising the trays
+            # without raising the amount would bill the customer for the gift.
             want = max(1, int(a.free_appetizer_trays))
             promo = next((p for p in (data.get("promotions") or [])
                           if re.search(r"free appetizer|appetizer platter", str(p.get("label") or ""), re.I)), None)
@@ -1945,7 +1959,7 @@ def cmd_order(a):
             delta = 0.0
             for app_id in named:
                 row = next((e for e in extras if e.get("id") == app_id), None)
-                have = int(row.get("qty") or 0) if row else 0
+                have = tray_qty(row.get("qty")) if row else 0
                 if row:
                     row["qty"] = want
                 else:
@@ -2146,7 +2160,7 @@ def cmd_order(a):
                 app_id, n = m.group(1), int(m.group(2))
                 row = next((e for e in extras if e.get("id") == app_id), None)
                 if row:
-                    row["qty"] = int(row.get("qty") or 0) + n
+                    row["qty"] = tray_qty(tray_qty(row.get("qty")) + n)
                 else:
                     extras.append({"id": app_id, "qty": n})
                 label = APPETIZER_LABELS[app_id]
@@ -2179,7 +2193,7 @@ def cmd_order(a):
                     changes.append(f"setup: {app_id} {was} -> {n} guest(s) at {money(SETUP_PRICES[app_id])} each")
                     continue
                 if row:
-                    row["qty"] = int(row.get("qty") or 0) + n
+                    row["qty"] = tray_qty(tray_qty(row.get("qty")) + n)
                 else:
                     extras.append({"id": app_id, "qty": n})
                 unit = "serving(s)" if app_id in PROTEIN_SIDE_PRICES else "tray(s)"
@@ -2360,12 +2374,13 @@ def cmd_order(a):
                     if m:
                         app_id = m.group(1).strip().lower().replace(" ", "_")
                         extras = data.get("partyExtras") or []
+                        given = tray_qty(_weekday_appetizer(x, data) / APPETIZER_PRICES[app_id]) if app_id in APPETIZER_PRICES else 1
                         for ex in extras:
-                            if ex.get("id") == app_id and int(ex.get("qty") or 0) > 0:
-                                ex["qty"] = int(ex["qty"]) - 1
-                                changes.append(f"partyExtras: {app_id} qty -1 (was the weekday promo's free appetizer)")
+                            if ex.get("id") == app_id and float(ex.get("qty") or 0) > 0:
+                                ex["qty"] = tray_qty(tray_qty(ex["qty"]) - given)
+                                changes.append(f"partyExtras: {app_id} qty -{given} (was the weekday promo's free appetizer)")
                                 break
-                        data["partyExtras"] = [ex for ex in extras if int(ex.get("qty") or 0) > 0]
+                        data["partyExtras"] = [ex for ex in extras if float(ex.get("qty") or 0) > 0]
                 data["promotions"] = [x for x in promos if x not in weekday]
                 changes.append(f"promotions: removed {[x['id'] for x in weekday]} - {a.date} is not a weekday-special date")
             elif applies and not weekday:
@@ -2687,8 +2702,8 @@ def main(argv=None):
                    "page writes gyoza). Its trays and its promotion line (Weekday Special / 20+ guests / full setup, and --free-item lines of "
                    "the same tray) switch to it; the line moves by the trays' price difference, so the total stays the same.")
     p.add_argument("--free-appetizer-trays", type=int, metavar="N",
-                   help="how many trays the free-appetizer promo brings (owner 2026-10-01: one per 10 guests). "
-                        "Moves the promo's discount by the same amount, so the customer is not billed for it.")
+                   help="trays the free-appetizer promo brings, only for more than the engine's one each (by the head since 2026-10-30; "
+                        "less comes back up on the save). Moves the promo's discount by the same amount, so the customer is not billed for it.")
     p.add_argument("--proteins", nargs="+", action="extend", metavar="ID=N", help="protein counts when the customer texts totals instead of per-guest picks: "
                    "chicken=10 steak=10 shrimp=10 (N is adult servings; chicken=10/2 adds child servings). Switches the invoice to quick mode. "
                    "The menu only - the headcount is --headcount.")

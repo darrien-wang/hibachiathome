@@ -13,7 +13,7 @@
 | 5 岁以下 | 免费，不带蛋白（多带炒饭蔬菜或 butter noodles）。不主动说"没有蛋白"，问起小的吃什么答 `rice, veggies and butter noodles if they like` | 同左 |
 | 附赠 | 20 人以上送一份前菜 | 任何人数送一份前菜 |
 
-- **送的前菜**：一份三选一（gyoza / edamame / spring rolls），一盘全桌分，按每 10 位付费客人一盘；对客说 `a free appetizer of your choice (gyoza, edamame or spring rolls)`，不说 platter、不说值多少钱。20 人以上这份**不设截止日**（D-1021-01）。和周中那份不叠，都只算一份。订了全套桌椅 + 餐具也送一份（D-1007-06），不当卖点，客人订全套或犹豫时才说。
+- **送的前菜**：一份三选一（gyoza / edamame / spring rolls），**按人头给**（10-30 起）：到场的都算（大人、5–12 岁、5 岁以下免费的小孩），饺子、春卷每人 1 个，毛豆每 5 人一份（向上取整），不到一盘的小派对给满一盘。数量由发票引擎每次保存自动算，发票上按实际数量计价、优惠行等额抵消，总价不变，不用手动加盘。对客说 `a free appetizer of your choice (gyoza, edamame or spring rolls)`，不说 platter、不说值多少钱。20 人以上这份**不设截止日**（D-1021-01）。和周中那份不叠，都只算一份。订了全套桌椅 + 餐具也送一份（D-1007-06），不当卖点，客人订全套或犹豫时才说。
 - **节假日按周末价**：Labor Day、感恩节那周、12/20–1/3、Memorial Day、7/3–7/5（`WEEKDAY_SPECIAL_BLACKOUTS`）。
 - **最低消费 $599**：折后不低于 $599。付最低消费的小派对按 10 人的量做（`you're paying the 10-guest minimum, so I'll cook for 10`）；超过 10 人按人头加钱。
 - **人数折扣**（自动，任何一天）：付费人头（成人 1、5–12 岁 0.5）10–14 −$30 · 15–24 −$60 · 25–30 −$90 · 31–40 −$120 · 41–50 −$150 · 51–60 −$180 · 61+ 定制（`negotiation.md`）。

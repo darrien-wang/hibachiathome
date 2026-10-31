@@ -117,8 +117,9 @@ export async function GET(request: Request) {
       // Owner 2026-10-06: the price only - tax is on the invoice, not in the quote.
       total: est.total,
       // 2026-09-22: one appetizer of the customer's choice, not a 3-item platter.
+      // 2026-10-30: by the head, not by the tray (the invoice engine's freeAppetizerQty).
       freeAppetizer: platter
-        ? `One free appetizer of your choice (${WEEKDAY_SPECIAL.appetizerPlatter.detail}), one tray for the table to share; gyoza if you don't choose`
+        ? `One free appetizer of your choice (${WEEKDAY_SPECIAL.appetizerPlatter.detail}), one piece per guest (edamame: a serving per 5 guests); gyoza if you don't choose`
         : null,
     }
   }
